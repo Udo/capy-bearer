@@ -1,0 +1,29 @@
+struct Named {
+    name : string
+}
+
+function identity(value : any) value::type {
+    value
+}
+
+function choose(value : any) value::type {
+    value
+}
+
+function choose(value : s32) value::type {
+    value + 1
+}
+
+function countdown(value : any) value::type {
+    if value == 0 {
+        return value
+    }
+    return countdown(value - 1)
+}
+
+function CLI {
+    print(identity(7), "|", identity(clone("generic")), "|")
+    print(choose(4), "|", choose(clone("fallback")), "|")
+    print(identity([1, 2])[1], "|", identity(Named(clone("name"))).name, "|")
+    print(countdown(3), "|", arc_live())
+}

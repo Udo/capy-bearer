@@ -508,9 +508,13 @@ class Parser:
     def parameters(self, expression: Expr) -> list[Parameter]:
         expressions = expression.items if isinstance(expression, TupleExpr) else [expression]
         result: list[Parameter] = []
+        names: set[str] = set()
         for item in expressions:
             if not isinstance(item, Annotation) or not isinstance(item.value, Name):
                 raise CapyError(item.location, "function parameter expression must contain name:type annotations")
+            if item.value.value in names:
+                raise CapyError(item.location, f"function parameter {item.value.value!r} is already declared")
+            names.add(item.value.value)
             result.append(Parameter(item.value.value, item.type_expr))
         return result
 

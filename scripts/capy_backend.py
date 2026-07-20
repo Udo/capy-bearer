@@ -88,6 +88,13 @@ def capy_type(expression: Expr | None, location: Location, allow_void: bool = Fa
 
 
 @dataclass
+class GenericDefinition:
+    function: Function
+    parameter_patterns: tuple[str | None, ...]
+    dependent_result: int
+
+
+@dataclass
 class CompiledDefinition:
     function: Function
     parameter_types: tuple[str, ...]
@@ -574,6 +581,7 @@ class CapyModuleCompiler:
         self.data = bytearray()
         self.definitions: list[CompiledDefinition] = []
         self.functions: dict[FunctionKey, CompiledDefinition] = {}
+        self.generics: dict[str, list[GenericDefinition]] = {}
         self.structs: dict[str, tuple[int, list[tuple[str, str]]]] = {}
         self.types: list[tuple[tuple[str, ...], str]] = []
         self.type_indices: dict[tuple[tuple[str, ...], str], int] = {}
@@ -631,12 +639,21 @@ class CapyModuleCompiler:
             if isinstance(item, Function):
                 if item.name in self.structs:
                     raise CapyError(item.location, f"function name {item.name!r} conflicts with a struct constructor")
-                parameter_types = tuple(capy_type(parameter.type_expr, item.location) for parameter in item.parameters)
-                for parameter_type in parameter_types:
+                parameter_patterns = tuple(
+                    None if isinstance(parameter.type_expr, Name) and parameter.type_expr.value == "any"
+                    else capy_type(parameter.type_expr, item.location)
+                    for parameter in item.parameters
+                )
+                concrete_parameters = tuple(value_type for value_type in parameter_patterns if value_type is not None)
+                for parameter_type in concrete_parameters:
                     validate_type(parameter_type, item.location)
                     if parameter_type == "void":
                         raise CapyError(item.location, "function parameters cannot have type void")
+                is_generic = len(concrete_parameters) != len(parameter_patterns)
                 if item.name in HANDLER_EXPORTS:
+                    if is_generic:
+                        raise CapyError(item.location, "Bearer handlers cannot use any parameters")
+                    parameter_types = tuple(concrete_parameters)
                     if len(item.parameters) > 1:
                         raise CapyError(item.location, "Bearer handler accepts zero parameters or one request parameter")
                     if parameter_types and parameter_types != ("request",):
@@ -647,13 +664,38 @@ class CapyModuleCompiler:
                         raise CapyError(item.location, f"Bearer handler {item.name} is already declared at {first.line}:{first.column}; handlers cannot be overloaded")
                     seen_handlers[export_name] = item.location
                     definition = CompiledDefinition(item, parameter_types, "void", export_name)
+                    self.definitions.append(definition)
+                elif is_generic:
+                    dependent_result = -1
+                    if item.return_type is None:
+                        result_type = "void"
+                    elif isinstance(item.return_type, ScopeLookup) and isinstance(item.return_type.value, Name) and item.return_type.member == "type":
+                        names = [parameter.name for parameter in item.parameters]
+                        if item.return_type.value.value not in names:
+                            raise CapyError(item.return_type.location, "dependent result names an unknown parameter")
+                        dependent_result = names.index(item.return_type.value.value)
+                        result_type = "void"
+                    else:
+                        result_type = capy_type(item.return_type, item.location)
+                        if result_type != "void":
+                            raise CapyError(item.location, "generic results must be void or use x::type")
+                    self.generics.setdefault(item.name, []).append(GenericDefinition(item, parameter_patterns, dependent_result))
                 else:
-                    result_type = capy_type(item.return_type, item.location)
+                    parameter_types = tuple(concrete_parameters)
+                    if item.return_type is None:
+                        result_type = "void"
+                    elif isinstance(item.return_type, ScopeLookup) and isinstance(item.return_type.value, Name) and item.return_type.member == "type":
+                        names = [parameter.name for parameter in item.parameters]
+                        if item.return_type.value.value not in names:
+                            raise CapyError(item.return_type.location, "dependent result names an unknown parameter")
+                        result_type = parameter_types[names.index(item.return_type.value.value)]
+                    else:
+                        result_type = capy_type(item.return_type, item.location)
                     validate_type(result_type, item.location)
                     definition = CompiledDefinition(item, parameter_types, result_type, None)
                     key = FunctionKey(item.name, parameter_types)
                     self.functions[key] = definition
-                self.definitions.append(definition)
+                    self.definitions.append(definition)
             elif isinstance(item, Struct):
                 continue
             elif isinstance(item, Variable):
@@ -670,10 +712,31 @@ class CapyModuleCompiler:
 
     def resolve_function(self, name: str, parameters: tuple[str, ...], location: Location) -> CompiledDefinition:
         key = FunctionKey(name, parameters)
-        if key not in self.functions:
+        if key in self.functions:
+            return self.functions[key]
+        candidates = [
+            generic for generic in self.generics.get(name, [])
+            if len(generic.parameter_patterns) == len(parameters) and all(
+                pattern is None or pattern == actual
+                for pattern, actual in zip(generic.parameter_patterns, parameters)
+            )
+        ]
+        if not candidates:
             rendered = ", ".join(parameters)
             raise CapyError(location, f"no overload {name}({rendered})")
-        return self.functions[key]
+        best_rank = max(sum(pattern is not None for pattern in candidate.parameter_patterns) for candidate in candidates)
+        best = [candidate for candidate in candidates if sum(pattern is not None for pattern in candidate.parameter_patterns) == best_rank]
+        if len(best) != 1:
+            rendered = ", ".join(parameters)
+            raise CapyError(location, f"ambiguous generic overload {name}({rendered})")
+        generic = best[0]
+        result_type = parameters[generic.dependent_result] if generic.dependent_result >= 0 else "void"
+        definition = CompiledDefinition(generic.function, parameters, result_type, None)
+        definition.function_index = 7 + len(self.definitions)
+        definition.type_index = self.wasm_type(parameters, result_type)
+        self.functions[key] = definition
+        self.definitions.append(definition)
+        return definition
 
     def runtime_bodies(self) -> list[bytes]:
         def body(locals_prefix: bytes, code: bytes) -> bytes:
@@ -736,7 +799,11 @@ class CapyModuleCompiler:
             definition.function_index = 7 + index
             wasm_parameters = ("s32",) if definition.export_name else definition.parameter_types
             definition.type_index = self.wasm_type(wasm_parameters, definition.result_type)
-        bodies = self.runtime_bodies() + [WasmFunctionCompiler(self, definition).compile_body() for definition in self.definitions]
+        bodies = self.runtime_bodies()
+        definition_index = 0
+        while definition_index < len(self.definitions):
+            bodies.append(WasmFunctionCompiler(self, self.definitions[definition_index]).compile_body())
+            definition_index += 1
 
         def encode_type(signature: tuple[tuple[str, ...], str]) -> bytes:
             parameters, result = signature

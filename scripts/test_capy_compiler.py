@@ -10,6 +10,7 @@ from capy_compiler import (
     Annotation,
     Binary,
     CapyError,
+    CapyModuleCompiler,
     DeclarationIndex,
     Function,
     Name,
@@ -123,6 +124,43 @@ class LexerParserTests(unittest.TestCase):
     def test_unterminated_string_has_source_location(self):
         with self.assertRaisesRegex(CapyError, r"bad.capy:1:1: unterminated string"):
             parse('"broken', "bad.capy")
+
+    def test_duplicate_parameter_names_are_rejected(self):
+        with self.assertRaisesRegex(CapyError, "function parameter 'value' is already declared"):
+            parse('function bad(value : any, value : any) value::type { value }\n', "duplicate-parameter.capy")
+
+    def test_any_specializations_are_cached_by_concrete_parameter_types(self):
+        program = parse(
+            'function identity(value : any) value::type { value }\n'
+            'function CLI { print(identity(1), identity(2), identity(clone("x"))) }\n',
+            "generic.capy",
+        )
+        module = CapyModuleCompiler(program, "generic.capy", "generic.wasm", 9)
+        module.compile()
+        specializations = [
+            definition.parameter_types for definition in module.definitions
+            if definition.function.name == "identity"
+        ]
+        self.assertEqual(specializations, [("s32",), ("string",)])
+
+    def test_any_specialization_validates_operators_for_concrete_type(self):
+        program = parse(
+            'function square(value : any) value::type { value * value }\n'
+            'function CLI { print(square(clone("x"))) }\n',
+            "generic-operator.capy",
+        )
+        with self.assertRaisesRegex(CapyError, "expected s32, found string"):
+            compile_bearer_unit(program, "generic-operator.capy", "generic-operator.wasm", 9)
+
+    def test_equally_ranked_generic_overloads_are_ambiguous(self):
+        program = parse(
+            'function choose(a : any, b : s32) a::type { a }\n'
+            'function choose(a : s32, b : any) b::type { b }\n'
+            'function CLI { print(choose(1, 2)) }\n',
+            "ambiguous.capy",
+        )
+        with self.assertRaisesRegex(CapyError, "ambiguous generic overload choose"):
+            compile_bearer_unit(program, "ambiguous.capy", "ambiguous.wasm", 9)
 
     def test_array_and_managed_struct_program_compiles(self):
         program = parse(
