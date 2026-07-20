@@ -133,8 +133,14 @@ class WasmFunctionCompiler:
                 return scope[name.value]
         raise CapyError(name.location, f"unknown local {name.value!r}")
 
+    def lookup_optional(self, name: str) -> tuple[int, str] | None:
+        for scope in reversed(self.scopes):
+            if name in scope:
+                return scope[name]
+        return None
+
     def allocate_local(self, value_type: str, location: Location) -> int:
-        if value_type not in SCALAR_TYPES | {"string"} and not value_type.startswith(("array<", "struct:", "tuple<")):
+        if value_type not in SCALAR_TYPES | {"string"} and not value_type.startswith(("array<", "struct:", "tuple<", "function#")):
             raise CapyError(location, f"phase-1 local type {value_type!r} is unsupported")
         index = self.parameter_count + self.local_count
         self.local_count += 1
@@ -231,6 +237,9 @@ class WasmFunctionCompiler:
         if isinstance(expression, Member):
             return managed_type(self.infer_expr_type(expression)) and self.expression_is_owned(expression.value)
         if isinstance(expression, Call) and isinstance(expression.function, Name):
+            local_function = self.lookup_optional(expression.function.value)
+            if local_function and local_function[1].startswith("function#"):
+                return managed_type(self.module.function_value_signatures[local_function[1]][1])
             if expression.function.value in self.module.structs:
                 return True
             if expression.function.value == "clone":
@@ -279,15 +288,31 @@ class WasmFunctionCompiler:
                 if member_name == expression.member:
                     return member_type
             raise CapyError(expression.location, f"struct {value_type[7:]!r} has no member {expression.member!r}")
+        if isinstance(expression, Cast):
+            source_type = self.infer_expr_type(expression.value)
+            target_type = capy_type(expression.target_type, expression.location)
+            if source_type not in SCALAR_TYPES or target_type not in SCALAR_TYPES:
+                raise CapyError(expression.location, f"no explicit conversion from {source_type} to {target_type}")
+            return target_type
         if isinstance(expression, Name):
             if expression.value in {"true", "false"}:
                 return "bool"
-            return self.lookup(expression)[1]
+            local = self.lookup_optional(expression.value)
+            if local:
+                return local[1]
+            return self.module.reference_function(expression.value, expression.location)[0]
         if isinstance(expression, Binary):
             if expression.operator in {"==", "!=", "<", ">", "<=", ">="}:
                 return "bool"
             return self.infer_expr_type(expression.right if expression.operator == "=" else expression.left)
         if isinstance(expression, Call) and isinstance(expression.function, Name):
+            local_function = self.lookup_optional(expression.function.value)
+            if local_function and local_function[1].startswith("function#"):
+                parameters, result_type = self.module.function_value_signatures[local_function[1]]
+                actual = tuple(self.infer_expr_type(argument) for argument in expression.arguments)
+                if actual != parameters:
+                    raise CapyError(expression.location, f"function value expects ({', '.join(parameters)}), found ({', '.join(actual)})")
+                return result_type
             if expression.function.value in self.module.structs:
                 return f"struct:{expression.function.value}"
             if expression.function.value == "print":
@@ -423,11 +448,23 @@ class WasmFunctionCompiler:
                 code.extend(b"\x20" + uleb(object_local) + b"\x10" + uleb(self.module.release_index))
                 code.extend(b"\x20" + uleb(result_local))
             return bytes(code), member_type
+        if isinstance(expression, Cast):
+            value_code, source_type = self.compile_expr(expression.value)
+            target_type = capy_type(expression.target_type, expression.location)
+            if source_type not in SCALAR_TYPES or target_type not in SCALAR_TYPES:
+                raise CapyError(expression.location, f"no explicit conversion from {source_type} to {target_type}")
+            if target_type == "bool" and source_type != "bool":
+                value_code += b"\x45\x45"
+            return value_code, target_type
         if isinstance(expression, Name):
             if expression.value in {"true", "false"}:
                 return b"\x41" + sleb32(1 if expression.value == "true" else 0), "bool"
-            index, value_type = self.lookup(expression)
-            return b"\x20" + uleb(index), value_type
+            local = self.lookup_optional(expression.value)
+            if local:
+                index, value_type = local
+                return b"\x20" + uleb(index), value_type
+            value_type, table_slot = self.module.reference_function(expression.value, expression.location)
+            return b"\x41" + sleb32(table_slot), value_type
         if isinstance(expression, Variable):
             value_code, value_type = self.compile_expr(expression.value)
             declared = capy_type(expression.annotation, expression.location) if expression.annotation else value_type
@@ -473,6 +510,28 @@ class WasmFunctionCompiler:
         if isinstance(expression, Call):
             if not isinstance(expression.function, Name):
                 raise CapyError(expression.function.location, "phase-1 calls require a named function")
+            local_function = self.lookup_optional(expression.function.value)
+            if local_function and local_function[1].startswith("function#"):
+                parameters, result_type = self.module.function_value_signatures[local_function[1]]
+                arguments = [self.compile_expr(argument) for argument in expression.arguments]
+                actual = tuple(value_type for _, value_type in arguments)
+                if actual != parameters:
+                    raise CapyError(expression.location, f"function value expects ({', '.join(parameters)}), found ({', '.join(actual)})")
+                code = bytearray()
+                owned_argument_locals: list[int] = []
+                for source_expression, (argument_code, argument_type) in zip(expression.arguments, arguments):
+                    if managed_type(argument_type) and self.expression_is_owned(source_expression):
+                        temporary = self.allocate_local(argument_type, source_expression.location)
+                        code.extend(argument_code + b"\x21" + uleb(temporary) + b"\x20" + uleb(temporary))
+                        owned_argument_locals.append(temporary)
+                    else:
+                        code.extend(argument_code)
+                code.extend(b"\x20" + uleb(local_function[0]))
+                type_index = int(local_function[1][9:])
+                code.extend(b"\x11" + uleb(type_index) + b"\x00")
+                for temporary in reversed(owned_argument_locals):
+                    code.extend(b"\x20" + uleb(temporary) + b"\x10" + uleb(self.module.release_index))
+                return bytes(code), result_type
             if expression.function.value in self.module.structs:
                 type_id, members = self.module.structs[expression.function.value]
                 if len(expression.arguments) != len(members):
@@ -639,6 +698,8 @@ class CapyModuleCompiler:
         self.generics: dict[str, list[GenericDefinition]] = {}
         self.structs: dict[str, tuple[int, list[tuple[str, str]]]] = {}
         self.tuples: dict[str, tuple[int, tuple[str, ...]]] = {}
+        self.function_value_signatures: dict[str, tuple[tuple[str, ...], str]] = {}
+        self.table_slots: dict[FunctionKey, int] = {}
         self.types: list[tuple[tuple[str, ...], str]] = []
         self.type_indices: dict[tuple[tuple[str, ...], str], int] = {}
         self.retain_index = 4
@@ -669,6 +730,21 @@ class CapyModuleCompiler:
             self.register_tuple(element_types)
             for item in expression.items:
                 self.register_type_expression(item)
+
+    def reference_function(self, name: str, location: Location) -> tuple[str, int]:
+        if name in self.generics:
+            raise CapyError(location, f"generic function value {name!r} requires an explicit concrete function type")
+        candidates = [(key, definition) for key, definition in self.functions.items() if key.name == name]
+        if not candidates:
+            raise CapyError(location, f"unknown local {name!r}")
+        if len(candidates) != 1:
+            raise CapyError(location, f"function value {name!r} requires exactly one concrete overload; found more than one overload")
+        key, definition = candidates[0]
+        value_type = f"function#{definition.type_index}"
+        self.function_value_signatures[value_type] = (definition.parameter_types, definition.result_type)
+        if key not in self.table_slots:
+            self.table_slots[key] = len(self.table_slots)
+        return value_type, self.table_slots[key]
 
     def wasm_type(self, parameters: tuple[str, ...], result: str) -> int:
         key = (parameters, result)
@@ -923,6 +999,12 @@ class CapyModuleCompiler:
         ).encode("utf-8")
         module_name_payload = wasm_string(self.module_name)
         name_section = b"\x00" + uleb(len(module_name_payload)) + module_name_payload
+        table_sections: list[bytes] = []
+        if self.table_slots:
+            table_sections.append(wasm_section(4, wasm_vector([b"\x70\x00" + uleb(len(self.table_slots))])))
+            ordered_keys = [key for key, _ in sorted(self.table_slots.items(), key=lambda item: item[1])]
+            element = b"\x00\x41\x00\x0b" + wasm_vector([uleb(self.functions[key].function_index) for key in ordered_keys])
+            table_sections.append(wasm_section(9, wasm_vector([element])))
         wasm = b"\x00asm\x01\x00\x00\x00" + b"".join([
             wasm_custom("dylink.0", b"\x01" + uleb(len(mem_info)) + mem_info),
             wasm_section(1, wasm_vector([encode_type(signature) for signature in self.types])),
@@ -931,8 +1013,10 @@ class CapyModuleCompiler:
                 uleb(retain_type), uleb(retain_type), uleb(clone_type),
                 *[uleb(definition.type_index) for definition in self.definitions],
             ])),
+            *table_sections[:1],
             wasm_section(6, wasm_vector([b"\x7f\x01\x41\x00\x0b"])),
             wasm_section(7, wasm_vector(exports)),
+            *table_sections[1:],
             wasm_section(10, wasm_vector(bodies)),
             wasm_section(11, wasm_vector([data_segment])),
             wasm_custom("name", name_section),

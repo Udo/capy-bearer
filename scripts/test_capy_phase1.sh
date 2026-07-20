@@ -23,7 +23,7 @@ language_output=$(scripts/bearer-cli /tests/capy-language.capy)
 	exit 1
 }
 phase3_output=$(scripts/bearer-cli /tests/capy-phase3.capy)
-[[ "$phase3_output" == "7|generic|5|fallback|2|name|9tuple|2|tuple|0|tuple|0|tuple|3|innerouter|4|temporary|0|nested|0|0|0" ]] || {
+[[ "$phase3_output" == "7|generic|5|fallback|2|name|9tuple|2|tuple|0|tuple|0|tuple|3|innerouter|4|temporary|0|nested|0|5-1tuple|0|0|011|0" ]] || {
 	echo "Capy generic specialization output mismatch: $phase3_output" >&2
 	exit 1
 }

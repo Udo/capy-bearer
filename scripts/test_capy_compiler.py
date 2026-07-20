@@ -139,6 +139,33 @@ class LexerParserTests(unittest.TestCase):
         with self.assertRaisesRegex(CapyError, "function parameter 'value' is already declared"):
             parse('function bad(value : any, value : any) value::type { value }\n', "duplicate-parameter.capy")
 
+    def test_generic_function_value_is_not_inferred_from_prior_specialization(self):
+        program = parse(
+            'function identity(x : any) x::type { x }\n'
+            'function CLI { print(identity(1)); var selected := identity }\n',
+            "generic-function-value.capy",
+        )
+        with self.assertRaisesRegex(CapyError, "generic function value 'identity' requires an explicit concrete function type"):
+            compile_bearer_unit(program, "generic-function-value.capy", "generic-function-value.wasm", 9)
+
+    def test_function_value_requires_one_concrete_overload(self):
+        program = parse(
+            'function value(x : s32) s32 { x }\n'
+            'function value(x : bool) bool { x }\n'
+            'function CLI { var selected := value }\n',
+            "function-value.capy",
+        )
+        with self.assertRaisesRegex(CapyError, "function value 'value' requires exactly one concrete overload"):
+            compile_bearer_unit(program, "function-value.capy", "function-value.wasm", 9)
+
+    def test_explicit_scalar_casts_and_invalid_managed_cast(self):
+        program = parse('function CLI { print(0 as bool, true as s32, (1 + 0) as bool) }\n', "casts.capy")
+        wasm, _ = compile_bearer_unit(program, "casts.capy", "casts.wasm", 9)
+        self.assertTrue(wasm.startswith(b"\0asm"))
+        invalid = parse('function CLI { print("x" as s32) }\n', "bad-cast.capy")
+        with self.assertRaisesRegex(CapyError, "no explicit conversion from string to s32"):
+            compile_bearer_unit(invalid, "bad-cast.capy", "bad-cast.wasm", 9)
+
     def test_tuple_index_must_be_static_and_in_bounds(self):
         dynamic = parse('function CLI { var pair := (1, 2); print(pair[1 + 0]) }\n', "tuple-dynamic.capy")
         with self.assertRaisesRegex(CapyError, "tuple index must be a compile-time integer"):

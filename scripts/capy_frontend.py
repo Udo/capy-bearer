@@ -195,6 +195,12 @@ class Binary(Expr):
 
 
 @dataclass
+class Cast(Expr):
+    value: Expr
+    target_type: Expr
+
+
+@dataclass
 class ScopeLookup(Expr):
     value: Expr
     member: str
@@ -295,6 +301,7 @@ class Parser:
         "!=": 35,
         "<": 40,
         "<=": 40,
+        "as": 45,
         ">": 40,
         ">=": 40,
         "+": 50,
@@ -390,6 +397,9 @@ class Parser:
                 # A type annotation occupies one expression slot; a following
                 # grouped expression belongs to the next declaration slot.
                 return Annotation(operator.location, left, self.expression(81))
+            if operator.text == "as":
+                left = Cast(operator.location, left, self.expression(81))
+                continue
             right = self.expression(precedence + (0 if operator.text in {"=", ":="} else 1))
             left = Binary(operator.location, operator.text, left, right)
         return left
