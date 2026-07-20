@@ -79,13 +79,13 @@ The first direct-Wasm backend emits:
 - imports of `env.memory`, `env.__memory_base`, and the stable `env.bearer_print_bytes` byte-span output function;
 - `bearer.abi` and `bearer.module` custom sections;
 - a matching `BEARER_SOURCE_MAP_V1` sidecar;
-- no WASI imports and no private allocator.
+- no WASI imports; dynamic values use Bearer’s workspace allocator.
 
-Compiler generation c15 adds `.capy` discovery and compilation while retaining core ABI w8. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator.
+Compiler generation c16 uses core ABI w9. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
 
 ## Automatic reference counting
 
-Dynamic Capy values use non-atomic, workspace-local automatic reference counting. Bearer workspace destruction is the final reclamation boundary, including after traps. The first implemented managed type is `string`; arrays, managed structs/tuples, closures, and weak handles will reuse the same header and generated drop-glue contract.
+Dynamic Capy values use non-atomic, workspace-local automatic reference counting. Bearer workspace destruction is the final reclamation boundary, including after traps. Managed strings, arrays, and nominal structs are implemented; managed tuples, closures, and weak handles will reuse the same header and generated drop-glue contract.
 
 Managed object header, 16 bytes and 8-byte aligned:
 
@@ -112,7 +112,7 @@ Rules:
 - traps skip cleanup safely because the complete workspace is discarded;
 - ARC does not collect strong cycles. `weak<T>` will support deliberate back-references; remaining strong cycles persist only until workspace teardown.
 
-Current string lowering imports Bearer’s workspace allocator/free functions and emits private retain, release, and clone helpers into each Capy module. Allocation failure traps before any header or payload write. Literal strings are aligned immortal objects. Managed parameters are borrowed, string results are owned, assignments retain-before-release, owned argument temporaries are released after calls, and every normal lexical/early-return edge emits cleanup. `arc_live()` is a temporary conformance counter; trapping requests intentionally skip releases and prove that the next workspace starts clean.
+Current managed-value lowering imports Bearer’s workspace allocator/free functions and emits private retain, release, clone, and type-directed drop helpers into each Capy module. Allocation failure traps before any header or payload write. Literal strings are aligned immortal objects. Managed parameters are borrowed and cannot be rebound; managed results are owned; assignments retain-before-release; owned argument temporaries are released after calls; and every supported normal lexical/early-return edge emits cleanup. Arrays use `[T]` in type slots, bounds-check indexing, support array iteration, and currently accept scalar or string elements. Nominal structs use declaration-order constructors and checked member names. String-array and struct drop glue recursively releases managed fields before freeing the aggregate. `arc_live()` is a temporary conformance counter; trapping requests intentionally skip releases and prove that the next workspace starts clean.
 
 Capy values never expose their object layout to C++. Dynamic cross-language values use owned/copied DValue/BRRB adapters at the Bearer membrane.
 
@@ -122,4 +122,4 @@ Capy values never expose their object layout to C++. Dynamic cross-language valu
 
 ## Current implementation boundary
 
-The current phase-1 slice includes the lexer, expression parser, exact parameter overload index, bounded diagnostics, direct Wasm encoding, `.capy` artifact integration, and real Bearer CLI/HTTP execution. Scalar `s32`/`bool` locals, assignment, arithmetic/comparison, direct overloaded function calls, `if`, `while`, exclusive ranges, variadic printing, explicit returns, and inferred local declarations execute as native Wasm. Strings remain literal-only and structs, ARC values, full inference, tuples, Capy/C++ calls, and phase-3 polymorphism are not implemented yet. The authoritative remaining work is tracked in `/root/docs/work/capy-compiler.md`.
+The current implementation includes the lexer, expression parser, exact parameter overload index, bounded diagnostics, direct Wasm encoding, `.capy` artifact integration, and real Bearer CLI/HTTP execution. Scalar control flow plus ARC strings, arrays, and nominal structs execute as native Wasm. Managed tuples, weak references, closures/function values, DValue adapters, Capy/C++ calls, full inference, and phase-3 polymorphism remain open. The authoritative remaining work is tracked in `/root/docs/work/capy-compiler.md`.

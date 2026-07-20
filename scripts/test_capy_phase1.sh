@@ -23,7 +23,7 @@ language_output=$(scripts/bearer-cli /tests/capy-language.capy)
 	exit 1
 }
 arc_output=$(scripts/bearer-cli /tests/capy-arc.capy)
-expected_arc='alphaalpha|1|1|1|betaalpha|2|betaalphaalphabeta|3|tempz|4|double|5|nested|6|5|0'
+expected_arc='first|0|alphaalpha|1|1|1|789|1|8|2|4|1|12|3|ownedtwo|4|temp|1|picked|1|4|2|pair42|3|pair|6|inside|9|field|1|betaalpha|2|betaalphaalphabeta|3|tempz|4|double|5|nested|6|5|0'
 [[ "$arc_output" == "$expected_arc" ]] || {
 	echo "Capy ARC ownership output mismatch: $arc_output" >&2
 	exit 1
@@ -48,6 +48,20 @@ set -e
 	echo "Capy ARC workspace did not reset after a trapping request" >&2
 	exit 1
 }
+for array_trap in capy-array-trap capy-array-negative-trap; do
+	set +e
+	array_trap_output=$(scripts/bearer-cli "/tests/$array_trap.capy" 2>&1)
+	array_trap_status=$?
+	set -e
+	[[ $array_trap_status -ne 0 && "$array_trap_output" == *"$array_trap.capy:1"* ]] || {
+		echo "Capy array bounds trap/source mapping mismatch: fixture=$array_trap status=$array_trap_status output=$array_trap_output" >&2
+		exit 1
+	}
+	[[ "$(scripts/bearer-cli /tests/capy-arc.capy)" == "$expected_arc" ]] || {
+		echo "Capy ARC workspace did not reset after array bounds trap $array_trap" >&2
+		exit 1
+	}
+done
 render_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-render.capy)
 [[ "$render_output" == "capy-render-ok" ]] || {
 	echo "Capy HTTP RENDER output mismatch: $render_output" >&2

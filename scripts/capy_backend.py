@@ -52,6 +52,12 @@ def wasm_custom(name: str, payload: bytes) -> bytes:
 
 
 SCALAR_TYPES = {"s32", "bool"}
+
+
+def managed_type(value_type: str) -> bool:
+    return value_type == "string" or value_type.startswith(("array<", "struct:"))
+
+
 HANDLER_EXPORTS = {
     "RENDER": "__bearer_render",
     "CLI": "__bearer_cli",
@@ -66,12 +72,19 @@ def capy_type(expression: Expr | None, location: Location, allow_void: bool = Fa
         if allow_void:
             return "void"
         raise CapyError(location, "function return type cannot be inferred yet; declare it explicitly")
+    if isinstance(expression, ArrayLiteral):
+        if len(expression.items) != 1:
+            raise CapyError(expression.location, "array type requires exactly one element type")
+        element_type = capy_type(expression.items[0], expression.location)
+        if element_type not in SCALAR_TYPES | {"string"}:
+            raise CapyError(expression.location, f"array element type {element_type!r} is unsupported")
+        return f"array<{element_type}>"
     name = type_name(expression)
     if name == "any" or "::type" in name:
         raise CapyError(expression.location, "compile-time any and dependent result types are reserved for phase 3")
-    if name not in SCALAR_TYPES | {"string", "request", "void"}:
-        raise CapyError(expression.location, f"phase-1 backend does not yet support type {name!r}")
-    return name
+    if name in SCALAR_TYPES | {"string", "request", "void"}:
+        return name
+    return f"struct:{name}"
 
 
 @dataclass
@@ -92,7 +105,7 @@ class WasmFunctionCompiler:
         self.owned_scopes: list[list[tuple[int, str]]] = [[]]
         self.parameter_count = 1 if definition.export_name else len(definition.parameter_types)
         self.local_count = 0
-        self.borrowed_managed_parameters: set[int] = set()
+        self.borrowed_managed_slots: set[int] = set()
         if definition.export_name:
             if len(definition.function.parameters) == 1:
                 parameter = definition.function.parameters[0]
@@ -100,8 +113,8 @@ class WasmFunctionCompiler:
         else:
             for index, parameter in enumerate(definition.function.parameters):
                 self.scopes[0][parameter.name] = (index, definition.parameter_types[index])
-                if definition.parameter_types[index] == "string":
-                    self.borrowed_managed_parameters.add(index)
+                if managed_type(definition.parameter_types[index]):
+                    self.borrowed_managed_slots.add(index)
 
     def lookup(self, name: Name) -> tuple[int, str]:
         for scope in reversed(self.scopes):
@@ -110,7 +123,7 @@ class WasmFunctionCompiler:
         raise CapyError(name.location, f"unknown local {name.value!r}")
 
     def allocate_local(self, value_type: str, location: Location) -> int:
-        if value_type not in SCALAR_TYPES | {"string"}:
+        if value_type not in SCALAR_TYPES | {"string"} and not value_type.startswith(("array<", "struct:")):
             raise CapyError(location, f"phase-1 local type {value_type!r} is unsupported")
         index = self.parameter_count + self.local_count
         self.local_count += 1
@@ -141,8 +154,8 @@ class WasmFunctionCompiler:
         for index, expression in enumerate(block.items):
             is_last = index == len(block.items) - 1
             expression_code, result_type = self.compile_expr(expression)
-            if result_type == "string" and is_last and expected_result == "string":
-                result_local = self.allocate_local("string", expression.location)
+            if managed_type(result_type) and is_last and expected_result == result_type:
+                result_local = self.allocate_local(result_type, expression.location)
                 code.extend(expression_code + b"\x21" + uleb(result_local))
                 if not self.expression_is_owned(expression):
                     code.extend(b"\x20" + uleb(result_local) + b"\x10" + uleb(self.module.retain_index))
@@ -156,13 +169,13 @@ class WasmFunctionCompiler:
                         self.require_type(expression.location, expected_result, result_type)
                         produced_result = True
                     else:
-                        if result_type == "string" and self.expression_is_owned(expression):
+                        if managed_type(result_type) and self.expression_is_owned(expression):
                             code.extend(b"\x10" + uleb(self.module.release_index))
                         else:
                             code.append(0x1A)  # drop
         if expected_result != "void" and not produced_result and not self.block_guarantees_return(block):
             raise CapyError(block.location, f"not all paths produce {expected_result}")
-        if not (expected_result == "string" and block.items):
+        if not (managed_type(expected_result) and block.items):
             code.extend(self.cleanup_scope())
         self.owned_scopes.pop()
         self.scopes.pop()
@@ -187,7 +200,7 @@ class WasmFunctionCompiler:
     def cleanup_scope(self) -> bytes:
         code = bytearray()
         for local, value_type in reversed(self.owned_scopes[-1]):
-            if value_type == "string":
+            if managed_type(value_type):
                 code.extend(b"\x20" + uleb(local) + b"\x10" + uleb(self.module.release_index))
         return bytes(code)
 
@@ -195,17 +208,25 @@ class WasmFunctionCompiler:
         code = bytearray()
         for scope in reversed(self.owned_scopes):
             for local, value_type in reversed(scope):
-                if value_type == "string":
+                if managed_type(value_type):
                     code.extend(b"\x20" + uleb(local) + b"\x10" + uleb(self.module.release_index))
         return bytes(code)
 
     def expression_is_owned(self, expression: Expr) -> bool:
+        if isinstance(expression, ArrayLiteral):
+            return True
+        if isinstance(expression, Index):
+            return managed_type(self.infer_expr_type(expression)) and self.expression_is_owned(expression.value)
+        if isinstance(expression, Member):
+            return managed_type(self.infer_expr_type(expression)) and self.expression_is_owned(expression.value)
         if isinstance(expression, Call) and isinstance(expression.function, Name):
+            if expression.function.value in self.module.structs:
+                return True
             if expression.function.value == "clone":
                 return True
             argument_types = tuple(self.infer_expr_type(argument) for argument in expression.arguments)
             target = self.module.functions.get(FunctionKey(expression.function.value, argument_types))
-            return bool(target and target.result_type == "string")
+            return bool(target and managed_type(target.result_type))
         return False
 
     def infer_expr_type(self, expression: Expr) -> str:
@@ -213,6 +234,29 @@ class WasmFunctionCompiler:
             return "string"
         if isinstance(expression, Integer):
             return "s32"
+        if isinstance(expression, ArrayLiteral):
+            if not expression.items:
+                raise CapyError(expression.location, "empty array literal needs an explicit element type")
+            element_types = [self.infer_expr_type(item) for item in expression.items]
+            if any(item != element_types[0] for item in element_types[1:]):
+                raise CapyError(expression.location, "array literal elements must have one type")
+            if element_types[0] not in SCALAR_TYPES | {"string"}:
+                raise CapyError(expression.location, "array elements must be scalar or string")
+            return f"array<{element_types[0]}>"
+        if isinstance(expression, Index):
+            value_type = self.infer_expr_type(expression.value)
+            if not value_type.startswith("array<"):
+                raise CapyError(expression.location, "indexing requires an array")
+            return value_type[6:-1]
+        if isinstance(expression, Member):
+            value_type = self.infer_expr_type(expression.value)
+            if not value_type.startswith("struct:"):
+                raise CapyError(expression.location, "member access requires a struct")
+            _, members = self.module.structs[value_type[7:]]
+            for member_name, member_type in members:
+                if member_name == expression.member:
+                    return member_type
+            raise CapyError(expression.location, f"struct {value_type[7:]!r} has no member {expression.member!r}")
         if isinstance(expression, Name):
             if expression.value in {"true", "false"}:
                 return "bool"
@@ -222,6 +266,8 @@ class WasmFunctionCompiler:
                 return "bool"
             return self.infer_expr_type(expression.right if expression.operator == "=" else expression.left)
         if isinstance(expression, Call) and isinstance(expression.function, Name):
+            if expression.function.value in self.module.structs:
+                return f"struct:{expression.function.value}"
             if expression.function.value == "print":
                 return "void"
             if expression.function.value == "clone":
@@ -246,6 +292,75 @@ class WasmFunctionCompiler:
         if isinstance(expression, String):
             offset = self.module.add_static_string(expression.value.encode("utf-8"))
             return b"\x23\x00\x41" + sleb32(offset) + b"\x6a", "string"
+        if isinstance(expression, ArrayLiteral):
+            value_type = self.infer_expr_type(expression)
+            size = 20 + 4 * len(expression.items)
+            pointer = self.allocate_local(value_type, expression.location)
+            code = bytearray(b"\x41" + sleb32(size) + b"\x10\x02\x21" + uleb(pointer))
+            code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40\x00\x0b")
+            element_type = value_type[6:-1]
+            type_id = 3 if element_type == "string" else 2
+            for value, offset in [(1, 0), (1, 4), (type_id, 8), (size, 12), (len(expression.items), 16)]:
+                code.extend(b"\x20" + uleb(pointer) + b"\x41" + sleb32(value))
+                code.extend(b"\x36\x02" + uleb(offset))
+            code.extend(b"\x23\x01\x41\x01\x6a\x24\x01")
+            for index, item in enumerate(expression.items):
+                item_code, item_type = self.compile_expr(item)
+                self.require_type(item.location, element_type, item_type)
+                item_local = self.allocate_local(item_type, item.location)
+                code.extend(item_code + b"\x21" + uleb(item_local))
+                if managed_type(item_type) and not self.expression_is_owned(item):
+                    code.extend(b"\x20" + uleb(item_local) + b"\x10" + uleb(self.module.retain_index))
+                code.extend(b"\x20" + uleb(pointer) + b"\x20" + uleb(item_local))
+                code.extend(b"\x36\x02" + uleb(20 + 4 * index))
+            code.extend(b"\x20" + uleb(pointer))
+            return bytes(code), value_type
+        if isinstance(expression, Index):
+            value_code, value_type = self.compile_expr(expression.value)
+            if not value_type.startswith("array<"):
+                raise CapyError(expression.location, "indexing requires an array")
+            index_code, index_type = self.compile_expr(expression.index)
+            self.require_type(expression.index.location, "s32", index_type)
+            array_local = self.allocate_local(value_type, expression.value.location)
+            index_local = self.allocate_local("s32", expression.index.location)
+            code = bytearray(value_code + b"\x21" + uleb(array_local))
+            code.extend(index_code + b"\x21" + uleb(index_local))
+            code.extend(b"\x20" + uleb(index_local) + b"\x41\x00\x48\x04\x40\x00\x0b")
+            code.extend(b"\x20" + uleb(index_local) + b"\x20" + uleb(array_local))
+            code.extend(b"\x28\x02\x10\x4f\x04\x40\x00\x0b")
+            code.extend(b"\x20" + uleb(array_local) + b"\x20" + uleb(index_local))
+            code.extend(b"\x41\x04\x6c\x6a\x28\x02\x14")
+            if self.expression_is_owned(expression.value):
+                result_type = value_type[6:-1]
+                result_local = self.allocate_local(result_type, expression.location)
+                code.extend(b"\x21" + uleb(result_local))
+                if managed_type(result_type):
+                    code.extend(b"\x20" + uleb(result_local) + b"\x10" + uleb(self.module.retain_index))
+                code.extend(b"\x20" + uleb(array_local) + b"\x10" + uleb(self.module.release_index))
+                code.extend(b"\x20" + uleb(result_local))
+            return bytes(code), value_type[6:-1]
+        if isinstance(expression, Member):
+            value_code, value_type = self.compile_expr(expression.value)
+            if not value_type.startswith("struct:"):
+                raise CapyError(expression.location, "member access requires a struct")
+            _, members = self.module.structs[value_type[7:]]
+            try:
+                member_index, (_, member_type) = next(
+                    (index, member) for index, member in enumerate(members) if member[0] == expression.member
+                )
+            except StopIteration:
+                raise CapyError(expression.location, f"struct {value_type[7:]!r} has no member {expression.member!r}")
+            object_local = self.allocate_local(value_type, expression.value.location)
+            code = bytearray(value_code + b"\x21" + uleb(object_local))
+            code.extend(b"\x20" + uleb(object_local) + b"\x28\x02" + uleb(16 + 4 * member_index))
+            if self.expression_is_owned(expression.value):
+                result_local = self.allocate_local(member_type, expression.location)
+                code.extend(b"\x21" + uleb(result_local))
+                if managed_type(member_type):
+                    code.extend(b"\x20" + uleb(result_local) + b"\x10" + uleb(self.module.retain_index))
+                code.extend(b"\x20" + uleb(object_local) + b"\x10" + uleb(self.module.release_index))
+                code.extend(b"\x20" + uleb(result_local))
+            return bytes(code), member_type
         if isinstance(expression, Name):
             if expression.value in {"true", "false"}:
                 return b"\x41" + sleb32(1 if expression.value == "true" else 0), "bool"
@@ -257,7 +372,7 @@ class WasmFunctionCompiler:
             self.require_type(expression.location, declared, value_type)
             local = self.add_local(expression.name, declared, expression.location)
             code = bytearray(value_code + b"\x21" + uleb(local))
-            if declared == "string":
+            if managed_type(declared):
                 if not self.expression_is_owned(expression.value):
                     code.extend(b"\x20" + uleb(local) + b"\x10" + uleb(self.module.retain_index))
                 self.owned_scopes[-1].append((local, declared))
@@ -269,16 +384,16 @@ class WasmFunctionCompiler:
                 local, target_type = self.lookup(expression.left)
                 value_code, value_type = self.compile_expr(expression.right)
                 self.require_type(expression.location, target_type, value_type)
-                if target_type == "string":
-                    if local in self.borrowed_managed_parameters:
-                        raise CapyError(expression.left.location, "cannot assign to a borrowed managed parameter; copy it into a local first")
-                    temporary = self.allocate_local("string", expression.location)
+                if managed_type(target_type):
+                    if local in self.borrowed_managed_slots:
+                        raise CapyError(expression.left.location, "cannot assign to a borrowed managed value; copy it into a local first")
+                    temporary = self.allocate_local(target_type, expression.location)
                     code = bytearray(value_code + b"\x21" + uleb(temporary))
                     if not self.expression_is_owned(expression.right):
                         code.extend(b"\x20" + uleb(temporary) + b"\x10" + uleb(self.module.retain_index))
                     code.extend(b"\x20" + uleb(local) + b"\x10" + uleb(self.module.release_index))
                     code.extend(b"\x20" + uleb(temporary) + b"\x22" + uleb(local))
-                    return bytes(code), "string"
+                    return bytes(code), target_type
                 return value_code + b"\x22" + uleb(local), target_type
             left_code, left_type = self.compile_expr(expression.left)
             right_code, right_type = self.compile_expr(expression.right)
@@ -296,6 +411,29 @@ class WasmFunctionCompiler:
         if isinstance(expression, Call):
             if not isinstance(expression.function, Name):
                 raise CapyError(expression.function.location, "phase-1 calls require a named function")
+            if expression.function.value in self.module.structs:
+                type_id, members = self.module.structs[expression.function.value]
+                if len(expression.arguments) != len(members):
+                    raise CapyError(expression.location, f"struct {expression.function.value} expects {len(members)} fields")
+                value_type = f"struct:{expression.function.value}"
+                size = 16 + 4 * len(members)
+                pointer = self.allocate_local(value_type, expression.location)
+                code = bytearray(b"\x41" + sleb32(size) + b"\x10\x02\x21" + uleb(pointer))
+                code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40\x00\x0b")
+                for value, offset in [(1, 0), (1, 4), (type_id, 8), (size, 12)]:
+                    code.extend(b"\x20" + uleb(pointer) + b"\x41" + sleb32(value) + b"\x36\x02" + uleb(offset))
+                code.extend(b"\x23\x01\x41\x01\x6a\x24\x01")
+                for index, (argument, (_, member_type)) in enumerate(zip(expression.arguments, members)):
+                    argument_code, argument_type = self.compile_expr(argument)
+                    self.require_type(argument.location, member_type, argument_type)
+                    temporary = self.allocate_local(argument_type, argument.location)
+                    code.extend(argument_code + b"\x21" + uleb(temporary))
+                    if managed_type(argument_type) and not self.expression_is_owned(argument):
+                        code.extend(b"\x20" + uleb(temporary) + b"\x10" + uleb(self.module.retain_index))
+                    code.extend(b"\x20" + uleb(pointer) + b"\x20" + uleb(temporary))
+                    code.extend(b"\x36\x02" + uleb(16 + 4 * index))
+                code.extend(b"\x20" + uleb(pointer))
+                return bytes(code), value_type
             if expression.function.value == "print":
                 code = bytearray()
                 for argument in expression.arguments:
@@ -340,8 +478,8 @@ class WasmFunctionCompiler:
             code = bytearray()
             owned_argument_locals: list[int] = []
             for source_expression, (argument_code, argument_type) in zip(expression.arguments, arguments):
-                if argument_type == "string" and self.expression_is_owned(source_expression):
-                    temporary = self.allocate_local("string", source_expression.location)
+                if managed_type(argument_type) and self.expression_is_owned(source_expression):
+                    temporary = self.allocate_local(argument_type, source_expression.location)
                     code.extend(argument_code + b"\x21" + uleb(temporary) + b"\x20" + uleb(temporary))
                     owned_argument_locals.append(temporary)
                 else:
@@ -357,8 +495,8 @@ class WasmFunctionCompiler:
                 return self.cleanup_all_scopes() + b"\x0f", "void"
             value_code, value_type = self.compile_expr(expression.value)
             self.require_type(expression.location, expected, value_type)
-            if value_type == "string":
-                temporary = self.allocate_local("string", expression.location)
+            if managed_type(value_type):
+                temporary = self.allocate_local(value_type, expression.location)
                 code = bytearray(value_code + b"\x21" + uleb(temporary))
                 if not self.expression_is_owned(expression.value):
                     code.extend(b"\x20" + uleb(temporary) + b"\x10" + uleb(self.module.retain_index))
@@ -383,21 +521,45 @@ class WasmFunctionCompiler:
             body = self.compile_block(expression.body)
             return b"\x02\x40\x03\x40" + condition_code + b"\x45\x0d\x01" + body + b"\x0c\x00\x0b\x0b", "void"
         if isinstance(expression, For):
-            if not isinstance(expression.iterable, Binary) or expression.iterable.operator != "..":
-                raise CapyError(expression.iterable.location, "phase-1 for loop requires an exclusive range")
-            start_code, start_type = self.compile_expr(expression.iterable.left)
-            end_code, end_type = self.compile_expr(expression.iterable.right)
-            self.require_type(expression.location, "s32", start_type)
-            self.require_type(expression.location, "s32", end_type)
-            loop_local = self.allocate_local("s32", expression.location)
-            end_local = self.allocate_local("s32", expression.location)
-            self.scopes.append({expression.name: (loop_local, "s32")})
+            if isinstance(expression.iterable, Binary) and expression.iterable.operator == "..":
+                start_code, start_type = self.compile_expr(expression.iterable.left)
+                end_code, end_type = self.compile_expr(expression.iterable.right)
+                self.require_type(expression.location, "s32", start_type)
+                self.require_type(expression.location, "s32", end_type)
+                loop_local = self.allocate_local("s32", expression.location)
+                end_local = self.allocate_local("s32", expression.location)
+                self.scopes.append({expression.name: (loop_local, "s32")})
+                body = self.compile_block(expression.body)
+                self.scopes.pop()
+                code = start_code + b"\x21" + uleb(loop_local) + end_code + b"\x21" + uleb(end_local)
+                code += b"\x02\x40\x03\x40\x20" + uleb(loop_local) + b"\x20" + uleb(end_local) + b"\x4e\x0d\x01"
+                code += body + b"\x20" + uleb(loop_local) + b"\x41\x01\x6a\x21" + uleb(loop_local) + b"\x0c\x00\x0b\x0b"
+                return code, "void"
+            iterable_code, iterable_type = self.compile_expr(expression.iterable)
+            if not iterable_type.startswith("array<"):
+                raise CapyError(expression.iterable.location, "for loop requires an exclusive range or array")
+            element_type = iterable_type[6:-1]
+            array_local = self.allocate_local(iterable_type, expression.iterable.location)
+            index_local = self.allocate_local("s32", expression.location)
+            length_local = self.allocate_local("s32", expression.location)
+            item_local = self.allocate_local(element_type, expression.location)
+            if managed_type(element_type):
+                self.borrowed_managed_slots.add(item_local)
+            owns_iterable = self.expression_is_owned(expression.iterable)
+            self.scopes.append({expression.name: (item_local, element_type)})
+            self.owned_scopes.append([(array_local, iterable_type)] if owns_iterable else [])
             body = self.compile_block(expression.body)
+            self.owned_scopes.pop()
             self.scopes.pop()
-            code = start_code + b"\x21" + uleb(loop_local) + end_code + b"\x21" + uleb(end_local)
-            code += b"\x02\x40\x03\x40\x20" + uleb(loop_local) + b"\x20" + uleb(end_local) + b"\x4e\x0d\x01"
-            code += body + b"\x20" + uleb(loop_local) + b"\x41\x01\x6a\x21" + uleb(loop_local) + b"\x0c\x00\x0b\x0b"
-            return code, "void"
+            code = bytearray(iterable_code + b"\x21" + uleb(array_local) + b"\x41\x00\x21" + uleb(index_local))
+            code.extend(b"\x20" + uleb(array_local) + b"\x28\x02\x10\x21" + uleb(length_local))
+            code.extend(b"\x02\x40\x03\x40\x20" + uleb(index_local) + b"\x20" + uleb(length_local) + b"\x4f\x0d\x01")
+            code.extend(b"\x20" + uleb(array_local) + b"\x20" + uleb(index_local) + b"\x41\x04\x6c\x6a\x28\x02\x14")
+            code.extend(b"\x21" + uleb(item_local) + body)
+            code.extend(b"\x20" + uleb(index_local) + b"\x41\x01\x6a\x21" + uleb(index_local) + b"\x0c\x00\x0b\x0b")
+            if owns_iterable:
+                code.extend(b"\x20" + uleb(array_local) + b"\x10" + uleb(self.module.release_index))
+            return bytes(code), "void"
         if isinstance(expression, Block):
             return self.compile_block(expression), "void"
         raise CapyError(expression.location, f"phase-1 backend cannot lower {expression.__class__.__name__}")
@@ -412,6 +574,7 @@ class CapyModuleCompiler:
         self.data = bytearray()
         self.definitions: list[CompiledDefinition] = []
         self.functions: dict[FunctionKey, CompiledDefinition] = {}
+        self.structs: dict[str, tuple[int, list[tuple[str, str]]]] = {}
         self.types: list[tuple[tuple[str, ...], str]] = []
         self.type_indices: dict[tuple[tuple[str, ...], str], int] = {}
         self.retain_index = 4
@@ -438,14 +601,46 @@ class CapyModuleCompiler:
         return self.type_indices[key]
 
     def collect(self) -> None:
+        for item in self.program.items:
+            if not isinstance(item, Struct):
+                continue
+            if item.name in self.structs:
+                raise CapyError(item.location, f"struct {item.name!r} is already declared")
+            members: list[tuple[str, str]] = []
+            seen_members: set[str] = set()
+            for member in item.members:
+                if not isinstance(member, Annotation) or not isinstance(member.value, Name):
+                    raise CapyError(member.location, "struct members must be name:type annotations")
+                if member.value.value in seen_members:
+                    raise CapyError(member.location, f"struct member {member.value.value!r} is already declared")
+                seen_members.add(member.value.value)
+                members.append((member.value.value, capy_type(member.type_expr, member.location)))
+            self.structs[item.name] = (4 + len(self.structs), members)
+
+        def validate_type(value_type: str, location: Location) -> None:
+            if value_type.startswith("struct:") and value_type[7:] not in self.structs:
+                raise CapyError(location, f"unknown type {value_type[7:]!r}")
+
+        for _, members in self.structs.values():
+            for _, member_type in members:
+                validate_type(member_type, Location(self.source, 1, 1, 0))
+
         seen_handlers: dict[str, Location] = {}
         top_level: list[Expr] = []
         for item in self.program.items:
             if isinstance(item, Function):
+                if item.name in self.structs:
+                    raise CapyError(item.location, f"function name {item.name!r} conflicts with a struct constructor")
                 parameter_types = tuple(capy_type(parameter.type_expr, item.location) for parameter in item.parameters)
+                for parameter_type in parameter_types:
+                    validate_type(parameter_type, item.location)
+                    if parameter_type == "void":
+                        raise CapyError(item.location, "function parameters cannot have type void")
                 if item.name in HANDLER_EXPORTS:
                     if len(item.parameters) > 1:
                         raise CapyError(item.location, "Bearer handler accepts zero parameters or one request parameter")
+                    if parameter_types and parameter_types != ("request",):
+                        raise CapyError(item.location, "Bearer handler parameter must have type request")
                     export_name = HANDLER_EXPORTS[item.name]
                     if export_name in seen_handlers:
                         first = seen_handlers[export_name]
@@ -454,12 +649,13 @@ class CapyModuleCompiler:
                     definition = CompiledDefinition(item, parameter_types, "void", export_name)
                 else:
                     result_type = capy_type(item.return_type, item.location)
+                    validate_type(result_type, item.location)
                     definition = CompiledDefinition(item, parameter_types, result_type, None)
                     key = FunctionKey(item.name, parameter_types)
                     self.functions[key] = definition
                 self.definitions.append(definition)
             elif isinstance(item, Struct):
-                raise CapyError(item.location, "struct lowering is not implemented yet")
+                continue
             elif isinstance(item, Variable):
                 raise CapyError(item.location, "top-level variables are not implemented yet")
             else:
@@ -493,7 +689,21 @@ class CapyModuleCompiler:
         release = null_return + immortal_return
         release += b"\x20\x00\x28\x02\x00\x45\x04\x40\x00\x0b"  # double-release guard
         release += b"\x20\x00\x20\x00\x28\x02\x00\x41\x01\x6b\x22\x01\x36\x02\x00"
-        release += b"\x20\x01\x45\x04\x40\x23\x01\x41\x01\x6b\x24\x01\x20\x00\x10\x03\x0b"
+        release += b"\x20\x01\x45\x04\x40"
+        release += b"\x20\x00\x28\x02\x08\x41\x03\x46\x04\x40"  # string-array drop glue
+        release += b"\x20\x00\x28\x02\x10\x21\x02\x41\x00\x21\x01"
+        release += b"\x02\x40\x03\x40\x20\x01\x20\x02\x4f\x0d\x01"
+        release += b"\x20\x00\x20\x01\x41\x04\x6c\x6a\x28\x02\x14\x10" + uleb(self.release_index)
+        release += b"\x20\x01\x41\x01\x6a\x21\x01\x0c\x00\x0b\x0b\x0b"
+        for _, (type_id, members) in self.structs.items():
+            managed_members = [(index, value_type) for index, (_, value_type) in enumerate(members) if managed_type(value_type)]
+            if not managed_members:
+                continue
+            release += b"\x20\x00\x28\x02\x08\x41" + sleb32(type_id) + b"\x46\x04\x40"
+            for index, _ in managed_members:
+                release += b"\x20\x00\x28\x02" + uleb(16 + 4 * index) + b"\x10" + uleb(self.release_index)
+            release += b"\x0b"
+        release += b"\x23\x01\x41\x01\x6b\x24\x01\x20\x00\x10\x03\x0b"
 
         clone = bytearray()
         clone.extend(b"\x20\x00\x28\x02\x10\x21\x02")  # len = source.length
@@ -510,7 +720,7 @@ class CapyModuleCompiler:
         clone.extend(b"\x20\x01")
         return [
             body(b"\x00", retain),
-            body(b"\x01\x01\x7f", release),
+            body(b"\x01\x02\x7f", release),
             body(b"\x01\x02\x7f", bytes(clone)),
         ]
 
@@ -551,7 +761,7 @@ class CapyModuleCompiler:
         abi = (
             "format=bearer-wasm-unit-abi-v1\n"
             f"unit_abi_version={self.abi_version}\n"
-            "toolchain=capyc-direct-wasm-phase1\n"
+            "toolchain=capyc-direct-wasm-phase2\n"
             f"source={self.source}\n"
         ).encode("utf-8")
         module_name_payload = wasm_string(self.module_name)

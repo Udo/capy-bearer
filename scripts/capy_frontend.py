@@ -177,6 +177,11 @@ class TupleExpr(Expr):
 
 
 @dataclass
+class ArrayLiteral(Expr):
+    items: list[Expr]
+
+
+@dataclass
 class Annotation(Expr):
     value: Expr
     type_expr: Expr
@@ -416,6 +421,8 @@ class Parser:
             return Name(token.location, token.text)
         if token.text == "(":
             return self.parenthesized(token.location)
+        if token.text == "[":
+            return self.array_literal(token.location)
         if token.text == "{":
             return self.block(token.location)
         if token.text in {"-", "!"}:
@@ -437,6 +444,19 @@ class Parser:
         if len(items) == 1:
             return items[0]
         return TupleExpr(location, items)
+
+    def array_literal(self, location: Location) -> ArrayLiteral:
+        items: list[Expr] = []
+        self.skip_separators()
+        if not self.match("]"):
+            while True:
+                items.append(self.expression())
+                self.skip_separators()
+                if not self.match(","):
+                    break
+                self.skip_separators()
+            self.require("]")
+        return ArrayLiteral(location, items)
 
     def finish_call(self, function: Expr) -> Expr:
         location = self.require("(").location
@@ -581,6 +601,8 @@ def type_name(expression: Expr) -> str:
         return f"{type_name(expression.value)}::{expression.member}"
     if isinstance(expression, TupleExpr):
         return "(" + ",".join(type_name(item) for item in expression.items) + ")"
+    if isinstance(expression, ArrayLiteral):
+        return "[" + ",".join(type_name(item) for item in expression.items) + "]"
     raise CapyError(expression.location, "expected type expression")
 
 

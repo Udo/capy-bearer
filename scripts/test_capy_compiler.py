@@ -70,8 +70,8 @@ class LexerParserTests(unittest.TestCase):
 
     def test_bearer_handlers_cannot_be_overloaded(self):
         program = parse(
-            'function CLI(x : s32) { print("a") }\n'
-            'function CLI(x : string) { print("b") }\n',
+            'function CLI { print("a") }\n'
+            'function CLI(x : request) { print("b") }\n',
             "handlers.capy",
         )
         DeclarationIndex().add_program(program)
@@ -124,6 +124,34 @@ class LexerParserTests(unittest.TestCase):
         with self.assertRaisesRegex(CapyError, r"bad.capy:1:1: unterminated string"):
             parse('"broken', "bad.capy")
 
+    def test_array_and_managed_struct_program_compiles(self):
+        program = parse(
+            'struct Pair { label : string; value : s32 }\n'
+            'function choose(values : [string], i : s32) string { values[i] }\n'
+            'function CLI { var p := Pair(clone("x"), 7); print(choose([p.label], 0), p.value) }\n',
+            "managed.capy",
+        )
+        wasm, _ = compile_bearer_unit(program, "managed.capy", "managed.wasm", 9)
+        self.assertTrue(wasm.startswith(b"\0asm"))
+
+    def test_array_literal_rejects_mixed_element_types(self):
+        program = parse('function CLI { var values := [1, "two"] }', "mixed.capy")
+        with self.assertRaisesRegex(CapyError, "array literal elements must have one type"):
+            compile_bearer_unit(program, "mixed.capy", "mixed.wasm", 9)
+
+    def test_handler_parameter_must_be_request(self):
+        program = parse('function CLI(value : s32) { print(value) }\n', "handler.capy")
+        with self.assertRaisesRegex(CapyError, "Bearer handler parameter must have type request"):
+            compile_bearer_unit(program, "handler.capy", "handler.wasm", 9)
+
+    def test_void_parameter_is_rejected_before_wasm(self):
+        program = parse(
+            'function sink(value : void) void {}\nfunction CLI { sink(print(1)) }\n',
+            "void-parameter.capy",
+        )
+        with self.assertRaisesRegex(CapyError, "function parameters cannot have type void"):
+            compile_bearer_unit(program, "void-parameter.capy", "void-parameter.wasm", 9)
+
     def test_non_total_managed_return_is_rejected_before_wasm(self):
         program = parse(
             'function maybe(x : string, b : bool) string { if b { return x } }\n'
@@ -133,13 +161,21 @@ class LexerParserTests(unittest.TestCase):
         with self.assertRaisesRegex(CapyError, "not all paths produce string"):
             compile_bearer_unit(program, "returns.capy", "returns.wasm", 9)
 
+    def test_borrowed_managed_loop_value_cannot_be_reassigned(self):
+        program = parse(
+            'function CLI { for value = ["old"] { value = clone("new") } }\n',
+            "borrowed-loop.capy",
+        )
+        with self.assertRaisesRegex(CapyError, "cannot assign to a borrowed managed value"):
+            compile_bearer_unit(program, "borrowed-loop.capy", "borrowed-loop.wasm", 9)
+
     def test_borrowed_managed_parameter_cannot_be_reassigned(self):
         program = parse(
             'function replace(x : string) void { x = clone("new") }\n'
             'function CLI { var value := clone("old"); replace(value); print(value) }\n',
             "borrowed.capy",
         )
-        with self.assertRaisesRegex(CapyError, "cannot assign to a borrowed managed parameter"):
+        with self.assertRaisesRegex(CapyError, "cannot assign to a borrowed managed value"):
             compile_bearer_unit(program, "borrowed.capy", "borrowed.wasm", 9)
 
     def test_range_variable_does_not_escape_its_scope(self):

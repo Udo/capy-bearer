@@ -1,3 +1,16 @@
+struct Pair {
+    label : string
+    value : s32
+}
+
+struct Box {
+    pair : Pair
+}
+
+struct Collection {
+    values : [string]
+}
+
 function duplicate(x : string) string {
     return clone(x)
 }
@@ -22,7 +35,27 @@ function consume(x : string) void {
     print(x)
 }
 
+function pick(values : [string], index : s32) string {
+    values[index]
+}
+
+function make_numbers () [s32] {
+    [3, 4]
+}
+
+function make_pair () Pair {
+    Pair(clone("pair"), 42)
+}
+
+function first_string () string {
+    for value = [clone("first")] {
+        return value
+    }
+    return clone("fallback")
+}
+
 function CLI {
+    print(first_string(), "|", arc_live(), "|")
     {
         var a : string = clone("alpha")
         var b : string = a
@@ -37,6 +70,45 @@ function CLI {
             loop_index = loop_index + 1
         }
         print(arc_live(), "|")
+        for value = [7, 8, 9] {
+            print(value)
+        }
+        print("|", arc_live(), "|")
+        {
+            var values := [7, 8, 9]
+            print(values[1], "|", arc_live(), "|")
+        }
+        print([4, 5][0], "|", arc_live(), "|")
+        {
+            var first := [1]
+            var second := first
+            first = [2]
+            print(second[0], first[0], "|", arc_live(), "|")
+        }
+        {
+            var original := clone("owned")
+            var words := [original, clone("two")]
+            for word = words {
+                print(word)
+            }
+            print("|", arc_live(), "|")
+        }
+        print([clone("temp")][0], "|", arc_live(), "|")
+        print(pick([clone("picked")], 0), "|", arc_live(), "|")
+        {
+            var made := make_numbers()
+            print(made[1], "|", arc_live(), "|")
+        }
+        {
+            var pair := make_pair()
+            var copied_label := pair.label
+            print(copied_label, pair.value, "|", arc_live(), "|")
+            var box := Box(make_pair())
+            print(box.pair.label, "|", arc_live(), "|")
+            var collection := Collection([clone("inside")])
+            print(collection.values[0], "|", arc_live(), "|")
+        }
+        print(Pair(clone("field"), 9).label, "|", arc_live(), "|")
         a = clone("beta")
         print(a, b, "|", arc_live(), "|")
         var c : string = duplicate(a)

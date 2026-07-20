@@ -1,0 +1,3 @@
+function CLI {
+    print([1][1])
+}
