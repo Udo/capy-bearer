@@ -1,0 +1,60 @@
+function duplicate(x : string) string {
+    return clone(x)
+}
+
+function passthrough(x : string) string {
+    return x
+}
+
+function early(x : string) string {
+    var discard := clone("discard")
+    if true {
+        return x
+    }
+    return discard
+}
+
+function implicit(x : string) string {
+    x
+}
+
+function consume(x : string) void {
+    print(x)
+}
+
+function CLI {
+    {
+        var a : string = clone("alpha")
+        var b : string = a
+        print(a, b, "|", arc_live(), "|")
+        for i = 0..2 {
+            var loop_string := clone("loop")
+        }
+        print(arc_live(), "|")
+        var loop_index := 0
+        while loop_index < 2 {
+            var while_string := clone("while")
+            loop_index = loop_index + 1
+        }
+        print(arc_live(), "|")
+        a = clone("beta")
+        print(a, b, "|", arc_live(), "|")
+        var c : string = duplicate(a)
+        var d : string = passthrough(b)
+        a = a
+        var f := early(b)
+        var g := implicit(a)
+        print(c, d, f, g, "|", arc_live(), "|")
+        consume(clone("temp"))
+        var h := passthrough(clone("z"))
+        print(h, "|", arc_live(), "|")
+        var double := clone(clone("double"))
+        print(double, "|", arc_live(), "|")
+        if true {
+            var e := clone("nested")
+            print(e, "|", arc_live(), "|")
+        }
+        print(arc_live(), "|")
+    }
+    print(arc_live())
+}

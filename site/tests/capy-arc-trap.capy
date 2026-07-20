@@ -1,0 +1,4 @@
+function CLI {
+    var leaked := clone("workspace-owned")
+    trap()
+}

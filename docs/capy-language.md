@@ -85,9 +85,9 @@ Compiler generation c15 adds `.capy` discovery and compilation while retaining c
 
 ## Automatic reference counting
 
-Dynamic Capy values will use non-atomic, workspace-local automatic reference counting. Bearer workspace destruction is the final reclamation boundary, including after traps.
+Dynamic Capy values use non-atomic, workspace-local automatic reference counting. Bearer workspace destruction is the final reclamation boundary, including after traps. The first implemented managed type is `string`; arrays, managed structs/tuples, closures, and weak handles will reuse the same header and generated drop-glue contract.
 
-Planned managed object header, 16 bytes and 8-byte aligned:
+Managed object header, 16 bytes and 8-byte aligned:
 
 ```text
 u32 strong_count
@@ -95,6 +95,8 @@ u32 weak_count
 u32 type_descriptor
 u32 size_and_flags
 ```
+
+Type-specific payload follows the header. A string begins with `u32 length` at byte 16 and UTF-8 bytes at byte 20; that payload prefix is not part of the common 16-byte header. `dylink.0` declares an 8-byte module-memory alignment so static immortal objects retain this alignment after Bearer relocates the side module.
 
 Rules:
 
@@ -109,6 +111,8 @@ Rules:
 - function table slots belong to the workspace; closures retain only their environments;
 - traps skip cleanup safely because the complete workspace is discarded;
 - ARC does not collect strong cycles. `weak<T>` will support deliberate back-references; remaining strong cycles persist only until workspace teardown.
+
+Current string lowering imports Bearer’s workspace allocator/free functions and emits private retain, release, and clone helpers into each Capy module. Allocation failure traps before any header or payload write. Literal strings are aligned immortal objects. Managed parameters are borrowed, string results are owned, assignments retain-before-release, owned argument temporaries are released after calls, and every normal lexical/early-return edge emits cleanup. `arc_live()` is a temporary conformance counter; trapping requests intentionally skip releases and prove that the next workspace starts clean.
 
 Capy values never expose their object layout to C++. Dynamic cross-language values use owned/copied DValue/BRRB adapters at the Bearer membrane.
 

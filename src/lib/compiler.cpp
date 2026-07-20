@@ -309,7 +309,11 @@ String compiler_unit_input_signature(Request* context, SharedUnit* su, bool allo
 	String setup_template = compiler_root + "/" + context->server->config["SETUP_TEMPLATE"];
 	String frontend_signature;
 	if(su->file_name.length() >= 5 && su->file_name.substr(su->file_name.length() - 5) == ".capy")
-		frontend_signature = ":capy:" + gen_sha1(file_get_contents(compiler_root + "/scripts/capy_compiler.py"));
+		frontend_signature = ":capy:" + gen_sha1(
+			file_get_contents(compiler_root + "/scripts/capy_compiler.py") +
+			file_get_contents(compiler_root + "/scripts/capy_frontend.py") +
+			file_get_contents(compiler_root + "/scripts/capy_backend.py")
+		);
 	return(
 		compiler_unit_source_signature(su->file_name, allow_recent_source_stat) + ":" +
 		gen_sha1(file_get_contents(setup_template)) + frontend_signature + ":" +

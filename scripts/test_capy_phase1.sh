@@ -22,6 +22,32 @@ language_output=$(scripts/bearer-cli /tests/capy-language.capy)
 	echo "Capy functions/locals/control-flow output mismatch: $language_output" >&2
 	exit 1
 }
+arc_output=$(scripts/bearer-cli /tests/capy-arc.capy)
+expected_arc='alphaalpha|1|1|1|betaalpha|2|betaalphaalphabeta|3|tempz|4|double|5|nested|6|5|0'
+[[ "$arc_output" == "$expected_arc" ]] || {
+	echo "Capy ARC ownership output mismatch: $arc_output" >&2
+	exit 1
+}
+arc_cache="$(scripts/unit_cache_directory "$bin_directory")$site_directory/tests/capy-arc.capy"
+wasm-validate "$arc_cache.wasm"
+wasm-objdump -x "$arc_cache.wasm" >"$arc_cache.objdump"
+grep -q 'env.bearer_alloc' "$arc_cache.objdump"
+grep -q 'env.bearer_free' "$arc_cache.objdump"
+grep -Eq 'mem_p2align *: 3' "$arc_cache.objdump"
+rm -f "$arc_cache.objdump"
+set +e
+trap_output=$(scripts/bearer-cli /tests/capy-arc-trap.capy 2>&1)
+trap_status=$?
+set -e
+[[ $trap_status -ne 0 && "$trap_output" == *'wasm `unreachable` instruction executed'* && "$trap_output" == *'capy-arc-trap.capy'* ]] || {
+	echo "Capy ARC trap containment did not produce a source-associated trap" >&2
+	echo "$trap_output" >&2
+	exit 1
+}
+[[ "$(scripts/bearer-cli /tests/capy-arc.capy)" == "$expected_arc" ]] || {
+	echo "Capy ARC workspace did not reset after a trapping request" >&2
+	exit 1
+}
 render_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-render.capy)
 [[ "$render_output" == "capy-render-ok" ]] || {
 	echo "Capy HTTP RENDER output mismatch: $render_output" >&2
@@ -34,30 +60,32 @@ python3 scripts/check_unit_wasm.py "$cache.wasm" --abi-version "$(awk '/BEARER_W
 wasm-objdump -x "$cache.wasm" >"$cache.objdump"
 grep -q 'env.bearer_print_bytes' "$cache.objdump"
 grep -q '__bearer_cli' "$cache.objdump"
+grep -Eq 'mem_p2align *: 3' "$cache.objdump"
 ! grep -q 'wasi_snapshot_preview1' "$cache.objdump"
 rm -f "$cache.objdump"
 
 fixture="capy-compile-recovery-$$"
 source_dir="$site_directory/$fixture"
 artifact_dir="$(scripts/unit_cache_directory "$bin_directory")$source_dir"
+compiler_file=scripts/capy_backend.py
 compiler_backup=$(mktemp)
-cp -p scripts/capy_compiler.py "$compiler_backup"
+cp -p "$compiler_file" "$compiler_backup"
 cleanup() {
-	cp -p "$compiler_backup" scripts/capy_compiler.py
+	cp -p "$compiler_backup" "$compiler_file"
 	rm -f "$compiler_backup"
 	rm -rf "$source_dir" "$artifact_dir"
 }
 trap cleanup EXIT
 
 before_build=$(awk -F= '/^build_token=/ {print $2}' "$cache.meta.txt")
-printf '\n# frontend invalidation fixture\n' >>scripts/capy_compiler.py
+printf '\n# frontend invalidation fixture\n' >>"$compiler_file"
 [[ "$(scripts/bearer-cli /tests/capy-phase1.capy)" == "capy-direct-ok" ]]
 after_build=$(awk -F= '/^build_token=/ {print $2}' "$cache.meta.txt")
 [[ -n "$before_build" && -n "$after_build" && "$before_build" != "$after_build" ]] || {
 	echo "Capy frontend content change did not invalidate its compiled unit" >&2
 	exit 1
 }
-cp -p "$compiler_backup" scripts/capy_compiler.py
+cp -p "$compiler_backup" "$compiler_file"
 [[ "$(scripts/bearer-cli /tests/capy-phase1.capy)" == "capy-direct-ok" ]]
 mkdir -p "$source_dir"
 for size in 63 64 127 128; do

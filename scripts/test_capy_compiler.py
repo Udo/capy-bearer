@@ -124,6 +124,24 @@ class LexerParserTests(unittest.TestCase):
         with self.assertRaisesRegex(CapyError, r"bad.capy:1:1: unterminated string"):
             parse('"broken', "bad.capy")
 
+    def test_non_total_managed_return_is_rejected_before_wasm(self):
+        program = parse(
+            'function maybe(x : string, b : bool) string { if b { return x } }\n'
+            'function CLI { print(maybe(clone("x"), false)) }\n',
+            "returns.capy",
+        )
+        with self.assertRaisesRegex(CapyError, "not all paths produce string"):
+            compile_bearer_unit(program, "returns.capy", "returns.wasm", 9)
+
+    def test_borrowed_managed_parameter_cannot_be_reassigned(self):
+        program = parse(
+            'function replace(x : string) void { x = clone("new") }\n'
+            'function CLI { var value := clone("old"); replace(value); print(value) }\n',
+            "borrowed.capy",
+        )
+        with self.assertRaisesRegex(CapyError, "cannot assign to a borrowed managed parameter"):
+            compile_bearer_unit(program, "borrowed.capy", "borrowed.wasm", 9)
+
     def test_range_variable_does_not_escape_its_scope(self):
         program = parse('function CLI { for i = 0..1 { print(i) }\nprint(i) }\n', "scope.capy")
         with self.assertRaisesRegex(CapyError, "unknown local 'i'"):
