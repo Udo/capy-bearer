@@ -1,0 +1,16 @@
+:sig
+String uri_decode(String s)
+
+:params
+s : string containing URI encoded data
+return value : a string that contains the decoded version of 's'
+
+:see
+>uri
+
+:content
+Decodes a URI-encoded string.
+
+
+:example
+print(uri_decode("Ada%20Lovelace"), "\n");

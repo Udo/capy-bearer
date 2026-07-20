@@ -1,0 +1,28 @@
+
+
+RENDER(Request& context)
+{
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			URI
+		</h1>
+		<form action="?" method="post">
+			<div>
+				<label>uri_encode</label>
+				<input type="text" name="uri_encode" value="<?= context.post["uri_encode"] ?>"/>
+				<br/>
+				Encode: <?= uri_encode(context.post["uri_encode"]) ?>
+				<br/>
+				Decode: <?= uri_decode(uri_encode(context.post["uri_encode"])) ?>
+			</div>
+			<div>
+				<input type="submit" value="Submit Form"/>
+			</div>
+		</form>
+		<pre><?= var_dump(context.params) ?></pre>
+	</>
+
+}

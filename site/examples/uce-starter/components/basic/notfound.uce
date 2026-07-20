@@ -1,0 +1,15 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	String message = first(context.props["message"].to_string(), "The requested page does not exist.");
+	context.set_status(404, "Not Found");
+	context.call["app"]["page_title"] = "404 Not Found";
+	<>
+		<section class="card">
+			<h1>404 Not Found</h1>
+			<p><?= message ?></p>
+			<p>The starter router looked for the route as an exact view, a directory index, and then parent index handlers.</p>
+		</section>
+	</>
+}

@@ -1,0 +1,61 @@
+String string_to_hex(String s)
+{
+	String result = "";
+	for(auto c : s)
+	{
+		result += to_hex(c);
+	}
+	return(result);
+}
+
+
+RENDER(Request& context)
+{
+
+	String raw = first(context.post["raw"], "■👪▧▲🏳️‍🌈😂👋🏽😆😏😱🇦🇽Udø島リZ̸̢̧̡̧̗̰̪͉̤͖͉̪̝̦͎̮̑͜a̸̧̝̱̹̲̗̪̰̦͒̃͋̿̿̃̈͑̐͑͗̚̕̚͝͠l͚̜͕̠̣ģ̸̧̘̜͇͚͈͙̓̌̅͑͊͊͋̓́͌̈́̿̈́͗͘̚ͅͅȏ̶̗̤̳͎̫̥͕̣͔̥̙̜̰̂͌̍͊͂́̅̇̒̕̕ルイ社もなく");
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			UTF-8
+		</h1>
+		<form action="?" method="post">
+			<div>
+				<label>split_utf8</label>
+				<input type="text" name="raw" value="<?= raw ?>"/>
+			</div>
+			<div>
+				<input type="submit" value="Submit Form"/>
+			</div>
+		</form>
+		Simple Characters
+		<pre><?
+
+		u32 item_idx = 0;
+		for(auto seg : split_utf8(raw))
+		{
+			item_idx++;
+			print(string_to_hex(seg), " ", seg, "\t");
+			if(item_idx % 4 == 0)
+				print("\n");
+		}
+
+		?></pre>
+		Compound Characters
+		<pre><?
+
+		item_idx = 0;
+		for(auto seg : split_utf8(raw, true))
+		{
+			item_idx++;
+			print(string_to_hex(seg), " ", seg, "\t");
+			if(item_idx % 4 == 0)
+				print("\n");
+		}
+
+		?></pre>
+		<pre><?= var_dump(context.params) ?></pre>
+	</>
+
+}

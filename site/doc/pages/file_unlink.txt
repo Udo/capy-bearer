@@ -1,0 +1,19 @@
+:sig
+void file_unlink(String file_name)
+
+:params
+file_name : file to delete, resolved against the unit's directory
+return value : none
+
+:content
+Deletes a file. Deleting a path that does not exist is a no-op, so it is safe to call before recreating a file.
+
+:example
+file_put_contents("/tmp/doc-unlink.txt", "x");
+file_unlink("/tmp/doc-unlink.txt");
+print(file_exists("/tmp/doc-unlink.txt") ? "exists" : "gone", "\n");
+
+:see
+>sys
+file_exists
+dir_remove

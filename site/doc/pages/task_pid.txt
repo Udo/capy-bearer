@@ -1,0 +1,20 @@
+:sig
+pid_t task_pid(String key)
+
+:params
+key : string uniquely identifying the task
+return value : the process ID of the task
+
+:see
+>task
+
+:content
+Checks whether a process with the given `key` is running anywhere in the runtime instance and returns its PID if it is.
+
+Returns `0` when no matching task is active or task state cannot be read safely. Stale task status files are removed when the recorded PID is no longer alive.
+
+New task status records include the Linux process start tick from `/proc/<pid>/stat`, so `task_pid()` can reject a stale status file if the PID has exited and the numeric PID has since been reused by another process.
+
+:example
+task("doc-demo-pid", []() { usleep(100000); });
+print("task pid > 0: ", task_pid("doc-demo-pid") > 0 ? "yes" : "no", "\n");

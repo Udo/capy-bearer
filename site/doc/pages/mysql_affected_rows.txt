@@ -1,0 +1,24 @@
+:sig
+u32 mysql_affected_rows(MySQL* m)
+
+:params
+m : pointer to an active MySQL connection
+return value : number of rows changed by the most recent statement
+
+:see
+>mysql
+mysql_query
+mysql_insert_id
+
+:content
+Returns the number of rows changed by the most recent insert, update, or delete on the connection. A successful statement that returns rows, a rejected query, or a null connection returns `0` rather than retaining an earlier statement's count.
+
+:example
+MySQL* db = mysql_connect();
+if(db != 0)
+{
+    mysql_query(db, "update users set active=1 where active=0");
+    print("rows updated: ", mysql_affected_rows(db), "\n");
+    mysql_disconnect(db);
+}
+else print("(requires a reachable MySQL server)\n");

@@ -1,0 +1,19 @@
+:sig
+String path_real(String path)
+
+:params
+path : path to resolve
+return value : the canonical absolute path, or "" if it cannot be resolved
+
+:content
+Resolves a path to its canonical absolute form, following symlinks and collapsing `.` and `..` segments. The path must exist. Combine with `path_is_within()` to validate that user-supplied paths stay inside an allowed root.
+
+:example
+file_put_contents("/tmp/doc-real.txt", "x");
+print(path_real("/tmp/../tmp/./doc-real.txt"), "\n");
+
+:see
+>sys
+path_is_within
+expand_path
+file_symlink

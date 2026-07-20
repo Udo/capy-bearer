@@ -1,0 +1,58 @@
+
+#include "demo_guard.h"
+
+
+RENDER(Request& context)
+{
+	if(!test_demo_request_allowed(context))
+	{
+		test_demo_render_restricted_html(context, "MySQL Connector Test", "connect to local database services and expose database contents");
+		return;
+	}
+
+	<><html>
+		<link rel="stylesheet" href='style.css?v=1'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			MySQL Connector Test
+		</h1>
+
+		<label>MySQL Connection</label>
+		<pre><?
+
+			String query = "SELECT * FROM :table WHERE x = :val";
+			StringMap params;
+			params["table"] = "TableName";
+			params["val"] = "Dubious\\Value'Name\nwith;breaks";
+
+			MySQL con;
+			if(con.connect("localhost", "root", ""))
+			{
+				print("error: "+con.error()+"\n");
+				print("quotation test: "+con.escape("‘\"' or 1=1;–.")+"\n");
+				print("query parse: "+con.parse_query_parameters(query, params)+"\n");
+				print(var_dump(con.query("SHOW DATABASES")));
+				con.query("USE mysql");
+
+		?></pre>
+
+		SELECT * FROM user table
+
+		<pre><?
+
+				print(var_dump(con.query("SELECT * FROM user")));
+
+			}
+
+
+		?></pre>
+
+		<div><?
+			print("connection status: ", con.statement_info, "\n");
+		?></div>
+
+		<label>CGI Params</label>
+		<pre><?= var_dump(context.params) ?></pre>
+	</html></>
+
+}

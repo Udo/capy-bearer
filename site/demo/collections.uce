@@ -1,0 +1,40 @@
+#include "demo_guard.h"
+
+RENDER(Request& context)
+{
+	DValue p;
+	p.set(context.params);
+
+	StringList routes = {"index", "dashboard", "themes", "dashboard", "workspace/projects"};
+	StringList unique_routes = routes.unique();
+	StringList sorted_routes = unique_routes.sort();
+	StringList labels = sorted_routes.map([](String route) { return(to_upper(replace(route, "/", " / "))); });
+
+	DValue cards;
+	DValue card;
+	card["title"] = "Dashboard"; card["section"] = "app"; card["href"] = "?dashboard"; cards.push(card); card.clear();
+	card["title"] = "Themes"; card["section"] = "app"; card["href"] = "?themes"; cards.push(card); card.clear();
+	card["title"] = "Docs"; card["section"] = "reference"; card["href"] = "../doc/index.uce"; cards.push(card);
+
+	DValue app_cards = cards.filter([](DValue item, String key) { return(item["section"].to_string() == "app"); });
+	DValue titles = app_cards.map([](DValue item, String key) { DValue out; out = item["title"].to_string(); return(out); });
+
+	<><html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
+	</head>
+	<body>
+		<h1><a href="index.uce">UCE Test Suite</a><a class="docs-link" href="../doc/index.uce?p=map">Collection Docs &rarr;</a></h1>
+		<h2>Collection Helpers</h2>
+		<p>Small data-shaping helpers are useful for route lists, nav records, cards, and other render-adjacent structures.</p>
+		<div class="system-info"><h3>StringList route labels</h3><pre><?= join(labels, "\n") ?></pre></div>
+		<div class="system-info"><h3>DValue app card titles</h3><pre><?= json_encode(titles) ?></pre></div>
+		<div class="system-info"><h3>All card values</h3><pre><?= json_encode(cards.values()) ?></pre></div>
+		<details>
+			<summary>Request Parameters</summary>
+			<pre><?= var_dump(p) ?></pre>
+		</details>
+	</body>
+	</html></>
+}

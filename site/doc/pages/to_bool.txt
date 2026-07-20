@@ -1,0 +1,21 @@
+:sig
+bool to_bool(String s, bool fallback = false)
+
+:params
+s : string to parse
+fallback : value returned when `s` is empty or not a recognized boolean token
+return value : parsed bool, or `fallback`.
+
+:see
+>types
+to_u64
+to_s64
+to_f64
+
+:content
+Parses a trimmed, case-insensitive boolean string.
+
+Truthy tokens are `"1"`, `"true"`, `"yes"`, and `"on"`. Falsey tokens are `"0"`, `"false"`, `"no"`, and `"off"`. Empty or unrecognized strings return the fallback.
+
+:example
+print(to_bool("yes") ? "true\n" : "false\n");

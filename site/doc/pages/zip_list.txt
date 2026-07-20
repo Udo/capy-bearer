@@ -1,0 +1,46 @@
+:sig
+DValue zip_list(String zip_file_name)
+
+:params
+zip_file_name : path to the ZIP archive to inspect
+return value : DValue containing archive metadata and an `entries` array
+
+:see
+>sys
+zip_create
+zip_read
+zip_extract
+DValue
+
+:content
+Reads the central directory from `zip_file_name` and returns structured metadata.
+
+The returned tree contains:
+
+- `file` : archive path
+- `count` : number of entries
+- `entries` : list of entry metadata
+
+Each entry contains:
+
+- `name`
+- `index`
+- `size`
+- `compressed_size`
+- `is_directory`
+- `method`
+
+Example:
+
+
+:example
+DValue entries;
+entries["a.txt"] = "alpha";
+entries["b.txt"] = "beta";
+zip_create("/tmp/doc-ziplist.zip", entries);
+DValue listing = zip_list("/tmp/doc-ziplist.zip");
+String names = "";
+listing["entries"].each([&](DValue e, String key) {
+    names += (names == "" ? "" : ", ") + e["name"].to_string();
+});
+print(listing["count"].to_u64(), " entries: ", names, "\n");

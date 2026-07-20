@@ -1,0 +1,60 @@
+#load "../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	DValue asset_props;
+	asset_props["css"]["0"] = "views/marketing.css";
+	print(component("../components/theme/assets", asset_props, context));
+	context.call["app"]["page_title"] = "Components";
+
+	<>
+		<h1>Component System</h1>
+		<div class="card">
+			<h2>Component Declaration</h2>
+			<div class="code-block-container">
+				<div class="terminal-header primary-gradient"></div>
+				<div class="terminal-controls">
+					<div class="window-dot red"></div>
+					<div class="window-dot yellow"></div>
+					<div class="window-dot green"></div>
+					<span class="mono-text">marketing_blocks.uce</span>
+				</div>
+				<pre class="code-block"><code>COMPONENT:HERO_SECTION(Request&amp; context)
+{
+    String title = first(context.props["title"].to_string(), "Welcome");
+    &lt;&gt;
+        &lt;div class="hero-section"&gt;...&lt;/div&gt;
+    &lt;/&gt;
+}</code></pre>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>Example Components</h2>
+			<div class="components-grid">
+				<div class="component-card"><h4>marketing_blocks:HERO_SECTION</h4><p>Landing page hero with CTA buttons</p></div>
+				<div class="component-card"><h4>marketing_blocks:FEATURES_GRID</h4><p>Feature showcase grid</p></div>
+				<div class="component-card"><h4>widgets:DATA_TABLE</h4><p>ag-Grid table wrapper</p></div>
+				<div class="component-card"><h4>widgets:SORTABLE_TABLE</h4><p>Lightweight sortable HTML table</p></div>
+				<div class="component-card"><h4>primitives:APP_FRAME</h4><p>Workspace shell wrapper</p></div>
+				<div class="component-card"><h4>gauges:ARCGAUGE</h4><p>SVG KPI gauge component</p></div>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2>Usage Examples</h2>
+			<div class="code-block-container">
+				<div class="terminal-header success-gradient"></div>
+				<div class="terminal-controls">
+					<div class="window-dot red"></div>
+					<div class="window-dot yellow"></div>
+					<div class="window-dot green"></div>
+					<span class="mono-text">views/index.uce</span>
+				</div>
+				<pre class="code-block"><code>DValue props;
+props["title"] = "Stunning Apps";
+&lt;&gt;&lt;?: component("example/marketing_blocks:HERO_SECTION", props, context) ?&gt;&lt;/&gt;</code></pre>
+			</div>
+		</div>
+	</>
+}

@@ -1,0 +1,22 @@
+:sig
+u64 sqlite_insert_id(SQLite* db)
+
+:params
+db : pointer to an active SQLite connection
+return value : last inserted rowid
+
+:see
+>sqlite
+sqlite_query
+sqlite_affected_rows
+
+:content
+Returns SQLite's last inserted rowid for the connection after an insert statement.
+
+:example
+SQLite* db = sqlite_connect("/tmp/doc-sqlite-insertid.db");
+sqlite_query(db, "drop table if exists t");
+sqlite_query(db, "create table t(id integer primary key autoincrement, v text)");
+sqlite_query(db, "insert into t(v) values('x')");
+print("new row id: ", sqlite_insert_id(db), "\n");
+sqlite_disconnect(db);

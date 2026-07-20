@@ -1,0 +1,93 @@
+#include "testlib.h"
+
+RENDER(Request& context)
+{
+	u64 passed = 0;
+	u64 failed = 0;
+	u64 skipped = 0;
+
+	auto check = [&](String name, bool ok, String detail)
+	{
+		site_tests_case(name, ok ? "pass" : "fail", detail);
+		if(ok)
+			passed++;
+		else
+			failed++;
+	};
+
+	site_tests_page_start("SQLite", "SQLite connector coverage for prepared params, result typing, metadata, and cleanup.");
+
+	String db_path = "/tmp/uce-site-tests-sqlite.sqlite";
+	file_unlink(db_path);
+	file_unlink(db_path + "-wal");
+	file_unlink(db_path + "-shm");
+
+	SQLite* db = sqlite_connect(db_path);
+	check("sqlite_connect()", db && db->connection != 0 && sqlite_error(db) == "connected", sqlite_error(db));
+
+	sqlite_query(db, "create table users(id integer primary key autoincrement, email text not null unique, visits integer not null, rating numeric not null)");
+	check("sqlite create table", sqlite_error(db) == "ok", sqlite_error(db));
+
+	sqlite_query(db, "create table dropped(id integer); insert into dropped values(1);");
+	String multi_statement_error = sqlite_error(db);
+	StringMap dropped_params;
+	dropped_params["name"] = "dropped";
+	DValue dropped_tables = sqlite_query(db, "select name from sqlite_master where type = 'table' and name = :name", dropped_params);
+	check("sqlite_query() rejects multi-statement SQL", multi_statement_error.find("exactly one SQL statement") != String::npos && dropped_tables["0"]["name"].to_string() == "", multi_statement_error + " tables=" + json_encode(dropped_tables));
+
+	StringMap ada;
+	ada["email"] = "ada@example.test";
+	ada["visits"] = "7";
+	ada["rating"] = "4.5";
+	sqlite_query(db, "insert into users(email, visits, rating) values(:email, :visits, :rating)", ada);
+	u64 ada_id = sqlite_insert_id(db);
+	check("sqlite named insert", ada_id == 1 && sqlite_affected_rows(db) == 1, "id=" + std::to_string(ada_id) + " affected=" + std::to_string((u64)sqlite_affected_rows(db)) + " error=" + sqlite_error(db));
+
+	StringMap bob;
+	bob["email"] = "bob@example.test";
+	bob["visits"] = "3";
+	bob["rating"] = "2.25";
+	sqlite_query(db, "insert into users(email, visits, rating) values(:email, :visits, :rating)", bob);
+	check("sqlite second insert", sqlite_insert_id(db) == 2 && sqlite_affected_rows(db) == 1, "id=" + std::to_string(sqlite_insert_id(db)));
+
+	StringMap query_params;
+	query_params["min_visits"] = "4";
+	DValue rows = sqlite_query(db, "select id, email, visits, rating from users where visits >= :min_visits order by id", query_params);
+	check("sqlite_query() rows", rows.is_array() && rows["0"]["email"].to_string() == "ada@example.test" && rows["0"]["visits"].to_s64() == 7 && rows["0"]["rating"].to_f64() > 4.49, json_encode(rows));
+
+	sqlite_query(db, "select id from users where id = ?", query_params);
+	String positional_error = sqlite_error(db);
+	check("sqlite_query() rejects positional placeholders", positional_error.find("positional ? placeholders are not supported") != String::npos, positional_error);
+
+	sqlite_query(db, "select id from users where id = @id", query_params);
+	String non_colon_error = sqlite_error(db);
+	check("sqlite_query() rejects non-colon placeholders", non_colon_error.find("only supports :name placeholders") != String::npos, non_colon_error);
+
+	sqlite_query(db, "update users set visits = visits + 1 where email = :email", ada);
+	check("sqlite_affected_rows()", sqlite_affected_rows(db) == 1, std::to_string((u64)sqlite_affected_rows(db)));
+
+	sqlite_query(db, "select nope from missing_table");
+	check("sqlite_error()", sqlite_error(db).find("sqlite prepare failed") != String::npos && sqlite_error(db).find("no such table") != String::npos, sqlite_error(db));
+
+	sqlite_disconnect(db);
+
+	String cleanup_db_path = db_path + ".cleanup";
+	file_unlink(cleanup_db_path);
+	file_unlink(cleanup_db_path + "-wal");
+	file_unlink(cleanup_db_path + "-shm");
+	SQLite* cleanup_db = sqlite_connect(cleanup_db_path);
+	sqlite_query(cleanup_db, "create table cleanup_probe(id integer)");
+	cleanup_sqlite_connections();
+	check("sqlite request cleanup releases tracked wrappers", context.resources.sqlite_connections.size() == 0, "tracked=" + std::to_string((u64)context.resources.sqlite_connections.size()));
+	sqlite_disconnect(cleanup_db);
+	file_unlink(cleanup_db_path);
+	file_unlink(cleanup_db_path + "-wal");
+	file_unlink(cleanup_db_path + "-shm");
+
+	file_unlink(db_path);
+	file_unlink(db_path + "-wal");
+	file_unlink(db_path + "-shm");
+
+	site_tests_summary(passed, failed, skipped, "SQLite tests write only under /tmp/uce-site-tests-sqlite.sqlite and clean up WAL/SHM sidecars.");
+	site_tests_page_end();
+}

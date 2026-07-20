@@ -1,0 +1,20 @@
+:sig
+void ob_start()
+
+:params
+return value : none
+
+:content
+Starts a new output buffer. Subsequent `print()` output is captured into it instead of the response until you collect it with `ob_get_close()` (or discard it with `ob_close()`). Buffers nest: each `ob_start()` pushes another buffer onto the stack. Use it to render a fragment, post-process it, then emit the result.
+
+:example
+ob_start();
+print("buffered text");
+String captured = ob_get_close();
+print("captured: ", captured, "\n");
+
+:see
+>ob
+ob_get_close
+ob_get
+ob_close

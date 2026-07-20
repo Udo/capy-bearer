@@ -1,0 +1,26 @@
+:sig
+StringMap split_http_headers(String s)
+
+:params
+s : HTTP request or header text
+return value : parsed request/header fields
+
+:see
+>string
+split_kv
+parse_query
+0_Request
+
+:content
+Parses HTTP request/header text into a `StringMap`.
+
+For a request line, the returned map includes fields such as `REQUEST_METHOD`, `REQUEST_URI`, `SCRIPT_NAME`, `QUERY_STRING`, and `SERVER_PROTOCOL`. Header names are normalized to uppercase CGI-style keys, for example `Host` becomes `HTTP_HOST`.
+
+Example:
+
+
+Most page code should read `context.params` instead. Use this helper when parsing raw HTTP text in tests or protocol helpers.
+
+:example
+StringMap headers = split_http_headers("Host: example.test\r\nUser-Agent: uce\r\n");
+print(headers["Host"], "\n");

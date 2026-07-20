@@ -1,0 +1,196 @@
+String clean_chat_field(String raw, u32 max_length)
+{
+	String value = trim(raw);
+	value = replace(value, "\r", " ");
+	value = replace(value, "\n", " ");
+	if(value.length() > max_length)
+		value.resize(max_length);
+	return(value);
+}
+
+DValue chat_event(Request& context, String type, String body)
+{
+	DValue event;
+	event["type"] = type;
+	event["body"] = body;
+	event["connection_id"] = context.params["WS_CONNECTION_ID"];
+	event["scope"] = first(context.params["WS_DOCUMENT_URI"], context.params["DOCUMENT_URI"]);
+	event["online"] = float_val(first(context.params["WS_CONNECTION_COUNT"], "0"));
+	event["at"] = time_format_utc("%H:%M:%S");
+	event["name"] = context.connection["name"].to_string();
+	event["message_count"] = context.connection["message_count"];
+	return(event);
+}
+
+RENDER(Request& context)
+{
+	String ws_url = context.params["DOCUMENT_URI"];
+	u64 online = ws_connection_count();
+	<>
+		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			WebSocket Chat
+		</h1>
+
+		<label>Chat Info</label>
+		<pre>Page scope: <?= ws_url ?>
+Connected right now: <span id="online-count"><?= online ?></span>
+Status: <span id="status">Connecting...</span></pre>
+		<p>This demo uses <code>context.in</code> for the current payload, <code>context.params["WS_..."]</code> for message metadata, and <code>context.connection</code> for per-client state.</p>
+
+		<form id="chat-form" action="?" method="post">
+			<div>
+				<label>Display name:</label>
+				<input id="chat-name" type="text" maxlength="32" value="guest-<?= draw_int(1000, 9999) ?>"/>
+			</div>
+			<div>
+				<label>Message:</label>
+				<textarea id="chat-message" maxlength="500" placeholder="Say something to everyone connected to this same .ws.uce page"></textarea>
+			</div>
+			<div>
+				<input id="send-button" type="submit" value="Send Message"/>
+			</div>
+		</form>
+
+		<label>Chat Log</label>
+		<pre id="chat-log"></pre>
+
+		<script>
+			const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}<?= ws_url ?>`;
+			const statusEl = document.getElementById('status');
+			const onlineEl = document.getElementById('online-count');
+			const logEl = document.getElementById('chat-log');
+			const formEl = document.getElementById('chat-form');
+			const nameEl = document.getElementById('chat-name');
+			const messageEl = document.getElementById('chat-message');
+			const sendButtonEl = document.getElementById('send-button');
+			const savedName = window.localStorage.getItem('uce-chat-name');
+			if (savedName) nameEl.value = savedName;
+
+			let ws;
+			let reconnectDelay = 1000;
+
+			function addLine(kind, title, body, meta = '') {
+				const prefix = kind === 'system' ? '[system]' : `[${title}]`;
+				const metaText = meta ? ` ${meta}` : '';
+				logEl.append(`${prefix} ${body}${metaText}\n`);
+				logEl.scrollTop = logEl.scrollHeight;
+			}
+
+			function setStatus(text, online) {
+				statusEl.textContent = text;
+				if (typeof online === 'number') onlineEl.textContent = String(online);
+			}
+
+			function sendPayload(payload) {
+				if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+				payload.name = (nameEl.value || '').trim().slice(0, 32) || 'guest';
+				window.localStorage.setItem('uce-chat-name', payload.name);
+				ws.send(JSON.stringify(payload));
+				return true;
+			}
+
+			function connect() {
+				ws = new WebSocket(wsUrl);
+				setStatus(`Connecting to ${wsUrl}...`);
+				sendButtonEl.disabled = true;
+
+				ws.addEventListener('open', () => {
+					reconnectDelay = 1000;
+					sendButtonEl.disabled = false;
+					setStatus('Connected');
+					addLine('system', 'system', 'socket connected', new Date().toLocaleTimeString());
+					sendPayload({ type: 'join' });
+				});
+
+				ws.addEventListener('message', (event) => {
+					let payload;
+					try {
+						payload = JSON.parse(event.data);
+					} catch (error) {
+						addLine('system', 'decode error', String(error), new Date().toLocaleTimeString());
+						return;
+					}
+					if (typeof payload.online === 'number') onlineEl.textContent = String(payload.online);
+					if (payload.type === 'message') {
+						addLine('', payload.name || 'guest', payload.body || '', `${payload.at || ''} ${payload.connection_id || ''}`);
+					} else {
+						addLine('system', payload.type || 'system', payload.body || '', `${payload.at || ''} ${payload.connection_id || ''}`);
+					}
+				});
+
+				ws.addEventListener('close', () => {
+					sendButtonEl.disabled = true;
+					setStatus(`Disconnected, retrying in ${reconnectDelay / 1000}s`);
+					addLine('system', 'system', 'socket closed', new Date().toLocaleTimeString());
+					window.setTimeout(connect, reconnectDelay);
+					reconnectDelay = Math.min(reconnectDelay * 2, 10000);
+				});
+
+				ws.addEventListener('error', () => {
+					setStatus('WebSocket error');
+				});
+			}
+
+			formEl.addEventListener('submit', (event) => {
+				event.preventDefault();
+				const body = (messageEl.value || '').trim();
+				if (!body) return;
+				if (sendPayload({ type: 'message', body })) {
+					messageEl.value = '';
+					messageEl.focus();
+				}
+			});
+
+			connect();
+		</script>
+	</>
+}
+
+WS(Request& context)
+{
+	if(ws_is_binary())
+	{
+		ws_send_to(
+			context.params["WS_CONNECTION_ID"],
+			json_encode(chat_event(context, "notice", "Binary messages are not handled by this demo"))
+		);
+		return;
+	}
+
+	DValue payload = json_decode(context.in);
+	String type = clean_chat_field(payload["type"].to_string(), 24);
+	String name = clean_chat_field(payload["name"].to_string(), 32);
+	String body = clean_chat_field(payload["body"].to_string(), 500);
+	u64 message_count = int_val(context.connection["message_count"].to_string());
+
+	if(name == "")
+		name = first(context.connection["name"].to_string(), "guest");
+
+	context.connection["name"] = name;
+
+	if(type == "join")
+	{
+		context.connection["joined_at"] = time_format_utc("%Y-%m-%d %H:%M:%S");
+		context.connection["last_type"] = type;
+		ws_send(json_encode(chat_event(context, "join", name + " joined the room")));
+		return;
+	}
+
+	if(type == "message" && body != "")
+	{
+		context.connection["last_type"] = type;
+		context.connection["last_body"] = body;
+		context.connection["message_count"] = (f64)(message_count + 1);
+		DValue event = chat_event(context, "message", body);
+		ws_send(json_encode(event));
+		return;
+	}
+
+	if(type != "")
+	{
+		context.connection["last_type"] = type;
+		ws_send_to(context.params["WS_CONNECTION_ID"], json_encode(chat_event(context, "notice", "Unknown message type: " + type)));
+	}
+}

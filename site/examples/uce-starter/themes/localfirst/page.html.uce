@@ -1,0 +1,51 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	String main_html = context.call["fragments"]["main"].to_string();
+	String current_path = context.call["route"]["l_path"].to_string();
+
+	DValue global_props;
+	global_props["cookie_consent"].set_bool(false);
+
+	DValue account_props;
+	account_props["wrapper_class"] = "admin-account-card";
+	account_props["links_wrapper_class"] = "admin-account-links";
+	account_props["name_class"] = "admin-account-name";
+
+	<>
+		<!doctype html>
+		<html class="no-js <?= context.cfg.get_by_path("theme/mode-class").to_string() ?>" lang="en" data-theme-key="<?= context.cfg.get_by_path("theme/key").to_string() ?>">
+		<head>
+			<?: component("../../components/theme/head", context) ?>
+		</head>
+		<body class="admin-page localfirst-theme dark-theme">
+			<?: component("../../components/theme/global_controls", global_props, context) ?>
+			<div class="admin-shell">
+				<nav class="admin-nav">
+					<div class="admin-nav-header">
+						<a class="admin-nav-title" href="<?= app_link("", context) ?>">
+							<img class="admin-nav-logo-img" src="<?= app_asset_url("themes/localfirst/img/local_first_logo.png", context) ?>" alt="<?= context.cfg.get_by_path("site/name").to_string() ?>" />
+						</a>
+					</div>
+					<? context.cfg.get_by_path("menu").each([&](DValue menu_item, String menu_key) {
+						if(menu_item["hidden"].to_string() == "1")
+							return;
+						bool active = menu_key != "" && (current_path == menu_key || current_path.rfind(menu_key + "/", 0) == 0);
+						String href = menu_item["external"].to_string() != "" ? "/" + menu_key : app_link(menu_key, context);
+						?><a class="admin-nav-item<?= active ? " active" : "" ?>" href="<?= href ?>"><?= menu_item["title"].to_string() ?></a><?
+					}); ?>
+				</nav>
+				<div class="admin-main">
+					<div class="admin-toolbar">
+						<?: component("../../components/theme/account_links", account_props, context) ?>
+					</div>
+					<div id="content" class="admin-content">
+						<?: main_html ?>
+					</div>
+				</div>
+			</div>
+		</body>
+		</html>
+	</>
+}

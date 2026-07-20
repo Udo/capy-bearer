@@ -1,0 +1,29 @@
+#include "testlib.h"
+
+RENDER(Request& context)
+{
+	if(!test_demo_request_allowed(context))
+	{
+		site_tests_restricted(context, "API Coverage Manifest", "scan repository headers, tests, and docs with the local manifest script");
+		return;
+	}
+
+	u64 passed = 0;
+	u64 failed = 0;
+	u64 skipped = 0;
+	auto check = [&](String name, bool ok, String detail)
+	{
+		site_tests_case(name, ok ? "pass" : "fail", detail);
+		if(ok)
+			passed++;
+		else
+			failed++;
+	};
+
+	site_tests_page_start("API Coverage Manifest", "Repository-level guard that public wasm-unit APIs have an explicit test/doc/internal decision.");
+	String repo_root = process_start_directory();
+	String out = shell_exec("cd " + shell_escape(repo_root) + " && python3 scripts/api_coverage_manifest.py");
+	check("api coverage manifest", contains(out, "API coverage manifest ok"), out);
+	site_tests_summary(passed, failed, skipped, "This page runs only on trusted/local test requests.");
+	site_tests_page_end();
+}

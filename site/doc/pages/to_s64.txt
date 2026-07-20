@@ -1,0 +1,22 @@
+:sig
+s64 to_s64(String s, s64 fallback = 0)
+
+:params
+s : string to parse
+fallback : value returned when `s` is empty or not a complete signed integer
+return value : parsed s64, or `fallback`.
+
+:see
+>types
+to_u64
+to_f64
+to_bool
+int_val
+
+:content
+Parses a trimmed string as a base-10 signed integer.
+
+The whole trimmed string must be consumed by the parser. Empty strings and partially parsed values such as `"-12px"` return the fallback.
+
+:example
+print(to_s64("-7"), "\n");

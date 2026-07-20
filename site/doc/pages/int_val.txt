@@ -1,0 +1,20 @@
+:sig
+u64 int_val(String s, u32 base = 10)
+
+:params
+s : string to be converted
+base : number system base (default 10)
+return value : a u64 containing the number (0 if no number could be identified).
+
+:see
+>string
+float_val
+0_String
+
+:content
+Extracts an integer value from `s`.
+
+The `base` argument controls which number system is used while parsing. If no usable number can be identified, the function returns `0`.
+
+:example
+print(int_val("42"), " / ", int_val("ff", 16), "\n");

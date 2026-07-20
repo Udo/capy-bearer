@@ -1,0 +1,20 @@
+:sig
+String file_temp(String prefix)
+
+:params
+prefix : path prefix for the temp file; a unique suffix is appended
+return value : the path of the newly created temp file, or "" on failure
+
+:content
+Creates a new, uniquely named empty file using `prefix` as the leading path and returns its full path. Use it for scratch files and the write-then-rename publish pattern.
+
+:example
+String path = file_temp("/tmp/doc-temp-");
+file_put_contents(path, "scratch");
+print(str_starts_with(path, "/tmp/doc-temp-") ? "created a temp file" : path, "\n");
+file_unlink(path);
+
+:see
+>sys
+file_rename
+file_put_contents

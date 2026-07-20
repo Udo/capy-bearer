@@ -1,0 +1,21 @@
+:sig
+bool file_put_contents(String file_name, String content)
+
+:params
+file_name : file to write, resolved against the unit's directory
+content : bytes to write (replaces any existing content)
+return value : true on success
+
+:content
+Writes `content` to a file, replacing whatever was there. The write takes an exclusive lock for the truncate-and-write, so concurrent writers are serialized and readers wait for it; you never manage locks yourself.
+
+:example
+file_put_contents("/tmp/doc-put.txt", "first");
+file_put_contents("/tmp/doc-put.txt", "second");
+print(file_get_contents("/tmp/doc-put.txt"), "\n");
+
+:see
+>sys
+file_get_contents
+file_append
+file_open

@@ -1,0 +1,20 @@
+:sig
+s64 file_tell(u64 h)
+
+:params
+h : handle from file_open()
+return value : the current absolute byte offset
+
+:content
+Returns a handle's current read/write offset, as moved by `file_read()`, `file_write()`, and `file_seek()`.
+
+:example
+u64 h = file_open("/tmp/doc-tell.txt", "w");
+file_write(h, "hello");
+print("offset is ", file_tell(h), "\n");
+file_close(h);
+
+:see
+>sys
+file_seek
+file_open

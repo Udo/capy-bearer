@@ -1,0 +1,20 @@
+:sig
+void file_append(String file_name, ...val)
+
+:params
+file_name : file to append to, created if missing
+...val : one or more values appended in order
+return value : none
+
+:content
+Appends one or more values to a file, creating it if needed. Each call takes an exclusive lock for the append, so concurrent appends are serialized and readers wait for them; you never manage locks yourself.
+
+:example
+file_unlink("/tmp/doc-append.txt");
+file_append("/tmp/doc-append.txt", "a", "b", "c");
+print(file_get_contents("/tmp/doc-append.txt"), "\n");
+
+:see
+>sys
+file_put_contents
+file_get_contents

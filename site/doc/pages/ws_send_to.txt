@@ -1,0 +1,18 @@
+:sig
+bool ws_send_to(String connection_id, String message, bool binary = false)
+
+:params
+connection_id : ID of the target WebSocket client
+message : message payload to send
+binary : set to true to send a binary frame instead of a text frame
+return value : true if the target connection exists and the message was queued
+
+:see
+>websocket
+
+:content
+Queues a WebSocket message for one specific connected client.
+
+:example
+bool sent = ws_send_to("example-connection-id", "direct message");
+print(sent ? "message queued" : "no such connection", "\n");

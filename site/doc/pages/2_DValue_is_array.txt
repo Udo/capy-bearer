@@ -1,0 +1,18 @@
+:sig
+bool DValue::is_array() const
+
+:params
+return value : true when the dereferenced value is map-shaped
+
+:see
+>types
+0_DValue
+2_DValue_is_list
+
+:content
+Returns true when the value's current type is `M`, the map/list container type. It does not require contiguous numeric keys; use `is_list()` for that.
+
+:example
+DValue user;
+user["name"] = "Ada";
+print(user.is_array() ? "array\n" : "scalar\n");

@@ -1,0 +1,325 @@
+#include "testlib.h"
+
+RENDER(Request& context)
+{
+	u64 passed = 0;
+	u64 failed = 0;
+	u64 skipped = 0;
+
+	auto check = [&](String name, bool ok, String detail)
+	{
+		site_tests_case(name, ok ? "pass" : "fail", detail);
+		if(ok)
+			passed++;
+		else
+			failed++;
+	};
+
+	site_tests_page_start("Core APIs", "Pure helper coverage for strings, UTF-8 splitting, DValue, and JSON encoding/decoding.");
+
+	auto comma_parts = split("alpha,beta,gamma", ",");
+	auto empty_delim_parts = split("alpha", "");
+	check("split()", comma_parts.size() == 3 && comma_parts[1] == "beta" && empty_delim_parts.size() == 1 && empty_delim_parts[0] == "alpha", join(comma_parts, " | "));
+
+	auto spaced_parts = split_space("  one   two  three  ");
+	check("split_space()", spaced_parts.size() == 3 && spaced_parts[2] == "three", join(spaced_parts, " / "));
+
+	StringMap kv = split_kv("\n#comment\nalpha = one\nempty=\n", '=', true, false);
+	StringMap http_headers = split_http_headers("GET /demo.uce?x=1 HTTP/1.1\r\nHost: example.test\r\nX-Empty:\r\n");
+	StringMap leading_crlf_headers = split_http_headers("\r\nGET /lead.uce HTTP/1.1\r\nHost: lead.example\r\n");
+	StringMap header_only = split_http_headers("Host: example.test\nX-Token: abc\n");
+	StringMap colon_uri_headers = split_http_headers("GET /clock.uce?t=12:30 HTTP/1.1\r\nHost: colon.example\r\n");
+	check("split_http_headers() request line with colon in URI", colon_uri_headers["REQUEST_METHOD"] == "GET" && colon_uri_headers["DOCUMENT_URI"] == "/clock.uce" && colon_uri_headers["QUERY_STRING"] == "t=12:30" && colon_uri_headers["HTTP_HOST"] == "colon.example", var_dump(colon_uri_headers));
+	check("trim() / split_kv() / split_http_headers()", trim("  padded value  ") == "padded value" && kv["alpha"] == "one" && kv["empty"] == "" && http_headers["REQUEST_METHOD"] == "GET" && http_headers["DOCUMENT_URI"] == "/demo.uce" && http_headers["QUERY_STRING"] == "x=1" && http_headers["HTTP_X_EMPTY"] == "" && leading_crlf_headers["REQUEST_METHOD"] == "GET" && leading_crlf_headers["DOCUMENT_URI"] == "/lead.uce" && leading_crlf_headers["HTTP_HOST"] == "lead.example" && header_only["REQUEST_METHOD"] == "" && header_only["HTTP_HOST"] == "example.test" && header_only["HTTP_X_TOKEN"] == "abc", trim("  padded value  ") + " / " + var_dump(kv) + " / " + var_dump(http_headers) + " / " + var_dump(leading_crlf_headers) + " / " + var_dump(header_only));
+	check("replace()", replace("alpha-beta-beta", "beta", "done") == "alpha-done-done", replace("alpha-beta-beta", "beta", "done"));
+	check("html_escape() attribute-safe quotes", html_escape("<&>\"Don't") == "&lt;&amp;&gt;&quot;Don&#39;t", html_escape("<&>\"Don't"));
+	check("regex_match()", regex_match("[A-Z][a-z]+", "Alice") && !regex_match("[A-Z][a-z]+", "Alice!"), "full-string validation");
+
+	DValue regex_email = regex_search("(?<user>[A-Za-z0-9._%+-]+)@(?<host>[A-Za-z0-9.-]+)", "Contact ops@example.test");
+	check("regex_search()", regex_email["matched"].to_bool() && regex_email["named"]["user"].to_string() == "ops" && regex_email["named"]["host"].to_string() == "example.test", json_encode(regex_email));
+
+	DValue regex_tags = regex_search_all("#(?<tag>[A-Za-z0-9_]+)", "#uce #docs");
+	check("regex_search_all()", regex_tags["count"].to_s64() == 2 && regex_tags["matches"]["1"]["named"]["tag"].to_string() == "docs", json_encode(regex_tags));
+
+	check("regex_replace()", regex_replace("#([A-Za-z0-9_]+)", "<tag>$1</tag>", "#uce") == "<tag>uce</tag>", regex_replace("#([A-Za-z0-9_]+)", "<tag>$1</tag>", "#uce"));
+
+	auto regex_parts = regex_split("\\s*,\\s*", "uce, components, markdown");
+	check("regex_split()", regex_parts.size() == 3 && regex_parts[1] == "components", join(regex_parts, " | "));
+
+	check("substr() + strpos()", strpos("component suite", "suite") == 10 && substr("component suite", 10) == "suite", "strpos=10 substr='" + substr("component suite", 10) + "'");
+	check("str_starts_with()", str_starts_with("websocket-suite", "websocket"), "websocket-suite starts with websocket");
+	check("str_ends_with()", str_ends_with("component.uce", ".uce"), "component.uce ends with .uce");
+	check("to_lower() / to_upper()", to_lower("MiXeD") == "mixed" && to_upper("MiXeD") == "MIXED", to_lower("MiXeD") + " / " + to_upper("MiXeD"));
+	check("request context params", context.params["SCRIPT_URL"] != "" && context.params["BASE_URL"] != "" && context.params["ROUTE_PATH"] != "" && context.params["ROUTE_PAGE"] != "" && context.params["ROUTE_VALID"] == "1", "script=" + context.params["SCRIPT_URL"] + " base=" + context.params["BASE_URL"] + " route=" + context.params["ROUTE_PATH"] + " page=" + context.params["ROUTE_PAGE"] + " valid=" + context.params["ROUTE_VALID"]);
+	check("request transport stays out of context.call", !context.call.has("params") && !context.call.has("get") && !context.call.has("post") && !context.call.has("cookies") && !context.call.has("session") && !context.call.has("entry_unit") && !context.call.has("in"), json_encode(context.call));
+	check("request server configuration", context.server && context.server->config["BIN_DIRECTORY"] != "" && context.server->config["SITE_DIRECTORY"] != "" && context.server->config["SESSION_PATH"] != "" && context.server->config["WASM_CORE_PATH"] != "", "bin=" + context.server->config["BIN_DIRECTORY"] + " site=" + context.server->config["SITE_DIRECTORY"] + " session=" + context.server->config["SESSION_PATH"] + " core=" + context.server->config["WASM_CORE_PATH"]);
+	String saved_query_string = context.params["QUERY_STRING"];
+	context.params["QUERY_STRING"] = "workspace/projects&theme=dark";
+	check("request_query_path() delegates to request_query_route()", request_query_path(context) == request_query_route(context)["l_path"].to_string() && request_query_path(context) == "workspace/projects", request_query_path(context) + " / " + json_encode(request_query_route(context)));
+	context.params["QUERY_STRING"] = saved_query_string;
+	check("route path sanitizers", route_path_normalize("/workspace/projects/") == "workspace/projects" && route_path_is_safe("workspace/projects") && !route_path_is_safe("../demo") && !route_path_is_safe("workspace/../demo") && !route_path_is_safe("workspace/file.uce") && route_path_sanitize("../demo") == "" && route_path_sanitize("") == "index", route_path_sanitize("/workspace/projects/"));
+
+	StringList route_parts = {"dashboard", "index", "dashboard", "themes"};
+	auto unique_routes = route_parts.unique();
+	auto sorted_routes = unique_routes.sort();
+	auto upper_routes = sorted_routes.map([](String item) { return(to_upper(item)); });
+	auto dashboard_routes = route_parts.filter([](String item) { return(item == "dashboard"); });
+	String route_each = "";
+	route_parts.each([&](String item) { route_each += item + ","; });
+	check("StringList map/filter/keys/each/unique/sort/find/some/every", unique_routes.size() == 3 && sorted_routes[0] == "dashboard" && upper_routes[2] == "THEMES" && dashboard_routes.size() == 2 && join(route_parts.keys(), ",") == "0,1,2,3" && route_each == "dashboard,index,dashboard,themes," && route_parts.find([](String item) { return(str_starts_with(item, "them")); }, "missing") == "themes" && route_parts.some([](String item) { return(item == "index"); }) && unique_routes.every([](String item) { return(item != ""); }), join(upper_routes, ","));
+
+	DValue nav;
+	DValue nav_home;
+	nav_home["title"] = "Home";
+	nav_home["section"] = "main";
+	nav.push(nav_home);
+	DValue nav_dash;
+	nav_dash["title"] = "Dashboard";
+	nav_dash["section"] = "app";
+	nav.push(nav_dash);
+	DValue nav_themes;
+	nav_themes["title"] = "Themes";
+	nav_themes["section"] = "app";
+	nav.push(nav_themes);
+	DValue empty_tree;
+	DValue empty_pop = empty_tree.pop();
+	DValue app_nav = nav.filter([](DValue item, String key) { return(item["section"].to_string() == "app"); });
+	DValue nav_titles = app_nav.map([](DValue item, String key) { DValue title; title = item["title"].to_string(); return(title); });
+	DValue nav_dash_summary = nav_dash.filter({"title"});
+	check("DValue collection helpers", empty_pop.to_string() == "" && app_nav.is_list() && nav_titles["0"].to_string() == "Dashboard" && join(nav_dash_summary.keys(), ",") == "title" && nav_dash.values()["0"].to_string() == "app" && nav_dash.values()["1"].to_string() == "Dashboard", json_encode(nav_titles));
+
+	DValue copy_source; copy_source["nested"]["value"] = "original";
+	DValue copied = copy_source;
+	copied["nested"]["value"] = "copy";
+	DValue move_source; move_source["nested"]["value"] = "moved";
+	DValue moved = std::move(move_source);
+	DValue reference_target; DValue reference; reference.set_reference(&reference_target);
+	DValue reference_source; reference_source["nested"]["value"] = "target";
+	reference = reference_source;
+	check("DValue copy/move assignment preserves value and reference semantics", copy_source["nested"]["value"].to_string() == "original" && copied["nested"]["value"].to_string() == "copy" && moved["nested"]["value"].to_string() == "moved" && reference_target["nested"]["value"].to_string() == "target", json_encode(moved) + " / " + json_encode(reference_target));
+
+	DValue conv;
+	conv["name"] = "ada";
+	conv["count"] = "12";
+	conv["junk"] = "not-a-number";
+	conv["flag"] = "off";
+	check("DValue to_* defaults", conv.get_by_path("missing/key").to_string("fallback") == "fallback" && conv["name"].to_string("fallback") == "ada" && conv["junk"].to_s64(-7) == -7 && conv["count"].to_s64(-7) == 12 && conv["junk"].to_f64(2.5) == 2.5 && conv["junk"].to_u64(9) == 9 && conv.get_by_path("nope").to_bool(true) && !conv["flag"].to_bool(true), json_encode(conv));
+
+	const DValue& conv_read = conv;
+	String const_each_keys = "";
+	conv_read.each([&](const DValue& item, String key) { const_each_keys += key + ":" + item.to_string("-") + " "; });
+	check("DValue const read accessors", conv_read.has("name") && conv_read.get_by_path("name").to_string() == "ada" && conv_read.is_array() && !conv_read.is_list() && conv_read.to_stringmap()["count"] == "12" && conv_read.get_type_name() == "array" && contains(const_each_keys, "count:12"), const_each_keys);
+
+	DValue ordered;
+	for(u32 i = 0; i < 12; i++)
+	{
+		DValue ordered_entry;
+		ordered_entry = "v" + std::to_string(i);
+		ordered.push(ordered_entry);
+	}
+	String ordered_keys = "";
+	ordered.each([&](const DValue& item, String key) { ordered_keys += key + ","; });
+	check("DValue list iteration is numeric", ordered_keys == "0,1,2,3,4,5,6,7,8,9,10,11," && ordered.values()["10"].to_string() == "v10" && ordered.map([](const DValue& item, String key) { return(item); })["11"].to_string() == "v11", ordered_keys);
+
+	DValue uceb_source;
+	uceb_source["name"] = "phase1";
+	uceb_source["nested"]["answer"] = "42";
+	uceb_source["float"] = (f64)0.0000001;
+	uceb_source["bool"].set_bool(true);
+	uceb_source["empty_list"].set_array();
+	DValue uceb_item;
+	uceb_item = "first";
+	uceb_source["items"].push(uceb_item);
+	uceb_item = "second";
+	uceb_source["items"].push(uceb_item);
+	String uceb_binary = "bin";
+	uceb_binary.push_back((char)0x00);
+	uceb_binary += "ary";
+	uceb_source["binary"] = uceb_binary;
+	uceb_source["pointer"] = (void*)0x1234;
+	String uceb_encoded = ucb_encode(uceb_source);
+	String uceb_error = "";
+	DValue uceb_decoded;
+	bool uceb_ok = ucb_decode(uceb_encoded, uceb_decoded, &uceb_error);
+	check("UCEB2 DValue codec round-trip preserves scalar types", uceb_ok && uceb_decoded["name"].to_string() == "phase1" && uceb_decoded["name"].get_type_name() == "String" && uceb_decoded["nested"]["answer"].to_string() == "42" && uceb_decoded["float"].get_type_name() == "f64" && uceb_decoded["float"].to_f64() > 0.00000009 && uceb_decoded["float"].to_f64() < 0.00000011 && uceb_decoded["bool"].get_type_name() == "bool" && uceb_decoded["bool"].to_bool() && uceb_decoded["items"].is_list() && uceb_decoded["items"]["1"].to_string() == "second" && uceb_decoded["empty_list"].is_list() && uceb_decoded["binary"].to_string().size() == uceb_binary.size() && uceb_decoded["binary"].to_string() == uceb_binary && uceb_decoded["pointer"].to_string() == "", "bytes=" + std::to_string((u64)uceb_encoded.size()) + " error=" + uceb_error + " float=" + uceb_decoded["float"].to_string() + " types=" + uceb_decoded["name"].get_type_name() + "/" + uceb_decoded["float"].get_type_name() + "/" + uceb_decoded["bool"].get_type_name());
+	StringMap uceb_flat_source = {{"alpha", "one"}, {"binary", uceb_binary}, {"empty", ""}};
+	DValue uceb_flat_decoded;
+	String uceb_flat_error;
+	bool uceb_flat_ok = ucb_decode(ucb_encode_flat_string_map(uceb_flat_source), uceb_flat_decoded, &uceb_flat_error);
+	check("UCEB2 flat string-map codec", uceb_flat_ok && uceb_flat_decoded.to_stringmap() == uceb_flat_source, uceb_flat_error + " / " + json_encode(uceb_flat_decoded));
+
+	DValue uceb_invalid;
+	String uceb_bad_magic = "NOPE";
+	uceb_bad_magic.push_back((char)1);
+	String uceb_wrong_version = "UCEB";
+	uceb_wrong_version.push_back((char)3);
+	String uceb_truncated = "UCEB";
+	uceb_truncated.push_back((char)2);
+	uceb_truncated.push_back((char)0);
+	uceb_truncated.push_back('S');
+	uceb_truncated.push_back((char)0x80);
+	String uceb_depth_bomb = "UCEB";
+	uceb_depth_bomb.push_back((char)2);
+	for(u32 i = 0; i < 1030; i++)
+	{
+		uceb_depth_bomb.push_back((char)0); // flags
+		uceb_depth_bomb.push_back('M'); // node type
+		uceb_depth_bomb.push_back((char)0); // scalar length
+		uceb_depth_bomb.push_back((char)1); // child count
+		uceb_depth_bomb.push_back((char)1); // key length
+		uceb_depth_bomb += "x";
+	}
+	uceb_depth_bomb.push_back((char)0);
+	uceb_depth_bomb.push_back('M');
+	uceb_depth_bomb.push_back((char)0);
+	uceb_depth_bomb.push_back((char)0);
+	String uceb_negative_error = "";
+	bool uceb_bad_magic_ok = ucb_decode(uceb_bad_magic, uceb_invalid, &uceb_negative_error);
+	String uceb_magic_error = uceb_negative_error;
+	bool uceb_wrong_version_ok = ucb_decode(uceb_wrong_version, uceb_invalid, &uceb_negative_error);
+	String uceb_version_error = uceb_negative_error;
+	bool uceb_truncated_ok = ucb_decode(uceb_truncated, uceb_invalid, &uceb_negative_error);
+	String uceb_truncated_error = uceb_negative_error;
+	String uceb_trailing = uceb_encoded + "x";
+	bool uceb_trailing_ok = ucb_decode(uceb_trailing, uceb_invalid, &uceb_negative_error);
+	String uceb_trailing_error = uceb_negative_error;
+	bool uceb_depth_ok = ucb_decode(uceb_depth_bomb, uceb_invalid, &uceb_negative_error);
+	check("UCEB2 rejects invalid input", !uceb_bad_magic_ok && contains(uceb_magic_error, "magic") && !uceb_wrong_version_ok && contains(uceb_version_error, "version") && !uceb_truncated_ok && contains(uceb_truncated_error, "length") && !uceb_trailing_ok && contains(uceb_trailing_error, "trailing") && !uceb_depth_ok && contains(uceb_negative_error, "nesting"), uceb_magic_error + " / " + uceb_version_error + " / " + uceb_truncated_error + " / " + uceb_trailing_error + " / " + uceb_negative_error);
+
+	size_t abi_len = 0;
+	uce_dvalue* abi_root = reinterpret_cast<uce_dvalue*>(&uceb_source);
+	uce_dvalue* abi_nested = uce_dv_find(abi_root, "nested", 6);
+	uce_dvalue* abi_answer = uce_dv_get(abi_nested, "answer", 6);
+	const char* abi_answer_value = uce_dv_value(abi_answer, &abi_len);
+	uce_dv_iter abi_iter = uce_dv_iter_begin(uce_dv_find(abi_root, "items", 5));
+	const char* abi_key = 0;
+	size_t abi_key_len = 0;
+	uce_dvalue* abi_child = 0;
+	bool abi_iter_first = uce_dv_iter_next(uce_dv_find(abi_root, "items", 5), &abi_iter, &abi_key, &abi_key_len, &abi_child) == 1;
+	size_t abi_encoded_len = uce_dv_encode(abi_root, 0, 0);
+	String abi_encoded;
+	abi_encoded.resize(abi_encoded_len);
+	uce_dv_encode(abi_root, &abi_encoded[0], abi_encoded.size());
+	uce_dvalue* abi_decoded = uce_dv_decode(abi_encoded.data(), abi_encoded.size());
+	check("DValue C ABI accessors", abi_answer_value != 0 && String(abi_answer_value, abi_len) == "42" && uce_dv_count(abi_nested) == 1 && uce_dv_is_list(uce_dv_find(abi_root, "items", 5)) == 1 && abi_iter_first && String(abi_key, abi_key_len) == "0" && uce_dv_value(abi_child, &abi_len) != 0 && uce_dv_count(abi_root) == 8 && abi_decoded != 0 && uce_dv_find(abi_decoded, "nested", 6) != 0, "encoded=" + std::to_string((u64)abi_encoded_len) + " last_error=" + String(uce_dv_last_error()));
+
+	String binary_payload = "core";
+	binary_payload.push_back((char)0x00);
+	binary_payload.push_back((char)0xff);
+	binary_payload += "payload";
+	bool base64_ok = false;
+	String encoded_base64 = base64_encode(binary_payload);
+	String decoded_base64 = base64_decode(encoded_base64, base64_ok);
+	bool invalid_base64_ok = true;
+	base64_decode("AA=A", invalid_base64_ok);
+	check("base64_encode() / base64_decode() binary-safe", base64_ok && decoded_base64 == binary_payload && decoded_base64.size() == binary_payload.size() && !invalid_base64_ok, encoded_base64 + " bytes=" + std::to_string((u64)decoded_base64.size()));
+
+	String utf8_sample = "A\xC3\xA9";
+	auto utf8_parts = split_utf8(utf8_sample);
+	check("split_utf8()", utf8_parts.size() == 2, "count=" + std::to_string(utf8_parts.size()));
+
+	DValue payload;
+	payload["name"] = "uce";
+	payload["count"] = (f64)3;
+	payload["kind"] = "core";
+	String payload_json = json_encode(payload);
+	DValue decoded = json_decode(payload_json);
+	check("json_encode() / json_decode()", decoded["name"].to_string() == "uce" && int_val(decoded["count"].to_string()) == 3, payload_json);
+
+	DValue decoded_unicode = json_decode("\"\\u00A9\"");
+	DValue decoded_negative = json_decode("-12.5");
+	DValue decoded_exponent = json_decode("-1.25e+3");
+	DValue decoded_surrogate = json_decode("\"\\uD83D\\uDE0A\"");
+	DValue malformed_unicode = json_decode("\"\\u\"");
+	DValue malformed_number = json_decode("[1e]");
+	DValue malformed_map = json_decode("{\"a\":");
+	check("json_decode() unicode / negatives / exponent", decoded_unicode.to_string() == "©" && decoded_surrogate.to_string() == "\xF0\x9F\x98\x8A" && decoded_negative.to_string() == "-12.5" && decoded_exponent.to_string() == "-1.25e+3", "unicode=" + decoded_unicode.to_string() + " surrogate=" + decoded_surrogate.to_string() + " negative=" + decoded_negative.to_string() + " exponent=" + decoded_exponent.to_string());
+	check("json_decode() malformed input is safe", malformed_unicode.to_string() == "" && malformed_number["0"].to_string() == "1" && malformed_map.has("a"), malformed_unicode.to_string() + " / " + malformed_number.to_string() + " / " + malformed_map["a"].to_string());
+
+	DValue xml_doc;
+	xml_doc["name"] = "book";
+	xml_doc["attrs"]["id"] = "b1";
+	DValue xml_title;
+	xml_title["name"] = "title";
+	xml_title["text"] = "UCE & XML";
+	xml_doc["children"].push(xml_title);
+	String encoded_xml = xml_encode(xml_doc);
+	DValue decoded_xml = xml_decode(encoded_xml);
+	check("xml_encode() / xml_decode()", contains(encoded_xml, "id=\"b1\"") && contains(encoded_xml, "UCE &amp; XML") && decoded_xml["children"]["0"]["text"].to_string() == "UCE & XML", encoded_xml);
+
+	DValue xml_payload;
+	xml_payload["title"] = "Hello";
+	xml_payload["count"] = "3";
+	check("xml_encode() simple map", xml_encode(xml_payload, "payload") == "<payload><count>3</count><title>Hello</title></payload>", xml_encode(xml_payload, "payload"));
+	check("xml_decode() numeric entities", xml_decode("<x>&#x41;&#66;</x>")["text"].to_string() == "AB", xml_decode("<x>&#x41;&#66;</x>")["text"].to_string());
+
+	String yaml_config = "app:\n  name: UCE Starter\n  debug: true\n  port: 8080\n  paths:\n    - site\n    - cache\nmessage: |\n  hello\n  world\n";
+	DValue decoded_yaml = yaml_decode(yaml_config);
+	check("yaml_decode() config", decoded_yaml["app"]["name"].to_string() == "UCE Starter" && decoded_yaml["app"]["debug"].to_bool() && decoded_yaml["app"]["port"].to_s64() == 8080 && decoded_yaml["app"]["paths"]["1"].to_string() == "cache" && decoded_yaml["message"].to_string() == "hello\nworld", json_encode(decoded_yaml));
+
+	String encoded_yaml = yaml_encode(decoded_yaml);
+	DValue yaml_roundtrip = yaml_decode(encoded_yaml);
+	check("yaml_encode() / yaml_decode()", contains(encoded_yaml, "app:") && contains(encoded_yaml, "paths:") && yaml_roundtrip["app"]["debug"].to_bool() && yaml_roundtrip["message"].to_string() == "hello\nworld", encoded_yaml);
+
+	DValue tree;
+	tree["suite"] = "core";
+	tree["nested"]["api"] = "dvalue";
+	tree["nested"]["ok"].set_bool(true);
+	check("DValue map access", tree["suite"].to_string() == "core" && tree["nested"]["api"].to_string() == "dvalue", json_encode(tree));
+
+	String nibble_source = "alpha/beta/gamma";
+	String nibble_first = nibble(nibble_source, "/");
+	StringMap merge_a; merge_a["a"] = "one"; merge_a["shared"] = "old";
+	StringMap merge_b; merge_b["b"] = "two"; merge_b["shared"] = "new";
+	StringMap merged_map = array_merge(merge_a, merge_b);
+	DValue merge_dv_a; merge_dv_a["a"] = "one"; merge_dv_a["shared"] = "old";
+	DValue merge_dv_b; merge_dv_b["b"] = "two"; merge_dv_b["shared"] = "new";
+	DValue merged_dv = array_merge(merge_dv_a, merge_dv_b);
+	u32 json_space_i = 0;
+	json_consume_space(" \n\tvalue", json_space_i);
+	check("float_val() / nibble() / array_merge() / json_consume_space()", float_val("12.5") > 12.49 && float_val("12.5") < 12.51 && nibble_first == "alpha" && nibble_source == "beta/gamma" && merged_map["shared"] == "new" && merged_map["a"] == "one" && merged_dv["b"].to_string() == "two" && json_space_i == 3, "nibble=" + nibble_first + " rest=" + nibble_source + " merged=" + var_dump(merged_map) + " json_space_i=" + std::to_string(json_space_i));
+
+	String unsafe = "Hello, 世界 / ../../ name!";
+	check("safe_name() / ascii_safe_name()", safe_name(unsafe) == "Helloname" && ascii_safe_name("Hello world! 42") == "Helloworld42", safe_name(unsafe) + " / " + ascii_safe_name("Hello world! 42"));
+
+	DValue mutable_tree;
+	mutable_tree["keep"] = "yes";
+	mutable_tree["remove"] = "no";
+	String mutable_json = mutable_tree.to_json();
+	mutable_tree.remove("remove");
+	bool removed_ok = !mutable_tree.has("remove") && mutable_tree["keep"].to_string() == "yes";
+	mutable_tree.clear();
+	check("DValue to_json() / remove() / clear()", mutable_json == "\"(array)\"" && removed_ok && !mutable_tree.has("keep"), mutable_json);
+
+	// wasm_trace.h (WASM-PROPOSAL Phase 4): canned Wasmtime-format messages —
+	// the live trap path is gated by the phase-4 spike runner
+	String trace_msg = "error while executing at wasm backtrace:\n    0:     0x9f - units!_Z6renderR7Request\n";
+	for(int trace_i = 1; trace_i <= 40; trace_i++)
+		trace_msg += "    " + std::to_string(trace_i) + ":     0x20 - units!_Z9recursionv\n";
+	trace_msg += "\nCaused by:\n    wasm trap: call stack exhausted\n";
+	WasmTraceSummary trace_summary = wasm_trace_summarize(trace_msg);
+	String trace_text = wasm_trace_format(trace_summary);
+	// Demangling is a host-only capability (wasi-libc++ has no __cxa_demangle),
+	// so accept either the demangled name (native) or the raw symbol (wasm).
+	bool trace_symbol_ok = contains(trace_text, "recursion()") || contains(trace_text, "_Z9recursionv");
+	check("wasm_trace_summarize() collapse", trace_summary.parsed && trace_summary.total_frames == 41 && trace_summary.cause == "wasm trap: call stack exhausted" && trace_summary.frames.size() == 2 && contains(trace_text, "×40") && trace_symbol_ok, trace_text);
+
+	String fault_msg = "error while executing at wasm backtrace:\n    0:     0x2a - <unknown>!<wasm function 0>\n\nCaused by:\n    0: memory fault at wasm address 0x20000 in linear memory of size 0x10000\n    1: wasm trap: out of bounds memory access\n";
+	WasmTraceSummary fault_summary = wasm_trace_summarize(fault_msg);
+	check("wasm_trace_summarize() cause/detail split", fault_summary.cause == "wasm trap: out of bounds memory access" && contains(fault_summary.detail, "memory fault at wasm address 0x20000") && fault_summary.total_frames == 1, wasm_trace_format(fault_summary));
+
+	check("wasm_trace_collapse() raw passthrough", wasm_trace_collapse("plain host error") == "plain host error", wasm_trace_collapse("plain host error"));
+
+	u32 noise32_a = gen_noise32(7, 11);
+	u32 noise32_b = gen_noise32(7, 11);
+	u64 noise64 = gen_noise64(7, 11);
+	f64 noise01 = gen_noise01(7, 11);
+	u64 ranged_int = gen_int(10, 20, 3, 4);
+	f64 ranged_float = gen_float(1.0, 2.0, 3, 4);
+	u64 drawn_int = draw_int(1, 3);
+	f64 drawn_float = draw_float(1.0, 2.0);
+	check("gen_sha1() / gen_*() / draw_*()", gen_sha1("uce") == gen_sha1("uce") && gen_sha1("uce") != gen_sha1("UCE") && noise32_a == noise32_b && noise64 > 0 && noise01 >= 0.0 && noise01 <= 1.0 && ranged_int >= 10 && ranged_int <= 20 && ranged_float >= 1.0 && ranged_float <= 2.0 && drawn_int >= 1 && drawn_int <= 3 && drawn_float >= 1.0 && drawn_float <= 2.0, "noise32=" + std::to_string((u64)noise32_a) + " noise64=" + std::to_string(noise64) + " noise01=" + std::to_string(noise01) + " draw=" + std::to_string(drawn_int));
+
+	site_tests_summary(passed, failed, skipped, "These assertions stay pure and side-effect free so they remain safe on the public site.");
+	site_tests_page_end();
+}

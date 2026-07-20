@@ -1,0 +1,12 @@
+// Minimal exported helper used by the `unit_call()` demo page.
+
+EXPORT DValue* test_func(DValue* call_param)
+{
+	print("HELLO FROM TEST FUNCTION");
+	return(0);
+}
+
+RENDER(Request& context)
+{
+	print("HELLO FROM UNIT RENDER");
+}

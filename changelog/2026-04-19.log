@@ -1,0 +1,20 @@
+commit be514d63d6ed709a40441db9dc809837081d54f6
+trying to port web app starter from PHP
+
+
+commit 2b5586d7dfffc5c1c40cac97e6d4d0e1f86f151a
+decided in favor of dedicated COMPONENT() macro, updates to documentation
+
+
+commit d1167aec3b4d7870db0b289ee0ea690f8e7e5cc9
+getting closer to full port of web app starter
+
+
+commit af642c8167383f9acf99274d3b3c94017d860dcf
+getting closer to full port of web app starter
+
+
+commit dc05f9faa5eab980f1f1fd44cee06f811cc748ff
+PHP familiarity shortcuts
+
+

@@ -1,0 +1,133 @@
+
+
+RENDER(Request& context)
+{
+	DValue t;
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			DValue
+		</h1>
+
+		<h2>Value Types</h2>
+
+		<pre><?
+
+		t.set("String test");
+		print("String:  ", t.to_string(), "\n");
+
+		t.set_bool(true);
+		print("bool:    ", t.to_string(), "\n");
+
+		t.set(1234.5678);
+		print("float:   ", t.to_string(), "\n");
+
+		t.set(&t);
+		print("pointer: ", t.to_string(), "\n");
+
+		?></pre>
+
+		<h2>Typed Conversions</h2>
+
+		<pre><?
+
+		DValue scalar_text;
+		scalar_text = "42.75";
+		print("text -> f64: ", scalar_text.to_f64(), "\n");
+		print("text -> u64: ", scalar_text.to_u64(), "\n");
+		print("text -> s64: ", scalar_text.to_s64(), "\n");
+
+		DValue bool_text;
+		bool_text = "yes";
+		print("yes -> bool: ", bool_text.to_bool() ? "true" : "false", "\n");
+
+		DValue single_value_map;
+		single_value_map["value"] = "123";
+		print("{value:123} -> u64: ", single_value_map.to_u64(), "\n");
+
+		DValue headers;
+		headers["Content-Type"] = "text/plain";
+		headers["X-Test"] = "123";
+		print("map -> StringMap:\n", var_dump(headers.to_stringmap()), "\n");
+
+		?></pre>
+
+		<h2>Lookup Helpers</h2>
+
+		<pre><?
+
+		DValue lookup;
+		print("has(user) before create: ", lookup.has("user") ? "true" : "false", "\n");
+		print("key(user) before create: ", lookup.key("user") ? "present" : "missing", "\n");
+		lookup.get_or_create("user")->set("Ada");
+		print("has(user) after create: ", lookup.has("user") ? "true" : "false", "\n");
+		if(DValue* user = lookup.key("user"))
+			print("key(user) after create: ", user->to_string(), "\n");
+
+		?></pre>
+
+		<h2>Nested Tree</h2>
+
+		<pre><?
+
+		t.get_or_create("a")->set("valueA");
+		t.get_or_create("b")->set("valueB");
+		t.get_or_create("c")->get_or_create("c-d")->set("valueCD");
+		t.get_or_create("c")->get_or_create("c-e")->set("valueCE");
+		t.get_or_create("c")->get_or_create("c-f")->set(&t);
+		t.get_or_create("g")->get_or_create("g-h")->get_or_create("h-i")->set("valueHI");
+		t["g"]["x"]["y1"] = "XYZ1";
+		t["g"]["x"]["y2"] = &t;
+		t["g"]["x"]["y3"] = time();
+		t["g"]["x"]["y4"] = "Ünicödä";
+		print(var_dump(t));
+
+		?></pre>
+
+		<h2>Array Merge — Associative</h2>
+
+		<pre><?
+
+		DValue assoc_left;
+		assoc_left["name"] = "left";
+		assoc_left["shared"] = "left-value";
+
+		DValue assoc_right;
+		assoc_right["shared"] = "right-value";
+		assoc_right["extra"] = "new-value";
+
+		print("left:\n", var_dump(assoc_left), "\n");
+		print("right:\n", var_dump(assoc_right), "\n");
+		print("merged:\n", var_dump(array_merge(assoc_left, assoc_right)));
+
+		?></pre>
+
+		<h2>Array Merge — List</h2>
+
+		<pre><?
+
+		DValue list_left;
+		list_left.set_array();
+		DValue a; a = "A"; list_left.push(a);
+		DValue b; b = "B"; list_left.push(b);
+
+		DValue list_right;
+		list_right.set_array();
+		DValue c; c = "C"; list_right.push(c);
+		DValue d; d = "D"; list_right.push(d);
+
+		print("left:\n", var_dump(list_left), "\n");
+		print("right:\n", var_dump(list_right), "\n");
+		print("merged:\n", var_dump(array_merge(list_left, list_right)));
+
+		?></pre>
+
+		<details>
+			<summary>Request Parameters</summary>
+			<pre><?= var_dump(context.params) ?></pre>
+		</details>
+	</>
+
+}

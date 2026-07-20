@@ -1,0 +1,20 @@
+:sig
+String replace(String s, String search, String replace_with)
+
+:params
+s : the string where replacements should happen
+search : the string that should be searched for
+replace_with : the string that should appear in places where 'search' occurs
+return value : a version of 's' where all instances of 'search' have been replaced with 'replace_with'
+
+:see
+>string
+
+:content
+Replaces every occurrence of `search` in `s` with `replace_with`.
+
+The returned string contains the fully replaced result.
+
+
+:example
+print(replace("hello docs", "docs", "UCE"), "\n");

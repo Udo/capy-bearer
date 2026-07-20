@@ -1,0 +1,19 @@
+:sig
+void DValue::clear()
+
+:params
+return value : none
+
+:see
+0_DValue
+2_DValue_set_array
+
+:content
+Clears the value into an empty map-shaped value and resets its array index. Unlike `set_array()`, this does not set list mode.
+
+
+:example
+DValue u;
+u["a"] = "1"; u["b"] = "2";
+u.clear();
+print("after clear, has a: ", u.has("a") ? "yes" : "no", "\n");

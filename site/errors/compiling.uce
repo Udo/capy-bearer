@@ -1,0 +1,36 @@
+// Example page_compiling handler. Enable in /etc/uce/settings.cfg:
+//   page_compiling=site/errors/compiling.uce
+// Served with status 503 while the requested unit is being (re)built; the
+// page refreshes itself until the build finishes and the requested page renders.
+
+RENDER(Request& context)
+{
+	context.header["Refresh"] = "2";
+	String source = context.call["error"]["source"].to_string();
+
+	<>
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="refresh" content="2">
+	<title>Building page&hellip;</title>
+	<style>
+		body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+		main { text-align: center; max-width: 40rem; padding: 2rem; }
+		.pulse { width: 3rem; height: 3rem; margin: 0 auto 1.5rem; border-radius: 50%; background: #38bdf8; animation: pulse 1.2s ease-in-out infinite; }
+		@keyframes pulse { 0%, 100% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1); opacity: 1; } }
+		code { color: #94a3b8; font-size: 0.85rem; }
+	</style>
+</head>
+<body>
+	<main>
+		<div class="pulse"></div>
+		<h1>Building this page&hellip;</h1>
+		<p>The page is being compiled and will load automatically in a moment.</p>
+		<p><code><?= source ?></code></p>
+	</main>
+</body>
+</html>
+	</>
+}

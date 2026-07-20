@@ -1,0 +1,20 @@
+:sig
+bool file_copy(String from, String to)
+
+:params
+from : source path
+to : destination path (overwritten if it exists)
+return value : true on success
+
+:content
+Copies a file's contents to a new path, overwriting the destination if present.
+
+:example
+file_put_contents("/tmp/doc-copy-src.txt", "payload");
+file_copy("/tmp/doc-copy-src.txt", "/tmp/doc-copy-dst.txt");
+print(file_get_contents("/tmp/doc-copy-dst.txt"), "\n");
+
+:see
+>sys
+file_rename
+file_put_contents

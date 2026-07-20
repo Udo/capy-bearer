@@ -1,0 +1,136 @@
+#load "../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	DValue asset_props;
+	asset_props["css"]["0"] = "views/marketing.css";
+	print(component("../components/theme/assets", asset_props, context));
+	context.call["app"]["page_title"] = "Home";
+
+	DValue props;
+
+	props["title"] = "Stunning Apps";
+	props["subtitle"] = "Experience the power of super bloated PHP development with our gigantic and truly unwieldy component-based framework. Seriously though, this page only serves as an example repository of different styles and blocks.";
+	props["cta_text"] = "Get Started Free(mium)";
+	props["cta_link"] = "#features";
+	print(component("../components/example/marketing_blocks:HERO_SECTION", props, context));
+	print(component("../components/example/marketing_blocks:FEATURES_GRID", context));
+
+	props.clear();
+	DValue stat;
+	stat["number"] = "10K+"; stat["label"] = "Happy Vibe Coders"; props["stats"].push(stat); stat.clear();
+	stat["number"] = "<1s"; stat["label"] = "Page Load Time"; props["stats"].push(stat); stat.clear();
+	stat["number"] = "99.9%"; stat["label"] = "Uptime"; props["stats"].push(stat); stat.clear();
+	stat["number"] = "24/7"; stat["label"] = "Support"; props["stats"].push(stat);
+	print(component("../components/example/marketing_blocks:STATS_SECTION", props, context));
+	print(component("../components/example/marketing_blocks:BRANDS_SHOWCASE", context));
+	print(component("../components/example/marketing_blocks:TESTIMONIALS", context));
+	print(component("../components/example/marketing_blocks:PRICING_TABLE", context));
+
+	<>
+		<div class="demo-section">
+			<div class="demo-container">
+				<h2>Demo</h2>
+				<p>Try our unbelievable components in action</p>
+				<div class="demo-grid">
+					<div class="demo-card">
+						<h3>Modern Forms</h3>
+						<form class="demo-form">
+							<div>
+								<label for="demo-full-name">Full Name</label>
+								<input id="demo-full-name" name="full_name" type="text" placeholder="Enter your name" autocomplete="name" />
+							</div>
+							<div>
+								<label for="demo-email-address">Email Address</label>
+								<input id="demo-email-address" name="email" type="email" placeholder="you@example.com" autocomplete="email" />
+							</div>
+							<div>
+								<label for="demo-message">Message</label>
+								<textarea id="demo-message" name="message" placeholder="Tell us what you think..." rows="4"></textarea>
+							</div>
+							<button type="submit">Send Message</button>
+						</form>
+					</div>
+					<div class="demo-card">
+						<h3>Button Variations</h3>
+						<div class="button-showcase">
+							<button class="btn">Primary Button</button>
+							<button class="btn btn-secondary">Secondary</button>
+							<button class="btn btn-outline">Outline</button>
+							<button class="btn btn-large">Large Button</button>
+						</div>
+						<div class="notification-demo">
+							<div class="banner success">Success message example</div>
+							<div class="banner warning">Warning message example</div>
+							<div class="banner error">Error message example</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="card">
+			<h2>Theme Families</h2>
+			<p>Compare the starter’s built-in theme families and jump to the live gallery.</p>
+			<div class="theme-grid">
+				<? context.cfg.get_by_path("theme/options").each([&](DValue theme, String key) {
+					if(key != "portal-light" && key != "portal-dark" && key != "localfirst")
+						return;
+					StringMap theme_params;
+					theme_params["theme"] = key;
+					?><div class="component-card">
+						<h3><?= theme["label"].to_string() ?></h3>
+						<p><?= theme["description"].to_string() ?></p>
+						<a class="btn" href="<?= app_link("themes", theme_params, context) ?>">Preview Theme</a>
+					</div><?
+				}); ?>
+				<div class="component-card">
+					<h3>Starter Themes</h3>
+					<p>The original light and dark starter skins remain available in the same gallery for side-by-side checks.</p>
+					<a class="btn btn-secondary" href="<?= app_link("themes", context) ?>">Open Gallery</a>
+				</div>
+			</div>
+		</div>
+	</>
+
+	props.clear();
+	props["title"] = "Ready to Transform Your Development?";
+	props["subtitle"] = "Join thousands of developers who have already modernized their workflow with our framework.";
+	props["cta_text"] = "Start Your Project";
+	props["secondary_text"] = "View GitHub";
+	print(component("../components/example/marketing_blocks:CTA_SECTION", props, context));
+
+	DValue island_props;
+	island_props["name"] = "StarterGuidelines";
+	island_props["id"] = "starter-guidelines-island";
+	island_props["props"]["route"] = context.call["route"]["l_path"].to_string();
+	island_props["props"]["enhancement"] = "progressive";
+
+	<>
+		<div class="card">
+			<h2>Component Development Guidelines</h2>
+			<?: component("../components/theme/web_affordances:island", island_props, context) ?>
+			<div class="guidelines-grid">
+				<div class="guideline-item" style="border-left-color: var(--primary);"><span class="guideline-icon">🏷️</span><span>Use semantic HTML5 elements</span></div>
+				<div class="guideline-item" style="border-left-color: var(--secondary);"><span class="guideline-icon">🎨</span><span>Implement CSS custom properties for theming</span></div>
+				<div class="guideline-item" style="border-left-color: var(--accent);"><span class="guideline-icon">📱</span><span>Add responsive design with mobile-first approach</span></div>
+				<div class="guideline-item" style="border-left-color: var(--success);"><span class="guideline-icon">♿</span><span>Include accessibility attributes</span></div>
+				<div class="guideline-item" style="border-left-color: var(--warning);"><span class="guideline-icon">⚡</span><span>Use progressive enhancement for JavaScript features</span></div>
+			</div>
+		</div>
+	</>
+
+	props.clear();
+	DValue row;
+	row["name"] = "John Doe"; row["age"] = "25"; row["gender"] = "male"; row["department"] = "Engineering"; row["salary"] = "75000"; row["active"] = "true"; props["items"].push(row); row.clear();
+	row["name"] = "Jane Smith"; row["age"] = "30"; row["gender"] = "female"; row["department"] = "Design"; row["salary"] = "82000"; row["active"] = "true"; props["items"].push(row); row.clear();
+	row["name"] = "Bob Johnson"; row["age"] = "35"; row["gender"] = "male"; row["department"] = "Marketing"; row["salary"] = "68000"; row["active"] = "false"; props["items"].push(row); row.clear();
+	row["name"] = "Alice Brown"; row["age"] = "40"; row["gender"] = "female"; row["department"] = "Engineering"; row["salary"] = "95000"; row["active"] = "true"; props["items"].push(row);
+	props["height"] = "350px";
+	<>
+		<div class="card">
+			<h2>Simple Data Table (ag-Grid)</h2>
+			<p>Basic data table with auto-generated columns, sorting, and filtering:</p>
+			<?: component("../components/data/widgets:DATA_TABLE", props, context) ?>
+		</div>
+	</>
+}

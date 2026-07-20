@@ -1,0 +1,19 @@
+:sig
+f64 draw_float(f64 from, f64 to, f64 decimal_precision = 0.000000000001)
+
+:params
+from : minimum value
+to : maximum value
+return value : a noise value between 'from' and 'to'
+
+:see
+>noise
+
+:content
+Works like `generate_float()`, but uses `context.random_index` for the index value and `context.random_seed` for the seed.
+
+After each call, `context.random_index` is increased by one. At the start of every request, `context.random_seed` is automatically populated with a new seed value.
+
+
+:example
+print(draw_float(1, 0, 1) >= 0 ? "float\n" : "bad\n");

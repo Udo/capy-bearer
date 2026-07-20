@@ -1,0 +1,19 @@
+:sig
+String hmac_sha256_hex(String key, String data)
+
+:params
+key : secret key
+data : message to authenticate
+return value : the HMAC-SHA256 as a 64-character lowercase hex string
+
+:content
+Computes an HMAC-SHA256 message authentication code and returns it as hex. Use it to sign tokens, cookies, and webhook payloads, then verify with `crypto_equal()` to avoid timing leaks.
+
+:example
+print(hmac_sha256_hex("key", "The quick brown fox jumps over the lazy dog"), "\n");
+
+:see
+>sys
+hmac_sha256
+sha256_hex
+crypto_equal

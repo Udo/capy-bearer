@@ -1,0 +1,18 @@
+:sig
+String expand_path(String path, String relative_to_path = "")
+
+:params
+path : path to expand
+relative_to_path : base directory a relative `path` is resolved against
+return value : the expanded path
+
+:content
+Expands a path: a relative `path` is resolved against `relative_to_path` (or the current unit's directory when that is empty), producing a normalized path you can hand to the file APIs.
+
+:example
+print(expand_path("sub/page.uce", "/var/www/site"), "\n");
+
+:see
+>sys
+path_join
+path_real

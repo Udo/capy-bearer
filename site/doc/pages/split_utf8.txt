@@ -1,0 +1,28 @@
+:sig
+StringList split_utf8(String str, bool compound_characters = false)
+
+
+:params
+str : string to be split
+compound_characters : optional, if true tries to combine compound characters
+return value : a list of Unicode characters
+
+:see
+>string
+
+:content
+Splits `str` into its constituent Unicode code points.
+
+If `compound_characters` is `true`, `split_utf8()` also applies a small amount of grouping so some multi-code-point glyphs stay together. The current rules are:
+
+- combine characters joined by a Zero-Width Joiner (ZWJ)
+- combine two Regional Indicator Symbol Letter characters
+- append Variation Selectors to the previous character
+- otherwise leave characters as separate entries
+
+This is useful when simple byte-wise or ASCII splitting would break Unicode text incorrectly.
+
+
+:example
+StringList chars = split_utf8("Hi");
+print(join(chars, ","), "\n");

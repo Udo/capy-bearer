@@ -1,0 +1,28 @@
+:title
+DValue::operator=
+
+:sig
+void DValue::operator=(String v)
+void DValue::operator=(f64 v)
+void DValue::operator=(void* v)
+void DValue::operator=(DValue v)
+void DValue::operator=(StringMap v)
+
+:params
+v : assigned value
+return value : none
+
+:see
+0_DValue
+2_DValue_set
+2_DValue_set_bool
+
+:content
+Assignment overloads forward to the matching `set(...)` overloads. They are the normal concise way to write string, number, pointer, `DValue`, and `StringMap` values. Boolean values should use `set_bool()` to avoid overload ambiguity.
+
+
+:example
+DValue row;
+row["name"] = "Ada";
+row["role"] = "engineer";
+print(row["name"].to_string(), " / ", row["role"].to_string(), "\n");

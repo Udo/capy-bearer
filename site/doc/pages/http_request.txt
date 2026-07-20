@@ -1,0 +1,14 @@
+# http_request
+
+Performs a bounded outbound HTTP(S) request using the runtime `curl` binary. Request fields: `method`, `url`, `headers`, `body`, `timeout_ms`, `follow_redirects`.
+
+Returns `{ status, headers, body, error }`. `headers` is a name/value map. A missing `curl` binary returns a clear `error` string.
+
+:see
+>socket
+
+:example
+DValue req; req["method"] = "GET"; req["url"] = "http://127.0.0.1/doc/index.uce";
+req["headers"]["Host"] = "uce.openfu.com"; req["timeout_ms"] = (f64)2000;
+DValue resp = http_request(req);
+print("HTTP ", resp["status"].to_u64(), ", ", resp["body"].to_string().length(), " bytes returned\n");

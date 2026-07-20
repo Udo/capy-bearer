@@ -1,0 +1,19 @@
+:sig
+void session_destroy(String session_name = "uce-session")
+
+:params
+session_name : the name of the session
+
+:see
+>session
+
+:content
+Deletes the cookie specified by `session_name`, removes the matching server-side session file, and clears the data stored under the current session ID.
+
+This also empties `context.session_id`, `context.session_name`, and `context.session`.
+
+
+:example
+String id = session_start("uce-doc-example-destroy");
+session_destroy("uce-doc-example-destroy");
+print(id != "" ? "destroyed\n" : "empty\n");

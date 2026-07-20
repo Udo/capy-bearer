@@ -1,0 +1,73 @@
+#load "../lib/app.uce"
+
+ONCE(Request& context)
+{
+	?><link rel="stylesheet" href="<?= app_asset_url("views/dashboard.css", context) ?>" /><?
+}
+
+COMPONENT(Request& context)
+{
+	context.call["app"]["page_title"] = "Dashboard";
+
+	DValue props;
+	DValue item;
+	item["label"] = "24h Requests"; item["value"] = "18,420"; item["meta"] = "+12.8% vs yesterday"; item["tone"] = "info"; props["items"].push(item); item.clear();
+	item["label"] = "Median Latency"; item["value"] = "182 ms"; item["meta"] = "stable over last 7 samples"; item["tone"] = "success"; props["items"].push(item); item.clear();
+	item["label"] = "Resident Memory"; item["value"] = "2.4 GB"; item["meta"] = "combined across workers"; item["tone"] = "warning"; props["items"].push(item); item.clear();
+	item["label"] = "Healthy Services"; item["value"] = "3 / 4"; item["meta"] = "one degraded background worker"; item["tone"] = "danger"; props["items"].push(item);
+	props["title"] = "Starter-Friendly Overview Cards";
+	props["subtitle"] = "Small summary tiles work well across admin pages, internal tools, and SSR dashboards.";
+
+	<>
+		<h1>Dashboard Primitives</h1>
+		<div class="card dashboard-intro"><p>This page is the first backport slice from the LocalAI dashboard frontend. It keeps the generic parts that fit the starter itself.</p></div>
+	</>
+	print(component("../components/data/widgets:SUMMARY_METRICS", props, context));
+
+	props.clear();
+	DValue series;
+	DValue values;
+	DValue entry;
+	entry["key"] = "requests"; entry["label"] = "Requests"; entry["color"] = "#60a5fa"; entry["axis"] = "left"; entry["format"] = "count";
+	values = "240"; entry["values"].push(values); values = "268"; entry["values"].push(values); values = "294"; entry["values"].push(values); values = "322"; entry["values"].push(values); values = "301"; entry["values"].push(values); values = "356"; entry["values"].push(values); values = "388"; entry["values"].push(values);
+	props["series"].push(entry); entry.clear();
+	entry["key"] = "latency"; entry["label"] = "Latency"; entry["color"] = "#f59e0b"; entry["axis"] = "right"; entry["format"] = "duration-ms";
+	values = "182"; entry["values"].push(values); values = "176"; entry["values"].push(values); values = "191"; entry["values"].push(values); values = "204"; entry["values"].push(values); values = "188"; entry["values"].push(values); values = "166"; entry["values"].push(values); values = "159"; entry["values"].push(values);
+	props["series"].push(entry);
+	values = "08:00"; props["x_labels"].push(values); values = "09:00"; props["x_labels"].push(values); values = "10:00"; props["x_labels"].push(values); values = "11:00"; props["x_labels"].push(values); values = "12:00"; props["x_labels"].push(values); values = "13:00"; props["x_labels"].push(values); values = "14:00"; props["x_labels"].push(values);
+	props["id"] = "dashboard-demo-traffic";
+	props["title"] = "Requests vs Latency";
+	props["subtitle"] = "Same generic chart primitive can track throughput, job backlog, token volume, or queue time.";
+	props["height"] = "320";
+	props["x_axis_label"] = "Last 7 Hours";
+	props["y_axis_left_label"] = "Requests";
+	props["y_axis_right_label"] = "Latency";
+	props["y_axis_left_format"] = "count";
+	props["y_axis_right_format"] = "duration-ms";
+	print(component("../components/data/widgets:TIMESERIES_CHART", props, context));
+
+	props.clear();
+	props["id"] = "dashboard-service-table";
+	props["title"] = "Service Snapshot";
+	props["subtitle"] = "Vanilla HTML table enhancement for cases where ag-Grid is overkill.";
+	props["storage_key"] = "starter.dashboard.services";
+	props["sort"]["column"] = "2";
+	props["sort"]["direction"] = "desc";
+	DValue col;
+	col["key"] = "service"; col["label"] = "Service"; props["columns"].push(col); col.clear();
+	col["key"] = "uptime"; col["label"] = "Uptime"; props["columns"].push(col); col.clear();
+	col["key"] = "requests"; col["label"] = "Requests"; col["align"] = "right"; col["format"] = "number"; props["columns"].push(col); col.clear();
+	col["key"] = "memory"; col["label"] = "Memory"; col["align"] = "right"; col["format"] = "bytes"; props["columns"].push(col); col.clear();
+	col["key"] = "p95_latency"; col["label"] = "P95 Latency"; col["align"] = "right"; col["format"] = "duration-ms"; props["columns"].push(col); col.clear();
+	col["key"] = "healthy"; col["label"] = "Healthy"; col["align"] = "center"; col["format"] = "bool"; props["columns"].push(col);
+	DValue row;
+	row["service"] = "router"; row["uptime"] = "12 days"; row["requests"] = "142890"; row["memory"] = "402653184"; row["p95_latency"] = "148"; row["healthy"] = "true"; props["rows"].push(row); row.clear();
+	row["service"] = "queue-worker"; row["uptime"] = "8 days"; row["requests"] = "98214"; row["memory"] = "654311424"; row["p95_latency"] = "231"; row["healthy"] = "true"; props["rows"].push(row); row.clear();
+	row["service"] = "vector-index"; row["uptime"] = "5 days"; row["requests"] = "44892"; row["memory"] = "1241513984"; row["p95_latency"] = "312"; row["healthy"] = "true"; props["rows"].push(row); row.clear();
+	row["service"] = "sandbox"; row["uptime"] = "19 hours"; row["requests"] = "12810"; row["memory"] = "295698432"; row["p95_latency"] = "418"; row["healthy"] = "false"; props["rows"].push(row);
+	print(component("../components/data/widgets:SORTABLE_TABLE", props, context));
+
+	<>
+		<div class="card"><h2>What Was Backported</h2><p class="dashboard-note">The charting logic and data-formatting ideas come directly from the more complex dashboard frontend, but the starter version is stripped down to generic building blocks.</p></div>
+	</>
+}

@@ -1,0 +1,8 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	context.header["Content-Type"] = "application/json";
+	context.header["Cache-Control"] = "no-cache, no-store, must-revalidate";
+	print(context.call["fragments"]["main"].to_string());
+}

@@ -1,0 +1,17 @@
+v1 : string = "";
+
+v2 := 'BLA';
+i1 := 123.2;
+
+for(v3 => c)
+	print(c);
+
+v1 = "This is an interpolated string {=i1}
+	which also contains line breaks";
+
+?><div>
+	It's now time for some HTML!
+	</div>
+<?
+
+print("And, we're back!");

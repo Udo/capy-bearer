@@ -1,0 +1,21 @@
+:sig
+String component_resolve(String name)
+
+:see
+>ob
+component
+component_exists
+component_render
+1_COMPONENT
+
+:content
+Resolves a component name to the concrete `.uce` file path that will be loaded.
+
+Resolution searches host-side candidate bases in order: absolute target when supplied, entry unit directory, current unit directory, and site root. Within each base it tries the exact file name, the same name with `.uce` appended, and the same two forms under the `components/` prefix.
+
+If `name` contains a colon, only the file portion is used for resolution.
+
+This is primarily a debugging helper so you can see which concrete file a shorthand component name maps to.
+
+:example
+print("resolved path: ", component_resolve("examples/sample_unit"), "\n");

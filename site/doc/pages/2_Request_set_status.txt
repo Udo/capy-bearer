@@ -1,0 +1,20 @@
+:sig
+void Request::set_status(s32 code, String reason = "")
+
+:params
+code : HTTP status code
+reason : optional reason phrase override
+return value : none
+
+:see
+>types
+0_Request
+redirect
+set_cookie
+
+:content
+Sets the request status line and mirrors the numeric status into `context.flags.status`. When `reason` is omitted, common HTTP status codes get their standard phrase. FastCGI-style requests use a `Status:` prefix; other requests use `HTTP/1.1`.
+
+:example
+context.set_status(200, "OK");
+print(context.flags.status, "\n");

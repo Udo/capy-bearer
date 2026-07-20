@@ -1,0 +1,74 @@
+
+#include "demo_guard.h"
+
+void regex_row(String label, String result, String expect)
+{
+	bool pass = (result == expect);
+	<><tr>
+		<td class="test-label"><?= label ?></td>
+		<td class="test-result"><code><?= result ?></code></td>
+		<td class="test-status <?= pass ? "pass" : "fail" ?>"><?= pass ? "pass" : "expected: " + expect ?></td>
+	</tr></>
+}
+
+void regex_bool_row(String label, bool result, bool expect)
+{
+	regex_row(label, result ? "true" : "false", expect ? "true" : "false");
+}
+
+RENDER(Request& context)
+{
+	String text = "Contact ops@example.test or tag #uce, #docs, and café.";
+	DValue first_email = regex_search("(?<user>[A-Za-z0-9._%+-]+)@(?<host>[A-Za-z0-9.-]+)", text);
+	DValue tags = regex_search_all("#(?<tag>[A-Za-z0-9_]+)", text);
+	StringList pieces = regex_split("\\s*,\\s*", "uce, components, markdown");
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<style>
+			table.tests { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+			table.tests td { padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); font-family: var(--font-mono); font-size: 0.88rem; }
+			.test-label { color: var(--text-dim); white-space: nowrap; width: 1%; }
+			.test-result code { background: var(--bg-code); padding: 2px 8px; border-radius: 4px; }
+			.test-status.pass { color: #6f6; width: 1%; }
+			.test-status.fail { color: #f66; }
+		</style>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Regular Expressions
+		</h1>
+
+		<p>UCE regex functions use PCRE2 and return ordinary UCE strings, lists, and DValue values.</p>
+		<p>sample = <code><?= text ?></code></p>
+
+		<h2>Validation And Search</h2>
+		<table class="tests"><?
+			regex_bool_row("regex_match(\"[A-Z][a-z]+\", \"Alice\")", regex_match("[A-Z][a-z]+", "Alice"), true);
+			regex_bool_row("regex_match(\"[A-Z][a-z]+\", \"Alice!\")", regex_match("[A-Z][a-z]+", "Alice!"), false);
+			regex_bool_row("regex_search(\"example\", text)[\"matched\"]", first_email["matched"].to_bool(), true);
+			regex_row("first_email[\"match\"]", first_email["match"].to_string(), "ops@example.test");
+			regex_row("first_email[\"named\"][\"user\"]", first_email["named"]["user"].to_string(), "ops");
+			regex_row("first_email[\"named\"][\"host\"]", first_email["named"]["host"].to_string(), "example.test");
+			regex_bool_row("regex_match(\"\\\\p{L}+\", \"café\")", regex_match("\\p{L}+", "café"), true);
+		?></table>
+
+		<h2>All Matches</h2>
+		<table class="tests"><?
+			regex_row("regex_search_all hashtags count", tags["count"].to_string(), "2.000000");
+			regex_row("first hashtag", tags["matches"]["0"]["named"]["tag"].to_string(), "uce");
+			regex_row("second hashtag", tags["matches"]["1"]["named"]["tag"].to_string(), "docs");
+		?></table>
+
+		<h2>Replace And Split</h2>
+		<table class="tests"><?
+			regex_row("regex_replace(\"#([A-Za-z0-9_]+)\", \"<tag>$1</tag>\", \"#uce\")", regex_replace("#([A-Za-z0-9_]+)", "<tag>$1</tag>", "#uce"), "<tag>uce</tag>");
+			regex_row("join(regex_split(\"\\\\s*,\\\\s*\", ...), \"|\")", join(pieces, "|"), "uce|components|markdown");
+			regex_row("case-insensitive flag", regex_search("uce", "Hello UCE", "i")["match"].to_string(), "UCE");
+		?></table>
+
+		<h2>Structured Result</h2>
+		<pre><?= json_encode(first_email) ?></pre>
+
+		<p><a href="../doc/index.uce?p=regex_search">Read the regex API documentation</a></p>
+	</>
+}

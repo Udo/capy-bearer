@@ -1,0 +1,26 @@
+
+#include "demo_guard.h"
+
+
+RENDER(Request& context)
+{
+	if(!test_demo_request_allowed(context))
+	{
+		test_demo_render_restricted_html(context, "Working Directory", "reveal internal filesystem layout");
+		return;
+	}
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Working Directory
+		</h1>
+		<pre><?
+			print("Base WD: " + cwd_get() + "\n");
+			unit_render("test2/working-dir-test.uce", context);
+		?></pre>
+		<pre><?= var_dump(context.params) ?></pre>
+	</>
+
+}

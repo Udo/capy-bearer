@@ -1,0 +1,100 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	String title = first(context.props["title"].to_string(), "Sign in with OAuth");
+	String subtitle = first(context.props["subtitle"].to_string(), "Choose your preferred authentication method");
+	String callback_url = first(context.props["callback_url"].to_string(), app_link("auth/callback", context));
+
+	DValue services = context.props["services"];
+	if(services.get_type_name() != "array" || services["google"]["name"].to_string() == "")
+	{
+		services["google"]["name"] = "Google";
+		services["google"]["color"] = "#4285f4";
+		services["google"]["icon"] = "fab fa-google";
+		services["google"]["scope"] = "openid email profile";
+		services["google"]["auth_url"] = "https://accounts.google.com/o/oauth2/v2/auth";
+
+		services["github"]["name"] = "GitHub";
+		services["github"]["color"] = "#333333";
+		services["github"]["icon"] = "fab fa-github";
+		services["github"]["scope"] = "user:email";
+		services["github"]["auth_url"] = "https://github.com/login/oauth/authorize";
+
+		services["discord"]["name"] = "Discord";
+		services["discord"]["color"] = "#5865f2";
+		services["discord"]["icon"] = "fab fa-discord";
+		services["discord"]["scope"] = "identify email";
+		services["discord"]["auth_url"] = "https://discord.com/api/oauth2/authorize";
+
+		services["twitch"]["name"] = "Twitch";
+		services["twitch"]["color"] = "#9146ff";
+		services["twitch"]["icon"] = "fab fa-twitch";
+		services["twitch"]["scope"] = "user:read:email";
+		services["twitch"]["auth_url"] = "https://id.twitch.tv/oauth2/authorize";
+	}
+
+	<>
+		<form class="card">
+			<div>
+				<h2><?= title ?></h2>
+				<label><?= subtitle ?></label>
+			</div>
+			<? services.each([&](DValue service, String service_key) {
+				String client_id = context.props[service_key + "_client_id"].to_string();
+				String handler_name = ascii_safe_name(service_key);
+				String service_name = service["name"].to_string();
+				String scope = service["scope"].to_string();
+				String auth_url = service["auth_url"].to_string();
+				String store_url = app_link("auth/store-oauth-session", context);
+				?><div data-service="<?= service_key ?>">
+					<button type="button" class="btn" onclick='initiateOAuth_<?= handler_name ?>()'>
+						<i class="<?= service["icon"].to_string() ?>" style="color: <?= service["color"].to_string() ?>"></i>
+						Continue with <?= service_name ?>
+					</button>
+					<div class="loading" style="display: none;"><span>Connecting...</span></div>
+					<label>Secure authentication via <?= service_name ?></label>
+					<script>
+						window.initiateOAuth_<?= handler_name ?> = function () {
+							const wrapper = document.querySelector('[data-service="<?= service_key ?>"]');
+							if (!wrapper) return;
+							const button = wrapper.querySelector('.btn');
+							const loading = wrapper.querySelector('.loading');
+							if (button) button.style.display = 'none';
+							if (loading) loading.style.display = 'block';
+
+							const clientId = <?: json_encode(client_id) ?>;
+							if (!clientId || clientId.indexOf('YOUR_') === 0) {
+								alert('<?= service_name ?> OAuth is not configured yet.');
+								if (button) button.style.display = '';
+								if (loading) loading.style.display = 'none';
+								return;
+							}
+
+							const state = btoa(Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2)).replace(/[^a-zA-Z0-9]/g, '');
+							const params = new URLSearchParams({
+								client_id: clientId,
+								redirect_uri: <?: json_encode(callback_url) ?>,
+								scope: <?: json_encode(scope) ?>,
+								response_type: 'code',
+								state: state
+							});
+
+							sessionStorage.setItem('oauth_state', state);
+							sessionStorage.setItem('oauth_service', <?: json_encode(service_key) ?>);
+
+							fetch(<?: json_encode(store_url) ?>, {
+								method: 'POST',
+								headers: {'Content-Type': 'application/json'},
+								body: JSON.stringify({oauth_service: <?: json_encode(service_key) ?>, oauth_state: state})
+							}).catch(console.error).finally(() => {
+								window.location.href = <?: json_encode(auth_url) ?> + '?' + params.toString();
+							});
+						};
+					</script>
+				</div><?
+			}); ?>
+			<div class="banner" id="oauth-status" style="display: none;"></div>
+		</form>
+	</>
+}

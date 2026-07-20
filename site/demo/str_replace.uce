@@ -1,0 +1,33 @@
+
+void str_replace_test(String s, String sr, String rp)
+{
+	print("in '", s, "' replace all '", sr, "' with '", rp, "' =&gt; ");
+	print(replace(s, sr, rp));
+}
+
+RENDER(Request& context)
+{
+
+	<><html>
+		<link rel="stylesheet" href='style.css?v=1'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			String Replace
+		</h1>
+
+		<div>
+			<? str_replace_test("abcdefgh", "c", "C"); ?>
+		</div>
+
+		<div>
+			<? str_replace_test("abcccdefgh", "c", "C"); ?>
+		</div>
+
+		<div>
+			<? str_replace_test("abcccdefgh", "ccc", "C"); ?>
+		</div>
+
+		<pre><?= var_dump(context.params) ?></pre>
+	</html></>
+
+}

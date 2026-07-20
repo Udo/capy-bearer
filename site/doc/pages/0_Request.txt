@@ -1,0 +1,343 @@
+:title
+Request
+
+:sig
+Request& context
+
+:see
+>types
+request_context_params
+request_script_url
+request_base_url
+request_query_path
+request_query_route
+2_Request_set_status
+component
+component_render
+unit_render
+unit_call
+session_start
+set_cookie
+parse_query
+parse_multipart
+ws_message
+ws_connection_id
+ws_connections
+ws_send
+0_DValue
+0_StringMap
+UploadedFile
+
+:content
+`Request& context` is the request-local state object passed into every UCE handler:
+
+
+It is the main bridge between the runtime and page code. It contains incoming request data, response state, output buffers, per-request scratch trees, session/cookie state, WebSocket metadata, and runtime diagnostics.
+
+## Handler Lifetime
+
+A fresh `Request` is created for each HTTP/CLI/custom-server request. Component and unit calls normally share that same object, so state placed on `context.call`, `context.header`, `context.session`, or `context.cfg` is visible to later components in the same request.
+
+For WebSockets, each incoming message is delivered as its own `Request`, but `context.connection` points at broker-owned per-socket state that persists for the lifetime of that WebSocket connection.
+
+`ONCE(Request& context)` hooks run once per request, per resolved unit file, before the first `RENDER`, `COMPONENT`, `CLI`, or matching entrypoint from that unit.
+
+## Incoming Request Maps
+
+### `context.params` — server/runtime parameters
+
+Type: `StringMap`
+
+This is the low-level parameter map from FastCGI/direct HTTP plus UCE-populated convenience fields. It is closest to PHP `$_SERVER`.
+
+Common CGI/FastCGI-style keys include:
+
+- `REQUEST_METHOD`: `GET`, `POST`, etc.
+- `REQUEST_URI`: raw request URI where available
+- `DOCUMENT_URI`: normalized request path where available
+- `SCRIPT_NAME`: script path where available
+- `SCRIPT_FILENAME`: resolved filesystem path of the active UCE unit
+- `QUERY_STRING`: raw query string
+- `DOCUMENT_ROOT`: web root used by the frontend/backend
+- `CONTENT_TYPE`: request body content type
+- `CONTENT_LENGTH`: request body length
+- `HTTP_COOKIE`: raw cookie header
+- `HTTP_HOST`, `HTTP_USER_AGENT`, `HTTP_ACCEPT`, and other `HTTP_...` headers supplied by the frontend
+
+UCE also populates convenience route/link fields before handlers run:
+
+- `SCRIPT_URL`: canonical script URL; `/index.uce` is collapsed to the containing directory URL
+- `BASE_URL`: canonical directory URL for the script
+- `ROUTE_PATH`: sanitized first keyless query-string segment, defaulting to `index` when no route was supplied; empty when unsafe input was rejected
+- `ROUTE_PAGE`: first segment of `ROUTE_PATH`
+- `ROUTE_PATH_RAW`: normalized but untrusted route input, for diagnostics only
+- `ROUTE_VALID`: `1` when route input is safe, `0` when the supplied route was rejected
+
+See `request_context_params`, `request_script_url`, `request_base_url`, `request_query_path`, `request_query_route`, and `route_path_sanitize`.
+
+### `context.get`
+
+Type: `StringMap`
+
+Parsed query-string key/value parameters. This is populated from `context.params["QUERY_STRING"]` with `parse_query()`.
+
+
+For front-controller route URLs such as `/?dashboard&theme=dark`, the keyless `dashboard` segment is represented by sanitized `ROUTE_PATH`; named parameters such as `theme=dark` are available in `context.get`.
+
+### `context.post`
+
+Type: `StringMap`
+
+Parsed request body parameters for ordinary `POST` requests. URL-encoded bodies are parsed with `parse_query()`. Multipart form data is parsed with `parse_multipart()` and uploaded files are listed in `context.uploaded_files`.
+
+
+### `context.cookies`
+
+Type: `StringMap`
+
+Cookies sent by the client, parsed from `HTTP_COOKIE`. `set_cookie()` also updates this map after queuing a response cookie, so later code in the same request can observe the new value.
+
+### `context.in`
+
+Type: `String`
+
+Raw request body. For WebSocket handlers, this is the current message payload.
+
+Use this for JSON APIs:
+
+
+### `context.uploaded_files`
+
+Type: `std::vector<UploadedFile>`
+
+Each `UploadedFile` contains:
+
+- `file_name`: original submitted filename
+- `tmp_name`: temporary server-side upload path
+- `size`: uploaded byte count
+
+Use this with multipart form posts.
+
+## Session State
+
+### `context.session`
+
+Type: `StringMap`
+
+Session data loaded by `session_start()`. UCE does not load sessions automatically for every request; call `session_start()` before reading/writing session data.
+
+
+At the end of a successful request, modified session data is saved automatically if a session is active.
+
+### `context.session_id` and `context.session_name`
+
+The active session ID and cookie name after `session_start()`.
+
+Related helpers:
+
+- `session_start()`
+- `session_destroy()`
+- `session_id_create()`
+- `set_cookie()`
+
+## Per-request Structured Trees
+
+### `context.call`
+
+Type: `DValue`
+
+General request-local scratch/configuration tree. It is shared by the page, components, and unit calls participating in the current request. Use it for app-level request state, fragments, router results, page type, page title, and other values that need to be read by later components.
+
+Examples from front-controller style apps:
+
+
+Prefer clear top-level names when state is app-wide (`route`, `fragments`) and nested app names only when the state is truly owned by that app (`app/page_title`, `app/page_type`).
+
+### `context.cfg`
+
+Type: `DValue`
+
+Request-local structured configuration. The runtime does not fill this with application config by default; application code may assign it during boot/setup:
+
+
+This is separate from `context.server->config`, which is the runtime/server string config from `/etc/uce/settings.cfg`.
+
+Use `get_by_path()` for non-mutating deep reads:
+
+
+### `context.props`
+
+Type: `DValue`
+
+Invocation-local props for `component()`, `component_render()`, and macro-style `unit_call()` entrypoints. During a component call, the runtime temporarily replaces `context.props` with the props passed to that component and restores the previous value after the call returns.
+
+
+### `context.connection`
+
+Type: `DValue`
+
+WebSocket connection-local state. Mutations persist across `WS(Request& context)` calls for the same socket.
+
+
+Only meaningful for WebSocket handlers.
+
+## Response State
+
+### `context.response_code`
+
+Type: `String`
+
+The raw status line. Usually use `context.set_status(...)` instead of writing this directly.
+
+### `context.header`
+
+Type: `StringMap`
+
+Response headers to emit. Header names are case-sensitive as written.
+
+
+### `context.set_cookies`
+
+Type: `StringList`
+
+Queued `Set-Cookie` header lines. Prefer `set_cookie()` instead of editing this directly.
+
+### `context.set_status(code[, reason])`
+
+Sets the HTTP response status and `context.flags.status`.
+
+
+Related helpers:
+
+- `redirect(url[, code])`
+- `set_cookie(...)`
+
+## Output Buffers
+
+### `context.ob_stack` and `context.ob`
+
+Internal output-buffer stack. Most code should use helpers instead of touching these directly:
+
+- `print(...)`
+- `out(...)`
+- `ob_start()`
+- `ob_get()`
+- `ob_get_close()`
+- `ob_close()`
+
+Common capture pattern:
+
+
+### `context.out` and `context.err`
+
+Runtime output/error artifacts used by some transports and failure paths. Normal page rendering should use `print()` / output buffers.
+
+## Request Flags
+
+`context.flags` contains runtime booleans and the numeric status:
+
+- `log_request`: whether the request should be logged
+- `is_finished`: internal completion marker
+- `status`: numeric HTTP status set by `set_status()`
+- `output_closed`: internal transport state
+- `params_closed`: internal transport state
+- `input_closed`: internal transport state
+
+Most page code only reads `flags.status`, if anything.
+
+## Request Stats
+
+`context.stats` contains counters/timing for the request:
+
+- `bytes_written`
+- `time_init`
+- `time_start`
+- `time_end`
+- `mem_high`
+- `mem_alloc`
+- `invoke_count`
+
+These are useful for diagnostics, demos, and runtime instrumentation.
+
+## Random / Noise State
+
+- `random_seed`
+- `random_index`
+
+Used by UCE noise/random helpers to provide request-local deterministic progression.
+
+Related helpers include functions in the noise/hash area such as `gen_int`, `gen_float`, `gen_noise64`, and `gen_sha1`.
+
+## WebSocket Fields
+
+In `WS(Request& context)`, the runtime mirrors WebSocket metadata into `context.params` and `context.resources`.
+
+Convenience `context.params` keys include:
+
+- `WS_MESSAGE`
+- `WS_CONNECTION_ID`
+- `WS_SCOPE`
+- `WS_CONNECTION_COUNT`
+- `WS_OPCODE`
+- `WS_MESSAGE_TYPE`
+- `WS_DOCUMENT_URI`
+
+Prefer WebSocket helper functions where possible:
+
+- `ws_message()`
+- `ws_connection_id()`
+- `ws_scope()`
+- `ws_opcode()`
+- `ws_is_binary()`
+- `ws_connections()`
+- `ws_connection_count()`
+- `ws_send()`
+- `ws_send_to()`
+- `ws_close()`
+
+Use `context.connection` for per-socket structured state.
+
+## Runtime / Resource Fields
+
+### `context.server`
+
+Pointer to server state. Useful mainly for low-level/runtime code. Runtime config lives at:
+
+
+This is a `StringMap`, separate from app-owned `context.cfg`.
+
+### `context.resources`
+
+Internal runtime resources and transport state. Includes sockets, MySQL handles, WebSocket state, current unit file, and parser buffers. Application code should normally use public helpers instead of editing this directly.
+
+Notable fields:
+
+- `is_websocket`
+- `is_cli`
+- `websocket_connection_id`
+- `websocket_scope`
+- `websocket_scope_connection_ids`
+- `current_unit_file`
+
+## Common Patterns
+
+### Minimal page
+
+
+### JSON endpoint
+
+
+### Redirect
+
+
+### Component props
+
+
+### Front-controller route
+
+
+Or use runtime-populated params directly:
+
+
+:example
+print(context.params["REQUEST_URI"] != "" ? "request available\n" : "request available\n");

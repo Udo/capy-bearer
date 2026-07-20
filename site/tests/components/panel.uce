@@ -1,0 +1,23 @@
+COMPONENT(Request& context)
+{
+	<><section class="tests-component">
+		<? component_render(":HEADER", context.props, context); ?>
+		<? component_render(":BODY", context.props, context); ?>
+		<? component_render(":FOOTER", context.props, context); ?>
+	</section></>
+}
+
+COMPONENT:HEADER(Request& context)
+{
+	<><h3 class="accent"><?= first(context.props["title"].to_string(), "Missing Title") ?></h3></>
+}
+
+COMPONENT:BODY(Request& context)
+{
+	<><p><?= first(context.props["body"].to_string(), "Missing Body") ?></p></>
+}
+
+COMPONENT:FOOTER(Request& context)
+{
+	<><small><?= first(context.props["footer"].to_string(), "Missing Footer") ?></small></>
+}

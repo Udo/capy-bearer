@@ -1,0 +1,17 @@
+:sig
+String DValue::get_type_name() const
+
+:params
+return value : one of String, f64, bool, array, pointer, reference, or unknown
+
+:see
+0_DValue
+
+:content
+Returns a human-readable name for the dereferenced value's type tag.
+
+
+:example
+DValue s; s.set("text");
+DValue m; m["k"] = "v";
+print(s.get_type_name(), " / ", m.get_type_name(), "\n");

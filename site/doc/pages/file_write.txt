@@ -1,0 +1,23 @@
+:sig
+u64 file_write(u64 h, String data)
+
+:params
+h : handle from file_open() opened for writing
+data : bytes to write at the current offset
+return value : number of bytes written
+
+:content
+Writes `data` at the handle's current offset and advances the offset. The handle must come from `file_open()` with a writable mode (`"w"`, `"a"`, or `"r+"`). Binary-safe: `data` may contain NUL and other non-text bytes.
+
+:example
+u64 h = file_open("/tmp/doc-write.txt", "w");
+u64 n = file_write(h, "hello world");
+file_close(h);
+print(n, " bytes -> ", file_get_contents("/tmp/doc-write.txt"), "\n");
+
+:see
+>sys
+file_open
+file_pwrite
+file_read
+file_close

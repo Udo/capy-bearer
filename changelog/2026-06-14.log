@@ -1,0 +1,111 @@
+commit 15e8d092bc13c425b5c7f7a19dfaf3c9728104f5
+W7+
+
+
+commit 8587fbc5aa0f38739182fa50383bb94c8d821ed7
+wasm runtime: central WS broker, unified handlers, W7d holdouts, membrane completeness
+
+- WS: a dedicated broker process owns HTTP_PORT + every connection; it forwards
+  renders to the worker pool over uce.sock (non-blocking) and applies ws_*
+  command batches flushed back at workspace teardown. Removes the now-dead
+  per-worker websocket executor (-509 lines).
+- Dispatch: unify CLI / WebSocket / serve_http / page render through one
+  serve_via_wasm(entry_unit, handler) path; handler string -> __uce_<handler>
+  export symbol.
+- W7d: rewrite zip.uce to the membrane return-value error contract (no C++
+  try/catch), error-reporting.uce to genuine wasm traps instead of throw, and
+  sharedunit.uce to unit_info(); empty the native-only token gate.
+- Membrane: wire ls / mkdir / file_mtime through new uce_host_file_list /
+  uce_host_file_mkdir / uce_host_file_mtime hostcalls (resolve_guest_file gains
+  directory support). Fixes /doc/index.uce listing nothing; adds a regression
+  assertion that the index enumerates items.
+- Docs: add docs/wasm-runtime-architecture.md; record the W7e staged native-
+  deletion plan in WASM-PROPOSAL.md.
+
+
+commit 2debd338040cf97e82bb8ccbb5ec09caee089c17
+W7e: wasm-preferred dispatch + compile-on-demand; harden unit ABI validator
+
+- Dispatch (linux_fastcgi.cpp): route every request through wasm. On a
+  cold/stale artifact, compile the unit on demand (get_shared_unit, forced) and
+  serve wasm; native compiler_invoke* remains only as a fallback when wasm
+  cannot be made ready (compile failure / backend disabled). Applies to the 4
+  handle_complete branches and the CLI socket path.
+- backend.cpp: delete the now-vestigial native-only fallback token gate
+  (wasm_backend_native_fallback_*), empty since W7d; should_handle now gates on
+  config + current artifact + healthy worker only.
+- check_unit_wasm.py: skip the defense-in-depth llvm-nm allocator scan when
+  llvm-nm SIGSEGVs on a degenerate-but-valid module (e.g. a unit with no
+  exported handlers). Fixes site/demo/empty.uce, the last unit that could not
+  produce a .wasm; forbidden allocator *exports* are still rejected.
+
+A pi-assisted review caught that the compile-freshness check keys off the .so
+mtime only, so force_recompile is required to rebuild a missing/stale .wasm; a
+unit already cached in-process whose .wasm later vanished still uses native
+fallback (closed in W7e stage B). Native execution is otherwise bypassed for
+all real traffic.
+
+
+commit fb728d63bcd0d80bd5161537e81c30d27eb4df7b
+W7e stage B: factor the .wasm artifact into unit compile-freshness
+
+inspect_shared_unit_filesystem() tracked only the .so mtime, so a missing or
+stale .wasm with a current .so never triggered a rebuild and the unit fell to
+native indefinitely (the in-process cache also never invalidated). Account for
+su->wasm_name when wasm unit compilation is enabled: a unit counts as compiled
+only as of the OLDER of the two artifacts; a missing .wasm forces a recompile.
+Closes the cached-vanished-.wasm gap noted in the stage A review.
+
+
+commit cf513368730e5f337e64a9c9f1456e6a64f49d9c
+W7e: delete the native unit pipeline (.so compile + dlopen execution)
+
+Units now run exclusively on wasm; the native generated-C++ -> clang -> .so ->
+dlopen path and its request-time fallback are removed.
+
+- Dispatch (linux_fastcgi.cpp): the 4 handle_complete branches + the CLI-socket
+  path route every request through wasm (wasm_ready compiles cold/stale on
+  demand); a wasm-unavailable unit now yields a clean error page
+  (fail_wasm_unavailable / render_request_failure) instead of native execution.
+  compiler_invoke / _cli / _websocket / _serve_http deleted.
+- compiler.cpp (-1274): removed the native .so compile (COMPILE_SCRIPT),
+  load_shared_unit, dlopen/dlsym/dlclose, compiler_load_shared_unit, and the
+  SharedUnit .so function-pointer fields (on_setup/on_render/on_component/
+  on_websocket/on_cli/on_once/on_init) in types.h/types.cpp. compile_shared_unit
+  now builds only the .wasm side-module; the .uce preprocessor/parser front-end
+  is kept (it emits the C++ the wasm compile consumes).
+- unit_call()/component()/once/init now resolve across units through the wasm
+  host component resolver (uce_host_component_resolve) instead of native dlsym;
+  configured runtime error pages render through the wasm backend.
+- Dropped the WASM_BACKEND_ENABLED feature flag and dead COMPILE_SCRIPT /
+  COMPILE_WASM_UNITS config; unit ABI freshness tied to UCE_UNIT_ABI_VERSION;
+  guard against serving a stale .wasm for a deleted source; retired the obsolete
+  W5 native-vs-wasm toggle script. Docs updated.
+
+
+commit bfd6d338299dd9001fe2d4a66f82bbc2b3b07ed9
+W7f: sweep dead/legacy/fallback leftovers after native-pipeline removal
+
+Post-deletion cleanup (units run only on wasm):
+- types.h/compiler.cpp: drop the native-era SharedUnit fields so_name,
+  bin_file_name, and the opt_so_optional cache-mode plumbing (no native
+  optional .so path remains). The per-unit compile lock is re-keyed from
+  so_name+.lock to wasm_name+.lock (still per-unit).
+- unit_info() and to_string(SharedUnit*) no longer expose .so artifact fields.
+- backend.h: drop the stale "+ fallback-token gate" comment.
+- Docs/comments corrected to wasm-only reality: README, tests/README,
+  site/doc C++ preprocessor + error_pages + unit_info pages, site/info intro,
+  site/demo/unit-browser artifact card; the Phase-5 native-vs-wasm benchmark
+  harness (tests/wasm_benchmark.py) reframed for the wasm-only backend.
+
+Audit confirmed no live references remain to so_handle, load_shared_unit,
+compiler_load_shared_unit, compiler_invoke*/_cli/_websocket/_serve_http,
+COMPILE_SCRIPT/COMPILE_WASM_UNITS, or the native export-symbol constants;
+request_ref_handler/dv_call_handler are kept (live wasm funcref casts).
+
+Swept via the pi agent (delegated to a gpt-5.3-codex-spark sub-model);
+independently re-verified on the host: run_cli_tests --include-wasm-kill =>
+87 passed, 0 failed, 0 skipped.
+
+
+

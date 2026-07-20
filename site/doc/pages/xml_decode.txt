@@ -1,0 +1,47 @@
+:sig
+DValue xml_decode(String s)
+
+:params
+s : XML source string
+return value : element-shaped DValue
+
+:see
+>markup
+xml_encode
+json_decode
+0_DValue
+0_String
+
+:content
+Parses a simple XML document into a structured `DValue`.
+
+`xml_decode()` parses a compact XML subset. It does not validate schemas, DTDs, namespaces, or document types. It parses the first root element and returns the same structural element shape accepted by `xml_encode()`.
+
+Try the live example in the [XML demo](../demo/xml.uce).
+
+Return shape:
+
+
+Example:
+
+
+CDATA and numeric entities are folded into text:
+
+
+Supported parser features:
+
+- elements
+- attributes with quoted values
+- self-closing tags
+- text nodes
+- XML entities such as `&amp;`, `&lt;`, `&gt;`, `&quot;`, and `&apos;`
+- decimal and hexadecimal numeric entities
+- comments, processing instructions, and CDATA sections
+
+Whitespace-only text between child elements is ignored. Mixed non-empty text is concatenated into `node["text"]`.
+
+Malformed XML raises a request-visible runtime error.
+
+:example
+DValue node = xml_decode("<root><name>Ada</name></root>");
+print(node.is_array() ? "xml\n" : "empty\n");

@@ -1,0 +1,22 @@
+:sig
+SharedUnit* unit_load(String file_name)
+
+:params
+file_name : unit source path
+return value : native SharedUnit pointer (native runtime internals only)
+
+:see
+>ob
+>unit_compile
+>unit_info
+>unit_call
+
+:content
+native-only internal API. `unit_load()` returns a process-local `SharedUnit*`, which is not a valid value across the wasm membrane and is not exposed to wasm units.
+
+Use unit-facing APIs such as `unit_info()`, `unit_compile()`, `unit_call()`, `unit_render()`, or component helpers instead.
+
+:example
+// unit_load() is a native/internal loader; from a unit, use unit_compile()
+// to make sure a unit is built, then unit_call()/unit_render() to invoke it.
+print(unit_compile("examples/sample_unit.uce") ? "sample unit is loaded and ready" : "load failed", "\n");

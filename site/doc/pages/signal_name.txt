@@ -1,0 +1,22 @@
+:sig
+String signal_name(s32 sig)
+
+:params
+sig : POSIX signal number
+return value : signal name such as `SIGSEGV`, or an empty string when unknown
+
+:see
+>runtime
+backtrace_capture
+backtrace_get_frames
+
+:content
+Returns a readable name for a POSIX signal number.
+
+Example:
+
+
+This is mostly useful in diagnostics and error reporting code.
+
+:example
+print(signal_name(SIGSEGV), " / ", signal_name(SIGABRT), "\n");

@@ -1,0 +1,20 @@
+:sig
+u64 socket_connect(String host, u16 port)
+
+:params
+host : IPv4 address (for example `127.0.0.1`), as a dotted-quad string
+port : port number
+return value : the socket handle
+
+:see
+>socket
+
+:content
+Opens a socket connection to the given `host` and `port`.
+
+The returned socket handle is then used with `socket_read()`, `socket_write()`, and `socket_close()`. Currently this helper accepts IPv4 dotted-quad addresses in socket calls and does not perform hostname resolution.
+
+:example
+u64 fd = socket_connect("127.0.0.1", 80);
+print(fd != 0 ? "connected to the local server" : "connect failed", "\n");
+socket_close(fd);

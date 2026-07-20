@@ -1,0 +1,18 @@
+:sig
+String to_upper(String s)
+
+:params
+s : the string to be converted
+return value : returns a version of 's' where all lower case characters have been changed into upper case
+
+:see
+>string
+
+:content
+Returns an upper-case version of `s`.
+
+This function is not yet Unicode-aware.
+
+
+:example
+print(to_upper("uce"), "\n");

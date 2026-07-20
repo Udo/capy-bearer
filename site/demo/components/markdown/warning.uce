@@ -1,0 +1,15 @@
+COMPONENT(Request& context)
+{
+	String title = first(
+		context.props["node"]["attrs"]["title"].to_string(),
+		context.props["argument"].to_string(),
+		"Notice"
+	);
+
+	<>
+		<aside>
+			<p><strong><?= title ?></strong></p>
+			<div><?: context.props["children_html"].to_string() ?></div>
+		</aside>
+	</>
+}

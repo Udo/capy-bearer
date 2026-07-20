@@ -1,0 +1,63 @@
+#load "lib/app.uce"
+
+DValue starter_router_result(String file, String param = "")
+{
+	DValue result;
+	result["file"] = file;
+	if(param != "")
+		result["param"] = param;
+	return(result);
+}
+
+DValue starter_router_resolve(Request& context)
+{
+	String lpath = context.call["route"]["l_path"].to_string();
+	if(lpath == "")
+		return(DValue());
+
+	String exact = "views/" + lpath + ".uce";
+	if(file_exists(exact))
+		return(starter_router_result(exact));
+
+	String directory_index = "views/" + lpath + "/index.uce";
+	if(file_exists(directory_index))
+		return(starter_router_result(directory_index));
+
+	auto parts = split(lpath, "/");
+	while(parts.size() > 1)
+	{
+		String param = parts.back();
+		parts.pop_back();
+		String parent = join(parts, "/");
+		String parent_index = "views/" + parent + "/index.uce";
+		if(file_exists(parent_index))
+			return(starter_router_result(parent_index, param));
+	}
+
+	return(DValue());
+}
+
+RENDER(Request& context) 
+{
+	app_init(context);
+
+	DValue resolved = starter_router_resolve(context);
+
+	ob_start();
+	if(resolved["file"].to_string() != "")
+	{
+		if(resolved["param"].to_string() != "")
+			context.call["route"]["param"] = resolved["param"];
+		print(component(resolved["file"].to_string(), context));
+	}
+	else
+	{
+		DValue notfound_props;
+		notfound_props["message"] = "The requested page does not exist.";
+		print(component("components/basic/notfound", notfound_props, context));
+	}
+
+	String main_html = ob_get_close();
+	context.call["fragments"]["main"] = main_html;
+	print(component("themes/page", context));
+}

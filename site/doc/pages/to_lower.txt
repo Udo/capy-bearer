@@ -1,0 +1,18 @@
+:sig
+String to_lower(String s)
+
+:params
+s : the string to be converted
+return value : returns a version of 's' where all upper case characters have been changed into lower case
+
+:see
+>string
+
+:content
+Returns a lower-case version of `s`.
+
+This function is not yet Unicode-aware.
+
+
+:example
+print(to_lower("UCE"), "\n");

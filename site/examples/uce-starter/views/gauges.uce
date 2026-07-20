@@ -1,0 +1,128 @@
+#load "../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	context.call["app"]["page_title"] = "Gauges";
+	f64 pi = 3.14159265358979323846;
+
+	DValue props;
+	DValue item;
+
+	<>
+		<h1>Gauge Components Demo</h1>
+		<div class="demo-section gauge-demo-row">
+	</>
+
+	props["id"] = "horizontal_demo";
+	props["title"] = "Horizontal Progress Bar";
+	props["subtitle"] = "The original bar gauges, restyled to share the same card and token language as the new arc gauges.";
+	props["layout"] = "horizontal";
+	props["style"] = "flex:1 1 24rem";
+	props["listen"].set_bool(true);
+	props["markers"]["zero"]["value"] = "0";
+	props["markers"]["zero"]["label"] = "Zero";
+	props["markers"]["zero"]["color"] = "var(--bg-color)";
+	props["markers"]["high"]["value"] = "100";
+	props["markers"]["high"]["label"] = "High";
+	item["value"] = "45"; item["min"] = "0"; item["max"] = "200"; item["label"] = "CPU"; item["tooltip"] = "CPU Usage";
+	item["color"]["0"]["from"] = "-50"; item["color"]["0"]["to"] = "20"; item["color"]["0"]["color"] = "var(--text-muted)";
+	item["color"]["1"]["from"] = "20"; item["color"]["1"]["to"] = "80"; item["color"]["1"]["color"] = "var(--primary)";
+	item["color"]["2"]["from"] = "80"; item["color"]["2"]["to"] = "100"; item["color"]["2"]["color"] = "var(--warning)";
+	props["items"]["cpu"] = item; item.clear();
+	item["value"] = "92"; item["min"] = "-50"; item["max"] = "100"; item["label"] = "Memory"; item["tooltip"] = "Memory Usage"; props["items"]["memory"] = item; item.clear();
+	item["value"] = "28"; item["min"] = "0"; item["max"] = "100"; item["label"] = "Disk I/O"; item["tooltip"] = "Disk I/O"; props["items"]["disk"] = item;
+	print(component("../components/gauges/progressbar", props, context));
+
+	props.clear();
+	props["id"] = "vertical_demo";
+	props["title"] = "Vertical Progress Bar";
+	props["subtitle"] = "Same abstraction, but stacked as compact KPI cards.";
+	props["layout"] = "vertical";
+	props["style"] = "flex:1 1 24rem";
+	props["height"] = "350";
+	props["listen"].set_bool(true);
+	props["markers"]["zero"]["value"] = "0";
+	props["markers"]["zero"]["label"] = "Zero";
+	props["markers"]["zero"]["color"] = "var(--bg-color)";
+	props["markers"]["high"]["value"] = "100";
+	props["markers"]["high"]["label"] = "High";
+	item.clear(); item["value"] = "45"; item["min"] = "0"; item["max"] = "200"; item["label"] = "CPU"; item["tooltip"] = "CPU Usage"; props["items"]["cpu"] = item;
+	item.clear(); item["value"] = "92"; item["min"] = "-50"; item["max"] = "100"; item["label"] = "RAM"; item["tooltip"] = "Memory Usage"; props["items"]["memory"] = item;
+	item.clear(); item["value"] = "28"; item["min"] = "0"; item["max"] = "100"; item["label"] = "I/O"; item["tooltip"] = "Disk I/O"; props["items"]["disk"] = item;
+	print(component("../components/gauges/progressbar", props, context));
+
+	<>
+			<div class="gauge-control-panel">
+				<div class="control-group">
+					<h4>Event Binding</h4>
+					<div class="gauge-slider-group"><label for="cpu-slider">CPU</label><input type="range" id="cpu-slider" min="0" max="200" value="45" onchange="$.events.emit('value-broadcast', { name: 'cpu', value: this.value });"></div>
+					<div class="gauge-slider-group"><label for="memory-slider">Memory</label><input type="range" id="memory-slider" min="-50" max="100" value="92" onchange="$.events.emit('value-broadcast', { name: 'memory', value: this.value });"></div>
+					<div class="gauge-slider-group"><label for="disk-slider">Disk I/O</label><input type="range" id="disk-slider" min="0" max="100" value="28" onchange="$.events.emit('value-broadcast', { name: 'disk', value: this.value });"></div>
+				</div>
+			</div>
+		</div>
+		<div class="demo-section gauge-demo-row">
+	</>
+
+	props.clear();
+	props["id"] = "needle_demo";
+	props["title"] = "Needle Gauge";
+	props["subtitle"] = "The original analog gauge uses the same elevated panels, typography, and theme-token palette as the arc gauges.";
+	props["style"] = "flex:1 1 24rem";
+	props["listen"].set_bool(true);
+	props["label"] = "CPU";
+	props["tooltip"] = "CPU Usage";
+	props["scale"]["angle_start"] = std::to_string(-1.2 * pi);
+	props["scale"]["angle_end"] = std::to_string(0.2 * pi);
+	props["scale"]["max"] = "100";
+	props["scale"]["unit"] = "%";
+	props["scale"]["ticks-every"] = "10";
+	props["scale"]["value-labels-every"] = "20";
+	props["scale"]["tick-color"] = "var(--text-muted)";
+	props["scale"]["color"]["0"]["from"] = "-50";
+	props["scale"]["color"]["0"]["to"] = "10";
+	props["scale"]["color"]["0"]["color"] = "var(--primary)";
+	props["scale"]["color"]["1"]["from"] = "10";
+	props["scale"]["color"]["1"]["to"] = "70";
+	props["scale"]["color"]["1"]["color"] = "var(--text-muted)";
+	props["scale"]["color"]["2"]["from"] = "70";
+	props["scale"]["color"]["2"]["to"] = "90";
+	props["scale"]["color"]["2"]["color"] = "var(--warning)";
+	props["scale"]["color"]["3"]["from"] = "90";
+	props["scale"]["color"]["3"]["to"] = "200";
+	props["scale"]["color"]["3"]["color"] = "var(--error)";
+	item.clear(); item["max"] = "200"; item["value"] = "45"; item["label"] = "CPU"; props["items"]["cpu"] = item;
+	item.clear(); item["value"] = "92"; item["min"] = "-50"; item["label"] = "Memory"; item["tooltip"] = "Memory Usage"; props["items"]["memory"] = item;
+	item.clear(); item["value"] = "28"; item["label"] = "Disk I/O"; item["tooltip"] = "Disk I/O"; props["items"]["disk"] = item;
+	print(component("../components/gauges/needlegauge", props, context));
+
+	<>
+		</div>
+		<div class="demo-section gauge-demo-row">
+	</>
+
+	props.clear();
+	props["id"] = "arc_demo";
+	props["title"] = "SVG Arc Gauges";
+	props["subtitle"] = "Backported from the llm2 overview as reusable KPI-style gauges with optional watermark tracking.";
+	props["style"] = "flex: 2 1 36rem";
+	props["listen"].set_bool(true);
+	item.clear(); item["label"] = "System Load"; item["value"] = "1.8"; item["max"] = "8"; item["precision"] = "1"; item["caption"] = "LOAD 1M"; item["meta"] = "4 cores available"; item["watermark_prefix"] = "loadDemo";
+	item["color"]["0"]["from"] = "0"; item["color"]["0"]["to"] = "3.5"; item["color"]["0"]["color"] = "var(--success, #10b981)";
+	item["color"]["1"]["from"] = "3.5"; item["color"]["1"]["to"] = "6"; item["color"]["1"]["color"] = "var(--warning, #f59e0b)";
+	item["color"]["2"]["from"] = "6"; item["color"]["2"]["to"] = "8"; item["color"]["2"]["color"] = "var(--error, #ef4444)";
+	props["items"]["load"] = item;
+	item.clear(); item["label"] = "Memory"; item["value"] = "62"; item["max"] = "100"; item["precision"] = "0"; item["unit"] = "%"; item["caption"] = "MEMORY"; item["meta"] = "9.9 / 16 GB"; item["watermark_prefix"] = "memoryDemo"; props["items"]["memory_arc"] = item;
+	item.clear(); item["label"] = "Network"; item["value"] = "18"; item["max"] = "100"; item["precision"] = "0"; item["unit"] = " MB/s"; item["caption"] = "THROUGHPUT"; item["meta"] = "Inbound + outbound"; item["watermark_prefix"] = "networkDemo"; props["items"]["network"] = item;
+	print(component("../components/gauges/arcgauge", props, context));
+
+	<>
+			<div class="gauge-control-panel">
+				<h4>Arc Gauge Controls</h4>
+				<div class="gauge-slider-group"><label for="load-slider">Load</label><input type="range" id="load-slider" min="0" max="8" value="1.8" step="0.1" oninput="$.events.emit('value-broadcast', { name: 'load', value: this.value, meta: this.value + ' / 8.0 load' });"></div>
+				<div class="gauge-slider-group"><label for="memory-arc-slider">Memory</label><input type="range" id="memory-arc-slider" min="0" max="100" value="62" step="1" oninput="$.events.emit('value-broadcast', { name: 'memory_arc', value: this.value, meta: this.value + '% used' });"></div>
+				<div class="gauge-slider-group"><label for="network-slider">Network Throughput</label><input type="range" id="network-slider" min="0" max="100" value="18" step="1" oninput="$.events.emit('value-broadcast', { name: 'network', value: this.value, meta: this.value + ' MB/s aggregate' });"></div>
+			</div>
+		</div>
+	</>
+}

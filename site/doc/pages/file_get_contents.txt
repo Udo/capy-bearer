@@ -1,0 +1,19 @@
+:sig
+String file_get_contents(String file_name)
+
+:params
+file_name : file to read, resolved against the unit's directory
+return value : the file's contents, or "" if it cannot be read
+
+:content
+Reads an entire file and returns it as a `String`. The read takes a shared lock for its duration, so it waits for any in-progress `file_put_contents()` / `file_append()` write to finish; you never manage locks yourself. For large files or random access, use `file_open()` + `file_read()`.
+
+:example
+file_put_contents("/tmp/doc-get.txt", "hello");
+print(file_get_contents("/tmp/doc-get.txt"), "\n");
+
+:see
+>sys
+file_put_contents
+file_append
+file_open

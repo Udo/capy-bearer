@@ -1,0 +1,21 @@
+:sig
+bool dir_remove(String path, bool recursive = false)
+
+:params
+path : directory to remove
+recursive : when true, remove the directory and everything inside it
+return value : true on success
+
+:content
+Removes a directory. By default it must be empty; pass `recursive = true` to delete the directory and all of its contents.
+
+:example
+mkdir("/tmp/doc-rmdir");
+file_put_contents("/tmp/doc-rmdir/child.txt", "x");
+dir_remove("/tmp/doc-rmdir", true);
+print(file_stat("/tmp/doc-rmdir")["exists"].to_bool() ? "still there" : "removed", "\n");
+
+:see
+>sys
+mkdir
+file_unlink

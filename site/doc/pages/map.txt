@@ -1,0 +1,26 @@
+:sig
+StringList map(StringList items, function<String (String)> f)
+vector<R> map(vector<T> items, function<R (T)> f)
+
+:params
+items : list of items to transform
+f : a function that returns the transformed value for each item
+return value : a new list containing the transformed values
+
+:see
+>string
+filter
+0_StringList
+0_DValue
+
+:content
+Returns a new list by calling `f` for each item in `items`.
+
+
+Use `filter()` when you want to keep only matching items, and `map()` when you want to transform each item.
+
+
+:example
+StringList names = split("ada,grace", ",");
+StringList upper = map(names, [](String item) { return(to_upper(item)); });
+print(join(upper, ","), "\n");

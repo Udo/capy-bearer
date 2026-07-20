@@ -1,0 +1,94 @@
+#include "testlib.h"
+
+RENDER(Request& context)
+{
+	if(!test_demo_request_allowed(context))
+	{
+		site_tests_restricted(context, "ZIP", "create and extract temporary server-side archive files");
+		return;
+	}
+
+	u64 passed = 0;
+	u64 failed = 0;
+	u64 skipped = 0;
+
+	auto check = [&](String name, bool ok, String detail)
+	{
+		site_tests_case(name, ok ? "pass" : "fail", detail);
+		if(ok)
+			passed++;
+		else
+			failed++;
+	};
+
+	site_tests_page_start("ZIP", "Local-only coverage for zip_create(), zip_list(), zip_read(), and zip_extract().");
+
+	String base = "/tmp/uce-site-tests-zip";
+	String archive = path_join(base, "sample.zip");
+	String extract_dir = path_join(base, "extract");
+	mkdir(base);
+	mkdir(extract_dir);
+
+	DValue entries;
+	entries["hello.txt"] = "Hello ZIP";
+	entries["nested/readme.txt"] = "Nested file";
+	DValue explicit_entry;
+	explicit_entry["name"] = "data/value.txt";
+	explicit_entry["content"] = "42";
+	entries["ignored-map-key"] = explicit_entry;
+
+	bool created = zip_create(archive, entries);
+	DValue listed = zip_list(archive);
+	String hello = zip_read(archive, "hello.txt");
+	bool extracted = zip_extract(archive, extract_dir);
+	String nested = file_get_contents(path_join(extract_dir, "nested/readme.txt"));
+	String value = file_get_contents(path_join(extract_dir, "data/value.txt"));
+
+	check("zip_create()", created && file_exists(archive), archive);
+	check("zip_list()", listed["count"].to_u64() == 3 && listed["entries"]["0"]["name"].to_string() != "", json_encode(listed));
+	check("zip_read()", hello == "Hello ZIP", hello);
+	check("zip_extract()", extracted && nested == "Nested file" && value == "42", nested + " / " + value);
+
+	// Unsafe member names are rejected host-side; the membrane reports the
+	// failure as a false return (no thrown exception crosses into the unit).
+	DValue unsafe_entries;
+	unsafe_entries["/absolute.txt"] = "bad";
+	bool unsafe_rejected = !zip_create(path_join(base, "unsafe.zip"), unsafe_entries);
+	check("zip_create() rejects unsafe names", unsafe_rejected, "absolute member name rejected");
+
+	DValue nul_entries;
+	String nul_name = "prefix";
+	nul_name.push_back((char)0x00);
+	nul_name += "suffix.txt";
+	nul_entries[nul_name] = "bad";
+	bool nul_name_rejected = !zip_create(path_join(base, "nul-name.zip"), nul_entries);
+	check("zip_create() rejects NUL entry names", nul_name_rejected, "embedded NUL member name rejected");
+
+	String binary_source("UCE", 3);
+	binary_source.push_back((char)0x00);
+	binary_source += "binary";
+	binary_source.push_back((char)0xff);
+	binary_source += "payload";
+	DValue binary_entries;
+	binary_entries["binary.dat"] = binary_source;
+	String binary_archive = path_join(base, "binary.zip");
+	bool binary_created = zip_create(binary_archive, binary_entries);
+	String binary_zip_roundtrip = zip_read(binary_archive, "binary.dat");
+	check("zip binary-safe String payload", binary_created && binary_zip_roundtrip == binary_source && binary_zip_roundtrip.size() == binary_source.size(), "bytes=" + std::to_string((u64)binary_zip_roundtrip.size()));
+
+	String gz_source = "UCE gzip payload\nline two\n";
+	String gz_body = gz_compress(gz_source);
+	String gz_roundtrip = gz_uncompress(gz_body);
+	String gz_binary_body = gz_compress(binary_source);
+	String gz_binary_roundtrip = gz_uncompress(gz_binary_body);
+	check("gz_compress()", gz_body.size() > gz_source.size() && (u8)gz_body[0] == 0x1f && (u8)gz_body[1] == 0x8b, "bytes=" + std::to_string((u64)gz_body.size()));
+	check("gz_uncompress()", gz_roundtrip == gz_source && gz_binary_roundtrip == binary_source && gz_binary_roundtrip.size() == binary_source.size(), "text=" + gz_roundtrip + ", binary bytes=" + std::to_string((u64)gz_binary_roundtrip.size()));
+
+	// Invalid gzip input fails host-side; the membrane returns an empty result
+	// rather than throwing into the unit.
+	bool bad_gz_rejected = gz_uncompress("not gzip data") == "";
+	check("gz_uncompress() rejects invalid data", bad_gz_rejected, "invalid stream rejected");
+
+	site_tests_summary(passed, failed, skipped, "ZIP tests write only under /tmp/uce-site-tests-zip.");
+	site_tests_page_end();
+}

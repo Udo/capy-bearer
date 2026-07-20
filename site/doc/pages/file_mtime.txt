@@ -1,0 +1,18 @@
+:sig
+u64 file_mtime(String file_name)
+
+:params
+file_name : path to inspect, resolved against the unit's directory
+return value : last-modified time as a Unix timestamp, or 0 if missing
+
+:content
+Returns a file's last-modified time as a Unix timestamp. Compare two files' mtimes for cache-freshness checks, or test for `> 0` to confirm a file exists with a real timestamp.
+
+:example
+file_put_contents("/tmp/doc-mtime.txt", "x");
+print(file_mtime("/tmp/doc-mtime.txt") > 0 ? "has a modification time" : "missing", "\n");
+
+:see
+>sys
+file_stat
+time

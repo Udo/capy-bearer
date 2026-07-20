@@ -1,0 +1,7 @@
+Markup Functions
+markdown_to_ast
+markdown_to_html
+xml_decode
+xml_encode
+yaml_decode
+yaml_encode

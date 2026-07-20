@@ -1,0 +1,30 @@
+
+
+RENDER(Request& context)
+{
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Cookies
+		</h1>
+		Set
+		<pre><?
+
+		set_cookie("test-cookie-1", "test-value-1", time() + 30*60);
+		set_cookie("test-cookie-2", "test-value-2", time() + 30*60*24);
+		print(var_dump(context.set_cookies));
+
+		?></pre>
+		Get
+		<pre><?
+
+		print(var_dump(context.cookies));
+
+		?></pre>
+		Params
+		<pre><?= var_dump(context.params) ?></pre>
+	</>
+
+}

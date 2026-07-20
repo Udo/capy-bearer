@@ -1,0 +1,24 @@
+:sig
+void json_consume_space(String s, u32& i)
+
+:params
+s : JSON source string
+i : current byte offset; advanced past JSON whitespace
+
+:see
+>string
+json_encode
+json_decode
+
+:content
+Advances `i` past JSON whitespace in `s`.
+
+This helper is mainly useful when writing a parser that follows UCE's JSON parsing rules. Most page code should call `json_decode()` instead.
+
+Example:
+
+
+:example
+u32 i = 0;
+json_consume_space("   value", i);
+print(i, "\n");

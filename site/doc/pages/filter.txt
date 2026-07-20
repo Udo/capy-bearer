@@ -1,0 +1,20 @@
+:sig
+StringList filter(StringList items, function<bool (String)> f)
+vector<T> filter(vector<T> items, function<bool (T)> f)
+
+:params
+items : list of items to be filtered
+f : predicate function; items are kept when this returns `true`
+return value : a new list
+
+:see
+>string
+
+:content
+Returns a new list containing the members of `items` for which `f` returned `true`.
+
+
+:example
+StringList names = split("ada,bob,amy", ",");
+StringList a_names = filter(names, [](String item) { return(str_starts_with(item, "a")); });
+print(join(a_names, ","), "\n");

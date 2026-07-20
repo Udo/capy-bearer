@@ -1,0 +1,43 @@
+
+#include "demo_guard.h"
+
+
+
+
+RENDER(Request& context)
+{
+	if(!test_demo_request_allowed(context))
+	{
+		test_demo_render_restricted_html(context, "File Append", "write to server-side files");
+		return;
+	}
+	DValue t;
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			File Append
+		</h1>
+
+		File Append:
+
+		<pre style="white-space: pre-wrap"><?
+
+			if(context.get["cmd"] == "clear")
+				file_put_contents("/tmp/test.txt", "");
+
+			file_append("/tmp/test.txt", context.server->request_count, "\thello world\t", 2, "\t", time(), "\t", time_precise(), "\n");
+
+			print(file_get_contents("/tmp/test.txt"));
+
+		?></pre>
+
+		<button onclick="document.location.href='?cmd=add';">Add Line</button>
+		<button onclick="document.location.href='?cmd=clear';">Clear File</button>
+
+		Params
+		<pre><?= var_dump(context.params) ?></pre>
+	</>
+
+}

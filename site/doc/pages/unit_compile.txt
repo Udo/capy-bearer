@@ -1,0 +1,20 @@
+:sig
+bool unit_compile(String path = "")
+
+:params
+path : optional UCE unit path. If empty, recompiles the current executing unit.
+return value : `true` when the host compiler accepted and compiled the unit
+
+:see
+>runtime
+unit_info
+units_list
+unit_call
+
+:content
+Triggers a manual recompile of a UCE compilation unit through the host membrane.
+
+If `path` is relative, it is resolved by the host unit resolver. The function returns whether compilation succeeded; it does not return or expose a native `SharedUnit*` to wasm units.
+
+:example
+print(unit_compile("examples/sample_unit.uce") ? "compiled the sample unit" : "compile failed", "\n");

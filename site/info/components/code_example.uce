@@ -1,0 +1,611 @@
+bool code_is_space(char ch)
+{
+	return(ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r');
+}
+
+bool code_is_digit(char ch)
+{
+	return(ch >= '0' && ch <= '9');
+}
+
+bool code_is_alpha(char ch)
+{
+	return((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'));
+}
+
+bool code_is_ident_start(char ch)
+{
+	return(code_is_alpha(ch) || ch == '_');
+}
+
+bool code_is_ident_char(char ch)
+{
+	return(code_is_ident_start(ch) || code_is_digit(ch));
+}
+
+bool markup_name_char(char ch)
+{
+	return(code_is_ident_char(ch) || ch == '-' || ch == ':' || ch == '@');
+}
+
+bool code_is_punct(char ch)
+{
+	return(ch == '{' || ch == '}' || ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == ',' || ch == ';');
+}
+
+bool code_is_operator(char ch)
+{
+	return(ch == '=' || ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '%' || ch == '!' || ch == '<' || ch == '>' || ch == '&' || ch == '|' || ch == '.' || ch == ':' || ch == '?' || ch == '^');
+}
+
+bool code_has_prefix(String src, u64 i, String prefix)
+{
+	if(i + prefix.length() > src.length())
+		return(false);
+	return(substr(src, i, prefix.length()) == prefix);
+}
+
+String code_wrap(String cls, String text)
+{
+	if(text == "")
+		return("");
+	return("<span class=\"tok tok-" + cls + "\">" + html_escape(text) + "</span>");
+}
+
+String uce_markup_open_token()
+{
+	return("<" ">");
+}
+
+String uce_markup_close_token()
+{
+	return("</" ">");
+}
+
+String uce_code_open_token()
+{
+	return("<" "?");
+}
+
+String uce_code_expr_token()
+{
+	return("<" "?=");
+}
+
+String uce_code_raw_token()
+{
+	return("<" "?:");
+}
+
+String uce_code_close_token()
+{
+	return("?" ">");
+}
+
+bool cpp_keyword(String word)
+{
+	String lower = to_lower(word);
+	return(
+		word == "RENDER" ||
+		word == "COMPONENT" ||
+		word == "WS" ||
+		lower == "if" ||
+		lower == "else" ||
+		lower == "for" ||
+		lower == "while" ||
+		lower == "return" ||
+		lower == "const" ||
+		lower == "auto" ||
+		lower == "void" ||
+		lower == "bool" ||
+		lower == "true" ||
+		lower == "false"
+	);
+}
+
+bool cpp_type(String word)
+{
+	return(
+		word == "String" ||
+		word == "DValue" ||
+		word == "Request" ||
+		word == "StringList" ||
+		word == "StringMap" ||
+		word == "u64" ||
+		word == "u32" ||
+		word == "s64" ||
+		word == "f64"
+	);
+}
+
+bool cpp_builtin_call(String word)
+{
+	return(
+		word == "component" ||
+		word == "component_render" ||
+		word == "component_exists" ||
+		word == "component_resolve" ||
+		word == "markdown_to_ast" ||
+		word == "markdown_to_html" ||
+		word == "json_decode" ||
+		word == "json_encode" ||
+		word == "time_format_utc" ||
+		word == "first" ||
+		word == "contains" ||
+		word == "ws_send" ||
+		word == "ws_send_to" ||
+		word == "ws_message" ||
+		word == "ws_connection_id"
+	);
+}
+
+bool cpp_context_field(String word)
+{
+	return(
+		word == "get" ||
+		word == "post" ||
+		word == "session" ||
+		word == "call" ||
+		word == "connection" ||
+		word == "params" ||
+		word == "cookies" ||
+		word == "header" ||
+		word == "cfg"
+	);
+}
+
+bool nginx_keyword(String word)
+{
+	return(
+		word == "location" ||
+		word == "include" ||
+		word == "fastcgi_param" ||
+		word == "fastcgi_pass" ||
+		word == "proxy_pass" ||
+		word == "proxy_set_header" ||
+		word == "proxy_http_version" ||
+		word == "error_page" ||
+		word == "if" ||
+		word == "return" ||
+		word == "root" ||
+		word == "index" ||
+		word == "server" ||
+		word == "listen" ||
+		word == "server_name" ||
+		word == "map"
+	);
+}
+
+String highlight_cpp_fragment(String code)
+{
+	String out;
+	for(u64 i = 0; i < code.length(); )
+	{
+		if(code_has_prefix(code, i, "//"))
+		{
+			u64 start = i;
+			while(i < code.length() && code[i] != '\n')
+				i += 1;
+			out += code_wrap("comment", substr(code, start, i - start));
+			continue;
+		}
+
+		if(code_has_prefix(code, i, "/*"))
+		{
+			u64 start = i;
+			i += 2;
+			while(i < code.length() && !code_has_prefix(code, i, "*/"))
+				i += 1;
+			if(code_has_prefix(code, i, "*/"))
+				i += 2;
+			out += code_wrap("comment", substr(code, start, i - start));
+			continue;
+		}
+
+		char ch = code[i];
+		if(ch == '"' || ch == '\'' || ch == '`')
+		{
+			char quote = ch;
+			u64 start = i;
+			i += 1;
+			while(i < code.length())
+			{
+				if(code[i] == '\\' && i + 1 < code.length())
+				{
+					i += 2;
+					continue;
+				}
+				if(code[i] == quote)
+				{
+					i += 1;
+					break;
+				}
+				i += 1;
+			}
+			out += code_wrap("string", substr(code, start, i - start));
+			continue;
+		}
+
+		if(code_is_space(ch))
+		{
+			out += substr(code, i, 1);
+			i += 1;
+			continue;
+		}
+
+		if(code_is_digit(ch))
+		{
+			u64 start = i;
+			i += 1;
+			while(i < code.length())
+			{
+				char next = code[i];
+				if(code_is_digit(next) || next == '.' || next == 'x' || next == 'X' || next == '_' || (next >= 'a' && next <= 'f') || (next >= 'A' && next <= 'F'))
+					i += 1;
+				else
+					break;
+			}
+			out += code_wrap("number", substr(code, start, i - start));
+			continue;
+		}
+
+		if(code_is_ident_start(ch))
+		{
+			u64 start = i;
+			i += 1;
+			while(i < code.length() && code_is_ident_char(code[i]))
+				i += 1;
+			String word = substr(code, start, i - start);
+			u64 j = i;
+			while(j < code.length() && (code[j] == ' ' || code[j] == '\t'))
+				j += 1;
+
+			if(cpp_keyword(word))
+				out += code_wrap("keyword", word);
+			else if(cpp_type(word))
+				out += code_wrap("type", word);
+			else if(cpp_context_field(word))
+				out += code_wrap("field", word);
+			else if(word == "context" || word == "props" || word == "payload" || word == "ws")
+				out += code_wrap("variable", word);
+			else if(cpp_builtin_call(word))
+				out += code_wrap("builtin", word);
+			else if(j < code.length() && code[j] == '(')
+				out += code_wrap("call", word);
+			else
+				out += code_wrap("ident", word);
+			continue;
+		}
+
+		if(code_is_punct(ch))
+		{
+			out += code_wrap("punct", substr(code, i, 1));
+			i += 1;
+			continue;
+		}
+
+		if(code_is_operator(ch))
+		{
+			out += code_wrap("operator", substr(code, i, 1));
+			i += 1;
+			continue;
+		}
+
+		out += html_escape(substr(code, i, 1));
+		i += 1;
+	}
+	return(out);
+}
+
+String highlight_markup_tag(String tag)
+{
+	String out;
+	u64 i = 0;
+	if(code_has_prefix(tag, i, "</"))
+	{
+		out += code_wrap("delimiter", "</");
+		i += 2;
+	}
+	else
+	{
+		out += code_wrap("delimiter", "<");
+		i += 1;
+	}
+
+	u64 name_start = i;
+	while(i < tag.length() && markup_name_char(tag[i]))
+		i += 1;
+	if(i > name_start)
+		out += code_wrap("markup-tag", substr(tag, name_start, i - name_start));
+
+	while(i < tag.length())
+	{
+		if(code_is_space(tag[i]))
+		{
+			out += substr(tag, i, 1);
+			i += 1;
+			continue;
+		}
+
+		if(code_has_prefix(tag, i, "/>"))
+		{
+			out += code_wrap("delimiter", "/>" );
+			i += 2;
+			break;
+		}
+
+		if(code_has_prefix(tag, i, ">"))
+		{
+			out += code_wrap("delimiter", ">" );
+			i += 1;
+			break;
+		}
+
+		u64 attr_start = i;
+		while(i < tag.length() && markup_name_char(tag[i]))
+			i += 1;
+		if(i > attr_start)
+			out += code_wrap("markup-attr", substr(tag, attr_start, i - attr_start));
+
+		while(i < tag.length() && code_is_space(tag[i]))
+		{
+			out += substr(tag, i, 1);
+			i += 1;
+		}
+
+		if(i < tag.length() && tag[i] == '=')
+		{
+			out += code_wrap("operator", "=");
+			i += 1;
+			while(i < tag.length() && code_is_space(tag[i]))
+			{
+				out += substr(tag, i, 1);
+				i += 1;
+			}
+			if(i < tag.length() && (tag[i] == '"' || tag[i] == '\''))
+			{
+				char quote = tag[i];
+				u64 value_start = i;
+				i += 1;
+				while(i < tag.length() && tag[i] != quote)
+					i += 1;
+				if(i < tag.length())
+					i += 1;
+				out += code_wrap("string", substr(tag, value_start, i - value_start));
+			}
+			else
+			{
+				u64 value_start = i;
+				while(i < tag.length() && !code_is_space(tag[i]) && tag[i] != '>')
+					i += 1;
+				out += code_wrap("string", substr(tag, value_start, i - value_start));
+			}
+		}
+	}
+
+	return(out);
+}
+
+String highlight_uce_code(String code)
+{
+	String out;
+	bool in_markup = false;
+	String markup_open = uce_markup_open_token();
+	String markup_close = uce_markup_close_token();
+	String code_open = uce_code_open_token();
+	String code_expr = uce_code_expr_token();
+	String code_raw = uce_code_raw_token();
+	String code_close = uce_code_close_token();
+	for(u64 i = 0; i < code.length(); )
+	{
+		if(!in_markup)
+		{
+			s64 next_markup = strpos(code, markup_open, i);
+			if(next_markup < 0)
+			{
+				out += highlight_cpp_fragment(substr(code, i));
+				break;
+			}
+			if((u64)next_markup > i)
+				out += highlight_cpp_fragment(substr(code, i, (u64)next_markup - i));
+			out += code_wrap("delimiter", markup_open);
+			i = (u64)next_markup + 2;
+			in_markup = true;
+			continue;
+		}
+
+		if(code_has_prefix(code, i, markup_close))
+		{
+			out += code_wrap("delimiter", markup_close);
+			i += 3;
+			in_markup = false;
+			continue;
+		}
+
+		if(code_has_prefix(code, i, code_expr) || code_has_prefix(code, i, code_raw) || code_has_prefix(code, i, code_open))
+		{
+			String opener = code_has_prefix(code, i, code_expr) ? code_expr : (code_has_prefix(code, i, code_raw) ? code_raw : code_open);
+			out += code_wrap("delimiter", opener);
+			i += opener.length();
+			u64 island_start = i;
+			while(i < code.length() && !code_has_prefix(code, i, code_close))
+				i += 1;
+			out += highlight_cpp_fragment(substr(code, island_start, i - island_start));
+			if(code_has_prefix(code, i, code_close))
+			{
+				out += code_wrap("delimiter", code_close);
+				i += 2;
+			}
+			continue;
+		}
+
+		if(code_has_prefix(code, i, "<"))
+		{
+			u64 tag_start = i;
+			char quote = 0;
+			i += 1;
+			while(i < code.length())
+			{
+				if(quote != 0)
+				{
+					if(code[i] == quote)
+						quote = 0;
+					i += 1;
+					continue;
+				}
+				if(code[i] == '"' || code[i] == '\'')
+				{
+					quote = code[i];
+					i += 1;
+					continue;
+				}
+				if(code[i] == '>')
+				{
+					i += 1;
+					break;
+				}
+				i += 1;
+			}
+			out += highlight_markup_tag(substr(code, tag_start, i - tag_start));
+			continue;
+		}
+
+		u64 text_start = i;
+		while(i < code.length() && code[i] != '<')
+			i += 1;
+		out += code_wrap("markup-text", substr(code, text_start, i - text_start));
+	}
+	return(out);
+}
+
+String highlight_nginx_code(String code)
+{
+	String out;
+	for(u64 i = 0; i < code.length(); )
+	{
+		if(code[i] == '#')
+		{
+			u64 start = i;
+			while(i < code.length() && code[i] != '\n')
+				i += 1;
+			out += code_wrap("comment", substr(code, start, i - start));
+			continue;
+		}
+
+		if(code[i] == '"' || code[i] == '\'')
+		{
+			char quote = code[i];
+			u64 start = i;
+			i += 1;
+			while(i < code.length() && code[i] != quote)
+				i += 1;
+			if(i < code.length())
+				i += 1;
+			out += code_wrap("string", substr(code, start, i - start));
+			continue;
+		}
+
+		if(code_is_space(code[i]))
+		{
+			out += substr(code, i, 1);
+			i += 1;
+			continue;
+		}
+
+		if(code[i] == '$' || code[i] == '@')
+		{
+			u64 start = i;
+			i += 1;
+			while(i < code.length() && markup_name_char(code[i]))
+				i += 1;
+			out += code_wrap("variable", substr(code, start, i - start));
+			continue;
+		}
+
+		if(code_is_digit(code[i]))
+		{
+			u64 start = i;
+			i += 1;
+			while(i < code.length() && (code_is_digit(code[i]) || code[i] == '.'))
+				i += 1;
+			out += code_wrap("number", substr(code, start, i - start));
+			continue;
+		}
+
+		if(markup_name_char(code[i]))
+		{
+			u64 start = i;
+			i += 1;
+			while(i < code.length() && markup_name_char(code[i]))
+				i += 1;
+			String word = substr(code, start, i - start);
+			if(nginx_keyword(word))
+				out += code_wrap("keyword", word);
+			else
+				out += code_wrap("ident", word);
+			continue;
+		}
+
+		if(code_is_punct(code[i]))
+		{
+			out += code_wrap("punct", substr(code, i, 1));
+			i += 1;
+			continue;
+		}
+
+		if(code_is_operator(code[i]))
+		{
+			out += code_wrap("operator", substr(code, i, 1));
+			i += 1;
+			continue;
+		}
+
+		out += html_escape(substr(code, i, 1));
+		i += 1;
+	}
+	return(out);
+}
+
+String highlight_code(String code)
+{
+	if(contains(code, "fastcgi_pass") || contains(code, "proxy_pass"))
+		return(highlight_nginx_code(code));
+	return(highlight_uce_code(code));
+}
+
+String highlight_code(String code, String language)
+{
+	if(language == "nginx")
+		return(highlight_nginx_code(code));
+	if(language == "uce")
+		return(highlight_uce_code(code));
+	return(highlight_code(code));
+}
+
+String code_language_label(String language)
+{
+	if(language == "nginx")
+		return("nginx");
+	return("uce");
+}
+
+COMPONENT(Request& props)
+{
+	String eyebrow = props.props["eyebrow"].to_string();
+	String title = props.props["title"].to_string();
+	String summary = props.props["summary"].to_string();
+	String code = props.props["code"].to_string();
+	String note = props.props["note"].to_string();
+	String language = first(props.props["language"].to_string(), "uce");
+
+	<><article class="code-card">
+		<div class="eyebrow"><?= eyebrow ?></div>
+		<h3><?= title ?></h3>
+		<p><?= summary ?></p>
+		<div class="code-toolbar">
+			<span class="code-lang"><?= code_language_label(language) ?></span>
+		</div>
+		<pre class="syntax-block"><code class="syntax-code"><?: highlight_code(code, language) ?></code></pre>
+		<? if(note != "") { ?><div class="code-note"><?= note ?></div><? } ?>
+	</article></>
+}

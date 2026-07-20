@@ -1,0 +1,37 @@
+:sig
+DValue regex_search_all(String pattern, String subject)
+DValue regex_search_all(String pattern, String subject, String flags)
+
+:params
+pattern : PCRE2 regular expression pattern
+subject : string to search
+flags : optional regex flags
+return value : a DValue containing all non-overlapping matches
+
+:see
+>string
+>regex
+regex_match
+regex_search
+regex_replace
+regex_split
+0_DValue
+
+:content
+Finds every non-overlapping match of `pattern` in `subject`.
+
+Example:
+
+
+Return shape:
+
+- `matched` is `true` when at least one match exists.
+- `count` is the number of matches.
+- `matches` is a list of entries with the same shape returned by `regex_search()`.
+- `pattern` and `flags` mirror the call inputs.
+
+Zero-length matches are handled safely; the scanner advances after each zero-length match to avoid infinite loops.
+
+:example
+DValue matches = regex_search_all("[a-z]+", "uce docs");
+print(matches.is_list() ? "matches\n" : "none\n");

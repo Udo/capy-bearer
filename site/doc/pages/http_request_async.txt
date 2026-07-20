@@ -1,0 +1,13 @@
+# http_request_async
+
+Starts the same bounded curl-backed request as `http_request()` in the file-backed async job registry and returns a job id. Use `job_await()` or `job_result()` to retrieve the HTTP result.
+
+:see
+>socket
+
+:example
+DValue req; req["method"] = "GET"; req["url"] = "http://127.0.0.1/doc/index.uce";
+req["headers"]["Host"] = "uce.openfu.com"; req["timeout_ms"] = (f64)2000;
+u64 job = http_request_async(req);
+DValue done = job_await(job, 3000);
+print("async HTTP ", done["result"]["status"].to_u64(), "\n");

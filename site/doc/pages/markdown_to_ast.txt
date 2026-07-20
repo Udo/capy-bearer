@@ -1,0 +1,76 @@
+:sig
+DValue markdown_to_ast(String src)
+DValue markdown_to_ast(String src, DValue options)
+
+:params
+src : markdown source text
+options : optional markdown options tree
+return value : a `DValue` document AST
+
+:see
+>markup
+markdown_to_html
+component
+component_render
+json_encode
+0_DValue
+
+:content
+Parses Markdown source into a structured `DValue` document tree.
+
+The parser targets a practical GitHub-flavored subset by default:
+
+- ATX headings with `#`
+- setext headings
+- paragraphs
+- blockquotes
+- ordered and unordered lists
+- task list items
+- fenced code blocks
+- tables
+- horizontal rules
+- emphasis, strong, and strikethrough
+- links, images, autolinks, and code spans
+- `:::` directive blocks for component-based extensions
+
+The returned AST uses `type` plus node-specific fields such as `level`, `text`, `lang`, `href`, `src`, `name`, `argument`, `attrs`, and `children`.
+
+Top-level documents use:
+
+
+Common block nodes:
+
+- `heading`
+- `paragraph`
+- `blockquote`
+- `list`
+- `list_item`
+- `code_block`
+- `table`
+- `directive`
+- `hr`
+
+Common inline nodes:
+
+- `text`
+- `code`
+- `strong`
+- `em`
+- `strike`
+- `link`
+- `image`
+- `raw_html`
+
+Example:
+
+
+Options:
+
+- `options["gfm"]` enables GitHub-style extras such as tables, task lists, strikethrough, and bare-URL autolinks. Defaults to `true`.
+- `options["allow_html"]` allows raw HTML passthrough nodes to be captured and rendered. Defaults to `false`.
+- `options["components"]` provides the component hook map later used by `markdown_to_html()`. The parser preserves directive data needed by those hooks.
+
+
+:example
+DValue ast = markdown_to_ast("# Title");
+print(ast.is_array() ? "ast\n" : "empty\n");

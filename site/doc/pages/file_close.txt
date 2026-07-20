@@ -1,0 +1,20 @@
+:sig
+void file_close(u64 h)
+
+:params
+h : handle returned by file_open()
+
+:content
+Closes a file handle and releases the lock that `file_open()` took. Always close handles you open: locks are scoped to the handle's lifetime, so a leaked handle holds its lock until the worker recycles.
+
+:example
+u64 h = file_open("/tmp/doc-close.txt", "w");
+file_write(h, "done");
+file_close(h);
+print(file_exists("/tmp/doc-close.txt") ? "written and closed" : "missing", "\n");
+
+:see
+>sys
+file_open
+file_write
+file_read

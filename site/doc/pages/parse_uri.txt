@@ -1,0 +1,28 @@
+:sig
+URI parse_uri(String uri_string)
+
+:params
+uri_string : URI or URL string
+return value : URI object with `parts` and `query` maps
+
+:see
+>uri
+parse_query
+uri_decode
+uri_encode
+
+:content
+Parses a URI into its component maps.
+
+`return.parts` contains the parsed URI fields. `return.query` contains query parameters decoded with the same rules as `parse_query()`.
+
+For absolute URLs, `parts` exposes `scheme`, `host`, optional `port`, `path`, raw `query`, and `fragment`. The normalized `path` does not include its leading slash.
+
+Example:
+
+
+Use `parse_uri()` when you need to inspect a full URL. Use `parse_query()` when you only have the query string.
+
+:example
+URI uri = parse_uri("https://example.test/docs?name=Ada");
+print(uri.parts["path"], " ", uri.query["name"], "\n");

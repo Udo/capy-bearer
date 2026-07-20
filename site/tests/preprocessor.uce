@@ -1,0 +1,49 @@
+#include "testlib.h"
+
+ONCE(Request& context)
+@fragment preprocessor-test
+{
+	<>fragment attr once</>
+}
+
+String preprocessor_nested_literal()
+{
+	ob_start();
+	<>
+		<span id="nested-raw-string-terminator">nested )" marker</span>
+	</>
+	return(ob_get_close());
+}
+
+RENDER(Request& context)
+{
+	u64 passed = 0;
+	u64 failed = 0;
+	u64 skipped = 0;
+
+	auto check = [&](String name, bool ok, String detail)
+	{
+		site_tests_case(name, ok ? "pass" : "fail", detail);
+		if(ok)
+			passed++;
+		else
+			failed++;
+	};
+
+	String nested = preprocessor_nested_literal();
+
+	site_tests_page_start("Preprocessor", "Regression coverage for literal output rewriting and parser edge cases.");
+	?>
+	<section class="tests-section">
+		<p id="top-level-raw-string-terminator">top-level )" marker</p>
+		<?: nested ?>
+	</section>
+	<?
+
+	check("raw string terminator in nested literal", contains(nested, "nested )\" marker"), nested);
+	check("entrypoint @fragment attribute captures output", context.call["fragments"]["preprocessor-test"].to_string() == "fragment attr once", context.call["fragments"]["preprocessor-test"].to_string());
+	check("inline code island after dangerous literal", true, "parser returned to C++ after rendering literal content containing )\"");
+
+	site_tests_summary(passed, failed, skipped, "Literal content containing the C++ raw-string terminator sequence must compile and render unchanged.");
+	site_tests_page_end();
+}

@@ -1,0 +1,22 @@
+#load "../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	if(context.flags.status >= 300 && context.flags.status < 400)
+		return;
+
+	String page_type = first(context.call["app"]["page_type"].to_string(), "html");
+	String theme_path = "../" + context.cfg.get_by_path("theme/path").to_string();
+	String page_component = theme_path + "page." + page_type + ".uce";
+	if(!file_exists(page_component))
+		page_component = "../themes/common/page." + page_type + ".uce";
+
+	if(file_exists(page_component))
+		print(component(page_component, context));
+	else
+	{
+		context.set_status(500, "Internal Server Error");
+		context.header["Content-Type"] = "text/plain; charset=utf-8";
+		print("UCE starter is missing a page template for page type: " + page_type);
+	}
+}

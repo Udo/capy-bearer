@@ -1,0 +1,19 @@
+:sig
+String ucb_encode(DValue value)
+
+:see
+ucb_decode
+0_DValue
+json_encode
+
+:content
+Serializes a `DValue` to UCEB1, UCE's binary DValue wire format for the WASM membrane and future cross-instance calls.
+
+UCEB1 is length-prefixed and binary-safe. It preserves nested maps, list-shaped maps, empty lists, and scalar bytes, including embedded NUL bytes. Use JSON/YAML/XML serializers for human-facing formats; use UCEB1 when UCE code needs the native DValue protocol.
+
+
+:example
+DValue original;
+original["msg"] = "hello";
+String packed = ucb_encode(original);
+print("encoded ", packed.length(), " bytes; round-trips to: ", ucb_decode(packed)["msg"].to_string(), "\n");

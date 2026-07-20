@@ -1,0 +1,24 @@
+:sig
+MySQL* mysql_connect(String host = "localhost", String username = "root", String password = "", String database = "")
+
+:params
+host : host name of the MySQL server
+username : user name
+password : password
+database : optional initial database name
+return value : pointer to the MySQL connection struct
+
+:see
+>mysql
+
+:content
+Establishes a connection to a MySQL server and returns a request-owned pointer to the connection struct. When `database` is non-empty, the server selects it as part of connection establishment and restores it after every cross-request connection reset. A failed connection also returns a wrapper so that `mysql_error()` can report the failure; use `mysql_connected()` before issuing optional work that requires a live server handle.
+
+This connection handle is then used with helpers such as `mysql_query()`, `mysql_error()`, and `mysql_disconnect()`.
+
+MySQL handles are request-scoped framework resources. Repeated `mysql_connect()` calls with the same host, credentials, and database reuse one server connection within the current request. Database identity is part of both request-local and worker-persistent pool keys. Each call creates a lease and `mysql_disconnect()` releases that lease. At request cleanup UCE returns the server connection to the current worker's persistent pool, then resets it before cross-request reuse. The pool holds up to `MYSQL_PERSISTENT_POOL_SIZE` connections per worker (default 8); set the size to 0 to disable cross-request reuse. Never store a `MySQL*` in globals, sessions, or other state that can outlive the current request.
+
+:example
+MySQL* db = mysql_connect();
+print(mysql_connected(db) ? "connected to MySQL" : "no MySQL server reachable with these credentials", "\n");
+if(db != 0) mysql_disconnect(db);

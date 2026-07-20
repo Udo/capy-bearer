@@ -1,0 +1,58 @@
+commit 560290ca1d18d4d5a0d204bb187d1aa68c3b5ac7
+perf: cache the compiled core module so fresh workers deserialize, not recompile
+
+Workers recycle every 8 requests (calls_until_termination=8). Each fresh worker
+ran wasmtime::Module::compile() on the 6.8MB bin/wasm/core.wasm — a ~1.3s
+Cranelift JIT — on its first request, so every ~8th request spiked to ~1.3s and
+dominated suite wall-clock.
+
+Cache the compiled artifact: on worker core-module load, if bin/wasm/core.cwasm
+exists and is newer than core.wasm, load it via Module::deserialize_file() (mmap,
+~ms); otherwise Module::compile() as before and atomically (temp+rename) write
+the serialized artifact for the next worker. Deserialize failure / stale cache
+falls back to a normal compile, so it is self-healing; rebuilding core.wasm
+(newer mtime) invalidates the cache. Engine config (epoch_interruption,
+signals_based_traps(false)) is unchanged, which the serialized format requires.
+
+
+commit 83ab9e10f7c0f17805e40a9a3d2b4a3357e5280f
+perf: extend the compiled-module disk cache to per-unit modules
+
+Follow-up to 560290c. Per-unit .wasm modules were still Cranelift-compiled per
+worker on first use (~40-70ms each), so with 8-call worker recycling fresh
+workers re-JIT every unit they touch.
+
+Refactor the core cache logic into a shared WasmWorker helper:
+- cached_wasm_path(p): maps <...>.wasm -> <...>.cwasm.
+- load_or_compile_cached_module(engine, cached, wasm, bytes, err): deserialize_file
+  the .cwasm when it is newer than the .wasm; otherwise Module::compile + serialize,
+  written atomically (temp+rename); deserialize failure falls back to compile.
+Both the core module load and unit_module() now go through this helper, so unit
+artifacts get the same <unit>.uce.cwasm cache the core got.
+
+
+commit 4f84ac544d9c91a66d068d372055eec8e1723def
+feat: request_perf() worker-side timing hostcall; restore demo System Info
+
+Units run in the wasm sandbox, so my_pid/parent_pid/context.server->request_count
+read as sandbox stubs — the demo System Info counters were broken, and there was
+no authoritative server-side request timing available to unit code (client-side
+measurement cannot see queue/dispatch latency).
+
+Add a request_perf() unit API backed by a new uce_host_request_perf hostcall.
+The native worker answers it live, returning a DValue:
+  worker_pid, parent_pid, request_count,
+  accept_us  = (time_start - time_init)*1e6   (entry -> dispatch wait),
+  running_us = (now - time_start)*1e6         (since dispatch, live),
+  total_us   = (now - time_init)*1e6          (since the request entered UCE),
+  workspace_birth_us.
+time_init is captured at request entry (handle_request, with a handle_complete
+fallback); a RequestPerfSnapshot {pids, request_count, time_init, time_start} is
+threaded from wasm_backend_serve through wasm_worker_serve onto the workspace,
+and the hostcall computes the live deltas at call time. Wired like uce_host_units
+(sized DValue hostcall): core_hostcalls.syms + sys.cpp/sys.h request_perf().
+
+site/demo/index.uce System Info now uses request_perf() and shows the real worker
+PID, an incrementing per-worker request count, and the timing counters.
+
+

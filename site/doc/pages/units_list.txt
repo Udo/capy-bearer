@@ -1,0 +1,16 @@
+:sig
+std::vector<String> units_list()
+
+:see
+>runtime
+unit_info
+unit_compile
+unit_load
+
+:content
+Returns the normalized paths of all known `.uce` units.
+
+This includes the shared known-unit registry plus any units already loaded in the current runtime process.
+
+:example
+print("the runtime knows ", units_list().size(), " compiled units\n");

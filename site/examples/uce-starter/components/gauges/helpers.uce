@@ -1,0 +1,71 @@
+#load "../../lib/app.uce"
+#include <math.h>
+
+f64 gauge_clamp_value(f64 value, f64 min_value, f64 max_value)
+{
+	return(std::max(min_value, std::min(max_value, value)));
+}
+
+f64 gauge_pi()
+{
+	return(3.14159265358979323846);
+}
+
+String gauge_string_attr(String value)
+{
+	return(html_escape(value));
+}
+
+String gauge_attr_id(String value)
+{
+	return(ascii_safe_name(value));
+}
+
+String gauge_range_color(DValue ranges, f64 value)
+{
+	String matched = "";
+	ranges.each([&](DValue range, String key) {
+		f64 from_value = float_val(first(range["from"].to_string(), "-999999999"));
+		f64 to_value = float_val(first(range["to"].to_string(), "999999999"));
+		if(value >= from_value && value <= to_value && matched == "")
+			matched = range["color"].to_string();
+	});
+	return(matched);
+}
+
+String gauge_arc_path(f64 cx, f64 cy, f64 radius, f64 start_angle, f64 end_angle)
+{
+	f64 start_x = cx + cos(start_angle) * radius;
+	f64 start_y = cy + sin(start_angle) * radius;
+	f64 end_x = cx + cos(end_angle) * radius;
+	f64 end_y = cy + sin(end_angle) * radius;
+	s32 large_arc = fabs(end_angle - start_angle) > gauge_pi() ? 1 : 0;
+	s32 sweep = end_angle >= start_angle ? 1 : 0;
+	return(
+		"M " + std::to_string(start_x) + " " + std::to_string(start_y) +
+		" A " + std::to_string(radius) + " " + std::to_string(radius) +
+		" 0 " + std::to_string(large_arc) + " " + std::to_string(sweep) +
+		" " + std::to_string(end_x) + " " + std::to_string(end_y)
+	);
+}
+
+String gauge_circle_segment_svg(f64 cx, f64 cy, f64 radius, f64 start_angle, f64 end_angle, String stroke, f64 stroke_width, String fill, String style)
+{
+	String path_d = gauge_arc_path(cx, cy, radius, start_angle, end_angle);
+	return(
+		"<path d=\"" + gauge_string_attr(path_d) +
+		"\" fill=\"" + gauge_string_attr(fill) +
+		"\" stroke=\"" + gauge_string_attr(stroke) +
+		"\" stroke-width=\"" + gauge_string_attr(std::to_string(stroke_width)) +
+		"\" stroke-linecap=\"round\"" +
+		(style != "" ? " style=\"" + gauge_string_attr(style) + "\"" : "") +
+		"/>"
+	);
+}
+
+String gauge_format_number(f64 value, s32 precision)
+{
+	char buf[64];
+	snprintf(buf, sizeof(buf), ("%." + std::to_string(std::max(0, precision)) + "f").c_str(), value);
+	return(String(buf));
+}

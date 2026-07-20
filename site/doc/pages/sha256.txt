@@ -1,0 +1,17 @@
+:sig
+String sha256(String data)
+
+:params
+data : bytes to hash
+return value : the raw 32-byte SHA-256 digest
+
+:content
+Returns the SHA-256 digest of `data` as raw bytes. Prefer `sha256_hex()` when you need printable text; use the raw form when feeding the digest into other binary operations.
+
+:example
+print(sha256("abc").length(), " raw bytes, hex = ", sha256_hex("abc"), "\n");
+
+:see
+>sys
+sha256_hex
+hmac_sha256

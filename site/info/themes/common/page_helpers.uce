@@ -1,0 +1,9 @@
+COMPONENT:MAIN_HTML(Request& context)
+{
+	String main_html = context.props["main_html"].to_string();
+	if(main_html == "")
+		main_html = context.props["main"].to_string();
+	if(main_html == "")
+		main_html = context.call["info"]["fragments"]["main"].to_string();
+	print(main_html);
+}

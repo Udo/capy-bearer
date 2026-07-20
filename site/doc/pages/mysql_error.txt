@@ -1,0 +1,24 @@
+:sig
+String mysql_error(MySQL* m)
+
+:params
+m : pointer to a MySQL connection struct
+return value : MySQL error message (if present, otherwise empty string)
+
+:see
+>mysql
+
+:content
+Returns the last error message associated with the given MySQL connection.
+
+If there is no current error, the result is an empty string.
+
+:example
+MySQL* db = mysql_connect();
+if(db != 0)
+{
+    mysql_query(db, "select * from no_such_table_xyz");
+    print(mysql_error(db) != "" ? "error reported" : "no error", "\n");
+    mysql_disconnect(db);
+}
+else print("(requires a reachable MySQL server)\n");

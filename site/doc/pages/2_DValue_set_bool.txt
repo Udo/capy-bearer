@@ -1,0 +1,19 @@
+:sig
+void DValue::set_bool(bool b)
+
+:params
+b : boolean value to store
+return value : none
+
+:see
+0_DValue
+2_DValue_to_bool
+
+:content
+Stores a boolean value, forwarding through references when possible.
+
+
+:example
+DValue flag;
+flag.set_bool(true);
+print(flag.to_bool() ? "true" : "false", "\n");

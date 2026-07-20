@@ -1,0 +1,102 @@
+
+
+
+
+
+void test_row(String label, String result)
+{
+	<><tr><td class="test-label"><?= label ?></td><td class="test-result"><code><?= result ?></code></td></tr></>
+}
+
+void test_row(String label, String result, String expect)
+{
+	bool pass = (result == expect);
+	<><tr>
+		<td class="test-label"><?= label ?></td>
+		<td class="test-result"><code><?= result ?></code></td>
+		<td class="test-status <?= pass ? "pass" : "fail" ?>"><?= pass ? "✓" : "✗ expected: " + expect ?></td>
+	</tr></>
+}
+
+void test_num(String label, s64 result, s64 expect)
+{
+	bool pass = (result == expect);
+	<><tr>
+		<td class="test-label"><?= label ?></td>
+		<td class="test-result"><code><? print(result); ?></code></td>
+		<td class="test-status <?= pass ? "pass" : "fail" ?>"><? if(!pass) { print("✗ expected: "); print(expect); } else { print("✓"); } ?></td>
+	</tr></>
+}
+
+RENDER(Request& context)
+{
+	String sample = "  Hello UCE World  ";
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<style>
+			table.tests { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+			table.tests td { padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); font-family: var(--font-mono); font-size: 0.88rem; }
+			.test-label { color: var(--text-dim); white-space: nowrap; width: 1%; }
+			.test-result code { background: var(--bg-code); padding: 2px 8px; border-radius: 4px; }
+			.test-status.pass { color: #6f6; width: 1%; }
+			.test-status.fail { color: #f66; }
+		</style>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Strings
+		</h1>
+
+		<p>sample = <code>"<?= sample ?>"</code></p>
+
+		<h2>trim</h2>
+		<table class="tests"><?
+			test_row("trim(sample)", "[" + trim(sample) + "]", "[Hello UCE World]");
+		?></table>
+
+		<h2>substr</h2>
+		<table class="tests"><?
+			test_row("substr(sample, 2, 5)", substr(sample, 2, 5), "Hello");
+			test_row("substr(sample, -7)", substr(sample, -7), "World  ");
+			test_row("substr(sample, 2, -2)", substr(sample, 2, -2), "Hello UCE World");
+		?></table>
+
+		<h2>strpos</h2>
+		<table class="tests"><?
+			test_num("strpos(sample, \"UCE\")", strpos(sample, "UCE"), 8);
+			test_num("strpos(sample, \"missing\")", strpos(sample, "missing"), -1);
+		?></table>
+
+		<h2>contains</h2>
+		<table class="tests"><?
+			test_row("contains(sample, \"World\")", contains(sample, "World") ? "true" : "false", "true");
+			test_row("contains(sample, \"xyz\")", contains(sample, "xyz") ? "true" : "false", "false");
+		?></table>
+
+		<h2>str_starts_with / str_ends_with</h2>
+		<table class="tests"><?
+			test_row("str_starts_with(trim(sample), \"Hello\")", str_starts_with(trim(sample), "Hello") ? "true" : "false", "true");
+			test_row("str_starts_with(trim(sample), \"World\")", str_starts_with(trim(sample), "World") ? "true" : "false", "false");
+			test_row("str_ends_with(trim(sample), \"World\")", str_ends_with(trim(sample), "World") ? "true" : "false", "true");
+			test_row("str_ends_with(trim(sample), \"Hello\")", str_ends_with(trim(sample), "Hello") ? "true" : "false", "false");
+		?></table>
+
+		<h2>replace / split / join</h2>
+		<table class="tests"><?
+			test_row("replace(sample, \"UCE\", \"C++\")", replace(sample, "UCE", "C++"), "  Hello C++ World  ");
+			test_row("join(split(trim(sample), \" \"), \"-\")", join(split(trim(sample), " "), "-"), "Hello-UCE-World");
+		?></table>
+
+		<h2>to_upper / to_lower</h2>
+		<table class="tests"><?
+			test_row("to_upper(trim(sample))", to_upper(trim(sample)), "HELLO UCE WORLD");
+			test_row("to_lower(trim(sample))", to_lower(trim(sample)), "hello uce world");
+		?></table>
+
+		<details>
+			<summary>Request Parameters</summary>
+			<pre><?= var_dump(context.params) ?></pre>
+		</details>
+	</>
+
+}

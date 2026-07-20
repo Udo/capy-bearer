@@ -1,0 +1,124 @@
+#!/bin/bash
+# Compile a preprocessed UCE unit into a PIC WebAssembly side module.
+set -euo pipefail
+cd "$(dirname "$0")"
+cd ..
+
+SRC_DIR="$1"
+DEST_DIR="$2"
+SRC_FN="$3"
+PP_FN="$4"
+WASM_FN="$5"
+UNIT_CACHE_DIR="${6:-$DEST_DIR}"
+
+SDK=${WASI_SDK:-/opt/wasi-sdk}
+ABI_VERSION=${UCE_UNIT_ABI_VERSION:-$(awk '/^#define UCE_WASM_CORE_ABI_VERSION / {print $3; exit}' src/wasm/abi.h)}
+ROOT=$(pwd)
+OBJ_FN="$DEST_DIR/$PP_FN.wasm.o"
+ABI_TMP="$DEST_DIR/$PP_FN.uce-abi.txt"
+MODULE_TMP="$DEST_DIR/$PP_FN.uce-module.txt"
+WASM_TMP="$DEST_DIR/$WASM_FN.tmp.$$"
+MAP_TMP="$DEST_DIR/$WASM_FN.source-map.tmp.$$"
+PCH_ENABLED=${UCE_WASM_UNIT_PCH:-1}
+PCH_DIR=${UCE_WASM_PCH_DIR:-$UNIT_CACHE_DIR/.pch}
+COMMON_FLAGS=(
+	--target=wasm32-wasip1
+	-fPIC -fvisibility=hidden -fvisibility-inlines-hidden
+	-O1 -g -std=c++20
+	# The server captures this script's output and treats any non-empty result as
+	# a compile failure (then drops the .wasm), so a successful build must be
+	# silent; warnings are intentionally suppressed.
+	-w
+	# must match the core build ABI: units with RTTI/EH enabled import
+	# typeinfo/unwind symbols the -fno-rtti/-fno-exceptions core cannot provide
+	-fno-exceptions -fno-rtti
+	-D__UCE_WASM_UNIT__
+	-DPLATFORM_NAME=\"wasm32-wasip1\"
+)
+
+if [ ! -x "$SDK/bin/clang++" ] || [ ! -x "$SDK/bin/wasm-ld" ] || [ ! -x "$SDK/bin/llvm-objcopy" ] || [ ! -x "$SDK/bin/llvm-dwarfdump" ]; then
+	echo "wasi-sdk tools not found; set WASI_SDK" >&2
+	exit 1
+fi
+
+TOOLCHAIN_ID=$(${SDK}/bin/clang++ --version | head -n 1)
+HEADER_HASH=$(find src/lib -maxdepth 1 -name '*.h' -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum | cut -c1-16)
+FLAGS_HASH=$(printf '%s\0' "${COMMON_FLAGS[@]}" -Isrc/lib | sha1sum | cut -c1-16)
+PCH_KEY=$(printf '%s\n%s\n%s\n%s\n' "$ABI_VERSION" "$TOOLCHAIN_ID" "$HEADER_HASH" "$FLAGS_HASH" | sha1sum | cut -c1-16)
+PCH_FN="$PCH_DIR/uce_lib-wasm-unit-$PCH_KEY.pch"
+PCH_TMP="$PCH_FN.tmp.$$"
+
+mkdir -p "$DEST_DIR" >/dev/null 2>&1
+trap 'rm -f "$OBJ_FN" "$ABI_TMP" "$MODULE_TMP" "$WASM_TMP" "$MAP_TMP" "$PCH_TMP"' EXIT
+
+build_pch_if_needed() {
+	if [ "$PCH_ENABLED" = "0" ]; then
+		return 0
+	fi
+	mkdir -p "$PCH_DIR"
+	if ! { exec 9>"$PCH_FN.lock"; } 2>/dev/null; then
+		exec 9<"$PCH_FN.lock"
+	fi
+	flock 9
+	if [ -s "$PCH_FN" ] && [ -z "$(find src/lib -maxdepth 1 -name '*.h' -type f -newer "$PCH_FN" -print -quit)" ]; then
+		flock -u 9
+		exec 9>&-
+		return 0
+	fi
+	"$SDK/bin/clang++" "${COMMON_FLAGS[@]}" \
+		-Isrc/lib \
+		-x c++-header src/lib/uce_lib.h -o "$PCH_TMP"
+	mv "$PCH_TMP" "$PCH_FN"
+	flock -u 9
+	exec 9>&-
+}
+
+cat > "$ABI_TMP" <<EOF
+format=uce-wasm-unit-abi-v1
+unit_abi_version=$ABI_VERSION
+toolchain=$TOOLCHAIN_ID
+source=$SRC_FN
+EOF
+printf '%s' "$(basename "$WASM_TMP")" > "$MODULE_TMP"
+
+build_pch_if_needed
+PCH_FLAGS=()
+if [ "$PCH_ENABLED" != "0" ]; then
+	PCH_FLAGS=(-include-pch "$PCH_FN")
+fi
+
+"$SDK/bin/clang++" "${COMMON_FLAGS[@]}" \
+	-I"$SRC_DIR" -I"$ROOT/src/lib" \
+	"${PCH_FLAGS[@]}" \
+	-c "$DEST_DIR/$PP_FN" -o "$OBJ_FN"
+
+"$SDK/bin/wasm-ld" -shared --experimental-pic \
+	--gc-sections \
+	--unresolved-symbols=import-dynamic \
+	--Bsymbolic \
+	"$OBJ_FN" -o "$WASM_TMP" \
+	--export-if-defined=__uce_set_current_request \
+	--export-if-defined=__uce_render \
+	--export-if-defined=__uce_component \
+	--export-if-defined=__uce_websocket \
+	--export-if-defined=__uce_cli \
+	--export-if-defined=__uce_serve_http \
+	--export-if-defined=__uce_once \
+	--export-if-defined=__uce_init
+
+python3 scripts/build_unit_source_map.py \
+	--dwarfdump "$SDK/bin/llvm-dwarfdump" \
+	--wasm "$WASM_TMP" \
+	--module "$(basename "$WASM_TMP")" \
+	--output "$MAP_TMP"
+
+"$SDK/bin/llvm-objcopy" --strip-debug \
+	--add-section=uce.abi="$ABI_TMP" \
+	--add-section=uce.module="$MODULE_TMP" \
+	"$WASM_TMP"
+
+python3 scripts/check_unit_wasm.py "$WASM_TMP" --abi-version "$ABI_VERSION" --llvm-nm "$SDK/bin/llvm-nm"
+mv "$MAP_TMP" "$DEST_DIR/$WASM_FN.source-map"
+mv "$WASM_TMP" "$DEST_DIR/$WASM_FN"
+
+rm -f "$OBJ_FN" "$ABI_TMP" "$MODULE_TMP"

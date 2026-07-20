@@ -1,0 +1,24 @@
+:sig
+String var_dump(StringMap t, String prefix = "", String postfix = "\n")
+String var_dump(StringList t, String prefix = "", String postfix = "\n")
+String var_dump(DValue t, String prefix = "", String postfix = "\n")
+
+:params
+t : object to be dumped into a string
+return value : string containing a human-friendly representation of 't'
+
+:see
+>types
+0_DValue
+0_StringMap
+json_encode
+print
+
+:content
+Returns a string representation of `t` intended for debugging.
+
+:example
+DValue user;
+user["name"] = "Ada";
+user["role"] = "engineer";
+print(var_dump(user));

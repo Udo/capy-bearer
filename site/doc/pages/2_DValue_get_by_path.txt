@@ -1,0 +1,21 @@
+:sig
+DValue DValue::get_by_path(String path, String delim = "/") const
+
+:params
+path : delimited child path to traverse
+delim : path separator string
+return value : resolved child copy, or an empty DValue when traversal fails
+
+:see
+>types
+0_DValue
+2_DValue_has
+2_DValue_to_string
+
+:content
+Traverses nested map/list children without creating missing nodes. Empty path segments are ignored. If any segment is missing or an intermediate value is not map-shaped, the method returns an empty `DValue`.
+
+:example
+DValue cfg;
+cfg["site"]["title"] = "UCE";
+print(cfg.get_by_path("site/title").to_string(), "\n");

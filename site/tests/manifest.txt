@@ -1,0 +1,18 @@
+# file|title|description|tags|expected|suite|index
+index.uce|Coverage Index|Public and local-only UCE regression coverage pages.|http suite uce public|Coverage Index|1|1
+core.uce|Core APIs|Pure helper coverage for strings, regex, UTF-8, DValue, and JSON.|http suite uce public|Core APIs|1|1
+preprocessor.uce|Preprocessor|Literal-output parser regression coverage.|http suite uce public|top-level )" marker|1|1
+http.uce|HTTP And Session|Request, response, cookie, and session helpers.|http suite uce public|HTTP And Session|1|1
+components.uce|Components|component(), props, and component rendering.|http suite uce public|Components|1|1
+markdown.uce|Markdown|Markdown parsing, rendering, and component hooks.|http suite uce public|Markdown|1|1
+units.uce|Units|unit_call(), lifecycle hooks, and unit metadata.|http suite uce public|Units|1|1
+websockets.ws.uce|WebSockets|Browser-driven WebSocket helper checks.|http suite uce public websocket|WebSockets|1|1
+io.uce|Filesystem|Filesystem helpers that are restricted outside trusted networks.|http suite uce internal|Filesystem|1|1
+sqlite.uce|SQLite|SQLite connector with prepared named parameters and DValue rows.|http suite uce internal sqlite|SQLite|1|1
+zip.uce|ZIP|Archive helpers that create and extract temporary server-side files.|http suite uce internal|ZIP|1|1
+services.uce|Sockets And Services|Network/service helpers that are restricted outside trusted networks.|http suite uce internal|Sockets And Services|1|1
+tasks.uce|Tasks|Background task helper coverage.|http suite uce internal|Tasks|1|1
+api_coverage.uce|API Coverage Manifest|Repository-level guard that public wasm APIs have tests/docs or an explicit internal decision.|http suite uce internal|API Coverage Manifest|1|1
+security_headers.uce|Security Header Sanitizer|Low-level response header sanitizer fixture covered by the security smoke suite.|security http internal fixture|security header sanitizer test|0|1
+cli.uce|CLI Fixture|Local CLI socket fixture; HTTP render returns 404.|cli internal fixture|uce-unit-cli|0|0
+call_helpers.uce|Unit Call Fixture|Fixture for unit_call and unit_render helper tests.|internal fixture|UNIT_RENDER_FIXTURE|0|0

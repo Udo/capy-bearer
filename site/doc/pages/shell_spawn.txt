@@ -1,0 +1,15 @@
+# shell_spawn
+
+
+Starts a bounded background shell job and returns a job id. `spec` fields: `cmd`, optional `stdin`, optional `env` map, optional `timeout_ms`.
+
+Use `job_status()`, `job_await()`, `job_result()`, or `job_cancel()` with the returned id.
+
+:see
+>sys
+
+:example
+DValue spec; spec["cmd"] = "printf 'spawned in the background'"; spec["timeout_ms"] = (f64)1000;
+u64 job = shell_spawn(spec);
+DValue done = job_await(job, 3000);
+print(done["result"]["stdout"].to_string(), "\n");

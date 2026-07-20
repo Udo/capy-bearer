@@ -1,0 +1,20 @@
+:sig
+DValue* DValue::get_or_create(String s)
+
+:params
+s : child key to create or return
+return value : pointer to the child node
+
+:see
+0_DValue
+2_DValue_key
+2_DValue_has
+
+:content
+Ensures the value is map-shaped and returns the named child. If the key does not exist, an empty child is created. Creating a non-numeric key on a list-shaped value clears list mode.
+
+
+:example
+DValue config;
+config.get_or_create("host")->set("localhost");
+print(config.has("host") ? config["host"].to_string() : "missing", "\n");

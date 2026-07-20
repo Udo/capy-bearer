@@ -1,0 +1,17 @@
+:sig
+String dirname(String fn)
+
+:params
+fn : a path
+return value : the directory portion of the path
+
+:content
+Returns everything in a path except the final component — i.e. the containing directory.
+
+:example
+print(dirname("/var/www/site/index.uce"), "\n");
+
+:see
+>sys
+basename
+path_join

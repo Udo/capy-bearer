@@ -1,0 +1,26 @@
+:sig
+u64 file_pwrite(u64 h, u64 offset, String data)
+
+:params
+h : handle from file_open() opened for writing
+offset : absolute byte offset to write at
+data : bytes to write
+return value : number of bytes written
+
+:content
+Writes `data` at an absolute `offset` without moving the handle's current offset. The handle must be opened with a writable mode (`"r+"` for in-place edits).
+
+:example
+u64 h = file_open("/tmp/doc-pwrite.txt", "w");
+file_write(h, "hello world");
+file_close(h);
+u64 e = file_open("/tmp/doc-pwrite.txt", "r+");
+file_pwrite(e, 6, "earth");
+file_close(e);
+print(file_get_contents("/tmp/doc-pwrite.txt"), "\n");
+
+:see
+>sys
+file_write
+file_pread
+file_open

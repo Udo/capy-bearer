@@ -1,0 +1,43 @@
+:sig
+pid_t server_start_http(String key, String socket_fn_or_port, String call_uce_filename, String call_function = "")
+
+:params
+key : runtime-wide server key
+socket_fn_or_port : TCP port number or Unix socket path to listen on
+call_uce_filename : `.uce` file containing `SERVE_HTTP` handlers
+call_function : optional named `SERVE_HTTP:name` handler
+return value : listener process PID, or `0` when it could not be started
+
+:see
+>sys
+server_stop
+task
+
+:content
+Starts or updates a custom HTTP listener backed by a UCE handler file.
+
+The server key is runtime-wide. Calling `server_start_http()` again with the same key and the same bind target updates the mapped UCE file/function without restarting the listener. If the bind target changes, UCE stops the old listener and starts a replacement.
+
+`socket_fn_or_port` may be a numeric TCP port such as `"19091"` or a Unix socket path.
+
+Handler files use `SERVE_HTTP`:
+
+```uce
+SERVE_HTTP(Request* req)
+{
+    req->header["Content-Type"] = "text/plain; charset=utf-8";
+    print("hello from custom HTTP\n");
+}
+
+SERVE_HTTP:admin(Request* req)
+{
+    print("named handler\n");
+}
+```
+
+The custom server dispatcher uses the same nonblocking HTTP listener machinery as the built-in HTTP/WebSocket path, and hands request/response data through the normal `Request` object. Handler code may block in the first implementation; future worker dispatch can be added without changing this API.
+
+:example
+pid_t pid = server_start_http("doc-demo-server", "/tmp/uce/custom-servers/doc-demo.sock", "examples/sample_unit.uce", "RENDER");
+print(pid > 0 ? "custom HTTP server started" : "start failed", "\n");
+server_stop("doc-demo-server");

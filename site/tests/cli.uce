@@ -1,0 +1,32 @@
+CLI(Request& context)
+{
+	context.header["Content-Type"] = "text/plain; charset=utf-8";
+	DValue input = cli_input(context);
+	String action = first(input["action"].to_string(), "ping");
+	if(action == "ping")
+	{
+		print("uce-unit-cli: ok\n");
+		print("script=", context.params["SCRIPT_FILENAME"], "\n");
+		return;
+	}
+	if(action == "echo")
+	{
+		print(input["message"].to_string(), "\n");
+		return;
+	}
+	if(action == "arg")
+	{
+		print(cli_arg(context, "message", "fallback"), "\n");
+		print(cli_arg(context, "missing", "fallback"), "\n");
+		return;
+	}
+	context.set_status(400, "CLI Error");
+	print("unknown cli action: ", action, "\n");
+}
+
+RENDER(Request& context)
+{
+	context.set_status(404, "Not Found");
+	context.header["Content-Type"] = "text/plain; charset=utf-8";
+	print("This unit is intended for local CLI socket invocation.\n");
+}

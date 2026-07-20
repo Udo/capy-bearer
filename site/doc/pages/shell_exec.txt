@@ -1,0 +1,17 @@
+:sig
+String shell_exec(String cmd)
+
+:params
+cmd : string that contains the shell command line to be executed
+return value : output of the command execution
+
+:see
+>sys
+
+:content
+Executes a Linux shell command and returns the generated output.
+
+When command text includes user-controlled input, escape that input first with `shell_escape()`.
+
+:example
+print(shell_exec("echo hello from the shell"));

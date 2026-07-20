@@ -1,0 +1,56 @@
+
+
+RENDER(Request& context)
+{
+	DValue t;
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			DValue/JSON
+		</h1>
+
+		JSON:
+
+		<pre style="white-space: pre-wrap"><?
+
+		t.get_or_create("a")->set("valueA");
+		t.get_or_create("b")->set("valueB");
+		t.get_or_create("c")->get_or_create("c-dt")->set_bool(true);
+		t.get_or_create("c")->get_or_create("c-df")->set_bool(false);
+		t.get_or_create("c")->get_or_create("c-e")->set("valueCE");
+		t.get_or_create("c")->get_or_create("c-f")->set(&t);
+		t.get_or_create("g")->get_or_create("g-h")->get_or_create("h-i")->set("valueHI");
+		t["g"]["x"]["y1"] = "XYZ1";
+		t["g"]["x"]["y2"] = &t;
+		t["g"]["x"]["y3"] = time();
+		t["g"]["x"]["y4"] = "Ünicödä";
+		t["l"] = context.params;
+
+		String j;
+		print(j = json_encode(t));
+
+		?></pre>
+
+		Parsed:
+
+		<pre><?
+			print(var_dump(
+				json_decode(j)
+			));
+		?></pre>
+
+		Compare:
+
+		<pre><?
+			print(var_dump(
+				t
+			));
+		?></pre>
+
+		Params
+		<pre><?= var_dump(context.params) ?></pre>
+	</>
+
+}

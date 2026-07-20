@@ -1,0 +1,329 @@
+void render_nav_link(String href, String label)
+{
+	<><a href="<?= href ?>"><?= label ?></a></>
+}
+
+void render_feature_card(String eyebrow, String title, String body)
+{
+	<><article class="feature-card">
+		<div class="eyebrow"><?= eyebrow ?></div>
+		<h3><?= title ?></h3>
+		<p><?= body ?></p>
+	</article></>
+}
+
+void render_signal(String title, String body)
+{
+	<><article class="signal-card">
+		<strong><?= title ?></strong>
+		<span><?= body ?></span>
+	</article></>
+}
+
+void render_link_card(String href, String title, String body, String meta)
+{
+	<><a class="link-card" href="<?= href ?>">
+		<div class="link-meta"><?= meta ?></div>
+		<strong><?= title ?></strong>
+		<span><?= body ?></span>
+	</a></>
+}
+
+DValue code_example_props(String eyebrow, String title, String summary, String code, String note, String language = "uce")
+{
+	DValue props;
+	props["eyebrow"] = eyebrow;
+	props["title"] = title;
+	props["summary"] = summary;
+	props["code"] = code;
+	props["note"] = note;
+	props["language"] = language;
+	return(props);
+}
+
+RENDER(Request& context)
+{
+	String page_title = "UCE: make dynamic websites like it's 2006";
+	String generated_at = time_format_utc("%Y-%m-%d %H:%M:%S UTC");
+
+	String snippet_minimal =
+		"RENDER(Request& context)\n"
+		"{\n"
+		"\tString name = first(context.get[\"name\"].to_string(), \"guest\");\n"
+		"\t<>\n"
+		"\t\t<h1>Hello, <?= name ?>.</h1>\n"
+		"\t\t<p>Rendered at <?= time_format_utc(\"%F %T\") ?></p>\n"
+		"\t</>\n"
+		"}\n";
+
+	String snippet_forms =
+		"RENDER(Request& context)\n"
+		"{\n"
+		"\tif(context.post.has(\"email\"))\n"
+		"\t\tcontext.session[\"flash\"] = \"Saved \" + context.post[\"email\"].to_string();\n"
+		"\t<>\n"
+		"\t\t<form method=\"post\">\n"
+		"\t\t\t<input name=\"email\" placeholder=\"you@example.com\"></input>\n"
+		"\t\t\t<button>Save</button>\n"
+		"\t\t</form>\n"
+		"\t\t<? if(context.session.has(\"flash\")) { ?>\n"
+		"\t\t\t<p><?= context.session[\"flash\"] ?></p>\n"
+		"\t\t<? } ?>\n"
+		"\t</>\n"
+		"}\n";
+
+	String snippet_components =
+		"COMPONENT(Request& context)\n"
+		"{\n"
+		"\t<>\n"
+		"\t\t<article class=\"card\">\n"
+		"\t\t\t<h3><?= context.props[\"title\"] ?></h3>\n"
+		"\t\t\t<p><?= context.props[\"body\"] ?></p>\n"
+		"\t\t</article>\n"
+		"\t</>\n"
+		"}\n\n"
+		"RENDER(Request& context)\n"
+		"{\n"
+		"\tDValue props;\n"
+		"\tprops[\"title\"] = \"Shipping note\";\n"
+		"\tprops[\"body\"] = \"Components are just .uce files with structured props.\";\n"
+		"\t<>\n"
+		"\t\t<?: component(\"components/card\", props, context) ?>\n"
+		"\t</>\n"
+		"}\n";
+
+	String snippet_markdown =
+		"RENDER(Request& context)\n"
+		"{\n"
+		"\tString src = \"# Release Notes\\n\\n- fast path\\n- docs\\n- demos\";\n"
+		"\t<>\n"
+		"\t\t<section class=\"prose\">\n"
+		"\t\t\t<?: markdown_to_html(src) ?>\n"
+		"\t\t</section>\n"
+		"\t</>\n"
+		"}\n";
+
+	String snippet_websocket =
+		"RENDER(Request& context)\n"
+		"{\n"
+		"\t<>\n"
+		"\t\t<script>\n"
+		"\t\t\tconst ws = new WebSocket(`ws://${window.location.host}${window.location.pathname}`);\n"
+		"\t\t\tws.onopen = () => ws.send(JSON.stringify({ type: \"join\", name: \"guest\" }));\n"
+		"\t\t</script>\n"
+		"\t</>\n"
+		"}\n\n"
+		"WS(Request& context)\n"
+		"{\n"
+		"\tDValue payload = json_decode(context.in);\n"
+		"\tString connection_id = context.params[\"WS_CONNECTION_ID\"];\n"
+		"\tcontext.connection[\"name\"] = payload[\"name\"];\n"
+		"\tpayload[\"connection_id\"] = connection_id;\n"
+		"\tws_send(json_encode(payload));\n"
+		"}\n";
+
+	String snippet_nginx =
+		"location ~ \\.uce$ {\n"
+		"\terror_page 418 = @uce_websocket;\n"
+		"\tif ($http_upgrade = \"websocket\") { return 418; }\n"
+		"\tinclude fastcgi_params;\n"
+		"\tfastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;\n"
+		"\tfastcgi_pass unix:/run/uce/fastcgi.sock;\n"
+		"}\n\n"
+		"location @uce_websocket {\n"
+		"\tproxy_http_version 1.1;\n"
+		"\tproxy_set_header Upgrade $http_upgrade;\n"
+		"\tproxy_set_header Connection $connection_upgrade;\n"
+		"\tproxy_pass http://127.0.0.1:8080;\n"
+		"}\n";
+
+	<><!doctype html>
+	<html lang="en">
+	<head>
+		<meta charset="utf-8"></meta>
+		<meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+		<title><?= page_title ?></title>
+		<meta name="description" content="UCE is a PHP-inspired C++ web runtime for building dynamic websites with templates, components, FastCGI, and built-in WebSockets."></meta>
+		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
+	</head>
+	<body>
+		<div class="page-shell">
+			<header class="topbar">
+				<a class="brand" href="index.uce">UCE</a>
+				<nav>
+					<? render_nav_link("#why", "Why"); ?>
+					<? render_nav_link("#examples", "Examples"); ?>
+					<? render_nav_link("#deploy", "Deploy"); ?>
+					<? render_nav_link("#explore", "Explore"); ?>
+				</nav>
+				<a class="topbar-link" href="../doc/index.uce">Docs</a>
+			</header>
+
+			<main>
+				<section class="hero-panel">
+					<div class="hero-copy">
+						<div class="eyebrow">PHP energy, C++ runtime</div>
+						<h1>Make dynamic websites like it's 2006.</h1>
+						<p class="hero-lead">
+							UCE is a direct web runtime: files are pages, templates live next to control flow,
+							nginx fronts the whole thing, and a request can compile into a wasm module on first hit.
+							It is built in the image of PHP's non-architecture, but with an explicit request object,
+							component rendering, and a built-in WebSocket broker.
+						</p>
+						<div class="hero-actions">
+							<a class="button button-primary" href="../demo/index.uce">Open the demo area</a>
+							<a class="button button-secondary" href="../doc/index.uce">Read the docs</a>
+							<a class="button button-secondary" href="../examples/uce-starter/index.uce">Browse the starter</a>
+						</div>
+						<div class="signal-grid">
+							<? render_signal("Files are routes", "A .uce page is the thing you edit and the thing nginx serves."); ?>
+							<? render_signal("Compile on demand", "First request builds a wasm module, later requests reuse it."); ?>
+							<? render_signal("WebSockets included", "Same runtime, same page path, broker-managed connection state."); ?>
+						</div>
+					</div>
+					<aside class="hero-aside">
+						<div class="manual-card">
+							<div class="eyebrow">The pitch</div>
+							<h2>Dynamic pages without the ceremony</h2>
+							<ul>
+								<li>Write request handlers as normal C++ functions.</li>
+								<li>Drop into HTML with <code>&lt;&gt; ... &lt;/&gt;</code> and template tags.</li>
+								<li>Keep subviews and components as ordinary `.uce` files.</li>
+								<li>Run behind nginx over FastCGI and opt into WebSockets when needed.</li>
+							</ul>
+						</div>
+						<div class="manual-card compact">
+							<div class="eyebrow">Runtime shape</div>
+							<p>Generated <?= generated_at ?></p>
+							<p>Shared-nothing request model. Request-local state. Small surface area. Weird on purpose.</p>
+						</div>
+					</aside>
+				</section>
+
+				<section class="section" id="why">
+					<div class="section-heading">
+						<div class="eyebrow">Why UCE</div>
+						<h2>The old web had the right instincts.</h2>
+						<p>
+							Put code where the page lives. Let runtime state die with the request. Keep deployment boring.
+							Treat server-rendered HTML as the default, and add richer behavior only where it pays for itself.
+						</p>
+					</div>
+					<div class="feature-grid">
+						<? render_feature_card("templating", "Inline markup without framework tax", "UCE templates live directly inside handler code with escaped and raw output modes, so rendering stays local to the request logic that owns it."); ?>
+						<? render_feature_card("composition", "Components and sub-rendering", "Components are just .uce files. Props flow through context.props. Full pages can call other units without inventing a second application runtime."); ?>
+						<? render_feature_card("transport", "FastCGI for pages, HTTP for sockets", "Normal page renders stay on the FastCGI socket. WebSocket upgrades for .uce endpoints are proxied to the built-in HTTP listener."); ?>
+						<? render_feature_card("operations", "nginx in front, systemd behind", "Static files stay static, nginx does the edge work, and the runtime handles compilation, request execution, and socket fan-out."); ?>
+					</div>
+				</section>
+
+				<section class="section manifesto">
+					<div class="section-heading">
+						<div class="eyebrow">Non-architecture</div>
+						<h2>It is not trying to save you from the web.</h2>
+					</div>
+					<div class="manifesto-grid">
+						<div class="manifesto-card">
+							<h3>What it leans into</h3>
+							<p>Files on disk, explicit request handlers, template tags, reusable partials, request-scoped state, and operationally plain deployment.</p>
+						</div>
+						<div class="manifesto-card">
+							<h3>What it resists</h3>
+							<p>Mandatory client-side hydration, giant application shells, hidden routing layers, and pretending every website is a desktop app in a trench coat.</p>
+						</div>
+						<div class="manifesto-card emphasis">
+							<h3>What it adds</h3>
+							<p>Built-in components, markdown rendering, current request data in one place, and a broker-backed WebSocket story that stays inside the same runtime.</p>
+						</div>
+					</div>
+				</section>
+
+				<section class="section" id="examples">
+					<div class="section-heading">
+						<div class="eyebrow">Code first</div>
+						<h2>Common things in UCE</h2>
+						<p>
+							The examples below are modeled on the current runtime API and the published demo pages.
+							The point is not abstraction depth. The point is that the code stays obvious.
+						</p>
+					</div>
+					<div class="code-grid">
+						<?: component("components/code_example", code_example_props("templating", "A page with request data", "Drop from C++ into markup, escape output by default, and keep request handling next to the HTML it controls.", snippet_minimal, "See the live demos for forms, headers, sessions, JSON, markdown, and more."), context) ?>
+						<?: component("components/code_example", code_example_props("forms", "POST + session flash", "Old-school dynamic websites still matter. UCE keeps form handling and page rendering in one file when that is the simplest thing.", snippet_forms, "Request data lives on context.get, context.post, context.cookies, and context.session."), context) ?>
+						<?: component("components/code_example", code_example_props("components", "Reusable UI without a second framework", "Components are ordinary .uce files. Pass props through context.props and choose when to render or return markup.", snippet_components, "Named handlers and component_render() are also available for direct output flows."), context) ?>
+						<?: component("components/code_example", code_example_props("content", "Markdown when you want it", "UCE also ships a markdown module, so content-heavy pages do not need an external rendering stack.", snippet_markdown, "The runtime supports markdown_to_ast() and markdown_to_html() for content pipelines and component hooks."), context) ?>
+						<?: component("components/code_example", code_example_props("realtime", "WebSockets with broker-owned state", "Any .uce page can render HTML and also accept live socket messages with WS(Request& context). Connection-local state lives on context.connection.", snippet_websocket, "Route WebSocket upgrade requests for .uce paths to the runtime HTTP listener."), context) ?>
+						<?: component("components/code_example", code_example_props("deploy", "nginx wiring", "Use FastCGI for ordinary requests and send websocket upgrades to the runtime's built-in HTTP listener.", snippet_nginx, "Route upgrade requests for .uce paths to HTTP_PORT; plain page loads stay on FastCGI.", "nginx"), context) ?>
+					</div>
+				</section>
+
+				<section class="section deployment" id="deploy">
+					<div class="section-heading">
+						<div class="eyebrow">Deployment</div>
+						<h2>Put nginx in front. Keep the runtime focused.</h2>
+					</div>
+					<div class="deploy-grid">
+						<div class="deploy-card">
+							<h3>The intended shape</h3>
+							<ul>
+								<li>nginx serves static files directly from `/var/www/html`</li>
+								<li>ordinary `.uce` page loads go through FastCGI</li>
+								<li>websocket upgrade traffic for `.uce` paths goes to the built-in HTTP listener</li>
+								<li>systemd manages the runtime binary and restart policy</li>
+							</ul>
+						</div>
+						<div class="deploy-card">
+							<h3>The practical settings</h3>
+							<ul>
+								<li>`FCGI_SOCKET_PATH=/run/uce/fastcgi.sock` for normal requests</li>
+								<li>`HTTP_PORT=8080` for `.uce` websocket upgrades</li>
+								<li>`scripts/systemd/manage-uce-service.sh` for build and service control</li>
+								<li>published root should be `/var/www/html`, not the repo root</li>
+							</ul>
+						</div>
+					</div>
+				</section>
+
+				<section class="section" id="explore">
+					<div class="section-heading">
+						<div class="eyebrow">Explore</div>
+						<h2>Go straight to the useful parts.</h2>
+					</div>
+					<div class="link-grid">
+							<? render_link_card("../demo/index.uce", "Demo Area", "Open the published UCE demo pages for strings, forms, sessions, JSON, components, markdown, and runtime behavior.", "Try things"); ?>
+							<? render_link_card("../demo/websockets.ws.uce", "WebSocket Demo", "See the built-in broker model in a page that renders HTML, upgrades the same route, and broadcasts chat events.", "Realtime"); ?>
+							<? render_link_card("../doc/index.uce", "Reference Docs", "Browse the manual-style function and concept docs for the current runtime surface.", "Manual"); ?>
+							<? render_link_card("../doc/singlepage.uce", "Single-Page Docs", "Read the reference as one long page if you want the PHP-manual energy without the clicking.", "Reference"); ?>
+							<? render_link_card("../examples/uce-starter/index.uce", "UCE Starter", "Browse the larger example app built in UCE using components, themes, views, and richer page composition.", "Starter"); ?>
+							<? render_link_card("../README.md", "Repository README", "The repo README covers runtime shape, deployment, WebSockets, and the current project status in one place.", "Source"); ?>
+					</div>
+				</section>
+
+				<section class="section faq">
+					<div class="section-heading">
+						<div class="eyebrow">Reality check</div>
+						<h2>What this is and what it is not</h2>
+					</div>
+					<details open>
+						<summary>Is UCE production ready?</summary>
+						<p>The runtime is still experimental. The point of this site is to explain the model, show the current surface area, and make it easy to evaluate the demos and docs.</p>
+					</details>
+					<details>
+						<summary>Why compare it to PHP?</summary>
+						<p>Because the design instinct is similar: dynamic pages as files, shallow deployment, and a bias toward solving the request in front of you instead of building an application architecture altar.</p>
+					</details>
+					<details>
+						<summary>What makes it different from old PHP?</summary>
+						<p>The request object is explicit, components and named handlers are first-class, markdown support is built in, and WebSockets use a broker-owned connection model inside the runtime.</p>
+					</details>
+				</section>
+			</main>
+
+			<footer class="page-footer">
+				<p>UCE is a web runtime for people who still think pages, handlers, sockets, and deployment scripts should be understandable.</p>
+				<p><a href="../demo/index.uce">Demo</a> <span>/</span> <a href="../doc/index.uce">Docs</a> <span>/</span> <a href="../examples/uce-starter/index.uce">Starter</a></p>
+			</footer>
+		</div>
+	</body>
+	</html></>
+}

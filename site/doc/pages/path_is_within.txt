@@ -1,0 +1,22 @@
+:sig
+bool path_is_within(String path, String root)
+
+:params
+path : path to test
+root : directory that should contain it
+return value : true if `path` is inside `root`
+
+:content
+Reports whether `path` lies inside `root`. It resolves both paths to their canonical form (like `path_real()`), so they must exist and `..` traversal is collapsed first. Use it to reject path-traversal attempts before opening user-supplied paths.
+
+:example
+mkdir("/tmp/doc-within");
+file_put_contents("/tmp/doc-within/app.txt", "x");
+print(path_is_within("/tmp/doc-within/app.txt", "/tmp/doc-within") ? "inside" : "outside", " / ");
+print(path_is_within("/tmp/doc-within/../doc-within/app.txt", "/tmp/doc-within") ? "inside" : "outside", "\n");
+dir_remove("/tmp/doc-within", true);
+
+:see
+>sys
+path_real
+expand_path

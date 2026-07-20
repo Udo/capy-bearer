@@ -1,0 +1,7 @@
+Regular Expressions
+
+regex_match
+regex_search
+regex_search_all
+regex_replace
+regex_split

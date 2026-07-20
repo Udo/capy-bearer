@@ -1,0 +1,184 @@
+#include "demo_guard.h"
+
+String unit_query(String selected_path, String compile_path = "")
+{
+	String result = "?";
+	if(selected_path != "")
+		result += "selected=" + uri_encode(selected_path);
+	if(compile_path != "")
+	{
+		if(result.length() > 1)
+			result += "&";
+		result += "compile=" + uri_encode(compile_path);
+	}
+	return(result);
+}
+
+String unit_status_class(String compile_status, String error_status)
+{
+	if(trim(error_status) != "")
+		return("status-error");
+	if(compile_status == "loaded" || compile_status == "compiled")
+		return("status-ok");
+	if(compile_status == "stale")
+		return("status-warn");
+	if(compile_status == "missing_source")
+		return("status-error");
+	return("status-muted");
+}
+
+String unit_flag_label(DValue value)
+{
+	return(value.to_string() == "(true)" ? "✅" : "❌");
+}
+
+RENDER(Request& context)
+{
+	bool allow_mutation = test_demo_request_allowed(context);
+	String compile_target = first(context.get["compile"], "");
+	String selected_path = first(context.get["selected"], "");
+	String compile_message = "";
+	String compile_message_class = "status-muted";
+
+	if(compile_target != "")
+	{
+		selected_path = compile_target;
+		if(allow_mutation)
+		{
+			bool compile_ok = unit_compile(compile_target);
+			compile_message = (compile_ok ? "Compile succeeded for " : "Compile failed for ") + compile_target;
+			compile_message_class = compile_ok ? "status-ok" : "status-error";
+		}
+		else
+		{
+			context.set_status(403, "Restricted");
+			compile_message = "Manual compile is restricted to localhost and private-network access.";
+			compile_message_class = "status-error";
+		}
+	}
+
+	auto unit_paths = units_list();
+	if(selected_path == "" && unit_paths.size() > 0)
+		selected_path = unit_paths.front();
+
+	DValue selected_info = unit_info(selected_path);
+	String selected_compile_status = selected_info["compile_status"].to_string();
+	String selected_error_status = selected_info["error_status"].to_string();
+	String selected_status_class = unit_status_class(selected_compile_status, selected_error_status);
+	String selected_export_count = std::to_string(selected_info["exports"]._map.size());
+	String selected_compile_link = unit_query(selected_path, selected_path);
+
+	<><html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
+		<title>UCE Test: Unit Browser</title>
+	</head>
+	<body>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Unit Browser
+		</h1>
+
+        <? if(compile_message != "") { ?>
+        <section>
+            <p><span class="status-badge <?= compile_message_class ?>"><?= compile_message ?></span></p>
+        </section>
+        <? } ?>
+
+		<section>
+			<div class="unit-browser-layout">
+				<aside class="unit-sidebar">
+					<div class="unit-sidebar-header">
+						<h2>Units</h2>
+						<span class="unit-count"><?= std::to_string(unit_paths.size()) ?> total</span>
+					</div>
+					<div class="unit-list">
+					<?
+						for(auto& unit_path : unit_paths)
+						{
+							auto info = unit_info(unit_path);
+							String compile_status = info["compile_status"].to_string();
+							String error_status = info["error_status"].to_string();
+							String status_class = unit_status_class(compile_status, error_status);
+							String select_link = unit_query(unit_path);
+							String title = first(info["src_file_name"].to_string(), unit_path);
+							String meta_line = std::to_string(info["exports"]._map.size()) + " exports";
+							bool is_selected = (selected_path == unit_path);
+					?>
+						<a class="unit-list-item <?= is_selected ? "is-selected" : "" ?>" href="<?= select_link ?>">
+							<div class="unit-list-title-row" title="<?= unit_path ?>">
+								<strong><?= title ?></strong>
+								<span class="status-badge <?= status_class ?>"><?= compile_status ?></span>
+							</div>
+							
+							<? if(trim(error_status) != "") { ?>
+								<div class="unit-list-error"><?= error_status ?></div>
+							<? } ?>
+						</a>
+					<?
+						}
+					?>
+					</div>
+				</aside>
+
+				<div class="unit-detail-pane">
+					<h2>Unit Info</h2>
+					<? if(selected_info["path"].to_string() == "") { ?>
+						<p>No unit metadata is available for the current selection.</p>
+					<? } else { ?>
+						<div class="unit-detail-header">
+							<div>
+								<h3><?= first(selected_info["src_file_name"].to_string(), selected_info["path"].to_string()) ?></h3>
+								<p class="unit-detail-path"><code><?= selected_info["path"].to_string() ?></code></p>
+							</div>
+							<div class="unit-actions">
+								<span class="status-badge <?= selected_status_class ?>"><?= selected_compile_status ?></span>
+								<? if(allow_mutation) { ?>
+									<a href="<?= selected_compile_link ?>">compile</a>
+								<? } else { ?>
+									<span class="dim">compile disabled on public access</span>
+								<? } ?>
+							</div>
+						</div>
+
+						<div class="detail-grid">
+							<div class="detail-card">
+								<strong>Error Status</strong>
+								<span><?= trim(selected_error_status) != "" ? selected_error_status : "none" ?></span>
+							</div>
+							<div class="detail-card">
+								<strong>Exports</strong>
+								<span><?= selected_export_count ?></span>
+							</div>
+							<div class="detail-card">
+								<strong>Filesystem</strong>
+								<span>source <?= unit_flag_label(selected_info["source_exists"]) ?>, compiled <?= unit_flag_label(selected_info["compiled_exists"]) ?>, metadata <?= unit_flag_label(selected_info["metadata_exists"]) ?></span>
+							</div>
+							<div class="detail-card">
+								<strong>Runtime Flags</strong>
+								<span>wasm <?= unit_flag_label(selected_info["wasm_available"]) ?>, stale <?= unit_flag_label(selected_info["stale"]) ?>, current <?= unit_flag_label(selected_info["current_unit"]) ?></span>
+							</div>
+							<div class="detail-card">
+								<strong>Artifacts</strong>
+								<code><?= selected_info["wasm_name"].to_string() ?></code>
+							</div>
+							<div class="detail-card">
+								<strong>Timestamps</strong>
+								<span>Source file: <?= time_format_relative(selected_info["source_mtime"].to_u64()) ?><br>
+                                Wasm: <?= time_format_relative(selected_info["compiled_mtime"].to_u64()) ?><br>
+                                Meta info: <?= time_format_relative(selected_info["metadata_mtime"].to_u64()) ?></span>
+							</div>
+						</div>
+
+						<details open>
+							<summary><code>unit_info()</code> payload</summary>
+							<pre><?= var_dump(selected_info) ?></pre>
+						</details>
+					<? } ?>
+				</div>
+			</div>
+		</section>
+	</body>
+	</html></>
+}

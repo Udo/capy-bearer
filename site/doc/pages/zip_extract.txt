@@ -1,0 +1,30 @@
+:sig
+bool zip_extract(String zip_file_name, String destination_directory)
+
+:params
+zip_file_name : path to the ZIP archive
+destination_directory : directory that should receive extracted files
+return value : `true` when extraction completes
+
+:see
+>sys
+zip_create
+zip_list
+zip_read
+
+:content
+Extracts every member in a ZIP archive into `destination_directory`.
+
+
+UCE creates the destination directory and any needed child directories when they do not already exist.
+
+For safety, every member name is normalized and checked before extraction. Absolute paths, drive-qualified paths, empty names, and `..` path segments are rejected so archives cannot write outside the destination directory.
+
+:example
+DValue entries;
+entries["note.txt"] = "extracted content";
+zip_create("/tmp/doc-zipext.zip", entries);
+mkdir("/tmp/doc-zipext-out");
+zip_extract("/tmp/doc-zipext.zip", "/tmp/doc-zipext-out");
+print(file_get_contents("/tmp/doc-zipext-out/note.txt"), "\n");
+dir_remove("/tmp/doc-zipext-out", true);

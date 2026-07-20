@@ -1,0 +1,156 @@
+#include "testlib.h"
+
+DValue websocket_suite_event(Request& context, String type, String nonce)
+{
+	DValue event;
+	event["type"] = type;
+	event["nonce"] = nonce;
+	event["connection_id"] = ws_connection_id();
+	event["scope"] = first(context.params["DOCUMENT_URI"], ws_scope());
+	event["online"] = (f64)ws_connection_count();
+	event["opcode"] = (f64)ws_opcode();
+	event["binary"] = ws_is_binary() ? "true" : "false";
+	return(event);
+}
+
+RENDER(Request& context)
+{
+	String ws_url = context.params["DOCUMENT_URI"];
+	site_tests_page_start("WebSockets", "Browser-driven handshake and broadcast checks for ws_* helpers on the current .ws.uce endpoint.");
+	?><div class="tests-note">This page self-tests in the browser: it opens a socket to itself, waits for a targeted hello acknowledgment, then verifies a broadcast acknowledgment from the same endpoint.</div>
+	<section class="tests-section">
+		<div class="tests-cases">
+			<section class="tests-case"><div class="tests-case-header"><strong>hello acknowledgment</strong><span id="hello-status" class="status-badge status-warn">WAIT</span></div><pre id="hello-detail">connecting...</pre></section>
+			<section class="tests-case"><div class="tests-case-header"><strong>broadcast acknowledgment</strong><span id="broadcast-status" class="status-badge status-warn">WAIT</span></div><pre id="broadcast-detail">waiting...</pre></section>
+			<section class="tests-case"><div class="tests-case-header"><strong>connection state</strong><span id="socket-status" class="status-badge status-warn">WAIT</span></div><pre id="socket-detail">opening websocket...</pre></section>
+		</div>
+	</section>
+	<script>
+		const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}<?= ws_url ?>`;
+		const nonce = `site-tests-${Date.now()}`;
+		const helloStatus = document.getElementById('hello-status');
+		const helloDetail = document.getElementById('hello-detail');
+		const broadcastStatus = document.getElementById('broadcast-status');
+		const broadcastDetail = document.getElementById('broadcast-detail');
+		const socketStatus = document.getElementById('socket-status');
+		const socketDetail = document.getElementById('socket-detail');
+		let sawHello = false;
+		let sawBroadcast = false;
+		let sawState = false;
+		let stateAck = null;
+
+		function mark(el, detailEl, ok, text) {
+			el.textContent = ok ? 'PASS' : 'FAIL';
+			el.className = `status-badge ${ok ? 'status-ok' : 'status-error'}`;
+			detailEl.textContent = text;
+		}
+
+		const ws = new WebSocket(wsUrl);
+		socketDetail.textContent = `connecting to ${wsUrl}`;
+
+		ws.addEventListener('open', () => {
+			socketStatus.textContent = 'OPEN';
+			socketStatus.className = 'status-badge status-ok';
+			socketDetail.textContent = `connected to ${wsUrl}`;
+			ws.send(JSON.stringify({ type: 'hello', nonce }));
+		});
+
+		ws.addEventListener('message', (event) => {
+			let payload;
+			try {
+				payload = JSON.parse(event.data);
+			} catch (error) {
+				mark(socketStatus, socketDetail, false, String(error));
+				return;
+			}
+
+			if (payload.nonce !== nonce) return;
+
+			if (payload.type === 'hello-ack') {
+				sawHello = true;
+				mark(helloStatus, helloDetail, true, JSON.stringify(payload, null, 2));
+				ws.send(JSON.stringify({ type: 'set-state', nonce }));
+				ws.send(JSON.stringify({ type: 'read-state', nonce }));
+				ws.send(JSON.stringify({ type: 'broadcast', nonce }));
+				return;
+			}
+
+			if (payload.type === 'state-ack') {
+				sawState = true;
+				stateAck = payload;
+				mark(socketStatus, socketDetail, true, `state count=${payload.state_count}`);
+				return;
+			}
+
+			if (payload.type === 'broadcast-ack') {
+				sawBroadcast = true;
+				mark(broadcastStatus, broadcastDetail, true, JSON.stringify(payload, null, 2));
+				return;
+			}
+
+			mark(socketStatus, socketDetail, false, `unexpected payload: ${JSON.stringify(payload)}`);
+		});
+
+		ws.addEventListener('error', () => {
+			mark(socketStatus, socketDetail, false, 'websocket error event fired');
+		});
+
+		ws.addEventListener('close', () => {
+			if (!sawHello) mark(helloStatus, helloDetail, false, 'socket closed before hello acknowledgment');
+			if (!sawBroadcast) mark(broadcastStatus, broadcastDetail, false, 'socket closed before broadcast acknowledgment');
+			if (!sawState) {
+				mark(socketStatus, socketDetail, false, 'socket closed before state round trip');
+			} else {
+				mark(socketStatus, socketDetail, true, `state count=${stateAck && stateAck.state_count}`);
+			}
+		});
+
+		window.setTimeout(() => {
+			if (!sawHello) mark(helloStatus, helloDetail, false, 'timeout waiting for hello acknowledgment');
+			if (!sawBroadcast) mark(broadcastStatus, broadcastDetail, false, 'timeout waiting for broadcast acknowledgment');
+			if (!sawState) mark(socketStatus, socketDetail, false, 'timeout waiting for state-ack');
+		}, 5000);
+	</script><?
+	site_tests_page_end();
+}
+
+WS(Request& context)
+{
+	if(ws_is_binary())
+	{
+		ws_send_to(ws_connection_id(), json_encode(websocket_suite_event(context, "binary-not-supported", "")));
+		return;
+	}
+
+	DValue payload = json_decode(ws_message());
+	String type = trim(payload["type"].to_string());
+	String nonce = trim(payload["nonce"].to_string());
+
+	if(type == "hello")
+	{
+		ws_send_to(ws_connection_id(), json_encode(websocket_suite_event(context, "hello-ack", nonce)));
+		return;
+	}
+
+	if(type == "broadcast")
+	{
+		ws_send(json_encode(websocket_suite_event(context, "broadcast-ack", nonce)));
+		return;
+	}
+
+	if(type == "set-state")
+	{
+		context.connection["state_count"].set((f64)((u64)context.connection["state_count"].to_u64() + 1));
+		return;
+	}
+
+	if(type == "read-state")
+	{
+		DValue event = websocket_suite_event(context, "state-ack", nonce);
+		event["state_count"] = (f64)context.connection["state_count"].to_u64();
+		ws_send_to(ws_connection_id(), json_encode(event));
+		return;
+	}
+
+	ws_send_to(ws_connection_id(), json_encode(websocket_suite_event(context, "unknown", nonce)));
+}

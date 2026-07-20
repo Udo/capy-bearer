@@ -1,0 +1,18 @@
+:sig
+StringList StringList::keys() const
+
+:params
+return value : index keys as strings
+
+:content
+Returns the list indexes as strings from `0` through `size() - 1`. Use it when code expects string keys for a list-shaped value.
+
+:example
+StringList items = split("red,green,blue", ",");
+print(join(items.keys(), ","), "\n");
+
+:see
+>types
+0_StringList
+2_StringList_each
+2_StringList_map

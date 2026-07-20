@@ -1,0 +1,21 @@
+:sig
+DValue DValue::values() const
+
+:params
+return value : a list-shaped DValue containing each iterated child value
+
+:see
+>types
+0_DValue
+2_DValue_each
+2_DValue_push
+
+:content
+Copies the values produced by `each()` into a new list-shaped `DValue`.
+
+:example
+DValue user;
+user["name"] = "Ada";
+user["role"] = "admin";
+DValue values = user.values();
+print(values.is_list() ? "list\n" : "map\n");

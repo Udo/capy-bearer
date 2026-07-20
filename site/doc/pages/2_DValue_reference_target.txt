@@ -1,0 +1,22 @@
+:sig
+DValue* DValue::reference_target()
+const DValue* DValue::reference_target() const
+
+:params
+return value : resolved target pointer, or 0 when this node is not a usable reference
+
+:see
+0_DValue
+2_DValue_is_reference
+2_DValue_deref
+
+:content
+If this node is an internal reference, follows reference links up to the runtime safety limit and returns the final non-reference target. Returns `0` for non-references, null/self references, or chains that still resolve to a reference.
+
+
+:example
+DValue target;
+target.set("data");
+DValue ref;
+ref.set_reference(&target);
+print(ref.reference_target() == &target ? "points to target" : "elsewhere", "\n");

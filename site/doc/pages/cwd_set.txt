@@ -1,0 +1,17 @@
+:sig
+void cwd_set(String path)
+
+:params
+path : the new working directory
+
+:see
+>sys
+
+:content
+Sets the host worker process current directory. In wasm this is a hostcall, so restore the previous directory when using it inside request code.
+
+:example
+String old = cwd_get();
+cwd_set("/tmp");
+print("cwd is now ", cwd_get(), "\n");
+cwd_set(old);

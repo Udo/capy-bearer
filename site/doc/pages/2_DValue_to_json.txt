@@ -1,0 +1,19 @@
+:sig
+String DValue::to_json(char quote_char = '"') const
+
+:params
+quote_char : quote character passed to string escaping
+return value : JSON-ish scalar representation
+
+:see
+>types
+0_DValue
+json_encode
+
+:content
+Returns the JSON scalar representation used by this low-level method: strings are escaped and quoted, numbers are emitted with `std::to_string`, bools as `true`/`false`, maps as `"(array)"`, pointers as `"(pointer)"`, and references as `"(reference)"`. For full structured encoding, use the runtime JSON helpers.
+
+:example
+DValue value;
+value = "Ada";
+print(value.to_json(), "\n");

@@ -1,0 +1,19 @@
+:sig
+String gen_sha1(String s, bool as_binary = false)
+
+:params
+s : data to be hashed
+as_binary : when set to false, returns hash in hexadecimal notation (defaults to false)
+return value : the resulting hash value
+
+:see
+>noise
+
+:content
+Returns the SHA-1 hash of `s`.
+
+When `as_binary` is `false`, the hash is returned as hexadecimal text. When it is `true`, the raw binary hash bytes are returned.
+
+
+:example
+print(gen_sha1("hello") != "" ? "sha1\n" : "empty\n");

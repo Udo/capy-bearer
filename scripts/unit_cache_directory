@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+base="${1:-/tmp/uce/work}"
+compiler_abi=$(awk '/^#define UCE_COMPILER_UNIT_ABI_VERSION / {print $3; exit}' src/wasm/abi.h)
+core_abi=$(awk '/^#define UCE_WASM_CORE_ABI_VERSION / {print $3; exit}' src/wasm/abi.h)
+printf '%s/units-c%s-w%s\n' "${base%/}" "$compiler_abi" "$core_abi"

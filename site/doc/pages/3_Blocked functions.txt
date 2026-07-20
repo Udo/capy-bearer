@@ -1,0 +1,57 @@
+:title
+Blocked functions (hostcall blocklist)
+
+:content
+UCE units reach the operating system only through a fixed set of `uce_host_*`
+membrane hostcalls (see the runtime architecture). A server operator can
+**disable individual hostcalls** so a deployment exposes only the capabilities it
+wants — for example turning off `shell_exec` or `http_request` on a hardened
+host. A unit that calls a disabled function fails at request time with the
+configurable error page, stating exactly which function was blocked and why.
+
+## Configuration
+
+Set `UCE_HOSTCALL_BLOCKLIST` in `/etc/uce/settings.cfg` to a comma-separated list
+of hostcall names. Names may be given bare (`shell_exec`) or fully qualified
+(`uce_host_shell_exec`); whitespace is ignored. Empty (the default) blocks
+nothing.
+
+
+Changes take effect on **restart** (`systemctl restart uce`). There is no hot
+reload — the list is parsed once per worker process into a fast lookup, so an
+empty list has zero runtime cost and a non-empty list costs only a single check
+per hostcall at workspace birth (never per call).
+
+## Behaviour when a blocked function is called
+
+The blocked hostcall resolves to a trap stub instead of its real implementation.
+When a unit invokes it, the request fails into the runtime error page with:
+
+- error type `policy_blocked` (so a custom error page template can special-case it),
+- a title `function disabled by server policy`,
+- a message naming the exact function, e.g. *"this unit called uce_host_shell_exec,
+  which is disabled on this server by configuration (UCE_HOSTCALL_BLOCKLIST)"*.
+
+The worker is unharmed (it is a clean guest trap, like any other), and only the
+offending request fails. A unit cannot catch this — blocking is enforcement, not
+a soft signal.
+
+## What can and cannot be blocked
+
+Any `uce_host_*` capability hostcall can be listed — file I/O, `shell_exec` /
+`shell_spawn`, `http_request`, `mysql`, sockets, memcache, crypto, the job
+registry, etc. (the full set is the membrane list in the runtime architecture
+doc and `src/wasm/core_hostcalls.syms`).
+
+A small core set the runtime itself needs is **exempt** and ignored even if
+listed, so a deployment cannot be bricked by an over-broad blocklist:
+`component_resolve` (used for `component()` / unit rendering).
+
+## Notes
+
+- No recompilation is required (neither the wasm core nor the native binary) —
+  this is pure runtime configuration; blocked hostcalls still exist as imports,
+  they simply resolve to a trap.
+- Pure-compute library functions that are NOT hostcalls (string ops, `DValue`
+  methods, hashing helpers like `gen_noise`, etc.) are not OS capabilities and
+  cannot be blocked this way — only `uce_host_*` membrane calls are gateable.

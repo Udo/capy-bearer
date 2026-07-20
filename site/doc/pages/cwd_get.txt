@@ -1,0 +1,14 @@
+:sig
+String cwd_get()
+
+:params
+return value : the current working directory
+
+:see
+>sys
+
+:content
+Returns the current working directory.
+
+:example
+print(cwd_get() != "" ? "have a working directory" : "none", "\n");

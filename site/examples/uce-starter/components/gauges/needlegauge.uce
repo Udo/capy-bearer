@@ -1,0 +1,146 @@
+#load "helpers.uce"
+
+COMPONENT(Request& context)
+{
+	DValue asset_props;
+	asset_props["css"]["0"] = "themes/common/css/gauges.css";
+	asset_props["js"]["0"] = "components/gauges/common.js";
+	print(component("../theme/assets", asset_props, context));
+
+	String gauge_id = first(context.props["id"].to_string(), "needlegauge-" + std::to_string((u64)time()));
+	String style = context.props["style"].to_string();
+	String title = context.props["title"].to_string();
+	String subtitle = context.props["subtitle"].to_string();
+	f64 size = float_val(first(context.props["size"].to_string(), "200"));
+	DValue scale = context.props["scale"];
+	f64 scale_angle_start = float_val(first(scale["angle_start"].to_string(), std::to_string(-gauge_pi())));
+	f64 scale_angle_end = float_val(first(scale["angle_end"].to_string(), "0"));
+	f64 img_height = float_val(first(context.props["img_height"].to_string(), std::to_string(size * std::max(cos(scale_angle_start), cos(scale_angle_end)))));
+
+	<>
+		<section class="gauge-set needlegauge-set" id="<?= gauge_attr_id(gauge_id) ?>" style="<?= style ?>">
+			<? if(title != "") { ?>
+				<div class="gauge-set-header">
+					<h3><?= title ?></h3>
+					<? if(subtitle != "") { ?><p><?= subtitle ?></p><? } ?>
+				</div>
+			<? } ?>
+			<div class="needlegauge-grid">
+			<? context.props["items"].each([&](DValue item, String item_id_raw) {
+				DValue merged = scale;
+				item.each([&](DValue value, String key) { merged[key] = value; });
+				String item_id = gauge_attr_id(item_id_raw);
+				String label = first(merged["label"].to_string(), item_id_raw);
+				String tooltip = merged["tooltip"].to_string();
+				String unit = merged["unit"].to_string();
+				f64 min_value = float_val(first(merged["min"].to_string(), "0"));
+				f64 max_value = float_val(first(merged["max"].to_string(), "100"));
+				f64 value = float_val(first(merged["value"].to_string(), "0"));
+				f64 vrange = max_value - min_value;
+				if(vrange == 0)
+					vrange = 1;
+				f64 angle_start = float_val(first(merged["angle_start"].to_string(), std::to_string(-gauge_pi())));
+				f64 angle_end = float_val(first(merged["angle_end"].to_string(), "0"));
+				f64 pct_value = gauge_clamp_value((value - min_value) / vrange, 0.0, 1.0);
+				f64 needle_angle = -gauge_pi() + angle_start + (pct_value * (angle_end - angle_start));
+				String needle_color = first(merged["color"].to_string(), "#888888");
+				if(merged["color"].get_type_name() == "array")
+					needle_color = first(gauge_range_color(merged["color"], value), "#888888");
+				String tick_color = first(merged["tick-color"].to_string(), "#888888");
+				f64 tick_interval = float_val(first(merged["ticks-every"].to_string(), std::to_string(vrange / 20.0)));
+				if(tick_interval == 0)
+					tick_interval = std::max(1.0, vrange / 20.0);
+				f64 label_interval = float_val(first(merged["value-labels-every"].to_string(), std::to_string(vrange / 4.0)));
+				if(label_interval == 0)
+					label_interval = std::max(1.0, vrange / 4.0);
+				String ticks_html = "";
+				for(f64 v = min_value; v <= max_value + 0.0001; v += tick_interval)
+				{
+					f64 angle = angle_start + ((v - min_value) / vrange) * (angle_end - angle_start);
+					f64 x1 = size / 2.0 + cos(angle) * size * 0.38;
+					f64 y1 = size / 2.0 + sin(angle) * size * 0.38;
+					f64 x2 = size / 2.0 + cos(angle) * size * 0.41;
+					f64 y2 = size / 2.0 + sin(angle) * size * 0.41;
+					ticks_html += "<line x1=\"" + gauge_string_attr(std::to_string(x1)) + "\" y1=\"" + gauge_string_attr(std::to_string(y1)) +
+						"\" x2=\"" + gauge_string_attr(std::to_string(x2)) + "\" y2=\"" + gauge_string_attr(std::to_string(y2)) +
+						"\" stroke=\"" + gauge_string_attr(tick_color) + "\" stroke-width=\"1\"/>";
+				}
+				for(f64 v = min_value; v <= max_value + 0.0001; v += label_interval)
+				{
+					f64 angle = angle_start + ((v - min_value) / vrange) * (angle_end - angle_start);
+					f64 x1 = size / 2.0 + cos(angle) * size * 0.35;
+					f64 y1 = size / 2.0 + sin(angle) * size * 0.35;
+					f64 x2 = size / 2.0 + cos(angle) * size * 0.41;
+					f64 y2 = size / 2.0 + sin(angle) * size * 0.41;
+					ticks_html += "<line x1=\"" + gauge_string_attr(std::to_string(x1)) + "\" y1=\"" + gauge_string_attr(std::to_string(y1)) +
+						"\" x2=\"" + gauge_string_attr(std::to_string(x2)) + "\" y2=\"" + gauge_string_attr(std::to_string(y2)) +
+						"\" stroke=\"" + gauge_string_attr(tick_color) + "\" stroke-width=\"3\"/>";
+					f64 lx = size / 2.0 + cos(angle) * size * 0.45;
+					f64 ly = size / 2.0 + sin(angle) * size * 0.45;
+					String label_value = std::to_string((s64)round(v));
+					ticks_html += "<text x=\"" + gauge_string_attr(std::to_string(lx)) + "\" y=\"" + gauge_string_attr(std::to_string(ly)) +
+						"\" text-anchor=\"middle\" dominant-baseline=\"central\" font-size=\"10\" fill=\"" + gauge_string_attr(tick_color) + "\">" +
+						html_escape(label_value) + "</text>";
+				}
+				String segments_html = "";
+				if(merged["color"].get_type_name() == "array")
+				{
+					merged["color"].each([&](DValue range, String key) {
+						f64 range_from = std::max(float_val(first(range["from"].to_string(), std::to_string(min_value))), min_value);
+						f64 range_to = std::min(float_val(first(range["to"].to_string(), std::to_string(max_value))), max_value);
+						f64 angle_from = angle_start + ((range_from - min_value) / vrange) * (angle_end - angle_start);
+						f64 angle_to = angle_start + ((range_to - min_value) / vrange) * (angle_end - angle_start);
+						segments_html += gauge_circle_segment_svg(size / 2.0, size / 2.0, size * 0.4, angle_from, angle_to, first(range["color"].to_string(), "rgba(120,120,120,0.5)"), 8.0, "rgba(0,0,0,0)", "opacity:0.25");
+					});
+				}
+				else
+				{
+					segments_html = gauge_circle_segment_svg(size / 2.0, size / 2.0, size * 0.4, angle_start, angle_end, tick_color, 8.0, "rgba(0,0,0,0)", "opacity:0.25");
+				}
+				?><section class="gauge-card needlegauge-card">
+					<div class="gauge-metric-label needlegauge-label-head"><?= label ?></div>
+					<div class="needlegauge-visual">
+						<svg id="<?= gauge_attr_id(gauge_id) ?>-<?= item_id ?>-svg" width="<?= std::to_string((s32)round(size)) ?>" height="<?= std::to_string((s32)round(img_height)) ?>" class="needlegauge-svg"
+							viewBox="0 0 <?= std::to_string((s32)round(size)) ?> <?= std::to_string((s32)round(img_height)) ?>">
+							<?: segments_html ?>
+							<g class="ticks"><?: ticks_html ?></g>
+							<line id="<?= gauge_attr_id(gauge_id) ?>-<?= item_id ?>-needle" class="needle"
+								x1="<?= std::to_string(size * 0.55) ?>" y1="<?= std::to_string(size * 0.5) ?>" x2="<?= std::to_string(size * 0.1) ?>" y2="<?= std::to_string(size * 0.5) ?>"
+								stroke="<?= needle_color ?>" stroke-width="3" stroke-linecap="round"
+								style="transform-origin: <?= std::to_string(size / 2.0) ?>px <?= std::to_string(size / 2.0) ?>px; transform: rotate(<?= std::to_string(needle_angle) ?>rad); transition: transform 0.3s ease;"/>
+							<circle cx="<?= std::to_string(size / 2.0) ?>" cy="<?= std::to_string(size / 2.0) ?>" r="6" fill="<?= needle_color ?>"/>
+						</svg>
+					</div>
+					<div class="needlegauge-info">
+						<div class="gauge-metric-value needlegauge-value" id="<?= gauge_attr_id(gauge_id) ?>-<?= item_id ?>-value" title="<?= tooltip ?>"><?= merged["value"].to_string() + unit ?></div>
+						<? if(tooltip != "") { ?><div class="gauge-metric-meta needlegauge-meta"><?= tooltip ?></div><? } ?>
+					</div>
+				</section><?
+			}); ?>
+			</div>
+		</section>
+		<? if(context.props["listen"].to_string() != "") { ?>
+			<script>
+			window.NeedlegaugeComponents = window.NeedlegaugeComponents || {
+				start_listen : function(prop) {
+					$.events.on('value-broadcast', function(data) {
+						if(!prop.items || !prop.items[data.name]) return;
+						let item = Object.assign({}, prop.scale || {}, prop.items[data.name]);
+						let valueEl = document.getElementById(prop.id + '-' + data.name + '-value');
+						let needle = document.getElementById(prop.id + '-' + data.name + '-needle');
+						if(valueEl) valueEl.textContent = data.value + (item.unit || '');
+						let min = Number(item.min || 0);
+						let max = Number(item.max || 100);
+						let pctValue = GaugeComponents.clampValue((Number(data.value) - min) / ((max - min) || 1), 0, 1);
+						let angleStart = Number(item.angle_start != null ? item.angle_start : -Math.PI);
+						let angleEnd = Number(item.angle_end != null ? item.angle_end : 0);
+						let angle = -Math.PI + angleStart + (pctValue * (angleEnd - angleStart));
+						if(needle) needle.style.transform = 'rotate(' + angle + 'rad)';
+					});
+				}
+			};
+			NeedlegaugeComponents.start_listen(<?: json_encode(context.props, '\'') ?>);
+			</script>
+		<? } ?>
+	</>
+}

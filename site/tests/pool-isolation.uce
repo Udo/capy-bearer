@@ -1,0 +1,34 @@
+u64 pool_request_global = 0;
+u64 pool_constructor_value = 0;
+
+struct PoolIsolationConstructor
+{
+	PoolIsolationConstructor()
+	{
+		pool_constructor_value = 17;
+	}
+};
+
+PoolIsolationConstructor pool_isolation_constructor;
+
+ONCE(Request& context)
+{
+	pool_request_global++;
+}
+
+RENDER(Request& context)
+{
+	String token = context.get["token"];
+	bool clean = pool_request_global == 1 &&
+		pool_constructor_value == 17 &&
+		context.call["pool-leak"].to_string() == "" &&
+		context.props["pool-leak"].to_string() == "";
+	DValue perf = request_perf();
+	print(clean ? "fresh|" : "leaked|", token, "|", (u64)perf["worker_pid"].to_u64());
+
+	pool_request_global = 999;
+	pool_constructor_value = 999;
+	context.call["pool-leak"] = token;
+	context.props["pool-leak"] = token;
+	context.get["token"] = "dirty";
+}

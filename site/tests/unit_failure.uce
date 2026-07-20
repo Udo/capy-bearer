@@ -1,0 +1,4 @@
+RENDER(Request& context)
+{
+	unit_render("does-not-exist.uce", context);
+}

@@ -1,0 +1,311 @@
+#load "../../lib/app.uce"
+
+ONCE(Request& context)
+{
+	?><link rel="stylesheet" href="<?= app_asset_url("js/ag-grid/ag-grid.css", context) ?>" />
+	<link rel="stylesheet" href="<?= app_asset_url("js/ag-grid/ag-theme-alpine.css", context) ?>" />
+	<script src="<?= app_asset_url("js/u-format.js", context) ?>"></script>
+	<script src="<?= app_asset_url("js/u-timeseries-chart.js", context) ?>"></script>
+	<script src="<?= app_asset_url("js/u-sortable-table.js", context) ?>"></script>
+	<script src="<?= app_asset_url("js/ag-grid/ag-grid-community.min.js", context) ?>"></script><?
+}
+
+String data_format_bytes(String raw, bool disk = false)
+{
+	if(trim(raw) == "")
+		return("--");
+	StringList units;
+	units.push_back("B");
+	units.push_back("KB");
+	units.push_back("MB");
+	units.push_back("GB");
+	units.push_back("TB");
+	units.push_back("PB");
+	f64 value = atof(raw.c_str());
+	u32 unit_index = 0;
+	while((value >= 1024.0 || value <= -1024.0) && unit_index < units.size() - 1)
+	{
+		value /= 1024.0;
+		unit_index += 1;
+	}
+	u32 decimals = disk ? (unit_index >= 4 ? 2 : (unit_index >= 1 ? 1 : 0)) : (unit_index == 0 ? 0 : 1);
+	char buf[64];
+	snprintf(buf, sizeof(buf), ("%." + std::to_string(decimals) + "f").c_str(), value);
+	return(String(buf) + " " + units[unit_index]);
+}
+
+DValue data_format_value(DValue value, DValue row, DValue column)
+{
+	DValue result;
+	String format = column["format"].to_string();
+	String raw = value.to_string();
+	String sort_value = raw;
+	String display_value = raw;
+	if(format == "number")
+	{
+		display_value = raw;
+	}
+	else if(format == "bytes")
+	{
+		display_value = data_format_bytes(raw, false);
+	}
+	else if(format == "disk-bytes")
+	{
+		display_value = data_format_bytes(raw, true);
+	}
+	else if(format == "percent")
+	{
+		display_value = raw + "%";
+	}
+	else if(format == "duration-ms")
+	{
+		f64 number = atof(raw.c_str());
+		if(number >= 1000.0)
+		{
+			char buf[64];
+			snprintf(buf, sizeof(buf), number >= 10000.0 ? "%.0f s" : "%.1f s", number / 1000.0);
+			display_value = buf;
+		}
+		else
+		{
+			char buf[64];
+			snprintf(buf, sizeof(buf), number >= 100.0 ? "%.0f ms" : "%.1f ms", number);
+			display_value = buf;
+		}
+	}
+	else if(format == "bool")
+	{
+		bool on = raw == "1" || to_lower(raw) == "true" || to_lower(raw) == "yes";
+		display_value = on ? "Yes" : "No";
+		sort_value = on ? "1" : "0";
+	}
+	result["display"] = display_value;
+	result["sort"] = sort_value;
+	return(result);
+}
+
+COMPONENT:SUMMARY_METRICS(Request& context)
+{
+	String title = context.props["title"].to_string();
+	String subtitle = context.props["subtitle"].to_string();
+
+	<>
+		<div class="dashboard-panel">
+			<? if(title != "" || subtitle != "") { ?>
+				<div class="dashboard-panel-header">
+					<? if(title != "") { ?><h2><?= title ?></h2><? } ?>
+					<? if(subtitle != "") { ?><p><?= subtitle ?></p><? } ?>
+				</div>
+			<? } ?>
+			<div class="dashboard-stat-grid">
+				<? context.props["items"].each([&](DValue item, String key) {
+					String tone = first(item["tone"].to_string(), "info");
+					String href = item["href"].to_string();
+					String tag = href != "" ? "a" : "div";
+					?><<?= tag ?> class="dashboard-stat-card tone-<?= tone ?>"<?= href != "" ? " href=\"" + html_escape(href) + "\"" : "" ?>>
+						<div class="dashboard-stat-label"><?= first(item["label"].to_string(), "Metric") ?></div>
+						<div class="dashboard-stat-value"><?= first(item["value"].to_string(), "--") ?></div>
+						<? if(item["meta"].to_string() != "") { ?><div class="dashboard-stat-meta"><?= item["meta"].to_string() ?></div><? } ?>
+					</<?= tag ?>><?
+				}); ?>
+			</div>
+		</div>
+	</>
+}
+
+COMPONENT:TIMESERIES_CHART(Request& context)
+{
+
+	String chart_id = first(context.props["id"].to_string(), "ts-chart-" + std::to_string((u64)time()));
+	String canvas_id = chart_id + "-canvas";
+	String title = context.props["title"].to_string();
+	String subtitle = context.props["subtitle"].to_string();
+	s32 height = std::max(180, (s32)int_val(first(context.props["height"].to_string(), "320")));
+	String x_axis_label = first(context.props["x_axis_label"].to_string(), "Time");
+	String y_axis_left_label = first(context.props["y_axis_left_label"].to_string(), "Value");
+	String y_axis_right_label = context.props["y_axis_right_label"].to_string();
+	String y_axis_left_format = first(context.props["y_axis_left_format"].to_string(), "number");
+	String y_axis_right_format = first(context.props["y_axis_right_format"].to_string(), "number");
+
+	<>
+		<div class="dashboard-panel">
+			<? if(title != "" || subtitle != "") { ?>
+				<div class="dashboard-panel-header">
+					<? if(title != "") { ?><h2><?= title ?></h2><? } ?>
+					<? if(subtitle != "") { ?><p><?= subtitle ?></p><? } ?>
+				</div>
+			<? } ?>
+			<canvas id="<?= canvas_id ?>" class="dashboard-chart-canvas" style="height: <?= std::to_string(height) ?>px"></canvas>
+		</div>
+		<script>
+		(function () {
+			if (typeof UTimeSeriesChart === 'undefined') return;
+			var chart = new UTimeSeriesChart(<?: json_encode(canvas_id) ?>, {
+				xAxisLabel: <?: json_encode(x_axis_label) ?>,
+				yAxisLeftLabel: <?: json_encode(y_axis_left_label) ?>,
+				yAxisRightLabel: <?: json_encode(y_axis_right_label) ?>,
+				yAxisLeftFormat: <?: json_encode(y_axis_left_format) ?>,
+				yAxisRightFormat: <?: json_encode(y_axis_right_format) ?>
+			});
+			chart.setData(<?: json_encode(context.props["series"]) ?>, <?: json_encode(context.props["x_labels"]) ?>);
+			window[<?: json_encode("chart_" + chart_id) ?>] = chart;
+		}());
+		</script>
+	</>
+}
+
+COMPONENT:SORTABLE_TABLE(Request& context)
+{
+
+	String table_id = first(context.props["id"].to_string(), "sortable-table-" + std::to_string((u64)time()));
+	String title = context.props["title"].to_string();
+	String subtitle = context.props["subtitle"].to_string();
+	String empty_label = first(context.props["empty_label"].to_string(), "No data available");
+
+	DValue init_options;
+	init_options["storageKey"] = first(context.props["storage_key"].to_string(), "starter.sort." + table_id);
+	if(context.props["sort"]["column"].to_string() != "")
+	{
+		init_options["initialSort"]["column"] = context.props["sort"]["column"];
+		init_options["initialSort"]["direction"] = first(context.props["sort"]["direction"].to_string(), "asc");
+	}
+
+	<>
+		<div class="dashboard-panel">
+			<? if(title != "" || subtitle != "") { ?>
+				<div class="dashboard-panel-header">
+					<? if(title != "") { ?><h2><?= title ?></h2><? } ?>
+					<? if(subtitle != "") { ?><p><?= subtitle ?></p><? } ?>
+				</div>
+			<? } ?>
+			<div class="dashboard-table-wrap">
+				<table id="<?= table_id ?>" class="u-sortable-table">
+					<thead>
+						<tr>
+							<? context.props["columns"].each([&](DValue column, String key) {
+								String align = first(column["align"].to_string(), "left");
+								bool sortable = column["sortable"].to_string() == "" || column["sortable"].to_string() == "1";
+								?><th scope="col" class="align-<?= align ?>"<?= sortable ? "" : " data-sortable=\"false\"" ?>><?= first(column["label"].to_string(), column["key"].to_string(), "Column") ?></th><?
+							}); ?>
+						</tr>
+					</thead>
+					<tbody>
+						<? if(context.props["rows"].get_type_name() != "array" || context.props["rows"]["0"].get_type_name() != "array") { ?>
+							<tr data-empty-row="1"><td colspan="<?= context.props["columns"]._map.size() == 0 ? "1" : std::to_string(context.props["columns"]._map.size()) ?>" class="muted"><?= empty_label ?></td></tr>
+						<? } ?>
+						<? context.props["rows"].each([&](DValue row, String key) {
+							if(row.get_type_name() != "array")
+								return;
+							?><tr><?
+							context.props["columns"].each([&](DValue column, String ckey) {
+								String col_key = column["key"].to_string();
+								DValue formatted = data_format_value(row[col_key], row, column);
+								?><td class="align-<?= first(column["align"].to_string(), "left") ?>" data-sort-value="<?= formatted["sort"].to_string() ?>"><?= formatted["display"].to_string() ?></td><?
+							});
+							?></tr><?
+						}); ?>
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<script>
+		(function () {
+			if (typeof USortableTable === 'undefined') return;
+			USortableTable.init(<?: json_encode(table_id) ?>, <?: json_encode(init_options) ?>);
+		}());
+		</script>
+	</>
+}
+
+COMPONENT:DATA_TABLE(Request& context)
+{
+	String table_id = first(context.props["id"].to_string(), "data-grid-" + std::to_string((u64)time()));
+
+	DValue columns = context.props["columns"];
+	if(columns.get_type_name() != "array")
+		columns.set_array();
+	bool has_explicit_columns = columns.is_list() &&
+		columns._map.size() > 0 &&
+		columns._map.find("0") != columns._map.end() &&
+		columns["0"]["field"].to_string() != "";
+	if(!has_explicit_columns && context.props["items"]["0"].get_type_name() == "array")
+	{
+		context.props["items"]["0"].each([&](DValue value, String key) {
+			DValue col;
+			col["field"] = key;
+			col["headerName"] = key;
+			col["sortable"].set_bool(true);
+			col["filter"].set_bool(true);
+			col["resizable"].set_bool(true);
+			columns.push(col);
+		});
+	}
+	if(!columns.is_list())
+	{
+		DValue normalized_columns;
+		normalized_columns.set_array();
+		columns.each([&](DValue column, String key) {
+			if(column.get_type_name() == "array")
+				normalized_columns.push(column);
+		});
+		columns = normalized_columns;
+	}
+
+	DValue row_data = context.props["items"];
+	if(row_data.get_type_name() != "array")
+		row_data.set_array();
+	if(!row_data.is_list())
+	{
+		DValue normalized_rows;
+		normalized_rows.set_array();
+		row_data.each([&](DValue row, String key) {
+			if(row.get_type_name() == "array")
+				normalized_rows.push(row);
+		});
+		row_data = normalized_rows;
+	}
+
+	DValue grid_options;
+	grid_options["pagination"].set_bool(true);
+	grid_options["paginationPageSize"] = first(context.props["options"]["paginationPageSize"].to_string(), "20");
+	grid_options["paginationPageSizeSelector"].set_bool(false);
+	grid_options["suppressMenuHide"].set_bool(true);
+	grid_options["animateRows"].set_bool(true);
+	grid_options["columnDefs"] = columns;
+	grid_options["rowData"] = row_data;
+
+	<>
+		<div class="ag-grid-container" style="margin: 1rem 0;">
+			<div class="ag-grid-toolbar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding:0.75rem;background:var(--surface-elevated);border:1px solid var(--border);border-radius:0.5rem 0.5rem 0 0;border-bottom:none;">
+				<div style="display:flex;gap:1rem;align-items:center;flex:1;">
+					<span style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;"><?= std::to_string(context.props["items"]._map.size()) ?> rows</span>
+					<input type="text" id="<?= table_id ?>-search" placeholder="Search all columns..." style="padding:0.5rem 0.75rem;border:1px solid var(--border);border-radius:0.375rem;background:var(--surface);color:var(--text-primary);font-size:0.875rem;width:250px;" />
+				</div>
+				<div style="display:flex;gap:0.5rem;">
+					<button id="<?= table_id ?>-export-csv" class="btn btn-outline">Export CSV</button>
+					<button id="<?= table_id ?>-clear-filters" class="btn btn-outline">Clear Filters</button>
+				</div>
+			</div>
+			<div id="<?= table_id ?>" class="ag-theme-alpine-dark" style="height: <?= first(context.props["height"].to_string(), "400px") ?>; width: 100%; border: 1px solid var(--border); border-radius: 0 0 0.5rem 0.5rem; overflow: hidden;"></div>
+		</div>
+		<script>
+		(function () {
+			if (typeof agGrid === 'undefined') return;
+			const gridOptions = <?: json_encode(grid_options) ?>;
+			const gridElement = document.getElementById(<?: json_encode(table_id) ?>);
+			if (!gridElement) return;
+			const gridApi = agGrid.createGrid(gridElement, gridOptions);
+			document.getElementById(<?: json_encode(table_id + "-search") ?>)?.addEventListener('input', function () {
+				gridApi.setQuickFilter(this.value);
+			});
+			document.getElementById(<?: json_encode(table_id + "-clear-filters") ?>)?.addEventListener('click', function () {
+				gridApi.setFilterModel(null);
+				gridApi.setQuickFilter('');
+			});
+			document.getElementById(<?: json_encode(table_id + "-export-csv") ?>)?.addEventListener('click', function () {
+				gridApi.exportDataAsCsv();
+			});
+		}());
+		</script>
+	</>
+}

@@ -1,0 +1,33 @@
+
+RENDER(Request& context)
+{
+
+	String raw = first(context.post["raw"], "today");
+	u64 parsed = time_parse(raw);
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			time_parse
+		</h1>
+		<form action="?" method="post">
+			<div>
+				<label>Time string</label>
+				<input type="text" name="raw" value="<?= raw ?>"/>
+			</div>
+			<div>
+				<input type="submit" value="Parse"/>
+			</div>
+		</form>
+		<pre><?
+
+		print("local:    ", time_format_local("%Y-%m-%d %H:%M", parsed), "\n");
+		print("relative: ", time_format_relative(parsed), "\n");
+		print("delta:    ", time_format_local("%deltaHh %deltaMm %deltaSs", parsed), "\n");
+
+		?></pre>
+		<pre><?= var_dump(context.params) ?></pre>
+	</>
+
+}

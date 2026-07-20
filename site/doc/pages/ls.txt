@@ -1,0 +1,21 @@
+:sig
+StringList ls(String path)
+
+:params
+path : directory to list
+return value : a StringList of entry names
+
+:content
+Returns the names of the entries in a directory as a `StringList`. For names only this is simpler than `dir_list()`, which returns full metadata per entry.
+
+:example
+mkdir("/tmp/doc-ls");
+file_put_contents("/tmp/doc-ls/one.txt", "1");
+file_put_contents("/tmp/doc-ls/two.txt", "2");
+print(join(ls("/tmp/doc-ls").sort(), ","), "\n");
+dir_remove("/tmp/doc-ls", true);
+
+:see
+>sys
+dir_list
+0_StringList

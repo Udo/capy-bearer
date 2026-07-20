@@ -1,0 +1,19 @@
+:sig
+f64 float_val(String s)
+
+:params
+s : string to be converted
+return value : a f64 containing the number (0 if no number could be identified).
+
+:see
+>string
+int_val
+0_String
+
+:content
+Extracts a floating point number from a `String`.
+
+If no usable number can be identified, the result is `0`.
+
+:example
+print(float_val("3.14") + 1.0, "\n");

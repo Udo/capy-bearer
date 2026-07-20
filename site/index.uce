@@ -1,0 +1,5 @@
+RENDER(Request& context)
+{
+    context.set_status(302, "Found");
+    context.header["Location"] = "/info/";
+}

@@ -1,0 +1,10 @@
+COMPONENT(Request& props)
+{
+	String title = props.props["title"].to_string();
+	String body = props.props["body"].to_string();
+
+	<><div class="panel panel-alias-check">
+		<strong>alias=<?= title ?></strong>
+		<p>body=<?= body ?></p>
+	</div></>
+}

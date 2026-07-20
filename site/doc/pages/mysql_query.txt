@@ -1,0 +1,33 @@
+:sig
+DValue mysql_query(MySQL* m, String q, StringMap params)
+
+:params
+m : pointer to an active MySQL connection struct
+q : a string containing a MySQL query
+params : optional, a list of query parameter keys and values
+return value : a list of rows returned from executing the query
+
+:see
+>mysql
+mysql_affected_rows
+
+:content
+Executes a MySQL query and returns the resulting data, if any.
+
+`params` provides the query parameter values used by the statement. Use named `:name` placeholders only; positional `?` placeholders are rejected.
+
+The result is returned as a `DValue`, which makes it easy to iterate through rows and read fields with the usual `DValue` accessors.
+
+After an insert, update, or delete, use `mysql_affected_rows()` to inspect how many rows changed.
+
+:example
+MySQL* db = mysql_connect();
+if(db != 0)
+{
+    DValue rows = mysql_query(db, "select 'ada@example.test' as email, 1 + 1 as total");
+    String email = "none"; String total = "?";
+    rows.each([&](DValue r, String key) { email = r["email"].to_string(); total = r["total"].to_string(); });
+    print(email, " / total=", total, "\n");
+    mysql_disconnect(db);
+}
+else print("(requires a reachable MySQL server)\n");

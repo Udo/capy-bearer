@@ -1,0 +1,13 @@
+
+#include "../demo_guard.h"
+
+
+RENDER(Request& context)
+{
+	if(!test_demo_request_allowed(context))
+	{
+		test_demo_render_restricted_text(context, "Working Directory Sub-Invoke", "reveal internal filesystem layout");
+		return;
+	}
+	print("Sub-Invoke Working dir: ", cwd_get(), "\n");
+}

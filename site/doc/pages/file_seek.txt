@@ -1,0 +1,26 @@
+:sig
+s64 file_seek(u64 h, s64 offset, s64 whence)
+
+:params
+h : handle from file_open()
+offset : byte offset relative to whence
+whence : 0 from start, 1 from current, 2 from end
+return value : the new absolute offset, or -1 on error
+
+:content
+Moves a handle's read/write offset for random access. Combine with `file_read()` / `file_write()` to jump around a file; `file_tell()` reports the current offset.
+
+:example
+u64 w = file_open("/tmp/doc-seek.txt", "w");
+file_write(w, "hello world");
+file_close(w);
+u64 r = file_open("/tmp/doc-seek.txt", "r");
+file_seek(r, 6, 0);
+print(file_read(r, 5), "\n");
+file_close(r);
+
+:see
+>sys
+file_tell
+file_read
+file_open

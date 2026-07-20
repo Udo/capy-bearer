@@ -1,0 +1,20 @@
+:sig
+bool DValue::has(String s) const
+
+:params
+s : child key to test
+return value : true when the dereferenced value is map-shaped and contains the key
+
+:see
+>types
+0_DValue
+2_DValue_key
+2_DValue_get_by_path
+
+:content
+Checks for a child key without creating it. Returns false for scalars and missing keys.
+
+:example
+DValue u;
+u["name"] = "Ada";
+print(u.has("name") ? "has name" : "no name", " / ", u.has("age") ? "has age" : "no age", "\n");

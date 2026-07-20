@@ -1,0 +1,24 @@
+:sig
+u64 mysql_insert_id(MySQL* m)
+
+:params
+m : pointer to an active MySQL connection
+return value : the last used automatic row ID
+
+:see
+>mysql
+
+:content
+Returns the last automatically assigned row ID used by the current MySQL connection.
+
+This is typically used after an `INSERT` into a table with an `AUTO_INCREMENT` primary key.
+
+:example
+MySQL* db = mysql_connect();
+if(db != 0)
+{
+    DValue row = mysql_query(db, "select last_insert_id() as id");
+    print("mysql_insert_id() returns the last AUTO_INCREMENT id for this connection (currently ", mysql_insert_id(db), ")\n");
+    mysql_disconnect(db);
+}
+else print("(requires a reachable MySQL server)\n");

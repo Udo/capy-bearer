@@ -1,0 +1,30 @@
+:sig
+pid_t task_repeat(String key, f64 interval, std::function<void()> exec_func, u64 timeout = 60*10)
+
+:params
+key : string uniquely identifying the task across the whole runtime instance
+interval : repeat interval in seconds
+exec_func : function to execute repeatedly
+timeout : maximum run time in seconds; `0` disables the timeout
+return value : the process ID of the started (or still running) task, or `0` when the task could not be started
+
+:see
+>task
+task
+task_pid
+task_kill
+
+:content
+Starts a repeating background worker process.
+
+`exec_func` runs in a loop, and the worker sleeps for `interval` seconds between executions. `interval` must be greater than zero.
+
+If a process with the same `key` is already running anywhere in the runtime instance, `task_repeat()` does not start a second worker and instead returns the PID of the existing one. Coordination is through the same shared task state used by `task()`.
+
+`timeout` bounds the lifetime of the repeating worker. The default is ten minutes. Pass `0` only for workers that have another shutdown path.
+
+:example
+task_repeat("doc-demo-repeat", 60.0, []() { usleep(10000); });
+pid_t pid = task_pid("doc-demo-repeat");
+print(pid > 0 ? "repeating task scheduled" : "not scheduled", "\n");
+if(pid > 0) task_kill(pid);

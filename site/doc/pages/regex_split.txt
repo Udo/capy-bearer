@@ -1,0 +1,38 @@
+:sig
+StringList regex_split(String pattern, String subject)
+StringList regex_split(String pattern, String subject, String flags)
+
+:params
+pattern : PCRE2 regular expression pattern used as the separator
+subject : string to split
+flags : optional regex flags
+return value : a list of string parts
+
+:see
+>string
+>regex
+regex_match
+regex_search
+regex_search_all
+regex_replace
+split
+join
+0_StringList
+
+:content
+Splits `subject` wherever `pattern` matches.
+
+Example:
+
+
+This is the pattern-aware companion to `split()`.
+
+Behavior notes:
+
+- Separators are removed from the returned list.
+- Empty fields are preserved.
+- If the pattern does not match, the result contains the original subject as a single item.
+- Zero-length separators are handled safely to avoid infinite loops.
+
+:example
+print(join(regex_split("\\s+", "uce docs api"), ","), "\n");

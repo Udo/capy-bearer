@@ -1,0 +1,18 @@
+:sig
+String first(String... args)
+
+:params
+args : a variable number of String arguments
+return value : first of the 'args' that was not empty.
+
+:see
+>string
+
+:content
+Returns the first non-empty string from the provided arguments.
+
+Leading and trailing whitespace are ignored when checking emptiness, so a string containing only whitespace counts as empty.
+
+
+:example
+print(first("", "fallback", "other"), "\n");

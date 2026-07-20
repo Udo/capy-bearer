@@ -1,0 +1,16 @@
+:sig
+String trim(String raw)
+
+:params
+raw : string to be trimmed
+return value : string with leading and trailing whitespace characters removed
+
+:see
+>string
+
+:content
+Returns `raw` with leading and trailing whitespace removed.
+
+
+:example
+print(trim("  docs  "), "\n");

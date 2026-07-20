@@ -1,0 +1,22 @@
+:sig
+#load "myfile.uce"
+
+:params
+file name : name of an UCE file that should be included
+
+:see
+>ob
+
+:content
+Includes another UCE file.
+
+Use `#load` when you want the current file to pull in declarations or reusable content from another UCE source file.
+
+Loaded sources are tracked transitively. Changing a direct or nested `#load` dependency invalidates and recompiles the entry unit before its next execution.
+
+
+:example
+// #load "file.uce" includes another unit at COMPILE time (a preprocessor directive,
+// used at file top level). At RUNTIME, unit_render()/unit_call() invoke another unit:
+unit_render("examples/sample_unit.uce");
+print("\n");

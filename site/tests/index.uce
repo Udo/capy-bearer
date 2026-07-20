@@ -1,0 +1,30 @@
+#include "testlib.h"
+
+RENDER(Request& context)
+{
+	String tests_dir = dirname(context.params["SCRIPT_FILENAME"]);
+	DValue manifest = site_tests_manifest(tests_dir + "/manifest.txt");
+	StringList entries = ls(tests_dir).sort();
+
+	site_tests_page_start("Coverage Index", "Public and local-only UCE regression coverage pages.");
+	?><div class="tests-grid"><?
+		for(String entry : entries)
+		{
+			if(!str_ends_with(entry, ".uce"))
+				continue;
+			DValue meta = manifest[entry];
+			String title = meta["title"].to_string();
+			String description = meta["description"].to_string();
+			String tags = meta["tags"].to_string();
+			if(title == "")
+			{
+				site_tests_card(entry, "Missing test metadata: " + entry, "Add this file to site/tests/manifest.txt so the dashboard and network suite stay aligned.", "metadata missing");
+				continue;
+			}
+			if(meta["index"].to_string() == "0")
+				continue;
+			site_tests_card(entry, title, description, tags);
+		}
+	?></div><?
+	site_tests_page_end();
+}

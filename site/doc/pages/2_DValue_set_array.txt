@@ -1,0 +1,21 @@
+:sig
+void DValue::set_array()
+
+:params
+return value : none
+
+:see
+0_DValue
+2_DValue_push
+2_DValue_is_list
+
+:content
+Clears the value and makes it an empty list-shaped map. Subsequent `push()` calls append numeric keys starting at `0`.
+
+
+:example
+DValue list;
+list.set_array();
+DValue item; item.set("first");
+list.push(item);
+print("is_list=", list.is_list() ? "yes" : "no", " count=", list.keys().size(), "\n");

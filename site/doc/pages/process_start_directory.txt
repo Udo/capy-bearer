@@ -1,0 +1,16 @@
+:sig
+String process_start_directory()
+
+:params
+return value : worker process start directory
+
+:see
+>sys
+>cwd_get
+>cwd_set
+
+:content
+Returns the directory captured when the native process started. It remains stable even if `cwd_set()` changes the current working directory.
+
+:example
+print(process_start_directory() != "" ? "have a start directory" : "none", "\n");

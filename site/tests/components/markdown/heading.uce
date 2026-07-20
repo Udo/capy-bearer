@@ -1,0 +1,5 @@
+COMPONENT(Request& context)
+{
+	DValue& node = context.props["node"];
+	<><div class="tests-heading" data-hook="heading" data-source-level="<?= std::to_string(node["level"].to_u64()) ?>"><?: context.props["default_html"].to_string() ?></div></>
+}

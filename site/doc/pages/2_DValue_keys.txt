@@ -1,0 +1,20 @@
+:sig
+StringList DValue::keys() const
+
+:params
+return value : child keys for map/list values; empty for scalars
+
+:see
+>types
+0_DValue
+2_DValue_each
+0_StringList
+
+:content
+Returns the keys produced by `each()`. Scalar values have no child key, so the result is empty. List-shaped values return their numeric keys as strings.
+
+:example
+DValue user;
+user["name"] = "Ada";
+user["role"] = "admin";
+print(join(user.keys().sort(), ","), "\n");

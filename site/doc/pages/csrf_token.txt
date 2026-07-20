@@ -1,0 +1,27 @@
+:sig
+String csrf_token(String session_name = "uce-session", String token_name = "csrf_token")
+
+:params
+session_name : session/cookie name to store the token under
+token_name : form/action token namespace inside the session
+return value : printable CSRF token for the active session
+
+:content
+Starts the named session if needed and returns a stable per-session CSRF token for `token_name`. Use it in hidden fields on forms that mutate server state, then verify the submitted value with `csrf_valid()` before applying the change.
+
+Tokens are generated from cryptographic randomness and stored in `context.session` under an internal key. Use a different `token_name` when independent forms should have independent tokens.
+
+:example
+String token = csrf_token("uce-doc-session");
+?><form method="post">
+	<input type="hidden" name="csrf_token" value="<?= token ?>">
+	<button type="submit">Save</button>
+</form><?
+
+:see
+>http
+csrf_valid
+csrf_field
+csrf_rotate
+session_start
+random_bytes

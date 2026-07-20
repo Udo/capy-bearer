@@ -1,0 +1,45 @@
+// Example page_runtime_error handler. Enable in /etc/uce/settings.cfg:
+//   page_runtime_error=site/errors/runtime-error.uce
+// Served with status 500 after a recovered fault or uncaught exception. Keep
+// runtime error pages simple: they run in a worker that may have just
+// recovered from a fatal signal, so avoid database work or heavy components.
+
+RENDER(Request& context)
+{
+	DValue error = context.call["error"];
+	String signal_name = error["signal_name"].to_string();
+
+	<>
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Something went wrong</title>
+	<style>
+		body { font-family: system-ui, sans-serif; background: #1c1017; color: #fde8e8; margin: 0; min-height: 100vh; }
+		main { max-width: 60rem; margin: 0 auto; padding: 3rem 2rem; }
+		h1 { color: #f87171; }
+		code { color: #fca5a5; }
+		pre { background: #0f0a0d; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+		.meta { color: #9f8a93; font-size: 0.9rem; }
+	</style>
+</head>
+<body>
+	<main>
+		<h1>Something went wrong</h1>
+		<p><?= error["title"].to_string() ?></p>
+		<p class="meta">Request: <code><?= error["request_uri"].to_string() ?></code></p>
+		<? if(error["details"].to_string() != "") { ?>
+			<p class="meta">Details: <?= error["details"].to_string() ?></p>
+		<? } ?>
+		<? if(signal_name != "") { ?>
+			<p class="meta">Signal: <?= signal_name ?></p>
+		<? } ?>
+		<? if(error["trace"].to_string() != "") { ?>
+			<pre><?= error["trace"].to_string() ?></pre>
+		<? } ?>
+	</main>
+</body>
+</html>
+	</>
+}

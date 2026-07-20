@@ -1,0 +1,20 @@
+:sig
+void redirect(String url, s32 code = 302)
+
+:params
+url : target URL for the redirect
+code : optional HTTP redirect status, defaults to `302`
+
+:see
+>uri
+2_Request_set_status
+0_Request
+
+:content
+Sets the `Location` response header and updates the current HTTP status code.
+
+Use this helper instead of manually assigning `context.header["Location"]` and `context.set_status(...)` when you want to redirect the current response.
+
+
+:example
+print("redirect(\"/next\") sends an HTTP redirect.\n");

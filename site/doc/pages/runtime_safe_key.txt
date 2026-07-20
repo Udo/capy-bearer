@@ -1,0 +1,17 @@
+:sig
+String runtime_safe_key(String key, String label = "runtime key")
+
+:params
+key : caller-provided key
+label : diagnostic label used by native error handling
+return value : stable SHA-1 key, or an empty string for empty input in wasm
+
+:see
+>sys
+>gen_sha1
+
+:content
+Trims a runtime key and converts it to a stable SHA-1 identifier suitable for task/runtime file names.
+
+:example
+print(runtime_safe_key("  My Task Name  "), "\n");

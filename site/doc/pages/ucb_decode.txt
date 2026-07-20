@@ -1,0 +1,19 @@
+:sig
+DValue ucb_decode(String encoded)
+bool ucb_decode(String encoded, DValue& out, String* error_out = 0)
+
+:see
+ucb_encode
+0_DValue
+json_decode
+
+:content
+Decodes UCEB1 bytes produced by `ucb_encode()` back into a `DValue`.
+
+The one-argument form returns an empty `DValue` on invalid input. The three-argument form reports whether decoding succeeded and can return a human-readable error string.
+
+
+:example
+DValue original; original["n"] = "7";
+DValue restored = ucb_decode(ucb_encode(original));
+print(restored["n"].to_string(), "\n");

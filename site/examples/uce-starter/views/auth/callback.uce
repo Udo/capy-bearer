@@ -1,0 +1,49 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	context.call["app"]["page_title"] = "OAuth Callback";
+	String code = context.get["code"];
+	String state = context.get["state"];
+	String error = context.get["error"];
+	String error_description = context.get["error_description"];
+
+	<>
+		<div class="oauth-callback-page">
+			<div class="callback-container">
+				<? if(error != "") { ?>
+					<div class="callback-result error">
+						<div class="result-icon">✗</div>
+						<h2>Authentication Failed</h2>
+						<p><?= first(error_description, error) ?></p>
+						<div class="callback-actions">
+							<a href="<?= app_link("auth/demo", context) ?>" class="btn btn-primary">Try Again</a>
+							<a href="<?= app_link("", context) ?>" class="btn btn-outline">Go Home</a>
+						</div>
+					</div>
+				<? } else if(code != "" && state != "") { ?>
+					<div class="callback-result success">
+						<div class="result-icon">✓</div>
+						<h2>Authentication Successful</h2>
+						<p>OAuth callback received successfully! Demo mode is active until provider credentials are configured.</p>
+						<div class="callback-details">
+							<p><strong>Service:</strong> <?= first(context.session["oauth_service"], "unknown") ?></p>
+							<p><strong>Code:</strong> <?= code.substr(0, std::min((u64)20, (u64)code.length())) ?>...</p>
+							<p><strong>State:</strong> <?= state ?></p>
+						</div>
+						<div class="callback-actions">
+							<a href="<?= app_link("auth/demo", context) ?>" class="btn btn-primary">Back to Auth Demo</a>
+							<a href="<?= app_link("", context) ?>" class="btn btn-outline">Go Home</a>
+						</div>
+					</div>
+				<? } else { ?>
+					<div class="callback-result error">
+						<div class="result-icon">✗</div>
+						<h2>Invalid Callback</h2>
+						<p>Missing required OAuth parameters.</p>
+					</div>
+				<? } ?>
+			</div>
+		</div>
+	</>
+}

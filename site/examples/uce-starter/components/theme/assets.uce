@@ -1,0 +1,39 @@
+#load "../../lib/app.uce"
+
+void app_asset_tag_once(Request& context, String kind, String path)
+{
+	if(path == "")
+		return;
+	String key = kind + ":" + path;
+	if(context.call["assets"][key].to_bool())
+		return;
+	context.call["assets"][key].set_bool(true);
+	if(kind == "css")
+	{
+		?><link rel="stylesheet" href="<?= app_asset_url(path, context) ?>" /><?
+	}
+	else if(kind == "js")
+	{
+		?><script src="<?= app_asset_url(path, context) ?>"></script><?
+	}
+}
+
+void app_asset_tags(Request& context, String kind, DValue assets)
+{
+	String scalar = assets.to_string();
+	if(scalar != "")
+	{
+		app_asset_tag_once(context, kind, scalar);
+		return;
+	}
+	assets.each([&](const DValue& item, String key) {
+		app_asset_tag_once(context, kind, item.to_string());
+	});
+}
+
+COMPONENT(Request& context)
+@fragment head
+{
+	app_asset_tags(context, "css", context.props["css"]);
+	app_asset_tags(context, "js", context.props["js"]);
+}

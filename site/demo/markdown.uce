@@ -1,0 +1,46 @@
+RENDER(Request& context)
+{
+	DValue options;
+	options["components"][":::warning"] = "components/markdown/warning";
+	options["components"]["node.code_block"] = "components/markdown/code_block";
+
+	String markdown_src = first(
+		context.post["markdown"],
+		file_get_contents("markdown-example.md")
+	);
+
+	DValue ast = markdown_to_ast(markdown_src, options);
+	String html = markdown_to_html(markdown_src, options);
+
+	<>
+		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Markdown
+		</h1>
+		<p>
+			This page exercises `markdown_to_ast()` and `markdown_to_html()` with component hooks for `:::warning` directives and fenced code blocks.
+		</p>
+		<form method="post" action="?">
+			<div>
+				<section>
+					<h2>Source</h2>
+					<textarea name="markdown"><?= markdown_src ?></textarea>
+					<div>
+						<input type="submit" value="Render Markdown"/>
+					</div>
+				</section>
+				<section>
+					<h2>Rendered HTML</h2>
+					<div>
+						<?: html ?>
+					</div>
+				</section>
+			</div>
+		</form>
+		<details>
+			<summary>AST JSON</summary>
+			<pre><?= json_encode(ast) ?></pre>
+		</details>
+	</>
+}

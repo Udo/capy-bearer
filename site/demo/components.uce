@@ -1,0 +1,33 @@
+
+RENDER(Request& context)
+{
+	DValue card_props;
+	card_props["title"] = "Component Example";
+	card_props["body"] = "This card body comes from context.props and is rendered through component().";
+
+	DValue named_props;
+	named_props["title"] = "Named Render Example";
+	named_props["body"] = "This content is rendered through the COMPONENT:BODY(Request& context) entry point.";
+
+	<>
+		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Components
+		</h1>
+		<p>
+			component_exists("components/card"):
+			<strong><?= component_exists("components/card") ? "true" : "false" ?></strong>
+		</p>
+		<p>
+			component_resolve("components/card"):
+			<code><?= component_resolve("components/card") ?></code>
+		</p>
+		<h2>Default Component</h2>
+		<div>
+			<?: component("components/card", card_props, context) ?>
+		</div>
+		<h2>Named Component</h2>
+		<? component_render("components/card:BODY", named_props, context); ?>
+	</>
+}

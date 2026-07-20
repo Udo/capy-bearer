@@ -1,0 +1,36 @@
+commit 577aae076e3603137265332adfdded3c15cfa8f4
+W3
+
+
+commit afaa4dd7c0203f322d625593a0d1c96c37130005
+feat: cut over to WASM backend
+
+
+commit 5a56d4f39e4b30a9a4e43985d64906aa16a642e6
+W5
+
+
+commit c84fc86e6cdfe254a59d57b909f647e6c254ef76
+W6
+
+
+commit fe83c524118722c062295bc9575cb71eff64dacb
+feat: membrane remaining wasm host surfaces
+
+
+commit d6421cb8f3721e69e999b84335e9094ad96356e9
+feat: extend wasm backend entrypoints
+
+
+commit af6500d1343581abdac475dcb6855821afd8c8d0
+fix: harden wasm w7 entrypoint paths
+
+
+commit b1856c1725970b31027383a7ae79c2140a62a896
+chore: narrow wasm backend entrypoint API
+
+
+commit 6bb4f7f0ad801a0127956f49e54d2be722c6537f
+test: port network suite to uce cli runner
+
+

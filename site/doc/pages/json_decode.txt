@@ -1,0 +1,33 @@
+:sig
+DValue json_decode(String s)
+
+:params
+s : string containing JSON data
+return value : a DValue object containing the deserialized JSON data
+
+:see
+0_DValue
+json_encode
+2_DValue_to_bool
+2_DValue_to_f64
+2_DValue_to_u64
+
+:content
+Deserializes `s` into a `DValue` structure.
+
+The returned structure is usually consumed through `DValue` accessors such as:
+
+- `tree["key"].to_string()`
+- `tree["count"].to_u64()`
+- `tree["enabled"].to_bool()`
+
+Current runtime behavior:
+
+- JSON objects and arrays become map-shaped `DValue` values.
+- JSON booleans become native `bool` `DValue` values.
+- JSON strings become native `String` `DValue` values.
+- JSON numbers currently deserialize as string-valued `DValue` nodes, so typed conversions such as `to_f64()` and `to_u64()` are the normal way to read numeric content.
+
+:example
+DValue data = json_decode("{\"name\": \"Ada\", \"tags\": [\"x\", \"y\"]}");
+print(data["name"].to_string(), " has ", data["tags"].keys().size(), " tags\n");

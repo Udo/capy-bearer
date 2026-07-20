@@ -1,0 +1,38 @@
+:sig
+DValue sqlite_query(SQLite* db, String q)
+DValue sqlite_query(SQLite* db, String q, StringMap params)
+
+:params
+db : pointer to an active SQLite connection
+q : SQL statement
+params : optional named parameter map
+return value : list of result rows as a DValue
+
+:see
+>sqlite
+sqlite_connect
+sqlite_error
+sqlite_insert_id
+sqlite_affected_rows
+0_DValue
+
+:content
+Executes one SQLite statement and returns result rows as a `DValue` array. Multi-statement SQL strings are rejected so migrations cannot silently run only their first statement.
+
+Use named parameters with `:name` placeholders only. Positional `?` placeholders and SQLite's other named marker forms (`@name`, `$name`) are rejected so UCE SQLite queries use the same placeholder style as the MySQL helper. UCE binds parameters with SQLite prepared statements; it does not substitute values into the SQL string.
+
+Result rows are objects keyed by column name. SQLite integer, float, text, blob, and null values are converted to DValue values. Blob values are returned as byte strings.
+
+For statements that do not return rows, inspect `sqlite_affected_rows()` or `sqlite_insert_id()` after the call.
+
+:example
+SQLite* db = sqlite_connect("/tmp/doc-sqlite-query.db");
+sqlite_query(db, "drop table if exists users");
+sqlite_query(db, "create table users(id integer primary key, email text)");
+StringMap params; params["email"] = "ada@example.test";
+sqlite_query(db, "insert into users(email) values(:email)", params);
+DValue rows = sqlite_query(db, "select email from users");
+String first = "none";
+rows.each([&](DValue row, String key) { first = row["email"].to_string(); });
+print(first, "\n");
+sqlite_disconnect(db);

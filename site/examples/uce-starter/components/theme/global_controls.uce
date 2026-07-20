@@ -1,0 +1,14 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	String cookie_value = context.props["cookie_consent"].to_string();
+	bool cookie_consent = !(cookie_value == "0" || cookie_value == "false" || cookie_value == "FALSE" || cookie_value == "no" || cookie_value == "NO");
+
+	<>
+		<?: component("../example/theme-switcher", context) ?>
+		<? if(cookie_consent) { ?>
+			<?: component("../basic/cookie-consent", context) ?>
+		<? } ?>
+	</>
+}

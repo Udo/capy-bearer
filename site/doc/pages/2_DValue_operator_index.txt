@@ -1,0 +1,24 @@
+:title
+DValue::operator[]
+
+:sig
+DValue& DValue::operator[](String s)
+
+:params
+s : child key to return or create
+return value : reference to the child node
+
+:see
+0_DValue
+2_DValue_get_or_create
+2_DValue_key
+2_DValue_has
+
+:content
+Returns a mutable reference to a child, creating the child when it does not already exist. If this value is an internal reference, the operation is forwarded to the target. This has the same creation behavior as `get_or_create()`, so use `has()`, `key()`, or `get_by_path()` for non-mutating reads.
+
+
+:example
+DValue m;
+m["a"]["b"] = "nested";
+print(m["a"]["b"].to_string(), "\n");

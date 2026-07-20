@@ -1,0 +1,8 @@
+Version 0.1.3 on 2013-02-10:
+  * Included required C header files.
+
+Version 0.1.2 on 2011-11-30:
+  * Renamed stdin, stdout, stderr to in, out, err.
+
+Version 0.1.1 on 2009-08-12:
+  * First release.

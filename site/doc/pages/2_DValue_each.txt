@@ -1,0 +1,26 @@
+:sig
+void DValue::each(std::function<void (const DValue& item, String key)> f) const
+
+:params
+f : callback invoked for each child, or once for a scalar value
+return value : none
+
+:see
+>types
+0_DValue
+2_DValue_map
+2_DValue_filter
+2_DValue_is_list
+
+:content
+Iterates a `DValue` without modifying it. References are dereferenced before iteration.
+
+For map-shaped values, the callback receives each child and its key. List-shaped maps iterate in numeric index order (`0`, `1`, `2`, ...); ordinary maps iterate in `std::map` string-key order. Scalar values invoke the callback once with the current value and an empty key.
+
+:example
+DValue user;
+user["name"] = "Ada";
+user["role"] = "admin";
+StringList keys;
+user.each([&](const DValue& item, String key) { keys.push_back(key); });
+print(join(keys.sort(), ","), "\n");

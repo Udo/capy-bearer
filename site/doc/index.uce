@@ -1,0 +1,305 @@
+#include "lib/doc_page.h"
+
+void render_doc_page_link(String page, String label = "", String badge = "")
+{
+	page = trim(page);
+	if(page == "")
+		return;
+	if(label == "")
+		label = doc_index_label(page);
+	if(badge == "")
+		badge = doc_page_kind_badge(doc_page_kind(page));
+
+	?><a href="index.uce?p=<?= uri_encode(page) ?>"><?= label ?><?
+	if(badge != "")
+	{
+		?><span class="badge"><?= badge ?></span><?
+	}
+	else
+	{
+		?><span class="dim">()</span><?
+	}
+	?></a><?
+}
+
+void render_doc_params(StringList param_lines)
+{
+	if(param_lines.size() == 0)
+		return;
+
+	<><div class="doc-section params">
+	<h3>Parameters</h3><?
+	for(auto line : param_lines)
+	{
+		if(trim(line) == "")
+			continue;
+		String name = trim(nibble(line, ":"));
+		String value = trim(line);
+		?><div><b><?= name ?></b><?
+		if(value != "")
+		{
+			?> : <?: doc_markdown_inline(value) ?><?
+		}
+		?></div><?
+	}
+	?></div></>
+}
+
+String doc_example_path(Request& context, String page, u64 idx)
+{
+	String bin_dir = context.params["UCE_BIN_DIRECTORY"];
+	if(bin_dir == "")
+		return("");
+	String dir = path_join(bin_dir, "doc-examples");
+	mkdir(dir);
+	return(path_join(dir, page + "_" + std::to_string(idx + 1) + ".uce"));
+}
+
+String doc_example_unit_source(String body)
+{
+	return("RENDER(Request& context)\n{\n" + body + "\n}\n");
+}
+
+bool doc_write_if_changed(String path, String content)
+{
+	if(file_exists(path) && file_get_contents(path) == content)
+		return(true);
+	return(file_put_contents(path, content));
+}
+
+String doc_render_example_output(Request& context, String page, u64 idx, String body)
+{
+	String path = doc_example_path(context, page, idx);
+	if(path == "")
+		return("DOC EXAMPLE ERROR: UCE_BIN_DIRECTORY is not available");
+	String unit_source = doc_example_unit_source(body);
+	if(!doc_write_if_changed(path, unit_source))
+		return("DOC EXAMPLE ERROR: could not write " + path);
+	if(!unit_compile(path))
+		return("DOC EXAMPLE ERROR: unit_compile failed for " + path);
+
+	ob_start();
+	unit_render(path);
+	String out = ob_get_close();
+	if(out == "")
+		return("DOC EXAMPLE ERROR: example produced no output");
+	return(out);
+}
+
+void render_doc_examples(Request& context, String page, StringList example_blocks)
+{
+	for(u64 idx = 0; idx < example_blocks.size(); idx++)
+	{
+		String body = example_blocks[idx];
+		String output = doc_render_example_output(context, page, idx, body);
+		?><div class="doc-section example">
+		<h3>Example</h3>
+		<pre class="example-source"><?= body ?></pre>
+		<div class="example-output">
+			<div class="example-output-label">Output</div>
+			<pre><?= output ?></pre>
+		</div>
+		</div><?
+	}
+}
+
+void render_see_section(String name)
+{
+	StringList lines = split(file_get_contents("areas/" + name + ".txt"), "\n");
+	s32 idx = 0;
+	for(auto line : lines)
+	{
+		line = trim(line);
+		if(line == "")
+		{
+			idx += 1;
+			continue;
+		}
+		if(idx == 0)
+		{
+			<><div class="category"><h3><?= line ?></h3><ul></>
+		}
+		else
+		{
+			?><li><? render_doc_page_link(line); ?></li><?
+		}
+		idx += 1;
+	}
+	<></ul></div></>
+}
+
+void render_doc_see_links(StringList see_lines)
+{
+	if(see_lines.size() == 0)
+		return;
+
+	<><h3 class="sidebar-subhead">Related</h3>
+	<?
+	for(auto sl : see_lines)
+	{
+		if(sl[0] == '>')
+		{
+			String target = trim(sl.substr(1));
+			if(doc_has_area(target))
+			{
+				render_see_section(target);
+			}
+			else if(doc_has_page(target))
+			{
+				?><div><? render_doc_page_link(target); ?></div><?
+			}
+		}
+		else
+		{
+			?><div><? render_doc_page_link(trim(sl)); ?></div><?
+		}
+	} 
+	?>
+	</>
+}
+
+
+RENDER(Request& context)
+{
+	String page = first(context.get["p"], "index");
+	DocPage doc_page;
+	String page_title = doc_default_title(page);
+	if(page != "index")
+	{
+		doc_page = load_doc_page(page);
+		if(doc_page.title != "")
+			page_title = doc_page.title;
+	}
+
+	<><html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
+	</head>
+	<body>
+		<h1>
+			<a href="index.uce">UCE Docs</a><?
+			if(page != "index")
+			{
+				?><span class="dim"> / </span><?= page_title ?><?
+			}
+		?>
+		</h1>
+		<?
+
+		if(page == "index")
+		{
+			?><div class="search-bar">
+				<input id="doc-search" type="search" placeholder="Search API…" autocomplete="off" spellcheck="false"/>
+				<span class="search-count" id="search-count"></span>
+			</div>
+			<div id="search-results" hidden></div>
+			<div class="index-pane" id="index-pane">
+			<div class="index-layout">
+			<nav class="sidebar"><?
+			for(auto file_name : ls("areas/"))
+			{
+				String ft = nibble(file_name, ".");
+				render_see_section(ft);
+			}
+			?></nav>
+			<main class="content">
+			<h2>All API Functions</h2>
+			<div class="func-grid"><?
+			for(auto file_name : ls("pages/"))
+			{
+				String ft = nibble(file_name, ".");
+				String label = doc_index_label(ft);
+				String badge = doc_page_kind_badge(doc_page_kind(ft));
+				?><div class="func-item"><? render_doc_page_link(ft, label, badge); ?></div><?
+			}
+			?></div>
+			</main>
+			</div>
+			</div>
+			<?
+			<><script>
+			(function () {
+				var input = document.getElementById('doc-search');
+				var results = document.getElementById('search-results');
+				var pane = document.getElementById('index-pane');
+				var counter = document.getElementById('search-count');
+				var timer;
+
+				function showResults(html) {
+					results.innerHTML = html;
+					results.hidden = false;
+					pane.hidden = true;
+					var hits = results.querySelectorAll('.search-hit').length;
+					counter.textContent = hits ? hits + ' result' + (hits > 1 ? 's' : '') : '';
+				}
+
+				function showIndex() {
+					results.innerHTML = '';
+					results.hidden = true;
+					pane.hidden = false;
+					counter.textContent = '';
+				}
+
+				input.addEventListener('input', function () {
+					var q = this.value.trim();
+					clearTimeout(timer);
+					if (q.length < 2) { showIndex(); return; }
+					counter.textContent = '\u2026';
+					timer = setTimeout(function () {
+						fetch('search.uce?q=' + encodeURIComponent(q))
+							.then(function (r) { return r.text(); })
+							.then(showResults);
+					}, 220);
+				});
+
+				input.addEventListener('keydown', function (e) {
+					if (e.key === 'Escape') { this.value = ''; showIndex(); }
+				});
+			})();
+			</script></>
+		}
+		else
+		{
+			String detail_class = "detail-layout";
+			if(doc_page.see_lines.size() == 0)
+				detail_class += " no-sidebar";
+
+			?><div class="<?= detail_class ?>">
+			<article class="doc-detail"><?
+
+			if(doc_page.sig_lines.size() > 0)
+			{
+				?><div class="doc-section sig">
+				<h3>Signature</h3>
+				<pre><? print(join(doc_page.sig_lines, "\n")); ?></pre>
+				</div><?
+			}
+
+			render_doc_params(doc_page.param_lines);
+
+			if(trim(doc_page.content) != "")
+			{
+				?><div class="doc-section content"><?: markdown_to_html(doc_page.content) ?></div><?
+			}
+
+			render_doc_examples(context, page, doc_page.example_blocks);
+
+			?></article><?
+
+			if(doc_page.see_lines.size() > 0)
+			{
+				?><aside class="detail-sidebar">
+				<div class="sidebar-card"><?
+				render_doc_see_links(doc_page.see_lines);
+				?></div>
+				</aside><?
+			}
+
+			?></div><?
+		}
+
+		?>
+	</body>
+	</html></>
+}

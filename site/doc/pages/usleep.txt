@@ -1,0 +1,24 @@
+:sig
+s32 usleep(u32 usec)
+
+:params
+usec : microseconds to sleep
+return value : `0` after sleeping
+
+:see
+>time
+sleep
+
+:content
+Pauses the current request or task for a number of microseconds.
+
+Use this for short waits in local tests, polling loops, or background tasks. Avoid long sleeps in normal HTTP render paths because they hold a worker process for the duration.
+
+Example:
+
+
+For whole-second waits, use `sleep()`.
+
+:example
+usleep(1000);
+print("slept\n");

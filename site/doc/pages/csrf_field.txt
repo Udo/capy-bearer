@@ -1,0 +1,27 @@
+:sig
+String csrf_field(String session_name = "uce-session", String token_name = "csrf_token", String field_name = "")
+
+:params
+session_name : session/cookie name to store the token under
+token_name : form/action token namespace
+field_name : submitted POST field name; defaults to `token_name`
+return value : HTML hidden input containing the active CSRF token
+
+:content
+Starts the named session if needed and returns the standard hidden form input for a CSRF token. The field name and generated token value are HTML-escaped.
+
+Use this in ordinary server-rendered POST forms when the submitted field name should match `token_name`, or pass `field_name` when several forms share the same submitted parameter name but need separate token namespaces. Validate the submitted value with `csrf_valid(context.post[field_name], session_name, token_name)` before mutating state.
+
+:example
+?><form method="post">
+	<? print(csrf_field("uce-doc-session")); ?>
+	<? print(csrf_field("uce-doc-session", "profile_form", "csrf_token")); ?>
+	<button type="submit">Save</button>
+</form><?
+
+:see
+>http
+csrf_token
+csrf_valid
+csrf_rotate
+session_start

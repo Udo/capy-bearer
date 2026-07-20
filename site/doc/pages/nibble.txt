@@ -1,0 +1,22 @@
+:sig
+String nibble(String& haystack, String delim)
+
+:params
+haystack : string to be nibbled at
+delim : delimiter
+return value : string before first occurrence of 'delim'
+
+:see
+>string
+
+:content
+Returns the part of `haystack` before the first occurrence of `delim`.
+
+As a side effect, the consumed portion is removed from `haystack`, including the delimiter itself.
+
+If `delim` does not occur in `haystack`, the entire string is returned and `haystack` is set to an empty string.
+
+
+:example
+String path = "docs/index";
+print(nibble(path, "/"), " ", path, "\n");

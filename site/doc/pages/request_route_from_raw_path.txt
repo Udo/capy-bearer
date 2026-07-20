@@ -1,0 +1,18 @@
+:sig
+DValue request_route_from_raw_path(String raw_path, String default_path = "index")
+
+:params
+raw_path : raw route path from a request or query string
+ default_path : route used for an empty path
+return value : route metadata DValue
+
+:see
+>request
+>route_path_sanitize
+
+:content
+Normalizes and validates a raw route path. The returned DValue includes route fields used by request context population, including sanitized path and validity metadata.
+
+:example
+DValue route = request_route_from_raw_path("blog/2024/hello-world");
+print("page=", route["page"].to_string(), " valid=", route["valid"].to_bool() ? "yes" : "no", "\n");

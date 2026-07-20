@@ -1,0 +1,49 @@
+
+
+RENDER(Request& context)
+{
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Random
+		</h1>
+	</>
+
+	<>
+		Generate Some Numbers
+		<pre><?
+
+		u64 max_64 = 0xffffffffffffffff;
+		u64 max_32 = 0xffffffff;
+
+		for(auto i = 0; i < 100; i++)
+		{
+			print(i, ": ", (float)gen_noise32(i)/(float)max_32, " / ", (float)gen_noise64(i)/(float)max_64, " / ", gen_noise01(i), " / ",
+				gen_int(0, 4, i), " / ", gen_float(0.0, 4.0, i), "\n");
+		}
+
+		?></pre>
+		Draw Some Numbers
+		<div>
+		Seed <?= context.random_seed ?>
+		</div>
+		<pre><?
+
+		for(auto i = 0; i < 100; i++)
+		{
+			print(i, ": ", draw_int(0, 4), " / ", draw_float(0.0, 4.0), "\n");
+		}
+
+		?></pre>
+
+		<div>
+		Sha1 of '1234': <?= gen_sha1("1234") ?>
+		</div>
+
+		Params
+		<pre><?= var_dump(context.params) ?></pre>
+	</>
+
+}

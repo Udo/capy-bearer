@@ -1,0 +1,17 @@
+:sig
+void print(...val)
+
+:params
+...val : one or more values that should be output
+
+:see
+>string
+
+:content
+Appends data to the current request output stream.
+
+Use `print()` when you want to emit response content directly from UCE code.
+
+
+:example
+print("hello docs\n");

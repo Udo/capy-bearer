@@ -1,0 +1,25 @@
+:sig
+String substr(String s, s64 start_pos)
+String substr(String s, s64 start_pos, s64 length)
+
+:params
+s : source string
+start_pos : zero-based start position; negative values count from the end of the string
+length : optional substring length; negative values trim bytes from the end of the result range
+return value : extracted substring, or an empty string if the requested range is outside the source string
+
+:see
+>string
+
+:content
+Extracts part of a string using PHP-style start and length semantics.
+
+Use the two-argument form to return everything from `start_pos` to the end of the string.
+
+If `start_pos` is negative, counting starts from the end of the string.
+
+If `length` is negative, the returned range stops that many bytes before the end of the string.
+
+
+:example
+print(substr("documentation", 0, 3), "\n");

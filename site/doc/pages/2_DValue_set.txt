@@ -1,0 +1,27 @@
+:sig
+void DValue::set(String s)
+void DValue::set(void* p)
+void DValue::set(f64 f)
+void DValue::set(DValue source)
+void DValue::set(StringMap source)
+
+:params
+s : string value for the String overload
+p : pointer value for the pointer overload
+f : floating point value for the f64 overload
+source : DValue or StringMap to copy
+return value : none
+
+:see
+0_DValue
+2_DValue_set_bool
+2_DValue_set_array
+
+:content
+Assigns a new value, forwarding through references when possible. String, pointer, and f64 overloads set scalar nodes. `set(DValue)` copies the source's current type and payload. `set(StringMap)` creates a map-shaped value with each string entry as a child.
+
+
+:example
+DValue v;
+v.set("hello");
+print(v.to_string(), "\n");

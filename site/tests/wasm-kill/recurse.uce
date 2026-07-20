@@ -1,0 +1,14 @@
+// W4 kill-test: stack exhaustion via unbounded recursion. Traps as
+// "call stack exhausted"; the workspace drops cleanly.
+u64 wasm_kill_recurse(volatile u64 depth)
+{
+	volatile u64 next = depth + 1;
+	return(next + wasm_kill_recurse(next));
+}
+
+RENDER(Request& context)
+{
+	print("about to recurse\n");
+	volatile u64 sink = wasm_kill_recurse(0);
+	print("unreachable ", sink, "\n");
+}

@@ -1,0 +1,18 @@
+:sig
+String random_bytes(u64 n)
+
+:params
+n : number of bytes to generate
+return value : `n` cryptographically random bytes
+
+:content
+Returns `n` cryptographically secure random bytes, suitable for session IDs, tokens, and salts. The bytes are binary; wrap them with `base64_encode()` or `sha256_hex()` when you need printable text.
+
+:example
+String token = base64_encode(random_bytes(16));
+print(random_bytes(16).length(), " raw bytes; as base64 token: ", token.length(), " chars\n");
+
+:see
+>sys
+base64_encode
+sha256_hex

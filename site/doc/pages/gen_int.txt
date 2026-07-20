@@ -1,0 +1,19 @@
+:sig
+u64 gen_int(u64 from, u64 to, u64 index, u64 seed = 0)
+
+:params
+from : minimum result
+to : maximum result
+index : index position to generate number from
+seed : seed position to generate number from (defaults to 0)
+return value : noise value
+
+:see
+>noise
+
+:content
+Generates a deterministic noise value between `from` and `to` for the given `index` and `seed`.
+
+
+:example
+print(gen_int(1, 1, 10) >= 1 ? "int\n" : "bad\n");

@@ -1,0 +1,45 @@
+:sig
+DValue yaml_decode(String s)
+
+:params
+s : YAML source string
+return value : decoded DValue
+
+:see
+>markup
+yaml_encode
+json_decode
+xml_decode
+0_DValue
+
+:content
+Parses a practical YAML subset into a `DValue`.
+
+`yaml_decode()` is designed for concise UCE config files. It supports a practical YAML subset and does not implement anchors, aliases, tags, directives, or complex inline collection syntax.
+
+Try the live example in the [YAML demo](../demo/yaml.uce).
+
+Example:
+
+
+Supported syntax:
+
+- indentation-based maps
+- indentation-based lists
+- `key: value` map entries
+- list entries with `- value`
+- quoted strings with single or double quotes
+- booleans `true` and `false`
+- empty/null-ish values as empty strings
+- comments beginning with `#` outside quoted strings
+- literal block strings with `|`
+- folded block strings with `>`
+- optional `---` and `...` document markers
+
+Numeric-looking values are stored as strings, matching `json_decode()`'s current behavior. Use `to_s64()`, `to_u64()`, or `to_f64()` when reading numeric config values.
+
+Malformed input raises a request-visible `yaml_decode(): ...` runtime error.
+
+:example
+DValue value = yaml_decode("name: Ada\n");
+print(value["name"].to_string(), "\n");

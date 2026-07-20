@@ -1,0 +1,25 @@
+:sig
+String file_pread(u64 h, u64 offset, u64 len)
+
+:params
+h : handle from file_open() opened for reading
+offset : absolute byte offset to read from
+len : maximum number of bytes to read
+return value : up to `len` bytes read at `offset`
+
+:content
+Reads `len` bytes from an absolute `offset` without moving the handle's current offset. Useful for random access reads that interleave with sequential ones.
+
+:example
+u64 w = file_open("/tmp/doc-pread.txt", "w");
+file_write(w, "hello world");
+file_close(w);
+u64 r = file_open("/tmp/doc-pread.txt", "r");
+print(file_pread(r, 6, 5), "\n");
+file_close(r);
+
+:see
+>sys
+file_read
+file_pwrite
+file_open

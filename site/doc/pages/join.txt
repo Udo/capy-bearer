@@ -1,0 +1,20 @@
+:sig
+String join(StringList l, String delim = "\n")
+
+:params
+l : list of strings to be joined
+delim : delimiter (defaults to newline character)
+return value : a string containing items joined by 'delim'
+
+:see
+>string
+
+:content
+Joins all strings in `l` into a single `String`.
+
+The delimiter is inserted between items. If `delim` is omitted, the default separator is a newline character.
+
+
+:example
+StringList parts = split("a,b,c", ",");
+print(join(parts, "-"), "\n");

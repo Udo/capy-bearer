@@ -1,0 +1,54 @@
+#include "demo_guard.h"
+
+RENDER(Request& context)
+{
+	if(!test_demo_request_allowed(context))
+	{
+		test_demo_render_restricted_html(context, "SQLite demo", "write to a server-side SQLite database");
+		return;
+	}
+
+	String db_path = "/tmp/uce-demo-sqlite.sqlite";
+	SQLite* db = sqlite_connect(db_path);
+	sqlite_query(db, "create table if not exists notes(id integer primary key autoincrement, body text not null, created_at text not null)");
+
+	if(context.params["REQUEST_METHOD"] == "POST" && trim(context.post["body"]) != "")
+	{
+		StringMap params;
+		params["body"] = trim(context.post["body"]);
+		params["created_at"] = time_format_utc("%Y-%m-%d %H:%M:%S");
+		sqlite_query(db, "insert into notes(body, created_at) values(:body, :created_at)", params);
+		sqlite_disconnect(db);
+		redirect("sqlite.uce", 303);
+		return;
+	}
+
+	DValue notes = sqlite_query(db, "select id, body, created_at from notes order by id desc limit 10");
+	String error = sqlite_error(db);
+	?><html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+		<link rel="stylesheet" href="style.css?v=<?= time() ?>"></link>
+	</head>
+	<body>
+		<h1><a href="index.uce">UCE Demo</a> / SQLite</h1>
+		<div class="system-info">
+			<p>This demo stores rows in <code><?= db_path ?></code> with runtime SQLite helpers and named prepared parameters.</p>
+			<form method="post">
+				<input name="body" placeholder="note text"></input>
+				<button type="submit">Add note</button>
+			</form>
+			<? if(error != "ok" && error != "connected") { ?><pre><?= error ?></pre><? } ?>
+		</div>
+		<div class="test-grid">
+			<? notes.each([&](DValue note, String key) { ?>
+				<div class="test-card">
+					<strong>#<?= note["id"].to_string() ?> <?= note["created_at"].to_string() ?></strong>
+					<span><?= note["body"].to_string() ?></span>
+				</div>
+			<? }); ?>
+		</div>
+	</body>
+	</html><?
+	sqlite_disconnect(db);
+}

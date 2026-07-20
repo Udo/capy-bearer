@@ -1,0 +1,42 @@
+:sig
+bool regex_match(String pattern, String subject)
+bool regex_match(String pattern, String subject, String flags)
+
+:params
+pattern : PCRE2 regular expression pattern
+subject : string to test
+flags : optional regex flags
+return value : `true` when the entire subject matches the pattern
+
+:see
+>string
+>regex
+regex_search
+regex_search_all
+regex_replace
+regex_split
+0_String
+
+:content
+Tests whether `subject` matches `pattern` from start to end.
+
+This is a full-string match, not a substring search. Use `regex_search()` when you want to find the first occurrence anywhere in a string.
+
+Examples:
+
+
+Supported flags:
+
+- `i` enables case-insensitive matching.
+- `m` enables multiline `^` and `$`.
+- `s` lets `.` match newlines.
+- `x` enables extended / whitespace-insensitive pattern syntax.
+- `u` explicitly enables UTF-8 and Unicode character properties.
+- `a` disables UTF-8 / Unicode property mode for ASCII-oriented matching.
+
+UCE uses PCRE2 in UTF-8 + Unicode-property mode by default, so patterns such as `\\p{L}+` work naturally on Unicode text.
+
+Invalid patterns or invalid flags raise a request-visible runtime error with the PCRE2 diagnostic message.
+
+:example
+print(regex_match("^[a-z]+$", "docs") ? "match\n" : "no\n");

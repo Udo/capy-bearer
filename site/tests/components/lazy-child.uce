@@ -1,0 +1,4 @@
+COMPONENT(Request& context)
+{
+	<><span>lazy-child</span></>
+}

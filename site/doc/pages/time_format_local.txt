@@ -1,0 +1,26 @@
+:sig
+String time_format_local(String format = "", u64 timestamp = 0)
+
+:params
+format : formatting string specifying the date format
+timestamp : optional timestamp value, defaults to current time
+return value : a formatted date
+
+:see
+>time
+>time_format_relative
+
+:content
+Formats a timestamp in the server's local timezone.
+
+This formatter is based on the Linux `date` command and supports the same core formatting tokens plus UCE's relative-time delta tokens.
+
+Supported format sequences:
+
+
+Padding and case flags may follow `%`:
+
+
+
+:example
+print(time_format_local("%Y-%m-%d", 0) != "" ? "formatted\n" : "empty\n");

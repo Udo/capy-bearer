@@ -1,0 +1,30 @@
+:sig
+String route_path_sanitize(String path, String default_path = "index")
+
+:see
+>uri
+route_path_is_safe
+route_path_normalize
+request_query_path
+request_query_route
+request_context_params
+
+:content
+Normalizes and validates a route path for file-backed routing.
+
+Rules:
+
+- leading and trailing `/` are removed
+- an empty path becomes `default_path`
+- every path segment must be non-empty
+- `.` and `..` segments are rejected
+- only ASCII letters, digits, `_`, and `-` are accepted inside a segment
+- unsafe input returns an empty string
+
+Use this instead of manually checking app routes before composing file paths.
+
+
+`request_query_path()`, `request_query_route()`, and the runtime-populated `ROUTE_PATH` params already use this sanitizer.
+
+:example
+print(route_path_sanitize("../secret", "index"), "\n");

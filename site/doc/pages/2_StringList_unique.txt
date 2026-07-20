@@ -1,0 +1,20 @@
+:sig
+StringList StringList::unique() const
+
+:params
+return value : a new `StringList` containing each distinct string once
+
+:content
+Returns a copy of the list with duplicate strings removed. The first occurrence of each string is kept, so the result preserves first-seen order.
+
+:example
+StringList routes = split("dashboard,index,dashboard,themes", ",");
+StringList unique_routes = routes.unique();
+print(join(unique_routes, ","), "\n");
+
+:see
+>types
+0_StringList
+2_StringList_sort
+2_StringList_find
+join

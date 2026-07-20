@@ -1,0 +1,21 @@
+:sig
+bool mysql_connected(MySQL* m)
+
+:params
+m : pointer returned by mysql_connect()
+return value : true only when the wrapper owns a live server connection
+
+:see
+>mysql
+
+:content
+Tests whether a MySQL wrapper has a usable server connection. `mysql_connect()` retains a failed wrapper so that callers can retrieve its diagnostic through `mysql_error()`; this helper distinguishes that state from a live handle without consuming the diagnostic.
+
+:example
+MySQL* db = mysql_connect();
+if(!mysql_connected(db))
+{
+    print("database unavailable: ", mysql_error(db), "\n");
+}
+else print("database connected\n");
+if(db != 0) mysql_disconnect(db);

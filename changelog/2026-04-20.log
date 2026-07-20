@@ -1,0 +1,9 @@
+commit b53eb6e4f1b5fa4e2a4907022f591eb9a1860c33
+Enhance template parser to handle C++ comments and refactor preprocessing logic
+
+- Updated parser to correctly interpret C++ `//` and `/* ... */` comments within template code.
+- Split preprocessing implementation into separate files for better organization.
+- Added regression test for comment parsing in templates.
+- Adjusted CSS styles for improved layout and readability in documentation.
+
+

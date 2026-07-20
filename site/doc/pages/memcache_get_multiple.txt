@@ -1,0 +1,27 @@
+:sig
+StringMap memcache_get_multiple(u64 connection, StringList keys)
+
+:params
+connection : connection handle
+keys : a list of strings containing the keys to be retrieved
+return value : a StringMap with the retrieved entries
+
+:see
+>memcache
+
+:content
+Retrieves multiple entries in one call.
+
+The result is returned as a `StringMap` keyed by the requested Memcache keys.
+
+:example
+u64 conn = memcache_connect();
+if(conn != 0)
+{
+    memcache_set(conn, "doc_k1", "v1");
+    memcache_set(conn, "doc_k2", "v2");
+    StringList keys; keys.push_back("doc_k1"); keys.push_back("doc_k2");
+    StringMap vals = memcache_get_multiple(conn, keys);
+    print(vals["doc_k1"], " / ", vals["doc_k2"], "\n");
+}
+else print("(requires a reachable memcached server)\n");

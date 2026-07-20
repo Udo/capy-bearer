@@ -1,0 +1,19 @@
+:sig
+u64 DValue::to_u64(u64 default_value = 0) const
+
+:params
+u64 : fallback returned when conversion is not possible
+return value : converted value or the fallback
+
+:see
+>types
+0_DValue
+2_DValue_get_by_path
+
+:content
+Converts strings, f64, bool, pointer, and single-value maps to an unsigned integer. Invalid or empty strings return the default. Negative values clamp to zero and oversized values clamp to `u64` max.
+
+:example
+DValue value;
+value = "42";
+print(value.to_u64(), "\n");

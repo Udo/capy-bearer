@@ -1,0 +1,31 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	StarterUser users(context);
+	DValue user = users.current();
+	bool signed_in = user["email"].to_string() != "";
+	String theme_key = context.cfg.get_by_path("theme/key").to_string();
+	String wrapper_class = first(context.props["wrapper_class"].to_string(), theme_key == "localfirst" ? "admin-account-card" : "nav-account nav-menu");
+	String links_class = first(context.props["links_wrapper_class"].to_string(), theme_key == "localfirst" ? "admin-account-links" : "");
+	String name_class = first(context.props["name_class"].to_string(), theme_key == "localfirst" ? "admin-account-name" : "account-name");
+
+	<>
+		<div class="<?= wrapper_class ?>">
+			<? if(signed_in) { ?>
+				<span class="<?= name_class ?>"><?= first(user["username"].to_string(), user["email"].to_string(), "Account") ?></span>
+				<? if(links_class != "") { ?><div class="<?= links_class ?>"><? } ?>
+				<a href="<?= app_link("account/profile", context) ?>">Profile</a>
+				<a href="<?= app_link("account/logout", context) ?>">Logout</a>
+				<? if(links_class != "") { ?></div><? } ?>
+			<? } else { ?>
+				<? if(links_class != "") { ?><div class="<?= links_class ?>"><? } ?>
+				<a href="<?= app_link("account/login", context) ?>">Login</a>
+				<? if(context.cfg.get_by_path("users/enable_signup").to_string() != "") { ?>
+					<a href="<?= app_link("account/register", context) ?>">Register</a>
+				<? } ?>
+				<? if(links_class != "") { ?></div><? } ?>
+			<? } ?>
+		</div>
+	</>
+}

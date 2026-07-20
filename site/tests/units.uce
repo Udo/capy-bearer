@@ -1,0 +1,41 @@
+#include "testlib.h"
+
+RENDER(Request& context)
+{
+	u64 passed = 0;
+	u64 failed = 0;
+	u64 skipped = 0;
+
+	auto check = [&](String name, bool ok, String detail)
+	{
+		site_tests_case(name, ok ? "pass" : "fail", detail);
+		if(ok)
+			passed++;
+		else
+			failed++;
+	};
+
+	auto unit_paths = units_list();
+	DValue info = unit_info("call_helpers.uce");
+	DValue relative_info = unit_info("components/../relative-child.uce");
+
+	ob_start();
+	unit_call("call_helpers.uce", "emit_marker");
+	String call_output = ob_get_close();
+
+	ob_start();
+	unit_render("call_helpers.uce", context);
+	String render_output = ob_get_close();
+
+	site_tests_page_start("Units", "Unit discovery, metadata, exported-function invocation, and render-path coverage.");
+
+	check("units_list()", unit_paths.size() > 0, "count=" + std::to_string(unit_paths.size()));
+	check("unit_info()", info["path"].to_string() != "", json_encode(info));
+	check("compiler canonicalizes relative unit paths", relative_info["path"].to_string().find("/../") == String::npos && str_ends_with(relative_info["path"].to_string(), "/site/tests/relative-child.uce"), json_encode(relative_info));
+	check("unit_compile()", unit_compile("call_helpers.uce"), "call_helpers.uce");
+	check("unit_call()", call_output.find("UNIT_CALL_EXPORT_OK") != String::npos, call_output);
+	check("unit_render()", render_output.find("data-unit-render=\"ok\"") != String::npos, render_output);
+
+	site_tests_summary(passed, failed, skipped, "The local fixture call_helpers.uce keeps these checks deterministic and self-contained within site/tests.");
+	site_tests_page_end();
+}

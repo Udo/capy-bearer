@@ -1,0 +1,121 @@
+
+#include "demo_guard.h"
+
+
+void render_card(String url, String title, String desc)
+{
+	<><a class="test-card" href="<?= url ?>">
+		<strong><?= title ?></strong>
+		<span><?= desc ?></span>
+	</a></>
+}
+
+RENDER(Request& context)
+{
+	DValue p;
+	p.set(context.params);
+	bool allow_server_demos = test_demo_request_allowed(context);
+
+	<><html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
+	</head>
+	<body>
+		<h1>
+			<a href="index.uce">UCE Test Suite</a>
+			<a class="docs-link" href="../doc/index.uce">API Docs &rarr;</a>
+		</h1>
+		<div class="test-grid">
+
+			<div class="grid-heading">Basics</div>
+			<? render_card("hello.uce", "Hello World", "Basic output and server time"); ?>
+			<? render_card("header.uce", "Headers", "HTTP response headers"); ?>
+			<? if(allow_server_demos) { render_card("working-dir.uce", "Working Directory", "Server paths and cwd"); } ?>
+			<? if(allow_server_demos) { render_card("error-reporting.uce", "Error Reporting", "Error handling and output"); } ?>
+
+			<div class="grid-heading">Data Types &amp; Parsing</div>
+			<? render_card("dvalue.uce", "DValue", "Dynamic hierarchical data tree"); ?>
+			<? render_card("json.uce", "JSON", "Parse and encode JSON data"); ?>
+			<? render_card("xml.uce", "XML", "Structural XML encode/decode with DValue"); ?>
+			<? render_card("yaml.uce", "YAML", "Concise config files with DValue"); ?>
+			<? render_card("preprocessor-comments.uce", "Preprocessor Comments", "Regression coverage for comment parsing in templates"); ?>
+			<? render_card("regex.uce", "Regular Expressions", "PCRE2 matching, captures, replacement, and splitting"); ?>
+			<? render_card("string.uce", "String", "String operations"); ?>
+			<? render_card("collections.uce", "Collection Helpers", "Map, filter, group, pick, and omit render data"); ?>
+			<? render_card("str_replace.uce", "String Replace", "Search and replace in strings"); ?>
+			<? render_card("utf8.uce", "UTF-8", "Unicode string handling"); ?>
+			<? render_card("random.uce", "RNG / Noise", "Random generation and noise"); ?>
+			<? render_card("parse_time.uce", "time_parse()", "Date and time parsing"); ?>
+
+			<div class="grid-heading">HTTP &amp; Forms</div>
+			<? render_card("post.uce", "Form POST", "URL-encoded form submission"); ?>
+			<? render_card("post-multipart.uce", "Multipart POST", "File upload and multipart forms"); ?>
+			<? render_card("uri.uce", "URI", "URI encoding and decoding"); ?>
+			<? render_card("cookie.uce", "Cookies", "Read and write browser cookies"); ?>
+			<? render_card("session.uce", "Session", "Server-side session state"); ?>
+
+			<div class="grid-heading">Storage &amp; I/O</div>
+			<? render_card("fileio.uce", "File I/O", "Read and write files"); ?>
+			<? if(allow_server_demos) { render_card("zip.uce", "ZIP", "Create, list, read, and extract ZIP archives"); } ?>
+			<? if(allow_server_demos) { render_card("file_append.uce", "File Append", "Append data to files"); } ?>
+			<? if(allow_server_demos) { render_card("shell.uce", "Shell", "Execute shell commands"); } ?>
+			<? if(allow_server_demos) { render_card("memcached.uce", "Memcached", "Memcached key-value store"); } ?>
+			<? if(allow_server_demos) { render_card("sqlite.uce", "SQLite", "Embedded SQLite database connector"); } ?>
+			<? if(allow_server_demos) { render_card("mysql.uce", "MySQL", "MySQL database connector"); } ?>
+
+			<div class="grid-heading">Advanced</div>
+			<? render_card("call_file.uce", "unit_call()", "Dynamic file inclusion"); ?>
+			<? render_card("components.uce", "Components", "Reusable component system"); ?>
+			<? render_card("once-init.uce", "ONCE / INIT", "Unit lifecycle hooks for worker load and request entry"); ?>
+			<? render_card("markdown.uce", "Markdown", "Markdown parsing with components"); ?>
+			<? render_card("script.uce", "Script", "UCE script integration"); ?>
+			<? render_card("websockets.ws.uce", "WebSockets", "Live WebSocket chat"); ?>
+			<? render_card("unit-browser.uce", "Unit Browser", "units_list(), unit_info(), unit_compile()"); ?>
+			<? if(allow_server_demos) { render_card("task.uce", "Task", "Background task execution"); } ?>
+			<? if(allow_server_demos) { render_card("task_repeat.uce", "Task Repeat", "Recurring task scheduling"); } ?>
+		</div>
+		<? if(!allow_server_demos) { ?>
+		<div class="system-info">
+			<h3>Restricted On Public Access</h3>
+			<pre>Local-only demos are hidden here because they can execute shell commands, access infrastructure services, mutate server state, compile units, or expose internal runtime details.</pre>
+		</div>
+		<? } else { ?>
+		<div class="system-info">
+			<h3>System Info</h3>
+			<pre><?
+				DValue perf = request_perf();
+				print("Worker PID: ", (u64)perf["worker_pid"].to_u64(), "\n");
+				print("Parent PID: ", (u64)perf["parent_pid"].to_u64(), "\n");
+				print("Request #: ", (u64)perf["request_count"].to_u64(), "\n");
+				print("Accept us: ", (f64)perf["accept_us"].to_f64(), "\n");
+				print("Running us: ", (f64)perf["running_us"].to_f64(), "\n");
+				print("Total us: ", (f64)perf["total_us"].to_f64(), "\n");
+				print("Dispatch us: ", (u64)perf["dispatch_us"].to_u64(), "\n");
+				print("Workspace setup us: ", (u64)perf["workspace_setup_us"].to_u64(), "\n");
+				print("Workspace birth us: ", (u64)perf["workspace_birth_us"].to_u64(), "\n");
+				print("Context apply us: ", (u64)perf["context_apply_us"].to_u64(), "\n");
+				print("Guest us: ", (f64)perf["guest_us"].to_f64(), "\n");
+				print("Hostcalls: ", (u64)perf["hostcall_count"].to_u64(), " / ", (u64)perf["hostcall_us"].to_u64(), " us\n");
+				print("MySQL hostcalls: ", (u64)perf["mysql_hostcall_count"].to_u64(), " / ", (u64)perf["mysql_hostcall_us"].to_u64(), " us\n");
+				print("MySQL operations: ", json_encode(perf["mysql_operations"]), " / dropped ", (u64)perf["mysql_operations_dropped"].to_u64(), "\n");
+				print("MySQL connections: ", (u64)perf["mysql_connection_open_count"].to_u64(), " new / ", (u64)perf["mysql_connection_reuse_count"].to_u64(), " worker reuse / ", (u64)perf["mysql_request_pool_hit_count"].to_u64(), " request reuse\n");
+				print("Memcache hostcalls: ", (u64)perf["memcache_hostcall_count"].to_u64(), " / ", (u64)perf["memcache_hostcall_us"].to_u64(), " us\n");
+				print("Component resolves: ", (u64)perf["component_resolve_count"].to_u64(), " / ", (u64)perf["component_resolve_us"].to_u64(), " us\n");
+				print("Component phases: path ", (u64)perf["component_path_us"].to_u64(), " / artifact ", (u64)perf["component_artifact_us"].to_u64(), " / load ", (u64)perf["component_load_us"].to_u64(), " / link ", (u64)perf["component_link_us"].to_u64(), " us\n");
+				print("Unit loads: ", (u64)perf["unit_load_count"].to_u64(), " / module ", (u64)perf["unit_module_us"].to_u64(), " / allocate ", (u64)perf["unit_allocate_us"].to_u64(), " / imports ", (u64)perf["unit_import_us"].to_u64(), " / instantiate ", (u64)perf["unit_instantiate_us"].to_u64(), " / initialize ", (u64)perf["unit_initialize_us"].to_u64(), " us\n");
+				print("Unit module cache: ", (u64)perf["unit_module_cache_hit_count"].to_u64(), " worker hits / ", (u64)perf["unit_module_cache_miss_count"].to_u64(), " misses / ", (u64)perf["unit_module_serialized_cache_hit_count"].to_u64(), " serialized hits / ", (u64)perf["unit_module_compile_count"].to_u64(), " wasm compiles\n");
+				print("Unit module phases: lookup ", (u64)perf["unit_module_lookup_us"].to_u64(), " / read ", (u64)perf["unit_module_read_us"].to_u64(), " us / ", (u64)perf["unit_module_read_bytes"].to_u64(), " bytes / parse ", (u64)perf["unit_module_parse_us"].to_u64(), " / deserialize/compile ", (u64)perf["unit_module_compile_us"].to_u64(), " / classify ", (u64)perf["unit_module_classify_us"].to_u64(), " us\n");
+				print("Unit symbol resolves: ", (u64)perf["unit_symbol_resolve_count"].to_u64(), " / ", (u64)perf["unit_symbol_resolve_us"].to_u64(), " us\n");
+				print("Output buffer size: ", context.ob->str().length(), "\n");
+			?></pre>
+		</div>
+		<? } ?>
+		<details>
+			<summary>Request Parameters</summary>
+			<pre><?= (var_dump(p)) ?></pre>
+		</details>
+	</body>
+	</html></>
+
+}

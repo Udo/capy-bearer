@@ -1,0 +1,22 @@
+
+
+RENDER(Request& context)
+{
+	DValue t;
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			FileI/O
+		</h1>
+
+		File IO:
+
+		<pre style="white-space: pre-wrap"><?= file_get_contents("fileio.uce") ?></pre>
+
+		Params
+		<pre><?= var_dump(context.params) ?></pre>
+	</>
+
+}

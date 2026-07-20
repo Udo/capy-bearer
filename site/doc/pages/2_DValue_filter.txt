@@ -1,0 +1,26 @@
+:sig
+DValue DValue::filter(StringList keys) const
+DValue DValue::filter(std::function<bool (const DValue& item, String key)> f) const
+
+:params
+keys : child keys to copy when using the key-list overload
+f : predicate returning true for children to keep
+return value : filtered copy
+
+:see
+>types
+0_DValue
+2_DValue_map
+2_DValue_keys
+
+:content
+`filter(keys)` copies existing children with the named keys into a new map-shaped `DValue`.
+
+`filter(f)` calls the predicate for each item from `each()`. Kept children from list-shaped input are pushed into a new list and re-indexed from zero; kept children from map-shaped input keep their original keys. Scalar input is passed to the predicate once and, if accepted, is pushed into a list.
+
+:example
+DValue user;
+user["name"] = "Ada";
+user["email"] = "ada@example.test";
+DValue public_user = user.filter({"name"});
+print(public_user["name"].to_string(), "\n");

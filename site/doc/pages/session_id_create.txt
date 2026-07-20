@@ -1,0 +1,17 @@
+:sig
+String session_id_create()
+
+:params
+return value : a new session ID
+
+:see
+>session
+
+:content
+Creates and returns a new session ID.
+
+This helper is useful when you need to generate a session token directly rather than starting a full session flow with `session_start()`.
+
+
+:example
+print(session_id_create().length() > 0 ? "session id\n" : "empty\n");

@@ -1,0 +1,16 @@
+:sig
+String base64_decode(String raw)
+
+:params
+raw : Base64-encoded text
+return value : the decoded bytes (empty on invalid input)
+
+:content
+Decodes Base64 text back to bytes. Pairs with `base64_encode()` for round-tripping binary data through text channels.
+
+:example
+print(base64_decode("aGVsbG8="), "\n");
+
+:see
+>uri
+base64_encode

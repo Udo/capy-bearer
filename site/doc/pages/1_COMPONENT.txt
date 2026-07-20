@@ -1,0 +1,42 @@
+:title
+COMPONENT
+
+:sig
+COMPONENT(Request& context)
+
+:see
+>component
+>component_render
+>1_RENDER
+>1_INIT
+>1_ONCE
+>1_WS
+
+:content
+Defines the default component entrypoint for the current `.uce` file.
+
+`component()` and `component_render()` call `COMPONENT(Request& context)` by default. Named component entrypoints use `COMPONENT:NAME(Request& context)`.
+
+If the same file defines `ONCE(Request& context)`, that hook runs once per request before the first `COMPONENT()` or `COMPONENT:NAME()` call for that unit.
+
+If the file defines `INIT(Request& context)`, that hook runs once when the worker loads the compiled unit into memory.
+
+## Why It Exists
+
+This keeps page rendering and component rendering separate:
+
+- direct HTTP requests call `RENDER(Request& context)`
+- WebSocket messages call `WS(Request& context)`
+- component helpers call `COMPONENT(Request& context)` or `COMPONENT:NAME(Request& context)`
+
+A file intended only for component reuse can define `COMPONENT()` without defining `RENDER()`.
+
+Inside component handlers, props arrive through `context.props`.
+
+When you call `component(":NAME", props, context)` or `component_render(":NAME", props, context)`, the runtime resolves `:NAME` against the current `.uce` file instead of requiring the file name again.
+
+## Example
+
+
+:example
+print("COMPONENT is a unit directive; place it at top level in a .uce unit.\n");

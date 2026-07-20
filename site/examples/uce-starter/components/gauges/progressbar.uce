@@ -1,0 +1,170 @@
+#load "helpers.uce"
+
+COMPONENT(Request& context)
+{
+	DValue asset_props;
+	asset_props["css"]["0"] = "themes/common/css/gauges.css";
+	asset_props["js"]["0"] = "components/gauges/common.js";
+	print(component("../theme/assets", asset_props, context));
+
+	String gauge_id = first(context.props["id"].to_string(), "progressbar-" + std::to_string((u64)time()));
+	String style = context.props["style"].to_string();
+	String item_style = context.props["item-style"].to_string();
+	String label_style = context.props["label-style"].to_string();
+	String value_style = context.props["value-style"].to_string();
+	String bar_style = context.props["bar-style"].to_string();
+	String title = context.props["title"].to_string();
+	String subtitle = context.props["subtitle"].to_string();
+	String layout = first(context.props["layout"].to_string(), "horizontal");
+	String bar_color_default = context.props["bar-color"].to_string();
+	DValue scale = context.props["scale"];
+	DValue markers = context.props["markers"];
+
+	StringList default_palette;
+	default_palette.push_back("var(--success, #10b981)");
+	default_palette.push_back("var(--primary, #60a5fa)");
+	default_palette.push_back("var(--accent, #22d3ee)");
+	default_palette.push_back("var(--warning, #f59e0b)");
+	u32 auto_color_counter = 0;
+
+	<>
+		<section class="gauge-set progressbar-set progressbar-set-<?= gauge_attr_id(layout) ?>" id="<?= gauge_attr_id(gauge_id) ?>" style="<?= style ?>">
+			<? if(title != "") { ?>
+				<div class="gauge-set-header">
+					<h3><?= title ?></h3>
+					<? if(subtitle != "") { ?><p><?= subtitle ?></p><? } ?>
+				</div>
+			<? } ?>
+			<? if(layout == "horizontal") { ?>
+				<div class="progressbar-grid progressbar-grid-horizontal">
+					<? context.props["items"].each([&](DValue bar, String bar_id) {
+						DValue merged = scale;
+						bar.each([&](DValue item, String key) { merged[key] = item; });
+						String item_id = gauge_attr_id(bar_id);
+						String merged_item_style = item_style;
+						if(merged["style"].to_string() != "")
+							merged_item_style += (merged_item_style != "" ? ";" : "") + merged["style"].to_string();
+						String tooltip = merged["tooltip"].to_string();
+						String before_html = merged["before"].to_string();
+						String after_html = merged["after"].to_string();
+						String unit = merged["unit"].to_string();
+						String label = first(merged["label"].to_string(), bar_id);
+						f64 min_value = float_val(first(merged["min"].to_string(), "0"));
+						f64 max_value = float_val(first(merged["max"].to_string(), "100"));
+						f64 value = float_val(first(merged["value"].to_string(), "0"));
+						f64 vrange = max_value - min_value;
+						if(vrange == 0)
+							vrange = 1;
+						f64 pct_value = gauge_clamp_value(((value - min_value) / vrange) * 100.0, 0.0, 100.0);
+						String resolved_color = merged["color"].to_string();
+						if(merged["color"].get_type_name() == "array")
+							resolved_color = gauge_range_color(merged["color"], value);
+						if(resolved_color == "")
+							resolved_color = first(bar_color_default, default_palette[auto_color_counter++ % default_palette.size()]);
+						String opacity = first(merged["opacity"].to_string(), "0.75");
+						?><section class="gauge-card progressbar-card progressbar-card-horizontal" id="<?= gauge_attr_id(gauge_id) ?>-<?= item_id ?>"
+							title="<?= tooltip ?>"
+							style="<?= merged_item_style ?>">
+							<?: before_html ?>
+							<div class="progressbar-card-head">
+								<div class="gauge-metric-label progressbar-label" style="<?= label_style ?>"><?= label ?></div>
+								<div class="gauge-metric-value progressbar-value" style="<?= value_style ?>" id="<?= gauge_attr_id(gauge_id) ?>-<?= item_id ?>-value"><?= merged["value"].to_string() + unit ?></div>
+							</div>
+							<div class="progressbar-background progressbar-background-horizontal">
+								<div class="progressbar-bar" id="<?= gauge_attr_id(gauge_id) ?>-<?= item_id ?>-bar"
+									style="background-color: <?= resolved_color ?>; <?= bar_style ?> opacity: <?= opacity ?>; width: <?= std::to_string(pct_value) ?>%;"></div>
+								<? markers.each([&](DValue marker, String marker_id) {
+									f64 marker_value = float_val(first(marker["value"].to_string(), "0"));
+									f64 marker_pct = gauge_clamp_value(((marker_value - min_value) / vrange) * 100.0, 0.0, 100.0);
+									String marker_color = first(marker["color"].to_string(), "var(--primary-light)");
+									?><div class="progressbar-marker"
+										title="<?= marker["label"].to_string() ?>"
+										style="left: <?= std::to_string(marker_pct) ?>%; background: <?= marker_color ?>;"></div><?
+								}); ?>
+							</div>
+							<? if(tooltip != "") { ?><div class="gauge-metric-meta progressbar-meta"><?= tooltip ?></div><? } ?>
+							<?: after_html ?>
+						</section><?
+					}); ?>
+				</div>
+			<? } else { ?>
+				<div class="progressbar-grid progressbar-grid-vertical" style="--progressbar-height: <?= first(context.props["height"].to_string(), "240") ?>px;">
+					<? context.props["items"].each([&](DValue bar, String bar_id) {
+						DValue merged = scale;
+						bar.each([&](DValue item, String key) { merged[key] = item; });
+						String item_id = gauge_attr_id(bar_id);
+						String merged_item_style = item_style;
+						if(merged["style"].to_string() != "")
+							merged_item_style += (merged_item_style != "" ? ";" : "") + merged["style"].to_string();
+						String tooltip = merged["tooltip"].to_string();
+						String before_html = merged["before"].to_string();
+						String after_html = merged["after"].to_string();
+						String unit = merged["unit"].to_string();
+						String label = first(merged["label"].to_string(), bar_id);
+						f64 min_value = float_val(first(merged["min"].to_string(), "0"));
+						f64 max_value = float_val(first(merged["max"].to_string(), "100"));
+						f64 value = float_val(first(merged["value"].to_string(), "0"));
+						f64 vrange = max_value - min_value;
+						if(vrange == 0)
+							vrange = 1;
+						f64 pct_value = gauge_clamp_value(((value - min_value) / vrange) * 100.0, 0.0, 100.0);
+						String resolved_color = merged["color"].to_string();
+						if(merged["color"].get_type_name() == "array")
+							resolved_color = gauge_range_color(merged["color"], value);
+						if(resolved_color == "")
+							resolved_color = first(bar_color_default, default_palette[auto_color_counter++ % default_palette.size()]);
+						String opacity = first(merged["opacity"].to_string(), "0.75");
+						?><section class="gauge-card progressbar-card progressbar-card-vertical" id="<?= gauge_attr_id(gauge_id) ?>-<?= item_id ?>"
+							title="<?= tooltip ?>"
+							style="<?= merged_item_style ?>">
+							<?: before_html ?>
+							<div class="gauge-metric-label progressbar-label" style="<?= label_style ?>"><?= label ?></div>
+							<div class="progressbar-background progressbar-background-vertical">
+								<div class="progressbar-bar" id="<?= gauge_attr_id(gauge_id) ?>-<?= item_id ?>-bar"
+									style="background-color: <?= resolved_color ?>; <?= bar_style ?> opacity: <?= opacity ?>; height: <?= std::to_string(pct_value) ?>%;"></div>
+								<? markers.each([&](DValue marker, String marker_id) {
+									f64 marker_value = float_val(first(marker["value"].to_string(), "0"));
+									f64 marker_pct = gauge_clamp_value(((marker_value - min_value) / vrange) * 100.0, 0.0, 100.0);
+									String marker_color = first(marker["color"].to_string(), "var(--primary-light)");
+									?><div class="progressbar-marker"
+										title="<?= marker["label"].to_string() ?>"
+										style="bottom: <?= std::to_string(marker_pct) ?>%; background: <?= marker_color ?>;"></div><?
+								}); ?>
+							</div>
+							<div class="gauge-metric-value progressbar-value" style="<?= value_style ?>" id="<?= gauge_attr_id(gauge_id) ?>-<?= item_id ?>-value"><?= merged["value"].to_string() + unit ?></div>
+							<? if(tooltip != "") { ?><div class="gauge-metric-meta progressbar-meta"><?= tooltip ?></div><? } ?>
+							<?: after_html ?>
+						</section><?
+					}); ?>
+				</div>
+			<? } ?>
+		</section>
+		<? if(context.props["listen"].to_string() != "") { ?>
+			<script>
+			window.ProgressbarComponents = window.ProgressbarComponents || {
+				start_listen : function(prop) {
+					$.events.on('value-broadcast', function(data) {
+						if(!prop.items || !prop.items[data.name]) return;
+						let bar = Object.assign({}, prop.scale || {}, prop.items[data.name]);
+						let target = document.getElementById(prop.id + '-' + data.name + '-bar');
+						let valueTarget = document.getElementById(prop.id + '-' + data.name + '-value');
+						if(valueTarget) valueTarget.textContent = data.value + (bar.unit || '');
+						let vrange = Number(bar.max || 100) - Number(bar.min || 0);
+						let pctValue = GaugeComponents.clampValue((Number(data.value) - Number(bar.min || 0)) / (vrange || 1) * 100, 0, 100);
+						if(Array.isArray(bar.color)) {
+							let colorMatch = GaugeComponents.pickEntryFromRange(bar.color, Number(data.value));
+							if(colorMatch && colorMatch.color && target)
+								target.style.background = colorMatch.color;
+						}
+						if(target) {
+							if(prop.layout === 'horizontal') target.style.width = pctValue + '%';
+							else target.style.height = pctValue + '%';
+						}
+					});
+				}
+			};
+			ProgressbarComponents.start_listen(<?: json_encode(context.props, '\'') ?>);
+			</script>
+		<? } ?>
+	</>
+}

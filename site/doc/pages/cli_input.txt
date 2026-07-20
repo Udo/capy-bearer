@@ -1,0 +1,29 @@
+:sig
+DValue cli_input(Request& context)
+
+:see
+>ob
+>1_CLI
+>json_decode
+>DValue
+
+:content
+Returns a structured parameter tree for a `CLI(Request& context)` invocation.
+
+`cli_input()` merges simple command inputs into one `DValue`:
+
+1. query parameters from `context.get`
+2. form parameters from `context.post`
+3. JSON object fields from an `application/json` or `*+json` request body
+
+Later sources override earlier ones, so a JSON body can override a query or form key with the same name.
+
+If the JSON body is a scalar or array instead of an object, the decoded value is stored under `input["_"]`.
+
+
+Convenience script usage:
+
+
+:example
+DValue input = cli_input(context);
+print("parsed ", input.keys().size(), " CLI arguments\n");

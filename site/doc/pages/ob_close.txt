@@ -1,0 +1,19 @@
+:sig
+void ob_close()
+
+:params
+return value : none
+
+:content
+Discards the current output buffer and its contents, switching back to the previous buffer on the stack. Use it when you captured output only to throw it away (e.g. rendering for a side effect).
+
+:example
+ob_start();
+print("this output is discarded");
+ob_close();
+print("the buffered text never reached the response\n");
+
+:see
+>ob
+ob_get_close
+ob_start

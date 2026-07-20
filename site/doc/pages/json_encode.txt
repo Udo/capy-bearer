@@ -1,0 +1,29 @@
+:sig
+String json_encode(String s)
+String json_encode(DValue t)
+
+:params
+s : string to encode as a JSON string literal
+t : DValue object to be serialized
+return value : string containing the JSON result
+
+:see
+>string
+>types
+json_decode
+0_DValue
+0_String
+html_escape
+
+:content
+Serializes either a `String` or a `DValue` into JSON notation.
+
+When passed a `String`, `json_encode()` returns a quoted and escaped JSON string literal.
+
+When passed a `DValue`, scalar values are serialized directly and nested map values are emitted as JSON objects.
+
+
+:example
+DValue value;
+value["name"] = "Ada";
+print(json_encode(value), "\n");

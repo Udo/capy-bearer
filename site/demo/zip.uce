@@ -1,0 +1,49 @@
+#include "demo_guard.h"
+
+RENDER(Request& context)
+{
+	if(!test_demo_request_allowed(context))
+	{
+		test_demo_render_restricted_html(context, "ZIP Demo", "create and extract temporary server-side archive files");
+		return;
+	}
+
+	String base = "/tmp/uce-demo-zip";
+	String archive = path_join(base, "demo.zip");
+	String extract_dir = path_join(base, "extract");
+	mkdir(base);
+	mkdir(extract_dir);
+
+	DValue entries;
+	entries["hello.txt"] = "Hello from a generated ZIP archive.\n";
+	entries["notes/readme.txt"] = "zip_create(), zip_list(), zip_read(), and zip_extract() are available to UCE pages.\n";
+	zip_create(archive, entries);
+
+	DValue listing = zip_list(archive);
+	String hello = zip_read(archive, "hello.txt");
+	zip_extract(archive, extract_dir);
+	String extracted = file_get_contents(path_join(extract_dir, "notes/readme.txt"));
+	String gz_source = "This string was compressed with gz_compress() and restored with gz_uncompress().";
+	String gz_body = gz_compress(gz_source);
+	String gz_roundtrip = gz_uncompress(gz_body);
+
+	?><html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+		<link rel="stylesheet" href="style.css?v=<?= time() ?>"></link>
+	</head>
+	<body>
+		<h1><a href="index.uce">UCE Test Suite</a> / ZIP</h1>
+		<p>This demo creates a temporary archive at <code><?= archive ?></code>, lists it, reads one member, and extracts it under <code><?= extract_dir ?></code>.</p>
+		<h2>zip_list()</h2>
+		<pre><?= json_encode(listing) ?></pre>
+		<h2>zip_read()</h2>
+		<pre><?= hello ?></pre>
+		<h2>Extracted File</h2>
+		<pre><?= extracted ?></pre>
+		<h2>gzip Helpers</h2>
+		<p>Source bytes: <?= std::to_string((u64)gz_source.size()) ?>; compressed bytes: <?= std::to_string((u64)gz_body.size()) ?></p>
+		<pre><?= gz_roundtrip ?></pre>
+	</body>
+	</html><?
+}

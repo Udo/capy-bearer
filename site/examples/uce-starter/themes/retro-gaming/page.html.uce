@@ -1,0 +1,29 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	String main_html = context.call["fragments"]["main"].to_string();
+
+	DValue nav_props;
+	nav_props["account_wrapper_class"] = "nav-account nav-menu";
+
+	DValue footer_props;
+
+	<>
+		<!doctype html>
+		<html class="no-js <?= context.cfg.get_by_path("theme/mode-class").to_string() ?>" lang="en" data-theme-key="<?= context.cfg.get_by_path("theme/key").to_string() ?>">
+		<head>
+			<?: component("../../components/theme/head", context) ?>
+		</head>
+		<body>
+			<div class="retro-stars"></div>
+			<?: component("../../components/theme/global_controls", context) ?>
+			<?: component("../../components/theme/standard_nav", nav_props, context) ?>
+			<div id="content">
+				<?: main_html ?>
+			</div>
+			<?: component("../../components/theme/footer", footer_props, context) ?>
+		</body>
+		</html>
+	</>
+}

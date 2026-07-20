@@ -1,0 +1,21 @@
+:sig
+String memcache_get(u64 connection, String key, String default_value = "")
+
+:params
+connection : connection handle
+key : key string
+default_value : optional default value
+return value : value that was returned by the Memcache server
+
+:see
+>memcache
+
+:content
+Retrieves a value from an existing Memcache connection.
+
+If the key is missing, `default_value` is returned instead.
+
+:example
+u64 conn = memcache_connect();
+if(conn != 0) { memcache_set(conn, "doc_get_key", "stored value"); print(memcache_get(conn, "doc_get_key"), "\n"); }
+else print("(requires a reachable memcached server)\n");

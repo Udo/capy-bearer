@@ -1,0 +1,31 @@
+:sig
+StringMap array_merge(StringMap a, StringMap b)
+DValue array_merge(DValue a, DValue b)
+
+:params
+a : left-hand source map or tree
+b : right-hand source map or tree
+return value : merged result
+
+:see
+>types
+0_DValue
+0_StringMap
+json_decode
+
+:content
+Merges two maps or trees using PHP-like merge behavior.
+
+For `StringMap`, keys from `b` overwrite keys from `a`.
+
+For `DValue`, string keys from `b` overwrite keys from `a`. Numeric keys are appended and reindexed when either side behaves like a list.
+
+This helper is the closest UCE equivalent to PHP `array_merge()` for common request, config, and JSON-shaped data.
+
+:example
+StringMap left;
+left["name"] = "Ada";
+StringMap right;
+right["role"] = "admin";
+StringMap merged = array_merge(left, right);
+print(merged["name"], " ", merged["role"], "\n");

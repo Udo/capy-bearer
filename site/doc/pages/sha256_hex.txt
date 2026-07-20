@@ -1,0 +1,18 @@
+:sig
+String sha256_hex(String data)
+
+:params
+data : bytes to hash
+return value : the SHA-256 digest as a 64-character lowercase hex string
+
+:content
+Returns the SHA-256 digest of `data` as hex text. Use it for checksums, cache keys, and content fingerprints where you want a printable digest. For the raw 32-byte digest use `sha256()`.
+
+:example
+print(sha256_hex("abc"), "\n");
+
+:see
+>sys
+sha256
+hmac_sha256_hex
+gen_sha1

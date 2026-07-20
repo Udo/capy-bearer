@@ -1,0 +1,31 @@
+:sig
+void component_render(String name, [DValue props], [Request& context])
+
+:see
+>ob
+component
+component_exists
+component_resolve
+1_COMPONENT
+
+:content
+Renders another `.uce` file as a component and writes the result directly to the current output buffer.
+
+This is the direct-output counterpart to `component()`.
+
+Component props are passed through `context.props`, and `name:COMPONENTFUNC` may be used to select a named handler exported by `COMPONENT:COMPONENTFUNC(Request& context)`.
+
+When `name` starts with `:`, the runtime resolves that named handler against the current `.uce` file.
+
+Calling a missing component or named component handler is a server error and sets HTTP status 500. Probe intentionally optional components with `component_exists()` before calling `component_render()`.
+
+If the target file defines `ONCE(Request& context)`, that hook runs once per request before the file's first component or render entrypoint.
+
+Use `component_render()` when you want to write component output directly from C++ code instead of capturing it as a `String`.
+
+## Example
+
+
+:example
+component_render("examples/sample_unit");
+print("\n");

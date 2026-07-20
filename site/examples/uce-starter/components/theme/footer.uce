@@ -1,0 +1,17 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	String text = first(context.cfg.get_by_path("theme/footer_text").to_string(), context.cfg.get_by_path("site/name").to_string());
+	String inner_class = first(context.props["inner_class"].to_string(), context.cfg.get_by_path("theme/key").to_string() == "portal-light" ? "footer-inner" : "");
+
+	<>
+		<footer>
+			<? if(inner_class != "") { ?>
+				<div class="<?= inner_class ?>"><p><?= text ?></p></div>
+			<? } else { ?>
+				<div><p><?= text ?></p></div>
+			<? } ?>
+		</footer>
+	</>
+}

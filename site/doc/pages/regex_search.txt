@@ -1,0 +1,44 @@
+:sig
+DValue regex_search(String pattern, String subject)
+DValue regex_search(String pattern, String subject, String flags)
+
+:params
+pattern : PCRE2 regular expression pattern
+subject : string to search
+flags : optional regex flags
+return value : a DValue describing the first match
+
+:see
+>string
+>regex
+regex_match
+regex_search_all
+regex_replace
+regex_split
+0_DValue
+
+:content
+Searches `subject` for the first occurrence of `pattern` and returns structured match data.
+
+Example:
+
+
+Return shape:
+
+- `matched` is a boolean.
+- `pattern` stores the original pattern.
+- `flags` stores the supplied flags, or `default`.
+- `match` is the full matched text when a match exists.
+- `start` and `end` are byte offsets into the original string.
+- `captures` is a list of capture objects, with capture `0` representing the full match.
+- `named` maps named capture groups to their captured text.
+- `named_offsets` maps named capture groups to `index`, `start`, and `end` metadata.
+
+Capture entries contain:
+
+
+If no match is found, `matched` is `false` and match-specific fields are omitted.
+
+:example
+DValue match = regex_search("docs", "uce docs");
+print(match["match"].to_string(), "\n");

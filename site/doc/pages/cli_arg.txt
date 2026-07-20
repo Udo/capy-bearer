@@ -1,0 +1,19 @@
+:sig
+String cli_arg(Request& context, String key, String default_value = "")
+
+:see
+>ob
+>1_CLI
+>cli_input
+
+:content
+Reads one value from the merged `cli_input(context)` parameter tree.
+
+If the key is missing, or the resolved value is empty, `default_value` is returned.
+
+
+For commands that need multiple values or typed reads, prefer calling `cli_input(context)` once and reading the returned `DValue` directly.
+
+:example
+String name = cli_arg(context, "name", "world");
+print("hello ", name, "\n");

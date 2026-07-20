@@ -1,0 +1,19 @@
+:sig
+bool contains(String haystack, String needle)
+
+:params
+haystack : string to search in
+needle : substring to look for
+return value : `true` when `needle` appears in `haystack`, otherwise `false`
+
+:see
+>string
+
+:content
+Returns whether `haystack` contains `needle`.
+
+An empty `needle` always returns `true`.
+
+
+:example
+print(contains("uce docs", "docs") ? "yes\n" : "no\n");

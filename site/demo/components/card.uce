@@ -1,0 +1,24 @@
+
+COMPONENT(Request& context)
+{
+	<>
+		<section style="border:1px solid #ccc;padding:1em;margin:1em 0;">
+			<? component_render(":TITLE", context.props, context); ?>
+			<? component_render(":BODY", context.props, context); ?>
+		</section>
+	</>
+}
+
+COMPONENT:TITLE(Request& context)
+{
+	<>
+		<h3><?= first(context.props["title"].to_string(), "Component Title") ?></h3>
+	</>
+}
+
+COMPONENT:BODY(Request& context)
+{
+	<>
+		<p><?= first(context.props["body"].to_string(), "Component Body") ?></p>
+	</>
+}

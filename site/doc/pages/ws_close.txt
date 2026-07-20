@@ -1,0 +1,18 @@
+:sig
+bool ws_close(String connection_id = "")
+
+:params
+connection_id : optional target client ID, defaults to the current WebSocket client
+return value : true if the target connection exists and was scheduled to close
+
+:see
+>websocket
+
+:content
+Queues a WebSocket close frame and closes the targeted connection.
+
+If `connection_id` is omitted, the current connection handled by `WS(Request& context)` is closed.
+
+:example
+bool closed = ws_close("example-connection-id");
+print(closed ? "close queued" : "no such connection to close", "\n");

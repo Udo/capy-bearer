@@ -1,0 +1,48 @@
+:sig
+DValue* unit_call(String file_name, String function_name, DValue* call_param = null)
+
+:params
+file_name : UCE file to load and execute
+function_name : name of the function to invoke
+call_param : optional, call parameter
+return value : DValue* returned from function
+
+:see
+>ob
+unit_load
+unit_render
+unit_info
+1_RENDER
+1_COMPONENT
+
+:content
+Calls an exported function inside another UCE file.
+
+Use `unit_call()` when you need structured data exchange between units rather than rendered HTML output.
+
+The callee must expose an `EXPORT` function whose name matches `function_name`. Arguments are passed through `call_param`, and the return value is a `DValue*` owned by the callee.
+
+`unit_call()` also understands the request-bound UCE entrypoint names:
+
+- `RENDER`
+- `RENDER:NAME`
+- `COMPONENT`
+- `COMPONENT:NAME`
+- `ONCE`
+- `INIT`
+
+When `function_name` matches one of those macro-style entrypoints, `unit_call()` does not look for a plain `EXPORT DValue* ...` function. Instead, it translates the name to the generated C++ symbol, uses the current `Request` context, and passes `call_param` into `context.props`, matching the normal component invocation model.
+
+For `RENDER...` and `COMPONENT...`, the unit's `ONCE(Request& context)` hook is still honored automatically before the selected handler runs.
+
+Example:
+
+
+Calling a named component handler through `unit_call()`:
+
+
+Calling a page render handler through `unit_call()`:
+
+
+:example
+unit_call("examples/sample_unit.uce", "doc_greet");

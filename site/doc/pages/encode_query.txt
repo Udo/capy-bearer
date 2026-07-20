@@ -1,0 +1,18 @@
+:sig
+String encode_query(StringMap map)
+
+:params
+q : StringMap containing URL parameters to be encoded
+return value : a string with the encoded parameters
+
+:see
+>uri
+
+:content
+Encodes a `StringMap` of URL parameters into a single query-string `String`.
+
+
+:example
+StringMap q;
+q["name"] = "Ada Lovelace";
+print(encode_query(q), "\n");

@@ -1,0 +1,21 @@
+:sig
+String backtrace_get_frames(void* const* frames, size_t size, u32 skip_frames = 0)
+
+:params
+frames : frame pointer array returned by native backtrace collection
+size : number of frames in the array
+skip_frames : number of newest frames to omit
+return value : formatted backtrace string
+
+:see
+>runtime
+backtrace_capture
+signal_name
+
+:content
+Formats a captured native backtrace frame array.
+
+Most page code should use `backtrace_capture()` instead. Use this helper when you already have raw frame pointers from lower-level diagnostic code.
+
+:example
+print(backtrace_get_frames(0, 0) == "" ? "(no frames available in the wasm sandbox)" : "frames captured", "\n");

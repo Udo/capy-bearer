@@ -1,0 +1,16 @@
+:sig
+bool ws_is_binary()
+
+:params
+return value : true if the current WebSocket message is binary
+
+:see
+>websocket
+
+:content
+Returns whether the message currently being handled by `WS(Request& context)` arrived as a binary frame.
+
+If this returns `false`, the current message was delivered as a text frame.
+
+:example
+print(ws_is_binary() ? "binary frame" : "text frame (default outside a WS handler)", "\n");

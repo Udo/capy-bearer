@@ -1,0 +1,27 @@
+:sig
+String zip_read(String zip_file_name, String entry_name)
+
+:params
+zip_file_name : path to the ZIP archive
+entry_name : member name to read from the archive
+return value : uncompressed entry contents
+
+:see
+>sys
+zip_create
+zip_list
+zip_extract
+
+:content
+Reads one file member from a ZIP archive and returns its uncompressed bytes as a `String`.
+
+
+`entry_name` is normalized to forward slashes and rejected when it is empty, absolute, drive-qualified, or contains a `..` path segment.
+
+Use `zip_list()` when you need to discover entry names before reading them.
+
+:example
+DValue entries;
+entries["greeting.txt"] = "hello world";
+zip_create("/tmp/doc-zipread.zip", entries);
+print(zip_read("/tmp/doc-zipread.zip", "greeting.txt"), "\n");

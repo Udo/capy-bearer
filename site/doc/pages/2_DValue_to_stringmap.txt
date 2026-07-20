@@ -1,0 +1,20 @@
+:sig
+StringMap DValue::to_stringmap() const
+
+:params
+return value : StringMap copy of the value
+
+:see
+>types
+0_DValue
+0_StringMap
+2_DValue_to_string
+
+:content
+Converts a `DValue` to `StringMap`. Map children become entries converted with `to_string()`. Non-empty strings become `value=<string>`. f64, bool, and pointer values become `value=<to_string()>`. References that cannot be resolved produce an empty map.
+
+:example
+DValue user;
+user["name"] = "Ada";
+StringMap fields = user.to_stringmap();
+print(fields["name"], "\n");

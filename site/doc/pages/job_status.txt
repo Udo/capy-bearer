@@ -1,0 +1,13 @@
+# job_status
+
+
+Returns the file-backed async job state, e.g. `{ state, done, kind, pid, job_id }`. States include `pending`, `running`, `done`, `failed`, `cancelled`, and `missing`.
+
+:see
+>sys
+
+:example
+DValue spec; spec["cmd"] = "printf x"; spec["timeout_ms"] = (f64)1000;
+u64 job = shell_spawn(spec);
+job_await(job, 3000);
+print("state: ", job_status(job)["state"].to_string(), "\n");

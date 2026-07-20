@@ -1,0 +1,21 @@
+:sig
+DValue DValue::pop()
+
+:params
+return value : removed child, or an empty DValue when no child exists
+
+:see
+0_DValue
+2_DValue_push
+
+:content
+Ensures the value is map-shaped, removes the last entry according to `std::map` reverse key order, and returns it. For list-mode values, the next array index is reset to the new size.
+
+
+:example
+DValue list;
+list.set_array();
+DValue a; a.set("first"); list.push(a);
+DValue b; b.set("last"); list.push(b);
+DValue popped = list.pop();
+print("popped ", popped.to_string(), ", remaining ", list.keys().size(), "\n");

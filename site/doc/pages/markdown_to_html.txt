@@ -1,0 +1,86 @@
+:sig
+String markdown_to_html(String src)
+String markdown_to_html(String src, DValue options)
+
+:params
+src : markdown source text
+options : optional markdown options tree
+return value : rendered HTML string
+
+:see
+>markup
+markdown_to_ast
+component
+component_render
+json_decode
+0_String
+
+:content
+Renders Markdown source into HTML and returns the generated markup as a `String`.
+
+`markdown_to_html()` does not write to the output stream directly. This keeps it aligned with the UCE naming convention where `render_*` names are reserved for direct-output helpers.
+
+Because the return value is HTML markup, embed it with `<?: markdown_to_html(...) ?>`, `print(markdown_to_html(...))`, or pass it through a component.
+
+By default the function aims at a practical GitHub-flavored Markdown target, including tables, task lists, fenced code blocks, autolinks, and strikethrough.
+
+Example:
+
+
+Supported syntax:
+
+- headings with `#` or setext underlines
+- paragraphs
+- ordered and unordered lists
+- task lists
+- blockquotes
+- fenced code blocks
+- horizontal rules
+- tables
+- inline emphasis, strong, strikethrough, and code spans
+- links, images, and bare `http://` / `https://` URLs
+- `:::name ... :::` directive blocks
+
+Options:
+
+- `options["gfm"]` defaults to `true` and turns on GitHub-style extras such as tables, task lists, autolinks, and strikethrough.
+- `options["allow_html"]` defaults to `false`. When true, raw HTML blocks and inline tags may pass through as `raw_html` nodes instead of being escaped as plain text.
+- `options["heading_offset"]` shifts rendered heading levels while leaving AST `level` values unchanged. The default is `0`; final levels clamp to `h1` through `h6`. Use `1` when Markdown is nested below a component-owned page title.
+- `options["components"]` declares renderer extension points using normal UCE components.
+
+Directive hook example:
+
+
+Generic node hook examples:
+
+
+If both an exact directive hook and a generic `node.directive` hook exist, the exact directive hook wins.
+
+When a markdown hook component is called, its props arrive in `context.props`.
+
+Useful fields include:
+
+- `context.props["hook"]` for the matched hook key such as `:::warning` or `node.code_block`
+- `context.props["target"]` for the resolved component target name
+- `context.props["default_html"]` for the renderer output without the hook
+- `context.props["children_html"]` for already-rendered child HTML
+- `context.props["node"]` for the full AST node
+- `context.props["type"]` for the node type
+- `context.props["name"]` for the directive name when applicable
+- `context.props["argument"]` for directive remainder after the name
+- `context.props["text"]` for source text used by nodes such as `code_block`
+- `context.props["lang"]` for fenced code language
+- `context.props["href"]`, `context.props["src"]`, and `context.props["title"]`
+- `context.props["options"]` for the full markdown options tree
+
+Directive blocks use this form:
+
+
+The parser stores:
+
+
+That makes directive components a good fit for alerts, callouts, cards, embeds, and richer page-level Markdown extensions.
+
+
+:example
+print(markdown_to_html("**bold**"), "\n");

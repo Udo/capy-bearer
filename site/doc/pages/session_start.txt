@@ -1,0 +1,25 @@
+:sig
+String session_start(String session_name = "uce-session")
+
+:params
+session_name : optional name of the session cookie, defaults to "uce-session"
+return value : the current session ID
+
+:see
+>session
+
+:content
+Starts a session or reconnects to an existing one.
+
+If the cookie named by `session_name` does not exist, UCE creates it and fills it with a new unique session ID. The function then loads the session data for that ID. Session cookies are emitted with `Path=/`, `HttpOnly`, `SameSite=Lax`, and `Secure` when `SESSION_COOKIE_SECURE=1` is set in the runtime config.
+
+After `session_start()` completes, the following `context` fields are populated:
+
+- `context.session_id` contains the current session ID.
+- `context.session_name` contains the current session cookie name.
+- `context.session` contains the current session data. The session data is automatically saved after the request completes.
+
+
+:example
+String id = session_start("uce-doc-example");
+print(id != "" ? "started\n" : "empty\n");

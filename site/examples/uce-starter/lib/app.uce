@@ -1,0 +1,67 @@
+#load "../config/settings.uce"
+#load "user.class.h"
+
+String app_link(String path, Request& context);
+String app_link(String path, StringMap params, Request& context);
+
+String app_asset_url(String path, Request& context)
+{
+	String url = context.params["BASE_URL"] + path;
+	String fs_path = path_join(dirname(context.params["SCRIPT_FILENAME"]), path);
+	if(file_exists(fs_path))
+		url += "?v=" + std::to_string((u64)file_mtime(fs_path));
+	return(url);
+}
+
+String app_link(String path, Request& context)
+{
+	StringMap params;
+	return(app_link(path, params, context));
+}
+
+String app_link(String path, StringMap params, Request& context)
+{
+	String query = "";
+	path = trim(path);
+	if(path != "")
+		query = uri_encode(path);
+	String extra = encode_query(params);
+	if(query != "" && extra != "")
+		query += "&" + extra;
+	else if(query == "")
+		query = extra;
+	String url = context.params["SCRIPT_URL"];
+	if(query != "")
+		url += "?" + query;
+	return(url);
+}
+
+using StarterUser = AppUser;
+
+void app_init(Request& context)
+{
+	context.call["route"]["raw_path"] = context.params["ROUTE_PATH_RAW"];
+	context.call["route"]["l_path"] = context.params["ROUTE_PATH"];
+	context.call["route"]["page"] = context.params["ROUTE_PAGE"];
+	context.call["route"]["valid"].set_bool(context.params["ROUTE_VALID"] != "0");
+
+	DValue config = get_config();
+	session_start();
+	String requested_theme = first(context.get["theme"], context.session["app_theme"], config["theme"]["key"].to_string());
+	if(config["theme"]["options"][requested_theme].get_type_name() != "array")
+		requested_theme = config["theme"]["key"].to_string();
+	if(context.get["theme"] != "")
+		context.session["app_theme"] = requested_theme;
+
+	DValue selected_theme = config["theme"]["options"][requested_theme];
+	selected_theme.each([&](DValue item, String key) {
+		config["theme"][key] = item;
+	});
+	config["theme"]["key"] = requested_theme;
+	context.cfg = config;
+
+	context.call["app"]["page_type"] = "html";
+	context.call["app"]["page_title"] = first(config["menu"][context.call["route"]["l_path"].to_string()]["title"].to_string(), config["site"]["default_page_title"].to_string(), "Home");
+	AppUser(context).is_signed_in();
+}
+

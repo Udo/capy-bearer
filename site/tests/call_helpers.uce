@@ -1,0 +1,10 @@
+EXPORT DValue* emit_marker(DValue* call_param)
+{
+	print("UNIT_CALL_EXPORT_OK");
+	return(0);
+}
+
+RENDER(Request& context)
+{
+	print("<section data-unit-render=\"ok\">UNIT_RENDER_FIXTURE</section>");
+}

@@ -1,0 +1,53 @@
+static s64 demo_worker_init_count = 0;
+static s64 demo_component_hits = 0;
+
+INIT(Request& context)
+{
+	(void)context;
+	demo_worker_init_count += 1;
+}
+
+ONCE(Request& context)
+{
+	context.call["once_hits"] = context.call["once_hits"].to_s64() + 1;
+}
+
+COMPONENT:PROBE(Request& context)
+{
+	demo_component_hits += 1;
+
+	<>
+		<div class="banner">
+			<strong><?= context.props["label"].to_string() ?></strong>
+			<div>worker INIT count for this loaded unit: <?= (u64)demo_worker_init_count ?></div>
+			<div>request ONCE count for this request: <?= context.call["once_hits"].to_u64() ?></div>
+			<div>component handler calls served by this worker copy: <?= (u64)demo_component_hits ?></div>
+		</div>
+	</>
+}
+
+RENDER(Request& context)
+{
+	DValue first;
+	first["label"] = "First component call";
+
+	DValue second;
+	second["label"] = "Second component call in the same request";
+
+	DValue third;
+	third["label"] = "Third component call through unit_call(\"COMPONENT:PROBE\")";
+
+	<><html>
+		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			ONCE() and INIT()
+		</h1>
+		<p>
+			This page calls the same named component twice. `ONCE()` should only run once for the request, while `INIT()` should stay stable for the currently loaded worker copy.
+		</p>
+		<?: component(":PROBE", first, context) ?>
+		<?: component(":PROBE", second, context) ?>
+		<? unit_call("once-init.uce", "COMPONENT:PROBE", &third); ?>
+	</html></>
+}

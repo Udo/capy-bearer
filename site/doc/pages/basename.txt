@@ -1,0 +1,17 @@
+:sig
+String basename(String fn)
+
+:params
+fn : a path
+return value : the final path component
+
+:content
+Returns the last component of a path — the file or directory name without its leading directories.
+
+:example
+print(basename("/var/www/site/index.uce"), "\n");
+
+:see
+>sys
+dirname
+path_join

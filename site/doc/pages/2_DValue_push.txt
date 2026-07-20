@@ -1,0 +1,22 @@
+:sig
+void DValue::push(const DValue& child)
+
+:params
+child : value to append/copy
+return value : none
+
+:see
+0_DValue
+2_DValue_pop
+2_DValue_set_array
+
+:content
+Appends a child under the next numeric key. Empty values become list-shaped. Existing contiguous lists continue at their size; non-list maps use the next unused numeric key and remain non-list.
+
+
+:example
+DValue list;
+list.set_array();
+DValue a; a.set("x"); list.push(a);
+DValue b; b.set("y"); list.push(b);
+print("count: ", list.keys().size(), "\n");

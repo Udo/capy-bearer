@@ -1,0 +1,3 @@
+ADD_LIBRARY( fcgicc fcgicc.cc fcgicc.h )
+INSTALL( FILES fcgicc.h DESTINATION include )
+INSTALL( TARGETS fcgicc LIBRARY DESTINATION lib ARCHIVE DESTINATION lib )

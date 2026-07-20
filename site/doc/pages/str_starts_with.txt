@@ -1,0 +1,17 @@
+:sig
+bool str_starts_with(String haystack, String needle)
+
+:params
+haystack : string to inspect
+needle : prefix to compare against the start of `haystack`
+return value : `true` when `haystack` begins with `needle`, otherwise `false`
+
+:see
+>string
+
+:content
+Checks whether `haystack` starts with `needle`.
+
+
+:example
+print(str_starts_with("/doc", "/") ? "yes\n" : "no\n");

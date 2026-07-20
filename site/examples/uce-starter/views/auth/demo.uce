@@ -1,0 +1,41 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	DValue asset_props;
+	asset_props["css"]["0"] = "views/marketing.css";
+	print(component("../../components/theme/assets", asset_props, context));
+	context.call["app"]["page_title"] = "Auth";
+
+	DValue props;
+	props["title"] = "Sign In to Your Account";
+	props["subtitle"] = "Choose your preferred authentication method to continue";
+	props["google_client_id"] = "YOUR_GOOGLE_CLIENT_ID";
+	props["github_client_id"] = "YOUR_GITHUB_CLIENT_ID";
+	props["discord_client_id"] = "YOUR_DISCORD_CLIENT_ID";
+	props["twitch_client_id"] = "YOUR_TWITCH_CLIENT_ID";
+	props["callback_url"] = app_link("auth/callback", context);
+
+	<>
+		<h1>Authentication Demo</h1>
+		<div class="card">
+			<h2>OAuth Authentication</h2>
+			<p>This component provides secure OAuth authentication with popular identity providers.</p>
+			<? print(component("../../components/auth/oauth-client", props, context)); ?>
+		</div>
+		<div class="card">
+			<h2>Current Session Status</h2>
+			<? if(context.session[StarterUser::session_key()] != "") { ?>
+				<div class="success-card">
+					<h3>Logged In</h3>
+					<p>User ID: <?= context.session[StarterUser::session_key()] ?></p>
+				</div>
+			<? } else { ?>
+				<div class="component-card">
+					<h3>Not Logged In</h3>
+					<p>Use the OAuth component above to sign in with Google, GitHub, Discord, or Twitch.</p>
+				</div>
+			<? } ?>
+		</div>
+	</>
+}

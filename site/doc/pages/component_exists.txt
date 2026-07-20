@@ -1,0 +1,21 @@
+:sig
+bool component_exists(String name)
+
+:see
+>ob
+component
+component_render
+component_resolve
+1_COMPONENT
+
+:content
+Checks whether a component file can be resolved from the current page context.
+
+Resolution uses the same host resolver as `component_resolve()`: candidate bases include absolute targets, the entry unit directory, the current unit directory, and the site root; each base tries exact, `.uce`, `components/name`, and `components/name.uce` forms.
+
+If `name` contains a colon, only the file portion is used for existence checks.
+
+This is useful when a page wants to render an optional component if it is present without hard-failing when it is missing.
+
+:example
+print(component_exists("examples/sample_unit") ? "exists" : "not found", " / ", component_exists("no_such_component") ? "exists" : "not found", "\n");

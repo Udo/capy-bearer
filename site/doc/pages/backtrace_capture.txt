@@ -1,0 +1,24 @@
+:sig
+String backtrace_capture(u32 max_frames = 32, u32 skip_frames = 0)
+
+:params
+max_frames : maximum number of frames to capture
+skip_frames : number of newest frames to omit
+return value : formatted backtrace string
+
+:see
+>runtime
+backtrace_get_frames
+signal_name
+
+:content
+Captures and formats a native backtrace for the current call stack.
+
+This helper is for diagnostics. It is used by runtime error reporting paths and can also be useful in local debugging pages.
+
+Example:
+
+
+:example
+String trace = backtrace_capture();
+print(trace == "" ? "(empty in the wasm sandbox; populated by the native crash handler)" : trace, "\n");

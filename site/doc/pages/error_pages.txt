@@ -1,0 +1,53 @@
+:title
+Configurable Error Pages
+
+:sig
+page_compiling=site/errors/compiling.uce
+page_compiler_error=site/errors/compiler-error.uce
+page_runtime_error=site/errors/runtime-error.uce
+
+:params
+page_compiling : UCE page rendered (status 503) while the requested page is being built
+page_compiler_error : UCE page rendered (status 500) when the requested page fails to build
+page_runtime_error : UCE page rendered (status 500) after a recovered fault or uncaught exception
+
+:see
+>runtime
+0_Request
+0_DValue
+2_Request_set_status
+
+:content
+Three optional keys in `/etc/uce/settings.cfg` route error conditions to developer-defined UCE pages. Each key names a `.uce` file, either absolute or relative to the server's working directory. When a key is unset, or the named file does not exist, or the error page itself fails, the runtime's built-in plain-text behavior stands.
+
+All three pages receive the error context in `context.call["error"]`:
+
+- `type` — `compiling`, `compiler_error`, or `runtime_error`
+- `source` — the requested `.uce` file
+- `compiler_error` adds: `compiler_output` (raw clang output), `generated_cpp`, `status`, `details`
+- `runtime_error` adds: `title`, `details`, `request_uri`, `signal`, `signal_name`, `trace`, `generated_cpp`
+
+A sensible status code is set before the page renders (`503` for compiling, `500` for errors); the page may override it with `set_status()` and set its own headers.
+
+## page_compiling
+
+Without this key, a request that hits an uncompiled or changed page blocks until the synchronous build finishes. With it, the runtime responds immediately with your page, hands the build to the proactive compiler, and the page can poll until the build lands:
+
+
+The compiling page is only used while `PROACTIVE_COMPILE_ENABLED` is on (the default) — otherwise nothing would finish the build asynchronously, and the runtime waits for the on-request wasm compile.
+
+## page_compiler_error
+
+Triggered when the entry page fails to build (components that fail mid-page keep the inline behavior, since the page is already half-rendered). `context.call["error"]["compiler_output"]` carries the full raw compiler output — show it on development hosts, hide it in production.
+
+## page_runtime_error
+
+Triggered after the worker recovers from a fatal signal or an uncaught exception. The worker has just recovered from a fault, so keep this page simple: static markup and the error fields, no database connections or heavy components.
+
+## Recursion safety
+
+While an error page renders, error-page handling is disabled: a compiling, broken, or crashing error page falls back to the built-in behavior instead of looping.
+
+## Ready-made examples
+
+`site/errors/compiling.uce`, `site/errors/compiler-error.uce`, and `site/errors/runtime-error.uce` in this repository are working examples — point the config keys at them or copy them into your site.

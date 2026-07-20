@@ -1,0 +1,25 @@
+:sig
+String file_read(u64 h, u64 len)
+
+:params
+h : handle from file_open() opened for reading
+len : maximum number of bytes to read
+return value : up to `len` bytes from the current offset (shorter at end of file)
+
+:content
+Reads up to `len` bytes starting at the handle's current offset and advances the offset. Returns fewer bytes (or `""`) at end of file. Use `file_seek()` to move the offset, or `file_pread()` to read at an absolute offset without moving it.
+
+:example
+u64 w = file_open("/tmp/doc-read.txt", "w");
+file_write(w, "hello world");
+file_close(w);
+u64 r = file_open("/tmp/doc-read.txt", "r");
+print(file_read(r, 5), "\n");
+file_close(r);
+
+:see
+>sys
+file_open
+file_pread
+file_seek
+file_close

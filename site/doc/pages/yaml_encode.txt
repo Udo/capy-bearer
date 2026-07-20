@@ -1,0 +1,39 @@
+:sig
+String yaml_encode(DValue t)
+
+:params
+t : tree to serialize as YAML
+return value : YAML string
+
+:see
+>markup
+yaml_decode
+json_encode
+xml_encode
+0_DValue
+
+:content
+Serializes a `DValue` into a compact YAML string for configuration files.
+
+`yaml_encode()` focuses on the ordinary data shapes UCE apps use for config: nested maps, lists, strings, booleans, and numeric `f64` values. It does not emit YAML tags, anchors, aliases, or custom schema features.
+
+Try the live example in the [YAML demo](../demo/yaml.uce).
+
+Example:
+
+
+Typical result:
+
+
+Notes:
+
+- Map keys are emitted in `DValue` map iteration order.
+- Strings are left plain when safe and quoted when needed.
+- Multiline strings are emitted as literal block scalars with `|`.
+- Empty strings are emitted as `""` so they are not confused with YAML null.
+- Decoded numeric-looking config values are strings unless the original `DValue` value was explicitly numeric.
+
+:example
+DValue value;
+value["name"] = "Ada";
+print(yaml_encode(value) != "" ? "yaml\n" : "empty\n");

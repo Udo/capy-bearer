@@ -1,0 +1,34 @@
+:sig
+String regex_replace(String pattern, String replacement, String subject)
+String regex_replace(String pattern, String replacement, String subject, String flags)
+
+:params
+pattern : PCRE2 regular expression pattern
+replacement : replacement string
+subject : string where replacements should happen
+flags : optional regex flags
+return value : a new string with all matches replaced
+
+:see
+>string
+>regex
+regex_match
+regex_search
+regex_search_all
+regex_split
+replace
+
+:content
+Replaces every match of `pattern` in `subject` and returns the transformed string.
+
+Example:
+
+
+Replacement strings use PCRE2 substitution syntax, including numbered capture references such as `$1` and named references such as `${name}`.
+
+For simple literal search-and-replace, use `replace()`. Use `regex_replace()` when the match condition needs a pattern, captures, character classes, anchors, or flags.
+
+Invalid patterns, invalid flags, or invalid substitution syntax raise a request-visible runtime error.
+
+:example
+print(regex_replace("docs", "manual", "uce docs"), "\n");

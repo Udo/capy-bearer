@@ -1,0 +1,178 @@
+#include "testlib.h"
+
+RENDER(Request& context)
+{
+	if(!test_demo_request_allowed(context))
+	{
+		site_tests_restricted(context, "Sockets And Services", "connect to local listeners and optional infrastructure services");
+		return;
+	}
+
+	u64 passed = 0;
+	u64 failed = 0;
+	u64 skipped = 0;
+
+	site_tests_page_start("Sockets And Services", "Local-only probes for sockets and optional infrastructure integrations.");
+
+	auto mark = [&](String name, String status, String detail)
+	{
+		site_tests_case(name, status, detail);
+		if(status == "pass")
+			passed++;
+		else if(status == "skip")
+			skipped++;
+		else
+			failed++;
+	};
+
+	u64 sockfd = socket_connect("127.0.0.1", 80);
+	if(sockfd != 0)
+	{
+		bool write_ok = socket_write(sockfd, "GET /tests/index.uce HTTP/1.0\r\nHost: uce.openfu.com\r\n\r\n");
+		String response = socket_read(sockfd, 4096, 2);
+		socket_close(sockfd);
+		bool has_nul = response.find(String("\0", 1)) != String::npos;
+		mark(
+			"socket_connect() / socket_write() / socket_read()",
+			(write_ok && response.find("200 OK") != String::npos && !has_nul) ? "pass" : "fail",
+			response.substr(0, response.length() > 220 ? 220 : response.length()) + (has_nul ? " [unexpected NUL]" : "")
+		);
+	}
+	else
+	{
+		mark("socket_connect() / socket_write() / socket_read()", "fail", "socket_connect(127.0.0.1, 80) returned 0");
+	}
+
+	pid_t custom_http_pid = server_start_http("site-tests-http", "19091", "servers/http.uce", "named");
+	usleep(500000);
+	u64 custom_http_sockfd = socket_connect("127.0.0.1", 19091);
+	if(custom_http_sockfd != 0)
+	{
+		bool write_ok = socket_write(custom_http_sockfd, "GET /custom-test?alpha=1 HTTP/1.0\r\nHost: localhost\r\n\r\n");
+		String response = socket_read(custom_http_sockfd, 4096, 2);
+		for(u64 i = 0; i < 3 && response.find("custom-http-named") == String::npos; i++)
+		{
+			String chunk = socket_read(custom_http_sockfd, 4096, 1);
+			if(chunk == "")
+				break;
+			response += chunk;
+		}
+		socket_close(custom_http_sockfd);
+		bool stopped = server_stop("site-tests-http");
+		usleep(200000);
+		u64 stopped_sockfd = socket_connect("127.0.0.1", 19091);
+		bool listener_closed = stopped_sockfd == 0;
+		if(stopped_sockfd != 0)
+			socket_close(stopped_sockfd);
+		mark(
+			"server_start_http() / SERVE_HTTP:named / server_stop()",
+			(custom_http_pid != 0 && write_ok && response.find("custom-http-named") != String::npos && response.find("query=alpha=1") != String::npos && response.find("\r\nHTTP/1.1 ") == String::npos && stopped && listener_closed) ? "pass" : "fail",
+			response.substr(0, response.length() > 260 ? 260 : response.length()) + " stopped=" + (stopped ? "true" : "false") + " listener_closed=" + (listener_closed ? "true" : "false")
+		);
+	}
+	else
+	{
+		bool stopped = server_stop("site-tests-http");
+		mark("server_start_http() / SERVE_HTTP:named / server_stop()", "fail", "socket_connect(127.0.0.1, 19091) returned 0; pid=" + std::to_string(custom_http_pid) + " stopped=" + (stopped ? "true" : "false"));
+	}
+
+	u64 memfd = memcache_connect();
+	if(memfd == 0)
+	{
+		mark("memcache_*", "skip", "memcache_connect() returned 0");
+	}
+	else
+	{
+		memcache_set(memfd, "site-tests-key", "value-1");
+		memcache_set(memfd, "site-tests-key2", "value-2");
+		String raw_mem = memcache_command(memfd, "get site-tests-key");
+		String mem_value = memcache_get(memfd, "site-tests-key");
+		StringMap mem_multi = memcache_get_multiple(memfd, {"site-tests-key", "site-tests-key2"});
+		memcache_delete(memfd, "site-tests-key");
+		memcache_delete(memfd, "site-tests-key2");
+		mark(
+			"memcache_connect() / memcache_command() / memcache_get_multiple()",
+			mem_value == "value-1" && contains(raw_mem, "VALUE site-tests-key") && mem_multi["site-tests-key"] == "value-1" && mem_multi["site-tests-key2"] == "value-2" ? "pass" : "fail",
+			"memcache value=" + mem_value + " raw=" + raw_mem + " multi=" + var_dump(mem_multi)
+		);
+	}
+
+	MySQL placeholder_guard;
+	StringMap mysql_params;
+	mysql_params["id"] = "1";
+	placeholder_guard.query("select ?", mysql_params);
+	String mysql_placeholder_error = placeholder_guard.error();
+	mark(
+		"mysql_query() rejects positional placeholders",
+		mysql_placeholder_error.find("positional ? placeholders are not supported") != String::npos ? "pass" : "fail",
+		mysql_placeholder_error
+	);
+	StringMap underscore_params;
+	underscore_params["display_name"] = "Ada";
+	String parsed_underscore = placeholder_guard.parse_query_parameters("select :display_name as name", underscore_params);
+	mark(
+		"mysql named placeholders accept underscores",
+		parsed_underscore.find("'Ada'") != String::npos && parsed_underscore.find("_name") == String::npos ? "pass" : "fail",
+		parsed_underscore
+	);
+	MySQL unavailable_mysql;
+	unavailable_mysql.connect("127.0.0.1", "__uce_intentionally_missing__", "not-a-real-password");
+	mark(
+		"mysql_connected() distinguishes a failed connection wrapper",
+		!mysql_connected(&unavailable_mysql) ? "pass" : "fail",
+		mysql_connected(&unavailable_mysql) ? "unexpected live handle" : "no live handle"
+	);
+	unavailable_mysql.query("SELECT 1");
+	String unavailable_mysql_error = unavailable_mysql.error();
+	mark(
+		"mysql query after failed connect retains the connection error",
+		unavailable_mysql_error != "" ? "pass" : "fail",
+		unavailable_mysql_error
+	);
+
+	MySQL mysql;
+	mysql.connect("127.0.0.1", "root", "");
+	String mysql_error_text = trim(mysql.error());
+	if(mysql_error_text != "")
+	{
+		mark("mysql connect/query", "skip", mysql_error_text);
+	}
+	else
+	{
+		String dbs = var_dump(mysql.query("SHOW DATABASES"));
+		mark(
+			"mysql connect/query",
+			(dbs.find("information_schema") != String::npos || dbs.find("mysql") != String::npos) ? "pass" : "fail",
+			dbs.substr(0, dbs.length() > 220 ? 220 : dbs.length())
+		);
+		mysql.query("USE mysql");
+		mysql.query("CREATE TEMPORARY TABLE uce_affected_rows_test (id INT PRIMARY KEY, value INT NOT NULL)");
+		mysql.query("INSERT INTO uce_affected_rows_test VALUES (1,10),(2,20)");
+		u32 inserted = mysql_affected_rows(&mysql);
+		mysql.query("UPDATE uce_affected_rows_test SET value=value+1 WHERE id=1");
+		u32 updated = mysql_affected_rows(&mysql);
+		mysql.query("SELECT * FROM uce_affected_rows_test");
+		u32 selected = mysql_affected_rows(&mysql);
+		mark(
+			"mysql_affected_rows()",
+			inserted == 2 && updated == 1 && selected == 0 ? "pass" : "fail",
+			"inserted=" + std::to_string((u64)inserted) + " updated=" + std::to_string((u64)updated) + " selected=" + std::to_string((u64)selected)
+		);
+	}
+	DValue mysql_perf = request_perf();
+	String mysql_operations = json_encode(mysql_perf["mysql_operations"]);
+	String unit_module_operations = json_encode(mysql_perf["unit_module_operations"]);
+	mark(
+		"request_perf() exposes bounded query-text-free MySQL operations",
+		mysql_perf["mysql_operation_count"].to_u64() > 0 && mysql_operations.find("\"connect\"") != String::npos && mysql_operations.find("\"source\"") != String::npos && mysql_operations.find("\"us\"") != String::npos && mysql_operations.find("SHOW DATABASES") == String::npos && (mysql_error_text != "" || mysql_perf["mysql_connection_open_count"].to_u64() + mysql_perf["mysql_connection_reuse_count"].to_u64() > 0) && mysql_perf["mysql_operations_dropped"].to_u64() == 0 ? "pass" : "fail",
+		mysql_operations
+	);
+	mark(
+		"request_perf() identifies bounded site-relative unit module work",
+		unit_module_operations != "[]" && unit_module_operations.find("services.uce") != String::npos && unit_module_operations.find("\"source\"") != String::npos && unit_module_operations.find("/Code/") == String::npos && mysql_perf["unit_module_operations_dropped"].to_u64() == 0 ? "pass" : "fail",
+		unit_module_operations
+	);
+
+	site_tests_summary(passed, failed, skipped, "Memcache or MySQL checks are allowed to skip cleanly when the corresponding service is not available on the development host.");
+	site_tests_page_end();
+}

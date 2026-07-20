@@ -1,0 +1,14 @@
+:sig
+String request_script_url(Request& context)
+
+:see
+>uri
+request_base_url
+request_query_route
+
+:content
+Returns the request script URL from `DOCUMENT_URI` / `SCRIPT_NAME`, canonicalizing a front-controller URL ending in `/index.uce` to the containing directory URL.
+
+
+:example
+print(request_script_url(context) != "" ? "script url\n" : "empty\n");

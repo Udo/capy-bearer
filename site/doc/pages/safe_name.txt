@@ -1,0 +1,17 @@
+:sig
+String safe_name(String raw)
+
+:params
+raw : arbitrary input string
+return value : a sanitized name safe to use as a file or key name
+
+:content
+Sanitizes a string into a safe name by normalizing or stripping characters that are unsafe in file names and identifiers (whitespace, separators, control characters). Use it before turning user input into a file name or cache key.
+
+:example
+print(safe_name("My Report: 2024/Q1!"), "\n");
+
+:see
+>string
+ascii_safe_name
+runtime_safe_key

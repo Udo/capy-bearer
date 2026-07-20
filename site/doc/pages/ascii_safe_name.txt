@@ -1,0 +1,16 @@
+:sig
+String ascii_safe_name(String raw)
+
+:params
+raw : arbitrary input string
+return value : an ASCII-only sanitized name
+
+:content
+Like `safe_name()`, but also restricts the result to ASCII, transliterating or dropping non-ASCII characters. Use it when the consumer (a legacy filesystem, header, or protocol) requires plain ASCII.
+
+:example
+print(ascii_safe_name("Cafe Munchen 2024"), "\n");
+
+:see
+>string
+safe_name

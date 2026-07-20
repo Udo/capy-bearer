@@ -1,0 +1,19 @@
+:sig
+StringList split(String str, String delim)
+
+:params
+str : string to be split
+delim : delimiter
+return value : a list of strings
+
+:see
+>string
+
+:content
+Splits `str` into multiple strings using `delim` as the separator.
+
+Every exact occurrence of `delim` creates a new entry in the returned `StringList`.
+
+
+:example
+print(join(split("a,b,c", ","), "|"), "\n");

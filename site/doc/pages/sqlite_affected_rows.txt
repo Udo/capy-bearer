@@ -1,0 +1,23 @@
+:sig
+u32 sqlite_affected_rows(SQLite* db)
+
+:params
+db : pointer to an active SQLite connection
+return value : number of rows changed by the most recent statement
+
+:see
+>sqlite
+sqlite_query
+sqlite_insert_id
+
+:content
+Returns the number of rows changed by the most recent insert, update, or delete statement on the connection.
+
+:example
+SQLite* db = sqlite_connect("/tmp/doc-sqlite-affected.db");
+sqlite_query(db, "drop table if exists t");
+sqlite_query(db, "create table t(id integer primary key, v text)");
+sqlite_query(db, "insert into t(id, v) values(1,'a'),(2,'b'),(3,'c')");
+sqlite_query(db, "update t set v = 'x' where id <= 2");
+print("rows updated: ", sqlite_affected_rows(db), "\n");
+sqlite_disconnect(db);

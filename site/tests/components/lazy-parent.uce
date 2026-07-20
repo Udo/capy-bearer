@@ -1,0 +1,5 @@
+COMPONENT(Request& context)
+{
+	if(context.props["show_child"].to_bool())
+		print(component("lazy-child", context.props, context));
+}

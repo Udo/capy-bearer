@@ -1,0 +1,87 @@
+
+#include "demo_guard.h"
+
+RENDER(Request& context)
+{
+	if(!test_demo_request_allowed(context))
+	{
+		test_demo_render_restricted_html(context, "Task repeat", "schedule recurring background tasks");
+		return;
+	}
+	DValue t;
+
+	String task_name = first(context.get["task-name"], "example-task");
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Task repeat
+		</h1>
+
+		<script>
+
+		function load(target, url) {
+			var r = new XMLHttpRequest();
+			r.open("GET", url, true);
+			r.onreadystatechange = function () {
+				if (r.readyState != 4 || r.status != 200) return;
+				target.innerHTML = r.responseText;
+			};
+			r.send();
+		}
+		</script>
+
+		<form action="?">
+			Task name
+			<input type="text" name="task-name" value="<?= task_name ?>"/>
+			<input type="submit" name="cmd" value="Get Info"/>
+			<input type="submit" name="cmd" value="Execute"/>
+		</form>
+
+		<script>
+
+		/*setInterval(() => {
+
+			load(document.getElementById('task-status'), 'task-status.uce?task-name=<?= uri_encode(task_name) ?>');
+
+		}, 200);*/
+
+		</script>
+
+		Task Status
+
+		<pre id="task-status" style="white-space: pre-wrap"><?
+
+			print("Task Name: ", task_name, "\n");
+			print("Task ID: ", task_pid(task_name), "\n");
+			print("Task Running: ", task_pid(task_name) == 0 ? "no" : "yes", "\n");
+
+
+		?></pre>
+
+		<?
+		if(context.get["cmd"] == "Execute")
+		{
+			?>
+			Task Start
+
+			<pre style="white-space: pre-wrap"><?
+
+				print("New Task ID: ", task_repeat(task_name, 5, []() {
+
+					sleep(1);
+
+				}), "\n");
+
+				print("Task interval: 5 seconds");
+
+			?></pre><?
+		}
+		?>
+
+		Params
+		<pre><?= var_dump(context.get) ?></pre>
+	</>
+
+}

@@ -1,0 +1,19 @@
+:sig
+bool file_chmod(String path, u32 mode)
+
+:params
+path : file or directory to change
+mode : permission bits, e.g. 0644 or 0600 (octal)
+return value : true on success
+
+:content
+Sets a path's permission bits, like the shell `chmod`. Pass the mode as an octal literal such as `0600`.
+
+:example
+file_put_contents("/tmp/doc-chmod.txt", "secret");
+print(file_chmod("/tmp/doc-chmod.txt", 0600) ? "mode set" : "failed", "\n");
+
+:see
+>sys
+file_stat
+file_put_contents

@@ -1,0 +1,36 @@
+// Example page_compiler_error handler. Enable in /etc/uce/settings.cfg:
+//   page_compiler_error=site/errors/compiler-error.uce
+// Served with status 500 when the requested unit fails to build. The full
+// compiler output stays available in context.call["error"], so this page can
+// show as much or as little of it as the deployment wants.
+
+RENDER(Request& context)
+{
+	DValue error = context.call["error"];
+
+	<>
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Build failed</title>
+	<style>
+		body { font-family: system-ui, sans-serif; background: #1c1017; color: #fde8e8; margin: 0; min-height: 100vh; }
+		main { max-width: 60rem; margin: 0 auto; padding: 3rem 2rem; }
+		h1 { color: #f87171; }
+		code { color: #fca5a5; }
+		pre { background: #0f0a0d; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+		.meta { color: #9f8a93; font-size: 0.9rem; }
+	</style>
+</head>
+<body>
+	<main>
+		<h1>This page failed to build</h1>
+		<p>Source: <code><?= error["source"].to_string() ?></code></p>
+		<p class="meta">Generated C++: <code><?= error["generated_cpp"].to_string() ?></code></p>
+		<pre><?= error["compiler_output"].to_string() ?></pre>
+	</main>
+</body>
+</html>
+	</>
+}

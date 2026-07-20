@@ -1,0 +1,21 @@
+:sig
+void DValue::set_reference(DValue* target)
+
+:params
+target : target node pointer
+return value : none
+
+:see
+0_DValue
+2_DValue_reference_target
+
+:content
+Stores an internal reference to another `DValue`. Most unit code should not need to create references directly; normal reads and writes generally follow existing references automatically.
+
+
+:example
+DValue target;
+target.set("original");
+DValue ref;
+ref.set_reference(&target);
+print(ref.deref().to_string(), "\n");

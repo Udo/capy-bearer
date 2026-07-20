@@ -1,0 +1,26 @@
+:sig
+DValue request_query_route(Request& context, String default_path = "index")
+
+:see
+>uri
+request_query_path
+request_context_params
+route_path_sanitize
+request_script_url
+
+:content
+Builds a small route tree from the first keyless query-string segment.
+
+Fields:
+
+- `raw_path`: normalized but untrusted route input, for diagnostics only
+- `l_path`: sanitized full route path, or empty string when input was rejected
+- `page`: first path segment of `l_path`, or empty string when input was rejected
+- `valid`: boolean; true when `l_path` is safe
+
+
+This supports front-controller apps that use URLs such as `/?dashboard` or `/?workspace/projects` while still allowing ordinary named query parameters alongside the route. The returned `l_path` is already sanitized for composing under an application-controlled route root.
+
+:example
+DValue route = request_query_route(context, "index");
+print(route.is_array() ? "route\n" : "empty\n");

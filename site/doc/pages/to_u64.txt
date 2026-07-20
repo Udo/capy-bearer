@@ -1,0 +1,23 @@
+:sig
+u64 to_u64(String s, u64 fallback = 0)
+
+:params
+s : string to parse
+fallback : value returned when `s` is empty or not a complete unsigned integer
+return value : parsed u64, or `fallback`.
+
+:see
+>types
+to_s64
+to_f64
+to_bool
+int_val
+
+:content
+Parses a trimmed string as a base-10 unsigned integer. An optional leading `+`
+is accepted. Negative and overflowing values return the fallback.
+
+Unlike `int_val()`, the whole trimmed string must be consumed by the parser. Empty strings and partially parsed values such as `"42px"` return the fallback.
+
+:example
+print(to_u64("7"), "\n");

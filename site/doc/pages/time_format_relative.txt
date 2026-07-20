@@ -1,0 +1,35 @@
+:sig
+String time_format_relative(u64 timestamp, String format_very_recent = "", u64 medium_recency_seconds = 0, String format_medium_recent = "", u64 not_recent_seconds = 0, String format_not_recent = "")
+
+:params
+timestamp : Unix timestamp to compare against the current time
+format_very_recent : output format for very recent timestamps, defaults to `just now`
+medium_recency_seconds : cutoff between the very-recent and medium-recent formats, defaults to `90`
+format_medium_recent : output format for medium-recent timestamps, defaults to `%deltaM minutes ago`
+not_recent_seconds : cutoff between the medium-recent and not-recent formats, defaults to `5400`
+format_not_recent : output format for older timestamps, defaults to `%deltaH hours ago`
+return value : a formatted relative-time string
+
+:see
+>time
+>time_format_local
+>time_format_utc
+
+:content
+Formats a timestamp relative to the current time using the same formatting engine as `time_format_local()` and `time_format_utc()`.
+
+The formatter chooses one of three output formats:
+
+- if `now - timestamp` is less than `medium_recency_seconds`, use `format_very_recent`
+- else if it is less than `not_recent_seconds`, use `format_medium_recent`
+- otherwise use `format_not_recent`
+
+The relative-time tokens available in all time formatters are:
+
+
+Default behavior examples:
+
+
+
+:example
+print(time_format_relative(0, 0), "\n");

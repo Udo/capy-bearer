@@ -1,0 +1,48 @@
+#include "demo_guard.h"
+
+// Fault-injection demo. Under the wasm runtime every unit fault is a guest
+// trap that the workspace turns into a clean 500 without harming the worker;
+// these modes exercise the three distinct trap causes (mirrors tests/wasm-kill).
+u64 error_reporting_recurse(volatile u64 depth)
+{
+	volatile u64 next = depth + 1;
+	return(next + error_reporting_recurse(next));
+}
+
+RENDER(Request& context)
+{
+	if(!test_demo_request_allowed(context))
+	{
+		test_demo_render_restricted_html(context, "Error reporting", "crash or abort request workers for diagnostics");
+		return;
+	}
+	String mode = context.get["mode"];
+
+	if(mode == "trap")
+		__builtin_trap();
+	if(mode == "recurse")
+	{
+		volatile u64 sink = error_reporting_recurse(0);
+		(void)sink;
+	}
+	if(mode == "loop")
+	{
+		volatile u64 i = 0;
+		while(i >= 0)
+			i++;
+	}
+
+	<>
+		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Error reporting
+		</h1>
+		<p>These actions trigger guest traps so you can verify that UCE returns a usable `500` response from a healthy worker instead of dropping the upstream connection.</p>
+		<ul>
+			<li><a href="?mode=trap">Trigger an explicit trap (`__builtin_trap`)</a></li>
+			<li><a href="?mode=recurse">Trigger stack exhaustion (unbounded recursion)</a></li>
+			<li><a href="?mode=loop">Trigger a runaway loop (epoch interrupt)</a></li>
+		</ul>
+	</>
+}

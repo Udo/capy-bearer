@@ -1,0 +1,20 @@
+
+
+RENDER(Request& context)
+{
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			unit_call()
+		</h1>
+		<pre><?
+			unit_call("call_file_funcs.uce", "test_func");
+			print("\n");
+			unit_render("call_file_funcs.uce", context);
+		?></pre>
+		<pre><?= var_dump(context.params) ?></pre>
+	</>
+
+}

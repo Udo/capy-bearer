@@ -1,0 +1,4 @@
+COMPONENT(Request& context)
+{
+	<><div class="tests-warning"><?= first(context.props["children_html"].to_string(), context.props["default_html"].to_string()) ?></div></>
+}

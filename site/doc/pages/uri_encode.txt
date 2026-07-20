@@ -1,0 +1,16 @@
+:sig
+String uri_encode(String s)
+
+:params
+s : string that should be encoded
+return value : an URI-encoded version of 's'
+
+:see
+>uri
+
+:content
+URI-encodes a string.
+
+
+:example
+print(uri_encode("Ada Lovelace"), "\n");

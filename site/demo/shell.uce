@@ -1,0 +1,47 @@
+
+#include "demo_guard.h"
+
+
+RENDER(Request& context)
+{
+	if(!test_demo_request_allowed(context))
+	{
+		test_demo_render_restricted_html(context, "Shell Stuff", "execute shell commands and expose repository state");
+		return;
+	}
+
+	<><html>
+		<link rel="stylesheet" href='style.css?v=1'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Shell Stuff
+		</h1>
+
+		<div>shell_exec()</div>
+
+		<pre><?
+
+			print(shell_exec("ls -l"));
+
+		?></pre>
+
+		<div>shell_escape()</div>
+
+		<pre style="height:80px"><?
+
+			print(shell_exec("echo "+shell_escape("kasjdf 1ölkasj öflkjasdö\\lkfjsöa'ldkfj 23487692\"bla83746")));
+
+		?></pre>
+
+		<div>Git</div>
+
+		<pre><?
+
+			print(shell_exec("git show"));
+
+		?></pre>
+
+		<pre><?= var_dump(context.params) ?></pre>
+	</html></>
+
+}

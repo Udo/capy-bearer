@@ -1,0 +1,21 @@
+:sig
+void csrf_rotate(String session_name = "uce-session", String token_name = "csrf_token")
+
+:params
+session_name : session/cookie name used by `csrf_token()`
+token_name : form/action token namespace to clear
+
+:content
+Starts the named session if needed and clears the stored CSRF token for `token_name`. The next `csrf_token()` call creates a new token. Rotate after sensitive successful mutations when replaying the same submitted form should fail.
+
+:example
+String old_token = csrf_token();
+csrf_rotate();
+String new_token = csrf_token();
+print(old_token != new_token ? "rotated\n" : "unchanged\n");
+
+:see
+>http
+csrf_token
+csrf_valid
+session_start

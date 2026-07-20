@@ -1,0 +1,9 @@
+RENDER(Request& context)
+{
+	if(context.get["mode"] == "optional")
+		print(component_exists("components/does-not-exist") ? "unexpected" : "optional component absent");
+	else if(context.get["mode"] == "capture")
+		print(component("components/does-not-exist", context));
+	else
+		component_render("components/does-not-exist", context);
+}

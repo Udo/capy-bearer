@@ -1,0 +1,18 @@
+:sig
+void socket_close(u64 sockfd)
+
+:params
+sockfd : socket handle
+
+:see
+>socket
+
+:content
+Closes an existing socket connection.
+
+Use this when you are done with a socket opened through `socket_connect()`.
+
+:example
+u64 fd = socket_connect("127.0.0.1", 80);
+print(fd != 0 ? "opened a socket" : "open failed", ", now closing it\n");
+socket_close(fd);

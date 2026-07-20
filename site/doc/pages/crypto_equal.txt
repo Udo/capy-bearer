@@ -1,0 +1,20 @@
+:sig
+bool crypto_equal(String a, String b)
+
+:params
+a : first value
+b : second value
+return value : true if the byte strings are equal
+
+:content
+Compares two byte strings in constant time, so the comparison takes the same time whether they differ in the first byte or the last. Always use it to check secrets such as HMACs, tokens, and password hashes — `==` can leak how much of a secret matched via timing.
+
+:example
+String expected = hmac_sha256_hex("key", "payload");
+print(crypto_equal(expected, hmac_sha256_hex("key", "payload")) ? "valid" : "invalid", " / ");
+print(crypto_equal(expected, "tampered") ? "valid" : "invalid", "\n");
+
+:see
+>sys
+hmac_sha256_hex
+sha256_hex

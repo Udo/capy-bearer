@@ -1,0 +1,68 @@
+#include "demo_guard.h"
+
+RENDER(Request& context)
+{
+	String source = "# UCE app config\n"
+		"app:\n"
+		"  name: UCE Starter\n"
+		"  debug: true\n"
+		"  port: 8080\n"
+		"  paths:\n"
+		"    - site\n"
+		"    - cache\n"
+		"message: |\n"
+		"  Keep config files readable.\n"
+		"  Load them as DValue values.\n";
+
+	DValue cfg = yaml_decode(source);
+	String encoded = yaml_encode(cfg);
+	DValue roundtrip = yaml_decode(encoded);
+
+	DValue generated;
+	generated["database"]["host"] = "localhost";
+	generated["database"]["port"] = (f64)3306;
+	generated["features"]["components"].set_bool(true);
+	generated["features"]["markdown"].set_bool(true);
+
+	DValue theme;
+	theme = "clean";
+	generated["themes"].push(theme);
+	theme = "compact";
+	generated["themes"].push(theme);
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			YAML
+		</h1>
+
+		<p><code>yaml_encode()</code> and <code>yaml_decode()</code> convert concise config-style YAML to and from <code>DValue</code> values.</p>
+
+		<h2>Config Source</h2>
+		<pre><?= source ?></pre>
+
+		<h2>Decoded DValue</h2>
+		<pre><?= json_encode(cfg) ?></pre>
+
+		<h2>Encoded Again</h2>
+		<pre><?= encoded ?></pre>
+
+		<h2>Generated Config</h2>
+		<pre><?= yaml_encode(generated) ?></pre>
+
+		<h2>Round Trip Reads</h2>
+		<pre><?
+			print("app.name = ", roundtrip["app"]["name"].to_string(), "\n");
+			print("app.debug = ", roundtrip["app"]["debug"].to_bool() ? "true" : "false", "\n");
+			print("app.port = ", std::to_string(roundtrip["app"]["port"].to_s64()), "\n");
+			print("app.paths[1] = ", roundtrip["app"]["paths"]["1"].to_string(), "\n");
+		?></pre>
+
+		<p>
+			<a href="../doc/index.uce?p=yaml_encode">yaml_encode() docs</a>
+			|
+			<a href="../doc/index.uce?p=yaml_decode">yaml_decode() docs</a>
+		</p>
+	</>
+}

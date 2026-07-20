@@ -1,0 +1,13 @@
+# job_await
+
+
+Waits up to `timeout_ms` for a job to finish, then returns status/result data. The wait is always bounded and returns with `state=running` if the job is still active.
+
+:see
+>sys
+
+:example
+DValue spec; spec["cmd"] = "printf hello-from-job"; spec["timeout_ms"] = (f64)1000;
+u64 job = shell_spawn(spec);
+DValue waited = job_await(job, 3000);
+print("done=", waited["done"].to_bool() ? "true" : "false", " stdout=", waited["result"]["stdout"].to_string(), "\n");

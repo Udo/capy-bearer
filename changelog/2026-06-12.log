@@ -1,0 +1,28 @@
+commit 941f5aea08941327eecbc43128d8f171a4064616
+feat: add configurable UCE error pages
+
+
+commit 7066da3cdef08b01dda64bca34caadc7000587b2
+refactor: rename DTree to DValue
+
+
+commit 7e2faf1472c84f302ce5b7f9674091a1a2b3930f
+spike: validate WASM phase 0
+
+
+commit 80285b7fb4acd15850218ee87c72ec8272332c05
+feat: implement WASM phase 1 DValue ABI
+
+
+commit 961df2d542ff6554e32da9ee28e73f5fc59b5975
+phase 5
+
+
+commit 89b5499c8f4e1a8acc8748e66c9dba9eb9679369
+fix: harden WASM phase 5 harness
+
+
+commit eb8f303f94f0f43699eca7cd6474eedaef1ed711
+docs: remove unsupported second-plane language roadmap
+
+

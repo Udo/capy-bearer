@@ -1,0 +1,27 @@
+:sig
+pid_t task(String key, std::function<void()> exec_func, u64 timeout = 60*10)
+
+:params
+key : string uniquely identifying the task across the whole runtime instance
+exec_func : function to execute
+timeout : maximum run time in seconds; `0` disables the timeout
+return value : the process ID of the started (or still running) task, or `0` when the task could not be started
+
+:see
+>task
+task_pid
+task_kill
+task_repeat
+
+:content
+Starts `exec_func` in a new process and returns that process ID.
+
+If a process with the same `key` is already running anywhere in the runtime instance, `task()` does not start a second copy. Instead it returns the PID of the already-running task. Coordination is through a shared task status file under `BIN_DIRECTORY`, so the key applies across workers, not just the current worker process.
+
+Task keys may contain ordinary user-facing text. UCE hashes the key before using it as an internal lock/status filename so slashes and other path-like characters cannot escape the task state directory.
+
+`timeout` is enforced in the child process with an alarm. The default is ten minutes. Pass `0` only for tasks that have their own shutdown path.
+
+:example
+task("doc-demo-task", []() { usleep(100000); });
+print(task_pid("doc-demo-task") > 0 ? "background task is running" : "no task", "\n");

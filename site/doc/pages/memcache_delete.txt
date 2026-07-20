@@ -1,0 +1,25 @@
+:sig
+bool memcache_delete(u64 connection, String key)
+
+:params
+connection : connection handle
+key : key string
+return value : true if the operation was successful
+
+:see
+>memcache
+
+:content
+Deletes the entry identified by `key`.
+
+The return value is `true` when the operation succeeds.
+
+:example
+u64 conn = memcache_connect();
+if(conn != 0)
+{
+    memcache_set(conn, "doc_del_key", "v");
+    memcache_delete(conn, "doc_del_key");
+    print(memcache_get(conn, "doc_del_key", "gone"), "\n");
+}
+else print("(requires a reachable memcached server)\n");

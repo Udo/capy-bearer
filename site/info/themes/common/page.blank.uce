@@ -1,0 +1,4 @@
+COMPONENT(Request& context)
+{
+	print(component("page_helpers.uce:MAIN_HTML", context.props, context));
+}

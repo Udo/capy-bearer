@@ -1,0 +1,19 @@
+:sig
+String path_join(String base, String child)
+
+:params
+base : base path
+child : path to append
+return value : the two joined with a single separator
+
+:content
+Joins two path fragments with exactly one separator, regardless of whether `base` ends in a slash or `child` begins with one. Use it instead of string concatenation to build paths safely.
+
+:example
+print(path_join("/var/www", "site/index.uce"), "\n");
+
+:see
+>sys
+basename
+dirname
+path_real

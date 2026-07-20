@@ -1,0 +1,16 @@
+// Small target unit used by the unit_*/component documentation examples.
+RENDER(Request& context)
+{
+	print("hello from the sample unit");
+}
+
+COMPONENT(Request& context)
+{
+	print("hello from the sample component");
+}
+
+EXPORT DValue* doc_greet(DValue* call_param)
+{
+	print("doc_greet() was called");
+	return(0);
+}

@@ -1,0 +1,7 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	StarterUser(context).logout();
+	redirect(app_link("account/login", context));
+}

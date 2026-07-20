@@ -1,0 +1,52 @@
+
+
+RENDER(Request& context)
+{
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Session
+		</h1>
+	</>
+
+
+	String action = context.get["action"];
+	if(context.cookies["uce-session"].length() > 0)
+		session_start();
+	if(action == "start")
+	{
+		session_start();
+		print("action: starting session");
+	}
+	else if(action == "store")
+	{
+		context.session["stored-value"] = session_id_create();
+		print("action: storing value "+context.session["stored-value"]);
+	}
+	else if(action == "destroy")
+	{
+		session_destroy();
+		print("action: destroying session");
+	}
+
+	<>
+		<br/>
+		<a href="?action=start" class="button">Start Session</a> |
+		<a href="?" class="button">Refresh</a> |
+		<a href="?action=destroy" class="button">Destroy Session</a> |
+		<a href="?action=store" class="button">Store Value</a> |
+		Info
+		<pre><?
+
+		print(var_dump(context.cookies));
+		print("SESSION:\n");
+		print(var_dump(context.session));
+
+		?></pre>
+		Params
+		<pre><?= var_dump(context.params) ?></pre>
+	</>
+
+}

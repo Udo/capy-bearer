@@ -1,0 +1,12 @@
+# job_cancel
+
+
+Attempts to terminate the background job process group and marks the registry entry as `cancelled`.
+
+:see
+>sys
+
+:example
+DValue spec; spec["cmd"] = "sleep 5"; spec["timeout_ms"] = (f64)10000;
+u64 job = shell_spawn(spec);
+print(job_cancel(job) ? "job cancelled" : "could not cancel", "\n");

@@ -1,0 +1,50 @@
+:sig
+String xml_encode(DValue t)
+String xml_encode(DValue t, String root_name)
+
+:params
+t : tree to serialize as XML
+root_name : optional element name to use when `t` is not already an element-shaped tree, defaults to `root`
+return value : XML string
+
+:see
+>markup
+xml_decode
+json_encode
+0_DValue
+html_escape
+
+:content
+Serializes a `DValue` into a simple XML string.
+
+`xml_encode()` does not validate against a schema, DTD, or namespace rules. It is a structural converter for application data, similar in spirit to `json_encode()`.
+
+Try the live example in the [XML demo](../demo/xml.uce).
+
+The native element shape is:
+
+
+Example:
+
+
+The result is:
+
+
+For simple map/list/scalar trees, `xml_encode()` creates ordinary child elements:
+
+
+Result:
+
+
+Notes:
+
+- Element and attribute names are normalized to XML-name-safe strings when needed.
+- Text and attribute values are escaped.
+- List values use repeated `<item>` children.
+- Empty elements serialize as self-closing tags.
+- Map child order follows `DValue` map iteration order.
+
+:example
+DValue value;
+value["name"] = "Ada";
+print(xml_encode(value) != "" ? "xml\n" : "empty\n");

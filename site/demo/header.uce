@@ -1,0 +1,25 @@
+
+
+RENDER(Request& context)
+{
+	DValue t;
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Header
+		</h1>
+
+		Response Headers
+		<pre style="white-space: pre-wrap"><?
+
+		print(var_dump(context.header));
+
+		?></pre>
+
+		Params
+		<pre><?= var_dump(context.params) ?></pre>
+	</>
+
+}

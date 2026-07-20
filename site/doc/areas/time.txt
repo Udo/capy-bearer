@@ -1,0 +1,9 @@
+Time and Date Functions
+
+usleep
+time_precise
+time
+time_format_local
+time_format_relative
+time_format_utc
+time_parse

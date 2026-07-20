@@ -1,0 +1,126 @@
+:title
+C++ Preprocessor
+
+:sig
+UCE source preprocessing
+
+:see
+load
+unit_render
+unit_call
+0_Request
+1_COMPONENT
+
+:content
+UCE runs a small custom source-to-source preprocessor before Clang sees a `.uce` or `.ws.uce` file.
+
+The template rewriting implementation lives in `src/lib/compiler-parser.cpp`, with orchestration in `src/lib/compiler.cpp`. It does not try to parse all of C++. Instead, it performs a narrow character-wise rewrite that understands literal output, inline code islands, `#load`, and `EXPORT` harvesting, then writes a generated `.cpp` file and compiles that file into a WebAssembly side module.
+
+## Syntax
+
+- `<> ... </>` enters literal-output mode.
+- `?> ... <?` also enters literal-output mode.
+- The open and close pairs are interchangeable, so `<> ... <?`, `?> ... </>`, and the traditional matched forms all work.
+- Inside literal output, `<? ... ?>` emits raw C++.
+- Inside a literal block, `<?= expression ?>` emits `print(html_escape(expression));`.
+- Inside a literal block, `<?: expression ?>` emits `print(expression);` without HTML escaping.
+- `#load "other.uce"` injects another UCE unit at compile time.
+- `RENDER(Request& context)`, `COMPONENT(Request& context)`, `CLI(Request& context)`, `ONCE(Request& context)`, `INIT(Request& context)`, and `WS(Request& context)` are normal C++ macros from `src/lib/compiler.h`.
+- `ONCE`, `RENDER`, and `COMPONENT` may be followed by a preprocessor attribute line such as `@fragment head` before the opening `{`. The handler's output is then captured and appended to `context.call["fragments"]["head"]` instead of being emitted at the call site. `ONCE` defaults to `@fragment once` when no fragment is specified.
+- `COMPONENT:NAME(Request& context)` is rewritten by the custom pass into an exported named component handler.
+- `EXPORT` is also a normal C++ macro, but the custom pass additionally records exported declarations for metadata.
+
+## Pipeline
+
+- The generated file starts by including the logical runtime header `uce_lib.h`; the wasm unit compile script provides the include path.
+- It then inlines the configured setup template from `SETUP_TEMPLATE` (by default `scripts/setup.h.template`), which defines the internal hook `__uce_set_current_request(Request*)`.
+- It inserts `#line 1` before page code so compiler diagnostics point back to the original `.uce` file.
+- Each literal region is rewritten into one or more `print(R"...( ... )...");` calls using a safe raw-string delimiter selected for that literal content.
+- `<>` and `?>` both switch from code mode into literal output.
+- `</>` and `<?` both switch from literal output back into code mode.
+- `<? ... ?>` temporarily breaks out of literal printing, emits the enclosed C++ unchanged, then resumes literal output.
+- `<?= ... ?>` becomes `print(html_escape(...));`.
+- `<?: ... ?>` becomes `print(...);` and is intended for trusted markup or already-escaped content.
+- `#load "file.uce"` is replaced with a generated C++ `#include` that points at the loaded unit's preprocessed `.cpp` file under `BIN_DIRECTORY`.
+- Lines beginning with `EXPORT` are scanned so their declarations can be written to a sibling `.exports.txt` file.
+- `@fragment slot-name` lines immediately following `ONCE`, `RENDER`, or `COMPONENT` are removed and replaced with an output-capture guard at the start of the handler body.
+- Lines beginning with `RENDER:NAME(...)` are rewritten into exported `__uce_render_NAME(...)` functions.
+- Lines beginning with `COMPONENT:NAME(...)` are rewritten into exported `__uce_component_NAME(...)` functions for the component helpers.
+- The final generated source is written to `BIN_DIRECTORY + src_path + "/" + source_file + ".cpp"`.
+- `scripts/compile_wasm_unit` then compiles that generated `.cpp` into `source_file + ".wasm"` as a PIC WebAssembly side module.
+- When a worker instantiates the compiled unit, the runtime checks for `INIT(Request& context)` and calls it once for that worker-side instance.
+- On each request, the first time a given unit is entered through `RENDER()`, `CLI()`, or any `COMPONENT...` handler, the runtime checks for `ONCE(Request& context)` and calls it before the selected handler.
+
+## Generated Files
+
+For a source file like `/some/path/page.uce`, the preprocessor produces:
+
+- generated C++: `BIN_DIRECTORY/some/path/page.uce.cpp`
+- wasm side module: `BIN_DIRECTORY/some/path/page.uce.wasm`
+- export list: `BIN_DIRECTORY/some/path/page.uce.exports.txt`
+
+## Examples
+
+Literal output with escaped data:
+
+
+The same thing can also be written with PHP-style literal delimiters:
+
+
+Roughly becomes:
+
+
+Literal output with trusted unescaped markup:
+
+
+Roughly becomes:
+
+
+Compile-time composition:
+
+
+The loaded file is resolved relative to the current source file unless the path is already absolute.
+
+One-time worker initialization plus request-local setup:
+
+
+One-time page assets captured for a template-controlled slot:
+
+
+The page template can then render `context.call["fragments"]["head"]` inside `<head>`.
+
+## Rules
+
+- Literal mode can start on either `<>` or `?>`.
+- Literal mode can end on either `</>` or `<?`.
+- Literal delimiters are interchangeable; the parser treats them as one shared code-vs-literal state machine rather than as separate nested block types.
+- `#load` is recognized only when the current line starts with `#load ` at column 1.
+- `EXPORT` harvesting only triggers when the current line starts with `EXPORT` at column 1 and is followed by whitespace.
+- Relative `#load` paths are expanded against the including unit's source directory.
+- `unit_render()` and `unit_call()` are runtime APIs. `#load` is a compile-time composition feature.
+- `INIT()` runs when the wasm unit is instantiated by a worker during a request-triggered load, so it still receives a valid `Request& context`.
+- `ONCE()` is tracked per request and per resolved unit file. A file entered multiple times in one request only runs `ONCE()` once.
+
+## Limitations
+
+- This pass is character-wise, not a full parser.
+- Outside literal blocks it tracks C++ quotes and comments while deciding whether `<>` or `?>` should open literal mode.
+- It does not understand comments, raw string literals, templates, or general C++ token structure.
+- Inside literal blocks it tracks quotes and comments while scanning `<? ... ?>`, `<?= ... ?>`, and `<?: ... ?>` islands so quoted `?>` text does not close those islands early.
+- Literal output is emitted through C++ string literals generated by the preprocessor. The preprocessor chooses a raw-string delimiter that does not occur in the literal content, so literal text may safely contain the ordinary raw-string terminator sequence `)"`.
+- `#load` depends on the target unit's generated `.cpp` existing and being compilable. If the target cannot be preprocessed or compiled correctly, the including file will fail to compile as well.
+
+## Debugging
+
+- Inspect the generated file under `BIN_DIRECTORY` first. That file shows the exact C++ produced by the UCE preprocessor.
+- Compiler errors usually point back to the `.uce` source because the preprocessor inserts `#line 1`, but the generated `.cpp` is still the best place to inspect expansion problems.
+- Compile failures are reported with the source path, generated C++ path, compile-output artifact path, an excerpt when UCE can identify a line, and the raw compiler output from the configured compile script.
+- Runtime request failures include the request/script path, generated C++ path, a hint about inspecting template delimiters and recent component/unit calls, and a native trace when available.
+- If a `#load` include looks wrong, check the current file's directory, the configured `BIN_DIRECTORY`, and whether the loaded page already produced its own generated `.cpp`.
+
+:example
+// The preprocessor lets you mix C++ logic with output. Code generates markup:
+StringList items = split("apples,pears,plums", ",");
+String html = "";
+items.each([&](String item) { html += "<li>" + item + "</li>"; });
+print(html, "\n");

@@ -1,0 +1,18 @@
+#load "../../lib/app.uce"
+
+COMPONENT:island(Request& context)
+{
+	String name = context.props["name"].to_string();
+	String module = context.props["module"].to_string();
+	String id = first(context.props["id"].to_string(), "island-" + ascii_safe_name(name));
+	String payload = json_encode(context.props["props"]);
+	if(name == "")
+		return;
+	<>
+		<div id="<?= id ?>" data-uce-island="<?= name ?>" data-props="<?: html_escape(payload) ?>"></div>
+	</>
+	if(module != "")
+	{
+		<><script type="module" src="<?= app_asset_url(module, context) ?>"></script></>
+	}
+}

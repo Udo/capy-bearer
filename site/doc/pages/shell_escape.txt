@@ -1,0 +1,17 @@
+:sig
+String shell_escape(String raw)
+
+:params
+raw : string that should be escaped
+return value : escaped version of 'raw'
+
+:see
+>sys
+
+:content
+Escapes a parameter so it can be used more safely with `shell_exec()`.
+
+This is the helper to reach for when building shell command lines from dynamic input.
+
+:example
+print(shell_escape("rm -rf /; echo pwned"), "\n");

@@ -1,0 +1,12 @@
+WebSocket Functions
+
+ws_close
+ws_connection_count
+ws_connection_id
+ws_connections
+ws_is_binary
+ws_message
+ws_opcode
+ws_scope
+ws_send
+ws_send_to

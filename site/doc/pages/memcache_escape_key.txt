@@ -1,0 +1,16 @@
+:sig
+String memcache_escape_key(String key)
+
+:params
+key : application key
+return value : memcache-safe key string
+
+:see
+>sys
+>memcache_escape_keys
+
+:content
+Normalizes whitespace in a memcache key to underscores before it is placed into a text protocol command.
+
+:example
+print(memcache_escape_key("a key with spaces"), "\n");

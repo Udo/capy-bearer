@@ -1,0 +1,32 @@
+:title
+INIT
+
+:sig
+INIT(Request& context)
+
+:see
+>1_COMPONENT
+>1_ONCE
+>1_RENDER
+>1_WS
+>3_C++ Preprocessor
+>unit_call
+
+:content
+Defines a worker-load hook for the current `.uce` unit.
+
+When a worker instantiates the unit's compiled wasm module, the runtime checks whether the unit exposes `INIT(Request& context)`. If it does, the hook runs once for that instance before the unit begins serving requests from that worker-local copy.
+
+Because UCE usually loads units on demand during a request, `INIT()` still receives a valid `Request& context`. Use it for worker-local initialization, not for request-local state that should reset each request.
+
+## Typical Uses
+
+- warm caches or parse static lookup data into globals
+- initialize worker-local helper state for expensive component trees
+- perform one-time registration work for that unit's in-memory copy
+
+## Example
+
+
+:example
+print("INIT is a unit directive; place it at top level in a .uce unit.\n");

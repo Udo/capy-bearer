@@ -1,0 +1,8 @@
+SQLite
+
+sqlite_connect
+sqlite_disconnect
+sqlite_error
+sqlite_query
+sqlite_insert_id
+sqlite_affected_rows

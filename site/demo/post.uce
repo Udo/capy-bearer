@@ -1,0 +1,43 @@
+
+EXPORT void show_form(Request& context)
+{
+
+	<><form action="?" method="post">
+		<div>
+			<label>Some text:</label>
+			<input type="text" name="field" value="<?= context.post["field"] ?>"/>
+		</div>
+		<div>
+			<label>Some multiline text:</label>
+			<textarea name="field2"><?= context.post["field2"] ?></textarea>
+		</div>
+		<div>
+			<input type="submit" value="Submit Form"/>
+		</div>
+	</form></>
+
+}
+
+RENDER(Request& context)
+{
+
+	<><html>
+		<link rel="stylesheet" href='style.css?v=1'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Form POST
+		</h1>
+
+		<? show_form(context); ?>
+
+		<label>Parsed POST fields</label>
+		<pre><?= var_dump(context.post) ?></pre>
+
+		<label>Raw POST content</label>
+		<pre><?= context.in ?></pre>
+
+		<label>CGI Params</label>
+		<pre><?= var_dump(context.params) ?></pre>
+	</html></>
+
+}

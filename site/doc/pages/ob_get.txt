@@ -1,0 +1,20 @@
+:sig
+String ob_get()
+
+:params
+return value : the current buffer's contents
+
+:content
+Returns the current output buffer's contents WITHOUT discarding the buffer, so more output can still be appended. Use `ob_get_close()` when you also want to pop the buffer.
+
+:example
+ob_start();
+print("partial");
+String snapshot = ob_get();
+ob_close();
+print("snapshot was: ", snapshot, "\n");
+
+:see
+>ob
+ob_get_close
+ob_start

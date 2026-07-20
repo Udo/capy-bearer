@@ -1,0 +1,17 @@
+:sig
+bool str_ends_with(String haystack, String needle)
+
+:params
+haystack : string to inspect
+needle : suffix to compare against the end of `haystack`
+return value : `true` when `haystack` ends with `needle`, otherwise `false`
+
+:see
+>string
+
+:content
+Checks whether `haystack` ends with `needle`.
+
+
+:example
+print(str_ends_with("index.uce", ".uce") ? "yes\n" : "no\n");

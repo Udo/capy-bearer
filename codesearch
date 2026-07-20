@@ -1,0 +1,58 @@
+#!/bin/bash
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+show_help() {
+	cat <<'EOF'
+Usage:
+  ./codesearch <pattern> [rg options...]
+
+Examples:
+  ./codesearch "ws_send"
+  ./codesearch "RENDER\\(Request& context\\)"
+  ./codesearch -tcpp "compiler_invoke"
+  ./codesearch -g '*.uce' "context.call"
+
+Notes:
+  - This is a thin wrapper around ripgrep (`rg`).
+  - It searches from the repository root.
+  - Generated/build directories are excluded by default:
+    `.git/`, `bin/`, `dist/`, and `work/`.
+EOF
+}
+
+if [[ $# -eq 0 ]]; then
+	show_help
+	exit 1
+fi
+
+case "${1:-}" in
+	-h|--help|help)
+		show_help
+		exit 0
+		;;
+esac
+
+if command -v rg >/dev/null 2>&1; then
+	exec rg \
+		--line-number \
+		--column \
+		--smart-case \
+		--glob '!.git/**' \
+		--glob '!bin/**' \
+		--glob '!dist/**' \
+		--glob '!work/**' \
+		"$@"
+fi
+
+pattern="$1"
+shift || true
+
+echo "ripgrep (rg) is not installed; falling back to grep." >&2
+exec grep -RIn \
+	--exclude-dir=.git \
+	--exclude-dir=bin \
+	--exclude-dir=dist \
+	--exclude-dir=work \
+	-- "$pattern" .

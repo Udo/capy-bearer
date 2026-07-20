@@ -1,0 +1,21 @@
+:sig
+DValue& DValue::deref()
+const DValue& DValue::deref() const
+
+:params
+return value : referenced target when resolvable, otherwise this value
+
+:see
+0_DValue
+2_DValue_is_reference
+
+:content
+Returns the value after following internal reference links. Most public accessors call this for you, so direct use is rare in unit code.
+
+
+:example
+DValue target;
+target.set("value");
+DValue ref;
+ref.set_reference(&target);
+print("through ref: ", ref.deref().to_string(), "\n");

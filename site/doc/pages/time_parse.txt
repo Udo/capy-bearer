@@ -1,0 +1,16 @@
+:sig
+u64 time_parse(String time_string)
+
+:params
+time_string : a string containing a date and/or time in text form
+return value : the interpreted 'time_string' as a Unix timestamp
+
+:see
+>time
+
+:content
+Attempts to parse `time_string` into a Unix timestamp.
+
+
+:example
+print(time_parse("1970-01-01 00:00:00") >= 0 ? "parsed\n" : "bad\n");

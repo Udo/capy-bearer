@@ -1,0 +1,19 @@
+:sig
+u64 memcache_connect(String host = "127.0.0.1", u16 port = 11211)
+
+:params
+host : optional host name of the memcache server, defaults to local address 127.0.0.1
+port : optional memcache server's port, defaults to 11211
+return value : the connection handle (or -1 if an error occurred)
+
+:see
+>memcache
+
+:content
+Connects to a Memcache server instance.
+
+If the connection fails, the function returns `-1`.
+
+:example
+u64 conn = memcache_connect();
+print(conn != 0 ? "connected to memcached" : "no memcached server reachable", "\n");

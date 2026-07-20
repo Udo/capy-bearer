@@ -1,0 +1,28 @@
+:sig
+StringMap split_kv(String s, char separator = '=', bool trim_whitespace = true, bool uppercase_keys = false)
+
+:params
+s : input containing one key/value pair per line
+separator : character separating each key from its value
+trim_whitespace : trim keys and values when true
+uppercase_keys : uppercase keys when true
+return value : map of parsed keys and values
+
+:see
+>string
+split
+split_http_headers
+
+:content
+Parses simple line-based key/value text into a `StringMap`.
+
+Each non-empty line is split on the first `separator`. Lines without the separator are kept with an empty value.
+
+Example:
+
+
+This is useful for small config files, metadata blocks, and tests that need predictable key/value parsing.
+
+:example
+StringMap values = split_kv("name=Ada\nrole=admin");
+print(values["name"], "\n");

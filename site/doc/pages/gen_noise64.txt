@@ -1,0 +1,17 @@
+:sig
+u64 gen_noise64(u64 index, u64 seed = 0)
+
+:params
+index : index position
+seed : seed set (defaults to 0)
+return value : a noise value given the 'index' and 'seed' values.
+
+:see
+>noise
+
+:content
+Generates a deterministic 64-bit-indexed noise value for the given `index` and `seed`.
+
+
+:example
+print(gen_noise64(1, 2) != 0 ? "noise64\n" : "zero\n");

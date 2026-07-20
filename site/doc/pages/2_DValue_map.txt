@@ -1,0 +1,24 @@
+:sig
+DValue DValue::map(std::function<DValue (const DValue& item, String key)> f) const
+
+:params
+f : mapper called for each iterated item
+return value : mapped copy
+
+:see
+>types
+0_DValue
+2_DValue_each
+2_DValue_filter
+
+:content
+Builds a new `DValue` by replacing each iterated child with the mapper's returned value. List-shaped input stays list-shaped and is re-indexed by `push()`. Map-shaped input preserves keys. Scalar input is mapped once and pushed into a list.
+
+:example
+DValue names;
+DValue first; first = "ada";
+DValue second; second = "grace";
+names.push(first);
+names.push(second);
+DValue upper = names.map([](const DValue& item, String key) { DValue out; out = to_upper(item.to_string()); return(out); });
+print(upper["0"].to_string(), ",", upper["1"].to_string(), "\n");

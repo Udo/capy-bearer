@@ -1,0 +1,16 @@
+SERVE_HTTP(Request* req)
+{
+	req->header["Content-Type"] = "text/plain; charset=utf-8";
+	print("custom-http-default\n");
+	print("method=", req->params["REQUEST_METHOD"], "\n");
+	print("uri=", req->params["REQUEST_URI"], "\n");
+	print("body=", req->in, "\n");
+}
+
+SERVE_HTTP:named(Request* req)
+{
+	req->header["Content-Type"] = "text/plain; charset=utf-8";
+	print("custom-http-named\n");
+	print("function=", req->params["UCE_SERVE_HTTP_FUNCTION"], "\n");
+	print("query=", req->params["QUERY_STRING"], "\n");
+}

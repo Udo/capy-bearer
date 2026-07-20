@@ -1,0 +1,101 @@
+#include "testlib.h"
+
+RENDER(Request& context)
+{
+	u64 passed = 0;
+	u64 failed = 0;
+	u64 skipped = 0;
+
+	auto check = [&](String name, bool ok, String detail)
+	{
+		site_tests_case(name, ok ? "pass" : "fail", detail);
+		if(ok)
+			passed++;
+		else
+			failed++;
+	};
+
+	String action = first(context.get["action"], "touch");
+	String session_id = session_start("uce-site-tests");
+	String session_path = context.server->config["SESSION_PATH"] + "/" + session_id;
+	if(action == "destroy")
+		session_destroy("uce-site-tests");
+	else
+		context.session["suite"] = "http";
+
+	set_cookie("site-tests-cookie", "cookie-value", time() + 300);
+	context.header["X-Site-Tests"] = "http-suite";
+
+	String query_src = "alpha=1&beta=two%20words&gamma=ok&token=a%3Db&keyless&empty=&trailing=ok&";
+	StringMap query = parse_query(query_src);
+	String uri_input = "alpha beta/?x=1&y=2";
+	String encoded = uri_encode(uri_input);
+	String decoded = uri_decode(encoded);
+	String malformed_percent = uri_decode("% %A %GG ok%20done");
+	URI empty_uri = parse_uri("");
+	URI full_uri = parse_uri("https://example.test/docs/page?name=Ada#part");
+	URI port_uri = parse_uri("https://example.test:8443/status");
+	String generated_session = session_id_create();
+	String csrf = "";
+	String csrf_html = "";
+	String csrf_named_html = "";
+	String csrf_rotated = "";
+	bool csrf_ok = false;
+	bool csrf_bad = false;
+	bool csrf_old_after_rotate = false;
+	bool csrf_new_after_rotate = false;
+	if(action != "destroy")
+	{
+		csrf = csrf_token("uce-site-tests", "http_form");
+		csrf_html = csrf_field("uce-site-tests", "http_form");
+		csrf_named_html = csrf_field("uce-site-tests", "http_form", "csrf_token");
+		csrf_ok = csrf_valid(csrf, "uce-site-tests", "http_form");
+		csrf_bad = csrf_valid("not-" + csrf, "uce-site-tests", "http_form");
+		csrf_rotate("uce-site-tests", "http_form");
+		csrf_old_after_rotate = csrf_valid(csrf, "uce-site-tests", "http_form");
+		csrf_rotated = csrf_token("uce-site-tests", "http_form");
+		csrf_new_after_rotate = csrf_rotated != "" && csrf_rotated != csrf && csrf_valid(csrf_rotated, "uce-site-tests", "http_form");
+	}
+	String query_dump = var_dump(query);
+	String set_cookie_dump = var_dump(context.set_cookies);
+	String header_dump = var_dump(context.header);
+	String session_dump = var_dump(context.session);
+
+	site_tests_page_start("HTTP And Session", "Request helpers, cookies, headers, URI parsing, and session lifecycle checks.");
+
+	check("uri_encode() / uri_decode()", decoded == uri_input, encoded + " => " + decoded);
+	check("uri_decode() malformed percent literals", malformed_percent == "% %A %GG ok done", malformed_percent);
+	check("parse_uri() empty input", empty_uri.parts["raw"] == "", var_dump(empty_uri));
+	check("parse_uri() standard URL", full_uri.parts["error"] == "" && full_uri.parts["scheme"] == "https" && full_uri.parts["host"] == "example.test" && full_uri.parts["path"] == "docs/page" && full_uri.query["name"] == "Ada" && full_uri.parts["fragment"] == "part", var_dump(full_uri));
+	check("parse_uri() URL with port", port_uri.parts["error"] == "" && port_uri.parts["host"] == "example.test" && port_uri.parts["port"] == "8443" && port_uri.parts["path"] == "status", var_dump(port_uri));
+	check("parse_query()", query["alpha"] == "1" && query["beta"] == "two words" && query["token"] == "a=b" && query["keyless"] == "" && query["empty"] == "" && query["trailing"] == "ok" && query.count("") == 0, query_dump);
+	StringMap encoded_query_map;
+	encoded_query_map["alpha"] = "one two";
+	encoded_query_map["token"] = "a=b";
+	String encoded_query = encode_query(encoded_query_map);
+	DValue raw_route = request_route_from_raw_path("/workspace/projects/", "index");
+	check("encode_query() / request route helpers", contains(encoded_query, "alpha=one%20two") && contains(encoded_query, "token=a%3Db") && request_script_url(context) != "" && request_base_url(context) != "" && raw_route["l_path"].to_string() == "workspace/projects" && raw_route["valid"].to_bool(), encoded_query + " script=" + request_script_url(context) + " base=" + request_base_url(context) + " route=" + json_encode(raw_route));
+	check("set_cookie()", set_cookie_dump.find("site-tests-cookie") != String::npos && set_cookie_dump.find("cookie-value") != String::npos && set_cookie_dump.find("HttpOnly") != String::npos && set_cookie_dump.find("SameSite=Lax") != String::npos, set_cookie_dump);
+	check("response header mutation", context.header["X-Site-Tests"] == "http-suite", header_dump);
+	check("session_start()", session_id != "", "session_id=" + session_id);
+	check("session_id_create()", generated_session.length() >= 16, generated_session);
+	if(action != "destroy")
+	{
+		check("csrf_token() / csrf_valid() / csrf_rotate()", csrf.length() >= 32 && csrf_ok && !csrf_bad && !csrf_old_after_rotate && csrf_new_after_rotate, "csrf=" + csrf + " rotated=" + csrf_rotated);
+		check("csrf_field()", csrf_html == "<input type=\"hidden\" name=\"http_form\" value=\"" + csrf + "\">", csrf_html);
+		check("csrf_field() custom field name", csrf_named_html == "<input type=\"hidden\" name=\"csrf_token\" value=\"" + csrf + "\">", csrf_named_html);
+	}
+
+	if(action == "destroy")
+		check("session_destroy()", session_dump.find("suite") == String::npos && context.session_id == "" && context.session_name == "" && !file_exists(session_path), session_dump + " path=" + session_path);
+	else
+		check("context.session writes", context.session["suite"] == "http", session_dump);
+
+	?><div class="tests-section">
+		<a class="button" href="?">Refresh Session Test</a>
+		<a class="button" href="?action=destroy">Destroy Session</a>
+	</div><?
+
+	site_tests_summary(passed, failed, skipped, "This page mutates only response headers and the test cookie/session namespace used by the suite.");
+	site_tests_page_end();
+}

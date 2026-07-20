@@ -1,0 +1,23 @@
+:sig
+void DValue::set_type(char t)
+
+:params
+t : internal type tag such as S, F, B, M, P, or R
+return value : none
+
+:see
+0_DValue
+2_DValue_set
+2_DValue_set_array
+
+:content
+Changes the node's internal type tag, forwarding through references when possible. Switching to map type clears children, resets list state, and resets the array index.
+
+Prefer the typed setters (`set`, `set_bool`, `set_array`) in normal unit code.
+
+
+:example
+DValue v;
+v.set_array();
+DValue item; item.set("x"); v.push(item);
+print("type after set_array: ", v.get_type_name(), "\n");

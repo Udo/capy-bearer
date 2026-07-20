@@ -1,0 +1,26 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	String title = first(context.call["app"]["page_title"].to_string(), context.cfg.get_by_path("site/default_page_title").to_string());
+	String description = first(context.cfg.get_by_path("theme/meta_description").to_string(), "UCE starter example");
+	String theme_color = first(context.cfg.get_by_path("theme/theme_color").to_string(), "#0f172a");
+	String icon = app_asset_url(context.cfg.get_by_path("theme/path").to_string() + "icon.png", context);
+
+	<>
+		<meta charset="utf-8">
+		<title><?= title + " | " + context.cfg.get_by_path("site/name").to_string() ?></title>
+		<meta name="description" content="<?= description ?>">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="theme-color" content="<?= theme_color ?>">
+		<link rel="apple-touch-icon" href="<?= icon ?>" />
+		<link rel="icon" type="image/png" sizes="32x32" href="<?= icon ?>" />
+		<link rel="stylesheet" href="<?= app_asset_url(context.cfg.get_by_path("theme/path").to_string() + "css/style.css", context) ?>" />
+		<link rel="stylesheet" href="<?= app_asset_url("themes/common/fontawesome/css/all.min.css", context) ?>" />
+		<script src="<?= app_asset_url("js/u-query.js", context) ?>"></script>
+		<script src="<?= app_asset_url("js/morphdom.js", context) ?>"></script>
+		<script src="<?= app_asset_url("js/site.js", context) ?>"></script>
+		<?: context.call["fragments"]["head"].to_string() ?>
+		<?: context.call["fragments"]["once"].to_string() ?>
+	</>
+}

@@ -1,0 +1,21 @@
+:sig
+String ob_get_close()
+
+:params
+return value : the current buffer's contents
+
+:content
+Returns the current output buffer's contents and discards the buffer, switching back to the previous one on the stack. This is the usual way to capture rendered output for post-processing.
+
+:example
+ob_start();
+print("hello ");
+print("world");
+String html = ob_get_close();
+print("captured ", html.length(), " chars: ", html, "\n");
+
+:see
+>ob
+ob_start
+ob_get
+ob_close

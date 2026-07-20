@@ -1,0 +1,32 @@
+:title
+ONCE
+
+:sig
+ONCE(Request& context)
+
+:see
+>1_COMPONENT
+>1_INIT
+>1_RENDER
+>1_WS
+>3_C++ Preprocessor
+>unit_call
+
+:content
+Defines a request-local one-time hook for the current `.uce` unit.
+
+When a request first enters a given file through `RENDER(Request& context)`, `COMPONENT(Request& context)`, or any `COMPONENT:NAME(Request& context)` handler, the runtime checks whether that unit exposes `ONCE(Request& context)`. If it does, the hook runs before the selected render or component handler.
+
+`ONCE()` is tracked per request and per resolved unit file, so repeated component calls to the same file inside one request do not rerun it.
+
+## Typical Uses
+
+- prepare request-local derived state on `context.call`
+- load request-scoped config or data needed by multiple named component handlers
+- normalize shared props before the unit's first render/component call
+
+## Example
+
+
+:example
+print("ONCE is a unit directive; place it at top level in a .uce unit.\n");

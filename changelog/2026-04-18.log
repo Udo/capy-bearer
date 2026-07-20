@@ -1,0 +1,26 @@
+commit cd8f07aaa78fc488eba3b0e435350e5c2823e53e
+Refactor FastCGI server and compiler, enhance HTTP header parsing, and add WebSocket support
+
+- Refactored FastCGIServer class to improve socket handling and added shutdown functionality.
+- Updated compiler functions to streamline HTML and text literal processing.
+- Enhanced split_kv function to support uppercase keys and added split_http_headers for better HTTP header parsing.
+- Introduced new session management functions to validate and handle session IDs.
+- Added WebSocket frame parsing and handling in the URI module.
+- Created systemd service scripts for easier deployment and management of the UCE FastCGI runtime.
+- Added new test cases for header handling, time parsing, and WebSocket functionality.
+
+
+commit 86dc93864e8eab9227ac50b16f1fc7f561383f5b
+Add WebSocket support and enhance chat functionality
+
+- Implement WebSocket handling in the FastCGI server, allowing for real-time communication.
+- Introduce functions for managing WebSocket connections, broadcasting messages, and sending to specific connections.
+- Create a chat interface in the `websockets.ws.uce` file, including message handling and user notifications.
+- Refactor existing code to accommodate WebSocket integration, ensuring compatibility with HTTP requests.
+- Update documentation to reflect new features and usage instructions for WebSocket functionality.
+
+
+commit 46d98a092fb606c87ab4b9eef32fe68eeca2b2cb
+Enhance WebSocket support: add opcode handling, binary message support, and improve connection validation
+
+

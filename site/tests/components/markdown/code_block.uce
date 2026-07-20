@@ -1,0 +1,4 @@
+COMPONENT(Request& context)
+{
+	<><pre class="tests-code-block"><?: first(context.props["default_html"].to_string(), context.props["children_html"].to_string()) ?></pre></>
+}

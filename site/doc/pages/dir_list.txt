@@ -1,0 +1,26 @@
+:sig
+DValue dir_list(String path)
+
+:params
+path : directory to list
+return value : a list of entry maps, each with name, type, size, mtime
+
+:content
+Lists a directory's entries as a `DValue` list. Each entry is a map with `name`, `type` ("file", "dir", "symlink", or "other"), `size`, and `mtime`. Iterate with `.each()` and read fields with `item.key("name")->to_string()`.
+
+:example
+mkdir("/tmp/doc-dirlist");
+file_put_contents("/tmp/doc-dirlist/note.txt", "hi");
+DValue entries = dir_list("/tmp/doc-dirlist");
+String found = "no";
+entries.each([&](const DValue& item, String key) {
+    if(item.key("name") && item.key("name")->to_string() == "note.txt")
+        found = "yes";
+});
+print("note.txt listed: ", found, "\n");
+
+:see
+>sys
+file_stat
+mkdir
+ls

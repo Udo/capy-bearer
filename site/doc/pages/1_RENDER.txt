@@ -1,0 +1,44 @@
+:title
+RENDER
+
+:sig
+RENDER(Request& context)
+
+:see
+>ob
+>1_COMPONENT
+>1_INIT
+>1_ONCE
+>1_WS
+
+:content
+Defines the main HTTP render handler for the current `.uce` page.
+
+When a page is requested over HTTP, the runtime loads the target file and calls its `RENDER(Request& context)` function.
+
+## Entry Point Behavior
+
+The default page entrypoint is always the plain `RENDER(Request& context)` handler.
+
+Reusable component handlers live on `COMPONENT(Request& context)` and `COMPONENT:NAME(Request& context)`. The component helpers call those handlers, not `RENDER()`.
+
+The request environment is passed explicitly through `context`, including params, cookies, post data, session state, headers, uploaded files, and the current `context.props` tree.
+
+If the file defines `ONCE(Request& context)`, the runtime calls that hook once per request before the first `RENDER()` or `COMPONENT...` entrypoint from that unit runs.
+
+If the file defines `INIT(Request& context)`, the runtime calls that hook once when the worker loads the compiled unit into memory.
+
+For a normal direct page request, `context.props` starts empty.
+
+If the page is invoked from another UCE file via `unit_render(file_name, context)`, the callee receives that same `context`.
+
+Pages that serve WebSocket traffic may expose both `RENDER(Request& context)` and `WS(Request& context)`. Files may also define `COMPONENT()` handlers when one unit needs both page and component behavior.
+
+In that case:
+
+- `RENDER(Request& context)` serves the direct HTTP response
+- `WS(Request& context)` handles later WebSocket messages
+- `COMPONENT()` remains available only through the component helpers
+
+:example
+print("RENDER is a unit directive; place it at top level in a .uce unit.\n");

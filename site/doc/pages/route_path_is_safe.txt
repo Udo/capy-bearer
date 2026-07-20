@@ -1,0 +1,20 @@
+:sig
+bool route_path_is_safe(String path)
+
+:see
+>uri
+route_path_sanitize
+route_path_normalize
+request_query_path
+request_query_route
+
+:content
+Returns whether a normalized route path is safe to use as a route-derived file path segment.
+
+A safe route path contains only non-empty segments made from ASCII letters, digits, `_`, and `-`. The segments `.` and `..` are rejected.
+
+
+Most request code should use runtime-populated `context.params["ROUTE_PATH"]` or `request_query_route()` instead of calling this directly.
+
+:example
+print(route_path_is_safe("docs/index") ? "safe\n" : "unsafe\n");

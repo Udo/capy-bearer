@@ -1,0 +1,20 @@
+:sig
+void Request::ob_start()
+
+:params
+return value : none
+
+:see
+0_Request
+ob_start
+ob_get_close
+
+:content
+Starts a new output buffer for the request and makes it the active `context.ob`. Most unit code should prefer the higher-level output-buffer helpers (`ob_start()`, `ob_get()`, `ob_get_close()`, `ob_close()`) rather than calling the method directly.
+
+
+:example
+context.ob_start();
+print("fragment");
+String captured = ob_get_close();
+print("captured: ", captured, "\n");

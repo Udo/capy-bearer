@@ -1,0 +1,17 @@
+:sig
+u64 ws_connection_count(String scope = "")
+
+:params
+scope : optional scope identifier, defaults to the current WebSocket page scope
+return value : number of connected WebSocket clients in that scope
+
+:see
+>websocket
+
+:content
+Returns the number of currently connected WebSocket clients for the given scope.
+
+If `scope` is omitted, the current page scope is used.
+
+:example
+print("connection count in this scope: ", ws_connection_count(), "\n");

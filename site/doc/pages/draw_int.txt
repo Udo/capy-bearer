@@ -1,0 +1,19 @@
+:sig
+u64 draw_int(u64 from, u64 to)
+
+:params
+from : minimum value
+to : maximum value
+return value : a noise value between 'from' and 'to'
+
+:see
+>noise
+
+:content
+Works like `generate_int()`, but uses `context.random_index` for the index value and `context.random_seed` for the seed.
+
+After each call, `context.random_index` is increased by one. At the start of every request, `context.random_seed` is automatically populated with a new seed value.
+
+
+:example
+print(draw_int(1, 10) >= 1 ? "int\n" : "bad\n");

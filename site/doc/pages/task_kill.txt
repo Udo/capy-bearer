@@ -1,0 +1,27 @@
+:sig
+int task_kill(pid_t pid, s32 sig = 0)
+
+:params
+pid : PID of the process
+sig : signal number
+return value : 0 if signal was sent, -1 otherwise
+
+:see
+>task
+task
+task_pid
+task_repeat
+
+:content
+Wraps the standard POSIX `kill()` function for positive process IDs.
+
+`task_kill()` rejects `pid <= 0` and returns `-1`, so callers cannot accidentally use POSIX process-group or broadcast semantics through this helper.
+
+`sig` may be any supported POSIX signal, including values such as `SIGTERM`, `SIGKILL`, `SIGINT`, `SIGUSR1`, `SIGUSR2`, `SIGCHLD`, `SIGCONT`, and related process-control signals.
+
+Passing `0` as the signal performs an existence and permission check without actually delivering a signal.
+
+:example
+task("doc-demo-kill", []() { usleep(3000000); });
+pid_t pid = task_pid("doc-demo-kill");
+print(pid > 0 && task_kill(pid) == 0 ? "task signalled to stop" : "no task to kill", "\n");

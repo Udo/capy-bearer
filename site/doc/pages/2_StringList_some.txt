@@ -1,0 +1,21 @@
+:sig
+template<typename F> bool StringList::some(F f) const
+
+:params
+f : predicate called with each string
+return value : `true` when at least one item matches
+
+:content
+Tests whether any string in the list satisfies the predicate. Use it for concise presence checks when the condition is more specific than direct equality.
+
+:example
+StringList routes = split("dashboard,index,themes", ",");
+bool has_index = routes.some([](String item) { return(item == "index"); });
+print(has_index ? "yes\n" : "no\n");
+
+:see
+>types
+0_StringList
+2_StringList_every
+2_StringList_find
+2_StringList_filter

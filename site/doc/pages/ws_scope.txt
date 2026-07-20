@@ -1,0 +1,19 @@
+:sig
+String ws_scope()
+
+:params
+return value : scope identifier of the current WebSocket endpoint
+
+:see
+>websocket
+
+:content
+Returns the runtime's scope identifier for the current WebSocket endpoint.
+
+This is the same default scope used by `ws_send()`, `ws_connections()`, and `ws_connection_count()` when no explicit scope is supplied.
+
+In the current runtime implementation this scope is the page's internal endpoint identifier, typically the absolute `SCRIPT_FILENAME` of the `.uce` file that accepted the WebSocket upgrade.
+
+:example
+String scope = ws_scope();
+print(scope == "" ? "(no WS scope in this context)" : scope, "\n");

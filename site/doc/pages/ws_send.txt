@@ -1,0 +1,21 @@
+:sig
+bool ws_send(String message, bool binary = false, String scope = "")
+
+:params
+message : message payload to send
+binary : set to true to send a binary frame instead of a text frame
+scope : optional scope identifier, defaults to the current WebSocket page scope
+return value : true if the message was queued for at least one connected client
+
+:see
+>websocket
+
+:content
+Queues a WebSocket message for every client connected to the given scope.
+
+If `scope` is omitted, the current page scope is used.
+
+:example
+// Inside a WS handler this broadcasts to the current scope.
+bool sent = ws_send("hello subscribers");
+print(sent ? "broadcast queued" : "no active WS scope to broadcast to", "\n");

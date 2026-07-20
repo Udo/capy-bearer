@@ -1,0 +1,13 @@
+# job_result
+
+
+Checks a job result with a small bounded wait. The returned value includes the current status fields and, when complete, a structured `result` value.
+
+:see
+>sys
+
+:example
+DValue spec; spec["cmd"] = "printf result-data"; spec["timeout_ms"] = (f64)1000;
+u64 job = shell_spawn(spec);
+job_await(job, 3000);
+print(job_result(job)["result"]["stdout"].to_string(), "\n");

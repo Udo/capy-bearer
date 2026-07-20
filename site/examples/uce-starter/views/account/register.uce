@@ -1,0 +1,21 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	context.call["app"]["page_title"] = "Register";
+	StarterUser users(context);
+	DValue result;
+	if(context.params["REQUEST_METHOD"] == "POST")
+		result = users.create(context.post["email"], context.post["password"]);
+
+	<>
+		<h1>Register</h1>
+		<? if(result["result"].to_string() != "") { ?><div class="banner success">Registration successful. <a href="<?= app_link("account/login", context) ?>">Log in</a></div><? } ?>
+		<? if(result["message"].to_string() != "" && result["result"].to_string() == "") { ?><div class="banner error"><?= result["message"].to_string() ?></div><? } ?>
+		<form method="post">
+			<label>Email: <input type="email" name="email" required></label><br>
+			<label>Password: <input type="password" name="password" required></label><br>
+			<button type="submit">Register</button>
+		</form>
+	</>
+}

@@ -1,0 +1,20 @@
+:sig
+bool DValue::is_reference() const
+
+:params
+return value : true when this node itself is a reference node
+
+:see
+0_DValue
+2_DValue_reference_target
+2_DValue_deref
+
+:content
+Reports whether the current node's direct type tag is the internal reference tag. Most read methods dereference automatically; this helper is mainly useful when handling reference-aware runtime state.
+
+
+:example
+DValue target; target.set("x");
+DValue ref; ref.set_reference(&target);
+DValue plain; plain.set("y");
+print(ref.is_reference() ? "ref" : "plain", " / ", plain.is_reference() ? "ref" : "plain", "\n");

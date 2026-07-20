@@ -1,0 +1,74 @@
+#include "testlib.h"
+
+RENDER(Request& context)
+{
+	u64 passed = 0;
+	u64 failed = 0;
+	u64 skipped = 0;
+
+	auto check = [&](String name, bool ok, String detail)
+	{
+		site_tests_case(name, ok ? "pass" : "fail", detail);
+		if(ok)
+			passed++;
+		else
+			failed++;
+	};
+
+	DValue props;
+	props["title"] = "Component Output";
+	props["body"] = "This body comes from component()";
+	props["footer"] = "Named footer render";
+
+	bool exists = component_exists("components/panel");
+	String resolved = component_resolve("components/panel");
+	String panel_markup = component("components/panel", props, context);
+	DValue lazy_props;
+	String lazy_first = component("components/lazy-parent", lazy_props, context);
+	lazy_props["show_child"].set_bool(true);
+	String lazy_second = component("components/lazy-parent", lazy_props, context);
+	String relative_resolved = component_resolve("components/../relative-child");
+	String relative_markup = component("components/../relative-child", props, context);
+	String alias_markup = component("components/props_alias", props, context);
+	// Named handler through the string-returning component("unit:NAME") form
+	// (distinct path from component_render below): resolves __uce_component_HEADER
+	// and must run ONLY that handler, not the default COMPONENT that emits all three.
+	String header_markup = component("components/panel:HEADER", props, context);
+
+	ob_start();
+	component_render("components/panel:FOOTER", props, context);
+	String footer_markup = ob_get_close();
+
+	ob_start();
+	print("buffered-text");
+	String buffer_markup = ob_get_close();
+
+	site_tests_page_start("Components", "Component helpers, named handlers, and output buffering coverage.");
+
+	check("component_exists()", exists, exists ? "components/panel resolved as existing" : "components/panel missing");
+	check("component_resolve()", resolved != "", resolved);
+	check("component()", panel_markup.find("Component Output") != String::npos && panel_markup.find("This body comes from component()") != String::npos, panel_markup);
+	check("cached component retains path for a newly activated relative child", lazy_first.find("lazy-child") == String::npos && lazy_second.find("lazy-child") != String::npos, lazy_second);
+	check("relative component path has canonical identity", relative_resolved.find("/../") == String::npos && str_ends_with(relative_resolved, "/site/tests/relative-child.uce"), relative_resolved);
+	check("relative component path renders its canonical artifact", relative_markup.find("relative-child") != String::npos, relative_markup);
+	check("COMPONENT(Request& props) alias", alias_markup.find("alias=Component Output") != String::npos && alias_markup.find("body=This body comes from component()") != String::npos, alias_markup);
+	check("component_render() named handler", footer_markup.find("Named footer render") != String::npos, footer_markup);
+	check("component(\"unit:NAME\") named handler", header_markup.find("Component Output") != String::npos && header_markup.find("This body comes from component()") == String::npos, header_markup);
+	check("ob_start() / ob_get_close()", buffer_markup == "buffered-text", buffer_markup);
+	DValue perf = request_perf();
+	String unit_operations = json_encode(perf["unit_module_operations"]);
+	check(
+		"request_perf() separates entry code from dynamic component materialization",
+		perf["entry_unit_load_count"].to_u64() == 1 && perf["entry_unit_materialize_us"].to_u64() > 0 && perf["dynamic_include_load_count"].to_u64() > 0 && perf["dynamic_include_materialize_us"].to_u64() > 0 && perf["component_loaded_reuse_count"].to_u64() > 0 && unit_operations.find("\"kind\": \"entry\"") != String::npos && unit_operations.find("\"kind\": \"component\"") != String::npos && unit_operations.find("\"materialize_us\"") != String::npos,
+		unit_operations
+	);
+
+	?><div class="tests-section">
+		<h3>Rendered Component</h3>
+		<?: panel_markup ?>
+		<?: alias_markup ?>
+	</div><?
+
+	site_tests_summary(passed, failed, skipped, "The panel fixture under site/tests/components exercises default and named component entry points.");
+	site_tests_page_end();
+}

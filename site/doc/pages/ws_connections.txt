@@ -1,0 +1,18 @@
+:sig
+StringList ws_connections(String scope = "")
+
+:params
+scope : optional scope identifier, defaults to the current WebSocket page scope
+return value : list of connection IDs currently connected to that scope
+
+:see
+>websocket
+
+:content
+Returns the currently connected WebSocket client IDs for the given scope.
+
+If `scope` is omitted, the current page scope is used.
+
+:example
+StringList ids = ws_connections();
+print("active connections in this scope: ", ids.size(), "\n");

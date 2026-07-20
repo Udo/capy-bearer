@@ -1,0 +1,40 @@
+RENDER(Request& context)
+{
+	// Regression: this comment contains <> and an apostrophe that shouldn't start a literal block: <>
+	String outer_status = "outer parser ok";
+
+	<>
+		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Preprocessor Comments
+		</h1>
+
+		<p>This page exists to prove the template parser ignores quotes and template markers that appear inside C++ comments.</p>
+		<p>It also renders a literal raw-string terminator sequence safely: <code>)"</code>.</p>
+
+		<?
+		// Regression: this comment's apostrophe must not swallow the later ?> marker.
+		String inline_status = "inline comment ok";
+		?>
+
+		<?
+		/*
+			Regression: block comments may contain "quotes", apostrophe's, and <> markers
+			without confusing the parser or the generated .cpp output.
+		*/
+		String block_status = "block comment ok";
+		?>
+
+		<ul>
+			<li>Outer code scan: <code><?= outer_status ?></code></li>
+			<li>Markup code island with // comment: <code><?= inline_status ?></code></li>
+			<li>Markup code island with /* */ comment: <code><?= block_status ?></code></li>
+		</ul>
+
+		<details>
+			<summary>Request Parameters</summary>
+			<pre><?= var_dump(context.params) ?></pre>
+		</details>
+	</>
+}

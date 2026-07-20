@@ -1,0 +1,61 @@
+#include "demo_guard.h"
+
+RENDER(Request& context)
+{
+	DValue book;
+	book["name"] = "book";
+	book["attrs"]["id"] = "b1";
+	book["attrs"]["type"] = "reference";
+
+	DValue title;
+	title["name"] = "title";
+	title["text"] = "UCE & XML";
+	book["children"].push(title);
+
+	DValue chapter;
+	chapter["name"] = "chapter";
+	chapter["attrs"]["number"] = "1";
+	chapter["text"] = "Structural conversion without schema validation.";
+	book["children"].push(chapter);
+
+	String encoded = xml_encode(book);
+	DValue decoded = xml_decode(encoded);
+
+	DValue simple;
+	simple["title"] = "Hello";
+	simple["count"] = "3";
+
+	String incoming = "<note priority=\"high\"><to>UCE</to><body><![CDATA[5 < 6]]></body><symbol>&#x41;&#66;</symbol></note>";
+	DValue incoming_tree = xml_decode(incoming);
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			XML
+		</h1>
+
+		<p><code>xml_encode()</code> and <code>xml_decode()</code> convert between XML strings and element-shaped <code>DValue</code> values without schema validation.</p>
+
+		<h2>Encoded Element Tree</h2>
+		<pre><?= encoded ?></pre>
+
+		<h2>Decoded DValue</h2>
+		<pre><?= json_encode(decoded) ?></pre>
+
+		<h2>Simple Map Encoding</h2>
+		<pre><?= xml_encode(simple, "payload") ?></pre>
+
+		<h2>Decode Existing XML</h2>
+		<p>Input XML:</p>
+		<pre><?= incoming ?></pre>
+		<p>Decoded DValue:</p>
+		<pre><?= json_encode(incoming_tree) ?></pre>
+
+		<p>
+			<a href="../doc/index.uce?p=xml_encode">xml_encode() docs</a>
+			|
+			<a href="../doc/index.uce?p=xml_decode">xml_decode() docs</a>
+		</p>
+	</>
+}

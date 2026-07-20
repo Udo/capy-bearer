@@ -1,0 +1,47 @@
+
+#include "demo_guard.h"
+
+
+RENDER(Request& context)
+{
+	if(!test_demo_request_allowed(context))
+	{
+		test_demo_render_restricted_html(context, "MemcacheD", "inspect and mutate local memcached state");
+		return;
+	}
+	DValue t;
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			MemcacheD
+		</h1>
+
+		Stats:
+
+		<pre><?
+
+			auto sfd = memcache_connect();
+
+			print(memcache_command(sfd, "stats"));
+
+		?></pre>
+
+		Set/Get:
+
+		<pre><?
+
+			memcache_set(sfd, "test_key", "test_value");
+			memcache_set(sfd, "test_key2", "test_value2");
+			print("raw:: "+memcache_command(sfd, "get test_key")+"\n");
+			print("get:: "+memcache_get(sfd, "test_key")+"\n");
+			print("multiple::\n"+var_dump(memcache_get_multiple(sfd, {"test_key", "test_key2"}))+"\n");
+
+		?></pre>
+
+		Params
+		<pre><?= var_dump(context.params) ?></pre>
+	</>
+
+}

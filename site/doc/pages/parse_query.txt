@@ -1,0 +1,33 @@
+:sig
+StringMap parse_query(String q)
+
+:params
+q : string containing URL parameters
+return value : a StringMap containing the parameters
+
+:see
+>uri
+encode_query
+request_context_params
+
+:content
+Decodes a query-string fragment such as `a=b&c=d` into a `StringMap`.
+
+Parsing rules:
+
+- pairs are separated on `&`
+- each pair is split on the first raw `=` only
+- both key and value are URL-decoded
+- keyless flags such as `preview` are present with an empty string value
+- empty pairs, including a trailing `&`, are ignored
+- repeated keys use the last value seen
+
+Examples:
+
+
+This is useful when you need to work with URL parameter data outside the normal request parsing flow.
+
+
+:example
+StringMap q = parse_query("name=Ada&role=admin");
+print(q["name"], "\n");

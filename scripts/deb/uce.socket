@@ -1,0 +1,15 @@
+[Unit]
+Description=UCE FastCGI socket
+
+[Socket]
+ListenStream=/run/uce/fastcgi.sock
+FileDescriptorName=fastcgi
+SocketUser=www-data
+SocketGroup=www-data
+SocketMode=0660
+DirectoryMode=0755
+Backlog=100
+Service=uce.service
+
+[Install]
+WantedBy=sockets.target

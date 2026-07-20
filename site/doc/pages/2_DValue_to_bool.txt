@@ -1,0 +1,19 @@
+:sig
+bool DValue::to_bool(bool default_value = false) const
+
+:params
+bool : fallback returned when conversion is not possible
+return value : converted value or the fallback
+
+:see
+>types
+0_DValue
+2_DValue_get_by_path
+
+:content
+Converts strings, numbers, bools, pointers, and maps to bool. Text such as `true`, `yes`, `on`, `1`, `false`, `no`, `off`, `0`, and `null` is recognized; non-empty unparseable strings are truthy; empty strings use the default. Multi-child maps are true when non-empty.
+
+:example
+DValue value;
+value = "true";
+print(value.to_bool() ? "true\n" : "false\n");

@@ -1,0 +1,25 @@
+:sig
+bool csrf_valid(String submitted_token, String session_name = "uce-session", String token_name = "csrf_token")
+
+:params
+submitted_token : value received from the request, usually `context.post["csrf_token"]`
+session_name : session/cookie name used by `csrf_token()`
+token_name : form/action token namespace used by `csrf_token()`
+return value : `true` when the submitted token matches the session token
+
+:content
+Starts the named session if needed and checks `submitted_token` against the stored CSRF token using constant-time comparison. It does not create a token when none exists, so a request without a previously rendered form token fails closed.
+
+Use this before mutating state from POST forms or other browser-submitted requests.
+
+:example
+String token = csrf_token("uce-doc-session");
+print(csrf_valid(token, "uce-doc-session") ? "valid\n" : "invalid\n");
+print(csrf_valid("bad-token", "uce-doc-session") ? "bad valid\n" : "bad invalid\n");
+
+:see
+>http
+csrf_token
+csrf_rotate
+crypto_equal
+session_start

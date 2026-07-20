@@ -1,0 +1,21 @@
+:sig
+bool socket_write(u64 sockfd, String data)
+
+:params
+sockfd : socket handle
+data : a string containing the data to be written to the socket
+return value : true if the write operation was successful
+
+:see
+>socket
+
+:content
+Writes `data` to the given socket.
+
+The function returns `true` when the write succeeds.
+
+:example
+u64 fd = socket_connect("127.0.0.1", 80);
+bool sent = socket_write(fd, "GET / HTTP/1.0\r\nHost: localhost\r\nConnection: close\r\n\r\n");
+socket_close(fd);
+print(sent ? "request sent" : "send failed", "\n");

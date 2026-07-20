@@ -1,0 +1,20 @@
+:sig
+bool mkdir(String path)
+
+:params
+path : directory to create
+return value : true on success
+
+:content
+Creates a single directory and returns whether it succeeded. The parent directory must already exist, so build nested paths one level at a time.
+
+:example
+dir_remove("/tmp/doc-mkdir-demo", true);
+mkdir("/tmp/doc-mkdir-demo");
+print(file_stat("/tmp/doc-mkdir-demo")["is_dir"].to_bool() ? "created" : "not created", "\n");
+dir_remove("/tmp/doc-mkdir-demo", true);
+
+:see
+>sys
+dir_remove
+dir_list

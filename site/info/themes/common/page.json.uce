@@ -1,0 +1,11 @@
+COMPONENT(Request& context)
+{
+	context.header["Content-Type"] = "application/json";
+	context.header["Cache-Control"] = "no-cache, no-store, must-revalidate";
+	if(context.props["json"].get_type_name() == "array")
+		print(json_encode(context.props["json"]));
+	else if(context.call["info"]["json"].get_type_name() == "array")
+		print(json_encode(context.call["info"]["json"]));
+	else
+		print(component("page_helpers.uce:MAIN_HTML", context.props, context));
+}

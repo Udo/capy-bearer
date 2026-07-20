@@ -1,0 +1,15 @@
+:sig
+u64 time()
+
+:params
+return value : second-accurate current Unix timestamp
+
+:see
+>time
+
+:content
+Returns the current Unix timestamp as a 64-bit integer with second precision.
+
+
+:example
+print(time() > 0 ? "timestamp\n" : "no timestamp\n");

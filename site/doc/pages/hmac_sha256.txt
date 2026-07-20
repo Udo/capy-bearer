@@ -1,0 +1,19 @@
+:sig
+String hmac_sha256(String key, String data)
+
+:params
+key : secret key
+data : message to authenticate
+return value : the raw 32-byte HMAC-SHA256
+
+:content
+Computes an HMAC-SHA256 and returns it as raw bytes. Prefer `hmac_sha256_hex()` for printable signatures; use the raw form for binary protocols.
+
+:example
+print(hmac_sha256("key", "message").length(), " raw bytes, hex = ", hmac_sha256_hex("key", "message"), "\n");
+
+:see
+>sys
+hmac_sha256_hex
+sha256
+crypto_equal

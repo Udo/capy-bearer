@@ -1,0 +1,17 @@
+:sig
+String ws_connection_id()
+
+:params
+return value : connection ID of the current WebSocket client
+
+:see
+>websocket
+
+:content
+Returns the runtime-generated connection ID of the client whose message is currently being handled.
+
+This ID can be passed to `ws_send_to()` or `ws_close()` to target a single connected client.
+
+:example
+String id = ws_connection_id();
+print(id == "" ? "(empty outside a WS handler)" : id, "\n");

@@ -1,0 +1,133 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	context.call["app"]["page_title"] = "Workspace";
+	String section = first(context.call["route"]["param"].to_string(), "overview");
+	if(section != "overview" && section != "projects" && section != "activity")
+		section = "overview";
+
+	String title = section == "projects" ? "Projects queue" : (section == "activity" ? "Recent activity" : "Workspace overview");
+	String subtitle = section == "projects" ? "Nested path fallback lets one controller serve multiple panes cleanly." : (section == "activity" ? "Sidebar-first tools often need a live or recent-events pane." : "A generic app-shell pattern for tools, admin consoles, and internal products.");
+	String status_label = section == "projects" ? "3 active" : (section == "activity" ? "Monitoring" : "Ready");
+	String status_variant = section == "projects" ? "info" : (section == "activity" ? "warn" : "success");
+	String description = section == "projects" ? "This page is served from views/workspace/index.uce while the route remains workspace/projects." : (section == "activity" ? "The workspace shell is a better fit than the marketing-style home page when the app is navigation-heavy and stateful." : "This slice comes from the portal app: a reusable workspace shell with sidebar navigation, compact mobile controls, and semantic panel primitives.");
+
+	String sidebar_body = "";
+	ob_start();
+	<>
+		<div class="ws-nav-group-label">Workspace areas</div>
+		<div class="ws-nav-list">
+			<a class="ws-nav-item<?= section == "overview" ? " is-active" : "" ?>" href="<?= app_link("workspace/overview", context) ?>"><span class="ws-nav-item-inner"><span class="ws-nav-icon"><i class="fas fa-compass"></i></span><span class="ws-nav-item-text"><span class="ws-nav-title">Overview</span><span class="ws-nav-meta">Shell</span></span></span></a>
+			<a class="ws-nav-item<?= section == "projects" ? " is-active" : "" ?>" href="<?= app_link("workspace/projects", context) ?>"><span class="ws-nav-item-inner"><span class="ws-nav-icon"><i class="fas fa-folder-tree"></i></span><span class="ws-nav-item-text"><span class="ws-nav-title">Projects</span><span class="ws-nav-meta">Routes</span></span></span></a>
+			<a class="ws-nav-item<?= section == "activity" ? " is-active" : "" ?>" href="<?= app_link("workspace/activity", context) ?>"><span class="ws-nav-item-inner"><span class="ws-nav-icon"><i class="fas fa-wave-square"></i></span><span class="ws-nav-item-text"><span class="ws-nav-title">Activity</span><span class="ws-nav-meta">State</span></span></span></a>
+		</div>
+		<div class="ws-demo-sidebar-copy"><p>This sidebar and mobile shell pattern was extracted from the AI portal app and normalized against starter theme tokens.</p></div>
+	</>
+	sidebar_body = ob_get_close();
+	DValue sidebar_note;
+	sidebar_note["icon_class"] = "fas fa-circle-info";
+	sidebar_note["text"] = "Use workspace/overview, workspace/projects, or workspace/activity";
+	sidebar_body += component("../../components/workspace/primitives:LIST_STATE", sidebar_note, context);
+
+	DValue toolbar_props;
+	toolbar_props["action_html"] = "<a class=\"ws-sidebar-action-btn\" href=\"" + app_link("workspace/overview", context) + "\"><i class=\"fas fa-grid-2\"></i><span>Open shell</span></a>";
+	toolbar_props["search_input_id"] = "workspace-demo-search";
+	toolbar_props["search_input_name"] = "workspace_demo_search";
+	toolbar_props["search_placeholder"] = "Search workspace sections";
+	String sidebar_top = component("../../components/workspace/primitives:SIDEBAR_TOOLBAR", toolbar_props, context);
+
+	DValue sidebar_props;
+	sidebar_props["id"] = "workspace-demo-sidebar";
+	sidebar_props["top_html"] = sidebar_top;
+	sidebar_props["body_html"] = sidebar_body;
+	String sidebar = component("../../components/workspace/primitives:SIDEBAR_SHELL", sidebar_props, context);
+
+	DValue mobile_props;
+	mobile_props["button_id"] = "workspace-demo-toggle";
+	mobile_props["title"] = "Starter Workspace";
+	String mobile_bar = component("../../components/workspace/primitives:MOBILE_BAR", mobile_props, context);
+
+	DValue pill_props;
+	pill_props["label"] = status_label;
+	pill_props["variant"] = status_variant;
+	String status_html = component("../../components/workspace/primitives:STATUS_PILL", pill_props, context);
+
+	DValue header_props;
+	header_props["title"] = title;
+	header_props["subtitle"] = subtitle;
+	header_props["actions_html"] = status_html;
+	String header = component("../../components/workspace/primitives:PANEL_HEADER", header_props, context);
+
+	String stats_html = "";
+	ob_start();
+	<>
+		<div class="ws-stat-grid">
+			<div class="ws-stat-card"><div class="ws-stat-card-label">Sidebar pattern</div><div class="ws-stat-card-value">Responsive</div><div class="ws-stat-card-meta">Overlay on mobile</div></div>
+			<div class="ws-stat-card"><div class="ws-stat-card-label">Routing mode</div><div class="ws-stat-card-value">Nested</div><div class="ws-stat-card-meta">Parent-path fallback</div></div>
+			<div class="ws-stat-card"><div class="ws-stat-card-label">Source app</div><div class="ws-stat-card-value">uh-ai</div><div class="ws-stat-card-meta">Portal shell</div></div>
+		</div>
+	</>
+	stats_html = ob_get_close();
+
+	String detail_html = "";
+	ob_start();
+	<>
+		<div class="ws-detail-grid">
+			<div class="ws-detail-card"><h4>Shell layout</h4><p>Sidebar plus main panel, responsive overlay behavior, and a compact mobile header.</p></div>
+			<div class="ws-detail-card"><h4>Semantic primitives</h4><p>Panels, section heads, status pills, list states, and empty-state placeholders.</p></div>
+			<div class="ws-detail-card"><h4>Starter-friendly</h4><p>Backported against the starter theme variables instead of portal-specific branding tokens.</p></div>
+		</div>
+	</>
+	detail_html = ob_get_close();
+
+	DValue section_head;
+	section_head["title"] = "Why this belongs in the starter";
+	String why_head = component("../../components/workspace/primitives:SECTION_HEAD", section_head, context);
+	DValue section_props;
+	section_props["header_html"] = why_head;
+	section_props["body_html"] = "<p class=\"ws-section-copy\">" + html_escape(description) + "</p>" + stats_html;
+	String main_body = component("../../components/workspace/primitives:SECTION", section_props, context);
+
+	section_head.clear();
+	section_head["title"] = "Starter demo content";
+	String demo_head = component("../../components/workspace/primitives:SECTION_HEAD", section_head, context);
+	section_props.clear();
+	section_props["header_html"] = demo_head;
+	section_props["body_html"] = detail_html + "<p class=\"ws-inline-note\">Try visiting <strong>" + html_escape(app_link("workspace/projects", context)) + "</strong> or <strong>" + html_escape(app_link("workspace/activity", context)) + "</strong> to see the nested route fallback in action.</p>";
+	main_body += component("../../components/workspace/primitives:SECTION", section_props, context);
+
+	if(section == "activity")
+	{
+		DValue empty_props;
+		empty_props["icon_class"] = "fas fa-clock-rotate-left";
+		empty_props["title"] = "No live stream wired yet";
+		empty_props["text"] = "The shell is generic. Add your own websocket, polling, or event-driven runtime behind it when a product needs one.";
+		empty_props["action_html"] = "<a class=\"ws-primary-btn\" href=\"" + app_link("dashboard", context) + "\">Open dashboard demo</a>";
+		main_body += component("../../components/workspace/primitives:EMPTY_STATE", empty_props, context);
+	}
+
+	DValue panel_props;
+	panel_props["header_html"] = header;
+	panel_props["body_html"] = main_body;
+	String main = mobile_bar + component("../../components/workspace/primitives:PANEL", panel_props, context);
+
+	DValue app_props;
+	app_props["id"] = "workspace-demo-shell";
+	app_props["overlay_id"] = "workspace-demo-overlay";
+	app_props["sidebar_html"] = sidebar;
+	app_props["main_html"] = main;
+	print(component("../../components/workspace/primitives:APP_FRAME", app_props, context));
+	<>
+		<script>
+		(function () {
+			if (typeof UWorkspaceShell === 'undefined') return;
+			UWorkspaceShell.init({
+				sidebarId: 'workspace-demo-sidebar',
+				overlayId: 'workspace-demo-overlay',
+				toggleButtonId: 'workspace-demo-toggle'
+			});
+		}());
+		</script>
+	</>
+}

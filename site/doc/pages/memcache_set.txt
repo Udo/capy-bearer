@@ -1,0 +1,22 @@
+:sig
+bool memcache_set(u64 connection, String key, String value, u64 expires_in = 60*60)
+
+:params
+connection : connection handle
+key : the entry's key
+value : the value to be set
+expires_in : optional expiration timeout, defaults to one hour
+return value : true if the operation was successful
+
+:see
+>memcache
+
+:content
+Stores `value` under `key` on the Memcache server.
+
+`expires_in` controls the expiration timeout and defaults to one hour.
+
+:example
+u64 conn = memcache_connect();
+if(conn != 0) print(memcache_set(conn, "doc_set_key", "value") ? "stored" : "store failed", "\n");
+else print("(requires a reachable memcached server)\n");

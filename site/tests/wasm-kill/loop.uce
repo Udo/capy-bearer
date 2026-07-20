@@ -1,0 +1,10 @@
+// W4 kill-test: runaway CPU. Epoch interruption traps it at the configured
+// deadline; the worker stays healthy.
+RENDER(Request& context)
+{
+	print("about to loop\n");
+	volatile u64 i = 0;
+	while(i >= 0)
+		i++;
+	print("unreachable\n");
+}

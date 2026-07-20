@@ -1,0 +1,15 @@
+:sig
+f64 time_precise()
+
+:params
+return value : current Unix timestamp
+
+:see
+>time
+
+:content
+Returns the current Unix timestamp as a 64-bit float with millisecond accuracy or better.
+
+
+:example
+print(time_precise() > 0 ? "timer\n" : "no timer\n");

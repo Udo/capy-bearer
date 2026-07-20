@@ -1,0 +1,119 @@
+:title
+DValue
+
+:sig
+DValue
+
+:see
+>types
+2_DValue_get_by_path
+json_decode
+
+:content
+`DValue` is UCE's general-purpose structured value type. It is the runtime's default container for nested data such as configuration trees, call payloads, decoded JSON, connection state, and metadata returned by runtime helpers.
+
+## Value Kinds
+
+`DValue` can hold:
+
+- `String`
+- `f64`
+- `bool`
+- pointer values
+- nested child `DValue` values in a map-shaped container
+
+Map-shaped `DValue` values can also represent list-like data when their keys are numeric strings in sequence.
+
+## Where It Appears
+
+You will encounter `DValue` throughout the runtime, especially in:
+
+- `context.cfg`
+- `context.props`
+- `context.connection`
+- `json_decode()` results
+- `unit_call()` return values
+- `unit_info()`
+
+## Reading Values
+
+- `["key"]` accesses or creates a child node.
+- `.has("key")` checks whether a child exists without creating it.
+- `.key("key")` returns a child pointer when it already exists.
+- `.get_or_create("key")` returns a child pointer and creates it when missing.
+- `.get_by_path("a/b/c")` traverses nested children without creating missing keys.
+- `.to_string(default)` reads scalar content as text.
+- `.to_s64(default)`, `.to_u64(default)`, and `.to_f64(default)` perform best-effort numeric conversion.
+- `.to_bool(default)` performs best-effort boolean conversion.
+- `.to_stringmap()` converts a map-shaped tree into `StringMap`.
+
+All read accessors are `const` and never modify the tree; they work directly on `const DValue&` values such as `each()` callback parameters. Every `to_*` conversion takes an optional default that is returned when the value is missing or cannot be converted — see the individual pages (`2_DValue_to_string`, `2_DValue_to_s64`, `2_DValue_to_u64`, `2_DValue_to_f64`, `2_DValue_to_bool`) for the exact rules:
+
+
+`operator[]` creates missing entries, just like `std::map`. `.has()` and `.key()` are the non-mutating lookup helpers, and `.get_by_path()` is the non-creating traversal helper.
+
+`json_decode()` currently stores JSON numbers as string-valued `DValue` nodes, so typed numeric conversion is the normal way to consume those values.
+
+References are dereferenced automatically in most normal reads.
+
+## Conversion Rules
+
+- Scalar-looking strings are trimmed before numeric and boolean parsing.
+- `.to_bool()` understands common textual forms such as `true`, `false`, `yes`, `no`, `1`, and `0`.
+- `bool` values convert numerically to `1` and `0`.
+- Pointer values convert numerically when read as numbers.
+- Single-value maps can act as scalar wrappers for numeric and boolean conversion.
+- Missing values and invalid numeric input fall back to the accessor's `default_value` argument (`0`, `""`, or `false` when not given).
+- `.to_stringmap()` converts map children key-by-key using each child's `to_string()`.
+
+## Writing Values
+
+Common mutating helpers include:
+
+- `.set(String)`
+- `.set(f64)`
+- `.set_bool(bool)`
+- `.set(StringMap)`
+- `.set_array()`
+- `.push(...)`
+- `.pop()`
+- `.remove(key)`
+- `.clear()`
+
+Use `.set_array()` when you want list-style behavior with `push()` and `pop()`.
+
+## Inspection Helpers
+
+Useful inspection helpers include:
+
+- `.has(key)`
+- `.key(key)`
+- `.get_or_create(key)`
+- `.get_type_name()`
+- `.is_array()`
+- `.is_list()`
+- `.to_json()`
+
+## each()
+
+`each(std::function<void (const DValue& t, String key)> f)` iterates over the current tree value (see `2_DValue_each` for details).
+
+For map-shaped `DValue` values, the callback runs once per child entry and receives:
+
+- `t` as the child value, by const reference (no copy)
+- `key` as the child key
+
+For non-map values, `each()` still invokes the callback once:
+
+- `t` is the current value
+- `key` is an empty string
+
+
+## Examples
+
+
+:example
+DValue user;
+user["name"] = "Ada";
+user["active"] = true;
+print(user["name"].to_string(), "\n");

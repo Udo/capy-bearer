@@ -1,0 +1,20 @@
+:sig
+bool file_fsync(u64 h)
+
+:params
+h : handle from file_open() opened for writing
+return value : true if the flush succeeded
+
+:content
+Flushes a handle's buffered writes to disk, so the data survives a crash or power loss. Call it before `file_close()` when durability matters (e.g. after writing a checkpoint).
+
+:example
+u64 h = file_open("/tmp/doc-fsync.txt", "w");
+file_write(h, "durable");
+print(file_fsync(h) ? "flushed to disk" : "fsync failed", "\n");
+file_close(h);
+
+:see
+>sys
+file_write
+file_close

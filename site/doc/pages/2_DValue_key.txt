@@ -1,0 +1,23 @@
+:sig
+DValue* DValue::key(String s)
+const DValue* DValue::key(String s) const
+
+:params
+s : child key to find
+return value : pointer to existing child, or 0
+
+:see
+0_DValue
+2_DValue_has
+2_DValue_get_or_create
+
+:content
+Looks up one child without creating it. The non-const overload forwards through references; both overloads return `0` for scalars or missing keys.
+
+
+:example
+DValue user;
+user["email"] = "ada@example.test";
+const DValue* found = user.key("email");
+const DValue* missing = user.key("phone");
+print(found ? found->to_string() : "none", " / ", missing ? "present" : "absent", "\n");

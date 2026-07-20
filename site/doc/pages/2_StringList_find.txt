@@ -1,0 +1,22 @@
+:sig
+template<typename F> String StringList::find(F f, String fallback = "") const
+
+:params
+f : predicate called with each string
+fallback : value returned when no item matches
+return value : the first matching string, or `fallback`
+
+:content
+Returns the first string in the list that satisfies the predicate. Use it when you need the matching value itself, not just a yes/no answer, and when a clear fallback is better than a separate missing-value branch.
+
+:example
+StringList routes = split("dashboard,index,themes", ",");
+String route = routes.find([](String item) { return(str_starts_with(item, "them")); }, "missing");
+print(route, "\n");
+
+:see
+>types
+0_StringList
+2_StringList_some
+2_StringList_every
+2_StringList_filter

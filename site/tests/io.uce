@@ -1,0 +1,254 @@
+#include "testlib.h"
+
+RENDER(Request& context)
+{
+	if(!test_demo_request_allowed(context))
+	{
+		site_tests_restricted(context, "Filesystem", "write to local files and append server-side test data");
+		return;
+	}
+
+	u64 passed = 0;
+	u64 failed = 0;
+	u64 skipped = 0;
+
+	auto check = [&](String name, bool ok, String detail)
+	{
+		site_tests_case(name, ok ? "pass" : "fail", detail);
+		if(ok)
+			passed++;
+		else
+			failed++;
+	};
+
+	String file_name = path_join("/tmp", "uce-site-tests-io.txt");
+	bool write_ok = file_put_contents(file_name, "alpha");
+	file_append(file_name, "|beta");
+	String file_text = file_get_contents(file_name);
+
+	site_tests_page_start("Filesystem", "Local-only file helper coverage using a temporary file under /tmp.");
+
+	check("path_join()", file_name == "/tmp/uce-site-tests-io.txt", file_name);
+	check("basename() / dirname() / expand_path()", basename(file_name) == "uce-site-tests-io.txt" && dirname(file_name) == "/tmp" && expand_path("child", "/tmp/base") == "/tmp/base/child" && contains(expand_path("../sibling", "/tmp/base"), "sibling"), basename(file_name) + " / " + dirname(file_name) + " / " + expand_path("../sibling", "/tmp/base"));
+	check("file_put_contents()", write_ok, file_name);
+	check("file_append() automatic exclusive lock", file_append(file_name, "|gamma") && contains(file_get_contents(file_name), "|gamma"), file_get_contents(file_name));
+	file_put_contents(file_name, "alpha|beta");
+	check("file_get_contents() automatic shared lock", file_text == "alpha|beta", file_text);
+	check("file_mtime()", file_mtime(file_name) > 0, std::to_string((u64)file_mtime(file_name)));
+
+	String real_tmp = path_real("/tmp");
+	String real_file = path_real(file_name);
+	check("path_real() / path_is_within() canonical containment", real_tmp != "" && real_file != "" && path_is_within(file_name, "/tmp") && path_is_within("/tmp/../tmp/uce-site-tests-io.txt", "/tmp") && !path_is_within("/tmp", file_name) && !path_is_within("/tmp", "/tmp/uce-site-tests-io.txt"), real_tmp + " / " + real_file);
+
+	String shell_escaped = shell_escape("a'b; echo injected");
+	String shell_out = shell_exec("printf %s " + shell_escaped);
+	DValue shell_spec;
+	shell_spec["cmd"] = "printf out; printf err >&2";
+	shell_spec["timeout_ms"] = (f64)500;
+	DValue shell_dv = shell_exec(shell_spec);
+	check("shell_escape() / shell_exec()", shell_out == "a'b; echo injected" && shell_dv["stdout"].to_string() == "out" && shell_dv["stderr"].to_string() == "err" && shell_dv["exit_code"].to_u64() == 0 && contains(shell_escaped, "'\\''"), shell_escaped + " => " + shell_out + " / " + json_encode(shell_dv));
+
+	DValue spawn_spec;
+	spawn_spec["cmd"] = "printf spawned";
+	spawn_spec["timeout_ms"] = (f64)500;
+	u64 job_id = shell_spawn(spawn_spec);
+	DValue job_waited = job_await(job_id, 3000);
+	DValue job_checked = job_status(job_id);
+	DValue job_res = job_result(job_id);
+	DValue cancel_spec;
+	cancel_spec["cmd"] = "sleep 2";
+	cancel_spec["timeout_ms"] = (f64)5000;
+	u64 cancel_job = shell_spawn(cancel_spec);
+	bool cancel_ok = job_cancel(cancel_job);
+	check("shell_spawn() / async job registry", job_id > 0 && job_waited["done"].to_bool() && job_checked["state"].to_string() == "done" && job_res["result"]["stdout"].to_string() == "spawned" && cancel_ok, "job=" + std::to_string(job_id) + " wait=" + json_encode(job_waited) + " cancel=" + std::to_string(cancel_job));
+
+	DValue http_req;
+	http_req["method"] = "GET";
+	http_req["url"] = "http://127.0.0.1/tests/security_headers.uce";
+	http_req["headers"]["Host"] = "uce.openfu.com";
+	http_req["timeout_ms"] = (f64)2000;
+	DValue http_res;
+	DValue http_async;
+	u64 http_job = 0;
+	for(u64 attempt = 0; attempt < 3; attempt++)
+	{
+		if(attempt > 0)
+			usleep(250000);
+		http_res = http_request(http_req);
+		http_job = http_request_async(http_req);
+		http_async = job_await(http_job, 3000);
+		if(http_res["status"].to_u64() == 500 && http_async["done"].to_bool() && http_async["result"]["status"].to_u64() == 500)
+			break;
+	}
+	check("http_request() / http_request_async()", http_res["status"].to_u64() == 500 && contains(http_res["body"].to_string(), "security header sanitizer test") && http_job > 0 && http_async["done"].to_bool() && http_async["result"]["status"].to_u64() == 500, json_encode(http_res) + " async=" + json_encode(http_async));
+
+	String auto_lock_file = "/tmp/uce-site-tests-auto-lock.txt";
+	bool auto_lock_ok = file_put_contents(auto_lock_file, "one") && file_append(auto_lock_file, "|two") && file_get_contents(auto_lock_file) == "one|two";
+	check("automatic file locking API shape", auto_lock_ok, file_get_contents(auto_lock_file));
+
+	String stream_file = "/tmp/uce-site-tests-stream.txt";
+	u64 wh = file_open(stream_file, "w");
+	u64 stream_write_ok = wh ? file_write(wh, "abcdef") : 0;
+	s64 stream_pos = file_tell(wh);
+	file_close(wh);
+	u64 rh = file_open(stream_file, "r");
+	String stream_read = file_read(rh, 3);
+	String stream_pread = file_pread(rh, 2, 3);
+	s64 stream_seek = file_seek(rh, 1, 0);
+	String stream_after_seek = file_read(rh, 2);
+	file_close(rh);
+	u64 rwh = file_open(stream_file, "r+");
+	u64 stream_pwrite_ok = file_pwrite(rwh, 3, "XYZ");
+	file_close(rwh);
+	u64 ah = file_open(stream_file, "a");
+	u64 stream_append_ok = file_write(ah, "!");
+	file_close(ah);
+	check("streaming file handles", wh > 0 && rh > 0 && rwh > 0 && ah > 0 && stream_write_ok == 6 && stream_pos == 6 && stream_read == "abc" && stream_pread == "cde" && stream_seek == 1 && stream_after_seek == "bc" && stream_pwrite_ok == 3 && stream_append_ok == 1 && file_get_contents(stream_file) == "abcXYZ!", stream_read + " / " + stream_pread + " / " + file_get_contents(stream_file));
+
+	DValue st = file_stat(stream_file);
+	DValue dl = dir_list("/tmp");
+	bool found_stream = false;
+	dl.each([&](const DValue& item, String key) { if(item.key("name") && item.key("name")->to_string() == "uce-site-tests-stream.txt") found_stream = true; });
+	check("file_stat() / dir_list()", st["exists"].to_bool() && st["is_file"].to_bool() && st["size"].to_u64() == 7 && found_stream, json_encode(st));
+
+	String ops_src = "/tmp/uce-site-tests-ops-src.txt";
+	String ops_copy = "/tmp/uce-site-tests-ops-copy.txt";
+	String ops_renamed = "/tmp/uce-site-tests-ops-renamed.txt";
+	file_put_contents(ops_src, "abcdef");
+	bool copy_ok = file_copy(ops_src, ops_copy);
+	bool trunc_ok = file_truncate(ops_copy, 3);
+	bool rename_ok = file_rename(ops_copy, ops_renamed);
+	String dir_ops = "/tmp/uce-site-tests-rmdir";
+	mkdir(dir_ops);
+	file_put_contents(path_join(dir_ops, "child.txt"), "child");
+	bool dir_remove_ok = dir_remove(dir_ops, true);
+	check("file_rename() / file_copy() / file_truncate() / dir_remove()", copy_ok && trunc_ok && rename_ok && file_get_contents(ops_renamed) == "abc" && dir_remove_ok && !file_exists(dir_ops), file_get_contents(ops_renamed));
+
+	String tmp_created = file_temp("/tmp/uce-site-tests-temp-");
+	bool chmod_ok = tmp_created != "" && file_chmod(tmp_created, 0600);
+	u64 fsync_h = file_open(tmp_created, "a");
+	bool fsync_ok = fsync_h > 0 && file_write(fsync_h, "durable") == 7 && file_fsync(fsync_h);
+	file_close(fsync_h);
+	String link_path = "/tmp/uce-site-tests-link";
+	file_unlink(link_path);
+	bool symlink_ok = file_symlink(tmp_created, link_path);
+	bool temp_ready = tmp_created != "" && file_exists(tmp_created) && chmod_ok && fsync_ok && symlink_ok;
+	file_unlink(link_path);
+	file_unlink(tmp_created);
+	check("file_temp() / file_chmod() / file_symlink() / file_fsync()", temp_ready && !file_exists(link_path) && !file_exists(tmp_created), tmp_created + " -> " + link_path);
+
+	String start_dir = process_start_directory();
+	String old_cwd = cwd_get();
+	cwd_set("/tmp");
+	String tmp_cwd = cwd_get();
+	cwd_set(old_cwd);
+	check("cwd_get() / cwd_set() / process_start_directory()", old_cwd != "" && tmp_cwd == "/tmp" && process_start_directory() == start_dir && start_dir != "", "old=" + old_cwd + " tmp=" + tmp_cwd + " start=" + start_dir);
+
+	StringMap cfg;
+	cfg["u64"] = " 42 ";
+	cfg["s64"] = " -12 ";
+	cfg["bad"] = "42x";
+	cfg["f64"] = " 3.5 ";
+	cfg["yes"] = "yes";
+	cfg["no"] = "off";
+	check("to_u64() / to_s64() / to_f64() / to_bool()", to_u64(cfg["u64"], 7) == 42 && to_u64(cfg["bad"], 7) == 7 && to_s64(cfg["s64"], 5) == -12 && to_s64(cfg["bad"], 5) == 5 && to_f64(cfg["f64"], 1.0) > 3.49 && to_f64(cfg["bad"], 1.25) == 1.25 && to_bool(cfg["yes"], false) && !to_bool(cfg["no"], true) && !to_bool("unknown", false), var_dump(cfg));
+	check("to_u64() rejects negative and overflowing text", to_u64("-1", 7) == 7 && to_u64("+42", 7) == 42 && to_u64("18446744073709551615", 7) == 18446744073709551615ULL && to_u64("18446744073709551616", 7) == 7, std::to_string(to_u64("-1", 7)) + "/" + std::to_string(to_u64("18446744073709551616", 7)));
+
+	DValue perf = request_perf();
+	u64 module_misses = perf["unit_module_cache_miss_count"].to_u64();
+	u64 serialized_hits = perf["unit_module_serialized_cache_hit_count"].to_u64();
+	u64 module_read_bytes = perf["unit_module_read_bytes"].to_u64();
+	bool serialized_reads_bounded = module_misses == 0 || serialized_hits != module_misses || (module_read_bytes > 0 && module_read_bytes < module_misses * 1024 * 1024);
+	bool unit_operation_profile_valid = true;
+	perf["unit_module_operations"].each([&](DValue operation, String key) {
+		unit_operation_profile_valid = unit_operation_profile_valid && operation["unit"].to_string() != "" && operation["read_count"].type != 'S' && operation["allocate_us"].type != 'S' && operation["import_us"].type != 'S' && operation["symbol_resolve_count"].type != 'S' && operation["symbol_resolve_us"].type != 'S' && operation["instantiate_us"].type != 'S' && operation["initialize_us"].type != 'S';
+	});
+	bool unit_module_profile_valid = serialized_reads_bounded && unit_operation_profile_valid && perf["unit_module_cache_hit_count"].to_u64() + module_misses == perf["unit_load_count"].to_u64() && serialized_hits + perf["unit_module_compile_count"].to_u64() == module_misses && perf["unit_module_lookup_us"].type != 'S' && perf["unit_module_read_us"].type != 'S' && perf["unit_module_read_bytes"].type != 'S' && perf["unit_module_read_count"].type != 'S' && perf["unit_module_parse_us"].type != 'S' && perf["unit_module_compile_us"].type != 'S' && perf["unit_module_classify_us"].type != 'S';
+	bool transport_profile_valid = perf["transport_params_us"].type != 'S' && perf["transport_input_us"].type != 'S' && perf["handler_queue_us"].type != 'S' && perf["accept_us"].to_f64() + 2 >= perf["transport_params_us"].to_f64() + perf["transport_input_us"].to_f64() + perf["handler_queue_us"].to_f64();
+	u64 phase_cpu_us = perf["workspace_setup_cpu_us"].to_u64() + perf["workspace_birth_cpu_us"].to_u64() + perf["context_apply_cpu_us"].to_u64();
+	u64 birth_profile_us = perf["birth_policy_us"].to_u64() + perf["birth_import_us"].to_u64() + perf["birth_instantiate_us"].to_u64() + perf["birth_exports_us"].to_u64() + perf["birth_initialize_us"].to_u64();
+	u64 context_profile_us = perf["context_encode_us"].to_u64() + perf["context_allocate_us"].to_u64() + perf["context_write_us"].to_u64() + perf["context_guest_apply_us"].to_u64() + perf["context_free_us"].to_u64();
+	bool workspace_cpu_profile_valid = perf["workspace_wall_us"].to_u64() > 0 && perf["workspace_cpu_us"].to_u64() > 0 && perf["workspace_cpu_us"].to_u64() <= perf["workspace_wall_us"].to_u64() + 2 && (perf["workspace_cpu_us"].to_u64() >= perf["workspace_wall_us"].to_u64() ? perf["workspace_wait_us"].to_u64() == 0 : perf["workspace_wait_us"].to_u64() + perf["workspace_cpu_us"].to_u64() == perf["workspace_wall_us"].to_u64()) && perf["workspace_setup_cpu_us"].to_u64() <= perf["workspace_setup_us"].to_u64() + 2 && perf["workspace_birth_cpu_us"].to_u64() <= perf["workspace_birth_us"].to_u64() + 2 && perf["context_apply_cpu_us"].to_u64() <= perf["context_apply_us"].to_u64() + 2 && birth_profile_us <= perf["workspace_birth_us"].to_u64() && perf["context_bytes"].to_u64() > 0 && context_profile_us <= perf["context_apply_us"].to_u64() && phase_cpu_us + perf["execution_cpu_us"].to_u64() == perf["workspace_cpu_us"].to_u64();
+	u64 operation_hostcalls = 0;
+	u64 operation_hostcall_us = 0;
+	u64 operation_hostcall_cpu_us = 0;
+	u64 operation_kinds = 0;
+	bool hostcall_operation_profile_valid = true;
+	perf["hostcall_operations"].each([&](DValue operation, String key) {
+		String name = operation["name"].to_string();
+		operation_kinds++;
+		operation_hostcalls += operation["count"].to_u64();
+		operation_hostcall_us += operation["us"].to_u64();
+		operation_hostcall_cpu_us += operation["cpu_us"].to_u64();
+		hostcall_operation_profile_valid = hostcall_operation_profile_valid && name != "" && !contains(name, "uce_host_") && !contains(name, "/") && operation["count"].to_u64() > 0 && operation["cpu_us"].to_u64() <= operation["us"].to_u64() + 2;
+	});
+	u64 dropped_hostcall_operations = perf["hostcall_operations_dropped"].to_u64();
+	hostcall_operation_profile_valid = hostcall_operation_profile_valid && perf["hostcall_cpu_profiled"].type == 'B' && perf["hostcall_cpu_us"].to_u64() <= perf["hostcall_us"].to_u64() + 2 && operation_kinds > 0 && operation_kinds <= 32 && ((dropped_hostcall_operations == 0 && operation_hostcalls == perf["hostcall_count"].to_u64() && operation_hostcall_us == perf["hostcall_us"].to_u64() && operation_hostcall_cpu_us == perf["hostcall_cpu_us"].to_u64()) || (dropped_hostcall_operations > 0 && operation_kinds == 32 && operation_hostcalls < perf["hostcall_count"].to_u64() && operation_hostcall_us <= perf["hostcall_us"].to_u64() && operation_hostcall_cpu_us <= perf["hostcall_cpu_us"].to_u64()));
+	bool thread_runtime_profile_valid = perf["thread_runtime_profiled"].type == 'B' && (!perf["thread_runtime_profiled"].to_bool() || (perf["thread_cpu_start"].to_f64() >= 0 && perf["thread_cpu_end"].to_f64() >= 0 && perf["thread_cpu_migrated"].type == 'B' && perf["thread_user_cpu_us"].to_u64() + perf["thread_system_cpu_us"].to_u64() <= perf["workspace_wall_us"].to_u64() + 5 && perf["thread_voluntary_context_switches"].type != 'S' && perf["thread_involuntary_context_switches"].type != 'S' && perf["thread_minor_faults"].type != 'S' && perf["thread_major_faults"].type != 'S'));
+	bool perf_stable = transport_profile_valid && workspace_cpu_profile_valid && unit_module_profile_valid && hostcall_operation_profile_valid && thread_runtime_profile_valid && perf["worker_pid"].to_u64() > 0 && perf["running_us"].to_f64() > 0 && perf["ready_normalize_us"].type != 'S' && perf["ready_mutation_check_us"].type != 'S' && perf["ready_artifact_stat_us"].type != 'S' && perf["ready_freshness_us"].type != 'S' && perf["ready_source_generation_us"].type != 'S' && perf["ready_freshness_full_check_us"].type != 'S' && perf["ready_freshness_cache_hit_count"].type != 'S' && perf["ready_worker_us"].type != 'S' && perf["ready_check_count"].to_u64() > 0 && perf["dispatch_us"].type != 'S' && perf["workspace_setup_us"].type != 'S' && perf["workspace_birth_us"].type != 'S' && perf["context_apply_us"].type != 'S' && perf["hostcall_count"].to_u64() > 0 && perf["hostcall_us"].type != 'S' && perf["guest_us"].to_f64() > 0 && perf["component_resolve_count"].type != 'S' && perf["component_loaded_reuse_count"].type != 'S' && perf["component_path_us"].type != 'S' && perf["component_artifact_us"].type != 'S' && perf["component_load_us"].type != 'S' && perf["component_link_us"].type != 'S' && perf["unit_load_count"].to_u64() > 0 && perf["unit_module_us"].type != 'S' && perf["unit_allocate_us"].type != 'S' && perf["unit_import_us"].type != 'S' && perf["unit_symbol_resolve_count"].type != 'S' && perf["unit_symbol_resolve_us"].type != 'S' && perf["unit_instantiate_us"].type != 'S' && perf["unit_initialize_us"].type != 'S';
+	u64 profiled_ready_normalize = perf["ready_normalize_us"].to_u64();
+	u64 profiled_ready_mutation_check = perf["ready_mutation_check_us"].to_u64();
+	u64 profiled_ready_artifact_stat = perf["ready_artifact_stat_us"].to_u64();
+	u64 profiled_ready_freshness = perf["ready_freshness_us"].to_u64();
+	u64 profiled_ready_source_generation = perf["ready_source_generation_us"].to_u64();
+	u64 profiled_ready_freshness_full_check = perf["ready_freshness_full_check_us"].to_u64();
+	u64 profiled_ready_freshness_cache_hit_count = perf["ready_freshness_cache_hit_count"].to_u64();
+	u64 profiled_ready_worker = perf["ready_worker_us"].to_u64();
+	u64 profiled_ready_checks = perf["ready_check_count"].to_u64();
+	u64 profiled_hostcalls = perf["hostcall_count"].to_u64();
+	f64 profiled_hostcall_us = perf["hostcall_us"].to_f64();
+	u64 profiled_hostcall_cpu_us = perf["hostcall_cpu_us"].to_u64();
+	u64 profiled_components = perf["component_resolve_count"].to_u64();
+	u64 profiled_component_loaded_reuses = perf["component_loaded_reuse_count"].to_u64();
+	u64 profiled_component_path = perf["component_path_us"].to_u64();
+	u64 profiled_component_artifact = perf["component_artifact_us"].to_u64();
+	u64 profiled_component_load = perf["component_load_us"].to_u64();
+	u64 profiled_component_link = perf["component_link_us"].to_u64();
+	u64 profiled_unit_loads = perf["unit_load_count"].to_u64();
+	u64 profiled_unit_module = perf["unit_module_us"].to_u64();
+	u64 profiled_unit_allocate = perf["unit_allocate_us"].to_u64();
+	u64 profiled_unit_import = perf["unit_import_us"].to_u64();
+	u64 profiled_unit_symbol_resolve_count = perf["unit_symbol_resolve_count"].to_u64();
+	u64 profiled_unit_symbol_resolve = perf["unit_symbol_resolve_us"].to_u64();
+	u64 profiled_unit_instantiate = perf["unit_instantiate_us"].to_u64();
+	u64 profiled_unit_initialize = perf["unit_initialize_us"].to_u64();
+	String profiled_mysql_operations = json_encode(perf["mysql_operations"]);
+	String profiled_hostcall_operations = json_encode(perf["hostcall_operations"]);
+	for(u64 i = 0; i < 512 && perf_stable; i++)
+	{
+		perf = request_perf();
+		perf_stable = perf["worker_pid"].to_u64() > 0 && perf["running_us"].to_f64() > 0 && perf["ready_normalize_us"].to_u64() == profiled_ready_normalize && perf["ready_mutation_check_us"].to_u64() == profiled_ready_mutation_check && perf["ready_artifact_stat_us"].to_u64() == profiled_ready_artifact_stat && perf["ready_freshness_us"].to_u64() == profiled_ready_freshness && perf["ready_source_generation_us"].to_u64() == profiled_ready_source_generation && perf["ready_freshness_full_check_us"].to_u64() == profiled_ready_freshness_full_check && perf["ready_freshness_cache_hit_count"].to_u64() == profiled_ready_freshness_cache_hit_count && perf["ready_worker_us"].to_u64() == profiled_ready_worker && perf["ready_check_count"].to_u64() == profiled_ready_checks && perf["dispatch_us"].type != 'S' && perf["workspace_setup_us"].type != 'S' && perf["workspace_birth_us"].type != 'S' && perf["context_apply_us"].type != 'S' && perf["hostcall_count"].to_u64() == profiled_hostcalls && perf["hostcall_us"].to_f64() == profiled_hostcall_us && perf["hostcall_cpu_us"].to_u64() == profiled_hostcall_cpu_us && perf["guest_us"].to_f64() > 0 && perf["component_resolve_count"].to_u64() == profiled_components && perf["component_loaded_reuse_count"].to_u64() == profiled_component_loaded_reuses && perf["component_path_us"].to_u64() == profiled_component_path && perf["component_artifact_us"].to_u64() == profiled_component_artifact && perf["component_load_us"].to_u64() == profiled_component_load && perf["component_link_us"].to_u64() == profiled_component_link && perf["unit_load_count"].to_u64() == profiled_unit_loads && perf["unit_module_us"].to_u64() == profiled_unit_module && perf["unit_allocate_us"].to_u64() == profiled_unit_allocate && perf["unit_import_us"].to_u64() == profiled_unit_import && perf["unit_symbol_resolve_count"].to_u64() == profiled_unit_symbol_resolve_count && perf["unit_symbol_resolve_us"].to_u64() == profiled_unit_symbol_resolve && perf["unit_instantiate_us"].to_u64() == profiled_unit_instantiate && perf["unit_initialize_us"].to_u64() == profiled_unit_initialize && json_encode(perf["mysql_operations"]) == profiled_mysql_operations && json_encode(perf["hostcall_operations"]) == profiled_hostcall_operations;
+	}
+	check("request_perf() stages stable repeated snapshots", perf_stable, json_encode(perf));
+
+	u64 shell_exec_before_time_parse = 0;
+	request_perf()["hostcall_operations"].each([&](DValue operation, String key) {
+		if(operation["name"].to_string() == "shell_exec")
+			shell_exec_before_time_parse = operation["count"].to_u64();
+	});
+	u64 parsed_epoch = time_parse("1970-01-01 00:00:05 UTC");
+	u64 parsed_iso_epoch = time_parse("1970-01-01T00:00:05Z");
+	u64 shell_exec_after_time_parse = 0;
+	request_perf()["hostcall_operations"].each([&](DValue operation, String key) {
+		if(operation["name"].to_string() == "shell_exec")
+			shell_exec_after_time_parse = operation["count"].to_u64();
+	});
+	String utc_year = time_format_utc("%Y", parsed_epoch);
+	String local_year = time_format_local("%Y", parsed_epoch);
+	String relative = time_format_relative(time() - 120, "recent %deltaS", 1, "medium %deltaM", 3600, "old %deltaH");
+	check("time_format_local() / time_format_relative() / time_parse()", parsed_epoch == 5 && parsed_iso_epoch == 5 && shell_exec_after_time_parse == shell_exec_before_time_parse && time_parse("") == 0 && time_parse("   ") == 0 && utc_year == "1970" && local_year != "" && contains(relative, "medium"), "parsed=" + std::to_string(parsed_epoch) + " iso=" + std::to_string(parsed_iso_epoch) + " shell=" + std::to_string(shell_exec_before_time_parse) + "/" + std::to_string(shell_exec_after_time_parse) + " empty=" + std::to_string(time_parse("")) + " utc=" + utc_year + " local=" + local_year + " rel=" + relative);
+
+	String crypto_random = random_bytes(16);
+	String crypto_b64 = base64_encode("hello");
+	String crypto_b64_dec = base64_decode(crypto_b64);
+	check("sha256() / hmac_sha256() / base64 / random_bytes() / crypto_equal()", sha256_hex("abc") == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" && hmac_sha256_hex("key", "The quick brown fox jumps over the lazy dog") == "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8" && crypto_b64 == "aGVsbG8=" && crypto_b64_dec == "hello" && crypto_random.length() == 16 && crypto_equal("same", "same") && !crypto_equal("same", "diff"), crypto_b64 + " / " + sha256_hex("abc"));
+	String password_encoded = password_hash("correct horse battery staple");
+	check("password_hash() / password_verify() / password_needs_rehash()", contains(password_encoded, "$uce$scrypt$65536$8$1$") && password_verify("correct horse battery staple", password_encoded) && !password_verify("wrong password", password_encoded) && !password_needs_rehash(password_encoded) && password_needs_rehash("malformed") && !password_verify("correct horse battery staple", "$uce$scrypt$999999999$8$1$00$00"), password_encoded);
+
+	StringList escaped_keys = memcache_escape_keys({"a b", "line\nkey"});
+	check("memcache_escape_key() / memcache_escape_keys()", memcache_escape_key("a b") == "a_b" && escaped_keys.size() == 2 && !contains(escaped_keys[1], "\n"), join(escaped_keys, ","));
+	check("signal_name() / runtime_safe_key() / backtrace helpers", signal_name(SIGSEGV) == "SIGSEGV" && runtime_safe_key(" task one ") == gen_sha1("task one") && runtime_safe_key("  ") == "" && backtrace_capture() == "" && backtrace_get_frames(0, 0) == "", signal_name(SIGSEGV) + " / " + runtime_safe_key(" task one "));
+
+	site_tests_summary(passed, failed, skipped, "This page limits writes to /tmp/uce-site-tests-io.txt so it stays disposable.");
+	site_tests_page_end();
+}

@@ -1,0 +1,189 @@
+
+
+void show_stuff(Request& context)
+{
+	//context.header["Content-Type"] = "text/plain";
+
+	<><html>
+		Mwahahaaha <?= time() ?>
+		<div>hello world: <?= context.params["HTTP_HOST"] ?></div>
+		<pre>
+Display the date using any or all of the following elements:
+
+%a: abbreviated day name (i.e. mon, tue, wed)
+%A: full day name (i.e. Monday, Tuesday, Wednesday)
+%b or %h: abbreviated month name (i.e. jan, feb, mar)
+%B: full month name (January, February, March)
+%c: locales date and time (full date and time)
+%C: century - displays the first two numbers of the year (i.e 19 for 1999 and 20 for 2020)
+%d: day of month (i.e. 01, 02, 03)
+%D: same as M/D/Y (i.e. 04/20/16)
+%e: day of month padded (i.e. ' 1', ' 2')
+%F: full date, same as yyyy-mm-dd
+%H: hour (00, 01, 02, 21, 22, 23)
+%I: hour (1,2,3,10,11,12)
+%j: day of year (i.e. 243)
+%k: hour padded (i.e. '1' becomes ' 1'
+%l: hour padded (12 hour clock)
+%m: month number (1,2,3)
+%M: minute (1,2,3,57,58,59)
+%n: new line
+%N: nanoseconds
+%p: AM or PM
+%P: like %p but lowercase (ironically)
+%r: locales 12 hour clock time
+%R: 24 hour version of hour and minute
+%s: seconds since 1970-01-01 00:00:00
+%S: second (01,02,03, 57, 58, 59)
+%t: a tab
+%T: time same as %H:%M:%S
+%u: day of week (1 is Monday, 2 is Tuesday etc)
+%U: week number of year (assuming Sunday as first day of the week)
+%V: ISO week number with Monday as the first day of the week
+%w: day of week (0 is Sunday)
+%W: week number of the year with Monday as the first day of the week
+%x: locales date representation (12/31/2015)
+%X: locales time representation (14:44:44)
+%y: last two digits of year
+%Y: year
+%z: numeric time zone (i.e. -0400)
+%:z: numeric time zone as follows (i.e. -04:00)
+%::z: numeric time zone as follows (i.e. -04:00:00)
+%Z: alphabetic time zone abbreviation (GMT)
+-: a single hyphen prevents zero padding
+_: a single underscore pads with spaces
+0: pads with zeroes
+^: use uppercase if possible
+#: use opposite case if possible
+To display just the time use the following:
+
+date +%T
+Alternatively, use the following:
+
+date +%H:%M:%S
+Attach the date, as well, using the command:
+
+date +%d/%m/%Y%t%H:%M:%S
+Alternatively, use the follow (since %T is equivalent to %H:%M:%S):
+
+date +$d/%m/%Y%t%T
+The : and / characters are optional and can be whatever you want. For example:
+
+date +%dc%mc%Y
+
+outputs: 24c09c2020, if you wanted to use 'c' as a delimiter for some reason.
+
+Use any combination of the above switches after the plus symbol to output the date as you so wish. If you want to add spaces you can use quotes around the date.
+
+date +'%d/%m/%Y %H:%M:%S'
+How to Show the UTC Date
+View the UTC date for your computer using the following command:
+
+date -u
+If you are in the UK you will notice that instead of showing "18:58:20" as the time it will show "17:58:20" as the time.
+
+How to Show the RFC Date
+View the RFC date for your computer using the following command:
+
+date --rfc-2822
+This displays the date in the following format:
+
+Wed, 20 Apr 2018 19:56:52 +0100
+This flag is useful as it shows that you are an hour ahead of GMT.
+
+Some Useful Date Commands
+Do you want to know the date next Monday? Try this:
+
+date -d "next Monday"
+
+At the point of writing this returns "Mon 25 Apr 00:00:00 BST 2016"
+
+The -d basically prints a date in the future or the past. So, you can use "next Monday" or "last Friday".
+
+Using the same command you can find out which day of the week your birthday or Christmas falls upon.
+
+date -d 12/25/2016
+
+The result is Sun Dec 25.
+
+Summary
+It is worth checking out the manual page for the date command using the following command:
+
+man date
+Was this page helpful?
+
+More from Lifewire
+Businessman checking the time on his watch
+How to Understand the Date and Time in Email Headers
+Calendar next to an Apple keyboard
+How to Change the Date and Time on a Mac Manually
+Turning on automatic date and time settings in Windows 10.
+Change the Date and Time Zone on Your Windows Laptop
+People comparing the calendars on their iPhones
+How to Change Date on iPhone
+Woman walking with Black Friday shopping bag
+What Is Black Friday?
+Clock On White Wall
+Find the Sent Timestamp on Gmail Messages
+Homescreen with clock on Android
+How to Change the Time on Android
+Person taking a photo of a flower with a smartphone
+How to Adjust the Date, Time, and Location of Photos in iOS 15
+Dark office with many computers, one lit up
+Understanding the Linux Command: Ar
+A human hand pressing an old-fashioned alarm clock
+Learn the Linux Command 'at'
+Close-Up Of Thumbtack On Calendar Date
+Using the DATE Function in Google Sheets
+DATE function in Excel
+How to Use the Excel DATE Function
+Tux the penguin is the official Linux mascot.
+Delete Files Using the Linux Command Line
+Close-Up Of Clock Against Calendar
+Serial Number and Serial Date in Excel
+Person running Linux sleep command for 20 seconds on a laptop
+How to Use the Linux Sleep Command to Pause a BASH Script
+Cropped Hand Of Person Using Laptop By Alarm Clock At Table
+Excel's Volatile NOW Function for the Date and Time
+Lifewire
+Tech for Humans
+Follow Us
+Subscribe to our newsletter and get tech’s top stories in 30 seconds.
+Email Address
+enter email
+SUBMIT
+News
+Best Products
+Mobile Phones
+Computers
+About Us
+Advertise
+Privacy Policy
+Cookie Policy
+Careers
+Editorial Guidelines
+Contact
+Terms of Use
+EU Privacy
+California Privacy Notice
+Lifewire is part of the Dotdash publishing family.
+
+		</pre>
+	</html></>
+
+}
+
+RENDER(Request& context)
+{
+
+	<><html>
+		<link rel="stylesheet" href='style.css?v=1'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Index
+		</h1>
+		<? show_stuff(context); ?>
+		<pre><?= var_dump(context.params) ?></pre>
+	</html></>
+
+}

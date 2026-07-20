@@ -1,0 +1,20 @@
+:sig
+bool file_truncate(String path, u64 size)
+
+:params
+path : file to resize
+size : new length in bytes
+return value : true on success
+
+:content
+Truncates (or extends) a file to exactly `size` bytes. Shrinking discards trailing bytes; growing pads with zero bytes.
+
+:example
+file_put_contents("/tmp/doc-truncate.txt", "hello world");
+file_truncate("/tmp/doc-truncate.txt", 5);
+print(file_get_contents("/tmp/doc-truncate.txt"), "\n");
+
+:see
+>sys
+file_put_contents
+file_stat

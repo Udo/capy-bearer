@@ -1,0 +1,100 @@
+
+void render_hit(String ft, String name, String badge, String snippet)
+{
+	<><div class="search-hit">
+		<a href="index.uce?p=<?= uri_encode(ft) ?>"><?= html_escape(name) ?><? if(badge != "") { ?><span class="badge"><?= badge ?></span><? } ?></a><?
+		if(snippet != "") { ?><span class="search-snippet"><?= html_escape(snippet) ?></span><? } ?>
+	</div></>
+}
+
+RENDER(Request& context)
+{
+	String q = to_lower(trim(context.get["q"]));
+
+	if(q.length() < 2)
+	{
+		return;
+	}
+
+	// Collect results into two buckets: title matches first, then content-only matches
+	StringList title_ft;
+	StringList title_name;
+	StringList title_badge;
+	StringList title_snippet;
+
+	StringList body_ft;
+	StringList body_name;
+	StringList body_badge;
+	StringList body_snippet;
+
+	for(auto file_name : ls("pages/"))
+	{
+		String ft = nibble(file_name, ".");
+		String name = ft;
+		String badge = "";
+
+		if(ft.substr(0, 2) == "0_")
+		{
+			nibble(name, "_");
+			badge = "struct";
+		}
+		else if(ft.substr(0, 2) == "1_")
+		{
+			nibble(name, "_");
+			badge = "directive";
+		}
+
+		String content = file_get_contents("pages/" + ft + ".txt");
+		bool name_match = contains(to_lower(name), q);
+		bool content_match = contains(to_lower(content), q);
+
+		if(!name_match && !content_match)
+			continue;
+
+		// Find first content line that contains the query for a snippet
+		String snippet = "";
+		if(!name_match || content_match)
+		{
+			for(auto line : split(content, "\n"))
+			{
+				String t = trim(line);
+				if(t.length() > 4 && t.substr(0, 1) != ":" && contains(to_lower(t), q))
+				{
+					snippet = t;
+					if(snippet.length() > 120)
+						snippet = snippet.substr(0, 120) + "…";
+					break;
+				}
+			}
+		}
+
+		if(name_match)
+		{
+			title_ft.push_back(ft);
+			title_name.push_back(name);
+			title_badge.push_back(badge);
+			title_snippet.push_back(snippet);
+		}
+		else
+		{
+			body_ft.push_back(ft);
+			body_name.push_back(name);
+			body_badge.push_back(badge);
+			body_snippet.push_back(snippet);
+		}
+	}
+
+	u32 count = title_ft.size() + body_ft.size();
+
+	if(count == 0)
+	{
+		<><p class="no-results">No results for "<strong><?= html_escape(q) ?></strong>"</p></>
+		return;
+	}
+
+	for(u32 i = 0; i < title_ft.size(); i++)
+		render_hit(title_ft[i], title_name[i], title_badge[i], title_snippet[i]);
+
+	for(u32 i = 0; i < body_ft.size(); i++)
+		render_hit(body_ft[i], body_name[i], body_badge[i], body_snippet[i]);
+}

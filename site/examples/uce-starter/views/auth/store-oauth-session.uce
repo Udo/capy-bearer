@@ -1,0 +1,24 @@
+#load "../../lib/app.uce"
+
+COMPONENT(Request& context)
+{
+	context.call["app"]["page_type"] = "json";
+
+	DValue response;
+	DValue body = json_decode(context.in);
+	if(context.params["REQUEST_METHOD"] == "POST" && body["oauth_service"].to_string() != "" && body["oauth_state"].to_string() != "")
+	{
+		context.session["oauth_service"] = body["oauth_service"].to_string();
+		context.session["oauth_state"] = body["oauth_state"].to_string();
+		response["status"] = "success";
+	}
+	else
+	{
+		context.set_status(400, "Bad Request");
+		response["status"] = "error";
+		response["message"] = "Invalid input";
+	}
+	print(json_encode(response));
+}
+
+

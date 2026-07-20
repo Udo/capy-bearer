@@ -1,0 +1,6 @@
+#include "testlib.h"
+
+COMPONENT(Request& context)
+{
+	?><span>relative-child</span><?
+}

@@ -1,0 +1,19 @@
+:sig
+s64 DValue::to_s64(s64 default_value = 0) const
+
+:params
+s64 : fallback returned when conversion is not possible
+return value : converted value or the fallback
+
+:see
+>types
+0_DValue
+2_DValue_get_by_path
+
+:content
+Converts strings, f64, bool, pointer, and single-value maps to a signed integer. Invalid or empty strings return the default. Values outside the signed range are clamped.
+
+:example
+DValue value;
+value = "-42";
+print(value.to_s64(), "\n");

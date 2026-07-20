@@ -1,0 +1,126 @@
+#load "../../lib/app.uce"
+
+ONCE(Request& context)
+{
+	?><link rel="stylesheet" href="<?= app_asset_url("themes/common/css/workspace.css", context) ?>" />
+	<script src="<?= app_asset_url("js/u-workspace-shell.js", context) ?>"></script><?
+}
+
+COMPONENT:APP_FRAME(Request& context)
+{
+	String id = context.props["id"].to_string();
+	String overlay_id = context.props["overlay_id"].to_string();
+	String class_name = context.props["class"].to_string();
+	<>
+		<div<?: id != "" ? " id=\"" + html_escape(id) + "\"" : "" ?> class="ws-app<?= class_name != "" ? " " + html_escape(class_name) : "" ?>">
+			<?: context.props["sidebar_html"].to_string() ?>
+			<div<?: overlay_id != "" ? " id=\"" + html_escape(overlay_id) + "\"" : "" ?> class="ws-sidebar-overlay"></div>
+			<main class="ws-main"><?: context.props["main_html"].to_string() ?></main>
+		</div>
+	</>
+}
+
+COMPONENT:EMPTY_STATE(Request& context)
+{
+	<>
+		<div class="ws-empty-state<?= context.props["class"].to_string() != "" ? " " + html_escape(context.props["class"].to_string()) : "" ?>">
+			<div class="ws-empty-icon"><i class="<?= first(context.props["icon_class"].to_string(), "fas fa-layer-group") ?>"></i></div>
+			<h2><?= context.props["title"].to_string() ?></h2>
+			<p><?= context.props["text"].to_string() ?></p>
+			<?: context.props["action_html"].to_string() ?>
+		</div>
+	</>
+}
+
+COMPONENT:LIST_STATE(Request& context)
+{
+	<>
+		<div class="ws-list-state<?= context.props["class"].to_string() != "" ? " " + html_escape(context.props["class"].to_string()) : "" ?>"><? if(context.props["icon_class"].to_string() != "") { ?><i class="<?= context.props["icon_class"].to_string() ?>"></i><? } ?><span><?= context.props["text"].to_string() ?></span></div>
+	</>
+}
+
+COMPONENT:MOBILE_BAR(Request& context)
+{
+	<>
+		<div class="ws-mobile-bar<?= context.props["class"].to_string() != "" ? " " + html_escape(context.props["class"].to_string()) : "" ?>">
+			<button<?: context.props["button_id"].to_string() != "" ? " id=\"" + html_escape(context.props["button_id"].to_string()) + "\"" : "" ?> class="ws-mobile-toggle" title="Toggle sidebar" type="button">
+				<i class="<?= first(context.props["icon_class"].to_string(), "fas fa-bars") ?>"></i>
+			</button>
+			<span class="ws-mobile-title"><?= context.props["title"].to_string() ?></span>
+		</div>
+	</>
+}
+
+COMPONENT:PANEL_HEADER(Request& context)
+{
+	<>
+		<div class="ws-panel-header<?= context.props["class"].to_string() != "" ? " " + html_escape(context.props["class"].to_string()) : "" ?>">
+			<div class="ws-panel-title-group">
+				<h2><?= context.props["title"].to_string() ?></h2>
+				<? if(context.props["subtitle"].to_string() != "") { ?><p class="ws-subtitle"><?= context.props["subtitle"].to_string() ?></p><? } ?>
+			</div>
+			<? if(context.props["actions_html"].to_string() != "") { ?><div class="ws-header-actions"><?: context.props["actions_html"].to_string() ?></div><? } ?>
+		</div>
+	</>
+}
+
+COMPONENT:PANEL(Request& context)
+{
+	<>
+		<section<?: context.props["id"].to_string() != "" ? " id=\"" + html_escape(context.props["id"].to_string()) + "\"" : "" ?> class="ws-panel<?= context.props["class"].to_string() != "" ? " " + html_escape(context.props["class"].to_string()) : "" ?>">
+			<?: context.props["header_html"].to_string() ?>
+			<?: context.props["body_html"].to_string() ?>
+		</section>
+	</>
+}
+
+COMPONENT:SECTION_HEAD(Request& context)
+{
+	<>
+		<div class="ws-section-head<?= context.props["class"].to_string() != "" ? " " + html_escape(context.props["class"].to_string()) : "" ?>">
+			<h3><?= context.props["title"].to_string() ?></h3>
+			<? if(context.props["actions_html"].to_string() != "") { ?><div class="ws-header-actions"><?: context.props["actions_html"].to_string() ?></div><? } ?>
+		</div>
+	</>
+}
+
+COMPONENT:SECTION(Request& context)
+{
+	<>
+		<section<?: context.props["id"].to_string() != "" ? " id=\"" + html_escape(context.props["id"].to_string()) + "\"" : "" ?> class="ws-section<?= context.props["class"].to_string() != "" ? " " + html_escape(context.props["class"].to_string()) : "" ?>">
+			<?: context.props["header_html"].to_string() ?>
+			<?: context.props["body_html"].to_string() ?>
+		</section>
+	</>
+}
+
+COMPONENT:SIDEBAR_SHELL(Request& context)
+{
+	<>
+		<aside<?: context.props["id"].to_string() != "" ? " id=\"" + html_escape(context.props["id"].to_string()) + "\"" : "" ?> class="ws-sidebar<?= context.props["class"].to_string() != "" ? " " + html_escape(context.props["class"].to_string()) : "" ?>">
+			<?: context.props["top_html"].to_string() ?>
+			<?: context.props["body_html"].to_string() ?>
+		</aside>
+	</>
+}
+
+COMPONENT:SIDEBAR_TOOLBAR(Request& context)
+{
+	<>
+		<div class="ws-sidebar-top<?= context.props["class"].to_string() != "" ? " " + html_escape(context.props["class"].to_string()) : "" ?>">
+			<?: context.props["action_html"].to_string() ?>
+			<div class="ws-search-wrap">
+				<i class="fas fa-search ws-search-icon"></i>
+				<input type="search"<?: context.props["search_input_id"].to_string() != "" ? " id=\"" + html_escape(context.props["search_input_id"].to_string()) + "\"" : "" ?> name="<?= first(context.props["search_input_name"].to_string(), "search") ?>" class="ws-search-input" placeholder="<?= first(context.props["search_placeholder"].to_string(), "Search...") ?>" autocomplete="off">
+			</div>
+		</div>
+	</>
+}
+
+COMPONENT:STATUS_PILL(Request& context)
+{
+	String variant = to_lower(first(context.props["variant"].to_string(), "neutral"));
+	<>
+		<span class="ws-status-pill ws-status-pill-<?= variant ?><?= context.props["class"].to_string() != "" ? " " + html_escape(context.props["class"].to_string()) : "" ?>"><?= first(context.props["label"].to_string(), context.props["text"].to_string()) ?></span>
+	</>
+}

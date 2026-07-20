@@ -1,0 +1,27 @@
+:sig
+void unit_render(String file_name)
+void unit_render(String file_name, Request& context)
+
+:params
+file_name : UCE file to load and execute
+context : optional request context to pass into the target page
+
+:see
+>ob
+unit_call
+unit_load
+1_RENDER
+component
+
+:content
+Calls another UCE file and executes its `RENDER(Request& context)` function.
+
+If `context` is omitted, the current active request context is used.
+
+Calling a missing unit or render handler is a server error and sets HTTP status 500. If a unit is intentionally optional, inspect it with `unit_info()` before calling `unit_render()`.
+
+Examples:
+
+
+:example
+unit_render("examples/sample_unit.uce");

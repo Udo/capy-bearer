@@ -1,0 +1,143 @@
+enum TokenType{ TT_UNKNOWN, TT_STRING, TT_INT, TT_FLOAT, TT_IDENTIFIER, TT_OPERATOR };
+String TokenTypeName[] = { "TT_UNKNOWN", "TT_STRING", "TT_INT", "TT_FLOAT", "TT_IDENTIFIER", "TT_OPERATOR" };
+
+struct Token
+{
+	String literal = "";
+	TokenType type = TT_UNKNOWN;
+	char delim = ' ';
+};
+
+#define NEW_TOKEN { result.push_back(ctok); ctok = new Token(); goto eval_char; }
+
+std::vector<Token*> script_tokenize(String code)
+{
+	std::vector<Token*> result;
+	auto ctok = new Token();
+
+	for(auto c : code)
+	{
+		eval_char:
+		if(ctok->type == TT_UNKNOWN)
+		{
+			if(isspace(c))
+			{
+
+			}
+			else if(isdigit(c))
+			{
+				ctok->type = TT_INT;
+			}
+			else if(isalpha(c))
+			{
+				ctok->type = TT_IDENTIFIER;
+			}
+			else if(c == '"' || c == '\'')
+			{
+				ctok->type = TT_STRING;
+				ctok->delim = c;
+				continue;
+			}
+			else if(ispunct(c))
+			{
+				ctok->type = TT_OPERATOR;
+			}
+		}
+		switch(ctok->type)
+		{
+			case(TT_IDENTIFIER):
+			{
+				if(isalnum(c) || c == '_')
+					ctok->literal += c;
+				else
+					NEW_TOKEN
+				break;
+			}
+			case(TT_INT):
+			{
+				if(isdigit(c))
+					ctok->literal += c;
+				else if(c == '.')
+				{
+					ctok->type = TT_FLOAT;
+					ctok->literal += c;
+				}
+				else
+					NEW_TOKEN
+				break;
+			}
+			case(TT_FLOAT):
+			{
+				if(isdigit(c))
+					ctok->literal += c;
+				else
+					NEW_TOKEN
+				break;
+			}
+			case(TT_OPERATOR):
+			{
+				ctok->literal += c;
+				c = ' ';
+				NEW_TOKEN
+				break;
+			}
+			case(TT_STRING):
+			{
+				if(c == ctok->delim)
+				{
+					c = ' ';
+					NEW_TOKEN
+				}
+				else
+					ctok->literal += c;
+				break;
+			}
+		}
+	}
+
+	result.push_back(ctok);
+	return(result);
+}
+
+String to_string(std::vector<Token*> t)
+{
+	String result = "";
+	for(auto& ti : t)
+	{
+		result += concat(TokenTypeName[ti->type], "(", ti->literal, ") ");
+	}
+	return(result);
+}
+// "
+
+RENDER(Request& context)
+{
+
+	<>
+		<link rel="stylesheet" href='style.css'></link>
+		<h1>
+			<a href="index.uce">UCE Test</a>:
+			Script
+		</h1>
+	</>
+
+	String script_src = first(context.post["code"], file_get_contents("script-example1.usp"));
+
+	<>
+		<h3>Code</h3>
+		<form action="?" method="post">
+			<textarea name="code"><?= script_src ?></textarea>
+			<input type="submit" value="parse"/>
+		</form>
+		<pre><?
+
+			auto tokens = script_tokenize(script_src);
+			print(html_escape(to_string(tokens)));
+
+
+		?></pre>
+		Params
+		<pre><?= var_dump(context.params) ?></pre>
+	</>
+
+}

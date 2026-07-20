@@ -1,0 +1,22 @@
+:sig
+f64 to_f64(String s, f64 fallback = 0)
+
+:params
+s : string to parse
+fallback : value returned when `s` is empty or not a complete floating-point number
+return value : parsed f64, or `fallback`.
+
+:see
+>types
+to_u64
+to_s64
+to_bool
+float_val
+
+:content
+Parses a trimmed string as a floating-point number.
+
+Unlike `float_val()`, the whole trimmed string must be consumed by the parser. Empty strings and partially parsed values such as `"3.5ms"` return the fallback.
+
+:example
+print(to_f64("3.5"), "\n");

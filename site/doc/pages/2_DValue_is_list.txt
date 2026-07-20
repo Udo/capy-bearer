@@ -1,0 +1,20 @@
+:sig
+bool DValue::is_list() const
+
+:params
+return value : true when the value is an array with keys 0..n-1
+
+:see
+>types
+0_DValue
+2_DValue_set_array
+2_DValue_push
+
+:content
+Returns true for map-shaped values that represent a list. An empty map is a list only if it was explicitly put in list mode with `set_array()` or by list operations. Non-empty lists must have canonical numeric string keys from `0` through `size - 1`.
+
+:example
+DValue list;
+DValue item; item = "Ada";
+list.push(item);
+print(list.is_list() ? "list\n" : "map\n");

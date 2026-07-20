@@ -1,0 +1,21 @@
+:sig
+void DValue::remove(String s)
+
+:params
+s : child key to erase
+return value : none
+
+:see
+0_DValue
+2_DValue_clear
+2_DValue_has
+
+:content
+Ensures the value is map-shaped and erases the named child. Removing the last child resets the next array index to zero.
+
+
+:example
+DValue u;
+u["a"] = "1"; u["b"] = "2";
+u.remove("a");
+print("has a: ", u.has("a") ? "yes" : "no", ", has b: ", u.has("b") ? "yes" : "no", "\n");

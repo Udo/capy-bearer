@@ -1,0 +1,22 @@
+:sig
+String gz_uncompress(String compressed)
+
+:params
+compressed : gzip-format compressed bytes
+return value : uncompressed bytes
+
+:see
+>sys
+gz_compress
+zip_list
+zip_extract
+
+:content
+Uncompresses a gzip-format byte string and returns the original content.
+
+
+`gz_uncompress()` validates the gzip header, CRC32 footer, and uncompressed-size footer. It throws a runtime error when the input is not a supported gzip stream or fails validation.
+
+:example
+String packed = gz_compress("round trip data");
+print(gz_uncompress(packed), "\n");

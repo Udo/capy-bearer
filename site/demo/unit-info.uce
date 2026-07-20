@@ -1,0 +1,34 @@
+#include "demo_guard.h"
+
+RENDER(Request& context)
+{
+	bool allow_mutation = test_demo_request_allowed(context);
+	DValue payload;
+
+	if(context.get["compile"] != "")
+	{
+		if(allow_mutation)
+			payload["compile_ok"].set_bool(unit_compile(context.get["compile"]));
+		else
+		{
+			context.set_status(403, "Restricted");
+			payload["error"] = "restricted";
+			payload["reason"] = "Manual compile is restricted to localhost and private-network access.";
+		}
+	}
+
+	payload["current"] = unit_info();
+
+	DValue units;
+	units.set_array();
+	for(auto& unit_path : units_list())
+	{
+		DValue item;
+		item = unit_path;
+		units.push(item);
+	}
+	payload["units"] = units;
+
+	context.header["Content-Type"] = "application/json; charset=utf-8";
+	print(json_encode(payload));
+}

@@ -1,0 +1,20 @@
+:sig
+u8 ws_opcode()
+
+:params
+return value : opcode of the current WebSocket message
+
+:see
+>websocket
+
+:content
+Returns the opcode of the message currently being handled by `WS(Request& context)`.
+
+Common values are:
+
+- `0x1` for text messages
+- `0x2` for binary messages
+
+:example
+// ws_opcode() returns the WebSocket frame opcode (1 text, 2 binary, 8 close, ...).
+print("opcode: ", (u64)ws_opcode(), " (0 outside a WS frame)\n");

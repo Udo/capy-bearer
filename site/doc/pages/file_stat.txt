@@ -1,0 +1,20 @@
+:sig
+DValue file_stat(String path)
+
+:params
+path : path to inspect, resolved against the unit's directory
+return value : a map with exists, is_file, is_dir, is_symlink, size, mode, mtime, ctime
+
+:content
+Returns metadata about a path as a `DValue` map. Read fields with the usual accessors, e.g. `st["size"].to_u64()` and `st["is_file"].to_bool()`. When the path does not exist, `exists` is false.
+
+:example
+file_put_contents("/tmp/doc-stat.txt", "12345");
+DValue st = file_stat("/tmp/doc-stat.txt");
+print("size=", st["size"].to_u64(), " is_file=", st["is_file"].to_bool() ? "yes" : "no", "\n");
+
+:see
+>sys
+dir_list
+file_exists
+file_mtime

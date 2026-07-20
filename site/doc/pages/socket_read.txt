@@ -1,0 +1,23 @@
+:sig
+String socket_read(u64 sockfd, u32 max_length = 1024*128, u32 timeout = 1);
+
+:params
+sockfd : socket handle
+max_length : optional maximum data size, defaults to 128kBytes
+timeout : optional operation timeout, defaults to one second
+return value : string containing the data that was read
+
+:see
+>socket
+
+:content
+Reads data from a socket connection.
+
+`max_length` limits how much data is read, and `timeout` controls how long the operation is allowed to wait.
+
+:example
+u64 fd = socket_connect("127.0.0.1", 80);
+socket_write(fd, "GET / HTTP/1.0\r\nHost: localhost\r\nConnection: close\r\n\r\n");
+String chunk = socket_read(fd, 1024, 2);
+socket_close(fd);
+print(str_starts_with(chunk, "HTTP/") ? "read an HTTP response from the server" : "no data", "\n");

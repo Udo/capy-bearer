@@ -1,0 +1,17 @@
+:sig
+f64 gen_noise01(u64 index, u64 seed = 0)
+
+:params
+index : index position
+seed : seed set (defaults to 0)
+return value : a noise value from 0 to 1
+
+:see
+>noise
+
+:content
+Generates a deterministic noise value in the range from `0` to `1` for the given `index` and `seed`.
+
+
+:example
+print(gen_noise01(1, 2) >= 0 ? "noise\n" : "bad\n");

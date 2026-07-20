@@ -1,0 +1,93 @@
+#load "helpers.uce"
+
+COMPONENT(Request& context)
+{
+	DValue asset_props;
+	asset_props["css"]["0"] = "themes/common/css/gauges.css";
+	asset_props["js"]["0"] = "components/gauges/common.js";
+	print(component("../theme/assets", asset_props, context));
+
+	String gauge_id = first(context.props["id"].to_string(), "arcgauge-" + std::to_string((u64)time()));
+	String title = context.props["title"].to_string();
+	String subtitle = context.props["subtitle"].to_string();
+	String style = context.props["style"].to_string();
+	DValue scale = context.props["scale"];
+
+	<>
+		<div class="arcgauge-set" id="<?= gauge_attr_id(gauge_id) ?>" style="<?= style ?>">
+			<? if(title != "") { ?>
+				<div class="arcgauge-set-header">
+					<h3><?= title ?></h3>
+					<? if(subtitle != "") { ?><p><?= subtitle ?></p><? } ?>
+				</div>
+			<? } ?>
+			<div class="arcgauge-grid">
+				<? context.props["items"].each([&](DValue item, String item_id_raw) {
+					DValue merged = scale;
+					item.each([&](DValue value, String key) { merged[key] = value; });
+					String item_id = gauge_attr_id(item_id_raw);
+					f64 value = float_val(first(merged["value"].to_string(), "0"));
+					f64 max_value = float_val(first(merged["max"].to_string(), "100"));
+					s32 precision = (s32)int_val(first(merged["precision"].to_string(), "1"));
+					f64 pct = max_value > 0.0 ? gauge_clamp_value((value / max_value) * 100.0, 0.0, 100.0) : 0.0;
+					f64 arc_length = round((pct / 100.0) * 157.08 * 10.0) / 10.0;
+					String resolved_color = "";
+					if(merged["color"].get_type_name() == "array")
+						resolved_color = gauge_range_color(merged["color"], value);
+					else
+						resolved_color = merged["color"].to_string();
+					if(resolved_color == "")
+					{
+						if(pct >= 85.0)
+							resolved_color = "var(--error, #ef4444)";
+						else if(pct >= 60.0)
+							resolved_color = "var(--warning, #f59e0b)";
+						else
+							resolved_color = "var(--success, #10b981)";
+					}
+					String display_value = gauge_format_number(value, precision) + merged["unit"].to_string();
+					String watermark_prefix = merged["watermark_prefix"].to_string();
+					?><section class="arcgauge-card">
+						<div class="arcgauge-label"><?= first(merged["label"].to_string(), item_id_raw) ?></div>
+						<svg class="arcgauge-svg" viewBox="0 0 120 68" aria-hidden="true">
+							<path class="arcgauge-track" d="M 10 60 A 50 50 0 0 1 110 60" fill="none" stroke-width="5" stroke-linecap="round"/>
+							<path id="<?= gauge_attr_id(gauge_id) ?>-<?= item_id ?>-arc" class="arcgauge-arc-dyn" d="M 10 60 A 50 50 0 0 1 110 60" fill="none" stroke="<?= resolved_color ?>" stroke-width="5" stroke-linecap="round" stroke-dasharray="<?= std::to_string(arc_length) ?> 157.08"/>
+							<? if(watermark_prefix != "") { ?>
+								<line id="<?= gauge_attr_id(watermark_prefix) ?>WmLo" class="arcgauge-watermark arcgauge-watermark-lo" x1="0" y1="0" x2="0" y2="0" opacity="0"/>
+								<line id="<?= gauge_attr_id(watermark_prefix) ?>WmHi" class="arcgauge-watermark arcgauge-watermark-hi" x1="0" y1="0" x2="0" y2="0" opacity="0"/>
+							<? } ?>
+							<text id="<?= gauge_attr_id(gauge_id) ?>-<?= item_id ?>-text" class="arcgauge-value" x="60" y="47" text-anchor="middle"><?= display_value ?></text>
+							<text class="arcgauge-caption" x="60" y="62" text-anchor="middle"><?= first(merged["caption"].to_string(), "") ?></text>
+						</svg>
+						<div class="arcgauge-meta" id="<?= gauge_attr_id(gauge_id) ?>-<?= item_id ?>-meta"><?= first(merged["meta"].to_string(), "--") ?></div>
+					</section><?
+				}); ?>
+			</div>
+		</div>
+		<? if(context.props["listen"].to_string() != "") { ?>
+			<script>
+			window.ArcgaugeComponents = window.ArcgaugeComponents || {
+				start_listen : function(prop) {
+					$.events.on('value-broadcast', function(data) {
+						if(!prop.items || !prop.items[data.name]) return;
+						const item = Object.assign({}, prop.scale || {}, prop.items[data.name]);
+						GaugeComponents.updateArcGauge({
+							arcId: prop.id + '-' + data.name + '-arc',
+							textId: prop.id + '-' + data.name + '-text',
+							metaId: prop.id + '-' + data.name + '-meta',
+							value: Number(data.value),
+							max: Number(item.max || 100),
+							suffix: item.unit || '',
+							precision: item.precision,
+							watermarkPrefix: item.watermark_prefix || data.name,
+							color: item.color,
+							meta: data.meta != null ? data.meta : null
+						});
+					});
+				}
+			};
+			ArcgaugeComponents.start_listen(<?: json_encode(context.props, '\'') ?>);
+			</script>
+		<? } ?>
+	</>
+}
