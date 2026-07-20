@@ -386,11 +386,12 @@ class Parser:
             if precedence is None or precedence < minimum:
                 break
             operator = self.take()
-            right = self.expression(precedence + (0 if operator.text in {"=", ":="} else 1))
             if operator.text == ":":
-                left = Annotation(operator.location, left, right)
-            else:
-                left = Binary(operator.location, operator.text, left, right)
+                # A type annotation occupies one expression slot; a following
+                # grouped expression belongs to the next declaration slot.
+                return Annotation(operator.location, left, self.expression(81))
+            right = self.expression(precedence + (0 if operator.text in {"=", ":="} else 1))
+            left = Binary(operator.location, operator.text, left, right)
         return left
 
     def prefix(self) -> Expr:
@@ -500,10 +501,18 @@ class Parser:
                 raise CapyError(header[-1].location, "function declaration has more than parameter and return expressions")
         body_location = self.require("{").location
         body = self.block(body_location)
-        parameter_expr = header[0] if header else TupleExpr(location, [])
-        return_type = header[1] if len(header) == 2 else None
+        if len(header) == 1 and not self.is_parameter_expression(header[0]):
+            parameter_expr = TupleExpr(location, [])
+            return_type = header[0]
+        else:
+            parameter_expr = header[0] if header else TupleExpr(location, [])
+            return_type = header[1] if len(header) == 2 else None
         parameters = self.parameters(parameter_expr)
         return Function(location, name.text, parameters, return_type, body)
+
+    def is_parameter_expression(self, expression: Expr) -> bool:
+        expressions = expression.items if isinstance(expression, TupleExpr) else [expression]
+        return all(isinstance(item, Annotation) and isinstance(item.value, Name) for item in expressions)
 
     def parameters(self, expression: Expr) -> list[Parameter]:
         expressions = expression.items if isinstance(expression, TupleExpr) else [expression]

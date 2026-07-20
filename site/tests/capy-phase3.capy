@@ -2,6 +2,10 @@ struct Named {
     name : string
 }
 
+struct TupleBox {
+    value : (s32, string)
+}
+
 function identity(value : any) value::type {
     value
 }
@@ -12,6 +16,18 @@ function choose(value : any) value::type {
 
 function choose(value : s32) value::type {
     value + 1
+}
+
+function make_tuple (s32, string) {
+    (9, clone("tuple"))
+}
+
+function nested_tuple ((s32, string), string) {
+    ((1, clone("inner")), clone("outer"))
+}
+
+function tuple_label(value : (s32, string)) string {
+    value[1]
 }
 
 function countdown(value : any) value::type {
@@ -25,5 +41,21 @@ function CLI {
     print(identity(7), "|", identity(clone("generic")), "|")
     print(choose(4), "|", choose(clone("fallback")), "|")
     print(identity([1, 2])[1], "|", identity(Named(clone("name"))).name, "|")
+    {
+        var result := make_tuple()
+        print(result[0], result[1], "|", arc_live(), "|")
+    }
+    print(identity(make_tuple())[1], "|", arc_live(), "|")
+    print(tuple_label(make_tuple()), "|", arc_live(), "|")
+    {
+        var boxed := TupleBox(make_tuple())
+        print(boxed.value[1], "|", arc_live(), "|")
+    }
+    {
+        var nested_result := nested_tuple()
+        print(nested_result[0][1], nested_result[1], "|", arc_live(), "|")
+    }
+    print((clone("temporary"), 7)[0], "|", arc_live(), "|")
+    print(((1, clone("nested")), 2)[0][1], "|", arc_live(), "|")
     print(countdown(3), "|", arc_live())
 }

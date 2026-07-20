@@ -23,10 +23,12 @@ language_output=$(scripts/bearer-cli /tests/capy-language.capy)
 	exit 1
 }
 phase3_output=$(scripts/bearer-cli /tests/capy-phase3.capy)
-[[ "$phase3_output" == "7|generic|5|fallback|2|name|0|0" ]] || {
+[[ "$phase3_output" == "7|generic|5|fallback|2|name|9tuple|2|tuple|0|tuple|0|tuple|3|innerouter|4|temporary|0|nested|0|0|0" ]] || {
 	echo "Capy generic specialization output mismatch: $phase3_output" >&2
 	exit 1
 }
+phase3_cache="$(scripts/unit_cache_directory "$bin_directory")$site_directory/tests/capy-phase3.capy"
+wasm-validate "$phase3_cache.wasm"
 arc_output=$(scripts/bearer-cli /tests/capy-arc.capy)
 expected_arc='first|0|alphaalpha|1|1|1|789|1|8|2|4|1|12|3|ownedtwo|4|temp|1|picked|1|4|2|pair42|3|pair|6|inside|9|field|1|betaalpha|2|betaalphaalphabeta|3|tempz|4|double|5|nested|6|5|0'
 [[ "$arc_output" == "$expected_arc" ]] || {

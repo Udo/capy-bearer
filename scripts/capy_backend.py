@@ -55,7 +55,7 @@ SCALAR_TYPES = {"s32", "bool"}
 
 
 def managed_type(value_type: str) -> bool:
-    return value_type == "string" or value_type.startswith(("array<", "struct:"))
+    return value_type == "string" or value_type.startswith(("array<", "struct:", "tuple<"))
 
 
 HANDLER_EXPORTS = {
@@ -72,6 +72,10 @@ def capy_type(expression: Expr | None, location: Location, allow_void: bool = Fa
         if allow_void:
             return "void"
         raise CapyError(location, "function return type cannot be inferred yet; declare it explicitly")
+    if isinstance(expression, TupleExpr):
+        if len(expression.items) < 2:
+            raise CapyError(expression.location, "tuple type requires at least two element types")
+        return "tuple<" + ",".join(capy_type(item, item.location) for item in expression.items) + ">"
     if isinstance(expression, ArrayLiteral):
         if len(expression.items) != 1:
             raise CapyError(expression.location, "array type requires exactly one element type")
@@ -130,7 +134,7 @@ class WasmFunctionCompiler:
         raise CapyError(name.location, f"unknown local {name.value!r}")
 
     def allocate_local(self, value_type: str, location: Location) -> int:
-        if value_type not in SCALAR_TYPES | {"string"} and not value_type.startswith(("array<", "struct:")):
+        if value_type not in SCALAR_TYPES | {"string"} and not value_type.startswith(("array<", "struct:", "tuple<")):
             raise CapyError(location, f"phase-1 local type {value_type!r} is unsupported")
         index = self.parameter_count + self.local_count
         self.local_count += 1
@@ -220,7 +224,7 @@ class WasmFunctionCompiler:
         return bytes(code)
 
     def expression_is_owned(self, expression: Expr) -> bool:
-        if isinstance(expression, ArrayLiteral):
+        if isinstance(expression, (ArrayLiteral, TupleExpr)):
             return True
         if isinstance(expression, Index):
             return managed_type(self.infer_expr_type(expression)) and self.expression_is_owned(expression.value)
@@ -241,6 +245,10 @@ class WasmFunctionCompiler:
             return "string"
         if isinstance(expression, Integer):
             return "s32"
+        if isinstance(expression, TupleExpr):
+            if len(expression.items) < 2:
+                raise CapyError(expression.location, "tuple value requires at least two elements")
+            return self.module.register_tuple(tuple(self.infer_expr_type(item) for item in expression.items))
         if isinstance(expression, ArrayLiteral):
             if not expression.items:
                 raise CapyError(expression.location, "empty array literal needs an explicit element type")
@@ -252,9 +260,16 @@ class WasmFunctionCompiler:
             return f"array<{element_types[0]}>"
         if isinstance(expression, Index):
             value_type = self.infer_expr_type(expression.value)
-            if not value_type.startswith("array<"):
-                raise CapyError(expression.location, "indexing requires an array")
-            return value_type[6:-1]
+            if value_type.startswith("array<"):
+                return value_type[6:-1]
+            if value_type.startswith("tuple<"):
+                if not isinstance(expression.index, Integer):
+                    raise CapyError(expression.index.location, "tuple index must be a compile-time integer")
+                _, element_types = self.module.tuples[value_type]
+                if expression.index.value < 0 or expression.index.value >= len(element_types):
+                    raise CapyError(expression.index.location, "tuple index is out of bounds")
+                return element_types[expression.index.value]
+            raise CapyError(expression.location, "indexing requires an array or tuple")
         if isinstance(expression, Member):
             value_type = self.infer_expr_type(expression.value)
             if not value_type.startswith("struct:"):
@@ -299,6 +314,27 @@ class WasmFunctionCompiler:
         if isinstance(expression, String):
             offset = self.module.add_static_string(expression.value.encode("utf-8"))
             return b"\x23\x00\x41" + sleb32(offset) + b"\x6a", "string"
+        if isinstance(expression, TupleExpr):
+            value_type = self.infer_expr_type(expression)
+            type_id, element_types = self.module.tuples[value_type]
+            size = 16 + 4 * len(expression.items)
+            pointer = self.allocate_local(value_type, expression.location)
+            code = bytearray(b"\x41" + sleb32(size) + b"\x10\x02\x21" + uleb(pointer))
+            code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40\x00\x0b")
+            for value, offset in [(1, 0), (1, 4), (type_id, 8), (size, 12)]:
+                code.extend(b"\x20" + uleb(pointer) + b"\x41" + sleb32(value) + b"\x36\x02" + uleb(offset))
+            code.extend(b"\x23\x01\x41\x01\x6a\x24\x01")
+            for index, (item, item_type) in enumerate(zip(expression.items, element_types)):
+                item_code, actual_type = self.compile_expr(item)
+                self.require_type(item.location, item_type, actual_type)
+                temporary = self.allocate_local(item_type, item.location)
+                code.extend(item_code + b"\x21" + uleb(temporary))
+                if managed_type(item_type) and not self.expression_is_owned(item):
+                    code.extend(b"\x20" + uleb(temporary) + b"\x10" + uleb(self.module.retain_index))
+                code.extend(b"\x20" + uleb(pointer) + b"\x20" + uleb(temporary))
+                code.extend(b"\x36\x02" + uleb(16 + 4 * index))
+            code.extend(b"\x20" + uleb(pointer))
+            return bytes(code), value_type
         if isinstance(expression, ArrayLiteral):
             value_type = self.infer_expr_type(expression)
             size = 20 + 4 * len(expression.items)
@@ -324,8 +360,27 @@ class WasmFunctionCompiler:
             return bytes(code), value_type
         if isinstance(expression, Index):
             value_code, value_type = self.compile_expr(expression.value)
+            if value_type.startswith("tuple<"):
+                if not isinstance(expression.index, Integer):
+                    raise CapyError(expression.index.location, "tuple index must be a compile-time integer")
+                _, element_types = self.module.tuples[value_type]
+                index = expression.index.value
+                if index < 0 or index >= len(element_types):
+                    raise CapyError(expression.index.location, "tuple index is out of bounds")
+                result_type = element_types[index]
+                object_local = self.allocate_local(value_type, expression.value.location)
+                result_local = self.allocate_local(result_type, expression.location)
+                code = bytearray(value_code + b"\x21" + uleb(object_local))
+                code.extend(b"\x20" + uleb(object_local) + b"\x28\x02" + uleb(16 + 4 * index))
+                if self.expression_is_owned(expression.value):
+                    code.extend(b"\x21" + uleb(result_local))
+                    if managed_type(result_type):
+                        code.extend(b"\x20" + uleb(result_local) + b"\x10" + uleb(self.module.retain_index))
+                    code.extend(b"\x20" + uleb(object_local) + b"\x10" + uleb(self.module.release_index))
+                    code.extend(b"\x20" + uleb(result_local))
+                return bytes(code), result_type
             if not value_type.startswith("array<"):
-                raise CapyError(expression.location, "indexing requires an array")
+                raise CapyError(expression.location, "indexing requires an array or tuple")
             index_code, index_type = self.compile_expr(expression.index)
             self.require_type(expression.index.location, "s32", index_type)
             array_local = self.allocate_local(value_type, expression.value.location)
@@ -583,6 +638,7 @@ class CapyModuleCompiler:
         self.functions: dict[FunctionKey, CompiledDefinition] = {}
         self.generics: dict[str, list[GenericDefinition]] = {}
         self.structs: dict[str, tuple[int, list[tuple[str, str]]]] = {}
+        self.tuples: dict[str, tuple[int, tuple[str, ...]]] = {}
         self.types: list[tuple[tuple[str, ...], str]] = []
         self.type_indices: dict[tuple[tuple[str, ...], str], int] = {}
         self.retain_index = 4
@@ -601,6 +657,19 @@ class CapyModuleCompiler:
         self.data.extend(value)
         return offset
 
+    def register_tuple(self, element_types: tuple[str, ...]) -> str:
+        value_type = "tuple<" + ",".join(element_types) + ">"
+        if value_type not in self.tuples:
+            self.tuples[value_type] = (4 + len(self.structs) + len(self.tuples), element_types)
+        return value_type
+
+    def register_type_expression(self, expression: Expr | None) -> None:
+        if isinstance(expression, TupleExpr):
+            element_types = tuple(capy_type(item, item.location) for item in expression.items)
+            self.register_tuple(element_types)
+            for item in expression.items:
+                self.register_type_expression(item)
+
     def wasm_type(self, parameters: tuple[str, ...], result: str) -> int:
         key = (parameters, result)
         if key not in self.type_indices:
@@ -609,11 +678,15 @@ class CapyModuleCompiler:
         return self.type_indices[key]
 
     def collect(self) -> None:
+        struct_nodes: list[Struct] = []
         for item in self.program.items:
             if not isinstance(item, Struct):
                 continue
             if item.name in self.structs:
                 raise CapyError(item.location, f"struct {item.name!r} is already declared")
+            self.structs[item.name] = (4 + len(self.structs), [])
+            struct_nodes.append(item)
+        for item in struct_nodes:
             members: list[tuple[str, str]] = []
             seen_members: set[str] = set()
             for member in item.members:
@@ -622,12 +695,17 @@ class CapyModuleCompiler:
                 if member.value.value in seen_members:
                     raise CapyError(member.location, f"struct member {member.value.value!r} is already declared")
                 seen_members.add(member.value.value)
+                self.register_type_expression(member.type_expr)
                 members.append((member.value.value, capy_type(member.type_expr, member.location)))
-            self.structs[item.name] = (4 + len(self.structs), members)
+            type_id, _ = self.structs[item.name]
+            self.structs[item.name] = (type_id, members)
 
         def validate_type(value_type: str, location: Location) -> None:
             if value_type.startswith("struct:") and value_type[7:] not in self.structs:
                 raise CapyError(location, f"unknown type {value_type[7:]!r}")
+            if value_type.startswith("tuple<"):
+                for element_type in self.tuples[value_type][1]:
+                    validate_type(element_type, location)
 
         for _, members in self.structs.values():
             for _, member_type in members:
@@ -639,6 +717,9 @@ class CapyModuleCompiler:
             if isinstance(item, Function):
                 if item.name in self.structs:
                     raise CapyError(item.location, f"function name {item.name!r} conflicts with a struct constructor")
+                for parameter in item.parameters:
+                    self.register_type_expression(parameter.type_expr)
+                self.register_type_expression(item.return_type)
                 parameter_patterns = tuple(
                     None if isinstance(parameter.type_expr, Name) and parameter.type_expr.value == "any"
                     else capy_type(parameter.type_expr, item.location)
@@ -766,6 +847,14 @@ class CapyModuleCompiler:
             for index, _ in managed_members:
                 release += b"\x20\x00\x28\x02" + uleb(16 + 4 * index) + b"\x10" + uleb(self.release_index)
             release += b"\x0b"
+        for type_id, element_types in self.tuples.values():
+            managed_elements = [index for index, value_type in enumerate(element_types) if managed_type(value_type)]
+            if not managed_elements:
+                continue
+            release += b"\x20\x00\x28\x02\x08\x41" + sleb32(type_id) + b"\x46\x04\x40"
+            for index in managed_elements:
+                release += b"\x20\x00\x28\x02" + uleb(16 + 4 * index) + b"\x10" + uleb(self.release_index)
+            release += b"\x0b"
         release += b"\x23\x01\x41\x01\x6b\x24\x01\x20\x00\x10\x03\x0b"
 
         clone = bytearray()
@@ -799,11 +888,12 @@ class CapyModuleCompiler:
             definition.function_index = 7 + index
             wasm_parameters = ("s32",) if definition.export_name else definition.parameter_types
             definition.type_index = self.wasm_type(wasm_parameters, definition.result_type)
-        bodies = self.runtime_bodies()
+        user_bodies: list[bytes] = []
         definition_index = 0
         while definition_index < len(self.definitions):
-            bodies.append(WasmFunctionCompiler(self, self.definitions[definition_index]).compile_body())
+            user_bodies.append(WasmFunctionCompiler(self, self.definitions[definition_index]).compile_body())
             definition_index += 1
+        bodies = self.runtime_bodies() + user_bodies
 
         def encode_type(signature: tuple[tuple[str, ...], str]) -> bytes:
             parameters, result = signature

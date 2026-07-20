@@ -32,6 +32,16 @@ class LexerParserTests(unittest.TestCase):
         self.assertEqual(len(program.items), 1)
         return program.items[0]
 
+    def test_unparenthesized_parameter_expression_precedes_tuple_result(self):
+        function = self.parse_one("function pair value : s32 (s32, string) { return (value, \"x\") }\n")
+        self.assertEqual([(parameter.name, type_name(parameter.type_expr)) for parameter in function.parameters], [("value", "s32")])
+        self.assertEqual(type_name(function.return_type), "(s32,string)")
+
+    def test_single_non_parameter_header_expression_is_return_type(self):
+        function = self.parse_one("function pair (s32, string) { return (1, \"x\") }\n")
+        self.assertEqual(function.parameters, [])
+        self.assertEqual(type_name(function.return_type), "(s32,string)")
+
     def test_function_header_is_expression_based(self):
         function = self.parse_one("function test(x : s32) s32 { return x + 100 }\n")
         self.assertIsInstance(function, Function)
@@ -119,7 +129,7 @@ class LexerParserTests(unittest.TestCase):
 
     def test_malformed_parameter_expression_is_rejected(self):
         with self.assertRaisesRegex(CapyError, "name:type annotations"):
-            parse("function bad(s32) { return 1 }\n", "bad.capy")
+            parse("function bad(s32) s32 { return 1 }\n", "bad.capy")
 
     def test_unterminated_string_has_source_location(self):
         with self.assertRaisesRegex(CapyError, r"bad.capy:1:1: unterminated string"):
@@ -128,6 +138,14 @@ class LexerParserTests(unittest.TestCase):
     def test_duplicate_parameter_names_are_rejected(self):
         with self.assertRaisesRegex(CapyError, "function parameter 'value' is already declared"):
             parse('function bad(value : any, value : any) value::type { value }\n', "duplicate-parameter.capy")
+
+    def test_tuple_index_must_be_static_and_in_bounds(self):
+        dynamic = parse('function CLI { var pair := (1, 2); print(pair[1 + 0]) }\n', "tuple-dynamic.capy")
+        with self.assertRaisesRegex(CapyError, "tuple index must be a compile-time integer"):
+            compile_bearer_unit(dynamic, "tuple-dynamic.capy", "tuple-dynamic.wasm", 9)
+        outside = parse('function CLI { var pair := (1, 2); print(pair[2]) }\n', "tuple-bounds.capy")
+        with self.assertRaisesRegex(CapyError, "tuple index is out of bounds"):
+            compile_bearer_unit(outside, "tuple-bounds.capy", "tuple-bounds.wasm", 9)
 
     def test_any_specializations_are_cached_by_concrete_parameter_types(self):
         program = parse(
