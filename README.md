@@ -31,6 +31,8 @@ RENDER(Request& context)
 
 *The runtime is still experimental. This is not production-ready. Use at your own risk!*
 
+Capy is the new direct-to-WebAssembly language under development for Bearer. Its expression-based declaration grammar, compile-time polymorphism, direct side-module ABI, and ARC direction are documented in [`docs/capy-language.md`](docs/capy-language.md). C++ `.uce` units remain supported alongside `.capy` units.
+
 ## Build
 
 Build the runtime with:

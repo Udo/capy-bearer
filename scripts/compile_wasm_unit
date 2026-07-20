@@ -21,6 +21,16 @@ WASM_TMP="$DEST_DIR/$WASM_FN.tmp.$$"
 MAP_TMP="$DEST_DIR/$WASM_FN.source-map.tmp.$$"
 PCH_ENABLED=${BEARER_WASM_UNIT_PCH:-1}
 PCH_DIR=${BEARER_WASM_PCH_DIR:-$UNIT_CACHE_DIR/.pch}
+if [[ "$SRC_FN" == *.capy ]]; then
+	mkdir -p "$DEST_DIR"
+	trap 'rm -f "$WASM_TMP" "$MAP_TMP"' EXIT
+	python3 scripts/capy_compiler.py "$SRC_FN" --bearer-unit --abi-version "$ABI_VERSION" -o "$WASM_TMP" --source-map "$MAP_TMP"
+	python3 scripts/check_unit_wasm.py "$WASM_TMP" --abi-version "$ABI_VERSION"
+	mv "$MAP_TMP" "$DEST_DIR/$WASM_FN.source-map"
+	mv "$WASM_TMP" "$DEST_DIR/$WASM_FN"
+	exit 0
+fi
+
 COMMON_FLAGS=(
 	--target=wasm32-wasip1
 	-fPIC -fvisibility=hidden -fvisibility-inlines-hidden

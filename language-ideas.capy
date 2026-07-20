@@ -1,0 +1,90 @@
+// function declaration
+
+function test(x : s32) s32 { // overload identity is keyed by name and parameter types: test+s32
+    return x+100
+}
+
+// pattern matching
+function test(x : s32, y : s32) s32 { // overload identity: test+s32,s32
+	return x+y
+}
+
+// polymorphic, instantiated at compile time if not already in namespace
+function test(x : any) x::type { // compile-time any is specialized and cached by its concrete parameter type
+	return x*x // specialization fails at the callsite if * is not defined for x::type
+}
+
+var a : s32 = test(10) // declaration with explicit type
+var b := test(10, 20) // declaration with inferred type
+
+var funcp : function(x : s32) s32 = { // function as variable, but cannot be polymorphic
+	return x+190
+}
+
+function hello_world {
+	// most basic function, no params, no return type, but still lexical scope
+	print("Hello World ", a) // print can have any number of arguments, and will print them all
+}
+
+function test_multireturn() (s32, s32) { // function with multiple return values
+	return 10, 20
+}
+
+function test_dval(d : dval) dval { // using a DValue
+	return d["key"]*2
+}
+
+print(test_dval({"key": 10})) // anonymous DValue literal
+
+struct mystruct {
+	x, y : s32 = 0 // default value for struct members
+	key : string = "default" // default value for struct member
+}
+
+var struct_instance : mystruct = {x: 10, key: "mykey"} // struct literal, can be incomplete, missing members will be defaulted
+
+// any non-declaration expression gets appended to the main function, which is the entry point of the program
+for i = 0..10 { // for loop, range is inclusive of start and exclusive of end
+	print(i, " and
+		also ") // multi-line string literal, the newline and whitespace will be preserved, but the indentation will be removed
+}
+
+for s = ["one", "two", "three"] { // for loop over array literal
+	print(s, " ")
+}
+
+function print(args : as string...) { // variadic, syntactically sugar for array of strings in this case, the "as" keyword signals that implicit conversions should be performed if possible/necessary
+	for s in args {
+		write_to_current_buffer(s)
+	}
+}
+
+function print(xa : s32) {
+	write_to_current_buffer(string(xa)) // typenames are also constructors, so we can convert a s32 to string by calling string(s32)
+}
+
+print("Hello World ", a) // pattern matching tries to find an exact match, if not found, it will try to find the best match that has implicit "as" conversions
+
+// Deferred until after compiler phase 3: this requires partial compilation into a bounded compile-time workspace.
+function meta_programming_example(myvar : any) {
+	#compile { // this will be executed at compile time, and can be used to generate code, or perform compile time calculations
+		print("Polymorphic: ", myvar::type::type_name) // :: denotes type introspection and meta information about a variable
+		// there can be arbitrary number of #compile and #callsite blocks in a function, and they will be executed in order of appearance
+		emit("var compile_time_sum : s32 = myvar + 100") // emit will generate code at compile time, and will be inserted into the generated code
+	}
+	#callsite {
+		// this will be executed when a call site is compiled
+		print("I'm being called from line: ", function::callsite::line_number, " in file: ", function::callsite::file_name, "\n") // function::callsite is a special namespace that contains information about the call site of the function
+	}
+	return compile_time_sum + 1
+}
+
+// runtime type info
+for smem = struct_instance::members { // iterate over struct members, sn is a string containing the member name
+	print("Struct member: ", smem::name, " = ", smem::offset, " : ", smem::type::type_name, "\n") // struct_instance[sn] is a dynamic access to the struct member by name
+	// I'm not quite sure yet how to best access the value in a precompiled environment, that's why this example uses the byte offset
+}
+
+// UCE-style string interpolation with PHP semantics
+var my_html := <h1>Capy is <?= struct_instance.x ?> times better
+	with JSX</h1> // language is expression-based, so it knows where the expression ends, so this is not part of the string anymore

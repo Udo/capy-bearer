@@ -487,7 +487,8 @@ static std::map<String, String> wasm_component_errors;
 String component_normalize_path(String name)
 {
 	name = trim(name);
-	if(name.length() >= 4 && name.substr(name.length() - 4) == ".uce")
+	if((name.length() >= 4 && name.substr(name.length() - 4) == ".uce") ||
+		(name.length() >= 5 && name.substr(name.length() - 5) == ".capy"))
 		return(name);
 	return(name + ".uce");
 }

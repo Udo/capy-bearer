@@ -7,6 +7,7 @@ bearer.abi, imports/exports, plus llvm-nm for allocator definitions.
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import shutil
 import subprocess
 import sys
@@ -191,7 +192,11 @@ def main() -> int:
         module_payloads = customs.get("bearer.module", [])
         if not module_payloads or not module_payloads[-1]:
             errors.append("missing bearer.module custom section")
-        export_names = {name for name, _ in exports}
+        export_counts = Counter(name for name, _ in exports)
+        for name, count in sorted(export_counts.items()):
+            if count > 1:
+                errors.append(f"duplicate export {name!r}")
+        export_names = set(export_counts)
         forbidden_exports = {"bearer_alloc", "bearer_free"}
         for name in sorted(export_names & forbidden_exports):
             errors.append(f"forbidden allocator export {name}")

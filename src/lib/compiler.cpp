@@ -305,10 +305,14 @@ String compiler_unit_input_signature(Request* context, SharedUnit* su, bool allo
 	if(!context || !su || (!source_exists_known && !file_exists(su->file_name)))
 		return("");
 
-	String setup_template = context->server->config["COMPILER_SYS_PATH"] + "/" + context->server->config["SETUP_TEMPLATE"];
+	String compiler_root = context->server->config["COMPILER_SYS_PATH"];
+	String setup_template = compiler_root + "/" + context->server->config["SETUP_TEMPLATE"];
+	String frontend_signature;
+	if(su->file_name.length() >= 5 && su->file_name.substr(su->file_name.length() - 5) == ".capy")
+		frontend_signature = ":capy:" + gen_sha1(file_get_contents(compiler_root + "/scripts/capy_compiler.py"));
 	return(
 		compiler_unit_source_signature(su->file_name, allow_recent_source_stat) + ":" +
-		gen_sha1(file_get_contents(setup_template)) + ":" +
+		gen_sha1(file_get_contents(setup_template)) + frontend_signature + ":" +
 		std::to_string(BEARER_UNIT_ABI_VERSION) + ":" +
 		std::to_string(BEARER_WASM_CORE_ABI_VERSION)
 	);
@@ -746,7 +750,10 @@ String compiler_normalize_unit_path(Request* context, String file_name)
 
 bool compiler_is_known_unit_file(String file_name)
 {
-	return(file_name.length() >= 4 && file_name.substr(file_name.length() - 4) == ".uce");
+	return(
+		(file_name.length() >= 4 && file_name.substr(file_name.length() - 4) == ".uce") ||
+		(file_name.length() >= 5 && file_name.substr(file_name.length() - 5) == ".capy")
+	);
 }
 
 StringList compiler_normalize_unit_list(Request* context, StringList files)
@@ -1082,6 +1089,8 @@ void compiler_tree_set_bool(DValue& tree, String key, bool value)
 String preprocess_shared_unit(Request* context, SharedUnit* su)
 {
 	String content = file_get_contents(su->file_name);
+	if(su->file_name.length() >= 5 && su->file_name.substr(su->file_name.length() - 5) == ".capy")
+		return(content);
 	return(compiler_preprocess_source(context, su, content));
 }
 
@@ -1904,7 +1913,7 @@ StringList compiler_scan_site_units(Request* context)
 		if(!it->is_regular_file(entry_error) || entry_error)
 			continue;
 		auto path = it->path().string();
-		if(path.length() >= 4 && path.substr(path.length() - 4) == ".uce")
+		if(compiler_is_known_unit_file(path))
 			files.push_back(path);
 	}
 	return(compiler_normalize_unit_list(context, files));

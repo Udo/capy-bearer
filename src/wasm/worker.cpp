@@ -2771,7 +2771,8 @@ private:
 	static String normalize_component_path(String name)
 	{
 		// mirrors component_normalize_path in compiler.cpp / core.cpp
-		if(name.length() >= 4 && name.substr(name.length() - 4) == ".uce")
+		if((name.length() >= 4 && name.substr(name.length() - 4) == ".uce") ||
+			(name.length() >= 5 && name.substr(name.length() - 5) == ".capy"))
 			return(name);
 		return(name + ".uce");
 	}

@@ -437,7 +437,8 @@ int handle_cli_complete(FastCGIRequest& request)
 		{
 			print("pid=", std::to_string(getpid()), "\nclients=", std::to_string(server.client_sockets.size()), "\n");
 		}
-		else if(command.length() >= 4 && command.substr(command.length() - 4) == ".uce")
+		else if((command.length() >= 4 && command.substr(command.length() - 4) == ".uce") ||
+			(command.length() >= 5 && command.substr(command.length() - 5) == ".capy"))
 		{
 			if(!cli_path_is_safe(command))
 			{
