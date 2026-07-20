@@ -29,6 +29,14 @@ phase3_output=$(scripts/bearer-cli /tests/capy-phase3.capy)
 }
 phase3_cache="$(scripts/unit_cache_directory "$bin_directory")$site_directory/tests/capy-phase3.capy"
 wasm-validate "$phase3_cache.wasm"
+[[ "$(scripts/bearer-cli /tests/capy-cross.capy)" == "cpp-render-ok|roundtripother|1|3|0" ]] || {
+	echo "Capy-to-C++ Bearer unit dispatch failed" >&2
+	exit 1
+}
+[[ "$(scripts/bearer-cli /tests/capy-cross-caller.uce)" == "capy-component-ok|capy-named-ok" ]] || {
+	echo "C++-to-Capy Bearer component dispatch failed" >&2
+	exit 1
+}
 arc_output=$(scripts/bearer-cli /tests/capy-arc.capy)
 expected_arc='first|0|alphaalpha|1|1|1|789|1|8|2|4|1|12|3|ownedtwo|4|temp|1|picked|1|4|2|pair42|3|pair|6|inside|9|field|1|betaalpha|2|betaalphaalphabeta|3|tempz|4|double|5|nested|6|5|0'
 [[ "$arc_output" == "$expected_arc" ]] || {

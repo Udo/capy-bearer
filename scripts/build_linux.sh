@@ -46,7 +46,7 @@ needs_rebuild() {
 }
 
 # core.wasm: guest runtime loaded by the native wasm backend.
-if needs_rebuild bin/wasm/core.wasm src/wasm/core.cpp src/lib src/wasm/core_hostcalls.syms src/wasm/core_libc_exports.syms scripts/build_core_wasm.sh; then
+if needs_rebuild bin/wasm/core.wasm src/wasm/core.cpp src/wasm/abi.h src/lib src/wasm/core_hostcalls.syms src/wasm/core_libc_exports.syms scripts/build_core_wasm.sh; then
 	echo "Compiling wasm core..."
 	bash scripts/build_core_wasm.sh || exit 1
 else

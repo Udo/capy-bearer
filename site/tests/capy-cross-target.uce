@@ -1,0 +1,19 @@
+RENDER(Request& request)
+{
+	print("cpp-render-ok");
+}
+
+EXPORT DValue* echo(DValue* call)
+{
+	return(call);
+}
+
+u32 counted_calls = 0;
+
+EXPORT DValue* counted(DValue* call)
+{
+	static DValue result;
+	counted_calls += 1;
+	result = std::to_string(counted_calls);
+	return(&result);
+}

@@ -55,16 +55,27 @@ SCALAR_TYPES = {"s32", "bool"}
 
 
 def managed_type(value_type: str) -> bool:
-    return value_type == "string" or value_type.startswith(("array<", "struct:", "tuple<"))
+    return value_type in {"string", "dval"} or value_type.startswith(("array<", "struct:", "tuple<"))
 
 
 HANDLER_EXPORTS = {
     "RENDER": "__bearer_render",
+    "COMPONENT": "__bearer_component",
     "CLI": "__bearer_cli",
     "WS": "__bearer_websocket",
     "ONCE": "__bearer_once",
     "INIT": "__bearer_init",
+    "SERVE_HTTP": "__bearer_serve_http",
 }
+
+
+def handler_export(name: str) -> str | None:
+    if name in HANDLER_EXPORTS:
+        return HANDLER_EXPORTS[name]
+    for prefix, symbol in (("RENDER_", "__bearer_render_"), ("COMPONENT_", "__bearer_component_"), ("SERVE_HTTP_", "__bearer_serve_http_")):
+        if name.startswith(prefix) and len(name) > len(prefix):
+            return symbol + name[len(prefix):]
+    return None
 
 
 def capy_type(expression: Expr | None, location: Location, allow_void: bool = False) -> str:
@@ -86,7 +97,7 @@ def capy_type(expression: Expr | None, location: Location, allow_void: bool = Fa
     name = type_name(expression)
     if name == "any" or "::type" in name:
         raise CapyError(expression.location, "compile-time any and dependent result types are reserved for phase 3")
-    if name in SCALAR_TYPES | {"string", "request", "void"}:
+    if name in SCALAR_TYPES | {"string", "dval", "request", "void"}:
         return name
     return f"struct:{name}"
 
@@ -140,7 +151,7 @@ class WasmFunctionCompiler:
         return None
 
     def allocate_local(self, value_type: str, location: Location) -> int:
-        if value_type not in SCALAR_TYPES | {"string"} and not value_type.startswith(("array<", "struct:", "tuple<", "function#")):
+        if value_type not in SCALAR_TYPES | {"string", "dval"} and not value_type.startswith(("array<", "struct:", "tuple<", "function#")):
             raise CapyError(location, f"phase-1 local type {value_type!r} is unsupported")
         index = self.parameter_count + self.local_count
         self.local_count += 1
@@ -214,6 +225,17 @@ class WasmFunctionCompiler:
     def block_guarantees_return(self, block: Block) -> bool:
         return any(self.expression_guarantees_return(expression) for expression in block.items)
 
+    def allocate_blob(self, value_type: str, type_id: int, length_local: int, location: Location) -> tuple[bytes, int]:
+        pointer = self.allocate_local(value_type, location)
+        code = bytearray(b"\x20" + uleb(length_local) + b"\x41\x14\x6a\x10\x02\x21" + uleb(pointer))
+        code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40\x00\x0b")
+        for value, offset in [(1, 0), (1, 4), (type_id, 8)]:
+            code.extend(b"\x20" + uleb(pointer) + b"\x41" + sleb32(value) + b"\x36\x02" + uleb(offset))
+        code.extend(b"\x20" + uleb(pointer) + b"\x20" + uleb(length_local) + b"\x41\x14\x6a\x36\x02\x0c")
+        code.extend(b"\x20" + uleb(pointer) + b"\x20" + uleb(length_local) + b"\x36\x02\x10")
+        code.extend(b"\x23\x01\x41\x01\x6a\x24\x01")
+        return bytes(code), pointer
+
     def cleanup_scope(self) -> bytes:
         code = bytearray()
         for local, value_type in reversed(self.owned_scopes[-1]):
@@ -242,7 +264,7 @@ class WasmFunctionCompiler:
                 return managed_type(self.module.function_value_signatures[local_function[1]][1])
             if expression.function.value in self.module.structs:
                 return True
-            if expression.function.value == "clone":
+            if expression.function.value in {"clone", "dval", "dval_string", "unit_call"}:
                 return True
             argument_types = tuple(self.infer_expr_type(argument) for argument in expression.arguments)
             target = self.module.functions.get(FunctionKey(expression.function.value, argument_types))
@@ -315,6 +337,27 @@ class WasmFunctionCompiler:
                 return result_type
             if expression.function.value in self.module.structs:
                 return f"struct:{expression.function.value}"
+            if expression.function.value == "dval":
+                if len(expression.arguments) != 1:
+                    raise CapyError(expression.location, "dval expects one string")
+                self.require_type(expression.arguments[0].location, "string", self.infer_expr_type(expression.arguments[0]))
+                return "dval"
+            if expression.function.value == "dval_string":
+                if len(expression.arguments) != 1:
+                    raise CapyError(expression.location, "dval_string expects one dval")
+                self.require_type(expression.arguments[0].location, "dval", self.infer_expr_type(expression.arguments[0]))
+                return "string"
+            if expression.function.value == "unit_call":
+                if len(expression.arguments) != 3:
+                    raise CapyError(expression.location, "unit_call expects target, function, and dval")
+                for argument, value_type in zip(expression.arguments, ("string", "string", "dval")):
+                    self.require_type(argument.location, value_type, self.infer_expr_type(argument))
+                return "dval"
+            if expression.function.value in {"unit_render", "component_render"}:
+                if len(expression.arguments) != 1:
+                    raise CapyError(expression.location, f"{expression.function.value} expects one string target")
+                self.require_type(expression.arguments[0].location, "string", self.infer_expr_type(expression.arguments[0]))
+                return "void"
             if expression.function.value == "print":
                 return "void"
             if expression.function.value == "clone":
@@ -332,6 +375,29 @@ class WasmFunctionCompiler:
     def require_type(self, location: Location, expected: str, actual: str) -> None:
         if expected != actual:
             raise CapyError(location, f"expected {expected}, found {actual}")
+
+    def compile_blob_conversion(self, expression: Call, input_type: str, output_type: str, import_index: int, type_id: int) -> tuple[bytes, str]:
+        if len(expression.arguments) != 1:
+            raise CapyError(expression.location, f"{expression.function.value} expects one {input_type}")
+        source = expression.arguments[0]
+        source_code, actual_type = self.compile_expr(source)
+        self.require_type(source.location, input_type, actual_type)
+        source_local = self.allocate_local(input_type, source.location)
+        length_local = self.allocate_local("s32", expression.location)
+        code = bytearray(source_code + b"\x21" + uleb(source_local))
+        code.extend(b"\x20" + uleb(source_local) + b"\x41\x14\x6a")
+        code.extend(b"\x20" + uleb(source_local) + b"\x28\x02\x10\x41\x00\x41\x00")
+        code.extend(b"\x10" + uleb(import_index) + b"\x21" + uleb(length_local))
+        allocation, pointer = self.allocate_blob(output_type, type_id, length_local, expression.location)
+        code.extend(allocation)
+        code.extend(b"\x20" + uleb(source_local) + b"\x41\x14\x6a")
+        code.extend(b"\x20" + uleb(source_local) + b"\x28\x02\x10")
+        code.extend(b"\x20" + uleb(pointer) + b"\x41\x14\x6a\x20" + uleb(length_local))
+        code.extend(b"\x10" + uleb(import_index) + b"\x20" + uleb(length_local) + b"\x47\x04\x40\x00\x0b")
+        if self.expression_is_owned(source):
+            code.extend(b"\x20" + uleb(source_local) + b"\x10" + uleb(self.module.release_index))
+        code.extend(b"\x20" + uleb(pointer))
+        return bytes(code), output_type
 
     def compile_expr(self, expression: Expr) -> tuple[bytes, str]:
         if isinstance(expression, Integer):
@@ -555,6 +621,54 @@ class WasmFunctionCompiler:
                     code.extend(b"\x36\x02" + uleb(16 + 4 * index))
                 code.extend(b"\x20" + uleb(pointer))
                 return bytes(code), value_type
+            if expression.function.value == "dval":
+                return self.compile_blob_conversion(expression, "string", "dval", 6, 4)
+            if expression.function.value == "dval_string":
+                return self.compile_blob_conversion(expression, "dval", "string", 7, 1)
+            if expression.function.value == "unit_call":
+                if len(expression.arguments) != 3:
+                    raise CapyError(expression.location, "unit_call expects target, function, and dval")
+                locals_and_sources: list[tuple[int, Expr]] = []
+                code = bytearray()
+                for argument, expected_type in zip(expression.arguments, ("string", "string", "dval")):
+                    argument_code, argument_type = self.compile_expr(argument)
+                    self.require_type(argument.location, expected_type, argument_type)
+                    temporary = self.allocate_local(expected_type, argument.location)
+                    code.extend(argument_code + b"\x21" + uleb(temporary))
+                    locals_and_sources.append((temporary, argument))
+                def append_inputs() -> None:
+                    for temporary, _ in locals_and_sources:
+                        code.extend(b"\x20" + uleb(temporary) + b"\x41\x14\x6a")
+                        code.extend(b"\x20" + uleb(temporary) + b"\x28\x02\x10")
+                append_inputs()
+                code.extend(b"\x41\x00\x41\x00\x10\x08")
+                length_local = self.allocate_local("s32", expression.location)
+                code.extend(b"\x21" + uleb(length_local))
+                allocation, pointer = self.allocate_blob("dval", 4, length_local, expression.location)
+                code.extend(allocation)
+                append_inputs()
+                code.extend(b"\x20" + uleb(pointer) + b"\x41\x14\x6a\x20" + uleb(length_local) + b"\x10\x08")
+                code.extend(b"\x20" + uleb(length_local) + b"\x47\x04\x40\x00\x0b")
+                for temporary, source in reversed(locals_and_sources):
+                    if self.expression_is_owned(source):
+                        code.extend(b"\x20" + uleb(temporary) + b"\x10" + uleb(self.module.release_index))
+                code.extend(b"\x20" + uleb(pointer))
+                return bytes(code), "dval"
+            if expression.function.value in {"unit_render", "component_render"}:
+                if len(expression.arguments) != 1:
+                    raise CapyError(expression.location, f"{expression.function.value} expects one string target")
+                target_expression = expression.arguments[0]
+                target_code, target_type = self.compile_expr(target_expression)
+                self.require_type(target_expression.location, "string", target_type)
+                temporary = self.allocate_local("string", target_expression.location)
+                code = bytearray(target_code + b"\x21" + uleb(temporary))
+                code.extend(b"\x20" + uleb(temporary) + b"\x41\x14\x6a")
+                code.extend(b"\x20" + uleb(temporary) + b"\x28\x02\x10")
+                import_index = 4 if expression.function.value == "unit_render" else 5
+                code.extend(b"\x10" + uleb(import_index))
+                if self.expression_is_owned(target_expression):
+                    code.extend(b"\x20" + uleb(temporary) + b"\x10" + uleb(self.module.release_index))
+                return bytes(code), "void"
             if expression.function.value == "print":
                 code = bytearray()
                 for argument in expression.arguments:
@@ -702,9 +816,9 @@ class CapyModuleCompiler:
         self.table_slots: dict[FunctionKey, int] = {}
         self.types: list[tuple[tuple[str, ...], str]] = []
         self.type_indices: dict[tuple[tuple[str, ...], str], int] = {}
-        self.retain_index = 4
-        self.release_index = 5
-        self.clone_index = 6
+        self.retain_index = 9
+        self.release_index = 10
+        self.clone_index = 11
 
     def align_data(self, alignment: int = 4) -> None:
         while len(self.data) % alignment:
@@ -721,7 +835,7 @@ class CapyModuleCompiler:
     def register_tuple(self, element_types: tuple[str, ...]) -> str:
         value_type = "tuple<" + ",".join(element_types) + ">"
         if value_type not in self.tuples:
-            self.tuples[value_type] = (4 + len(self.structs) + len(self.tuples), element_types)
+            self.tuples[value_type] = (5 + len(self.structs) + len(self.tuples), element_types)
         return value_type
 
     def register_type_expression(self, expression: Expr | None) -> None:
@@ -760,7 +874,7 @@ class CapyModuleCompiler:
                 continue
             if item.name in self.structs:
                 raise CapyError(item.location, f"struct {item.name!r} is already declared")
-            self.structs[item.name] = (4 + len(self.structs), [])
+            self.structs[item.name] = (5 + len(self.structs), [])
             struct_nodes.append(item)
         for item in struct_nodes:
             members: list[tuple[str, str]] = []
@@ -807,7 +921,8 @@ class CapyModuleCompiler:
                     if parameter_type == "void":
                         raise CapyError(item.location, "function parameters cannot have type void")
                 is_generic = len(concrete_parameters) != len(parameter_patterns)
-                if item.name in HANDLER_EXPORTS:
+                export_name = handler_export(item.name)
+                if export_name is not None:
                     if is_generic:
                         raise CapyError(item.location, "Bearer handlers cannot use any parameters")
                     parameter_types = tuple(concrete_parameters)
@@ -815,7 +930,6 @@ class CapyModuleCompiler:
                         raise CapyError(item.location, "Bearer handler accepts zero parameters or one request parameter")
                     if parameter_types and parameter_types != ("request",):
                         raise CapyError(item.location, "Bearer handler parameter must have type request")
-                    export_name = HANDLER_EXPORTS[item.name]
                     if export_name in seen_handlers:
                         first = seen_handlers[export_name]
                         raise CapyError(item.location, f"Bearer handler {item.name} is already declared at {first.line}:{first.column}; handlers cannot be overloaded")
@@ -889,7 +1003,7 @@ class CapyModuleCompiler:
         generic = best[0]
         result_type = parameters[generic.dependent_result] if generic.dependent_result >= 0 else "void"
         definition = CompiledDefinition(generic.function, parameters, result_type, None)
-        definition.function_index = 7 + len(self.definitions)
+        definition.function_index = 12 + len(self.definitions)
         definition.type_index = self.wasm_type(parameters, result_type)
         self.functions[key] = definition
         self.definitions.append(definition)
@@ -954,14 +1068,16 @@ class CapyModuleCompiler:
 
     def compile(self) -> tuple[bytes, str]:
         self.collect()
-        # Stable direct-language imports are function indices 0..3.
+        # Stable direct-language imports are function indices 0..8.
         print_bytes_type = self.wasm_type(("s32", "s32"), "void")
         print_s32_type = self.wasm_type(("s32",), "void")
         allocator_type = self.wasm_type(("s32",), "s32")
+        blob_adapter_type = self.wasm_type(("s32", "s32", "s32", "s32"), "s32")
+        unit_call_type = self.wasm_type(("s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"), "s32")
         retain_type = self.wasm_type(("s32",), "void")
         clone_type = self.wasm_type(("s32",), "s32")
         for index, definition in enumerate(self.definitions):
-            definition.function_index = 7 + index
+            definition.function_index = 12 + index
             wasm_parameters = ("s32",) if definition.export_name else definition.parameter_types
             definition.type_index = self.wasm_type(wasm_parameters, definition.result_type)
         user_bodies: list[bytes] = []
@@ -984,6 +1100,11 @@ class CapyModuleCompiler:
             wasm_string("env") + wasm_string("bearer_print_s32") + b"\x00" + uleb(print_s32_type),
             wasm_string("env") + wasm_string("bearer_alloc") + b"\x00" + uleb(allocator_type),
             wasm_string("env") + wasm_string("bearer_free") + b"\x00" + uleb(retain_type),
+            wasm_string("env") + wasm_string("bearer_unit_render_bytes") + b"\x00" + uleb(print_bytes_type),
+            wasm_string("env") + wasm_string("bearer_component_render_bytes") + b"\x00" + uleb(print_bytes_type),
+            wasm_string("env") + wasm_string("bearer_dv_string_to_brrb") + b"\x00" + uleb(blob_adapter_type),
+            wasm_string("env") + wasm_string("bearer_dv_brrb_to_string") + b"\x00" + uleb(blob_adapter_type),
+            wasm_string("env") + wasm_string("bearer_unit_call_brrb") + b"\x00" + uleb(unit_call_type),
         ]
         exports = [
             wasm_string(definition.export_name) + b"\x00" + uleb(definition.function_index)

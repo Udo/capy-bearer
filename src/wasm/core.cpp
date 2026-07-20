@@ -141,6 +141,7 @@ bool unit_compile(String path)
 }
 
 static DValue wasm_unit_call_result;
+static String wasm_unit_call_encoded_result;
 
 static DValue wasm_mysql_call(DValue request)
 {
@@ -879,6 +880,7 @@ void bearer_wasm_core_reset_request()
 	wasm_component_slots.clear();
 	wasm_component_paths.clear();
 	wasm_component_errors.clear();
+	wasm_unit_call_encoded_result.clear();
 }
 
 // Host pushes the worker-cached immutable configuration followed by the
@@ -1042,6 +1044,69 @@ void bearer_print_s32(s32 value)
 	if(context == 0)
 		bearer_wasm_core_init();
 	print(std::to_string(value));
+}
+
+void bearer_unit_render_bytes(const char* target, size_t target_len)
+{
+	unit_render(String(target ? target : "", target ? target_len : 0));
+}
+
+void bearer_component_render_bytes(const char* target, size_t target_len)
+{
+	component_render(String(target ? target : "", target ? target_len : 0));
+}
+
+size_t bearer_dv_string_to_brrb(const char* value, size_t value_len, char* out, size_t cap)
+{
+	DValue encoded_value;
+	encoded_value.set(String(value ? value : "", value ? value_len : 0));
+	String encoded = brb_encode(encoded_value);
+	if(out && cap >= encoded.size())
+		memcpy(out, encoded.data(), encoded.size());
+	return(encoded.size());
+}
+
+size_t bearer_dv_brrb_to_string(const char* value, size_t value_len, char* out, size_t cap)
+{
+	DValue decoded;
+	String error;
+	if(!brb_decode(String(value ? value : "", value ? value_len : 0), decoded, &error))
+		return(0);
+	String result = decoded.to_string();
+	if(out && cap >= result.size())
+		memcpy(out, result.data(), result.size());
+	return(result.size());
+}
+
+size_t bearer_unit_call_brrb(const char* target, size_t target_len,
+	const char* function_name, size_t function_len,
+	const char* input, size_t input_len, char* out, size_t cap)
+{
+	if(out == 0)
+	{
+		wasm_unit_call_encoded_result.clear();
+		DValue call_value;
+		String error;
+		if(input_len && !brb_decode(String(input ? input : "", input ? input_len : 0), call_value, &error))
+			return(0);
+		DValue* result = unit_call(
+			String(target ? target : "", target ? target_len : 0),
+			String(function_name ? function_name : "", function_name ? function_len : 0),
+			input_len ? &call_value : 0);
+		wasm_unit_call_encoded_result = brb_encode(result ? *result : DValue());
+	}
+	size_t result_size = wasm_unit_call_encoded_result.size();
+	if(out)
+	{
+		if(cap < result_size)
+		{
+			wasm_unit_call_encoded_result.clear();
+			return(result_size);
+		}
+		memcpy(out, wasm_unit_call_encoded_result.data(), result_size);
+		wasm_unit_call_encoded_result.clear();
+	}
+	return(result_size);
 }
 
 void bearer_wasm_finish_output()

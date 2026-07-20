@@ -1,0 +1,6 @@
+CLI(Request& request)
+{
+	component_render("/tests/capy-cross.capy");
+	print("|");
+	component_render("/tests/capy-cross.capy:CARD");
+}

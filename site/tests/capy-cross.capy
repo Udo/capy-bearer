@@ -1,0 +1,20 @@
+function COMPONENT {
+    print("capy-component-ok")
+}
+
+function COMPONENT_CARD {
+    print("capy-named-ok")
+}
+
+function CLI {
+    unit_render("/tests/capy-cross-target.uce")
+    print("|")
+    {
+        var result := unit_call("/tests/capy-cross-target.uce", "echo", dval("roundtrip"))
+        var copy := result
+        result = dval("other")
+        var counted_result := unit_call("/tests/capy-cross-target.uce", "counted", dval(""))
+        print(dval_string(copy), dval_string(result), "|", dval_string(counted_result), "|", arc_live(), "|")
+    }
+    print(arc_live())
+}
