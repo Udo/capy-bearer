@@ -47,7 +47,7 @@ void render_doc_params(StringList param_lines)
 
 String doc_example_path(Request& context, String page, u64 idx)
 {
-	String bin_dir = context.params["UCE_BIN_DIRECTORY"];
+	String bin_dir = context.params["BEARER_BIN_DIRECTORY"];
 	if(bin_dir == "")
 		return("");
 	String dir = path_join(bin_dir, "doc-examples");
@@ -71,7 +71,7 @@ String doc_render_example_output(Request& context, String page, u64 idx, String 
 {
 	String path = doc_example_path(context, page, idx);
 	if(path == "")
-		return("DOC EXAMPLE ERROR: UCE_BIN_DIRECTORY is not available");
+		return("DOC EXAMPLE ERROR: BEARER_BIN_DIRECTORY is not available");
 	String unit_source = doc_example_unit_source(body);
 	if(!doc_write_if_changed(path, unit_source))
 		return("DOC EXAMPLE ERROR: could not write " + path);
@@ -178,7 +178,7 @@ RENDER(Request& context)
 	</head>
 	<body>
 		<h1>
-			<a href="index.uce">UCE Docs</a><?
+			<a href="index.uce">BEARER Docs</a><?
 			if(page != "index")
 			{
 				?><span class="dim"> / </span><?= page_title ?><?

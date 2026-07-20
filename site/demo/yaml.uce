@@ -2,9 +2,9 @@
 
 RENDER(Request& context)
 {
-	String source = "# UCE app config\n"
+	String source = "# BEARER app config\n"
 		"app:\n"
-		"  name: UCE Starter\n"
+		"  name: BEARER Starter\n"
 		"  debug: true\n"
 		"  port: 8080\n"
 		"  paths:\n"
@@ -33,7 +33,7 @@ RENDER(Request& context)
 	<>
 		<link rel="stylesheet" href='style.css'></link>
 		<h1>
-			<a href="index.uce">UCE Test</a>:
+			<a href="index.uce">BEARER Test</a>:
 			YAML
 		</h1>
 

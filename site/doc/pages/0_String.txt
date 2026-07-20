@@ -9,7 +9,7 @@ substr
 html_escape
 
 :content
-Primary string type used throughout UCE.
+Primary string type used throughout BEARER.
 
 `String` is an alias for `std::string`.
 

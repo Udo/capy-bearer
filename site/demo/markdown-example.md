@@ -18,12 +18,12 @@ This page exercises **strong**, *emphasis*, ~~strikethrough~~, `code spans`, and
 
 ## Quote
 
-> Markdown in UCE should be composable.
+> Markdown in BEARER should be composable.
 >
 > Components make that much more interesting.
 
 :::warning title="Component-backed directive"
-This `:::warning` block is rendered through a normal UCE component selected from `options["components"]`.
+This `:::warning` block is rendered through a normal BEARER component selected from `options["components"]`.
 :::
 
 ## Code

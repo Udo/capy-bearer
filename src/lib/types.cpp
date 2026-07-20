@@ -1,4 +1,4 @@
-#ifndef __UCE_WASM_CORE__
+#ifndef __BEARER_WASM_CORE__
 #include <sys/file.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -18,11 +18,11 @@
 
 // Single definition of context for the native split build (the wasm core/unit
 // builds keep the in-place definition from types.h — see the guard there).
-#if !defined(__UCE_WASM_CORE__) && !defined(__UCE_WASM_UNIT__)
+#if !defined(__BEARER_WASM_CORE__) && !defined(__BEARER_WASM_UNIT__)
 Request* context = 0;
 #endif
 
-#ifndef __UCE_WASM_UNIT__
+#ifndef __BEARER_WASM_UNIT__
 void * operator new(decltype(sizeof(0)) n) noexcept(false)
 {
 	void* ptr = malloc(n);
@@ -121,7 +121,7 @@ Request::~Request()
 		delete stream;
 	ob_stack.clear();
 	ob = 0;
-#ifndef __UCE_WASM_CORE__
+#ifndef __BEARER_WASM_CORE__
 	for(auto& sockfd : resources.sockets)
 		close(sockfd);
 #endif

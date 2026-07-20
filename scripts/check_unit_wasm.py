@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Validate a W2 UCE PIC unit wasm artifact.
+"""Validate a W2 BEARER PIC unit wasm artifact.
 
 Checks intentionally stay small and explicit: section walk for dylink.0,
-uce.abi, imports/exports, plus llvm-nm for allocator definitions.
+bearer.abi, imports/exports, plus llvm-nm for allocator definitions.
 """
 from __future__ import annotations
 
@@ -163,7 +163,7 @@ def main() -> int:
     default_abi = "7"
     abi_header = Path(__file__).resolve().parents[1] / "src" / "wasm" / "abi.h"
     for line in abi_header.read_text().splitlines():
-        if line.startswith("#define UCE_WASM_CORE_ABI_VERSION "):
+        if line.startswith("#define BEARER_WASM_CORE_ABI_VERSION "):
             default_abi = line.rsplit(" ", 1)[1]
             break
     ap.add_argument("--abi-version", default=default_abi)
@@ -179,20 +179,20 @@ def main() -> int:
             errors.append("missing dylink.0 custom section")
         elif not any(dylink_has_valid_mem_info(payload) for payload in dylink_payloads):
             errors.append("dylink.0 missing valid mem_info subsection")
-        abi_payloads = customs.get("uce.abi", [])
+        abi_payloads = customs.get("bearer.abi", [])
         if not abi_payloads:
-            errors.append("missing uce.abi custom section")
+            errors.append("missing bearer.abi custom section")
         else:
             abi_text = abi_payloads[-1].decode("utf-8", "replace")
-            required = ["format=uce-wasm-unit-abi-v1", f"unit_abi_version={args.abi_version}", "toolchain="]
+            required = ["format=bearer-wasm-unit-abi-v1", f"unit_abi_version={args.abi_version}", "toolchain="]
             for needle in required:
                 if needle not in abi_text:
-                    errors.append(f"uce.abi missing {needle!r}")
-        module_payloads = customs.get("uce.module", [])
+                    errors.append(f"bearer.abi missing {needle!r}")
+        module_payloads = customs.get("bearer.module", [])
         if not module_payloads or not module_payloads[-1]:
-            errors.append("missing uce.module custom section")
+            errors.append("missing bearer.module custom section")
         export_names = {name for name, _ in exports}
-        forbidden_exports = {"uce_alloc", "uce_free"}
+        forbidden_exports = {"bearer_alloc", "bearer_free"}
         for name in sorted(export_names & forbidden_exports):
             errors.append(f"forbidden allocator export {name}")
         import_map = {(module, name): kind for module, name, kind in imports}
@@ -224,7 +224,7 @@ def main() -> int:
         if Path(llvm_nm).exists():
             bad_prefixes = ("_Znwm", "_Znam", "_ZdlPv", "_ZdaPv", "_ZdlPvm", "_ZdaPvm")
             for sym in defined_symbols(args.wasm, llvm_nm):
-                if sym in {"uce_alloc", "uce_free"} or sym.startswith(bad_prefixes):
+                if sym in {"bearer_alloc", "bearer_free"} or sym.startswith(bad_prefixes):
                     errors.append(f"forbidden allocator definition {sym}")
         else:
             errors.append("llvm-nm not found; cannot verify allocator definitions")
@@ -233,7 +233,7 @@ def main() -> int:
                 print(f"ERROR: {e}", file=sys.stderr)
             return 1
         if args.verbose:
-            print(f"UCE W2 unit check PASS: {args.wasm}")
+            print(f"BEARER W2 unit check PASS: {args.wasm}")
         return 0
     except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)

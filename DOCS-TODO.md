@@ -2,7 +2,7 @@
 
 Briefing for the doc-system overhaul. Read this fully before touching anything.
 The approved design and the two locked decisions are: **(1) examples are LIVE and
-SELF-VERIFYING** — real UCE code executed at render time, showing source + actual
+SELF-VERIFYING** — real BEARER code executed at render time, showing source + actual
 captured output, gated by the test suite; **(2) FULL SWEEP** of all 257 pages.
 
 The docs live under `site/doc/`:
@@ -54,8 +54,8 @@ The docs live under `site/doc/`:
 - Strip the 15 redundant `:title` blocks from their pages (`0_StringList`, `cli_arg`,
   `cli_input`, `list_filter`, `list_map`, `map`, `request_base_url`,
   `request_query_path`, `request_query_route`, `request_script_url`,
-  `route_path_is_safe`, `route_path_normalize`, `route_path_sanitize`, `ucb_encode`,
-  `ucb_decode`).
+  `route_path_is_safe`, `route_path_normalize`, `route_path_sanitize`, `brb_encode`,
+  `brb_decode`).
 - Fix garbage `:sig` lines on struct pages (e.g. `0_StringList`'s sig is literally
   `0_StringList`): give struct pages a real one-line type summary or drop the sig box.
 
@@ -115,7 +115,7 @@ return value : <what comes back>
 <Usage-first prose. What it does, when to use it. 2–5 tight sentences.>
 
 :example
-<runnable UCE code that print()s something illustrative>
+<runnable BEARER code that print()s something illustrative>
 
 :see
 ><area>
@@ -126,7 +126,7 @@ not a section. No `:title` unless it differs from the derived label.
 
 ### Setup (host, one-time, before content work)
 ```sh
-ssh root@10.4.2.110 'cd /Code/uce.openfu.com/uce && mkdir -p site/doc/examples/_gen && chown -R www-data:www-data site/doc/examples/_gen && chmod 775 site/doc/examples/_gen'
+ssh root@10.4.2.110 'cd /Code/bearer.openfu.com/bearer && mkdir -p site/doc/examples/_gen && chown -R www-data:www-data site/doc/examples/_gen && chmod 775 site/doc/examples/_gen'
 ```
 
 ---
@@ -159,7 +159,7 @@ and the suite stays green.
 - Full host gate (this is the ONLY place builds/tests run — the sshfs mount is
   edit-only, no WASI SDK on the client):
   ```sh
-  ssh root@10.4.2.110 'cd /Code/uce.openfu.com/uce && bash scripts/build_core_wasm.sh && bash scripts/build_linux.sh && systemctl restart uce.service && sleep 3 && bash scripts/run_cli_tests.sh --include-wasm-kill'
+  ssh root@10.4.2.110 'cd /Code/bearer.openfu.com/bearer && bash scripts/build_core_wasm.sh && bash scripts/build_linux.sh && systemctl restart bearer.service && sleep 3 && bash scripts/run_cli_tests.sh --include-wasm-kill'
   ```
   Expect the current 91 to grow by the new doc gate(s), 0 failed.
 
@@ -168,7 +168,7 @@ and the suite stays green.
 - **NEVER `git commit`/push/tag.** Not pi, not its subagents, not anyone. Leave a clean
   working tree and report.
 - **Always run the real host gate** (`bash scripts/build_core_wasm.sh && bash
-  scripts/build_linux.sh && systemctl restart uce.service && ...`) and trust only its
+  scripts/build_linux.sh && systemctl restart bearer.service && ...`) and trust only its
   output. `g++ -fsyntax-only` / client-side builds do NOT count — there is no WASI SDK
   on the client and the doc unit must actually render.
 - Sub-delegation model is exactly `gpt-5.3-codex-spark`.

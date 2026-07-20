@@ -20,7 +20,7 @@ For `StringMap`, keys from `b` overwrite keys from `a`.
 
 For `DValue`, string keys from `b` overwrite keys from `a`. Numeric keys are appended and reindexed when either side behaves like a list.
 
-This helper is the closest UCE equivalent to PHP `array_merge()` for common request, config, and JSON-shaped data.
+This helper is the closest BEARER equivalent to PHP `array_merge()` for common request, config, and JSON-shaped data.
 
 :example
 StringMap left;

@@ -6,17 +6,17 @@ commit 8587fbc5aa0f38739182fa50383bb94c8d821ed7
 wasm runtime: central WS broker, unified handlers, W7d holdouts, membrane completeness
 
 - WS: a dedicated broker process owns HTTP_PORT + every connection; it forwards
-  renders to the worker pool over uce.sock (non-blocking) and applies ws_*
+  renders to the worker pool over bearer.sock (non-blocking) and applies ws_*
   command batches flushed back at workspace teardown. Removes the now-dead
   per-worker websocket executor (-509 lines).
 - Dispatch: unify CLI / WebSocket / serve_http / page render through one
-  serve_via_wasm(entry_unit, handler) path; handler string -> __uce_<handler>
+  serve_via_wasm(entry_unit, handler) path; handler string -> __bearer_<handler>
   export symbol.
 - W7d: rewrite zip.uce to the membrane return-value error contract (no C++
   try/catch), error-reporting.uce to genuine wasm traps instead of throw, and
   sharedunit.uce to unit_info(); empty the native-only token gate.
-- Membrane: wire ls / mkdir / file_mtime through new uce_host_file_list /
-  uce_host_file_mkdir / uce_host_file_mtime hostcalls (resolve_guest_file gains
+- Membrane: wire ls / mkdir / file_mtime through new bearer_host_file_list /
+  bearer_host_file_mkdir / bearer_host_file_mtime hostcalls (resolve_guest_file gains
   directory support). Fixes /doc/index.uce listing nothing; adds a regression
   assertion that the index enumerates items.
 - Docs: add docs/wasm-runtime-architecture.md; record the W7e staged native-
@@ -75,10 +75,10 @@ dlopen path and its request-time fallback are removed.
   now builds only the .wasm side-module; the .uce preprocessor/parser front-end
   is kept (it emits the C++ the wasm compile consumes).
 - unit_call()/component()/once/init now resolve across units through the wasm
-  host component resolver (uce_host_component_resolve) instead of native dlsym;
+  host component resolver (bearer_host_component_resolve) instead of native dlsym;
   configured runtime error pages render through the wasm backend.
 - Dropped the WASM_BACKEND_ENABLED feature flag and dead COMPILE_SCRIPT /
-  COMPILE_WASM_UNITS config; unit ABI freshness tied to UCE_UNIT_ABI_VERSION;
+  COMPILE_WASM_UNITS config; unit ABI freshness tied to BEARER_UNIT_ABI_VERSION;
   guard against serving a stale .wasm for a deleted source; retired the obsolete
   W5 native-vs-wasm toggle script. Docs updated.
 

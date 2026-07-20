@@ -23,12 +23,12 @@ struct AppUser
 	static String hash_id(String raw)
 	{
 		raw = normalize_email(raw);
-		return(gen_sha1("uce-app:" + raw).substr(0, 12));
+		return(gen_sha1("bearer-app:" + raw).substr(0, 12));
 	}
 
 	String root_path()
 	{
-		return(first(context.cfg.get_by_path("filebase/path").to_string(), "/tmp/uce-app-data"));
+		return(first(context.cfg.get_by_path("filebase/path").to_string(), "/tmp/bearer-app-data"));
 	}
 
 	String dir(String email)
@@ -44,7 +44,7 @@ struct AppUser
 
 	static String password_hash(String password, String salt)
 	{
-		String hash = "uce-app:" + password + ":" + salt;
+		String hash = "bearer-app:" + password + ":" + salt;
 		for(s32 i = 0; i < 2048; i++)
 			hash = gen_sha1(hash + ":" + std::to_string(i));
 		return(hash);

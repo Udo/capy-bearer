@@ -2,10 +2,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-socket_path="${UCE_CLI_SOCKET:-/run/uce/cli.sock}"
-curl_timeout="${UCE_CLI_TEST_TIMEOUT:-900}"
-if [[ -z "${UCE_CLI_SOCKET:-}" && -r /etc/uce/settings.cfg ]]; then
-	configured_socket=$(awk -F= '/^[[:space:]]*CLI_SOCKET_PATH[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+socket_path="${BEARER_CLI_SOCKET:-/run/bearer/cli.sock}"
+curl_timeout="${BEARER_CLI_TEST_TIMEOUT:-900}"
+if [[ -z "${BEARER_CLI_SOCKET:-}" && -r /etc/bearer/settings.cfg ]]; then
+	configured_socket=$(awk -F= '/^[[:space:]]*CLI_SOCKET_PATH[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 	if [[ -n "${configured_socket:-}" ]]; then
 		socket_path="$configured_socket"
 	fi
@@ -32,10 +32,10 @@ while [[ $# -gt 0 ]]; do
 			cat <<'USAGE'
 Usage: scripts/run_cli_tests.sh [--include-wasm-kill] [--skip-local-service-pages] [--list]
 
-Runs the UCE unit-based test suite through the runtime CLI socket.
+Runs the BEARER unit-based test suite through the runtime CLI socket.
 
 Environment:
-  UCE_CLI_TEST_TIMEOUT  Per CLI runner group curl timeout in seconds (default: 900).
+  BEARER_CLI_TEST_TIMEOUT  Per CLI runner group curl timeout in seconds (default: 900).
 USAGE
 			exit 0
 			;;
@@ -47,7 +47,7 @@ USAGE
 done
 
 if [[ ! -S "$socket_path" ]]; then
-	echo "UCE CLI socket not found: $socket_path" >&2
+	echo "BEARER CLI socket not found: $socket_path" >&2
 	exit 1
 fi
 
@@ -63,7 +63,7 @@ if [[ "$action" == "run" ]]; then
 		groups+=(wasm-kill)
 	fi
 	for group in "${groups[@]}"; do
-		echo "== UCE CLI group: $group =="
+		echo "== BEARER CLI group: $group =="
 		curl -sS --max-time "$curl_timeout" --fail-with-body --unix-socket "$socket_path" "${base_url}&group=${group}"
 	done
 	scripts/test_dependency_invalidation.sh

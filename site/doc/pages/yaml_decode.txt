@@ -15,7 +15,7 @@ xml_decode
 :content
 Parses a practical YAML subset into a `DValue`.
 
-`yaml_decode()` is designed for concise UCE config files. It supports a practical YAML subset and does not implement anchors, aliases, tags, directives, or complex inline collection syntax.
+`yaml_decode()` is designed for concise BEARER config files. It supports a practical YAML subset and does not implement anchors, aliases, tags, directives, or complex inline collection syntax.
 
 Try the live example in the [YAML demo](../demo/yaml.uce).
 

@@ -17,6 +17,6 @@ COMPONENT(Request& context)
 	{
 		context.set_status(500, "Internal Server Error");
 		context.header["Content-Type"] = "text/plain; charset=utf-8";
-		print("UCE starter is missing a page template for page type: " + page_type);
+		print("BEARER starter is missing a page template for page type: " + page_type);
 	}
 }

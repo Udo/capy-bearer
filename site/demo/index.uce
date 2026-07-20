@@ -23,7 +23,7 @@ RENDER(Request& context)
 	</head>
 	<body>
 		<h1>
-			<a href="index.uce">UCE Test Suite</a>
+			<a href="index.uce">BEARER Test Suite</a>
 			<a class="docs-link" href="../doc/index.uce">API Docs &rarr;</a>
 		</h1>
 		<div class="test-grid">
@@ -69,7 +69,7 @@ RENDER(Request& context)
 			<? render_card("components.uce", "Components", "Reusable component system"); ?>
 			<? render_card("once-init.uce", "ONCE / INIT", "Unit lifecycle hooks for worker load and request entry"); ?>
 			<? render_card("markdown.uce", "Markdown", "Markdown parsing with components"); ?>
-			<? render_card("script.uce", "Script", "UCE script integration"); ?>
+			<? render_card("script.uce", "Script", "BEARER script integration"); ?>
 			<? render_card("websockets.ws.uce", "WebSockets", "Live WebSocket chat"); ?>
 			<? render_card("unit-browser.uce", "Unit Browser", "units_list(), unit_info(), unit_compile()"); ?>
 			<? if(allow_server_demos) { render_card("task.uce", "Task", "Background task execution"); } ?>

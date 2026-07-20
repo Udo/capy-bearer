@@ -29,7 +29,7 @@ RENDER(Request& context)
 	<>
 		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
 		<h1>
-			<a href="index.uce">UCE Test</a>:
+			<a href="index.uce">BEARER Test</a>:
 			WebSocket Chat
 		</h1>
 
@@ -65,7 +65,7 @@ Status: <span id="status">Connecting...</span></pre>
 			const nameEl = document.getElementById('chat-name');
 			const messageEl = document.getElementById('chat-message');
 			const sendButtonEl = document.getElementById('send-button');
-			const savedName = window.localStorage.getItem('uce-chat-name');
+			const savedName = window.localStorage.getItem('bearer-chat-name');
 			if (savedName) nameEl.value = savedName;
 
 			let ws;
@@ -86,7 +86,7 @@ Status: <span id="status">Connecting...</span></pre>
 			function sendPayload(payload) {
 				if (!ws || ws.readyState !== WebSocket.OPEN) return false;
 				payload.name = (nameEl.value || '').trim().slice(0, 32) || 'guest';
-				window.localStorage.setItem('uce-chat-name', payload.name);
+				window.localStorage.setItem('bearer-chat-name', payload.name);
 				ws.send(JSON.stringify(payload));
 				return true;
 			}

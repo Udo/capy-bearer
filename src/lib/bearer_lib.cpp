@@ -1,4 +1,4 @@
-// UCE runtime amalgamation include.
+// BEARER runtime amalgamation include.
 //
 // The worker and generated units include this file to build the runtime in a
 // single translation unit. Do not compile the listed .cpp files separately
@@ -12,7 +12,7 @@
 #include "uri.cpp"
 #include "cli.cpp"
 
-#ifdef __UCE_WASM_CORE__
+#ifdef __BEARER_WASM_CORE__
 // markdown is pure compute (no PCRE/syscalls/regex) — it belongs in the wasm
 // core so markdown_to_html/markdown_to_ast render in-workspace. compiler.cpp
 // (which declares component() ahead of markdown in the native build) is carved
@@ -22,7 +22,7 @@ String component(String name, DValue props, Request& context);
 #include "markdown.cpp"
 #endif
 
-#ifndef __UCE_WASM_CORE__
+#ifndef __BEARER_WASM_CORE__
 #include "compiler-parser.cpp"
 #include "compiler.cpp"
 #include "markdown.cpp"

@@ -6,7 +6,7 @@ if [[ "${1:-}" != "--inside" ]]; then
 	exec timeout --signal=TERM --kill-after=5s 120s unshare --mount --fork --kill-child=TERM "$0" --inside
 fi
 
-root="/tmp/uce-metadata-deadline-$$"
+root="/tmp/bearer-metadata-deadline-$$"
 site="$root/site"
 work="$root/work"
 settings="$root/settings.cfg"
@@ -30,7 +30,7 @@ cleanup() {
 trap cleanup EXIT
 mkdir -p "$site/components" "$work" "$root/run" "$root/session" "$root/upload"
 sed -E '/^[[:space:]]*(BIN_DIRECTORY|PRECOMPILE_FILES_IN|SITE_DIRECTORY|FCGI_SOCKET_PATH|FCGI_PORT|CLI_SOCKET_PATH|WS_BROKER_SOCKET_PATH|HTTP_PORT|HTTP_DOCUMENT_ROOT|SESSION_PATH|TMP_UPLOAD_PATH|WASM_CORE_PATH|WASM_INVOCATION_TIMEOUT_MS|WASM_EPOCH_PERIOD_MS|PROACTIVE_COMPILE_ENABLED|SERVE_LAST_KNOWN_GOOD|SHOW_DYNAMIC_COMPILE_ERRORS|WORKER_COUNT)[[:space:]]*=/d' \
-	/etc/uce/settings.cfg >"$settings"
+	/etc/bearer/settings.cfg >"$settings"
 cat >>"$settings" <<CFG
 BIN_DIRECTORY=$work
 PRECOMPILE_FILES_IN=$site
@@ -51,14 +51,14 @@ SERVE_LAST_KNOWN_GOOD=0
 SHOW_DYNAMIC_COMPILE_ERRORS=1
 WORKER_COUNT=1
 CFG
-mount --bind "$settings" /etc/uce/settings.cfg
+mount --bind "$settings" /etc/bearer/settings.cfg
 
-cat >"$site/driver.uce" <<'UCE'
+cat >"$site/driver.uce" <<'BEARER'
 CLI(Request& context) {
   if(context.get["health"] == "1") { print(request_perf()["worker_pid"].to_u64(), "|health"); return; }
   print(component(context.get["target"], context));
 }
-UCE
+BEARER
 printf '%s\n' 'COMPONENT(Request& context) { print("deadline-component"); }' >"$site/components/deadline.uce"
 printf '%s\n' 'COMPONENT(Request& context) { print("truncate-component"); }' >"$site/components/truncate.uce"
 printf '%s\n' 'COMPONENT(Request& context) { print("mutation-component"); }' >"$site/components/mutation.uce"
@@ -68,8 +68,8 @@ printf '%s\n' 'COMPONENT(Request& context) { print("full-component"); }' >"$site
 printf '%s\n' 'COMPONENT(Request& context) { print("full-uleb-component"); }' >"$site/components/full-uleb.uce"
 printf '%s\n' 'COMPONENT(Request& context) { print("full-duplicate-component"); }' >"$site/components/full-duplicate.uce"
 
-timeout --signal=TERM --kill-after=5s 60s env UCE_PRECOMPILE_FILES_IN="$site" UCE_PRECOMPILE_BIN_DIRECTORY="$work" \
-	UCE_PRECOMPILE_JOBS=1 bin/uce_fastcgi.linux.bin --precompile >"$root/precompile.log" 2>&1
+timeout --signal=TERM --kill-after=5s 60s env BEARER_PRECOMPILE_FILES_IN="$site" BEARER_PRECOMPILE_BIN_DIRECTORY="$work" \
+	BEARER_PRECOMPILE_JOBS=1 bin/bearer_fastcgi.linux.bin --precompile >"$root/precompile.log" 2>&1
 cache="$(scripts/unit_cache_directory "$work")$(realpath "$site")"
 for unit in deadline truncate mutation uleb duplicate full full-uleb full-duplicate; do
 	[[ -s "$cache/components/$unit.uce.wasm" && -s "$cache/components/$unit.uce.cwasm" ]]
@@ -101,7 +101,7 @@ struct control {
 
 static int read_control(int fd, struct control* control)
 {
-	const char* path = getenv("UCE_TEST_PREAD_CONTROL");
+	const char* path = getenv("BEARER_TEST_PREAD_CONTROL");
 	if(!path || !*path) return 0;
 	int input = open(path, O_RDONLY | O_CLOEXEC);
 	if(input < 0) return 0;
@@ -193,14 +193,14 @@ ssize_t pread64(int fd, void* buffer, size_t size, off64_t offset)
 C
 timeout 15s cc -shared -fPIC -O2 -Wall -Wextra -Werror -o "$root/interpose.so" "$root/interpose.c" -ldl
 
-timeout --signal=TERM --kill-after=5s 90s env LD_PRELOAD="$root/interpose.so" UCE_TEST_PREAD_CONTROL="$control" \
-	bin/uce_fastcgi.linux.bin >"$log" 2>&1 &
+timeout --signal=TERM --kill-after=5s 90s env LD_PRELOAD="$root/interpose.so" BEARER_TEST_PREAD_CONTROL="$control" \
+	bin/bearer_fastcgi.linux.bin >"$log" 2>&1 &
 server_pid=$!
 for _ in $(seq 1 400); do [[ -S "$socket" ]] && break; sleep 0.02; done
 [[ -S "$socket" ]] || { cat "$log" >&2; exit 1; }
 
 request() {
-	timeout --signal=TERM --kill-after=1s 5s scripts/uce-cli --socket "$socket" --get /driver.uce "$@"
+	timeout --signal=TERM --kill-after=1s 5s scripts/bearer-cli --socket "$socket" --get /driver.uce "$@"
 }
 
 health=$(request health=1)
@@ -267,7 +267,7 @@ set +e
 deadline_output=$(request target=components/deadline.uce 2>&1)
 set -e
 elapsed_ms=$(( ($(date +%s%N) - started) / 1000000 ))
-[[ "$deadline_output" == *UCE_INVOCATION_TIMEOUT:* ]] || { echo "metadata scan lacked canonical timeout: $deadline_output" >&2; exit 1; }
+[[ "$deadline_output" == *BEARER_INVOCATION_TIMEOUT:* ]] || { echo "metadata scan lacked canonical timeout: $deadline_output" >&2; exit 1; }
 (( elapsed_ms >= 1000 && elapsed_ms < 3000 )) || { echo "metadata timeout took ${elapsed_ms}ms" >&2; exit 1; }
 [[ $(wc -l <"$deadline_counter") -eq 1 ]] || { echo "metadata scanner read past the first delayed refill" >&2; exit 1; }
 rm -f "$control"
@@ -283,7 +283,7 @@ set +e
 full_deadline_output=$(request target=components/deadline.uce 2>&1)
 set -e
 elapsed_ms=$(( ($(date +%s%N) - started) / 1000000 ))
-[[ "$full_deadline_output" == *UCE_INVOCATION_TIMEOUT:* ]] || { echo "full artifact read lacked canonical timeout: $full_deadline_output" >&2; exit 1; }
+[[ "$full_deadline_output" == *BEARER_INVOCATION_TIMEOUT:* ]] || { echo "full artifact read lacked canonical timeout: $full_deadline_output" >&2; exit 1; }
 (( elapsed_ms >= 1000 && elapsed_ms < 3000 )) || { echo "full artifact timeout took ${elapsed_ms}ms" >&2; exit 1; }
 [[ $(wc -l <"$root/full-deadline.counter") -eq 1 ]] || { echo "full artifact reader continued after the first delayed chunk" >&2; exit 1; }
 rm -f "$control"
@@ -364,7 +364,7 @@ duplicate_cwasm="$cache/components/duplicate.uce.cwasm"
 python3 - "$duplicate_wasm" "$duplicate_cwasm" <<'PY'
 import os, pathlib, sys
 wasm, cwasm = map(pathlib.Path, sys.argv[1:])
-payload = bytes([10]) + b"uce.module" + b"duplicate"
+payload = bytes([13]) + b"bearer.module" + b"duplicate"
 value = len(payload)
 encoded = bytearray()
 while True:
@@ -381,7 +381,7 @@ PY
 set +e
 duplicate_output=$(request target=components/duplicate.uce 2>&1)
 set -e
-grep -q '\[wasm\] component load failed: duplicate uce.module metadata section' "$log"
+grep -q '\[wasm\] component load failed: duplicate bearer.module metadata section' "$log"
 [[ "$duplicate_output" != *duplicate-component* ]]
 [[ "$(request health=1)" == "$worker_pid|health" ]]
 restore duplicate
@@ -392,7 +392,7 @@ full_cwasm="$cache/components/full.uce.cwasm"
 python3 - "$full_wasm" <<'PY'
 import pathlib, sys
 wasm = pathlib.Path(sys.argv[1])
-payload = bytes([7]) + b"uce.abi" + bytes(1024 * 1024)
+payload = bytes([10]) + b"bearer.abi" + bytes(1024 * 1024)
 value = len(payload)
 encoded = bytearray()
 while True:
@@ -443,7 +443,7 @@ full_duplicate_cwasm="$cache/components/full-duplicate.uce.cwasm"
 python3 - "$full_duplicate_wasm" <<'PY'
 import pathlib, sys
 wasm = pathlib.Path(sys.argv[1])
-payload = bytes([10]) + b"uce.module" + b"duplicate"
+payload = bytes([13]) + b"bearer.module" + b"duplicate"
 value = len(payload)
 encoded = bytearray()
 while True:
@@ -456,11 +456,11 @@ with wasm.open("ab") as artifact:
     artifact.write(bytes([0]) + encoded + payload)
 PY
 rm -f "$full_duplicate_cwasm"
-duplicate_before=$(grep -c 'duplicate uce.module metadata section' "$log" || true)
+duplicate_before=$(grep -c 'duplicate bearer.module metadata section' "$log" || true)
 set +e
 full_duplicate_output=$(request target=components/full-duplicate.uce 2>&1)
 set -e
-duplicate_after=$(grep -c 'duplicate uce.module metadata section' "$log" || true)
+duplicate_after=$(grep -c 'duplicate bearer.module metadata section' "$log" || true)
 (( duplicate_after == duplicate_before + 1 ))
 [[ "$full_duplicate_output" != *full-duplicate-component* ]]
 [[ "$(request health=1)" == "$worker_pid|health" ]]

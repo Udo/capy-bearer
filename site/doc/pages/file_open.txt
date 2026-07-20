@@ -7,7 +7,7 @@ mode : "r" read, "w" truncate+write, "a" append, "r+" read+write
 return value : opaque handle; 0 means open failed (bad path, policy denial, or lock timeout)
 
 :content
-Opens a file for streaming, handle-based I/O and returns an opaque handle for `file_read()`, `file_write()`, `file_seek()`, and `file_close()`. Locks are automatic and scoped to the handle: read opens take a shared lock, write/append/read-write opens take an exclusive lock, and `file_close()` releases it. Lock waits are bounded by `UCE_FILE_LOCK_TIMEOUT_MS` (default 2000ms), so a contended open returns 0 instead of blocking forever. For whole-file access prefer `file_get_contents()` / `file_put_contents()`.
+Opens a file for streaming, handle-based I/O and returns an opaque handle for `file_read()`, `file_write()`, `file_seek()`, and `file_close()`. Locks are automatic and scoped to the handle: read opens take a shared lock, write/append/read-write opens take an exclusive lock, and `file_close()` releases it. Lock waits are bounded by `BEARER_FILE_LOCK_TIMEOUT_MS` (default 2000ms), so a contended open returns 0 instead of blocking forever. For whole-file access prefer `file_get_contents()` / `file_put_contents()`.
 
 :example
 u64 h = file_open("/tmp/doc-open.txt", "w");

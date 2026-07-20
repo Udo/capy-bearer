@@ -3,16 +3,16 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 test_name="entry-freshness-ttl-test-$$"
-site_directory="${UCE_TEST_SITE_DIRECTORY:-site}"
-worker_count="${UCE_TEST_WORKER_COUNT:-4}"
-bin_directory="${BIN_DIRECTORY:-/tmp/uce/work}"
-http_host="${UCE_TEST_HTTP_HOST:-uce.openfu.com}"
-if [[ -r /etc/uce/settings.cfg ]]; then
-	configured_site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
-	configured_worker_count=$(awk -F= '/^[[:space:]]*WORKER_COUNT[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
-	configured_bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
-	[[ -n "${UCE_TEST_SITE_DIRECTORY:-}" || -z "$configured_site_directory" ]] || site_directory="$configured_site_directory"
-	[[ -n "${UCE_TEST_WORKER_COUNT:-}" || -z "$configured_worker_count" ]] || worker_count="$configured_worker_count"
+site_directory="${BEARER_TEST_SITE_DIRECTORY:-site}"
+worker_count="${BEARER_TEST_WORKER_COUNT:-4}"
+bin_directory="${BIN_DIRECTORY:-/tmp/bearer/work}"
+http_host="${BEARER_TEST_HTTP_HOST:-bearer.openfu.com}"
+if [[ -r /etc/bearer/settings.cfg ]]; then
+	configured_site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
+	configured_worker_count=$(awk -F= '/^[[:space:]]*WORKER_COUNT[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
+	configured_bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
+	[[ -n "${BEARER_TEST_SITE_DIRECTORY:-}" || -z "$configured_site_directory" ]] || site_directory="$configured_site_directory"
+	[[ -n "${BEARER_TEST_WORKER_COUNT:-}" || -z "$configured_worker_count" ]] || worker_count="$configured_worker_count"
 	[[ -n "${BIN_DIRECTORY:-}" || -z "$configured_bin_directory" ]] || bin_directory="$configured_bin_directory"
 fi
 source_dir="$site_directory/$test_name"
@@ -164,7 +164,7 @@ printf 'test:%s\n' "$(date +%s%N)" >"$generation_file"
 flock -u 9
 exec 9>&-
 
-cli_output=$(timeout --signal=TERM --kill-after=3s 20s scripts/uce-cli "/$test_name/parent.uce")
+cli_output=$(timeout --signal=TERM --kill-after=3s 20s scripts/bearer-cli "/$test_name/parent.uce")
 IFS=: read -r cli_marker cli_pid cli_hit cli_full <<<"$cli_output"
 cli_hit=${cli_hit%%.*}; cli_full=${cli_full%%.*}
 if [[ "$cli_marker" != "marker-b" || "$cli_hit" != "0" || "$cli_full" == "0" ]]; then

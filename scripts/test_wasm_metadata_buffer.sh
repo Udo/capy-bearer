@@ -3,15 +3,15 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 test_name="wasm-metadata-buffer-test-$$"
-site_directory="${UCE_TEST_SITE_DIRECTORY:-site}"
-bin_directory="${UCE_TEST_BIN_DIRECTORY:-/tmp/uce/work}"
-if [[ -r /etc/uce/settings.cfg ]]; then
-	if [[ -z "${UCE_TEST_SITE_DIRECTORY:-}" ]]; then
-		configured_site_directory=$(awk -F= '/^[[:space:]]*HTTP_DOCUMENT_ROOT[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+site_directory="${BEARER_TEST_SITE_DIRECTORY:-site}"
+bin_directory="${BEARER_TEST_BIN_DIRECTORY:-/tmp/bearer/work}"
+if [[ -r /etc/bearer/settings.cfg ]]; then
+	if [[ -z "${BEARER_TEST_SITE_DIRECTORY:-}" ]]; then
+		configured_site_directory=$(awk -F= '/^[[:space:]]*HTTP_DOCUMENT_ROOT[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 		site_directory="${configured_site_directory:-$site_directory}"
 	fi
-	if [[ -z "${UCE_TEST_BIN_DIRECTORY:-}" ]]; then
-		configured_bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+	if [[ -z "${BEARER_TEST_BIN_DIRECTORY:-}" ]]; then
+		configured_bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 		bin_directory="${configured_bin_directory:-$bin_directory}"
 	fi
 fi
@@ -51,7 +51,7 @@ declare -a read_times=()
 for unit in $(seq 0 7); do
 	found=0
 	for attempt in $(seq 1 20); do
-		output=$(timeout --signal=TERM --kill-after=2s 30s scripts/uce-cli "/$test_name/parent.uce?unit=component-$unit&offset=$attempt")
+		output=$(timeout --signal=TERM --kill-after=2s 30s scripts/bearer-cli "/$test_name/parent.uce?unit=component-$unit&offset=$attempt")
 		IFS=$'\t' read -r marker source read_count read_bytes read_us <<<"$output"
 		if [[ "$marker" != "131072:x" ]]; then
 			echo "metadata buffer component failed: unit=$unit output=$output" >&2

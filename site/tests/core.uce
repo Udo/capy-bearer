@@ -38,12 +38,12 @@ RENDER(Request& context)
 	DValue regex_email = regex_search("(?<user>[A-Za-z0-9._%+-]+)@(?<host>[A-Za-z0-9.-]+)", "Contact ops@example.test");
 	check("regex_search()", regex_email["matched"].to_bool() && regex_email["named"]["user"].to_string() == "ops" && regex_email["named"]["host"].to_string() == "example.test", json_encode(regex_email));
 
-	DValue regex_tags = regex_search_all("#(?<tag>[A-Za-z0-9_]+)", "#uce #docs");
+	DValue regex_tags = regex_search_all("#(?<tag>[A-Za-z0-9_]+)", "#bearer #docs");
 	check("regex_search_all()", regex_tags["count"].to_s64() == 2 && regex_tags["matches"]["1"]["named"]["tag"].to_string() == "docs", json_encode(regex_tags));
 
-	check("regex_replace()", regex_replace("#([A-Za-z0-9_]+)", "<tag>$1</tag>", "#uce") == "<tag>uce</tag>", regex_replace("#([A-Za-z0-9_]+)", "<tag>$1</tag>", "#uce"));
+	check("regex_replace()", regex_replace("#([A-Za-z0-9_]+)", "<tag>$1</tag>", "#bearer") == "<tag>bearer</tag>", regex_replace("#([A-Za-z0-9_]+)", "<tag>$1</tag>", "#bearer"));
 
-	auto regex_parts = regex_split("\\s*,\\s*", "uce, components, markdown");
+	auto regex_parts = regex_split("\\s*,\\s*", "bearer, components, markdown");
 	check("regex_split()", regex_parts.size() == 3 && regex_parts[1] == "components", join(regex_parts, " | "));
 
 	check("substr() + strpos()", strpos("component suite", "suite") == 10 && substr("component suite", 10) == "suite", "strpos=10 substr='" + substr("component suite", 10) + "'");
@@ -121,87 +121,87 @@ RENDER(Request& context)
 	ordered.each([&](const DValue& item, String key) { ordered_keys += key + ","; });
 	check("DValue list iteration is numeric", ordered_keys == "0,1,2,3,4,5,6,7,8,9,10,11," && ordered.values()["10"].to_string() == "v10" && ordered.map([](const DValue& item, String key) { return(item); })["11"].to_string() == "v11", ordered_keys);
 
-	DValue uceb_source;
-	uceb_source["name"] = "phase1";
-	uceb_source["nested"]["answer"] = "42";
-	uceb_source["float"] = (f64)0.0000001;
-	uceb_source["bool"].set_bool(true);
-	uceb_source["empty_list"].set_array();
-	DValue uceb_item;
-	uceb_item = "first";
-	uceb_source["items"].push(uceb_item);
-	uceb_item = "second";
-	uceb_source["items"].push(uceb_item);
-	String uceb_binary = "bin";
-	uceb_binary.push_back((char)0x00);
-	uceb_binary += "ary";
-	uceb_source["binary"] = uceb_binary;
-	uceb_source["pointer"] = (void*)0x1234;
-	String uceb_encoded = ucb_encode(uceb_source);
-	String uceb_error = "";
-	DValue uceb_decoded;
-	bool uceb_ok = ucb_decode(uceb_encoded, uceb_decoded, &uceb_error);
-	check("UCEB2 DValue codec round-trip preserves scalar types", uceb_ok && uceb_decoded["name"].to_string() == "phase1" && uceb_decoded["name"].get_type_name() == "String" && uceb_decoded["nested"]["answer"].to_string() == "42" && uceb_decoded["float"].get_type_name() == "f64" && uceb_decoded["float"].to_f64() > 0.00000009 && uceb_decoded["float"].to_f64() < 0.00000011 && uceb_decoded["bool"].get_type_name() == "bool" && uceb_decoded["bool"].to_bool() && uceb_decoded["items"].is_list() && uceb_decoded["items"]["1"].to_string() == "second" && uceb_decoded["empty_list"].is_list() && uceb_decoded["binary"].to_string().size() == uceb_binary.size() && uceb_decoded["binary"].to_string() == uceb_binary && uceb_decoded["pointer"].to_string() == "", "bytes=" + std::to_string((u64)uceb_encoded.size()) + " error=" + uceb_error + " float=" + uceb_decoded["float"].to_string() + " types=" + uceb_decoded["name"].get_type_name() + "/" + uceb_decoded["float"].get_type_name() + "/" + uceb_decoded["bool"].get_type_name());
-	StringMap uceb_flat_source = {{"alpha", "one"}, {"binary", uceb_binary}, {"empty", ""}};
-	DValue uceb_flat_decoded;
-	String uceb_flat_error;
-	bool uceb_flat_ok = ucb_decode(ucb_encode_flat_string_map(uceb_flat_source), uceb_flat_decoded, &uceb_flat_error);
-	check("UCEB2 flat string-map codec", uceb_flat_ok && uceb_flat_decoded.to_stringmap() == uceb_flat_source, uceb_flat_error + " / " + json_encode(uceb_flat_decoded));
+	DValue brrb_source;
+	brrb_source["name"] = "phase1";
+	brrb_source["nested"]["answer"] = "42";
+	brrb_source["float"] = (f64)0.0000001;
+	brrb_source["bool"].set_bool(true);
+	brrb_source["empty_list"].set_array();
+	DValue brrb_item;
+	brrb_item = "first";
+	brrb_source["items"].push(brrb_item);
+	brrb_item = "second";
+	brrb_source["items"].push(brrb_item);
+	String brrb_binary = "bin";
+	brrb_binary.push_back((char)0x00);
+	brrb_binary += "ary";
+	brrb_source["binary"] = brrb_binary;
+	brrb_source["pointer"] = (void*)0x1234;
+	String brrb_encoded = brb_encode(brrb_source);
+	String brrb_error = "";
+	DValue brrb_decoded;
+	bool brrb_ok = brb_decode(brrb_encoded, brrb_decoded, &brrb_error);
+	check("BRRB2 DValue codec round-trip preserves scalar types", brrb_ok && brrb_decoded["name"].to_string() == "phase1" && brrb_decoded["name"].get_type_name() == "String" && brrb_decoded["nested"]["answer"].to_string() == "42" && brrb_decoded["float"].get_type_name() == "f64" && brrb_decoded["float"].to_f64() > 0.00000009 && brrb_decoded["float"].to_f64() < 0.00000011 && brrb_decoded["bool"].get_type_name() == "bool" && brrb_decoded["bool"].to_bool() && brrb_decoded["items"].is_list() && brrb_decoded["items"]["1"].to_string() == "second" && brrb_decoded["empty_list"].is_list() && brrb_decoded["binary"].to_string().size() == brrb_binary.size() && brrb_decoded["binary"].to_string() == brrb_binary && brrb_decoded["pointer"].to_string() == "", "bytes=" + std::to_string((u64)brrb_encoded.size()) + " error=" + brrb_error + " float=" + brrb_decoded["float"].to_string() + " types=" + brrb_decoded["name"].get_type_name() + "/" + brrb_decoded["float"].get_type_name() + "/" + brrb_decoded["bool"].get_type_name());
+	StringMap brrb_flat_source = {{"alpha", "one"}, {"binary", brrb_binary}, {"empty", ""}};
+	DValue brrb_flat_decoded;
+	String brrb_flat_error;
+	bool brrb_flat_ok = brb_decode(brb_encode_flat_string_map(brrb_flat_source), brrb_flat_decoded, &brrb_flat_error);
+	check("BRRB2 flat string-map codec", brrb_flat_ok && brrb_flat_decoded.to_stringmap() == brrb_flat_source, brrb_flat_error + " / " + json_encode(brrb_flat_decoded));
 
-	DValue uceb_invalid;
-	String uceb_bad_magic = "NOPE";
-	uceb_bad_magic.push_back((char)1);
-	String uceb_wrong_version = "UCEB";
-	uceb_wrong_version.push_back((char)3);
-	String uceb_truncated = "UCEB";
-	uceb_truncated.push_back((char)2);
-	uceb_truncated.push_back((char)0);
-	uceb_truncated.push_back('S');
-	uceb_truncated.push_back((char)0x80);
-	String uceb_depth_bomb = "UCEB";
-	uceb_depth_bomb.push_back((char)2);
+	DValue brrb_invalid;
+	String brrb_bad_magic = "NOPE";
+	brrb_bad_magic.push_back((char)1);
+	String brrb_wrong_version = "BRRB";
+	brrb_wrong_version.push_back((char)3);
+	String brrb_truncated = "BRRB";
+	brrb_truncated.push_back((char)2);
+	brrb_truncated.push_back((char)0);
+	brrb_truncated.push_back('S');
+	brrb_truncated.push_back((char)0x80);
+	String brrb_depth_bomb = "BRRB";
+	brrb_depth_bomb.push_back((char)2);
 	for(u32 i = 0; i < 1030; i++)
 	{
-		uceb_depth_bomb.push_back((char)0); // flags
-		uceb_depth_bomb.push_back('M'); // node type
-		uceb_depth_bomb.push_back((char)0); // scalar length
-		uceb_depth_bomb.push_back((char)1); // child count
-		uceb_depth_bomb.push_back((char)1); // key length
-		uceb_depth_bomb += "x";
+		brrb_depth_bomb.push_back((char)0); // flags
+		brrb_depth_bomb.push_back('M'); // node type
+		brrb_depth_bomb.push_back((char)0); // scalar length
+		brrb_depth_bomb.push_back((char)1); // child count
+		brrb_depth_bomb.push_back((char)1); // key length
+		brrb_depth_bomb += "x";
 	}
-	uceb_depth_bomb.push_back((char)0);
-	uceb_depth_bomb.push_back('M');
-	uceb_depth_bomb.push_back((char)0);
-	uceb_depth_bomb.push_back((char)0);
-	String uceb_negative_error = "";
-	bool uceb_bad_magic_ok = ucb_decode(uceb_bad_magic, uceb_invalid, &uceb_negative_error);
-	String uceb_magic_error = uceb_negative_error;
-	bool uceb_wrong_version_ok = ucb_decode(uceb_wrong_version, uceb_invalid, &uceb_negative_error);
-	String uceb_version_error = uceb_negative_error;
-	bool uceb_truncated_ok = ucb_decode(uceb_truncated, uceb_invalid, &uceb_negative_error);
-	String uceb_truncated_error = uceb_negative_error;
-	String uceb_trailing = uceb_encoded + "x";
-	bool uceb_trailing_ok = ucb_decode(uceb_trailing, uceb_invalid, &uceb_negative_error);
-	String uceb_trailing_error = uceb_negative_error;
-	bool uceb_depth_ok = ucb_decode(uceb_depth_bomb, uceb_invalid, &uceb_negative_error);
-	check("UCEB2 rejects invalid input", !uceb_bad_magic_ok && contains(uceb_magic_error, "magic") && !uceb_wrong_version_ok && contains(uceb_version_error, "version") && !uceb_truncated_ok && contains(uceb_truncated_error, "length") && !uceb_trailing_ok && contains(uceb_trailing_error, "trailing") && !uceb_depth_ok && contains(uceb_negative_error, "nesting"), uceb_magic_error + " / " + uceb_version_error + " / " + uceb_truncated_error + " / " + uceb_trailing_error + " / " + uceb_negative_error);
+	brrb_depth_bomb.push_back((char)0);
+	brrb_depth_bomb.push_back('M');
+	brrb_depth_bomb.push_back((char)0);
+	brrb_depth_bomb.push_back((char)0);
+	String brrb_negative_error = "";
+	bool brrb_bad_magic_ok = brb_decode(brrb_bad_magic, brrb_invalid, &brrb_negative_error);
+	String brrb_magic_error = brrb_negative_error;
+	bool brrb_wrong_version_ok = brb_decode(brrb_wrong_version, brrb_invalid, &brrb_negative_error);
+	String brrb_version_error = brrb_negative_error;
+	bool brrb_truncated_ok = brb_decode(brrb_truncated, brrb_invalid, &brrb_negative_error);
+	String brrb_truncated_error = brrb_negative_error;
+	String brrb_trailing = brrb_encoded + "x";
+	bool brrb_trailing_ok = brb_decode(brrb_trailing, brrb_invalid, &brrb_negative_error);
+	String brrb_trailing_error = brrb_negative_error;
+	bool brrb_depth_ok = brb_decode(brrb_depth_bomb, brrb_invalid, &brrb_negative_error);
+	check("BRRB2 rejects invalid input", !brrb_bad_magic_ok && contains(brrb_magic_error, "magic") && !brrb_wrong_version_ok && contains(brrb_version_error, "version") && !brrb_truncated_ok && contains(brrb_truncated_error, "length") && !brrb_trailing_ok && contains(brrb_trailing_error, "trailing") && !brrb_depth_ok && contains(brrb_negative_error, "nesting"), brrb_magic_error + " / " + brrb_version_error + " / " + brrb_truncated_error + " / " + brrb_trailing_error + " / " + brrb_negative_error);
 
 	size_t abi_len = 0;
-	uce_dvalue* abi_root = reinterpret_cast<uce_dvalue*>(&uceb_source);
-	uce_dvalue* abi_nested = uce_dv_find(abi_root, "nested", 6);
-	uce_dvalue* abi_answer = uce_dv_get(abi_nested, "answer", 6);
-	const char* abi_answer_value = uce_dv_value(abi_answer, &abi_len);
-	uce_dv_iter abi_iter = uce_dv_iter_begin(uce_dv_find(abi_root, "items", 5));
+	bearer_dvalue* abi_root = reinterpret_cast<bearer_dvalue*>(&brrb_source);
+	bearer_dvalue* abi_nested = bearer_dv_find(abi_root, "nested", 6);
+	bearer_dvalue* abi_answer = bearer_dv_get(abi_nested, "answer", 6);
+	const char* abi_answer_value = bearer_dv_value(abi_answer, &abi_len);
+	bearer_dv_iter abi_iter = bearer_dv_iter_begin(bearer_dv_find(abi_root, "items", 5));
 	const char* abi_key = 0;
 	size_t abi_key_len = 0;
-	uce_dvalue* abi_child = 0;
-	bool abi_iter_first = uce_dv_iter_next(uce_dv_find(abi_root, "items", 5), &abi_iter, &abi_key, &abi_key_len, &abi_child) == 1;
-	size_t abi_encoded_len = uce_dv_encode(abi_root, 0, 0);
+	bearer_dvalue* abi_child = 0;
+	bool abi_iter_first = bearer_dv_iter_next(bearer_dv_find(abi_root, "items", 5), &abi_iter, &abi_key, &abi_key_len, &abi_child) == 1;
+	size_t abi_encoded_len = bearer_dv_encode(abi_root, 0, 0);
 	String abi_encoded;
 	abi_encoded.resize(abi_encoded_len);
-	uce_dv_encode(abi_root, &abi_encoded[0], abi_encoded.size());
-	uce_dvalue* abi_decoded = uce_dv_decode(abi_encoded.data(), abi_encoded.size());
-	check("DValue C ABI accessors", abi_answer_value != 0 && String(abi_answer_value, abi_len) == "42" && uce_dv_count(abi_nested) == 1 && uce_dv_is_list(uce_dv_find(abi_root, "items", 5)) == 1 && abi_iter_first && String(abi_key, abi_key_len) == "0" && uce_dv_value(abi_child, &abi_len) != 0 && uce_dv_count(abi_root) == 8 && abi_decoded != 0 && uce_dv_find(abi_decoded, "nested", 6) != 0, "encoded=" + std::to_string((u64)abi_encoded_len) + " last_error=" + String(uce_dv_last_error()));
+	bearer_dv_encode(abi_root, &abi_encoded[0], abi_encoded.size());
+	bearer_dvalue* abi_decoded = bearer_dv_decode(abi_encoded.data(), abi_encoded.size());
+	check("DValue C ABI accessors", abi_answer_value != 0 && String(abi_answer_value, abi_len) == "42" && bearer_dv_count(abi_nested) == 1 && bearer_dv_is_list(bearer_dv_find(abi_root, "items", 5)) == 1 && abi_iter_first && String(abi_key, abi_key_len) == "0" && bearer_dv_value(abi_child, &abi_len) != 0 && bearer_dv_count(abi_root) == 8 && abi_decoded != 0 && bearer_dv_find(abi_decoded, "nested", 6) != 0, "encoded=" + std::to_string((u64)abi_encoded_len) + " last_error=" + String(bearer_dv_last_error()));
 
 	String binary_payload = "core";
 	binary_payload.push_back((char)0x00);
@@ -219,12 +219,12 @@ RENDER(Request& context)
 	check("split_utf8()", utf8_parts.size() == 2, "count=" + std::to_string(utf8_parts.size()));
 
 	DValue payload;
-	payload["name"] = "uce";
+	payload["name"] = "bearer";
 	payload["count"] = (f64)3;
 	payload["kind"] = "core";
 	String payload_json = json_encode(payload);
 	DValue decoded = json_decode(payload_json);
-	check("json_encode() / json_decode()", decoded["name"].to_string() == "uce" && int_val(decoded["count"].to_string()) == 3, payload_json);
+	check("json_encode() / json_decode()", decoded["name"].to_string() == "bearer" && int_val(decoded["count"].to_string()) == 3, payload_json);
 
 	DValue decoded_unicode = json_decode("\"\\u00A9\"");
 	DValue decoded_negative = json_decode("-12.5");
@@ -241,11 +241,11 @@ RENDER(Request& context)
 	xml_doc["attrs"]["id"] = "b1";
 	DValue xml_title;
 	xml_title["name"] = "title";
-	xml_title["text"] = "UCE & XML";
+	xml_title["text"] = "BEARER & XML";
 	xml_doc["children"].push(xml_title);
 	String encoded_xml = xml_encode(xml_doc);
 	DValue decoded_xml = xml_decode(encoded_xml);
-	check("xml_encode() / xml_decode()", contains(encoded_xml, "id=\"b1\"") && contains(encoded_xml, "UCE &amp; XML") && decoded_xml["children"]["0"]["text"].to_string() == "UCE & XML", encoded_xml);
+	check("xml_encode() / xml_decode()", contains(encoded_xml, "id=\"b1\"") && contains(encoded_xml, "BEARER &amp; XML") && decoded_xml["children"]["0"]["text"].to_string() == "BEARER & XML", encoded_xml);
 
 	DValue xml_payload;
 	xml_payload["title"] = "Hello";
@@ -253,9 +253,9 @@ RENDER(Request& context)
 	check("xml_encode() simple map", xml_encode(xml_payload, "payload") == "<payload><count>3</count><title>Hello</title></payload>", xml_encode(xml_payload, "payload"));
 	check("xml_decode() numeric entities", xml_decode("<x>&#x41;&#66;</x>")["text"].to_string() == "AB", xml_decode("<x>&#x41;&#66;</x>")["text"].to_string());
 
-	String yaml_config = "app:\n  name: UCE Starter\n  debug: true\n  port: 8080\n  paths:\n    - site\n    - cache\nmessage: |\n  hello\n  world\n";
+	String yaml_config = "app:\n  name: BEARER Starter\n  debug: true\n  port: 8080\n  paths:\n    - site\n    - cache\nmessage: |\n  hello\n  world\n";
 	DValue decoded_yaml = yaml_decode(yaml_config);
-	check("yaml_decode() config", decoded_yaml["app"]["name"].to_string() == "UCE Starter" && decoded_yaml["app"]["debug"].to_bool() && decoded_yaml["app"]["port"].to_s64() == 8080 && decoded_yaml["app"]["paths"]["1"].to_string() == "cache" && decoded_yaml["message"].to_string() == "hello\nworld", json_encode(decoded_yaml));
+	check("yaml_decode() config", decoded_yaml["app"]["name"].to_string() == "BEARER Starter" && decoded_yaml["app"]["debug"].to_bool() && decoded_yaml["app"]["port"].to_s64() == 8080 && decoded_yaml["app"]["paths"]["1"].to_string() == "cache" && decoded_yaml["message"].to_string() == "hello\nworld", json_encode(decoded_yaml));
 
 	String encoded_yaml = yaml_encode(decoded_yaml);
 	DValue yaml_roundtrip = yaml_decode(encoded_yaml);
@@ -318,7 +318,7 @@ RENDER(Request& context)
 	f64 ranged_float = gen_float(1.0, 2.0, 3, 4);
 	u64 drawn_int = draw_int(1, 3);
 	f64 drawn_float = draw_float(1.0, 2.0);
-	check("gen_sha1() / gen_*() / draw_*()", gen_sha1("uce") == gen_sha1("uce") && gen_sha1("uce") != gen_sha1("UCE") && noise32_a == noise32_b && noise64 > 0 && noise01 >= 0.0 && noise01 <= 1.0 && ranged_int >= 10 && ranged_int <= 20 && ranged_float >= 1.0 && ranged_float <= 2.0 && drawn_int >= 1 && drawn_int <= 3 && drawn_float >= 1.0 && drawn_float <= 2.0, "noise32=" + std::to_string((u64)noise32_a) + " noise64=" + std::to_string(noise64) + " noise01=" + std::to_string(noise01) + " draw=" + std::to_string(drawn_int));
+	check("gen_sha1() / gen_*() / draw_*()", gen_sha1("bearer") == gen_sha1("bearer") && gen_sha1("bearer") != gen_sha1("BEARER") && noise32_a == noise32_b && noise64 > 0 && noise01 >= 0.0 && noise01 <= 1.0 && ranged_int >= 10 && ranged_int <= 20 && ranged_float >= 1.0 && ranged_float <= 2.0 && drawn_int >= 1 && drawn_int <= 3 && drawn_float >= 1.0 && drawn_float <= 2.0, "noise32=" + std::to_string((u64)noise32_a) + " noise64=" + std::to_string(noise64) + " noise01=" + std::to_string(noise01) + " draw=" + std::to_string(drawn_int));
 
 	site_tests_summary(passed, failed, skipped, "These assertions stay pure and side-effect free so they remain safe on the public site.");
 	site_tests_page_end();

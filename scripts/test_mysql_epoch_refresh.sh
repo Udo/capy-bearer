@@ -3,9 +3,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 test_name="mysql-epoch-refresh-test-$$"
-site_directory="${UCE_TEST_SITE_DIRECTORY:-site}"
-settings_file="${UCE_SETTINGS_FILE:-/etc/uce/settings.cfg}"
-if [[ -z "${UCE_TEST_SITE_DIRECTORY:-}" && -r "$settings_file" ]]; then
+site_directory="${BEARER_TEST_SITE_DIRECTORY:-site}"
+settings_file="${BEARER_SETTINGS_FILE:-/etc/bearer/settings.cfg}"
+if [[ -z "${BEARER_TEST_SITE_DIRECTORY:-}" && -r "$settings_file" ]]; then
 	configured_site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "$settings_file")
 	if [[ -n "${configured_site_directory:-}" ]]; then
 		site_directory="$configured_site_directory"
@@ -16,14 +16,14 @@ bin_directory="${BIN_DIRECTORY:-}"
 if [[ -z "$bin_directory" && -r "$settings_file" ]]; then
 	bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "$settings_file")
 fi
-bin_directory="${bin_directory:-/tmp/uce/work}"
+bin_directory="${bin_directory:-/tmp/bearer/work}"
 ticks=$(awk -F= '/^[[:space:]]*WASM_EPOCH_DEADLINE_TICKS[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "$settings_file" 2>/dev/null || true)
 period_ms=$(awk -F= '/^[[:space:]]*WASM_EPOCH_PERIOD_MS[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "$settings_file" 2>/dev/null || true)
 ticks="${ticks:-200}"
 period_ms="${period_ms:-50}"
 segment_seconds=$(awk -v ticks="$ticks" -v period="$period_ms" 'BEGIN { printf "%.6f", ticks * period * 0.00055 }')
 cache_dir=""
-test_user="uce_epoch_$$"
+test_user="bearer_epoch_$$"
 test_password=$(printf '%s' "$test_name-$(date +%s%N)" | sha256sum | cut -c1-32)
 test_user_created=false
 
@@ -58,7 +58,7 @@ printf '%s\n' \
 	'  mysql_disconnect(db);' \
 	'}' >"$source_dir/test.uce"
 
-output=$(scripts/uce-cli "/$test_name/test.uce" 2>&1) || {
+output=$(scripts/bearer-cli "/$test_name/test.uce" 2>&1) || {
 	echo "MySQL hostcall did not refresh the guest epoch deadline: $output" >&2
 	exit 1
 }

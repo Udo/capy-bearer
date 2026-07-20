@@ -36,5 +36,5 @@ to_bool
 to_f64
 to_s64
 to_u64
-ucb_encode
-ucb_decode
+brb_encode
+brb_decode

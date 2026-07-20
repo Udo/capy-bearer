@@ -1,30 +1,30 @@
-# UCE Runtime Setup
+# BEARER Runtime Setup
 
-This guide describes how to run UCE behind nginx or Apache. UCE is a FastCGI application server for `.uce` units; the web server should serve static files directly and forward dynamic `.uce` requests to the UCE runtime.
+This guide describes how to run BEARER behind nginx or Apache. BEARER is a FastCGI application server for `.uce` units; the web server should serve static files directly and forward dynamic `.uce` requests to the BEARER runtime.
 
 ## Deployment shape
 
 A typical deployment has four pieces:
 
-1. A checked-out or packaged UCE runtime tree.
-2. `/etc/uce/settings.cfg`, read by the UCE runtime at startup.
-3. `uce.service`, a systemd service that builds/starts/restarts the runtime.
+1. A checked-out or packaged BEARER runtime tree.
+2. `/etc/bearer/settings.cfg`, read by the BEARER runtime at startup.
+3. `bearer.service`, a systemd service that builds/starts/restarts the runtime.
 4. nginx or Apache as the public HTTP server.
 
 Recommended filesystem layout for a source checkout (replace paths as needed):
 
 ```text
-/path/to/uce-root                  UCE repository/runtime root (for example `/opt/uce` or `/Code/uce.openfu.com/uce`)
+/path/to/bearer-root                  BEARER repository/runtime root (for example `/opt/bearer` or `/Code/bearer.openfu.com/bearer`)
 /var/www/html/                     public web root served by nginx/Apache
-/etc/uce/settings.cfg              runtime configuration
-/run/uce/fastcgi.sock              FastCGI socket used by nginx/Apache
-/run/uce/cli.sock                  local CLI/admin/test socket
-/var/cache/uce/work                generated source, wasm modules, caches
-/var/lib/uce/uploads               multipart upload scratch space
-/var/lib/uce/sessions              session files
+/etc/bearer/settings.cfg              runtime configuration
+/run/bearer/fastcgi.sock              FastCGI socket used by nginx/Apache
+/run/bearer/cli.sock                  local CLI/admin/test socket
+/var/cache/bearer/work                generated source, wasm modules, caches
+/var/lib/bearer/uploads               multipart upload scratch space
+/var/lib/bearer/sessions              session files
 ```
 
-For packaged installs, the runtime may live under `/usr/lib/uce` instead of your checkout root. Keep the public web root at `/var/www/html` or another normal web-root path, not under the runtime source tree.
+For packaged installs, the runtime may live under `/usr/lib/bearer` instead of your checkout root. Keep the public web root at `/var/www/html` or another normal web-root path, not under the runtime source tree.
 
 ## Build requirements
 
@@ -35,7 +35,7 @@ apt update
 apt install -y clang build-essential libpcre2-dev libssl-dev mariadb-client libmariadb-dev curl rsync ca-certificates
 ```
 
-UCE also requires two non-vendored dependencies. WASI SDK is load-bearing at runtime because UCE compiles units on demand during requests and during proactive startup scans. The `curl` binary is also a pinned runtime package dependency: `http_request()` and `http_request_async()` execute it directly with an explicit argument vector for TLS-capable outbound HTTP.
+BEARER also requires two non-vendored dependencies. WASI SDK is load-bearing at runtime because BEARER compiles units on demand during requests and during proactive startup scans. The `curl` binary is also a pinned runtime package dependency: `http_request()` and `http_request_async()` execute it directly with an explicit argument vector for TLS-capable outbound HTTP.
 
 - **Wasmtime C API / C++ headers** at `/opt/wasmtime` by default. `scripts/build_linux.sh` expects:
   - `/opt/wasmtime/include/wasmtime.hh`
@@ -64,10 +64,10 @@ apt install -y nginx
 apt install -y apache2
 ```
 
-Build UCE from your repository root:
+Build BEARER from your repository root:
 
 ```bash
-repo_root=/path/to/uce-root
+repo_root=/path/to/bearer-root
 cd "$repo_root"
 bash scripts/build_core_wasm.sh
 bash scripts/build_linux.sh
@@ -83,12 +83,12 @@ rsync -a site/ /var/www/html/
 The main binary is written to:
 
 ```text
-bin/uce_fastcgi.linux.bin
+bin/bearer_fastcgi.linux.bin
 ```
 
 ### Installing Wasmtime and WASI SDK
 
-The UCE build does not download these dependencies for you. Install Wasmtime through a compatible distro package or a pinned upstream C API archive. Install WASI SDK with UCE's pinned installer, or unpack the same pinned archive under `/opt/wasi-sdk`.
+The BEARER build does not download these dependencies for you. Install Wasmtime through a compatible distro package or a pinned upstream C API archive. Install WASI SDK with BEARER's pinned installer, or unpack the same pinned archive under `/opt/wasi-sdk`.
 
 Do not use `curl | sh` installers in production setup scripts. Download archives from the upstream release pages, verify checksums/signatures when available, and record the exact versions in your deployment notes. Avoid installing a release published in the last few days unless you have reviewed it separately.
 
@@ -109,7 +109,7 @@ The expected directories are:
 Install the WASI SDK:
 
 ```bash
-repo_root=/path/to/uce-root
+repo_root=/path/to/bearer-root
 cd "$repo_root"
 scripts/install_wasi_sdk.sh
 scripts/install_wasi_sdk.sh --check-only
@@ -120,8 +120,8 @@ The current pin is documented in `docs/wasi-sdk-toolchain.md`. The script verifi
 For Wasmtime, use a compatible distro package or an upstream C API archive. Example flow using an archive you have already chosen and verified:
 
 ```bash
-mkdir -p /opt /tmp/uce-deps
-cd /tmp/uce-deps
+mkdir -p /opt /tmp/bearer-deps
+cd /tmp/bearer-deps
 
 # Download the Wasmtime C API archive for your architecture from the upstream
 # release page, then verify its checksum before unpacking. The archive name
@@ -131,7 +131,7 @@ mkdir -p /opt/wasmtime
 tar -xf wasmtime-*-c-api*.tar.* -C /opt/wasmtime --strip-components=1
 ```
 
-After unpacking, verify the tools UCE needs. Also record the exact Wasmtime and WASI SDK versions used. The native build embeds an rpath for `$WASMTIME_HOME/lib`, so the service environment should use the same `WASMTIME_HOME` value used during build.
+After unpacking, verify the tools BEARER needs. Also record the exact Wasmtime and WASI SDK versions used. The native build embeds an rpath for `$WASMTIME_HOME/lib`, so the service environment should use the same `WASMTIME_HOME` value used during build.
 
 ```bash
 test -f /opt/wasmtime/include/wasmtime.hh
@@ -153,7 +153,7 @@ WASMTIME_HOME=/usr/local/wasmtime WASI_SDK=/usr/local/wasi-sdk bash scripts/buil
 For systemd, add an override:
 
 ```bash
-systemctl edit uce.service
+systemctl edit bearer.service
 ```
 
 ```ini
@@ -166,24 +166,24 @@ Then reload and restart:
 
 ```bash
 systemctl daemon-reload
-systemctl restart uce.service
+systemctl restart bearer.service
 ```
 
 ## Runtime configuration
 
-Create `/etc/uce/settings.cfg` from `etc/uce/settings.cfg` and adjust paths to your checkout root. Replace checkout-specific settings such as `WASM_CORE_PATH` with `<UCE_REPO_ROOT>/bin/wasm/core.wasm` or leave it relative to `COMPILER_SYS_PATH` as appropriate.
+Create `/etc/bearer/settings.cfg` from `etc/bearer/settings.cfg` and adjust paths to your checkout root. Replace checkout-specific settings such as `WASM_CORE_PATH` with `<BEARER_REPO_ROOT>/bin/wasm/core.wasm` or leave it relative to `COMPILER_SYS_PATH` as appropriate.
 
 Minimum useful settings:
 
 ```ini
-BIN_DIRECTORY=/var/cache/uce/work
-TMP_UPLOAD_PATH=/var/lib/uce/uploads
-SESSION_PATH=/var/lib/uce/sessions
+BIN_DIRECTORY=/var/cache/bearer/work
+TMP_UPLOAD_PATH=/var/lib/bearer/uploads
+SESSION_PATH=/var/lib/bearer/sessions
 SESSION_COOKIE_SECURE=1
 
-FCGI_SOCKET_PATH=/run/uce/fastcgi.sock
+FCGI_SOCKET_PATH=/run/bearer/fastcgi.sock
 FCGI_SOCKET_MODE=0666
-CLI_SOCKET_PATH=/run/uce/cli.sock
+CLI_SOCKET_PATH=/run/bearer/cli.sock
 CLI_SOCKET_MODE=0600
 
 SITE_DIRECTORY=/var/www/html
@@ -197,7 +197,7 @@ PROACTIVE_COMPILE_CHECK_INTERVAL=60
 
 WASM_COMPILE_SCRIPT=scripts/compile_wasm_unit
 WASM_BACKEND_VERBOSE=0
-WASM_CORE_PATH=<UCE_REPO_ROOT>/bin/wasm/core.wasm
+WASM_CORE_PATH=<BEARER_REPO_ROOT>/bin/wasm/core.wasm
 WASM_MEMORY_LIMIT_BYTES=536870912
 WASM_EPOCH_DEADLINE_TICKS=200
 WASM_EPOCH_PERIOD_MS=50
@@ -214,16 +214,16 @@ WS_BROKER_OUTBOUND_TIMEOUT_SECONDS=30
 
 Important settings:
 
-- `FCGI_SOCKET_PATH` is the Unix socket used for normal `.uce` requests. Set it explicitly and keep this value and the web-server `fastcgi_pass` path identical. The reference config uses `/run/uce/fastcgi.sock`; if you choose `/run/uce.sock`, use it in both places.
-- `CLI_SOCKET_PATH` is a local HTTP-over-Unix socket used by `scripts/uce-cli` and test/admin units. Keep it private (`CLI_SOCKET_MODE=0600`) unless you intentionally delegate admin/test execution to a trusted Unix group (`0660`).
-- `FCGI_SOCKET_MODE` and `CLI_SOCKET_MODE` are octal permission modes applied after socket bind. Prefer tightening `FCGI_SOCKET_MODE` to `0660` when nginx/Apache can share a trusted group with the UCE worker.
-- `SITE_DIRECTORY` is the public site tree to scan for `.uce` files. Use `/var/www/html` when the web root is outside the runtime tree; relative paths are resolved from the runtime working directory. Installed regression gate scripts derive their temporary test root from this setting unless `UCE_TEST_SITE_DIRECTORY` is explicitly provided.
+- `FCGI_SOCKET_PATH` is the Unix socket used for normal `.uce` requests. Set it explicitly and keep this value and the web-server `fastcgi_pass` path identical. The reference config uses `/run/bearer/fastcgi.sock`; if you choose `/run/bearer.sock`, use it in both places.
+- `CLI_SOCKET_PATH` is a local HTTP-over-Unix socket used by `scripts/bearer-cli` and test/admin units. Keep it private (`CLI_SOCKET_MODE=0600`) unless you intentionally delegate admin/test execution to a trusted Unix group (`0660`).
+- `FCGI_SOCKET_MODE` and `CLI_SOCKET_MODE` are octal permission modes applied after socket bind. Prefer tightening `FCGI_SOCKET_MODE` to `0660` when nginx/Apache can share a trusted group with the BEARER worker.
+- `SITE_DIRECTORY` is the public site tree to scan for `.uce` files. Use `/var/www/html` when the web root is outside the runtime tree; relative paths are resolved from the runtime working directory. Installed regression gate scripts derive their temporary test root from this setting unless `BEARER_TEST_SITE_DIRECTORY` is explicitly provided.
 - `HTTP_DOCUMENT_ROOT` is the root used by the built-in HTTP/WebSocket listener when it resolves upgrade requests. Set it to the same web root as nginx/Apache.
 - `BIN_DIRECTORY` stores runtime state plus ABI-scoped unit generations. Unit
   C++, wasm, serialized modules, source maps, and compile diagnostics live in
   `units-c<compiler ABI>-w<core ABI>` so an upgrade cannot mix generations.
 - `TMP_UPLOAD_PATH` and `SESSION_PATH` must be writable by the runtime.
-- `SESSION_COOKIE_SECURE=1` adds the `Secure` attribute to UCE-managed session cookies and should be used for HTTPS-only deployments. Leave it `0` only for local/plain-HTTP development.
+- `SESSION_COOKIE_SECURE=1` adds the `Secure` attribute to BEARER-managed session cookies and should be used for HTTPS-only deployments. Leave it `0` only for local/plain-HTTP development.
 - `MYSQL_PERSISTENT_POOL_SIZE` caps credential-keyed connections retained by each Wasm worker. The default `8` is clamped to `64`; set it to `0` to restore request-lifetime connections. Cached sessions are reset before reuse.
 - `HTTP_PORT` is the built-in HTTP/WebSocket listener used for WebSocket upgrade traffic and direct local probes. Bind/firewall it for local access only; nginx/Apache should be the public entry point.
 - `WS_BROKER_OUTBOUND_TIMEOUT_SECONDS` controls how long a forwarded WS message can remain queued in the broker before being dropped (default `30`). Set to `0` to disable the timeout.
@@ -258,10 +258,10 @@ Important settings:
   Initial/final descriptor identity, unique selected metadata sections, and
   strict 64-bit LEB high-bit validation reject changed or ambiguous artifacts.
 
-After editing settings, restart UCE:
+After editing settings, restart BEARER:
 
 ```bash
-systemctl restart uce.service
+systemctl restart bearer.service
 ```
 
 ## systemd service
@@ -269,27 +269,27 @@ systemctl restart uce.service
 For source-checkout deployments, install the provided service helper:
 
 ```bash
-repo_root=/path/to/uce-root
+repo_root=/path/to/bearer-root
 cd "$repo_root"
-scripts/systemd/manage-uce-service.sh setup
+scripts/systemd/manage-bearer-service.sh setup
 ```
 
-That helper installs `scripts/systemd/uce.service` from your checked-out tree, rewrites the checked-out repository path into the installed unit and first-time config, creates runtime directories, enables the service, and starts it. Use a custom unit only if you need a nonstandard runtime layout.
+That helper installs `scripts/systemd/bearer.service` from your checked-out tree, rewrites the checked-out repository path into the installed unit and first-time config, creates runtime directories, enables the service, and starts it. Use a custom unit only if you need a nonstandard runtime layout.
 
 Useful commands:
 
 ```bash
-scripts/systemd/manage-uce-service.sh status
-scripts/systemd/manage-uce-service.sh restart
-scripts/systemd/manage-uce-service.sh logs 200
+scripts/systemd/manage-bearer-service.sh status
+scripts/systemd/manage-bearer-service.sh restart
+scripts/systemd/manage-bearer-service.sh logs 200
 ```
 
 The server binary accepts only these process modes:
 
 ```bash
-bin/uce_fastcgi.linux.bin             # start the server
-bin/uce_fastcgi.linux.bin --precompile
-bin/uce_fastcgi.linux.bin --help
+bin/bearer_fastcgi.linux.bin             # start the server
+bin/bearer_fastcgi.linux.bin --precompile
+bin/bearer_fastcgi.linux.bin --help
 ```
 
 Help and invalid arguments exit before configuration is loaded or any listener
@@ -298,17 +298,17 @@ diagnostic invocation from replacing or removing a configured Unix socket.
 
 Managed restart builds and precompiles the complete candidate ABI generation
 before it switches the service. Precompile uses two low-priority processes by
-default; set `PRECOMPILE_JOBS` in `/etc/uce/settings.cfg` to tune the bounded
+default; set `PRECOMPILE_JOBS` in `/etc/bearer/settings.cfg` to tune the bounded
 1–16 process count for the host. A failed worker, compile, serialization, or
 result report aborts the switch and leaves the current service running. The
 managed invocation is bounded to 900 seconds by default; set
-`UCE_PRECOMPILE_TIMEOUT` on `manage-uce-service.sh restart` to select another
+`BEARER_PRECOMPILE_TIMEOUT` on `manage-bearer-service.sh restart` to select another
 GNU `timeout` duration. Timeout exit 124 also aborts before the service switch.
 
-A trusted direct `--precompile` process may set `UCE_PRECOMPILE_FILES_IN` and
-`UCE_PRECOMPILE_BIN_DIRECTORY` to isolate that invocation's source scan and
+A trusted direct `--precompile` process may set `BEARER_PRECOMPILE_FILES_IN` and
+`BEARER_PRECOMPILE_BIN_DIRECTORY` to isolate that invocation's source scan and
 artifact registry. Both overrides apply only to precompile mode; normal server
-workers continue to use `/etc/uce/settings.cfg`. The parallel precompile
+workers continue to use `/etc/bearer/settings.cfg`. The parallel precompile
 regression uses private roots so a running proactive compiler cannot consume
 or publish its controlled race fixtures.
 
@@ -321,30 +321,30 @@ starting separately deadline-bounded CLI or HTTP invocations.
 Prefer the managed restart when the service runs as an unprivileged user: it
 precompiles as that same user. Request-time publication still accepts readable
 artifacts produced by a trusted administrator. When Linux protected-hardlink
-policy rejects the normal rollback snapshot, UCE copies the prior artifact
+policy rejects the normal rollback snapshot, BEARER copies the prior artifact
 under the unit lock; generation markers are replaced atomically instead of
 requiring write access to the existing inode. Existing readable lock files can
 be locked without write access, including the shared-PCH lock.
 
-Equivalent manual systemd service for a source checkout (`<UCE_REPO>` = checkout root):
+Equivalent manual systemd service for a source checkout (`<BEARER_REPO>` = checkout root):
 
 ```ini
 [Unit]
-Description=UCE FastCGI Runtime
+Description=BEARER FastCGI Runtime
 After=network-online.target mariadb.service memcached.service
 Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=<UCE_REPO>
-RuntimeDirectory=uce
-StateDirectory=uce
-CacheDirectory=uce
-ExecStartPre=/usr/bin/mkdir -p /var/cache/uce/work /var/lib/uce/uploads /var/lib/uce/sessions
-ExecStartPre=/usr/bin/rm -f /run/uce/fastcgi.sock
-ExecStartPre=/usr/bin/bash <UCE_REPO>/scripts/build_linux.sh
-ExecStart=<UCE_REPO>/bin/uce_fastcgi.linux.bin
-ExecStopPost=/usr/bin/rm -f /run/uce/fastcgi.sock
+WorkingDirectory=<BEARER_REPO>
+RuntimeDirectory=bearer
+StateDirectory=bearer
+CacheDirectory=bearer
+ExecStartPre=/usr/bin/mkdir -p /var/cache/bearer/work /var/lib/bearer/uploads /var/lib/bearer/sessions
+ExecStartPre=/usr/bin/rm -f /run/bearer/fastcgi.sock
+ExecStartPre=/usr/bin/bash <BEARER_REPO>/scripts/build_linux.sh
+ExecStart=<BEARER_REPO>/bin/bearer_fastcgi.linux.bin
+ExecStopPost=/usr/bin/rm -f /run/bearer/fastcgi.sock
 Restart=always
 RestartSec=2
 TimeoutStopSec=15
@@ -356,11 +356,11 @@ StandardError=journal
 WantedBy=multi-user.target
 ```
 
-Install it as `/etc/systemd/system/uce.service` and run:
+Install it as `/etc/systemd/system/bearer.service` and run:
 
 ```bash
 systemctl daemon-reload
-systemctl enable --now uce.service
+systemctl enable --now bearer.service
 ```
 
 ### Debian package build
@@ -378,7 +378,7 @@ scripts/install_wasi_sdk.sh --check-only
 bash scripts/make_deb.sh 0.1.2
 ```
 
-This includes the resolved `/opt/wasi-sdk-...` tree, `/opt/wasi-sdk` symlink, resolved `/opt/wasmtime-...` tree, and `/opt/wasmtime` symlink in the package. It makes the package large, but keeps request-time unit compilation and runtime linking tied to the toolchain versions that passed the test suite. Set `UCE_DEB_BUNDLE_WASI_SDK=0` or `UCE_DEB_BUNDLE_WASMTIME=0` only if your deployment provides those exact dependencies separately.
+This includes the resolved `/opt/wasi-sdk-...` tree, `/opt/wasi-sdk` symlink, resolved `/opt/wasmtime-...` tree, and `/opt/wasmtime` symlink in the package. It makes the package large, but keeps request-time unit compilation and runtime linking tied to the toolchain versions that passed the test suite. Set `BEARER_DEB_BUNDLE_WASI_SDK=0` or `BEARER_DEB_BUNDLE_WASMTIME=0` only if your deployment provides those exact dependencies separately.
 
 ### RPM package build
 
@@ -389,7 +389,7 @@ scripts/install_wasi_sdk.sh --check-only
 bash scripts/make_rpm.sh 0.1.2
 ```
 
-The RPM creator mirrors the Debian package layout: runtime files under `/usr/lib/uce`, public files under `/var/www/html`, config under `/etc/uce/settings.cfg`, systemd unit under `/usr/lib/systemd/system/uce.service`, and bundled `/opt/wasi-sdk` plus `/opt/wasmtime` trees by default. Set `UCE_RPM_BUNDLE_WASI_SDK=0` or `UCE_RPM_BUNDLE_WASMTIME=0` only if your deployment provides those exact dependencies separately.
+The RPM creator mirrors the Debian package layout: runtime files under `/usr/lib/bearer`, public files under `/var/www/html`, config under `/etc/bearer/settings.cfg`, systemd unit under `/usr/lib/systemd/system/bearer.service`, and bundled `/opt/wasi-sdk` plus `/opt/wasmtime` trees by default. Set `BEARER_RPM_BUNDLE_WASI_SDK=0` or `BEARER_RPM_BUNDLE_WASMTIME=0` only if your deployment provides those exact dependencies separately.
 
 ## How request routing works
 
@@ -402,10 +402,10 @@ Examples:
 ```text
 /style.css
 /images/logo.png
-/examples/uce-starter/js/site.js
+/examples/bearer-starter/js/site.js
 ```
 
-These should not touch the UCE runtime.
+These should not touch the BEARER runtime.
 
 ### Normal `.uce` page requests
 
@@ -424,7 +424,7 @@ nginx/Apache forwards the request to `FCGI_SOCKET_PATH` as FastCGI. The web serv
 - `REQUEST_URI` — original request URI including query string.
 - standard request variables such as method, query string, content type, body length, cookies, and headers.
 
-UCE resolves the unit, compiles it to wasm if needed, creates a request workspace, and calls:
+BEARER resolves the unit, compiles it to wasm if needed, creates a request workspace, and calls:
 
 ```cpp
 RENDER(Request& context)
@@ -434,14 +434,14 @@ The unit writes output with template literals or `print()`. Response headers and
 
 ### Component and sub-render calls
 
-Inside a request, UCE code can call other units:
+Inside a request, BEARER code can call other units:
 
 ```cpp
 component("components/card", props, context);
 unit_render("other-page.uce", context);
 ```
 
-These calls stay inside the UCE runtime. They are not new HTTP requests and do not go back through nginx or Apache.
+These calls stay inside the BEARER runtime. They are not new HTTP requests and do not go back through nginx or Apache.
 
 ### WebSocket pages
 
@@ -457,7 +457,7 @@ The nginx and Apache examples below split traffic by checking for a WebSocket up
 Routing split:
 
 - Plain `GET /demo/chat.uce` should use FastCGI, just like any other page render.
-- WebSocket upgrade requests for `/demo/chat.uce` should proxy to the UCE built-in HTTP/WebSocket listener at `HTTP_PORT`.
+- WebSocket upgrade requests for `/demo/chat.uce` should proxy to the BEARER built-in HTTP/WebSocket listener at `HTTP_PORT`.
 
 The built-in listener owns the socket lifecycle. When a message arrives, the broker forwards a render-style invocation back to the worker pool so `WS(Request& context)` runs inside the same wasm runtime model as normal pages.
 
@@ -466,15 +466,15 @@ The built-in listener owns the socket lifecycle. When a message arrives, the bro
 `CLI(Request& context)` handlers are not public web endpoints. They are invoked over `CLI_SOCKET_PATH`:
 
 ```bash
-scripts/uce-cli /tests/cli.uce action=echo message=hello
-curl --unix-socket /run/uce/cli.sock http://localhost/tests/cli.uce
+scripts/bearer-cli /tests/cli.uce action=echo message=hello
+curl --unix-socket /run/bearer/cli.sock http://localhost/tests/cli.uce
 ```
 
 Use CLI units for local tests, admin commands, and maintenance tools. Do not expose the CLI socket through nginx or Apache.
 
 ### Custom runtime HTTP servers
 
-UCE code can start local custom HTTP listeners with `server_start_http()`. Those are runtime-managed listeners for app-specific local services. They are separate from the public nginx/Apache entry point and should be firewalled or bound locally unless you explicitly want them reachable.
+BEARER code can start local custom HTTP listeners with `server_start_http()`. Those are runtime-managed listeners for app-specific local services. They are separate from the public nginx/Apache entry point and should be firewalled or bound locally unless you explicitly want them reachable.
 
 ## nginx configuration
 
@@ -514,10 +514,10 @@ server {
         try_files $uri $uri/ =404;
     }
 
-    # UCE page requests use FastCGI. If the client asks to upgrade a .uce
+    # BEARER page requests use FastCGI. If the client asks to upgrade a .uce
     # request to WebSocket, send that connection to the built-in listener.
     location ~ \.uce$ {
-        error_page 418 = @uce_websocket;
+        error_page 418 = @bearer_websocket;
         if ($http_upgrade = "websocket") {
             return 418;
         }
@@ -528,10 +528,10 @@ server {
         fastcgi_param SCRIPT_NAME $fastcgi_script_name;
         fastcgi_param DOCUMENT_URI $uri;
         fastcgi_param REQUEST_URI $request_uri;
-        fastcgi_pass unix:/run/uce/fastcgi.sock;
+        fastcgi_pass unix:/run/bearer/fastcgi.sock;
     }
 
-    location @uce_websocket {
+    location @bearer_websocket {
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -575,7 +575,7 @@ systemctl reload nginx
 
 ## Apache configuration
 
-Apache can run UCE through `mod_proxy_fcgi` for FastCGI and `mod_proxy_wstunnel` or `mod_proxy_http` for WebSocket upgrades.
+Apache can run BEARER through `mod_proxy_fcgi` for FastCGI and `mod_proxy_wstunnel` or `mod_proxy_http` for WebSocket upgrades.
 
 ### Enable modules
 
@@ -607,17 +607,17 @@ systemctl restart apache2
 
     RewriteEngine On
 
-    # WebSocket upgrade traffic for any .uce unit goes to UCE's built-in HTTP listener.
+    # WebSocket upgrade traffic for any .uce unit goes to BEARER's built-in HTTP listener.
     RewriteCond %{HTTP:Upgrade} =websocket [NC]
     RewriteCond %{REQUEST_URI} \.uce(?:\?|$) [NC]
     RewriteRule ^/(.*)$ ws://127.0.0.1:8080/$1 [P,L]
 
     # Normal .uce page loads go to FastCGI.
     <FilesMatch "\.uce$">
-        SetHandler "proxy:unix:/run/uce/fastcgi.sock|fcgi://localhost/"
+        SetHandler "proxy:unix:/run/bearer/fastcgi.sock|fcgi://localhost/"
     </FilesMatch>
 
-    # Optional: make the key CGI variables explicit for UCE.
+    # Optional: make the key CGI variables explicit for BEARER.
     ProxyFCGISetEnvIf "true" DOCUMENT_ROOT "/var/www/html"
     ProxyFCGISetEnvIf "true" DOCUMENT_URI "%{REQUEST_URI}"
 </VirtualHost>
@@ -625,36 +625,36 @@ systemctl restart apache2
 
 Apache notes:
 
-- `SetHandler "proxy:unix:/run/uce/fastcgi.sock|fcgi://localhost/"` must use the same socket path as `FCGI_SOCKET_PATH`.
+- `SetHandler "proxy:unix:/run/bearer/fastcgi.sock|fcgi://localhost/"` must use the same socket path as `FCGI_SOCKET_PATH`.
 - The WebSocket rewrite rule must run before the FastCGI handler.
 - Plain `.uce` page loads should not be proxied as WebSockets unless the client sends `Upgrade: websocket`.
-- Apache's FastCGI environment differs by version and module configuration. If UCE cannot resolve a page, inspect the request environment and make sure `SCRIPT_FILENAME` points to the target file under the web root.
+- Apache's FastCGI environment differs by version and module configuration. If BEARER cannot resolve a page, inspect the request environment and make sure `SCRIPT_FILENAME` points to the target file under the web root.
 
 If your Apache version does not populate `SCRIPT_FILENAME` correctly through `SetHandler`, use `ProxyPassMatch` for `.uce` files instead:
 
 ```apache
-ProxyPassMatch ^/(.*\.uce)$ unix:/run/uce/fastcgi.sock|fcgi://localhost/var/www/html/$1
+ProxyPassMatch ^/(.*\.uce)$ unix:/run/bearer/fastcgi.sock|fcgi://localhost/var/www/html/$1
 ```
 
 Use only one FastCGI mapping style at a time (`SetHandler` or `ProxyPassMatch`) to avoid duplicate routing.
 
 ## Permissions
 
-The web server needs permission to connect to `/run/uce/fastcgi.sock`. Common approaches:
+The web server needs permission to connect to `/run/bearer/fastcgi.sock`. Common approaches:
 
-- run UCE and the web server under compatible groups;
+- run BEARER and the web server under compatible groups;
 - add the web server user (`www-data` on Debian/Ubuntu) to the socket's group;
 - adjust the service or runtime socket mode if needed.
 
-The runtime creates the FastCGI socket and CLI socket under `/run/uce`. The CLI socket should remain local-only and should not be reachable from the public web server.
+The runtime creates the FastCGI socket and CLI socket under `/run/bearer`. The CLI socket should remain local-only and should not be reachable from the public web server.
 
 Writable paths for the runtime:
 
 ```text
-/var/cache/uce/work
-/var/lib/uce/uploads
-/var/lib/uce/sessions
-/run/uce
+/var/cache/bearer/work
+/var/lib/bearer/uploads
+/var/lib/bearer/sessions
+/run/bearer
 ```
 
 ## Verification
@@ -662,23 +662,23 @@ Writable paths for the runtime:
 Check service state:
 
 ```bash
-systemctl status uce.service
-journalctl -u uce.service -n 100 --no-pager
+systemctl status bearer.service
+journalctl -u bearer.service -n 100 --no-pager
 ```
 
 Check the FastCGI/web-server path:
 
 ```bash
 curl -i http://127.0.0.1/doc/index.uce -H 'Host: example.com'
-curl -i http://127.0.0.1/examples/uce-starter/ -H 'Host: example.com'
+curl -i http://127.0.0.1/examples/bearer-starter/ -H 'Host: example.com'
 ```
 
 Check the local CLI path:
 
 ```bash
-repo_root=/path/to/uce-root
+repo_root=/path/to/bearer-root
 cd "$repo_root"
-scripts/uce-cli /tests/cli.uce action=echo message=hello
+scripts/bearer-cli /tests/cli.uce action=echo message=hello
 scripts/run_cli_tests.sh
 ```
 
@@ -719,16 +719,16 @@ if(valid && password_needs_rehash(encoded))
 	encoded = password_hash(candidate);
 ```
 
-`password_hash()` returns a self-contained `$uce$scrypt$...` encoding with a random 16-byte salt and the bounded scrypt parameters `N=65536`, `r=8`, `p=1`. `password_verify()` accepts only structurally valid encodings with bounded cost parameters and compares the derived key in constant time. `password_needs_rehash()` reports malformed, legacy, or non-current parameters so applications can upgrade a credential after a successful legacy verification. Treat an empty hash as an operational failure and never store it. Application-level password length policy, rate limiting, and legacy-format verification remain the application's responsibility.
+`password_hash()` returns a self-contained `$bearer$scrypt$...` encoding with a random 16-byte salt and the bounded scrypt parameters `N=65536`, `r=8`, `p=1`. `password_verify()` accepts only structurally valid encodings with bounded cost parameters and compares the derived key in constant time. `password_needs_rehash()` reports malformed, legacy, or non-current parameters so applications can upgrade a credential after a successful legacy verification. Treat an empty hash as an operational failure and never store it. Application-level password length policy, rate limiting, and legacy-format verification remain the application's responsibility.
 
 ## Operational footguns
 
-- Keep the FastCGI socket path consistent: `FCGI_SOCKET_PATH` and the web-server `fastcgi_pass` must match exactly. The reference config uses `/run/uce/fastcgi.sock`; if you choose `/run/uce.sock`, use it in both places.
-- Keep the public web root separate from the runtime source tree. Replace `/opt/uce` with your actual checkout path in local examples (for example `/opt/uce` or `/Code/uce.openfu.com/uce`), and keep public files under `/var/www/html`.
+- Keep the FastCGI socket path consistent: `FCGI_SOCKET_PATH` and the web-server `fastcgi_pass` must match exactly. The reference config uses `/run/bearer/fastcgi.sock`; if you choose `/run/bearer.sock`, use it in both places.
+- Keep the public web root separate from the runtime source tree. Replace `/opt/bearer` with your actual checkout path in local examples (for example `/opt/bearer` or `/Code/bearer.openfu.com/bearer`), and keep public files under `/var/www/html`.
 - Set `HTTP_DOCUMENT_ROOT` when the web root is outside the runtime working directory. The built-in HTTP/WebSocket listener resolves upgrade paths from this setting.
 - Do not expose `CLI_SOCKET_PATH` or `HTTP_PORT` as public entry points. The public path should be nginx/Apache.
 - Do not trust `Script-Filename` request headers from direct HTTP clients. The built-in HTTP listener resolves from `HTTP_DOCUMENT_ROOT` and rejects `..` path segments.
-- WASI SDK is a deployment/runtime dependency, not just a developer build tool. UCE compiles units to wasm on demand during requests and during proactive startup scans, so each host must use the pinned SDK version documented in `docs/wasi-sdk-toolchain.md`.
+- WASI SDK is a deployment/runtime dependency, not just a developer build tool. BEARER compiles units to wasm on demand during requests and during proactive startup scans, so each host must use the pinned SDK version documented in `docs/wasi-sdk-toolchain.md`.
 - After toolchain or compile-script fixes, clear stale failed artifacts under `BIN_DIRECTORY`; otherwise a later request may report an old compile failure.
 
 ## Troubleshooting
@@ -737,8 +737,8 @@ if(valid && password_needs_rehash(encoded))
 
 Check:
 
-- `systemctl status uce.service`
-- `journalctl -u uce.service -n 200 --no-pager`
+- `systemctl status bearer.service`
+- `journalctl -u bearer.service -n 200 --no-pager`
 - socket path in web server config equals `FCGI_SOCKET_PATH`
 - web server user can connect to the Unix socket
 - `SCRIPT_FILENAME` resolves to an existing `.uce` file
@@ -763,7 +763,7 @@ Check:
 
 ### Page compiles fail
 
-Check the compile artifact paths shown in the UCE error response and service logs. Generated files and compile output live under `BIN_DIRECTORY`.
+Check the compile artifact paths shown in the BEARER error response and service logs. Generated files and compile output live under `BIN_DIRECTORY`.
 
 Common compile footguns:
 
@@ -786,7 +786,7 @@ you intentionally want a full rebuild and have accepted losing rollback artifact
 
 Check:
 
-- `CLI_SOCKET_PATH` in `/etc/uce/settings.cfg`
-- `/run/uce/cli.sock` exists
-- `scripts/uce-cli --socket /run/uce/cli.sock /ping` works
+- `CLI_SOCKET_PATH` in `/etc/bearer/settings.cfg`
+- `/run/bearer/cli.sock` exists
+- `scripts/bearer-cli --socket /run/bearer/cli.sock /ping` works
 - the target unit defines `CLI(Request& context)`

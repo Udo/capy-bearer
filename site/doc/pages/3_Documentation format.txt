@@ -5,11 +5,11 @@ Doc pages are text files in site/doc/pages/*.txt using colon-prefixed sections.
 :sig : one or more real C++ signatures, exactly as declared
 :params : `name : description` rows plus `return value : description`
 :content : usage-first prose in 2-5 tight sentences
-:example : runnable UCE code whose real output is captured by the renderer
+:example : runnable BEARER code whose real output is captured by the renderer
 :see : an area reference (`>area`) followed by closest sibling page slugs
 
 :content
-Doc pages use a small structured text format so the index, detail view, search, and tests can all reason about the same source. Put usage first: describe what the API does and when to reach for it before lower-level implementation notes. Every page should include at least one deterministic `:example`; the renderer materializes each example as a temporary UCE unit, compiles it, renders it, and shows both the source and captured output. Keep cross-membrane, lock, and PHP/JS equivalence notes short and trailing when they are useful.
+Doc pages use a small structured text format so the index, detail view, search, and tests can all reason about the same source. Put usage first: describe what the API does and when to reach for it before lower-level implementation notes. Every page should include at least one deterministic `:example`; the renderer materializes each example as a temporary BEARER unit, compiles it, renders it, and shows both the source and captured output. Keep cross-membrane, lock, and PHP/JS equivalence notes short and trailing when they are useful.
 
 :example
 print("A doc page normally contains :sig, :params, :content, :example, and :see.\n");

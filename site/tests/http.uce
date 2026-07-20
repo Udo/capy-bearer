@@ -16,10 +16,10 @@ RENDER(Request& context)
 	};
 
 	String action = first(context.get["action"], "touch");
-	String session_id = session_start("uce-site-tests");
+	String session_id = session_start("bearer-site-tests");
 	String session_path = context.server->config["SESSION_PATH"] + "/" + session_id;
 	if(action == "destroy")
-		session_destroy("uce-site-tests");
+		session_destroy("bearer-site-tests");
 	else
 		context.session["suite"] = "http";
 
@@ -46,15 +46,15 @@ RENDER(Request& context)
 	bool csrf_new_after_rotate = false;
 	if(action != "destroy")
 	{
-		csrf = csrf_token("uce-site-tests", "http_form");
-		csrf_html = csrf_field("uce-site-tests", "http_form");
-		csrf_named_html = csrf_field("uce-site-tests", "http_form", "csrf_token");
-		csrf_ok = csrf_valid(csrf, "uce-site-tests", "http_form");
-		csrf_bad = csrf_valid("not-" + csrf, "uce-site-tests", "http_form");
-		csrf_rotate("uce-site-tests", "http_form");
-		csrf_old_after_rotate = csrf_valid(csrf, "uce-site-tests", "http_form");
-		csrf_rotated = csrf_token("uce-site-tests", "http_form");
-		csrf_new_after_rotate = csrf_rotated != "" && csrf_rotated != csrf && csrf_valid(csrf_rotated, "uce-site-tests", "http_form");
+		csrf = csrf_token("bearer-site-tests", "http_form");
+		csrf_html = csrf_field("bearer-site-tests", "http_form");
+		csrf_named_html = csrf_field("bearer-site-tests", "http_form", "csrf_token");
+		csrf_ok = csrf_valid(csrf, "bearer-site-tests", "http_form");
+		csrf_bad = csrf_valid("not-" + csrf, "bearer-site-tests", "http_form");
+		csrf_rotate("bearer-site-tests", "http_form");
+		csrf_old_after_rotate = csrf_valid(csrf, "bearer-site-tests", "http_form");
+		csrf_rotated = csrf_token("bearer-site-tests", "http_form");
+		csrf_new_after_rotate = csrf_rotated != "" && csrf_rotated != csrf && csrf_valid(csrf_rotated, "bearer-site-tests", "http_form");
 	}
 	String query_dump = var_dump(query);
 	String set_cookie_dump = var_dump(context.set_cookies);

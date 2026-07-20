@@ -23,7 +23,7 @@ RENDER(Request& context)
 
 	site_tests_page_start("ZIP", "Local-only coverage for zip_create(), zip_list(), zip_read(), and zip_extract().");
 
-	String base = "/tmp/uce-site-tests-zip";
+	String base = "/tmp/bearer-site-tests-zip";
 	String archive = path_join(base, "sample.zip");
 	String extract_dir = path_join(base, "extract");
 	mkdir(base);
@@ -64,7 +64,7 @@ RENDER(Request& context)
 	bool nul_name_rejected = !zip_create(path_join(base, "nul-name.zip"), nul_entries);
 	check("zip_create() rejects NUL entry names", nul_name_rejected, "embedded NUL member name rejected");
 
-	String binary_source("UCE", 3);
+	String binary_source("BEARER", 3);
 	binary_source.push_back((char)0x00);
 	binary_source += "binary";
 	binary_source.push_back((char)0xff);
@@ -76,7 +76,7 @@ RENDER(Request& context)
 	String binary_zip_roundtrip = zip_read(binary_archive, "binary.dat");
 	check("zip binary-safe String payload", binary_created && binary_zip_roundtrip == binary_source && binary_zip_roundtrip.size() == binary_source.size(), "bytes=" + std::to_string((u64)binary_zip_roundtrip.size()));
 
-	String gz_source = "UCE gzip payload\nline two\n";
+	String gz_source = "BEARER gzip payload\nline two\n";
 	String gz_body = gz_compress(gz_source);
 	String gz_roundtrip = gz_uncompress(gz_body);
 	String gz_binary_body = gz_compress(binary_source);
@@ -89,6 +89,6 @@ RENDER(Request& context)
 	bool bad_gz_rejected = gz_uncompress("not gzip data") == "";
 	check("gz_uncompress() rejects invalid data", bad_gz_rejected, "invalid stream rejected");
 
-	site_tests_summary(passed, failed, skipped, "ZIP tests write only under /tmp/uce-site-tests-zip.");
+	site_tests_summary(passed, failed, skipped, "ZIP tests write only under /tmp/bearer-site-tests-zip.");
 	site_tests_page_end();
 }

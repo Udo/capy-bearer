@@ -18,10 +18,10 @@ void regex_bool_row(String label, bool result, bool expect)
 
 RENDER(Request& context)
 {
-	String text = "Contact ops@example.test or tag #uce, #docs, and café.";
+	String text = "Contact ops@example.test or tag #bearer, #docs, and café.";
 	DValue first_email = regex_search("(?<user>[A-Za-z0-9._%+-]+)@(?<host>[A-Za-z0-9.-]+)", text);
 	DValue tags = regex_search_all("#(?<tag>[A-Za-z0-9_]+)", text);
-	StringList pieces = regex_split("\\s*,\\s*", "uce, components, markdown");
+	StringList pieces = regex_split("\\s*,\\s*", "bearer, components, markdown");
 
 	<>
 		<link rel="stylesheet" href='style.css'></link>
@@ -34,11 +34,11 @@ RENDER(Request& context)
 			.test-status.fail { color: #f66; }
 		</style>
 		<h1>
-			<a href="index.uce">UCE Test</a>:
+			<a href="index.uce">BEARER Test</a>:
 			Regular Expressions
 		</h1>
 
-		<p>UCE regex functions use PCRE2 and return ordinary UCE strings, lists, and DValue values.</p>
+		<p>BEARER regex functions use PCRE2 and return ordinary BEARER strings, lists, and DValue values.</p>
 		<p>sample = <code><?= text ?></code></p>
 
 		<h2>Validation And Search</h2>
@@ -55,15 +55,15 @@ RENDER(Request& context)
 		<h2>All Matches</h2>
 		<table class="tests"><?
 			regex_row("regex_search_all hashtags count", tags["count"].to_string(), "2.000000");
-			regex_row("first hashtag", tags["matches"]["0"]["named"]["tag"].to_string(), "uce");
+			regex_row("first hashtag", tags["matches"]["0"]["named"]["tag"].to_string(), "bearer");
 			regex_row("second hashtag", tags["matches"]["1"]["named"]["tag"].to_string(), "docs");
 		?></table>
 
 		<h2>Replace And Split</h2>
 		<table class="tests"><?
-			regex_row("regex_replace(\"#([A-Za-z0-9_]+)\", \"<tag>$1</tag>\", \"#uce\")", regex_replace("#([A-Za-z0-9_]+)", "<tag>$1</tag>", "#uce"), "<tag>uce</tag>");
-			regex_row("join(regex_split(\"\\\\s*,\\\\s*\", ...), \"|\")", join(pieces, "|"), "uce|components|markdown");
-			regex_row("case-insensitive flag", regex_search("uce", "Hello UCE", "i")["match"].to_string(), "UCE");
+			regex_row("regex_replace(\"#([A-Za-z0-9_]+)\", \"<tag>$1</tag>\", \"#bearer\")", regex_replace("#([A-Za-z0-9_]+)", "<tag>$1</tag>", "#bearer"), "<tag>bearer</tag>");
+			regex_row("join(regex_split(\"\\\\s*,\\\\s*\", ...), \"|\")", join(pieces, "|"), "bearer|components|markdown");
+			regex_row("case-insensitive flag", regex_search("bearer", "Hello BEARER", "i")["match"].to_string(), "BEARER");
 		?></table>
 
 		<h2>Structured Result</h2>

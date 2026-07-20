@@ -21,7 +21,7 @@ b184dd1586d935133d37ad76fa353faf0a1021ff2fdedeedcc3498fff74bbb94  sqlite3ext.h
 
 ## Runtime compile flags
 
-The amalgamation is included by `src/lib/uce_lib.cpp` with:
+The amalgamation is included by `src/lib/bearer_lib.cpp` with:
 
 ```cpp
 #define SQLITE_THREADSAFE 1

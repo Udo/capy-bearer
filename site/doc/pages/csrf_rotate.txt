@@ -1,5 +1,5 @@
 :sig
-void csrf_rotate(String session_name = "uce-session", String token_name = "csrf_token")
+void csrf_rotate(String session_name = "bearer-session", String token_name = "csrf_token")
 
 :params
 session_name : session/cookie name used by `csrf_token()`

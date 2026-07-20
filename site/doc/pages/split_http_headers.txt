@@ -22,5 +22,5 @@ Example:
 Most page code should read `context.params` instead. Use this helper when parsing raw HTTP text in tests or protocol helpers.
 
 :example
-StringMap headers = split_http_headers("Host: example.test\r\nUser-Agent: uce\r\n");
+StringMap headers = split_http_headers("Host: example.test\r\nUser-Agent: bearer\r\n");
 print(headers["Host"], "\n");

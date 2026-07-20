@@ -3,9 +3,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-PACKAGE_NAME="uce"
-RELEASE="${UCE_RPM_RELEASE:-1}"
-WEBROOT="${UCE_RPM_WEBROOT:-/var/www/html}"
+PACKAGE_NAME="bearer"
+RELEASE="${BEARER_RPM_RELEASE:-1}"
+WEBROOT="${BEARER_RPM_WEBROOT:-/var/www/html}"
 
 usage() {
 	cat <<'EOF'
@@ -15,11 +15,11 @@ Usage:
 When VERSION is omitted, scripts/make_rpm.sh reads VERSION, MAJOR, and RELEASE from version.txt.
 
 Environment:
-  UCE_RPM_RELEASE             Override RPM release suffix (default: RELEASE from version.txt)
-  UCE_RPM_ARCH                Override RPM architecture
-  UCE_RPM_WEBROOT             Public web root staged into the package (default: /var/www/html)
-  UCE_RPM_BUNDLE_WASI_SDK     Bundle pinned /opt/wasi-sdk into the package (default: 1)
-  UCE_RPM_BUNDLE_WASMTIME     Bundle /opt/wasmtime into the package (default: 1)
+  BEARER_RPM_RELEASE             Override RPM release suffix (default: RELEASE from version.txt)
+  BEARER_RPM_ARCH                Override RPM architecture
+  BEARER_RPM_WEBROOT             Public web root staged into the package (default: /var/www/html)
+  BEARER_RPM_BUNDLE_WASI_SDK     Bundle pinned /opt/wasi-sdk into the package (default: 1)
+  BEARER_RPM_BUNDLE_WASMTIME     Bundle /opt/wasmtime into the package (default: 1)
 EOF
 }
 
@@ -39,8 +39,8 @@ validate_version() {
 }
 
 resolve_arch() {
-	if [[ -n "${UCE_RPM_ARCH:-}" ]]; then
-		printf '%s\n' "$UCE_RPM_ARCH"
+	if [[ -n "${BEARER_RPM_ARCH:-}" ]]; then
+		printf '%s\n' "$BEARER_RPM_ARCH"
 		return
 	fi
 	uname -m
@@ -55,21 +55,21 @@ copy_payload() {
 		cp -a "$REPO_ROOT/$path" "$destination/"
 	done
 	mkdir -p "$destination/etc" "$stage_dir$webroot"
-	cp -a "$REPO_ROOT/etc/uce" "$destination/etc/"
+	cp -a "$REPO_ROOT/etc/bearer" "$destination/etc/"
 	cp -a "$REPO_ROOT/site/." "$stage_dir$webroot/"
 }
 
 write_packaged_settings() {
 	local output_file="$1"
 	local webroot="$2"
-	python3 - "$REPO_ROOT/etc/uce/settings.cfg" "$output_file" "$webroot" <<'PY'
+	python3 - "$REPO_ROOT/etc/bearer/settings.cfg" "$output_file" "$webroot" <<'PY'
 from pathlib import Path
 import sys
 src, dst, webroot = sys.argv[1:4]
 s = Path(src).read_text()
 replacements = {
     "SITE_DIRECTORY=site": f"SITE_DIRECTORY={webroot}",
-    "WASM_CORE_PATH=/Code/uce.openfu.com/uce/bin/wasm/core.wasm": "WASM_CORE_PATH=/usr/lib/uce/bin/wasm/core.wasm",
+    "WASM_CORE_PATH=/Code/bearer.openfu.com/bearer/bin/wasm/core.wasm": "WASM_CORE_PATH=/usr/lib/bearer/bin/wasm/core.wasm",
     "HTTP_DOCUMENT_ROOT=": f"HTTP_DOCUMENT_ROOT={webroot}",
 }
 for old, new in replacements.items():
@@ -84,11 +84,11 @@ PY
 bundle_wasi_sdk() {
 	local stage_dir="$1"
 	local wasi_root="${WASI_SDK:-/opt/wasi-sdk}"
-	if [[ "${UCE_RPM_BUNDLE_WASI_SDK:-1}" != "1" ]]; then
+	if [[ "${BEARER_RPM_BUNDLE_WASI_SDK:-1}" != "1" ]]; then
 		return
 	fi
 	if [[ ! -x "$wasi_root/bin/clang++" || ! -x "$wasi_root/bin/wasm-ld" || ! -x "$wasi_root/bin/llvm-nm" ]]; then
-		echo "UCE_RPM_BUNDLE_WASI_SDK=1 but WASI_SDK does not point at a complete SDK: $wasi_root" >&2
+		echo "BEARER_RPM_BUNDLE_WASI_SDK=1 but WASI_SDK does not point at a complete SDK: $wasi_root" >&2
 		exit 1
 	fi
 	local resolved base
@@ -102,11 +102,11 @@ bundle_wasi_sdk() {
 bundle_wasmtime() {
 	local stage_dir="$1"
 	local wasmtime_root="${WASMTIME_HOME:-/opt/wasmtime}"
-	if [[ "${UCE_RPM_BUNDLE_WASMTIME:-1}" != "1" ]]; then
+	if [[ "${BEARER_RPM_BUNDLE_WASMTIME:-1}" != "1" ]]; then
 		return
 	fi
 	if [[ ! -f "$wasmtime_root/include/wasmtime.hh" || ! -f "$wasmtime_root/lib/libwasmtime.so" ]]; then
-		echo "UCE_RPM_BUNDLE_WASMTIME=1 but WASMTIME_HOME does not point at a complete C API tree: $wasmtime_root" >&2
+		echo "BEARER_RPM_BUNDLE_WASMTIME=1 but WASMTIME_HOME does not point at a complete C API tree: $wasmtime_root" >&2
 		exit 1
 	fi
 	local resolved base
@@ -148,7 +148,7 @@ if [[ -z "$FULL_VERSION" || -z "$RPM_VERSION" || -z "$RPM_RELEASE_PART" ]]; then
 fi
 RPM_RELEASE_PART="${RPM_RELEASE_PART//-/_}"
 VERSION="$RPM_VERSION"
-RELEASE="${UCE_RPM_RELEASE:-$RPM_RELEASE_PART}"
+RELEASE="${BEARER_RPM_RELEASE:-$RPM_RELEASE_PART}"
 validate_version "$VERSION"
 
 require_command bash
@@ -165,21 +165,21 @@ PACKAGE_VERSION="$FULL_VERSION"
 BUILD_ROOT="$REPO_ROOT/pkg/rpm-build"
 STAGE_DIR="$BUILD_ROOT/stage"
 RPMBUILD_DIR="$BUILD_ROOT/rpmbuild"
-INSTALL_ROOT="$STAGE_DIR/usr/lib/uce"
+INSTALL_ROOT="$STAGE_DIR/usr/lib/bearer"
 SPEC_FILE="$RPMBUILD_DIR/SPECS/$PACKAGE_NAME.spec"
 DIST_DIR="$REPO_ROOT/dist"
 
 bash "$REPO_ROOT/scripts/build_linux.sh"
 
 rm -rf -- "$BUILD_ROOT"
-mkdir -p "$INSTALL_ROOT" "$STAGE_DIR/etc/uce" "$STAGE_DIR/usr/lib/systemd/system" "$STAGE_DIR/var/cache/uce" "$STAGE_DIR/var/lib/uce" "$RPMBUILD_DIR"/{BUILD,RPMS,SOURCES,SPECS,SRPMS} "$DIST_DIR"
+mkdir -p "$INSTALL_ROOT" "$STAGE_DIR/etc/bearer" "$STAGE_DIR/usr/lib/systemd/system" "$STAGE_DIR/var/cache/bearer" "$STAGE_DIR/var/lib/bearer" "$RPMBUILD_DIR"/{BUILD,RPMS,SOURCES,SPECS,SRPMS} "$DIST_DIR"
 
 copy_payload "$INSTALL_ROOT" "$WEBROOT" "$STAGE_DIR"
 bundle_wasi_sdk "$STAGE_DIR"
 bundle_wasmtime "$STAGE_DIR"
-write_packaged_settings "$STAGE_DIR/etc/uce/settings.cfg" "$WEBROOT"
-install -m 0644 "$REPO_ROOT/scripts/deb/uce.service" "$STAGE_DIR/usr/lib/systemd/system/uce.service"
-install -m 0644 "$REPO_ROOT/scripts/deb/uce.socket" "$STAGE_DIR/usr/lib/systemd/system/uce.socket"
+write_packaged_settings "$STAGE_DIR/etc/bearer/settings.cfg" "$WEBROOT"
+install -m 0644 "$REPO_ROOT/scripts/deb/bearer.service" "$STAGE_DIR/usr/lib/systemd/system/bearer.service"
+install -m 0644 "$REPO_ROOT/scripts/deb/bearer.socket" "$STAGE_DIR/usr/lib/systemd/system/bearer.socket"
 
 (
 	cd "$STAGE_DIR"
@@ -192,9 +192,9 @@ cat > "$SPEC_FILE" <<EOF
 Name: $PACKAGE_NAME
 Version: $VERSION
 Release: $RELEASE%{?dist}
-Summary: UCE FastCGI runtime and live-compiling C++ web environment
+Summary: BEARER FastCGI runtime and live-compiling C++ web environment
 License: GPL-3.0-or-later
-URL: https://example.com/uce
+URL: https://example.com/bearer
 BuildArch: $ARCH
 Requires: bash
 Requires: python3
@@ -207,7 +207,7 @@ Requires: libstdc++
 Requires: mariadb-connector-c
 
 %description
-UCE is an experimental C/C++ web runtime with FastCGI request handling,
+BEARER is an experimental C/C++ web runtime with FastCGI request handling,
 on-demand wasm unit compilation, and a packaged site/doc/test tree.
 
 %prep
@@ -226,14 +226,14 @@ cp -a %{_builddir}/$PACKAGE_NAME-$VERSION/. %{buildroot}/
 %post
 if command -v systemctl >/dev/null 2>&1; then
     systemctl daemon-reload >/dev/null 2>&1 || true
-    systemctl enable uce.socket uce.service >/dev/null 2>&1 || true
-    systemctl start uce.socket >/dev/null 2>&1 || true
-    systemctl restart uce.service >/dev/null 2>&1 || true
+    systemctl enable bearer.socket bearer.service >/dev/null 2>&1 || true
+    systemctl start bearer.socket >/dev/null 2>&1 || true
+    systemctl restart bearer.service >/dev/null 2>&1 || true
 fi
 
 %preun
 if [ "\$1" = "0" ] && command -v systemctl >/dev/null 2>&1; then
-    systemctl disable --now uce.service uce.socket >/dev/null 2>&1 || true
+    systemctl disable --now bearer.service bearer.socket >/dev/null 2>&1 || true
 fi
 
 %postun
@@ -242,20 +242,20 @@ if command -v systemctl >/dev/null 2>&1; then
 fi
 
 %files
-%license /usr/lib/uce/LICENSE
-%doc /usr/lib/uce/README.md
-%config(noreplace) /etc/uce/settings.cfg
-/usr/lib/uce
-/usr/lib/systemd/system/uce.service
-/usr/lib/systemd/system/uce.socket
+%license /usr/lib/bearer/LICENSE
+%doc /usr/lib/bearer/README.md
+%config(noreplace) /etc/bearer/settings.cfg
+/usr/lib/bearer
+/usr/lib/systemd/system/bearer.service
+/usr/lib/systemd/system/bearer.socket
 $WEBROOT
-%dir /var/cache/uce
-%dir /var/lib/uce
+%dir /var/cache/bearer
+%dir /var/lib/bearer
 /opt/*
 
 %changelog
-* Mon Jun 15 2026 UCE Packager <root@localhost> - $PACKAGE_VERSION
-- Package UCE runtime with pinned deployment toolchains.
+* Mon Jun 15 2026 BEARER Packager <root@localhost> - $PACKAGE_VERSION
+- Package BEARER runtime with pinned deployment toolchains.
 EOF
 
 rpmbuild --define "_topdir $RPMBUILD_DIR" -bb "$SPEC_FILE"

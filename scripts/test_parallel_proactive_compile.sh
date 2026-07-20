@@ -27,7 +27,7 @@ cleanup() {
 }
 trap cleanup EXIT
 mkdir -p "$site" "$work" "$root/run" "$root/session" "$root/upload"
-cp /etc/uce/settings.cfg "$settings"
+cp /etc/bearer/settings.cfg "$settings"
 cat >>"$settings" <<CFG
 BIN_DIRECTORY=$work
 PRECOMPILE_FILES_IN=$site
@@ -49,7 +49,7 @@ PROACTIVE_COMPILE_CHECK_INTERVAL=1
 COMPILE_FAILURE_RETRY_SECONDS=2
 SERVE_LAST_KNOWN_GOOD=0
 CFG
-mount --bind "$settings" /etc/uce/settings.cfg
+mount --bind "$settings" /etc/bearer/settings.cfg
 
 cat >"$root/compile" <<SHIM
 #!/usr/bin/env bash
@@ -70,7 +70,7 @@ nice_value=\$(timeout 2s ps -o ni= -p "\$PPID" | tr -d ' ')
 owner_pid=\$PPID
 for _ in 1 2 3 4; do
 	owner_command=\$(timeout 2s ps -o comm= -p "\$owner_pid" | tr -d ' ')
-	[[ "\$owner_command" == uce_fastcgi.* ]] && break
+	[[ "\$owner_command" == bearer_fastcgi.* ]] && break
 	owner_pid=\$(timeout 2s ps -o ppid= -p "\$owner_pid" | tr -d ' ')
 	[[ -n "\$owner_pid" && "\$owner_pid" != "1" ]] || break
 done
@@ -101,11 +101,11 @@ done
 printf '%s\n' 'CLI(Request& context) { print("removed"); }' >"$site/removed.uce"
 printf '%s\n' 'CLI(Request& context) { print("baseline"); }' >"$site/broken.uce"
 
-timeout --signal=TERM --kill-after=5s 120s bin/uce_fastcgi.linux.bin >"$log" 2>&1 &
+timeout --signal=TERM --kill-after=5s 120s bin/bearer_fastcgi.linux.bin >"$log" 2>&1 &
 server_pid=$!
 deadline=$((SECONDS + 20))
 while [[ ! -S "$root/run/cli.sock" ]] && (( SECONDS < deadline )); do sleep 0.05; done
-[[ -S "$root/run/cli.sock" ]] || { echo "private UCE CLI socket was not ready" >&2; cat "$log" >&2; exit 1; }
+[[ -S "$root/run/cli.sock" ]] || { echo "private BEARER CLI socket was not ready" >&2; cat "$log" >&2; exit 1; }
 
 generation="$(scripts/unit_cache_directory "$work")"
 artifacts="$generation$(realpath "$site")"
@@ -148,7 +148,7 @@ deadline=$((SECONDS + 20))
 while { [[ ! -e "$root/held-${scanner_pids[0]}" ]] || [[ ! -e "$root/held-${scanner_pids[1]}" ]]; } && (( SECONDS < deadline )); do sleep 0.05; done
 [[ -e "$root/held-${scanner_pids[0]}" && -e "$root/held-${scanner_pids[1]}" ]] || { echo "both scanners did not reach their controlled queue barriers" >&2; cat "$log" >&2; exit 1; }
 for victim in "${victims[@]}"; do
-	victim_marker=$(UCE_CLI_SOCKET="$root/run/cli.sock" timeout 20s scripts/uce-cli "/$(basename "$victim")")
+	victim_marker=$(BEARER_CLI_SOCKET="$root/run/cli.sock" timeout 20s scripts/bearer-cli "/$(basename "$victim")")
 	[[ "$victim_marker" == *"common-b-"* ]] || { echo "request worker did not publish queued victim: $victim_marker" >&2; exit 1; }
 done
 touch "$root/release"
@@ -170,10 +170,10 @@ for unit in 0 1 2 3; do
 done
 rm -f "$root/hold-paths" "$root"/held-* "$root/release"
 [[ "$(<"$root/maximum")" -ge 2 ]] || { echo "common dependency fanout did not overlap across scanner owners" >&2; cat "$shim_log" >&2; exit 1; }
-marker=$(UCE_CLI_SOCKET="$root/run/cli.sock" timeout 20s scripts/uce-cli /unit-0.uce)
+marker=$(BEARER_CLI_SOCKET="$root/run/cli.sock" timeout 20s scripts/bearer-cli /unit-0.uce)
 [[ "$marker" == *"common-b-0"* ]] || { echo "rebuilt parent did not execute the changed dependency: $marker" >&2; exit 1; }
 rm "$site/removed.uce"
-registry="$generation/known-uce-files.txt"
+registry="$generation/known-bearer-files.txt"
 deadline=$((SECONDS + 5))
 while grep -q "$site/removed.uce" "$registry" 2>/dev/null && (( SECONDS < deadline )); do sleep 0.1; done
 if grep -q "$site/removed.uce" "$registry" 2>/dev/null; then echo "removed unit remained tracked" >&2; cat "$log" >&2; exit 1; fi

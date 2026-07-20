@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm -r /tmp/uce/work/* ; scripts/build_linux.sh && bin/uce_fastcgi.linux.bin
+rm -r /tmp/bearer/work/* ; scripts/build_linux.sh && bin/bearer_fastcgi.linux.bin

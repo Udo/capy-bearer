@@ -14,7 +14,7 @@ sqlite_disconnect
 :content
 Opens an SQLite database file and returns a connection handle.
 
-UCE opens SQLite with serialized/full-mutex connection mode, sets a busy timeout, enables foreign keys, and applies WAL-oriented defaults:
+BEARER opens SQLite with serialized/full-mutex connection mode, sets a busy timeout, enables foreign keys, and applies WAL-oriented defaults:
 
 ```sql
 PRAGMA busy_timeout = 5000;
@@ -23,7 +23,7 @@ PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
 ```
 
-SQLite itself handles file locking and one-writer/many-reader concurrency. UCE does not add a separate app-level database lock.
+SQLite itself handles file locking and one-writer/many-reader concurrency. BEARER does not add a separate app-level database lock.
 
 Connections are registered for request cleanup, but explicit `sqlite_disconnect()` is still preferred when you are done with the handle.
 

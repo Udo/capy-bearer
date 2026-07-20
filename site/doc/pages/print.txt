@@ -10,7 +10,7 @@ void print(...val)
 :content
 Appends data to the current request output stream.
 
-Use `print()` when you want to emit response content directly from UCE code.
+Use `print()` when you want to emit response content directly from BEARER code.
 
 
 :example

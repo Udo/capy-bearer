@@ -1,5 +1,5 @@
 :sig
-bool csrf_valid(String submitted_token, String session_name = "uce-session", String token_name = "csrf_token")
+bool csrf_valid(String submitted_token, String session_name = "bearer-session", String token_name = "csrf_token")
 
 :params
 submitted_token : value received from the request, usually `context.post["csrf_token"]`
@@ -13,9 +13,9 @@ Starts the named session if needed and checks `submitted_token` against the stor
 Use this before mutating state from POST forms or other browser-submitted requests.
 
 :example
-String token = csrf_token("uce-doc-session");
-print(csrf_valid(token, "uce-doc-session") ? "valid\n" : "invalid\n");
-print(csrf_valid("bad-token", "uce-doc-session") ? "bad valid\n" : "bad invalid\n");
+String token = csrf_token("bearer-doc-session");
+print(csrf_valid(token, "bearer-doc-session") ? "valid\n" : "invalid\n");
+print(csrf_valid("bad-token", "bearer-doc-session") ? "bad valid\n" : "bad invalid\n");
 
 :see
 >http

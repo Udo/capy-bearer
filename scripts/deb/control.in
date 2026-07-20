@@ -6,6 +6,6 @@ Architecture: @ARCH@
 Depends: bash, python3, curl, systemd, libpcre2-8-0, zlib1g, libssl3, libstdc++6, libgcc-s1, libmariadb3 | libmysqlclient21 | libmysqlclient24
 Maintainer: Udo Schroeter <udo@openfu.com>
 Installed-Size: @INSTALLED_SIZE@
-Description: UCE FastCGI runtime and live-compiling C++ web environment
- UCE is an experimental C/C++ web runtime with FastCGI request handling,
+Description: BEARER FastCGI runtime and live-compiling C++ web environment
+ BEARER is an experimental C/C++ web runtime with FastCGI request handling,
  on-demand page compilation, and a published site/doc/test tree.

@@ -16,4 +16,4 @@ An empty `needle` always returns `true`.
 
 
 :example
-print(contains("uce docs", "docs") ? "yes\n" : "no\n");
+print(contains("bearer docs", "docs") ? "yes\n" : "no\n");

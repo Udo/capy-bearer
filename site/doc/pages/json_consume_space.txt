@@ -13,7 +13,7 @@ json_decode
 :content
 Advances `i` past JSON whitespace in `s`.
 
-This helper is mainly useful when writing a parser that follows UCE's JSON parsing rules. Most page code should call `json_decode()` instead.
+This helper is mainly useful when writing a parser that follows BEARER's JSON parsing rules. Most page code should call `json_decode()` instead.
 
 Example:
 

@@ -3,33 +3,33 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 test_name="dependency-cache-test-$$"
-site_directory="${UCE_TEST_SITE_DIRECTORY:-site}"
-if [[ -z "${UCE_TEST_SITE_DIRECTORY:-}" && -r /etc/uce/settings.cfg ]]; then
-	configured_site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+site_directory="${BEARER_TEST_SITE_DIRECTORY:-site}"
+if [[ -z "${BEARER_TEST_SITE_DIRECTORY:-}" && -r /etc/bearer/settings.cfg ]]; then
+	configured_site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 	if [[ -n "${configured_site_directory:-}" ]]; then
 		site_directory="$configured_site_directory"
 	fi
 fi
 source_dir="$site_directory/$test_name"
 bin_directory="${BIN_DIRECTORY:-}"
-if [[ -z "$bin_directory" && -r /etc/uce/settings.cfg ]]; then
-	bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+if [[ -z "$bin_directory" && -r /etc/bearer/settings.cfg ]]; then
+	bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 fi
-bin_directory="${bin_directory:-/tmp/uce/work}"
+bin_directory="${bin_directory:-/tmp/bearer/work}"
 cache_dir=""
-mutation_file="/tmp/uce-dependency-mutation-$$"
-component_mutation_file="/tmp/uce-component-mutation-$$"
-component_post_body="/tmp/uce-component-post-body-$$"
-component_post_headers="/tmp/uce-component-post-headers-$$"
-component_lock_ready_file="/tmp/uce-component-lock-ready-$$"
-post_body="/tmp/uce-dependency-post-body-$$"
-post_headers="/tmp/uce-dependency-post-headers-$$"
-lock_ready_file="/tmp/uce-dependency-lock-ready-$$"
-nested_lock_ready_file="/tmp/uce-nested-lock-ready-$$"
-race_output="/tmp/uce-source-race-output-$$"
-race_error="/tmp/uce-source-race-error-$$"
-race_status="/tmp/uce-source-race-status-$$"
-http_host="${UCE_TEST_HTTP_HOST:-uce.openfu.com}"
+mutation_file="/tmp/bearer-dependency-mutation-$$"
+component_mutation_file="/tmp/bearer-component-mutation-$$"
+component_post_body="/tmp/bearer-component-post-body-$$"
+component_post_headers="/tmp/bearer-component-post-headers-$$"
+component_lock_ready_file="/tmp/bearer-component-lock-ready-$$"
+post_body="/tmp/bearer-dependency-post-body-$$"
+post_headers="/tmp/bearer-dependency-post-headers-$$"
+lock_ready_file="/tmp/bearer-dependency-lock-ready-$$"
+nested_lock_ready_file="/tmp/bearer-nested-lock-ready-$$"
+race_output="/tmp/bearer-source-race-output-$$"
+race_error="/tmp/bearer-source-race-error-$$"
+race_status="/tmp/bearer-source-race-status-$$"
+http_host="${BEARER_TEST_HTTP_HOST:-bearer.openfu.com}"
 
 cleanup() {
 	rm -rf "$source_dir"
@@ -43,8 +43,8 @@ mkdir -p "$source_dir"
 cache_dir="$(scripts/unit_cache_directory "$bin_directory")$(realpath "$source_dir")"
 
 printf '%s\n' \
-	'#ifndef UCE_DEPENDENCY_CACHE_CHILD' \
-	'#define UCE_DEPENDENCY_CACHE_CHILD' \
+	'#ifndef BEARER_DEPENDENCY_CACHE_CHILD' \
+	'#define BEARER_DEPENDENCY_CACHE_CHILD' \
 	'String dependency_cache_marker() { return("dependency-marker-a"); }' \
 	'#endif' >"$source_dir/child.uce"
 printf '%s\n' \
@@ -56,7 +56,7 @@ assert_marker() {
 	local path="$1"
 	local expected="$2"
 	local output
-	output=$(scripts/uce-cli "/$test_name/$path.uce")
+	output=$(scripts/bearer-cli "/$test_name/$path.uce")
 	if [[ "$output" != *"$expected"* ]]; then
 		echo "$path returned stale module; expected $expected: $output" >&2
 		exit 1
@@ -85,7 +85,7 @@ assert_marker symlink-parent symlink-marker-b
 
 # A repeated exact transitive load is signature-deduplicated before path
 # canonicalization, but the shared dependency must still invalidate the parent.
-printf '%s\n' '#ifndef UCE_DIAMOND_COMMON' '#define UCE_DIAMOND_COMMON' 'String diamond_marker() { return("diamond-a"); }' '#endif' >"$source_dir/diamond-common.uce"
+printf '%s\n' '#ifndef BEARER_DIAMOND_COMMON' '#define BEARER_DIAMOND_COMMON' 'String diamond_marker() { return("diamond-a"); }' '#endif' >"$source_dir/diamond-common.uce"
 printf '%s\n' '#load "diamond-common.uce"' >"$source_dir/diamond-left.uce"
 printf '%s\n' '#load "diamond-common.uce"' >"$source_dir/diamond-right.uce"
 printf '%s\n' '#load "diamond-left.uce"' '#load "diamond-right.uce"' 'CLI(Request& context) { print(diamond_marker()); }' >"$source_dir/diamond-parent.uce"
@@ -189,11 +189,11 @@ fi
 # If a dependency is restored byte-for-byte to the last working source, the
 # old successful metadata must not make that transient failure permanent.
 printf '%s\n' \
-	'#ifndef UCE_DEPENDENCY_CACHE_CHILD' \
-	'#define UCE_DEPENDENCY_CACHE_CHILD' \
+	'#ifndef BEARER_DEPENDENCY_CACHE_CHILD' \
+	'#define BEARER_DEPENDENCY_CACHE_CHILD' \
 	'String dependency_cache_marker() { return(deliberate_dependency_compile_failure); }' \
 	'#endif' >"$source_dir/child.uce"
-if restored_failure=$(scripts/uce-cli --get "/$test_name/parent.uce" __uce_expected_compile_failure=1 2>&1); then
+if restored_failure=$(scripts/bearer-cli --get "/$test_name/parent.uce" __bearer_expected_compile_failure=1 2>&1); then
 	echo "invalid dependency unexpectedly compiled: $restored_failure" >&2
 	exit 1
 fi
@@ -202,8 +202,8 @@ if [[ "$restored_failure" != *"deliberate_dependency_compile_failure"* ]]; then
 	exit 1
 fi
 printf '%s\n' \
-	'#ifndef UCE_DEPENDENCY_CACHE_CHILD' \
-	'#define UCE_DEPENDENCY_CACHE_CHILD' \
+	'#ifndef BEARER_DEPENDENCY_CACHE_CHILD' \
+	'#define BEARER_DEPENDENCY_CACHE_CHILD' \
 	'String dependency_cache_marker() { return("dependency-marker-a"); }' \
 	'#endif' >"$source_dir/child.uce"
 assert_marker parent dependency-marker-a
@@ -222,7 +222,7 @@ fi
 
 printf '%s\n' 'CLI(Request& context) { print("readable-source-marker"); }' >"$source_dir/unreadable.uce"
 chmod 000 "$source_dir/unreadable.uce"
-if unreadable_output=$(scripts/uce-cli --get "/$test_name/unreadable.uce" __uce_expected_source_read_failure=1 2>&1); then
+if unreadable_output=$(scripts/bearer-cli --get "/$test_name/unreadable.uce" __bearer_expected_source_read_failure=1 2>&1); then
 	echo "unreadable source unexpectedly compiled: $unreadable_output" >&2
 	exit 1
 fi
@@ -372,7 +372,7 @@ if [[ ! -e "$nested_lock_ready_file" ]]; then
 fi
 sed -i 's/nested-component-marker-a/nested-component-marker-b/' "$source_dir/nested-child.uce"
 started_at=$(date +%s%N)
-nested_output=$(scripts/uce-cli "/$test_name/nested-parent.uce")
+nested_output=$(scripts/bearer-cli "/$test_name/nested-parent.uce")
 elapsed_ms=$(( ($(date +%s%N) - started_at) / 1000000 ))
 wait "$nested_lock_pid"
 if [[ "$nested_output" != *"nested-component-marker-b"* ]]; then
@@ -409,7 +409,7 @@ race_cpp=""
 rm -f "$cache_dir/source-race.uce.cpp" "$cache_dir/source-race.uce.wasm" "$cache_dir/source-race.uce.cwasm" "$cache_dir/source-race.uce.meta.txt"
 (
 	set +e
-	scripts/uce-cli "/$test_name/source-race.uce" >"$race_output" 2>"$race_error"
+	scripts/bearer-cli "/$test_name/source-race.uce" >"$race_output" 2>"$race_error"
 	echo "$?" >"$race_status"
 ) &
 race_pid=$!
@@ -444,15 +444,15 @@ if [[ "$(cat "$race_status" 2>/dev/null || echo 1)" != "0" ]]; then
 	exit 1
 fi
 if [[ "$(cat "$race_output")" != *"source-race-marker-b"* ]]; then
-	echo "source changed during compile but UCE served stale wasm: $(cat "$race_output")" >&2
+	echo "source changed during compile but BEARER served stale wasm: $(cat "$race_output")" >&2
 	exit 1
 fi
 
-worker_count=$(awk -F= '/^[[:space:]]*WORKER_COUNT[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg 2>/dev/null || true)
+worker_count=$(awk -F= '/^[[:space:]]*WORKER_COUNT[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg 2>/dev/null || true)
 worker_count="${worker_count:-4}"
 worker_pids=""
 for _ in {1..48}; do
-	output=$(scripts/uce-cli "/$test_name/parent.uce")
+	output=$(scripts/bearer-cli "/$test_name/parent.uce")
 	worker_pids+="${output##*:}"$'\n'
 done
 unique_workers=$(printf '%s' "$worker_pids" | sed '/^$/d' | sort -u | wc -l)

@@ -78,7 +78,7 @@ RENDER(Request& context)
 	</head>
 	<body>
 		<h1>
-			UCE API
+			BEARER API
 		</h1>
 		<?
 

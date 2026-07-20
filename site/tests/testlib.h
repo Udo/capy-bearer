@@ -43,7 +43,7 @@ void site_tests_page_start(String title, String description = "")
 	print(".tests-warning { border-left:4px solid #d97706; padding:0.75rem 1rem; background:#fff7ed; }");
 	print(".tests-code-block { padding:0.75rem 1rem; background:#111827; color:#f9fafb; overflow:auto; }");
 	print("</style></head><body>");
-	print("<h1><a href=\"index.uce\">UCE Site Tests</a><a class=\"docs-link\" href=\"../doc/index.uce\">API Docs &rarr;</a></h1>");
+	print("<h1><a href=\"index.uce\">BEARER Site Tests</a><a class=\"docs-link\" href=\"../doc/index.uce\">API Docs &rarr;</a></h1>");
 	print("<h2>", html_escape(title), "</h2>");
 	if(description != "")
 		print("<p>", html_escape(description), "</p>");

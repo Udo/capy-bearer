@@ -8,7 +8,7 @@ COMPONENT(Request& context)
 	context.call["app"]["page_title"] = "Features";
 	<>
 		<h1>Features</h1>
-		<p class="card">This page exists in the UCE port so the starter menu resolves cleanly as a full route, while still reusing the same marketing components as the home page.</p>
+		<p class="card">This page exists in the BEARER port so the starter menu resolves cleanly as a full route, while still reusing the same marketing components as the home page.</p>
 	</>
 	print(component("../components/example/marketing_blocks:FEATURES_GRID", context));
 }

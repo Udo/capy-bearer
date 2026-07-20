@@ -1,11 +1,11 @@
 #!/bin/bash
-# Build the production W1 UCE WASM core from the production runtime carve-out.
-# Run on k-uce from any working directory.
+# Build the production W1 BEARER WASM core from the production runtime carve-out.
+# Run on k-bearer from any working directory.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 SDK=${WASI_SDK:-/opt/wasi-sdk}
-OUT=${UCE_WASM_OUT:-/tmp/uce/wasm-w1}
+OUT=${BEARER_WASM_OUT:-/tmp/bearer/wasm-w1}
 mkdir -p "$OUT" bin/wasm
 
 if [ ! -x "$SDK/bin/clang++" ]; then
@@ -15,7 +15,7 @@ fi
 
 "$SDK/bin/clang++" --target=wasm32-wasip1 -mexec-model=reactor \
 	-O1 -g -std=c++20 -fno-exceptions -fno-rtti \
-	-D__UCE_WASM_CORE__ \
+	-D__BEARER_WASM_CORE__ \
 	-I. -Isrc/lib \
 	src/wasm/core.cpp -o "$OUT/core.wasm" \
 	-Wl,--export-all \

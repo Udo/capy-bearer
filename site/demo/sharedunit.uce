@@ -2,7 +2,7 @@
 RENDER(Request& context)
 {
 	// The native SharedUnit loader has been retired. Unit metadata is now
-	// exposed through the wasm membrane via unit_info() (uce_host_units), which
+	// exposed through the wasm membrane via unit_info() (bearer_host_units), which
 	// resolves and introspects another unit without dlopen-ing a native .so.
 	DValue info = unit_info("post.uce");
 	print(json_encode(info));

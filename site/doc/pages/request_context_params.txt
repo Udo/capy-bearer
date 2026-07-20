@@ -2,7 +2,7 @@
 Request Context Params
 
 :sig
-SCRIPT_URL, BASE_URL, ROUTE_PATH, ROUTE_PAGE, ROUTE_PATH_RAW, ROUTE_VALID, UCE_BIN_DIRECTORY
+SCRIPT_URL, BASE_URL, ROUTE_PATH, ROUTE_PAGE, ROUTE_PATH_RAW, ROUTE_VALID, BEARER_BIN_DIRECTORY
 
 :see
 >uri
@@ -15,7 +15,7 @@ route_path_is_safe
 0_Request
 
 :content
-UCE populates several convenience request parameters before invoking page, component, CLI, custom HTTP, or WebSocket handlers:
+BEARER populates several convenience request parameters before invoking page, component, CLI, custom HTTP, or WebSocket handlers:
 
 - `context.params["SCRIPT_URL"]`: canonical script URL, with `/index.uce` collapsed to the containing directory URL
 - `context.params["BASE_URL"]`: canonical directory URL for the script
@@ -23,7 +23,7 @@ UCE populates several convenience request parameters before invoking page, compo
 - `context.params["ROUTE_PAGE"]`: first segment of `ROUTE_PATH`
 - `context.params["ROUTE_PATH_RAW"]`: normalized but not trusted route input, for diagnostics only
 - `context.params["ROUTE_VALID"]`: `1` when the supplied/defaulted route is safe, `0` when the supplied route was rejected
-- `context.params["UCE_BIN_DIRECTORY"]`: writable runtime cache directory from `BIN_DIRECTORY`, useful for generated helper units or other request-local artifacts that must not be written into the source tree
+- `context.params["BEARER_BIN_DIRECTORY"]`: writable runtime cache directory from `BIN_DIRECTORY`, useful for generated helper units or other request-local artifacts that must not be written into the source tree
 
 `ROUTE_PATH` is safe to compose under an application-controlled route root. Unsafe route input such as `..`, `.`, empty interior segments, backslashes, dots in filenames, or other non route-segment characters is rejected by the runtime and yields an empty `ROUTE_PATH` with `ROUTE_VALID=0`.
 

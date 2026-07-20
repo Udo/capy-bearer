@@ -2,8 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-binary="$PWD/bin/uce_fastcgi.linux.bin"
-root=$(mktemp -d /tmp/uce-server-arguments.XXXXXX)
+binary="$PWD/bin/bearer_fastcgi.linux.bin"
+root=$(mktemp -d /tmp/bearer-server-arguments.XXXXXX)
 listener_pid=""
 cleanup() {
 	[[ -n "$listener_pid" ]] && kill "$listener_pid" 2>/dev/null || true
@@ -13,7 +13,7 @@ trap cleanup EXIT
 
 cfg="$root/settings.cfg"
 socket_path="$root/sentinel.sock"
-cp /etc/uce/settings.cfg "$cfg"
+cp /etc/bearer/settings.cfg "$cfg"
 sed -E -i \
 	-e "s|^[[:space:]]*FCGI_SOCKET_PATH[[:space:]]*=.*|FCGI_SOCKET_PATH=|" \
 	-e "s|^[[:space:]]*FCGI_PORT[[:space:]]*=.*|FCGI_PORT=|" \
@@ -39,13 +39,13 @@ invoke() {
 	local output="$1"
 	shift
 	timeout --signal=TERM --kill-after=1s 2s unshare --mount --fork \
-		bash -c 'mount --bind "$1" /etc/uce/settings.cfg; exec "$2" "${@:3}"' \
+		bash -c 'mount --bind "$1" /etc/bearer/settings.cfg; exec "$2" "${@:3}"' \
 		_ "$cfg" "$binary" "$@" >"$output.stdout" 2>"$output.stderr"
 }
 
 for option in --help -h; do
 	invoke "$root/help" "$option"
-	grep -q '^Usage: uce_fastcgi' "$root/help.stdout"
+	grep -q '^Usage: bearer_fastcgi' "$root/help.stdout"
 	grep -q -- '--precompile' "$root/help.stdout"
 	[[ ! -s "$root/help.stderr" ]]
 done
@@ -58,7 +58,7 @@ for arguments in '--unknown' '--precompile extra' '--help extra'; do
 	set -e
 	[[ $rc -eq 2 ]]
 	grep -q '^invalid arguments$' "$root/invalid.stderr"
-	grep -q '^Usage: uce_fastcgi' "$root/invalid.stderr"
+	grep -q '^Usage: bearer_fastcgi' "$root/invalid.stderr"
 	[[ ! -s "$root/invalid.stdout" ]]
 done
 

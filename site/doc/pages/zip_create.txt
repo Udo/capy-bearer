@@ -22,13 +22,13 @@ Creates a ZIP archive at `zip_file_name`.
 For list-shaped input or when the map key should not be the member name, each child can provide explicit fields:
 
 
-An entry may also provide `file` instead of `content`; UCE reads that source file and stores its contents under `name`.
+An entry may also provide `file` instead of `content`; BEARER reads that source file and stores its contents under `name`.
 
 Entry names are normalized to forward slashes and rejected when they are absolute paths, drive-qualified paths, empty names, or contain `..` path segments.
 
 :example
 DValue entries;
-entries["readme.txt"] = "hello from UCE";
+entries["readme.txt"] = "hello from BEARER";
 entries["license.txt"] = "MIT license";
 zip_create("/tmp/doc-zip.zip", entries);
 print("readme.txt in archive: ", zip_read("/tmp/doc-zip.zip", "readme.txt"), "\n");

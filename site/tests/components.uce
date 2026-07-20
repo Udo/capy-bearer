@@ -31,7 +31,7 @@ RENDER(Request& context)
 	String relative_markup = component("components/../relative-child", props, context);
 	String alias_markup = component("components/props_alias", props, context);
 	// Named handler through the string-returning component("unit:NAME") form
-	// (distinct path from component_render below): resolves __uce_component_HEADER
+	// (distinct path from component_render below): resolves __bearer_component_HEADER
 	// and must run ONLY that handler, not the default COMPONENT that emits all three.
 	String header_markup = component("components/panel:HEADER", props, context);
 

@@ -1,18 +1,18 @@
 // W3 — production wasm workspace runtime + membrane (WASM-PROPOSAL §6, §7).
 //
 // One workspace per request: a fresh Wasmtime store holding the core module
-// instance (production uce_lib carve-out, owns memory/allocator/DValue) plus unit
+// instance (production bearer_lib carve-out, owns memory/allocator/DValue) plus unit
 // PIC side modules loaded lazily — including mid-request via the
-// uce_host_component_resolve hostcall, which is how component()/unit_render()
+// bearer_host_component_resolve hostcall, which is how component()/unit_render()
 // inside the guest trigger dynamic loading.
 //
-// Designed for amalgamation-include (like uce_lib.cpp): the including TU must
-// provide String/DValue/ucb_encode/ucb_decode (types.cpp + dvalue.cpp) and
+// Designed for amalgamation-include (like bearer_lib.cpp): the including TU must
+// provide String/DValue/brb_encode/brb_decode (types.cpp + dvalue.cpp) and
 // wasm_trace.h. The production FastCGI worker includes this through backend.cpp.
 //
 // Loader rules carried from the spike phases, now enforced as policy:
 //  - import discipline: units may import only env / GOT.mem / GOT.func
-//    (no WASI — the core is zero-WASI for UCE's own calls, and units get
+//    (no WASI — the core is zero-WASI for BEARER's own calls, and units get
 //    everything from the core); units defining allocator symbols are rejected
 //  - GOT.mem of a PIC module's data exports are __memory_base-relative
 //    offsets; the loader adds the owning module's base (Phase 0 erratum)
@@ -21,7 +21,7 @@
 //  - export name collisions: core wins, then first-loading unit wins
 //    (mirrors native dlopen global-symbol interposition for identical
 //    vague-linkage template instantiations)
-//  - uce.abi stamp must match the core ABI version; fail loudly, never guess
+//  - bearer.abi stamp must match the core ABI version; fail loudly, never guess
 
 #include <wasmtime.hh>
 
@@ -145,7 +145,7 @@ struct WasmWorkerConfig
 {
 	String core_wasm_path = "bin/wasm/core.wasm";
 	String site_root;                  // absolute
-	String cache_root = "/tmp/uce/work";
+	String cache_root = "/tmp/bearer/work";
 	std::vector<String> write_roots;   // absolute prefixes the write membrane allows
 	int64_t memory_limit = 512ll * 1024 * 1024;
 	u32 table_headroom = 4096;
@@ -156,8 +156,8 @@ struct WasmWorkerConfig
 	bool profile_hostcall_cpu = false;
 	bool profile_thread_runtime = false;
 	bool verbose = false;
-	// uce_host_* names (bare, without the "uce_host_" prefix) the sysadmin has
-	// disabled via UCE_HOSTCALL_BLOCKLIST. A blocked hostcall resolves to a trap
+	// bearer_host_* names (bare, without the "bearer_host_" prefix) the sysadmin has
+	// disabled via BEARER_HOSTCALL_BLOCKLIST. A blocked hostcall resolves to a trap
 	// stub at workspace birth (see make_host_import); empty = feature off.
 	std::set<String> hostcall_blocklist;
 };
@@ -282,7 +282,7 @@ struct WasmResponse : WasmRequestProfile
 
 static u64 wasm_file_lock_timeout_ms()
 {
-	const char* raw = getenv("UCE_FILE_LOCK_TIMEOUT_MS");
+	const char* raw = getenv("BEARER_FILE_LOCK_TIMEOUT_MS");
 	if(!raw || !*raw)
 		return(2000);
 	char* end = 0;
@@ -491,27 +491,27 @@ static bool wasm_fd_write_all(int fd, const char* data, size_t remaining, u64* w
 
 // ---- file-backed async job registry + bounded process execution ----------
 
-static String uce_job_root()
+static String bearer_job_root()
 {
-	const char* env = getenv("UCE_JOB_ROOT");
-	String root = (env && *env) ? String(env) : String("/run/uce/jobs");
+	const char* env = getenv("BEARER_JOB_ROOT");
+	String root = (env && *env) ? String(env) : String("/run/bearer/jobs");
 	std::error_code ec;
 	std::filesystem::create_directories(root, ec);
 	if(ec)
 	{
-		root = "/tmp/uce/jobs";
+		root = "/tmp/bearer/jobs";
 		std::filesystem::create_directories(root, ec);
 	}
 	return(root);
 }
 
-static String uce_job_path(u64 id) { return(uce_job_root() + "/" + std::to_string(id)); }
-static String uce_read_text(const String& path) { std::ifstream in(path, std::ios::binary); if(!in) return(""); std::ostringstream ss; ss << in.rdbuf(); return(ss.str()); }
-static void uce_write_text(const String& path, const String& data) { std::ofstream out(path, std::ios::binary|std::ios::trunc); out.write(data.data(), (std::streamsize)data.size()); }
+static String bearer_job_path(u64 id) { return(bearer_job_root() + "/" + std::to_string(id)); }
+static String bearer_read_text(const String& path) { std::ifstream in(path, std::ios::binary); if(!in) return(""); std::ostringstream ss; ss << in.rdbuf(); return(ss.str()); }
+static void bearer_write_text(const String& path, const String& data) { std::ofstream out(path, std::ios::binary|std::ios::trunc); out.write(data.data(), (std::streamsize)data.size()); }
 
-static u64 uce_job_new(const String& kind)
+static u64 bearer_job_new(const String& kind)
 {
-	String root = uce_job_root();
+	String root = bearer_job_root();
 	std::error_code ec;
 	std::filesystem::create_directories(root, ec);
 	u64 seed = ((u64)time(0) << 32) ^ ((u64)getpid() << 16) ^ (u64)rand();
@@ -521,67 +521,67 @@ static u64 uce_job_new(const String& kind)
 		String dir = root + "/" + std::to_string(id);
 		if(mkdir(dir.c_str(), 0700) == 0)
 		{
-			uce_write_text(dir + "/kind", kind);
-			uce_write_text(dir + "/created", std::to_string((u64)time(0)));
-			uce_write_text(dir + "/state", "pending");
+			bearer_write_text(dir + "/kind", kind);
+			bearer_write_text(dir + "/created", std::to_string((u64)time(0)));
+			bearer_write_text(dir + "/state", "pending");
 			return(id);
 		}
 	}
 	return(0);
 }
 
-static void uce_job_reap()
+static void bearer_job_reap()
 {
-	String root = uce_job_root();
+	String root = bearer_job_root();
 	u64 now = (u64)time(0);
 	u64 ttl = 3600;
-	if(const char* raw = getenv("UCE_JOB_TTL_SECONDS")) { char* e=0; unsigned long long v=strtoull(raw,&e,10); if(e!=raw && v>0) ttl=(u64)v; }
+	if(const char* raw = getenv("BEARER_JOB_TTL_SECONDS")) { char* e=0; unsigned long long v=strtoull(raw,&e,10); if(e!=raw && v>0) ttl=(u64)v; }
 	std::error_code ec;
 	for(auto& e : std::filesystem::directory_iterator(root, ec))
 	{
 		if(!e.is_directory()) continue;
-		u64 created = strtoull(uce_read_text(e.path().string()+"/created").c_str(), 0, 10);
+		u64 created = strtoull(bearer_read_text(e.path().string()+"/created").c_str(), 0, 10);
 		if(created > 0 && now > created + ttl)
 			std::filesystem::remove_all(e.path(), ec);
 	}
 }
 
-static DValue uce_shell_exec_spec(const DValue& spec)
+static DValue bearer_shell_exec_spec(const DValue& spec)
 {
 	return(process_exec(spec.key("cmd") ? spec.key("cmd")->to_string() : String(""), spec.key("stdin") ? spec.key("stdin")->to_string() : String(""), spec.key("env") ? spec.key("env")->to_stringmap() : StringMap(), spec.key("timeout_ms") ? spec.key("timeout_ms")->to_u64(5000) : 5000));
 }
 
-static void uce_job_finish(u64 id, DValue result, String final_state="done")
+static void bearer_job_finish(u64 id, DValue result, String final_state="done")
 {
-	String dir = uce_job_path(id);
-	uce_write_text(dir + "/result.tmp", ucb_encode(result));
+	String dir = bearer_job_path(id);
+	bearer_write_text(dir + "/result.tmp", brb_encode(result));
 	rename((dir + "/result.tmp").c_str(), (dir + "/result").c_str());
-	uce_write_text(dir + "/state", final_state);
+	bearer_write_text(dir + "/state", final_state);
 }
 
-static u64 uce_shell_spawn_spec(const DValue& spec)
+static u64 bearer_shell_spawn_spec(const DValue& spec)
 {
-	uce_job_reap();
-	u64 id = uce_job_new("shell");
+	bearer_job_reap();
+	u64 id = bearer_job_new("shell");
 	if(!id) return(0);
 	pid_t pid = fork();
 	if(pid == 0)
 	{
 		setsid();
-		uce_write_text(uce_job_path(id) + "/worker_pid", std::to_string((long long)getpid()));
-		uce_write_text(uce_job_path(id) + "/state", "running");
-		DValue result = uce_shell_exec_spec(spec);
-		uce_job_finish(id, result, "done");
+		bearer_write_text(bearer_job_path(id) + "/worker_pid", std::to_string((long long)getpid()));
+		bearer_write_text(bearer_job_path(id) + "/state", "running");
+		DValue result = bearer_shell_exec_spec(spec);
+		bearer_job_finish(id, result, "done");
 		_exit(0);
 	}
-	if(pid < 0) { DValue r; r["error"]="fork failed"; uce_job_finish(id,r,"failed"); return(id); }
-	uce_write_text(uce_job_path(id) + "/worker_pid", std::to_string((long long)pid));
-	uce_write_text(uce_job_path(id) + "/state", "running");
+	if(pid < 0) { DValue r; r["error"]="fork failed"; bearer_job_finish(id,r,"failed"); return(id); }
+	bearer_write_text(bearer_job_path(id) + "/worker_pid", std::to_string((long long)pid));
+	bearer_write_text(bearer_job_path(id) + "/state", "running");
 	return(id);
 }
 
 
-static DValue uce_exec_argv_capture(std::vector<String> argv, String input, u64 timeout_ms)
+static DValue bearer_exec_argv_capture(std::vector<String> argv, String input, u64 timeout_ms)
 {
 	DValue r; r["exit_code"]=(f64)-1; r["stdout"]=""; r["stderr"]=""; r["timed_out"].set_bool(false);
 	if(argv.empty()) { r["stderr"]="empty argv"; return(r); }
@@ -623,14 +623,14 @@ static DValue uce_exec_argv_capture(std::vector<String> argv, String input, u64 
 	return(r);
 }
 
-static bool uce_header_name_safe(String name)
+static bool bearer_header_name_safe(String name)
 {
 	if(name=="") return(false);
 	for(unsigned char c: name) if(!(isalnum(c)||c=='-'||c=='_')) return(false);
 	return(true);
 }
 
-static DValue uce_http_request_value(const DValue& req)
+static DValue bearer_http_request_value(const DValue& req)
 {
 	DValue r; r["status"]=(f64)0; r["headers"].set_array(); r["body"]=""; r["error"]="";
 	const DValue* method_value = req.key("method");
@@ -644,16 +644,16 @@ static DValue uce_http_request_value(const DValue& req)
 	if(url=="" || url.find('\0')!=String::npos) { r["error"]="missing url"; return(r); }
 	if(method=="") method="GET";
 	u64 timeout_ms = timeout_value ? timeout_value->to_u64(5000) : 5000;
-	std::vector<String> argv = {"curl", "-sS", "--http1.0", "-X", method, "-D", "-", "-w", "\nUCE_HTTP_STATUS:%{http_code}", "--max-time", std::to_string(std::max<u64>(1, timeout_ms / 1000))};
+	std::vector<String> argv = {"curl", "-sS", "--http1.0", "-X", method, "-D", "-", "-w", "\nBEARER_HTTP_STATUS:%{http_code}", "--max-time", std::to_string(std::max<u64>(1, timeout_ms / 1000))};
 	if(follow_redirects_value && follow_redirects_value->to_bool()) argv.push_back("-L");
-	if(headers_value) headers_value->each([&](const DValue& v, String k){ if(uce_header_name_safe(k)) { argv.push_back("-H"); argv.push_back(k + ": " + replace(replace(v.to_string(), "\r", " "), "\n", " ")); } });
+	if(headers_value) headers_value->each([&](const DValue& v, String k){ if(bearer_header_name_safe(k)) { argv.push_back("-H"); argv.push_back(k + ": " + replace(replace(v.to_string(), "\r", " "), "\n", " ")); } });
 	String body = body_value ? body_value->to_string() : String("");
 	if(body_value) { argv.push_back("--data-binary"); argv.push_back("@-"); }
 	argv.push_back(url);
 	if(access("/usr/bin/curl", X_OK)!=0 && access("/bin/curl", X_OK)!=0) { r["error"]="curl binary not found in runtime PATH"; return(r); }
-	DValue pr = uce_exec_argv_capture(argv, body, timeout_ms);
+	DValue pr = bearer_exec_argv_capture(argv, body, timeout_ms);
 	String out = pr["stdout"].to_string();
-	String marker="\nUCE_HTTP_STATUS:"; size_t mp=out.rfind(marker);
+	String marker="\nBEARER_HTTP_STATUS:"; size_t mp=out.rfind(marker);
 	if(mp!=String::npos) { r["status"]=(f64)strtoull(out.c_str()+mp+marker.size(),0,10); out=out.substr(0,mp); }
 	else r["error"]="curl did not report status";
 	String sep="\r\n\r\n"; size_t hp=out.rfind(sep); size_t sep_len=4; if(hp==String::npos) { sep="\n\n"; hp=out.rfind(sep); sep_len=2; }
@@ -665,43 +665,43 @@ static DValue uce_http_request_value(const DValue& req)
 	return(r);
 }
 
-static u64 uce_http_spawn_spec(const DValue& req)
+static u64 bearer_http_spawn_spec(const DValue& req)
 {
-	uce_job_reap(); u64 id=uce_job_new("http"); if(!id) return(0);
+	bearer_job_reap(); u64 id=bearer_job_new("http"); if(!id) return(0);
 	pid_t pid=fork();
-	if(pid==0) { setsid(); uce_write_text(uce_job_path(id)+"/worker_pid", std::to_string((long long)getpid())); uce_write_text(uce_job_path(id)+"/state", "running"); DValue result=uce_http_request_value(req); uce_job_finish(id,result,result["error"].to_string()==""?"done":"failed"); _exit(0); }
-	if(pid<0) { DValue r; r["error"]="fork failed"; uce_job_finish(id,r,"failed"); return(id); }
-	uce_write_text(uce_job_path(id)+"/worker_pid", std::to_string((long long)pid)); uce_write_text(uce_job_path(id)+"/state", "running"); return(id);
+	if(pid==0) { setsid(); bearer_write_text(bearer_job_path(id)+"/worker_pid", std::to_string((long long)getpid())); bearer_write_text(bearer_job_path(id)+"/state", "running"); DValue result=bearer_http_request_value(req); bearer_job_finish(id,result,result["error"].to_string()==""?"done":"failed"); _exit(0); }
+	if(pid<0) { DValue r; r["error"]="fork failed"; bearer_job_finish(id,r,"failed"); return(id); }
+	bearer_write_text(bearer_job_path(id)+"/worker_pid", std::to_string((long long)pid)); bearer_write_text(bearer_job_path(id)+"/state", "running"); return(id);
 }
 
-static DValue uce_job_status_value(u64 id)
+static DValue bearer_job_status_value(u64 id)
 {
-	DValue r; String dir=uce_job_path(id); r["job_id"]=(f64)id;
+	DValue r; String dir=bearer_job_path(id); r["job_id"]=(f64)id;
 	if(id==0 || !std::filesystem::is_directory(dir)) { r["state"]="missing"; return(r); }
-	String state=trim(uce_read_text(dir+"/state")); if(state=="") state="pending"; r["state"]=state;
-	r["kind"]=trim(uce_read_text(dir+"/kind")); r["pid"]=(f64)strtoull(uce_read_text(dir+"/worker_pid").c_str(),0,10);
+	String state=trim(bearer_read_text(dir+"/state")); if(state=="") state="pending"; r["state"]=state;
+	r["kind"]=trim(bearer_read_text(dir+"/kind")); r["pid"]=(f64)strtoull(bearer_read_text(dir+"/worker_pid").c_str(),0,10);
 	r["done"].set_bool(state=="done"||state=="failed"||state=="cancelled");
 	return(r);
 }
 
-static DValue uce_job_result_value(u64 id, u64 timeout_ms)
+static DValue bearer_job_result_value(u64 id, u64 timeout_ms)
 {
 	u64 deadline = wasm_monotonic_ms() + timeout_ms;
 	while(timeout_ms > 0 && wasm_monotonic_ms() < deadline)
 	{
-		DValue st = uce_job_status_value(id);
+		DValue st = bearer_job_status_value(id);
 		if(st["done"].to_bool()) break;
 		usleep(10000);
 	}
-	DValue r = uce_job_status_value(id);
-	String encoded = uce_read_text(uce_job_path(id)+"/result");
-	if(encoded != "") { DValue decoded; String err; if(ucb_decode(encoded, decoded, &err)) r["result"] = decoded; }
+	DValue r = bearer_job_status_value(id);
+	String encoded = bearer_read_text(bearer_job_path(id)+"/result");
+	if(encoded != "") { DValue decoded; String err; if(brb_decode(encoded, decoded, &err)) r["result"] = decoded; }
 	return(r);
 }
 
-static bool uce_job_cancel_value(u64 id)
+static bool bearer_job_cancel_value(u64 id)
 {
-	DValue st = uce_job_status_value(id);
+	DValue st = bearer_job_status_value(id);
 	if(st["state"].to_string()=="missing") return(false);
 	String state = st["state"].to_string();
 	if(state == "done" || state == "failed" || state == "cancelled")
@@ -709,7 +709,7 @@ static bool uce_job_cancel_value(u64 id)
 	pid_t pid = (pid_t)st["pid"].to_u64(0);
 	if(pid > 0) kill(-pid, SIGKILL);
 	DValue result; result["cancelled"].set_bool(true);
-	uce_job_finish(id, result, "cancelled");
+	bearer_job_finish(id, result, "cancelled");
 	return(true);
 }
 
@@ -790,7 +790,7 @@ static bool wasm_parse_sections(const std::vector<u8>& bytes, WasmDylinkInfo& dy
 			}
 			String name((const char*)bytes.data() + cursor, (size_t)name_len);
 			cursor += (size_t)name_len;
-			if((name == "dylink.0" || name == "uce.abi" || name == "uce.module") && size > 1024 * 1024)
+			if((name == "dylink.0" || name == "bearer.abi" || name == "bearer.module") && size > 1024 * 1024)
 			{
 				error = "oversized wasm metadata section";
 				return(false);
@@ -843,11 +843,11 @@ static bool wasm_parse_sections(const std::vector<u8>& bytes, WasmDylinkInfo& dy
 					cursor = sub_end;
 				}
 			}
-			else if(name == "uce.abi")
+			else if(name == "bearer.abi")
 			{
 				if(abi_seen)
 				{
-					error = "duplicate uce.abi metadata section";
+					error = "duplicate bearer.abi metadata section";
 					return(false);
 				}
 				abi_seen = true;
@@ -869,11 +869,11 @@ static bool wasm_parse_sections(const std::vector<u8>& bytes, WasmDylinkInfo& dy
 					line_start = line_end + 1;
 				}
 			}
-			else if(name == "uce.module")
+			else if(name == "bearer.module")
 			{
 				if(module_seen)
 				{
-					error = "duplicate uce.module metadata section";
+					error = "duplicate bearer.module metadata section";
 					return(false);
 				}
 				module_seen = true;
@@ -1000,9 +1000,10 @@ static bool wasm_source_map_load(const String& path, WasmSourceMap& map)
 	if(!input)
 		return(false);
 	String line;
-	if(!std::getline(input, line) || line.rfind("UCE_SOURCE_MAP_V1\t", 0) != 0)
+	const String prefix = "BEARER_SOURCE_MAP_V1\t";
+	if(!std::getline(input, line) || line.rfind(prefix, 0) != 0)
 		return(false);
-	map.module_name = line.substr(18);
+	map.module_name = line.substr(prefix.size());
 	while(std::getline(input, line))
 	{
 		auto fields = split(line, "\t");
@@ -1220,17 +1221,17 @@ static bool wasm_read_metadata_file(const String& path, std::vector<u8>& metadat
 					break;
 				}
 			}
-			if(name == "dylink.0" || name == "uce.abi" || name == "uce.module")
+			if(name == "dylink.0" || name == "bearer.abi" || name == "bearer.module")
 			{
-				bool duplicate = (name == "dylink.0" && dylink_seen) || (name == "uce.abi" && abi_seen) ||
-					(name == "uce.module" && module_seen);
+				bool duplicate = (name == "dylink.0" && dylink_seen) || (name == "bearer.abi" && abi_seen) ||
+					(name == "bearer.module" && module_seen);
 				if(duplicate)
 				{
 					error = "duplicate " + name + " metadata section";
 					break;
 				}
 				if(name == "dylink.0") dylink_seen = true;
-				else if(name == "uce.abi") abi_seen = true;
+				else if(name == "bearer.abi") abi_seen = true;
 				else module_seen = true;
 				if(section_size > 1024 * 1024)
 				{
@@ -1280,7 +1281,7 @@ public:
 	{
 	}
 
-#ifdef UCE_WASM_HOST_CONNECTORS
+#ifdef BEARER_WASM_HOST_CONNECTORS
 	~WasmWorker()
 	{
 		for(auto* db : mysql_persistent_pool)
@@ -1479,7 +1480,7 @@ public:
 		}
 		if(!unit->abi.found)
 		{
-			error = wasm_path + ": missing uce.abi stamp";
+			error = wasm_path + ": missing bearer.abi stamp";
 			return(nullptr);
 		}
 		String compile_error;
@@ -1687,7 +1688,7 @@ private:
 };
 
 // The request envelope keeps app scratch state separate from transport fields.
-// Maps use UCEB2 directly so the guest can populate Request StringMaps without
+// Maps use BRRB2 directly so the guest can populate Request StringMaps without
 // constructing and then copying a duplicate DValue subtree.
 static void wasm_request_envelope_append(String& envelope, const String& value)
 {
@@ -1703,15 +1704,15 @@ static void wasm_request_envelope_append(String& envelope, const String& value)
 
 static String wasm_encode_request_envelope(const Request& request, const String& entry_unit, const String& handler)
 {
-	String envelope = "UCER";
+	String envelope = "BRRQ";
 	envelope.push_back(1);
 	envelope.push_back(12);
-	wasm_request_envelope_append(envelope, ucb_encode(request.call));
-	wasm_request_envelope_append(envelope, ucb_encode_flat_string_map(request.params));
-	wasm_request_envelope_append(envelope, ucb_encode_flat_string_map(request.get));
-	wasm_request_envelope_append(envelope, ucb_encode_flat_string_map(request.post));
-	wasm_request_envelope_append(envelope, ucb_encode_flat_string_map(request.cookies));
-	wasm_request_envelope_append(envelope, ucb_encode_flat_string_map(request.session));
+	wasm_request_envelope_append(envelope, brb_encode(request.call));
+	wasm_request_envelope_append(envelope, brb_encode_flat_string_map(request.params));
+	wasm_request_envelope_append(envelope, brb_encode_flat_string_map(request.get));
+	wasm_request_envelope_append(envelope, brb_encode_flat_string_map(request.post));
+	wasm_request_envelope_append(envelope, brb_encode_flat_string_map(request.cookies));
+	wasm_request_envelope_append(envelope, brb_encode_flat_string_map(request.session));
 	wasm_request_envelope_append(envelope, request.session_id);
 	wasm_request_envelope_append(envelope, request.session_name);
 	wasm_request_envelope_append(envelope, request.session_loaded_hash);
@@ -1732,7 +1733,7 @@ static String wasm_encode_request_envelope(const Request& request, const String&
 			ws["connections"].push(value);
 		}
 		ws["connection_state"] = request.connection;
-		websocket = ucb_encode(ws);
+		websocket = brb_encode(ws);
 	}
 	wasm_request_envelope_append(envelope, websocket);
 	return(envelope);
@@ -1805,7 +1806,7 @@ public:
 
 	String invocation_timeout_error() const
 	{
-		return("UCE_INVOCATION_TIMEOUT: wasm invocation exceeded " + std::to_string(invocation_budget_ms) + " ms");
+		return("BEARER_INVOCATION_TIMEOUT: wasm invocation exceeded " + std::to_string(invocation_budget_ms) + " ms");
 	}
 
 	void arm_guest_deadline(wasmtime::Store::Context context)
@@ -1903,7 +1904,7 @@ public:
 		request_perf.active = true;
 	}
 
-#ifdef UCE_WASM_HOST_CONNECTORS
+#ifdef BEARER_WASM_HOST_CONNECTORS
 	// Host-owned resource handle table (§3.1): connections opened by the guest
 	// live here and are closed when the workspace drops at request end. This is
 	// the wasm-side enforcement of request-scoped DB lifecycle; app code should
@@ -1926,7 +1927,7 @@ public:
 				h.fd = -1;
 			}
 		}
-#ifdef UCE_WASM_HOST_CONNECTORS
+#ifdef BEARER_WASM_HOST_CONNECTORS
 		for(auto* db : sqlite_handles)
 			if(db)
 				delete db;   // ~SQLite disconnects
@@ -2091,17 +2092,17 @@ public:
 		if(error != "")
 			return(error);
 		int32_t rc = 0;
-		error = call_core("uce_wasm_core_init", {}, &rc);
+		error = call_core("bearer_wasm_core_init", {}, &rc);
 		if(error != "")
 			return(error);
 		if(rc != 0)
-			return("uce_wasm_core_init returned " + std::to_string(rc));
+			return("bearer_wasm_core_init returned " + std::to_string(rc));
 		int32_t core_abi = 0;
-		error = call_core("uce_wasm_core_abi_version", {}, &core_abi);
+		error = call_core("bearer_wasm_core_abi_version", {}, &core_abi);
 		if(error != "")
 			return(error);
 		abi_version = (u32)core_abi;
-		error = call_core("uce_wasm_request", {}, &request_ptr);
+		error = call_core("bearer_wasm_request", {}, &request_ptr);
 		if(error != "")
 			return(error);
 		birth_initialize_us = phase_us();
@@ -2124,12 +2125,12 @@ public:
 		context_bytes = server_config_bytes + encoded.size();
 		context_encode_us = phase_us();
 		int32_t guest_ptr = 0;
-		String error = call_core("uce_alloc", { (int32_t)context_bytes }, &guest_ptr);
+		String error = call_core("bearer_alloc", { (int32_t)context_bytes }, &guest_ptr);
 		context_allocate_us = phase_us();
 		if(error != "")
 			return(error);
 		if(guest_ptr == 0)
-			return("guest uce_alloc failed for context buffer");
+			return("guest bearer_alloc failed for context buffer");
 		error = guest_write((u32)guest_ptr, worker.server_config_encoded);
 		if(error == "")
 			error = guest_write((u32)guest_ptr + (u32)server_config_bytes, encoded);
@@ -2137,15 +2138,15 @@ public:
 		if(error != "")
 			return(error);
 		int32_t rc = 0;
-		error = call_core("uce_wasm_apply_context", { guest_ptr, (int32_t)server_config_bytes,
+		error = call_core("bearer_wasm_apply_context", { guest_ptr, (int32_t)server_config_bytes,
 			guest_ptr + (int32_t)server_config_bytes, (int32_t)encoded.size() }, &rc);
 		context_guest_apply_us = phase_us();
 		if(error != "")
 			return(error);
-		call_core("uce_free", { guest_ptr }, 0);
+		call_core("bearer_free", { guest_ptr }, 0);
 		context_free_us = phase_us();
 		if(rc != 0)
-			return("uce_wasm_apply_context returned " + std::to_string(rc));
+			return("bearer_wasm_apply_context returned " + std::to_string(rc));
 		return("");
 	}
 
@@ -2183,9 +2184,9 @@ public:
 		// The entry unit is already loaded above. Place its handler and optional
 		// ONCE export directly in the shared table, then let the core retain ONCE
 		// deduplication and dispatch without resolving the same unit via hostcall.
-		auto entry = core_func("uce_wasm_invoke_loaded_entry");
+		auto entry = core_func("bearer_wasm_invoke_loaded_entry");
 		if(!entry)
-			return("core does not export uce_wasm_invoke_loaded_entry");
+			return("core does not export bearer_wasm_invoke_loaded_entry");
 		auto link_handler = [&](const String& symbol, const std::optional<wasmtime::Func>& func, u32& slot) {
 			if(!func)
 			{
@@ -2221,17 +2222,17 @@ public:
 
 	String collect(WasmResponse& response)
 	{
-		String error = call_core("uce_wasm_finish_output", {}, 0);
+		String error = call_core("bearer_wasm_finish_output", {}, 0);
 		if(error != "")
 			return(error);
-		error = call_core("uce_wasm_finish_response_meta", {}, 0);
+		error = call_core("bearer_wasm_finish_response_meta", {}, 0);
 		if(error != "")
 			return(error);
 		int32_t body_ptr = 0, body_len = 0, meta_ptr = 0, meta_len = 0;
-		if((error = call_core("uce_wasm_output_data", {}, &body_ptr)) != "") return(error);
-		if((error = call_core("uce_wasm_output_size", {}, &body_len)) != "") return(error);
-		if((error = call_core("uce_wasm_response_meta_data", {}, &meta_ptr)) != "") return(error);
-		if((error = call_core("uce_wasm_response_meta_size", {}, &meta_len)) != "") return(error);
+		if((error = call_core("bearer_wasm_output_data", {}, &body_ptr)) != "") return(error);
+		if((error = call_core("bearer_wasm_output_size", {}, &body_len)) != "") return(error);
+		if((error = call_core("bearer_wasm_response_meta_data", {}, &meta_ptr)) != "") return(error);
+		if((error = call_core("bearer_wasm_response_meta_size", {}, &meta_len)) != "") return(error);
 		error = guest_read((u32)body_ptr, (u32)body_len, response.body);
 		if(error != "")
 			return(error);
@@ -2240,7 +2241,7 @@ public:
 		if(error != "")
 			return(error);
 		String decode_error;
-		if(!ucb_decode(meta_encoded, response.meta, &decode_error))
+		if(!brb_decode(meta_encoded, response.meta, &decode_error))
 			return("response meta decode failed: " + decode_error);
 		if(stale_component_mutation_blocked)
 		{
@@ -2292,7 +2293,7 @@ private:
 		String result = wasm_trace_collapse(String(error.message()));
 		bool invocation_deadline_interrupt = invocation_active &&
 			(invocation_expired() || invocation_remaining_ms() <= worker.cfg.epoch_period_ms);
-		if(invocation_deadline_interrupt && result.find("interrupt") != String::npos && result.find("UCE_INVOCATION_TIMEOUT:") == String::npos)
+		if(invocation_deadline_interrupt && result.find("interrupt") != String::npos && result.find("BEARER_INVOCATION_TIMEOUT:") == String::npos)
 			result = invocation_timeout_error() + "\n" + result;
 		struct Frame
 		{
@@ -2550,7 +2551,7 @@ private:
 		auto allocate_start = std::chrono::steady_clock::now();
 		arm_guest_deadline(ctx());
 		if(mod->abi.version != abi_version)
-			return(mod->wasm_path + ": uce.abi version " + std::to_string(mod->abi.version)
+			return(mod->wasm_path + ": bearer.abi version " + std::to_string(mod->abi.version)
 				+ " does not match core ABI " + std::to_string(abi_version));
 
 		auto cx = ctx();
@@ -2731,7 +2732,7 @@ private:
 			if(!result)
 				return(trap_text(result.err()));
 		}
-		if(auto set_request = unit_func(unit_index, "__uce_set_current_request"))
+		if(auto set_request = unit_func(unit_index, "__bearer_set_current_request"))
 		{
 			auto result = call_guest(*set_request, { wasmtime::Val(request_ptr) });
 			if(!result)
@@ -2978,20 +2979,20 @@ private:
 		return(result);
 	}
 
-	// __uce_<base>[_<suffix>] for a handler spec like "component:CARD" / "render".
+	// __bearer_<base>[_<suffix>] for a handler spec like "component:CARD" / "render".
 	static String handler_export_symbol(const String& handler)
 	{
 		String export_prefix = "export:";
 		if(handler.rfind(export_prefix, 0) == 0)
 			return(handler.substr(export_prefix.size()));
 		auto colon = handler.find(":");
-		String symbol = "__uce_" + (colon == String::npos ? handler : handler.substr(0, colon));
+		String symbol = "__bearer_" + (colon == String::npos ? handler : handler.substr(0, colon));
 		if(colon != String::npos)
 			symbol += "_" + sanitize_symbol_suffix(handler.substr(colon + 1));
 		return(symbol);
 	}
 
-	// hostcall body: uce_host_component_resolve(unit, handler, current) → slot.
+	// hostcall body: bearer_host_component_resolve(unit, handler, current) → slot.
 	// `handler` names the export ("render", "component:CARD", "cli",
 	// "serve_http:named", "once") or is "exists" (probe only, loads nothing).
 	int32_t component_resolve(const String& target, const String& handler, const String& current_unit,
@@ -3186,7 +3187,7 @@ private:
 			auto handler_fn = unit_func(unit_index, symbol);
 			if(!handler_fn)
 			{
-				// ONCE is optional per unit; a missing __uce_once is not an error.
+				// ONCE is optional per unit; a missing __bearer_once is not an error.
 				if(requested_handler != "once")
 					fprintf(stderr, "[wasm] %s does not export %s\n", resolved.c_str(), symbol.c_str());
 				return(0);
@@ -3214,9 +3215,9 @@ private:
 	String run_task_callback(u64 callback_id, u64 timeout_cap_ms)
 	{
 		InvocationScope invocation(*this, timeout_cap_ms, true);
-		auto runner = core_func("uce_wasm_task_run");
+		auto runner = core_func("bearer_wasm_task_run");
 		if(!runner)
-			return("core does not export uce_wasm_task_run");
+			return("core does not export bearer_wasm_task_run");
 		auto result = call_guest(*runner, { wasmtime::Val((int64_t)callback_id) });
 		if(!result)
 			return(trap_text(result.err()));
@@ -3242,9 +3243,9 @@ private:
 				if(worker.hostcall_operation_names.size() <= profile_index)
 					worker.hostcall_operation_names.push_back(name);
 			}
-			bool profile_enabled = name != "uce_host_request_perf";
-			bool profile_mysql = name == "uce_host_mysql";
-			bool profile_memcache = name == "uce_host_memcache_command";
+			bool profile_enabled = name != "bearer_host_request_perf";
+			bool profile_mysql = name == "bearer_host_mysql";
+			bool profile_memcache = name == "bearer_host_memcache_command";
 			auto profiled = [self, callback, profile_index, profile_enabled, profile_mysql, profile_memcache](Caller caller, Span<const Val> args, Span<Val> results) mutable -> Result<std::monostate, Trap> {
 				auto started = std::chrono::steady_clock::now();
 				if(self->invocation_expired(started))
@@ -3289,13 +3290,13 @@ private:
 			return("");
 		};
 
-		// Hostcall blocklist (UCE_HOSTCALL_BLOCKLIST): a sysadmin-disabled hostcall
+		// Hostcall blocklist (BEARER_HOSTCALL_BLOCKLIST): a sysadmin-disabled hostcall
 		// resolves to a trap stub instead of its real implementation, so a unit
 		// invoking it fails at runtime into the configurable error page. The
 		// decision is made once per worker when imports are defined — no per-call cost,
 		// and zero cost when nothing is blocked. A small core set stays exempt so
 		// the runtime itself cannot be bricked.
-		if(mod == "env" && !worker.cfg.hostcall_blocklist.empty() && name.rfind("uce_host_", 0) == 0)
+		if(mod == "env" && !worker.cfg.hostcall_blocklist.empty() && name.rfind("bearer_host_", 0) == 0)
 		{
 			static const std::set<String> non_blockable = { "component_resolve" };
 			String bare = name.substr(9);
@@ -3303,22 +3304,22 @@ private:
 			{
 				std::string blocked(name);
 				return(add([blocked](Caller, Span<const Val>, Span<Val>) -> Result<std::monostate, Trap> {
-					return(Trap("UCE_POLICY_BLOCKED:" + blocked));
+					return(Trap("BEARER_POLICY_BLOCKED:" + blocked));
 				}));
 			}
 		}
 
-		if(mod == "env" && name == "uce_host_time")
+		if(mod == "env" && name == "bearer_host_time")
 			return(add([](Caller, Span<const Val>, Span<Val> results) -> Result<std::monostate, Trap> {
 				results[0] = Val((int64_t)::time(0));
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_time_precise")
+		if(mod == "env" && name == "bearer_host_time_precise")
 			return(add([](Caller, Span<const Val>, Span<Val> results) -> Result<std::monostate, Trap> {
 				results[0] = Val(time_precise());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_request_perf")
+		if(mod == "env" && name == "bearer_host_request_perf")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String encoded;
 				if(!self->hostcall_staged("request_perf", encoded))
@@ -3417,7 +3418,7 @@ private:
 							u64 operation_index = invoked_hostcalls[i];
 							String& operation_name = self->worker.hostcall_operation_names[operation_index];
 							DValue item;
-							item["name"] = operation_name.rfind("uce_host_", 0) == 0 ? operation_name.substr(9) : operation_name;
+							item["name"] = operation_name.rfind("bearer_host_", 0) == 0 ? operation_name.substr(9) : operation_name;
 							item["count"] = (f64)self->hostcall_operation_counts[operation_index];
 							item["us"] = (f64)self->hostcall_operation_us[operation_index];
 							item["cpu_us"] = (f64)self->hostcall_operation_cpu_us[operation_index];
@@ -3501,7 +3502,7 @@ private:
 						f64 accounted_us = (f64)(self->dispatch_us + self->workspace_setup_us + self->workspace_birth_us + self->context_apply_us + self->hostcall_total_us);
 						response["guest_us"] = running_us > accounted_us ? running_us - accounted_us : 0.0;
 					}
-					encoded = ucb_encode(response);
+					encoded = brb_encode(response);
 					if(args[2].i32() == 0)
 						self->hostcall_stage("request_perf", encoded);
 				}
@@ -3512,7 +3513,7 @@ private:
 				results[0] = Val((int32_t)encoded.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_env")
+		if(mod == "env" && name == "bearer_host_env")
 			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String key, value;
 				if(self->hostcall_read(args[0].i32(), args[1].i32(), key) == "")
@@ -3524,7 +3525,7 @@ private:
 				results[0] = Val((int32_t)value.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_random")
+		if(mod == "env" && name == "bearer_host_random")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				u32 len = (u32)args[1].i32();
 				String bytes(len, 0);
@@ -3539,34 +3540,34 @@ private:
 				results[0] = Val((int32_t)bytes.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_sha256")
+		if(mod == "env" && name == "bearer_host_sha256")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String in; self->hostcall_read(args[0].i32(), args[1].i32(), in); String out=sha256_native(in); u32 cap=(u32)args[3].i32(); int32_t buf=args[2].i32(); if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_sha256_hex")
+		if(mod == "env" && name == "bearer_host_sha256_hex")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String in; self->hostcall_read(args[0].i32(), args[1].i32(), in); String out=sha256_hex_native(in); u32 cap=(u32)args[3].i32(); int32_t buf=args[2].i32(); if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_hmac_sha256")
+		if(mod == "env" && name == "bearer_host_hmac_sha256")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String key,in; self->hostcall_read(args[0].i32(), args[1].i32(), key); self->hostcall_read(args[2].i32(), args[3].i32(), in); String out=hmac_sha256_native(key,in); u32 cap=(u32)args[5].i32(); int32_t buf=args[4].i32(); if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_hmac_sha256_hex")
+		if(mod == "env" && name == "bearer_host_hmac_sha256_hex")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String key,in; self->hostcall_read(args[0].i32(), args[1].i32(), key); self->hostcall_read(args[2].i32(), args[3].i32(), in); String out=hmac_sha256_hex_native(key,in); u32 cap=(u32)args[5].i32(); int32_t buf=args[4].i32(); if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_base64_encode")
+		if(mod == "env" && name == "bearer_host_base64_encode")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String in; self->hostcall_read(args[0].i32(), args[1].i32(), in); String out=base64_encode(in); u32 cap=(u32)args[3].i32(); int32_t buf=args[2].i32(); if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_base64_decode")
+		if(mod == "env" && name == "bearer_host_base64_decode")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String in; self->hostcall_read(args[0].i32(), args[1].i32(), in); bool ok=false; String out=base64_decode(in, ok); if(!ok) out=""; u32 cap=(u32)args[3].i32(); int32_t buf=args[2].i32(); if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_crypto_equal")
+		if(mod == "env" && name == "bearer_host_crypto_equal")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String a,b; self->hostcall_read(args[0].i32(), args[1].i32(), a); self->hostcall_read(args[2].i32(), args[3].i32(), b); results[0]=Val((int32_t)(crypto_equal_native(a,b)?1:0)); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_password_hash")
+		if(mod == "env" && name == "bearer_host_password_hash")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String password; self->hostcall_read(args[0].i32(), args[1].i32(), password); String out=password_hash_native(password); u32 cap=(u32)args[3].i32(); int32_t buf=args[2].i32(); if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_password_verify")
+		if(mod == "env" && name == "bearer_host_password_verify")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String password,encoded; self->hostcall_read(args[0].i32(), args[1].i32(), password); self->hostcall_read(args[2].i32(), args[3].i32(), encoded); bool valid=password_verify_native(password,encoded); results[0]=Val((int32_t)(valid?1:0)); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_password_needs_rehash")
+		if(mod == "env" && name == "bearer_host_password_needs_rehash")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String encoded; self->hostcall_read(args[0].i32(), args[1].i32(), encoded); results[0]=Val((int32_t)(password_needs_rehash_native(encoded)?1:0)); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_log")
+		if(mod == "env" && name == "bearer_host_log")
 			return(add([self](Caller, Span<const Val> args, Span<Val>) -> Result<std::monostate, Trap> {
 				String text;
 				self->hostcall_read(args[1].i32(), args[2].i32(), text);
 				fprintf(stderr, "[guest log %d] %.*s\n", args[0].i32(), (int)text.size(), text.data());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_shell_exec")
+		if(mod == "env" && name == "bearer_host_shell_exec")
 			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String cmd;
 				self->hostcall_read(args[0].i32(), args[1].i32(), cmd);
@@ -3582,7 +3583,7 @@ private:
 					if(execution["timed_out"].to_bool())
 					{
 						String kind = self->invocation_expired() || remaining_ms <= 5000 ?
-							"UCE_INVOCATION_TIMEOUT" : "UCE_HOSTCALL_TIMEOUT";
+							"BEARER_INVOCATION_TIMEOUT" : "BEARER_HOSTCALL_TIMEOUT";
 						return(Trap(kind + ": shell_exec exceeded " + std::to_string(timeout_ms) + " ms"));
 					}
 					out = execution["stdout"].to_string();
@@ -3594,32 +3595,32 @@ private:
 				results[0] = Val((int32_t)out.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_http_request")
+		if(mod == "env" && name == "bearer_host_http_request")
 			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String encoded; self->hostcall_read(args[0].i32(), args[1].i32(), encoded); u32 cap=(u32)args[3].i32(); int32_t buf=args[2].i32(); String out; String stage_key="http:"+encoded;
-				if(!self->hostcall_staged(stage_key,out)) { DValue req,response; String err; if(ucb_decode(encoded,req,&err)) { u64 requested=req.key("timeout_ms")?req.key("timeout_ms")->to_u64(5000):5000; if(requested==0)requested=5000; req["timeout_ms"]=(f64)std::max<u64>(1,self->bounded_hostcall_timeout_ms(requested)); response=uce_http_request_value(req); } else response["error"]="http_request decode failed: "+err; out=ucb_encode(response); if(buf==0) self->hostcall_stage(stage_key,out); }
+				if(!self->hostcall_staged(stage_key,out)) { DValue req,response; String err; if(brb_decode(encoded,req,&err)) { u64 requested=req.key("timeout_ms")?req.key("timeout_ms")->to_u64(5000):5000; if(requested==0)requested=5000; req["timeout_ms"]=(f64)std::max<u64>(1,self->bounded_hostcall_timeout_ms(requested)); response=bearer_http_request_value(req); } else response["error"]="http_request decode failed: "+err; out=brb_encode(response); if(buf==0) self->hostcall_stage(stage_key,out); }
 				if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_http_request_async")
-			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String encoded; self->hostcall_read(args[0].i32(), args[1].i32(), encoded); DValue req; String err; u64 id=0; if(ucb_decode(encoded,req,&err)) id=uce_http_spawn_spec(req); results[0]=Val((int64_t)id); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_shell_exec_dv")
+		if(mod == "env" && name == "bearer_host_http_request_async")
+			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String encoded; self->hostcall_read(args[0].i32(), args[1].i32(), encoded); DValue req; String err; u64 id=0; if(brb_decode(encoded,req,&err)) id=bearer_http_spawn_spec(req); results[0]=Val((int64_t)id); return(std::monostate()); }));
+		if(mod == "env" && name == "bearer_host_shell_exec_dv")
 			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String encoded; self->hostcall_read(args[0].i32(), args[1].i32(), encoded);
 				u32 cap=(u32)args[3].i32(); int32_t buf=args[2].i32();
 				String out; String stage_key="shell_dv:"+encoded;
-				if(!self->hostcall_staged(stage_key,out)) { DValue spec, response; String err; if(ucb_decode(encoded,spec,&err)) { u64 requested=spec.key("timeout_ms")?spec.key("timeout_ms")->to_u64(5000):5000; if(requested==0)requested=5000; spec["timeout_ms"]=(f64)std::max<u64>(1,self->bounded_hostcall_timeout_ms(requested)); response=uce_shell_exec_spec(spec); } else response["error"]="shell_exec spec decode failed: "+err; out=ucb_encode(response); if(buf==0) self->hostcall_stage(stage_key,out); }
+				if(!self->hostcall_staged(stage_key,out)) { DValue spec, response; String err; if(brb_decode(encoded,spec,&err)) { u64 requested=spec.key("timeout_ms")?spec.key("timeout_ms")->to_u64(5000):5000; if(requested==0)requested=5000; spec["timeout_ms"]=(f64)std::max<u64>(1,self->bounded_hostcall_timeout_ms(requested)); response=bearer_shell_exec_spec(spec); } else response["error"]="shell_exec spec decode failed: "+err; out=brb_encode(response); if(buf==0) self->hostcall_stage(stage_key,out); }
 				if(buf&&cap>=out.size()) self->hostcall_write(buf,out);
 				results[0]=Val((int32_t)out.size()); return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_shell_spawn")
+		if(mod == "env" && name == "bearer_host_shell_spawn")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
-				String encoded; self->hostcall_read(args[0].i32(), args[1].i32(), encoded); DValue spec; String err; u64 id=0; if(ucb_decode(encoded,spec,&err)) id=uce_shell_spawn_spec(spec); results[0]=Val((int64_t)id); return(std::monostate());
+				String encoded; self->hostcall_read(args[0].i32(), args[1].i32(), encoded); DValue spec; String err; u64 id=0; if(brb_decode(encoded,spec,&err)) id=bearer_shell_spawn_spec(spec); results[0]=Val((int64_t)id); return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_job_status")
-			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { u64 job_id=(u64)args[0].i64(); String out,stage_key="job_status:"+std::to_string(job_id); u32 cap=(u32)args[2].i32(); int32_t buf=args[1].i32(); if(!self->hostcall_staged(stage_key,out)){out=ucb_encode(uce_job_status_value(job_id));if(buf==0)self->hostcall_stage(stage_key,out);} if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_job_result")
-			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { u64 job_id=(u64)args[0].i64(); String out,stage_key="job_result:"+std::to_string(job_id); u32 cap=(u32)args[2].i32(); int32_t buf=args[1].i32(); if(!self->hostcall_staged(stage_key,out)){out=ucb_encode(uce_job_result_value(job_id, self->bounded_hostcall_timeout_ms(100)));if(buf==0)self->hostcall_stage(stage_key,out);} if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_job_await")
+		if(mod == "env" && name == "bearer_host_job_status")
+			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { u64 job_id=(u64)args[0].i64(); String out,stage_key="job_status:"+std::to_string(job_id); u32 cap=(u32)args[2].i32(); int32_t buf=args[1].i32(); if(!self->hostcall_staged(stage_key,out)){out=brb_encode(bearer_job_status_value(job_id));if(buf==0)self->hostcall_stage(stage_key,out);} if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
+		if(mod == "env" && name == "bearer_host_job_result")
+			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { u64 job_id=(u64)args[0].i64(); String out,stage_key="job_result:"+std::to_string(job_id); u32 cap=(u32)args[2].i32(); int32_t buf=args[1].i32(); if(!self->hostcall_staged(stage_key,out)){out=brb_encode(bearer_job_result_value(job_id, self->bounded_hostcall_timeout_ms(100)));if(buf==0)self->hostcall_stage(stage_key,out);} if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
+		if(mod == "env" && name == "bearer_host_job_await")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				u64 job_id=(u64)args[0].i64(), requested_timeout=(u64)args[1].i64();
 				u32 cap=(u32)args[3].i32(); int32_t buf=args[2].i32();
@@ -3627,15 +3628,15 @@ private:
 				if(!self->hostcall_staged(stage_key,out))
 				{
 					u64 timeout=self->bounded_hostcall_timeout_ms(std::min<u64>(requested_timeout, 30000));
-					out=ucb_encode(uce_job_result_value(job_id, timeout));
+					out=brb_encode(bearer_job_result_value(job_id, timeout));
 					if(buf==0) self->hostcall_stage(stage_key,out);
 				}
 				if(buf&&cap>=out.size()) self->hostcall_write(buf,out);
 				results[0]=Val((int32_t)out.size()); return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_job_cancel")
-			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { results[0]=Val((int32_t)(uce_job_cancel_value((u64)args[0].i64())?1:0)); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_path_real")
+		if(mod == "env" && name == "bearer_host_job_cancel")
+			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { results[0]=Val((int32_t)(bearer_job_cancel_value((u64)args[0].i64())?1:0)); return(std::monostate()); }));
+		if(mod == "env" && name == "bearer_host_path_real")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String path;
 				self->hostcall_read(args[0].i32(), args[1].i32(), path);
@@ -3647,7 +3648,7 @@ private:
 				results[0] = Val((int32_t)resolved.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_path_is_within")
+		if(mod == "env" && name == "bearer_host_path_is_within")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String path, root;
 				self->hostcall_read(args[0].i32(), args[1].i32(), path);
@@ -3655,7 +3656,7 @@ private:
 				results[0] = Val(::path_is_within(path, root) ? (int32_t)1 : (int32_t)0);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_cwd_get")
+		if(mod == "env" && name == "bearer_host_cwd_get")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String cwd = ::cwd_get();
 				u32 cap = (u32)args[1].i32();
@@ -3665,7 +3666,7 @@ private:
 				results[0] = Val((int32_t)cwd.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_cwd_set")
+		if(mod == "env" && name == "bearer_host_cwd_set")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String path;
 				self->hostcall_read(args[0].i32(), args[1].i32(), path);
@@ -3673,7 +3674,7 @@ private:
 				results[0] = Val(::chdir(resolved.c_str()) == 0 ? (int32_t)1 : (int32_t)0);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_process_start_directory")
+		if(mod == "env" && name == "bearer_host_process_start_directory")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String cwd = ::process_start_directory();
 				u32 cap = (u32)args[1].i32();
@@ -3683,13 +3684,13 @@ private:
 				results[0] = Val((int32_t)cwd.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_last_trap_trace")
+		if(mod == "env" && name == "bearer_host_last_trap_trace")
 			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				(void)args;
 				results[0] = Val((int32_t)0);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_exists")
+		if(mod == "env" && name == "bearer_host_file_exists")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String path, current;
 				self->hostcall_read(args[0].i32(), args[1].i32(), path);
@@ -3700,7 +3701,7 @@ private:
 				results[0] = Val(resolved != "" ? (int32_t)1 : (int32_t)0);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_mkdir")
+		if(mod == "env" && name == "bearer_host_file_mkdir")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String path, current;
 				self->hostcall_read(args[0].i32(), args[1].i32(), path);
@@ -3712,7 +3713,7 @@ private:
 				results[0] = Val((int32_t)ok);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_mtime")
+		if(mod == "env" && name == "bearer_host_file_mtime")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String path, current;
 				self->hostcall_read(args[0].i32(), args[1].i32(), path);
@@ -3725,7 +3726,7 @@ private:
 				results[0] = Val((int64_t)mtime);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_read")
+		if(mod == "env" && name == "bearer_host_file_read")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String path, current;
 				self->hostcall_read(args[0].i32(), args[1].i32(), path);
@@ -3746,7 +3747,7 @@ private:
 				results[0] = Val((int32_t)content.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_list")
+		if(mod == "env" && name == "bearer_host_file_list")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String path, current;
 				self->hostcall_read(args[0].i32(), args[1].i32(), path);
@@ -3778,7 +3779,7 @@ private:
 				results[0] = Val((int32_t)listing.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_write")
+		if(mod == "env" && name == "bearer_host_file_write")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String path, current, content;
 				self->hostcall_read(args[0].i32(), args[1].i32(), path);
@@ -3794,7 +3795,7 @@ private:
 				results[0] = Val(ok ? (int32_t)1 : (int32_t)0);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_open")
+		if(mod == "env" && name == "bearer_host_file_open")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String path, current, mode;
 				self->hostcall_read(args[0].i32(), args[1].i32(), path);
@@ -3844,7 +3845,7 @@ private:
 				results[0] = Val((int64_t)handle);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_handle_read")
+		if(mod == "env" && name == "bearer_host_file_handle_read")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				u64 handle = (u64)args[0].i64();
 				u64 len = (u64)args[1].i64();
@@ -3870,7 +3871,7 @@ private:
 				results[0] = Val((int32_t)out.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_handle_pread")
+		if(mod == "env" && name == "bearer_host_file_handle_pread")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				u64 handle = (u64)args[0].i64();
 				u64 offset = (u64)args[1].i64();
@@ -3897,7 +3898,7 @@ private:
 				results[0] = Val((int32_t)out.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_handle_write")
+		if(mod == "env" && name == "bearer_host_file_handle_write")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String data; self->hostcall_read(args[1].i32(), args[2].i32(), data);
 				u64 handle = (u64)args[0].i64(); u64 written = 0;
@@ -3909,7 +3910,7 @@ private:
 				results[0] = Val((int64_t)written);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_handle_pwrite")
+		if(mod == "env" && name == "bearer_host_file_handle_pwrite")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String data; self->hostcall_read(args[2].i32(), args[3].i32(), data);
 				u64 handle = (u64)args[0].i64(); u64 offset = (u64)args[1].i64(); u64 written = 0;
@@ -3930,7 +3931,7 @@ private:
 				results[0] = Val((int64_t)written);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_handle_seek")
+		if(mod == "env" && name == "bearer_host_file_handle_seek")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				u64 handle = (u64)args[0].i64(); s64 pos = -1;
 				if(handle >= 1 && handle <= self->file_handles.size())
@@ -3941,7 +3942,7 @@ private:
 				results[0] = Val((int64_t)pos);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_handle_tell")
+		if(mod == "env" && name == "bearer_host_file_handle_tell")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				u64 handle = (u64)args[0].i64(); s64 pos = -1;
 				if(handle >= 1 && handle <= self->file_handles.size())
@@ -3952,7 +3953,7 @@ private:
 				results[0] = Val((int64_t)pos);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_handle_close")
+		if(mod == "env" && name == "bearer_host_file_handle_close")
 			return(add([self](Caller, Span<const Val> args, Span<Val>) -> Result<std::monostate, Trap> {
 				u64 handle = (u64)args[0].i64();
 				if(handle >= 1 && handle <= self->file_handles.size())
@@ -3962,39 +3963,39 @@ private:
 				}
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_stat")
+		if(mod == "env" && name == "bearer_host_file_stat")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String path, current; self->hostcall_read(args[0].i32(), args[1].i32(), path); self->hostcall_read(args[2].i32(), args[3].i32(), current);
 				String resolved = self->resolve_guest_file(path, current, true); DValue r; struct stat st;
 				r["exists"].set_bool(resolved != "" && lstat(resolved.c_str(), &st) == 0);
 				if(r["exists"].to_bool()) { r["size"]=(f64)st.st_size; r["mtime"]=(f64)st.st_mtime; r["ctime"]=(f64)st.st_ctime; r["mode"]=(f64)(st.st_mode & 07777); r["is_dir"].set_bool(S_ISDIR(st.st_mode)); r["is_file"].set_bool(S_ISREG(st.st_mode)); r["is_symlink"].set_bool(S_ISLNK(st.st_mode)); }
 				else { r["size"]=(f64)0; r["mtime"]=(f64)0; r["ctime"]=(f64)0; r["mode"]=(f64)0; r["is_dir"].set_bool(false); r["is_file"].set_bool(false); r["is_symlink"].set_bool(false); }
-				String out = ucb_encode(r); u32 cap=(u32)args[5].i32(); int32_t buf=args[4].i32(); if(buf && cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate());
+				String out = brb_encode(r); u32 cap=(u32)args[5].i32(); int32_t buf=args[4].i32(); if(buf && cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_dir_list")
+		if(mod == "env" && name == "bearer_host_dir_list")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String path, current; self->hostcall_read(args[0].i32(), args[1].i32(), path); self->hostcall_read(args[2].i32(), args[3].i32(), current);
 				String resolved = self->resolve_guest_file(path, current, true); DValue list; list.set_array();
 				if(resolved != "") { std::vector<String> names; if(DIR* d=opendir(resolved.c_str())) { while(struct dirent* e=readdir(d)) { String n=e->d_name; if(n!="."&&n!="..") names.push_back(n); } closedir(d); } std::sort(names.begin(), names.end()); for(auto& n:names) { String p=resolved+"/"+n; struct stat st; DValue item; item["name"]=n; if(lstat(p.c_str(), &st)==0) { item["size"]=(f64)st.st_size; item["mtime"]=(f64)st.st_mtime; item["type"]=S_ISDIR(st.st_mode)?"dir":S_ISLNK(st.st_mode)?"symlink":S_ISREG(st.st_mode)?"file":"other"; } list.push(item); } }
-				String out=ucb_encode(list); u32 cap=(u32)args[5].i32(); int32_t buf=args[4].i32(); if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate());
+				String out=brb_encode(list); u32 cap=(u32)args[5].i32(); int32_t buf=args[4].i32(); if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_file_rename")
+		if(mod == "env" && name == "bearer_host_file_rename")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String from,to,current; self->hostcall_read(args[0].i32(),args[1].i32(),from); self->hostcall_read(args[2].i32(),args[3].i32(),to); self->hostcall_read(args[4].i32(),args[5].i32(),current); String rf=self->resolve_guest_write(from,current), rt=self->resolve_guest_write(to,current); results[0]=Val((int32_t)(rf!=""&&rt!=""&&rename(rf.c_str(),rt.c_str())==0)); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_file_copy")
+		if(mod == "env" && name == "bearer_host_file_copy")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String from,to,current; self->hostcall_read(args[0].i32(),args[1].i32(),from); self->hostcall_read(args[2].i32(),args[3].i32(),to); self->hostcall_read(args[4].i32(),args[5].i32(),current); String rf=self->resolve_guest_file(from,current), rt=self->resolve_guest_write(to,current); bool ok=false; if(rf!=""&&rt!="") { std::ifstream in(rf, std::ios::binary); std::ofstream out(rt, std::ios::binary|std::ios::trunc); out<<in.rdbuf(); struct stat st; if(in&&out) { ok=true; if(stat(rf.c_str(),&st)==0) chmod(rt.c_str(), st.st_mode & 07777); } } results[0]=Val((int32_t)ok); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_file_truncate")
+		if(mod == "env" && name == "bearer_host_file_truncate")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String path,current; self->hostcall_read(args[0].i32(),args[1].i32(),path); self->hostcall_read(args[2].i32(),args[3].i32(),current); String r=self->resolve_guest_write(path,current); results[0]=Val((int32_t)(r!=""&&truncate(r.c_str(),(off_t)args[4].i64())==0)); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_dir_remove")
+		if(mod == "env" && name == "bearer_host_dir_remove")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String path,current; self->hostcall_read(args[0].i32(),args[1].i32(),path); self->hostcall_read(args[2].i32(),args[3].i32(),current); String r=self->resolve_guest_write(path,current); bool rec=args[4].i32()!=0; bool ok=false; if(r!="") { if(rec) ok=std::filesystem::remove_all(r)>0; else ok=::rmdir(r.c_str())==0; } results[0]=Val((int32_t)ok); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_file_temp")
-			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String prefix,current; self->hostcall_read(args[0].i32(),args[1].i32(),prefix); self->hostcall_read(args[2].i32(),args[3].i32(),current); u32 cap=(u32)args[5].i32(); int32_t buf=args[4].i32(); String out; String stage_key="file_temp:"+prefix+"\0"+current; if(!self->hostcall_staged(stage_key,out)) { if(prefix=="") prefix="/tmp/uce-temp"; String templ=self->resolve_guest_write(prefix+"XXXXXX",current); if(templ!="") { std::vector<char> t(templ.begin(), templ.end()); t.push_back(0); int fd=mkstemp(t.data()); if(fd>=0) { close(fd); out=t.data(); } } if(buf==0) self->hostcall_stage(stage_key,out); } if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_file_chmod")
+		if(mod == "env" && name == "bearer_host_file_temp")
+			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String prefix,current; self->hostcall_read(args[0].i32(),args[1].i32(),prefix); self->hostcall_read(args[2].i32(),args[3].i32(),current); u32 cap=(u32)args[5].i32(); int32_t buf=args[4].i32(); String out; String stage_key="file_temp:"+prefix+"\0"+current; if(!self->hostcall_staged(stage_key,out)) { if(prefix=="") prefix="/tmp/bearer-temp"; String templ=self->resolve_guest_write(prefix+"XXXXXX",current); if(templ!="") { std::vector<char> t(templ.begin(), templ.end()); t.push_back(0); int fd=mkstemp(t.data()); if(fd>=0) { close(fd); out=t.data(); } } if(buf==0) self->hostcall_stage(stage_key,out); } if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
+		if(mod == "env" && name == "bearer_host_file_chmod")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String path,current; self->hostcall_read(args[0].i32(),args[1].i32(),path); self->hostcall_read(args[2].i32(),args[3].i32(),current); String r=self->resolve_guest_write(path,current); results[0]=Val((int32_t)(r!=""&&chmod(r.c_str(),(mode_t)args[4].i32())==0)); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_file_symlink")
+		if(mod == "env" && name == "bearer_host_file_symlink")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String target,linkpath,current; self->hostcall_read(args[0].i32(),args[1].i32(),target); self->hostcall_read(args[2].i32(),args[3].i32(),linkpath); self->hostcall_read(args[4].i32(),args[5].i32(),current); String rt=self->resolve_guest_file(target,current), rl=self->resolve_guest_write(linkpath,current); results[0]=Val((int32_t)(rt!=""&&rl!=""&&symlink(rt.c_str(),rl.c_str())==0)); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_file_fsync")
+		if(mod == "env" && name == "bearer_host_file_fsync")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { u64 handle=(u64)args[0].i64(); bool ok=false; if(handle>=1&&handle<=self->file_handles.size()) { int fd=self->file_handles[(size_t)handle-1].fd; ok=fd>=0&&fsync(fd)==0; } results[0]=Val((int32_t)ok); return(std::monostate()); }));
-		if(mod == "env" && name == "uce_host_zip")
+		if(mod == "env" && name == "bearer_host_zip")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String encoded;
 				self->hostcall_read(args[0].i32(), args[1].i32(), encoded);
@@ -4008,7 +4009,7 @@ private:
 					String decode_error;
 					try
 					{
-						if(ucb_decode(encoded, request, &decode_error))
+						if(brb_decode(encoded, request, &decode_error))
 						{
 							String op = request["op"].to_string();
 							if(op == "list")
@@ -4047,7 +4048,7 @@ private:
 					{
 						response["error"] = e.what();
 					}
-					out = ucb_encode(response);
+					out = brb_encode(response);
 					if(buf == 0)
 						self->hostcall_stage(stage_key, out);
 				}
@@ -4056,7 +4057,7 @@ private:
 				results[0] = Val((int32_t)out.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_units")
+		if(mod == "env" && name == "bearer_host_units")
 			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String encoded;
 				self->hostcall_read(args[0].i32(), args[1].i32(), encoded);
@@ -4070,7 +4071,7 @@ private:
 					String decode_error;
 					try
 					{
-						if(ucb_decode(encoded, request, &decode_error))
+						if(brb_decode(encoded, request, &decode_error))
 						{
 							String op = request["op"].to_string();
 							if(op == "info")
@@ -4115,7 +4116,7 @@ private:
 					{
 						response["error"] = e.what();
 					}
-					out = ucb_encode(response);
+					out = brb_encode(response);
 					if(buf == 0)
 						self->hostcall_stage(stage_key, out);
 				}
@@ -4124,8 +4125,8 @@ private:
 				results[0] = Val((int32_t)out.size());
 				return(std::monostate());
 			}));
-#ifdef UCE_WASM_HOST_CONNECTORS
-		if(mod == "env" && name == "uce_host_sqlite")
+#ifdef BEARER_WASM_HOST_CONNECTORS
+		if(mod == "env" && name == "bearer_host_sqlite")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				// {op,handle,path,query,params} in → result out. The native
 				// connector runs host-side; connections live in the workspace
@@ -4141,7 +4142,7 @@ private:
 				{
 					DValue request, response;
 					String decode_error;
-					if(ucb_decode(encoded, request, &decode_error))
+					if(brb_decode(encoded, request, &decode_error))
 					{
 						String op = request["op"].to_string();
 						if(op == "connect")
@@ -4184,7 +4185,7 @@ private:
 							}
 						}
 					}
-					out = ucb_encode(response);
+					out = brb_encode(response);
 					if(buf == 0)
 						self->hostcall_stage(stage_key, out);
 				}
@@ -4193,7 +4194,7 @@ private:
 				results[0] = Val((int32_t)out.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_memcache_command")
+		if(mod == "env" && name == "bearer_host_memcache_command")
 			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String command;
 				self->hostcall_read(args[1].i32(), args[2].i32(), command);
@@ -4223,7 +4224,7 @@ private:
 				results[0] = Val((int32_t)out.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_mysql")
+		if(mod == "env" && name == "bearer_host_mysql")
 			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String encoded;
 				self->hostcall_read(args[0].i32(), args[1].i32(), encoded);
@@ -4238,7 +4239,7 @@ private:
 					String op;
 					String connection_source;
 					auto operation_started = std::chrono::steady_clock::now();
-					if(ucb_decode(encoded, request, &decode_error))
+					if(brb_decode(encoded, request, &decode_error))
 					{
 						op = request["op"].to_string();
 						if(op == "connect")
@@ -4325,7 +4326,7 @@ private:
 						else
 							self->mysql_operations_dropped++;
 					}
-					out = ucb_encode(response);
+					out = brb_encode(response);
 					if(buf == 0)
 						self->hostcall_stage(stage_key, out);
 				}
@@ -4335,7 +4336,7 @@ private:
 				return(std::monostate());
 			}));
 #endif
-		if(mod == "env" && name == "uce_host_file_unlink")
+		if(mod == "env" && name == "bearer_host_file_unlink")
 			return(add([self](Caller, Span<const Val> args, Span<Val>) -> Result<std::monostate, Trap> {
 				String path, current;
 				self->hostcall_read(args[0].i32(), args[1].i32(), path);
@@ -4345,7 +4346,7 @@ private:
 					::unlink(resolved.c_str());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_socket_connect")
+		if(mod == "env" && name == "bearer_host_socket_connect")
 			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String host;
 				self->hostcall_read(args[0].i32(), args[1].i32(), host);
@@ -4353,19 +4354,19 @@ private:
 				results[0] = Val((int64_t)fd);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_socket_close")
+		if(mod == "env" && name == "bearer_host_socket_close")
 			return(add([](Caller, Span<const Val> args, Span<Val>) -> Result<std::monostate, Trap> {
 				::socket_close((u64)args[0].i64());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_socket_write")
+		if(mod == "env" && name == "bearer_host_socket_write")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String data;
 				self->hostcall_read(args[1].i32(), args[2].i32(), data);
 				results[0] = Val(wasm_socket_write_bounded((u64)args[0].i64(), data, self->bounded_hostcall_timeout_ms(self->worker.cfg.invocation_timeout_ms)) ? (int32_t)1 : (int32_t)0);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_socket_read")
+		if(mod == "env" && name == "bearer_host_socket_read")
 			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				u64 sockfd = (u64)args[0].i64();
 				u32 max_length = (u32)args[1].i32();
@@ -4397,7 +4398,7 @@ private:
 				results[0] = Val((int32_t)out.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_server_start_http")
+		if(mod == "env" && name == "bearer_host_server_start_http")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String key, bind, file, function, current;
 				self->hostcall_read(args[0].i32(), args[1].i32(), key);
@@ -4423,14 +4424,14 @@ private:
 				results[0] = Val((int32_t)pid);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_server_stop")
+		if(mod == "env" && name == "bearer_host_server_stop")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String key;
 				self->hostcall_read(args[0].i32(), args[1].i32(), key);
 				results[0] = Val(::server_stop(key) ? (int32_t)1 : (int32_t)0);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_task_spawn")
+		if(mod == "env" && name == "bearer_host_task_spawn")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String key;
 				self->hostcall_read(args[0].i32(), args[1].i32(), key);
@@ -4467,19 +4468,19 @@ private:
 				results[0] = Val((int32_t)pid);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_task_pid")
+		if(mod == "env" && name == "bearer_host_task_pid")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String key;
 				self->hostcall_read(args[0].i32(), args[1].i32(), key);
 				results[0] = Val((int32_t)::task_pid(key));
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_task_kill")
+		if(mod == "env" && name == "bearer_host_task_kill")
 			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				results[0] = Val((int32_t)::task_kill((pid_t)args[0].i32(), args[1].i32()));
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_sleep_us")
+		if(mod == "env" && name == "bearer_host_sleep_us")
 			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				u64 usec = (u64)args[0].i64();
 				u64 requested_ms = usec / 1000 + (usec % 1000 != 0);
@@ -4495,16 +4496,16 @@ private:
 				results[0] = Val((int32_t)std::min<u64>(UINT32_MAX, unslept_seconds));
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_regex")
+		if(mod == "env" && name == "bearer_host_regex")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
-				// {op,pattern,subject,flags,replacement} in (UCEB2) → result out.
+				// {op,pattern,subject,flags,replacement} in (BRRB2) → result out.
 				// PCRE2 lives host-side; this runs the native regex_*.
 				String encoded;
 				self->hostcall_read(args[0].i32(), args[1].i32(), encoded);
 				DValue request;
 				String decode_error;
 				DValue response;
-				if(ucb_decode(encoded, request, &decode_error))
+				if(brb_decode(encoded, request, &decode_error))
 				{
 					String op = request["op"].to_string();
 					String pattern = request["pattern"].to_string();
@@ -4526,7 +4527,7 @@ private:
 							response["list"].push(value);
 						}
 				}
-				String out = ucb_encode(response);
+				String out = brb_encode(response);
 				u32 cap = (u32)args[3].i32();
 				int32_t buf = args[2].i32();
 				if(buf != 0 && cap >= out.size())
@@ -4534,7 +4535,7 @@ private:
 				results[0] = Val((int32_t)out.size());
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "uce_host_component_resolve")
+		if(mod == "env" && name == "bearer_host_component_resolve")
 			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String target, handler, current, resolved, compile_error;
 				self->hostcall_read(args[0].i32(), args[1].i32(), target);

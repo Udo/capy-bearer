@@ -16,10 +16,10 @@
 #include <vector>
 
 // The demangler is a host-side nicety for trap traces. wasi-libc++ does not
-// provide __cxa_demangle, and a wasm unit that merely includes uce_lib.h must
+// provide __cxa_demangle, and a wasm unit that merely includes bearer_lib.h must
 // not pull it in as an unresolvable import — so it is host-only.
 #if defined(__GNUG__) && !defined(__wasm__)
-#define UCE_WASM_TRACE_HAVE_DEMANGLE 1
+#define BEARER_WASM_TRACE_HAVE_DEMANGLE 1
 #include <cxxabi.h>
 #endif
 
@@ -34,7 +34,7 @@ struct WasmTraceSummary
 
 inline std::string wasm_trace_demangle(const std::string& name)
 {
-#if defined(UCE_WASM_TRACE_HAVE_DEMANGLE)
+#if defined(BEARER_WASM_TRACE_HAVE_DEMANGLE)
 	// frame names look like "module!symbol"; demangle the symbol part
 	auto bang = name.find('!');
 	std::string prefix = bang == std::string::npos ? "" : name.substr(0, bang + 1);

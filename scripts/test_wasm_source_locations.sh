@@ -3,13 +3,13 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 test_name="wasm-source-location-test-$$"
-site_directory="${UCE_TEST_SITE_DIRECTORY:-site}"
-bin_directory="${UCE_TEST_BIN_DIRECTORY:-/tmp/uce/work}"
-if [[ -r /etc/uce/settings.cfg ]]; then
-	configured_site_directory=$(awk -F= '/^[[:space:]]*HTTP_DOCUMENT_ROOT[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
-	configured_bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
-	[[ -n "${UCE_TEST_SITE_DIRECTORY:-}" ]] || site_directory="${configured_site_directory:-$site_directory}"
-	[[ -n "${UCE_TEST_BIN_DIRECTORY:-}" ]] || bin_directory="${configured_bin_directory:-$bin_directory}"
+site_directory="${BEARER_TEST_SITE_DIRECTORY:-site}"
+bin_directory="${BEARER_TEST_BIN_DIRECTORY:-/tmp/bearer/work}"
+if [[ -r /etc/bearer/settings.cfg ]]; then
+	configured_site_directory=$(awk -F= '/^[[:space:]]*HTTP_DOCUMENT_ROOT[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
+	configured_bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
+	[[ -n "${BEARER_TEST_SITE_DIRECTORY:-}" ]] || site_directory="${configured_site_directory:-$site_directory}"
+	[[ -n "${BEARER_TEST_BIN_DIRECTORY:-}" ]] || bin_directory="${configured_bin_directory:-$bin_directory}"
 fi
 source_dir="$site_directory/$test_name"
 absolute_source_dir=""
@@ -26,7 +26,7 @@ artifact_dir="$(scripts/unit_cache_directory "$bin_directory")$absolute_source_d
 printf '%s\n' 'CLI(Request& context) { __builtin_trap(); }' >"$source_dir/entry.uce"
 
 set +e
-output=$(scripts/uce-cli "/$test_name/entry.uce" 2>&1)
+output=$(scripts/bearer-cli "/$test_name/entry.uce" 2>&1)
 status=$?
 set -e
 if [[ $status -eq 0 ]]; then
@@ -42,7 +42,7 @@ fi
 
 rm "$artifact_dir/entry.uce.wasm.source-map"
 set +e
-without_map=$(scripts/uce-cli "/$test_name/entry.uce" 2>&1)
+without_map=$(scripts/bearer-cli "/$test_name/entry.uce" 2>&1)
 status=$?
 set -e
 if [[ $status -eq 0 || "$without_map" != *'wasm `unreachable` instruction executed'* || "$without_map" == *"source locations:"* ]]; then

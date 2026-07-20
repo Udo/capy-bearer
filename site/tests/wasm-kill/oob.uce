@@ -1,5 +1,5 @@
 // W4/W5 kill-test: explicit guest trap. Native must not run this page; the
-// wasm backend converts it into a clean UCE error page and keeps serving.
+// wasm backend converts it into a clean BEARER error page and keeps serving.
 RENDER(Request& context)
 {
 	print("about to trap\n");

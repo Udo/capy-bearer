@@ -15,7 +15,7 @@ xml_encode
 :content
 Serializes a `DValue` into a compact YAML string for configuration files.
 
-`yaml_encode()` focuses on the ordinary data shapes UCE apps use for config: nested maps, lists, strings, booleans, and numeric `f64` values. It does not emit YAML tags, anchors, aliases, or custom schema features.
+`yaml_encode()` focuses on the ordinary data shapes BEARER apps use for config: nested maps, lists, strings, booleans, and numeric `f64` values. It does not emit YAML tags, anchors, aliases, or custom schema features.
 
 Try the live example in the [YAML demo](../demo/yaml.uce).
 

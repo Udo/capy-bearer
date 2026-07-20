@@ -3,19 +3,19 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 test_name="component-deadline-test-$$"
-site_directory="${UCE_TEST_SITE_DIRECTORY:-site}"
-if [[ -z "${UCE_TEST_SITE_DIRECTORY:-}" && -r /etc/uce/settings.cfg ]]; then
-	configured_site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+site_directory="${BEARER_TEST_SITE_DIRECTORY:-site}"
+if [[ -z "${BEARER_TEST_SITE_DIRECTORY:-}" && -r /etc/bearer/settings.cfg ]]; then
+	configured_site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 	if [[ -n "${configured_site_directory:-}" ]]; then
 		site_directory="$configured_site_directory"
 	fi
 fi
 source_dir="$site_directory/$test_name"
 bin_directory="${BIN_DIRECTORY:-}"
-if [[ -z "$bin_directory" && -r /etc/uce/settings.cfg ]]; then
-	bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+if [[ -z "$bin_directory" && -r /etc/bearer/settings.cfg ]]; then
+	bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 fi
-bin_directory="${bin_directory:-/tmp/uce/work}"
+bin_directory="${bin_directory:-/tmp/bearer/work}"
 cache_dir=""
 
 cleanup() {
@@ -37,7 +37,7 @@ printf '%s\n' \
 	'COMPONENT(Request& context) { <><strong>cold-component-deadline-ok</strong></> }' >>"$source_dir/child.uce"
 rm -rf "$cache_dir"
 
-output=$(scripts/uce-cli "/$test_name/parent.uce")
+output=$(scripts/bearer-cli "/$test_name/parent.uce")
 if [[ "$output" != *cold-component-deadline-ok* ]]; then
 	echo "cold component compilation consumed the guest epoch budget: $output" >&2
 	exit 1

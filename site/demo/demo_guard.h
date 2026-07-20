@@ -58,7 +58,7 @@ void test_demo_render_restricted_html(Request& context, String title, String ris
 	print("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></meta>");
 	print("<link rel=\"stylesheet\" href='", html_escape(style_href), "?v=", time(), "'></link>");
 	print("</head><body>");
-	print("<h1><a href=\"", html_escape(back_href), "\">UCE Test</a>: ", html_escape(title), "</h1>");
+	print("<h1><a href=\"", html_escape(back_href), "\">BEARER Test</a>: ", html_escape(title), "</h1>");
 	print("<p>This test page is disabled for public access because it can ", html_escape(risk), ".</p>");
 	print("<p>It remains available from localhost or a private network for local development and server administration.</p>");
 	print("<p>Detected request source: <code>", html_escape(request_ip), "</code></p>");

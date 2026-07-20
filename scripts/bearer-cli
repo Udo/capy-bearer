@@ -1,35 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-default_socket="/run/uce/cli.sock"
-if [[ -z "${UCE_CLI_SOCKET:-}" && -r /etc/uce/settings.cfg ]]; then
-	configured_socket=$(awk -F= '/^[[:space:]]*CLI_SOCKET_PATH[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+default_socket="/run/bearer/cli.sock"
+if [[ -z "${BEARER_CLI_SOCKET:-}" && -r /etc/bearer/settings.cfg ]]; then
+	configured_socket=$(awk -F= '/^[[:space:]]*CLI_SOCKET_PATH[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 	if [[ -n "${configured_socket:-}" ]]; then
 		default_socket="$configured_socket"
 	fi
 fi
-socket_path="${UCE_CLI_SOCKET:-$default_socket}"
+socket_path="${BEARER_CLI_SOCKET:-$default_socket}"
 method="auto"
 raw_json=""
 
 usage() {
 	cat <<'USAGE'
 Usage:
-  scripts/uce-cli [options] <unit-or-hook> [key=value ...]
+  scripts/bearer-cli [options] <unit-or-hook> [key=value ...]
 
 Options:
-  --socket PATH     Unix socket path (default: CLI_SOCKET_PATH from /etc/uce/settings.cfg,
-                    UCE_CLI_SOCKET, or /run/uce/cli.sock)
+  --socket PATH     Unix socket path (default: CLI_SOCKET_PATH from /etc/bearer/settings.cfg,
+                    BEARER_CLI_SOCKET, or /run/bearer/cli.sock)
   --get             Send key=value parameters as a query string
   --post            Send key=value parameters as a JSON POST (default when params exist)
   --json JSON       Send raw JSON as POST body
   -h, --help        Show this help
 
 Examples:
-  scripts/uce-cli /ping
-  scripts/uce-cli /tests/cli.uce action=echo message=hello
-  scripts/uce-cli --json '{"action":"echo","message":"hello"}' /tests/cli.uce
-  scripts/uce-cli --get /tests/cli.uce action=echo message=hello
+  scripts/bearer-cli /ping
+  scripts/bearer-cli /tests/cli.uce action=echo message=hello
+  scripts/bearer-cli --json '{"action":"echo","message":"hello"}' /tests/cli.uce
+  scripts/bearer-cli --get /tests/cli.uce action=echo message=hello
 USAGE
 }
 
@@ -82,7 +82,7 @@ if [[ "$path" != /* ]]; then
 fi
 
 if [[ ! -S "$socket_path" ]]; then
-	echo "UCE CLI socket not found: $socket_path" >&2
+	echo "BEARER CLI socket not found: $socket_path" >&2
 	exit 1
 fi
 

@@ -13,7 +13,7 @@ return value : a formatted date
 :content
 Formats a timestamp in the server's local timezone.
 
-This formatter is based on the Linux `date` command and supports the same core formatting tokens plus UCE's relative-time delta tokens.
+This formatter is based on the Linux `date` command and supports the same core formatting tokens plus BEARER's relative-time delta tokens.
 
 Supported format sequences:
 

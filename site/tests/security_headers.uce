@@ -1,9 +1,9 @@
 RENDER(Request& context)
 {
-	context.header["X-UCE-Security-Test"] = "safe\r\nX-UCE-Injected: nope";
-	context.header["Bad\r\nX-UCE-Injected-Name"] = "nope";
-	context.set_cookies.push_back("Set-Cookie: raw=1\r\nX-UCE-Cookie-Injected: nope");
-	redirect("/tests/index.uce\r\nX-UCE-Redirect-Injected: nope", 299);
-	context.set_status(299, "OK\r\nX-UCE-Status-Injected: nope");
+	context.header["X-BEARER-Security-Test"] = "safe\r\nX-BEARER-Injected: nope";
+	context.header["Bad\r\nX-BEARER-Injected-Name"] = "nope";
+	context.set_cookies.push_back("Set-Cookie: raw=1\r\nX-BEARER-Cookie-Injected: nope");
+	redirect("/tests/index.uce\r\nX-BEARER-Redirect-Injected: nope", 299);
+	context.set_status(299, "OK\r\nX-BEARER-Status-Injected: nope");
 	print("security header sanitizer test");
 }

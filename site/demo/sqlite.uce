@@ -8,7 +8,7 @@ RENDER(Request& context)
 		return;
 	}
 
-	String db_path = "/tmp/uce-demo-sqlite.sqlite";
+	String db_path = "/tmp/bearer-demo-sqlite.sqlite";
 	SQLite* db = sqlite_connect(db_path);
 	sqlite_query(db, "create table if not exists notes(id integer primary key autoincrement, body text not null, created_at text not null)");
 
@@ -31,7 +31,7 @@ RENDER(Request& context)
 		<link rel="stylesheet" href="style.css?v=<?= time() ?>"></link>
 	</head>
 	<body>
-		<h1><a href="index.uce">UCE Demo</a> / SQLite</h1>
+		<h1><a href="index.uce">BEARER Demo</a> / SQLite</h1>
 		<div class="system-info">
 			<p>This demo stores rows in <code><?= db_path ?></code> with runtime SQLite helpers and named prepared parameters.</p>
 			<form method="post">

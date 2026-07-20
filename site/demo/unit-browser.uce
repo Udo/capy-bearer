@@ -72,11 +72,11 @@ RENDER(Request& context)
 	<head>
 		<meta name="viewport" content="width=device-width, initial-scale=1"></meta>
 		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
-		<title>UCE Test: Unit Browser</title>
+		<title>BEARER Test: Unit Browser</title>
 	</head>
 	<body>
 		<h1>
-			<a href="index.uce">UCE Test</a>:
+			<a href="index.uce">BEARER Test</a>:
 			Unit Browser
 		</h1>
 

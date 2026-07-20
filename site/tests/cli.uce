@@ -5,7 +5,7 @@ CLI(Request& context)
 	String action = first(input["action"].to_string(), "ping");
 	if(action == "ping")
 	{
-		print("uce-unit-cli: ok\n");
+		print("bearer-unit-cli: ok\n");
 		print("script=", context.params["SCRIPT_FILENAME"], "\n");
 		return;
 	}

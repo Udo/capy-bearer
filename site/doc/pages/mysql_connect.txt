@@ -16,7 +16,7 @@ Establishes a connection to a MySQL server and returns a request-owned pointer t
 
 This connection handle is then used with helpers such as `mysql_query()`, `mysql_error()`, and `mysql_disconnect()`.
 
-MySQL handles are request-scoped framework resources. Repeated `mysql_connect()` calls with the same host, credentials, and database reuse one server connection within the current request. Database identity is part of both request-local and worker-persistent pool keys. Each call creates a lease and `mysql_disconnect()` releases that lease. At request cleanup UCE returns the server connection to the current worker's persistent pool, then resets it before cross-request reuse. The pool holds up to `MYSQL_PERSISTENT_POOL_SIZE` connections per worker (default 8); set the size to 0 to disable cross-request reuse. Never store a `MySQL*` in globals, sessions, or other state that can outlive the current request.
+MySQL handles are request-scoped framework resources. Repeated `mysql_connect()` calls with the same host, credentials, and database reuse one server connection within the current request. Database identity is part of both request-local and worker-persistent pool keys. Each call creates a lease and `mysql_disconnect()` releases that lease. At request cleanup BEARER returns the server connection to the current worker's persistent pool, then resets it before cross-request reuse. The pool holds up to `MYSQL_PERSISTENT_POOL_SIZE` connections per worker (default 8); set the size to 0 to disable cross-request reuse. Never store a `MySQL*` in globals, sessions, or other state that can outlive the current request.
 
 :example
 MySQL* db = mysql_connect();

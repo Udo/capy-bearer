@@ -17,4 +17,4 @@ The returned string contains the fully replaced result.
 
 
 :example
-print(replace("hello docs", "docs", "UCE"), "\n");
+print(replace("hello docs", "docs", "BEARER"), "\n");

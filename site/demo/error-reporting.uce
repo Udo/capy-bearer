@@ -35,10 +35,10 @@ RENDER(Request& context)
 	<>
 		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
 		<h1>
-			<a href="index.uce">UCE Test</a>:
+			<a href="index.uce">BEARER Test</a>:
 			Error reporting
 		</h1>
-		<p>These actions trigger guest traps so you can verify that UCE returns a usable `500` response from a healthy worker instead of dropping the upstream connection.</p>
+		<p>These actions trigger guest traps so you can verify that BEARER returns a usable `500` response from a healthy worker instead of dropping the upstream connection.</p>
 		<ul>
 			<li><a href="?mode=trap">Trigger an explicit trap (`__builtin_trap`)</a></li>
 			<li><a href="?mode=recurse">Trigger stack exhaustion (unbounded recursion)</a></li>

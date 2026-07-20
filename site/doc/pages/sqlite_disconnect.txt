@@ -9,9 +9,9 @@ db : pointer to an active SQLite connection
 sqlite_connect
 
 :content
-Closes an SQLite connection and deletes the UCE connection wrapper.
+Closes an SQLite connection and deletes the BEARER connection wrapper.
 
-UCE also cleans up SQLite connections that remain open at request end, but explicit disconnects keep resource lifetime local and clear.
+BEARER also cleans up SQLite connections that remain open at request end, but explicit disconnects keep resource lifetime local and clear.
 
 :example
 SQLite* db = sqlite_connect("/tmp/doc-sqlite-disc.db");

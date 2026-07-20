@@ -6,7 +6,7 @@ RENDER(Request& context)
 	<>
 		<link rel="stylesheet" href='style.css'></link>
 		<h1>
-			<a href="index.uce">UCE Test</a>:
+			<a href="index.uce">BEARER Test</a>:
 			unit_call()
 		</h1>
 		<pre><?

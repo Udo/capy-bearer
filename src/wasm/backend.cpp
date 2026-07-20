@@ -1,14 +1,14 @@
 // W4 — FastCGI backend glue for the W3 wasm workspace runtime.
 //
-// Included into the native server TU (src/linux_fastcgi.cpp) after uce_lib.cpp,
-// so it shares String/DValue/config and the UCEB2 codec. Provides a
+// Included into the native server TU (src/linux_fastcgi.cpp) after bearer_lib.cpp,
+// so it shares String/DValue/config and the BRRB2 codec. Provides a
 // Always-on wasm backend: every unit request is served through a per-request
 // wasm workspace. The legacy native dlopen execution path has been removed.
 
 #include "../lib/wasm_trace.h"
 // The native server TU has the native connectors (sqlite/mysql) compiled in, so
 // the worker's host-side connector hostcalls are available here.
-#define UCE_WASM_HOST_CONNECTORS 1
+#define BEARER_WASM_HOST_CONNECTORS 1
 #include "worker.cpp"
 
 #include <atomic>
@@ -124,13 +124,13 @@ static String wasm_backend_ensure_started(Request* context)
 	wc.profile_hostcall_cpu = to_bool(cfg["WASM_PROFILE_HOSTCALL_CPU"], false);
 	wc.profile_thread_runtime = to_bool(cfg["WASM_PROFILE_THREAD_RUNTIME"], false);
 	wc.verbose = to_bool(cfg["WASM_BACKEND_VERBOSE"], false);
-	// UCE_HOSTCALL_BLOCKLIST: comma-separated uce_host_* names (with or without
-	// the "uce_host_" prefix) the sysadmin disables; each blocked call traps into
+	// BEARER_HOSTCALL_BLOCKLIST: comma-separated bearer_host_* names (with or without
+	// the "bearer_host_" prefix) the sysadmin disables; each blocked call traps into
 	// the error page (see make_host_import). Parsed once here, per worker process.
-	for(String entry : split(cfg["UCE_HOSTCALL_BLOCKLIST"], ","))
+	for(String entry : split(cfg["BEARER_HOSTCALL_BLOCKLIST"], ","))
 	{
 		entry = trim(entry);
-		if(entry.rfind("uce_host_", 0) == 0)
+		if(entry.rfind("bearer_host_", 0) == 0)
 			entry = entry.substr(9);
 		if(entry != "")
 			wc.hostcall_blocklist.insert(entry);
@@ -140,7 +140,7 @@ static String wasm_backend_ensure_started(Request* context)
 	// Server configuration is finalized before render workers start. Encode it
 	// once; each fresh guest decodes the cached flat map into its own Server.
 	g_wasm_worker->server_config_context = cfg;
-	g_wasm_worker->server_config_encoded = ucb_encode(g_wasm_worker->server_config_context);
+	g_wasm_worker->server_config_encoded = brb_encode(g_wasm_worker->server_config_context);
 	g_wasm_init_error = g_wasm_worker->init();
 	if(g_wasm_init_error == "")
 		g_wasm_init_error = wasm_worker_prepare(*g_wasm_worker);
@@ -313,7 +313,7 @@ u64 wasm_backend_invocation_timeout_ms(Request& request)
 String wasm_backend_serve(Request& request, const String& entry_unit, const String& handler, u64 timeout_cap_ms)
 {
 	if(timeout_cap_ms == 0)
-		return("UCE_INVOCATION_TIMEOUT: wasm invocation exceeded " + std::to_string(wasm_backend_invocation_timeout_ms(request)) + " ms");
+		return("BEARER_INVOCATION_TIMEOUT: wasm invocation exceeded " + std::to_string(wasm_backend_invocation_timeout_ms(request)) + " ms");
 	WasmResponse response = wasm_worker_serve(*g_wasm_worker, request, entry_unit, handler, timeout_cap_ms);
 	request.stats.wasm_dispatch_us = response.dispatch_us;
 	request.stats.wasm_workspace_complete_us = response.workspace_complete_us;
@@ -339,10 +339,10 @@ String wasm_backend_serve(Request& request, const String& entry_unit, const Stri
 			batch["connection_state"] = *cstate;
 		}
 		StringMap dispatch_params;
-		dispatch_params["UCE_WS_DISPATCH"] = "1";
+		dispatch_params["BEARER_WS_DISPATCH"] = "1";
 		String broker_socket = first(request.server->config["WS_BROKER_SOCKET_PATH"],
-			"/run/uce/ws-broker.sock");
-		fcgi_forward_request(broker_socket, dispatch_params, ucb_encode(batch), 5);
+			"/run/bearer/ws-broker.sock");
+		fcgi_forward_request(broker_socket, dispatch_params, brb_encode(batch), 5);
 	}
 
 	// A cli/serve_http unit that does not export the requested handler is a 404.
@@ -357,33 +357,33 @@ String wasm_backend_serve(Request& request, const String& entry_unit, const Stri
 	// belong to the W5 benchmark harness, not public responses.
 	if(to_bool(request.server->config["WASM_BACKEND_VERBOSE"], false))
 	{
-		request.header["X-UCE-Backend"] = "wasm";
-		request.header["X-UCE-Wasm-Workspace-Setup-Us"] = std::to_string(response.workspace_setup_us);
-		request.header["X-UCE-Wasm-Workspace-Birth-Us"] = std::to_string(response.workspace_birth_us);
-		request.header["X-UCE-Wasm-Birth-Policy-Us"] = std::to_string(response.birth_policy_us);
-		request.header["X-UCE-Wasm-Birth-Import-Us"] = std::to_string(response.birth_import_us);
-		request.header["X-UCE-Wasm-Birth-Instantiate-Us"] = std::to_string(response.birth_instantiate_us);
-		request.header["X-UCE-Wasm-Birth-Exports-Us"] = std::to_string(response.birth_exports_us);
-		request.header["X-UCE-Wasm-Birth-Initialize-Us"] = std::to_string(response.birth_initialize_us);
-		request.header["X-UCE-Wasm-Context-Apply-Us"] = std::to_string(response.context_apply_us);
-		request.header["X-UCE-Wasm-Context-Bytes"] = std::to_string(response.context_bytes);
-		request.header["X-UCE-Wasm-Server-Config-Bytes"] = std::to_string(response.server_config_bytes);
-		request.header["X-UCE-Wasm-Context-Encode-Us"] = std::to_string(response.context_encode_us);
-		request.header["X-UCE-Wasm-Context-Allocate-Us"] = std::to_string(response.context_allocate_us);
-		request.header["X-UCE-Wasm-Context-Write-Us"] = std::to_string(response.context_write_us);
-		request.header["X-UCE-Wasm-Context-Guest-Apply-Us"] = std::to_string(response.context_guest_apply_us);
-		request.header["X-UCE-Wasm-Context-Free-Us"] = std::to_string(response.context_free_us);
-		request.header["X-UCE-Wasm-Workspace-Complete-Us"] = std::to_string(response.workspace_complete_us);
-		request.header["X-UCE-Wasm-Entry-Invoke-Us"] = std::to_string(response.entry_invoke_us);
-		request.header["X-UCE-Wasm-Entry-Load-Us"] = std::to_string(response.entry_load_us);
-		request.header["X-UCE-Wasm-Entry-Presence-Us"] = std::to_string(response.entry_presence_us);
-		request.header["X-UCE-Wasm-Entry-Link-Us"] = std::to_string(response.entry_link_us);
-		request.header["X-UCE-Wasm-Entry-Dispatch-Us"] = std::to_string(response.entry_dispatch_us);
-		request.header["X-UCE-Wasm-Output-Collect-Us"] = std::to_string(response.output_collect_us);
-		request.header["X-UCE-Wasm-Component-Resolve-Count"] = std::to_string(response.component_resolve_count);
-		request.header["X-UCE-Wasm-Component-Loaded-Reuse-Count"] = std::to_string(response.component_loaded_reuse_count);
-		request.header["X-UCE-Wasm-Component-Resolve-Total-Us"] = std::to_string(response.component_resolve_total_us);
-		request.header["X-UCE-Wasm-Component-Resolve-Avg-Us"] = std::to_string(
+		request.header["X-BEARER-Backend"] = "wasm";
+		request.header["X-BEARER-Wasm-Workspace-Setup-Us"] = std::to_string(response.workspace_setup_us);
+		request.header["X-BEARER-Wasm-Workspace-Birth-Us"] = std::to_string(response.workspace_birth_us);
+		request.header["X-BEARER-Wasm-Birth-Policy-Us"] = std::to_string(response.birth_policy_us);
+		request.header["X-BEARER-Wasm-Birth-Import-Us"] = std::to_string(response.birth_import_us);
+		request.header["X-BEARER-Wasm-Birth-Instantiate-Us"] = std::to_string(response.birth_instantiate_us);
+		request.header["X-BEARER-Wasm-Birth-Exports-Us"] = std::to_string(response.birth_exports_us);
+		request.header["X-BEARER-Wasm-Birth-Initialize-Us"] = std::to_string(response.birth_initialize_us);
+		request.header["X-BEARER-Wasm-Context-Apply-Us"] = std::to_string(response.context_apply_us);
+		request.header["X-BEARER-Wasm-Context-Bytes"] = std::to_string(response.context_bytes);
+		request.header["X-BEARER-Wasm-Server-Config-Bytes"] = std::to_string(response.server_config_bytes);
+		request.header["X-BEARER-Wasm-Context-Encode-Us"] = std::to_string(response.context_encode_us);
+		request.header["X-BEARER-Wasm-Context-Allocate-Us"] = std::to_string(response.context_allocate_us);
+		request.header["X-BEARER-Wasm-Context-Write-Us"] = std::to_string(response.context_write_us);
+		request.header["X-BEARER-Wasm-Context-Guest-Apply-Us"] = std::to_string(response.context_guest_apply_us);
+		request.header["X-BEARER-Wasm-Context-Free-Us"] = std::to_string(response.context_free_us);
+		request.header["X-BEARER-Wasm-Workspace-Complete-Us"] = std::to_string(response.workspace_complete_us);
+		request.header["X-BEARER-Wasm-Entry-Invoke-Us"] = std::to_string(response.entry_invoke_us);
+		request.header["X-BEARER-Wasm-Entry-Load-Us"] = std::to_string(response.entry_load_us);
+		request.header["X-BEARER-Wasm-Entry-Presence-Us"] = std::to_string(response.entry_presence_us);
+		request.header["X-BEARER-Wasm-Entry-Link-Us"] = std::to_string(response.entry_link_us);
+		request.header["X-BEARER-Wasm-Entry-Dispatch-Us"] = std::to_string(response.entry_dispatch_us);
+		request.header["X-BEARER-Wasm-Output-Collect-Us"] = std::to_string(response.output_collect_us);
+		request.header["X-BEARER-Wasm-Component-Resolve-Count"] = std::to_string(response.component_resolve_count);
+		request.header["X-BEARER-Wasm-Component-Loaded-Reuse-Count"] = std::to_string(response.component_loaded_reuse_count);
+		request.header["X-BEARER-Wasm-Component-Resolve-Total-Us"] = std::to_string(response.component_resolve_total_us);
+		request.header["X-BEARER-Wasm-Component-Resolve-Avg-Us"] = std::to_string(
 			response.component_resolve_count ? response.component_resolve_total_us / response.component_resolve_count : 0);
 	}
 

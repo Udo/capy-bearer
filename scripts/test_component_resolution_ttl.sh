@@ -3,25 +3,25 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 test_name="component-resolution-ttl-test-$$"
-site_directory="${UCE_TEST_SITE_DIRECTORY:-site}"
-worker_count="${UCE_TEST_WORKER_COUNT:-4}"
-if [[ -r /etc/uce/settings.cfg ]]; then
-	if [[ -z "${UCE_TEST_SITE_DIRECTORY:-}" ]]; then
-		configured_site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+site_directory="${BEARER_TEST_SITE_DIRECTORY:-site}"
+worker_count="${BEARER_TEST_WORKER_COUNT:-4}"
+if [[ -r /etc/bearer/settings.cfg ]]; then
+	if [[ -z "${BEARER_TEST_SITE_DIRECTORY:-}" ]]; then
+		configured_site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 		site_directory="${configured_site_directory:-$site_directory}"
 	fi
-	if [[ -z "${UCE_TEST_WORKER_COUNT:-}" ]]; then
-		configured_worker_count=$(awk -F= '/^[[:space:]]*WORKER_COUNT[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+	if [[ -z "${BEARER_TEST_WORKER_COUNT:-}" ]]; then
+		configured_worker_count=$(awk -F= '/^[[:space:]]*WORKER_COUNT[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 		worker_count="${configured_worker_count:-$worker_count}"
 	fi
 fi
-http_host="${UCE_TEST_HTTP_HOST:-uce.openfu.com}"
+http_host="${BEARER_TEST_HTTP_HOST:-bearer.openfu.com}"
 source_dir="$site_directory/$test_name"
 bin_directory="${BIN_DIRECTORY:-}"
-if [[ -z "$bin_directory" && -r /etc/uce/settings.cfg ]]; then
-	bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+if [[ -z "$bin_directory" && -r /etc/bearer/settings.cfg ]]; then
+	bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 fi
-bin_directory="${bin_directory:-/tmp/uce/work}"
+bin_directory="${bin_directory:-/tmp/bearer/work}"
 cache_dir=""
 
 cleanup() {

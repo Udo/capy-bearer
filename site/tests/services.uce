@@ -28,7 +28,7 @@ RENDER(Request& context)
 	u64 sockfd = socket_connect("127.0.0.1", 80);
 	if(sockfd != 0)
 	{
-		bool write_ok = socket_write(sockfd, "GET /tests/index.uce HTTP/1.0\r\nHost: uce.openfu.com\r\n\r\n");
+		bool write_ok = socket_write(sockfd, "GET /tests/index.uce HTTP/1.0\r\nHost: bearer.openfu.com\r\n\r\n");
 		String response = socket_read(sockfd, 4096, 2);
 		socket_close(sockfd);
 		bool has_nul = response.find(String("\0", 1)) != String::npos;
@@ -116,7 +116,7 @@ RENDER(Request& context)
 		parsed_underscore
 	);
 	MySQL unavailable_mysql;
-	unavailable_mysql.connect("127.0.0.1", "__uce_intentionally_missing__", "not-a-real-password");
+	unavailable_mysql.connect("127.0.0.1", "__bearer_intentionally_missing__", "not-a-real-password");
 	mark(
 		"mysql_connected() distinguishes a failed connection wrapper",
 		!mysql_connected(&unavailable_mysql) ? "pass" : "fail",
@@ -146,12 +146,12 @@ RENDER(Request& context)
 			dbs.substr(0, dbs.length() > 220 ? 220 : dbs.length())
 		);
 		mysql.query("USE mysql");
-		mysql.query("CREATE TEMPORARY TABLE uce_affected_rows_test (id INT PRIMARY KEY, value INT NOT NULL)");
-		mysql.query("INSERT INTO uce_affected_rows_test VALUES (1,10),(2,20)");
+		mysql.query("CREATE TEMPORARY TABLE bearer_affected_rows_test (id INT PRIMARY KEY, value INT NOT NULL)");
+		mysql.query("INSERT INTO bearer_affected_rows_test VALUES (1,10),(2,20)");
 		u32 inserted = mysql_affected_rows(&mysql);
-		mysql.query("UPDATE uce_affected_rows_test SET value=value+1 WHERE id=1");
+		mysql.query("UPDATE bearer_affected_rows_test SET value=value+1 WHERE id=1");
 		u32 updated = mysql_affected_rows(&mysql);
-		mysql.query("SELECT * FROM uce_affected_rows_test");
+		mysql.query("SELECT * FROM bearer_affected_rows_test");
 		u32 selected = mysql_affected_rows(&mysql);
 		mark(
 			"mysql_affected_rows()",

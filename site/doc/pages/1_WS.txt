@@ -16,7 +16,7 @@ Defines the WebSocket message handler for the current `.uce` page.
 
 Any `.uce` unit may expose both `RENDER(Request& context)` and `WS(Request& context)`. `RENDER(Request& context)` serves the initial HTTP response, while `WS(Request& context)` is called whenever a complete WebSocket message arrives for that page. Configure nginx/Apache to route WebSocket upgrade requests for `.uce` paths to the runtime's HTTP/WebSocket listener.
 
-UCE reassembles fragmented messages before calling `WS(Request& context)`. Text and binary frames are both delivered. The current payload is available directly on `context.in`, message metadata is mirrored into `context.params["WS_..."]`, and connection-local state lives on `context.connection`.
+BEARER reassembles fragmented messages before calling `WS(Request& context)`. Text and binary frames are both delivered. The current payload is available directly on `context.in`, message metadata is mirrored into `context.params["WS_..."]`, and connection-local state lives on `context.connection`.
 
 ## Connection State
 

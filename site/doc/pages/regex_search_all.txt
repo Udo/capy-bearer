@@ -33,5 +33,5 @@ Return shape:
 Zero-length matches are handled safely; the scanner advances after each zero-length match to avoid infinite loops.
 
 :example
-DValue matches = regex_search_all("[a-z]+", "uce docs");
+DValue matches = regex_search_all("[a-z]+", "bearer docs");
 print(matches.is_list() ? "matches\n" : "none\n");

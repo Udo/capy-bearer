@@ -29,7 +29,7 @@ ws_send
 UploadedFile
 
 :content
-`Request& context` is the request-local state object passed into every UCE handler:
+`Request& context` is the request-local state object passed into every BEARER handler:
 
 
 It is the main bridge between the runtime and page code. It contains incoming request data, response state, output buffers, per-request scratch trees, session/cookie state, WebSocket metadata, and runtime diagnostics.
@@ -48,7 +48,7 @@ For WebSockets, each incoming message is delivered as its own `Request`, but `co
 
 Type: `StringMap`
 
-This is the low-level parameter map from FastCGI/direct HTTP plus UCE-populated convenience fields. It is closest to PHP `$_SERVER`.
+This is the low-level parameter map from FastCGI/direct HTTP plus BEARER-populated convenience fields. It is closest to PHP `$_SERVER`.
 
 Common CGI/FastCGI-style keys include:
 
@@ -56,7 +56,7 @@ Common CGI/FastCGI-style keys include:
 - `REQUEST_URI`: raw request URI where available
 - `DOCUMENT_URI`: normalized request path where available
 - `SCRIPT_NAME`: script path where available
-- `SCRIPT_FILENAME`: resolved filesystem path of the active UCE unit
+- `SCRIPT_FILENAME`: resolved filesystem path of the active BEARER unit
 - `QUERY_STRING`: raw query string
 - `DOCUMENT_ROOT`: web root used by the frontend/backend
 - `CONTENT_TYPE`: request body content type
@@ -64,7 +64,7 @@ Common CGI/FastCGI-style keys include:
 - `HTTP_COOKIE`: raw cookie header
 - `HTTP_HOST`, `HTTP_USER_AGENT`, `HTTP_ACCEPT`, and other `HTTP_...` headers supplied by the frontend
 
-UCE also populates convenience route/link fields before handlers run:
+BEARER also populates convenience route/link fields before handlers run:
 
 - `SCRIPT_URL`: canonical script URL; `/index.uce` is collapsed to the containing directory URL
 - `BASE_URL`: canonical directory URL for the script
@@ -124,7 +124,7 @@ Use this with multipart form posts.
 
 Type: `StringMap`
 
-Session data loaded by `session_start()`. UCE does not load sessions automatically for every request; call `session_start()` before reading/writing session data.
+Session data loaded by `session_start()`. BEARER does not load sessions automatically for every request; call `session_start()` before reading/writing session data.
 
 
 At the end of a successful request, modified session data is saved automatically if a session is active.
@@ -160,7 +160,7 @@ Type: `DValue`
 Request-local structured configuration. The runtime does not fill this with application config by default; application code may assign it during boot/setup:
 
 
-This is separate from `context.server->config`, which is the runtime/server string config from `/etc/uce/settings.cfg`.
+This is separate from `context.server->config`, which is the runtime/server string config from `/etc/bearer/settings.cfg`.
 
 Use `get_by_path()` for non-mutating deep reads:
 
@@ -264,7 +264,7 @@ These are useful for diagnostics, demos, and runtime instrumentation.
 - `random_seed`
 - `random_index`
 
-Used by UCE noise/random helpers to provide request-local deterministic progression.
+Used by BEARER noise/random helpers to provide request-local deterministic progression.
 
 Related helpers include functions in the noise/hash area such as `gen_int`, `gen_float`, `gen_noise64`, and `gen_sha1`.
 

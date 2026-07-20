@@ -39,17 +39,17 @@ read as sandbox stubs — the demo System Info counters were broken, and there w
 no authoritative server-side request timing available to unit code (client-side
 measurement cannot see queue/dispatch latency).
 
-Add a request_perf() unit API backed by a new uce_host_request_perf hostcall.
+Add a request_perf() unit API backed by a new bearer_host_request_perf hostcall.
 The native worker answers it live, returning a DValue:
   worker_pid, parent_pid, request_count,
   accept_us  = (time_start - time_init)*1e6   (entry -> dispatch wait),
   running_us = (now - time_start)*1e6         (since dispatch, live),
-  total_us   = (now - time_init)*1e6          (since the request entered UCE),
+  total_us   = (now - time_init)*1e6          (since the request entered BEARER),
   workspace_birth_us.
 time_init is captured at request entry (handle_request, with a handle_complete
 fallback); a RequestPerfSnapshot {pids, request_count, time_init, time_start} is
 threaded from wasm_backend_serve through wasm_worker_serve onto the workspace,
-and the hostcall computes the live deltas at call time. Wired like uce_host_units
+and the hostcall computes the live deltas at call time. Wired like bearer_host_units
 (sized DValue hostcall): core_hostcalls.syms + sys.cpp/sys.h request_perf().
 
 site/demo/index.uce System Info now uses request_perf() and shows the real worker

@@ -1,5 +1,5 @@
 :sig
-String csrf_token(String session_name = "uce-session", String token_name = "csrf_token")
+String csrf_token(String session_name = "bearer-session", String token_name = "csrf_token")
 
 :params
 session_name : session/cookie name to store the token under
@@ -12,7 +12,7 @@ Starts the named session if needed and returns a stable per-session CSRF token f
 Tokens are generated from cryptographic randomness and stored in `context.session` under an internal key. Use a different `token_name` when independent forms should have independent tokens.
 
 :example
-String token = csrf_token("uce-doc-session");
+String token = csrf_token("bearer-doc-session");
 ?><form method="post">
 	<input type="hidden" name="csrf_token" value="<?= token ?>">
 	<button type="submit">Save</button>

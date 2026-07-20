@@ -12,25 +12,25 @@ if [[ "${1:-}" == "--static-only" ]]; then
 	exit 0
 fi
 
-settings_file="${UCE_SETTINGS_FILE:-/etc/uce/settings.cfg}"
-site_directory="${UCE_TEST_SITE_DIRECTORY:-site}"
-socket_path="${UCE_CLI_SOCKET:-/run/uce/cli.sock}"
-bin_directory="${BIN_DIRECTORY:-/tmp/uce/work}"
+settings_file="${BEARER_SETTINGS_FILE:-/etc/bearer/settings.cfg}"
+site_directory="${BEARER_TEST_SITE_DIRECTORY:-site}"
+socket_path="${BEARER_CLI_SOCKET:-/run/bearer/cli.sock}"
+bin_directory="${BIN_DIRECTORY:-/tmp/bearer/work}"
 if [[ -r "$settings_file" ]]; then
-	[[ -n "${UCE_TEST_SITE_DIRECTORY:-}" ]] || site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "$settings_file")
-	[[ -n "${UCE_CLI_SOCKET:-}" ]] || socket_path=$(awk -F= '/^[[:space:]]*CLI_SOCKET_PATH[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "$settings_file")
+	[[ -n "${BEARER_TEST_SITE_DIRECTORY:-}" ]] || site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "$settings_file")
+	[[ -n "${BEARER_CLI_SOCKET:-}" ]] || socket_path=$(awk -F= '/^[[:space:]]*CLI_SOCKET_PATH[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "$settings_file")
 	[[ -n "${BIN_DIRECTORY:-}" ]] || bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "$settings_file")
 	invocation_ms=$(awk -F= '/^[[:space:]]*WASM_INVOCATION_TIMEOUT_MS[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "$settings_file")
 fi
 site_directory="${site_directory:-site}"
-socket_path="${socket_path:-/run/uce/cli.sock}"
-bin_directory="${bin_directory:-/tmp/uce/work}"
+socket_path="${socket_path:-/run/bearer/cli.sock}"
+bin_directory="${bin_directory:-/tmp/bearer/work}"
 invocation_ms="${invocation_ms:-30000}"
 test_name="invocation-timeout-test-$$"
 source_dir="$site_directory/$test_name"
-pid_file="/tmp/uce-$test_name-worker"
+pid_file="/tmp/bearer-$test_name-worker"
 cache_dir=""
-body_file="/tmp/uce-$test_name-body"
+body_file="/tmp/bearer-$test_name-body"
 
 cleanup() {
 	rm -rf "$source_dir"
@@ -106,14 +106,14 @@ for unit in hostcall-loop.uce legacy-shell.uce sleep.uce; do
 	[[ "$status" == "500" ]] || { echo "$unit returned HTTP $status" >&2; exit 1; }
 	if [[ "$unit" == legacy-shell.uce ]]; then
 		if (( invocation_ms <= 5000 )); then
-			grep -q 'UCE_INVOCATION_TIMEOUT:' "$body_file" || { echo "$unit lacked invocation-timeout classification" >&2; exit 1; }
+			grep -q 'BEARER_INVOCATION_TIMEOUT:' "$body_file" || { echo "$unit lacked invocation-timeout classification" >&2; exit 1; }
 			expected_ms=$invocation_ms
 		else
-			grep -q 'UCE_HOSTCALL_TIMEOUT:' "$body_file" || { echo "$unit lacked hostcall-timeout classification" >&2; exit 1; }
+			grep -q 'BEARER_HOSTCALL_TIMEOUT:' "$body_file" || { echo "$unit lacked hostcall-timeout classification" >&2; exit 1; }
 			expected_ms=5000
 		fi
 	else
-		grep -q 'UCE_INVOCATION_TIMEOUT:' "$body_file" || { echo "$unit lacked invocation-timeout classification: $(cat "$body_file")" >&2; exit 1; }
+		grep -q 'BEARER_INVOCATION_TIMEOUT:' "$body_file" || { echo "$unit lacked invocation-timeout classification: $(cat "$body_file")" >&2; exit 1; }
 		expected_ms=$invocation_ms
 	fi
 	(( elapsed_ms >= expected_ms - 1000 && elapsed_ms <= expected_ms + 3000 )) || { echo "$unit completed in ${elapsed_ms}ms; expected about ${expected_ms}ms" >&2; exit 1; }

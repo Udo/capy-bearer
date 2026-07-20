@@ -4,7 +4,7 @@
 //
 // The native main object (linux_fastcgi.cpp) includes this header — not
 // backend.cpp — so it does not have to compile worker.cpp + wasmtime.hh on
-// every build. Include only after uce_lib.h (needs Request / String).
+// every build. Include only after bearer_lib.h (needs Request / String).
 
 // True if this request can be served by the wasm backend for the named unit
 // artifact; handler-agnostic, the caller names the handler.

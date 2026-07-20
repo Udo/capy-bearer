@@ -1,5 +1,5 @@
 :sig
-String csrf_field(String session_name = "uce-session", String token_name = "csrf_token", String field_name = "")
+String csrf_field(String session_name = "bearer-session", String token_name = "csrf_token", String field_name = "")
 
 :params
 session_name : session/cookie name to store the token under
@@ -14,8 +14,8 @@ Use this in ordinary server-rendered POST forms when the submitted field name sh
 
 :example
 ?><form method="post">
-	<? print(csrf_field("uce-doc-session")); ?>
-	<? print(csrf_field("uce-doc-session", "profile_form", "csrf_token")); ?>
+	<? print(csrf_field("bearer-doc-session")); ?>
+	<? print(csrf_field("bearer-doc-session", "profile_form", "csrf_token")); ?>
 	<button type="submit">Save</button>
 </form><?
 

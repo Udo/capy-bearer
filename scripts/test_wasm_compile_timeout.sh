@@ -10,7 +10,7 @@ if [[ "${1:-}" != --inside ]]; then
 	exec timeout --signal=TERM --kill-after=5s 120s unshare --mount --fork --kill-child=TERM "$0" --inside
 fi
 
-root="/tmp/uce-compile-timeout-$$"
+root="/tmp/bearer-compile-timeout-$$"
 site="$root/site"
 work="$root/work"
 settings="$root/settings.cfg"
@@ -32,7 +32,7 @@ cleanup() {
 trap cleanup EXIT
 mkdir -p "$site/components" "$work" "$root/run" "$root/session" "$root/upload"
 sed -E '/^[[:space:]]*(BIN_DIRECTORY|PRECOMPILE_FILES_IN|SITE_DIRECTORY|FCGI_SOCKET_PATH|FCGI_PORT|CLI_SOCKET_PATH|WS_BROKER_SOCKET_PATH|HTTP_PORT|HTTP_DOCUMENT_ROOT|SESSION_PATH|TMP_UPLOAD_PATH|WASM_CORE_PATH|WASM_COMPILE_SCRIPT|WASM_INVOCATION_TIMEOUT_MS|WASM_EPOCH_PERIOD_MS|PROACTIVE_COMPILE_ENABLED|WORKER_COUNT|COMPILE_FAILURE_RETRY_SECONDS)[[:space:]]*=/d' \
-	/etc/uce/settings.cfg >"$settings"
+	/etc/bearer/settings.cfg >"$settings"
 cat >>"$settings" <<CFG
 BIN_DIRECTORY=$work
 PRECOMPILE_FILES_IN=$site
@@ -53,7 +53,7 @@ PROACTIVE_COMPILE_ENABLED=0
 WORKER_COUNT=1
 COMPILE_FAILURE_RETRY_SECONDS=60
 CFG
-mount --bind "$settings" /etc/uce/settings.cfg
+mount --bind "$settings" /etc/bearer/settings.cfg
 
 mkdir -p "$root/compiler/src/wasm" "$root/compiler/scripts"
 cp -a src/lib "$root/compiler/src/lib"
@@ -91,14 +91,14 @@ exec '$root/compiler/scripts/compile_wasm_unit' "\$@"
 SHIM
 chmod +x "$root/compile"
 
-cat >"$site/driver.uce" <<'UCE'
+cat >"$site/driver.uce" <<'BEARER'
 CLI(Request& context) {
   if(context.get["health"] == "1") { print(request_perf()["worker_pid"].to_u64(), "|health"); return; }
   if(context.get["dynamic"] == "1") { print(component("slow-component.uce")); return; }
   String target = first(context.get["target"], "slow.uce");
   print(unit_compile(target) ? "compiled" : "failed");
 }
-UCE
+BEARER
 printf '%s\n' 'CLI(Request& context) { print("entry"); }' >"$site/cold-entry.uce"
 printf '%s\n' 'CLI(Request& context) { print("slow"); }' >"$site/slow.uce"
 printf '%s\n' 'CLI(Request& context) { print("silent"); }' >"$site/silent.uce"
@@ -107,10 +107,10 @@ printf '%s\n' '#load "transitive-child.uce"' 'CLI(Request& context) { print("par
 printf '%s\n' 'String transitive_value() { return("a"); }' >"$site/transitive-child.uce"
 printf '%s\n' 'COMPONENT(Request& context) { print("component"); }' >"$site/components/slow-component.uce"
 
-timeout 40s env UCE_PRECOMPILE_FILES_IN="$site" UCE_PRECOMPILE_BIN_DIRECTORY="$work" UCE_PRECOMPILE_JOBS=1 bin/uce_fastcgi.linux.bin --precompile >"$root/precompile.log" 2>&1 || { cat "$root/precompile.log" >&2; exit 1; }
+timeout 40s env BEARER_PRECOMPILE_FILES_IN="$site" BEARER_PRECOMPILE_BIN_DIRECTORY="$work" BEARER_PRECOMPILE_JOBS=1 bin/bearer_fastcgi.linux.bin --precompile >"$root/precompile.log" 2>&1 || { cat "$root/precompile.log" >&2; exit 1; }
 cache="$(scripts/unit_cache_directory "$work")$(realpath "$site")"
 generation=$(scripts/unit_cache_directory "$work")
-service_user=${UCE_TEST_SERVICE_USER:-www-data}
+service_user=${BEARER_TEST_SERVICE_USER:-www-data}
 service_uid=$(id -u "$service_user")
 service_gid=$(id -g "$service_user")
 generation_before=$(<"$generation/source-generation.txt")
@@ -122,7 +122,7 @@ chown -R "$service_uid:$service_gid" "$root/run" "$root/session" "$root/upload"
 chown "$service_uid:$service_gid" "$root"
 rm -f "$cache/cold-entry.uce."* "$cache/components/slow-component.uce."*
 
-timeout --signal=TERM --kill-after=5s 90s setpriv --reuid="$service_uid" --regid="$service_gid" --clear-groups bin/uce_fastcgi.linux.bin >"$log" 2>&1 &
+timeout --signal=TERM --kill-after=5s 90s setpriv --reuid="$service_uid" --regid="$service_gid" --clear-groups bin/bearer_fastcgi.linux.bin >"$log" 2>&1 &
 server_pid=$!
 for _ in $(seq 1 400); do [[ -S "$root/run/cli.sock" ]] && break; sleep 0.02; done
 [[ -S "$root/run/cli.sock" ]] || { cat "$log" >&2; exit 1; }
@@ -132,9 +132,9 @@ request() {
 	if [[ "$spec" == *\?* ]]; then
 		local query="${spec#*\?}"
 		IFS='&' read -r -a params <<<"$query"
-		timeout 5s scripts/uce-cli --get "$path" "${params[@]}"
+		timeout 5s scripts/bearer-cli --get "$path" "${params[@]}"
 	else
-		timeout 5s scripts/uce-cli "$path"
+		timeout 5s scripts/bearer-cli "$path"
 	fi
 }
 driver=""
@@ -165,7 +165,7 @@ copy_timeout=$(request /driver.uce 2>&1)
 set -e
 elapsed=$(( ($(date +%s%N) - started) / 1000000 ))
 rm -f "$root/copy-delay"
-[[ "$copy_timeout" == *UCE_INVOCATION_TIMEOUT:* ]] || { echo "foreign rollback copy lacked timeout: $copy_timeout" >&2; exit 1; }
+[[ "$copy_timeout" == *BEARER_INVOCATION_TIMEOUT:* ]] || { echo "foreign rollback copy lacked timeout: $copy_timeout" >&2; exit 1; }
 (( elapsed >= 1700 && elapsed <= 3500 )) || { echo "foreign rollback copy took ${elapsed}ms" >&2; exit 1; }
 [[ -e "$root/copy-delay-complete" ]] || { echo "foreign rollback compiler did not finish before timeout" >&2; exit 1; }
 [[ $(stat -c '%u:%s' "$cache/slow.uce.cwasm") == '0:68719476736' ]]
@@ -182,7 +182,7 @@ assert_timeout() {
 	output=$(request "$url" 2>&1)
 	set -e
 	elapsed=$(( ($(date +%s%N) - started) / 1000000 ))
-	[[ "$output" == *UCE_INVOCATION_TIMEOUT:* ]] || { echo "$url lacked timeout: $output" >&2; exit 1; }
+	[[ "$output" == *BEARER_INVOCATION_TIMEOUT:* ]] || { echo "$url lacked timeout: $output" >&2; exit 1; }
 	(( elapsed >= 1700 && elapsed <= 3500 )) || { echo "$url took ${elapsed}ms" >&2; exit 1; }
 	[[ "$(request '/driver.uce?health=1')" == "$worker_pid|health" ]]
 	[[ -s "$root/compiler-pid" ]]
@@ -224,10 +224,10 @@ assert_timeout '/driver.uce?dynamic=1' "$site/components/slow-component.uce"
 assert_timeout /cold-entry.uce "$site/cold-entry.uce"
 
 printf '%s\n' "$site/slow.uce" >"$root/delay"
-timeout 25s env UCE_PRECOMPILE_FILES_IN="$site" UCE_PRECOMPILE_BIN_DIRECTORY="$work" UCE_PRECOMPILE_JOBS=1 bin/uce_fastcgi.linux.bin --precompile >/dev/null
+timeout 25s env BEARER_PRECOMPILE_FILES_IN="$site" BEARER_PRECOMPILE_BIN_DIRECTORY="$work" BEARER_PRECOMPILE_JOBS=1 bin/bearer_fastcgi.linux.bin --precompile >/dev/null
 rm -f "$root/delay"
 
-exec 8>"$generation/known-uce-files.txt.lock"
+exec 8>"$generation/known-bearer-files.txt.lock"
 flock 8
 started=$(date +%s%N)
 set +e
@@ -235,7 +235,7 @@ registry_locked=$(request /driver.uce 2>&1)
 set -e
 elapsed=$(( ($(date +%s%N) - started) / 1000000 ))
 flock -u 8
-[[ "$registry_locked" == *UCE_INVOCATION_TIMEOUT:* && "$elapsed" -le 3500 ]]
+[[ "$registry_locked" == *BEARER_INVOCATION_TIMEOUT:* && "$elapsed" -le 3500 ]]
 
 exec 9>"$cache/slow.uce.wasm.lock"
 flock 9
@@ -245,6 +245,6 @@ locked=$(request /driver.uce 2>&1)
 set -e
 elapsed=$(( ($(date +%s%N) - started) / 1000000 ))
 flock -u 9
-[[ "$locked" == *UCE_INVOCATION_TIMEOUT:* && "$elapsed" -le 3500 ]]
+[[ "$locked" == *BEARER_INVOCATION_TIMEOUT:* && "$elapsed" -le 3500 ]]
 
 echo "wasm compile timeout passed (entry, explicit, dynamic, unit/registry locks, error page, process group, staging, native precompile, foreign-owned artifacts)"

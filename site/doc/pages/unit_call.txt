@@ -2,7 +2,7 @@
 DValue* unit_call(String file_name, String function_name, DValue* call_param = null)
 
 :params
-file_name : UCE file to load and execute
+file_name : BEARER file to load and execute
 function_name : name of the function to invoke
 call_param : optional, call parameter
 return value : DValue* returned from function
@@ -16,13 +16,13 @@ unit_info
 1_COMPONENT
 
 :content
-Calls an exported function inside another UCE file.
+Calls an exported function inside another BEARER file.
 
 Use `unit_call()` when you need structured data exchange between units rather than rendered HTML output.
 
 The callee must expose an `EXPORT` function whose name matches `function_name`. Arguments are passed through `call_param`, and the return value is a `DValue*` owned by the callee.
 
-`unit_call()` also understands the request-bound UCE entrypoint names:
+`unit_call()` also understands the request-bound BEARER entrypoint names:
 
 - `RENDER`
 - `RENDER:NAME`

@@ -15,5 +15,5 @@ Stops a custom server listener by key and removes its registry config.
 `server_stop()` currently targets custom servers started through `server_start_http()`. The same key model is intended to extend to future `server_start_tcp()` and `server_start_udp()` helpers.
 
 :example
-server_start_http("doc-demo-stop", "/tmp/uce/custom-servers/doc-stop.sock", "examples/sample_unit.uce", "RENDER");
+server_start_http("doc-demo-stop", "/tmp/bearer/custom-servers/doc-stop.sock", "examples/sample_unit.uce", "RENDER");
 print(server_stop("doc-demo-stop") ? "server stopped" : "no such server", "\n");

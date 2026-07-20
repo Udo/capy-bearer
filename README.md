@@ -1,4 +1,4 @@
-# uce
+# Bearer
 
 ## Current State
 
@@ -6,7 +6,7 @@ This is in the early stages of development. Don't use this for anything importan
 
 ## Overview
 
-UCE is a PHP-inspired server-side runtime that lets you build web pages and handlers in C++ using a small `.uce` preprocessor plus a FastCGI application server.
+Bearer is a PHP-inspired server-side runtime that lets you build web pages and handlers in C++ using a small `.uce` preprocessor plus a FastCGI application server.
 
 - `.uce` pages compile to WebAssembly side modules on demand
 - normal HTTP pages expose `RENDER(Request& context)`
@@ -18,7 +18,7 @@ UCE is a PHP-inspired server-side runtime that lets you build web pages and hand
 - you can include C++ code as much as you want, but only .uce files called via API functions and entry points will be pre-processed
 - the preprocessor has two jobs:
        - allow for inline HTML within C++ and the use of templating tags inside of that HTML
-       - convenience directive and macro parsing so UCE files don't need a lot of boiler plate
+       - convenience directive and macro parsing so BEARER files don't need a lot of boiler plate
 
 The abolition of boilerplate was a major design factor, resulting in a page as small as this:
 
@@ -53,12 +53,12 @@ SQLite and miniz are vendored under `src/3rdparty/`; no system SQLite or zlib pa
 The binary is written to:
 
 ```bash
-bin/uce_fastcgi.linux.bin
+bin/bearer_fastcgi.linux.bin
 ```
 
 ## Runtime Model
 
-UCE pages use explicit request handlers instead of implicit globals:
+Bearer pages use explicit request handlers instead of implicit globals:
 
 - `RENDER(Request& context)` for normal HTTP rendering
 - `WS(Request& context)` for inbound WebSocket messages
@@ -70,7 +70,7 @@ Useful related runtime patterns:
 - `context.cfg` for request-local structured configuration
 - `context.props` for invocation-local structured input such as component props
 - `context.connection` for broker-owned per-WebSocket-connection state shared across `WS(Request& context)` calls
-- `context.params["UCE_CLI"] == "1"` while handling a local CLI socket request
+- `context.params["BEARER_CLI"] == "1"` while handling a local CLI socket request
 - `context.in` for the current request body, including the current WebSocket message payload inside `WS(Request& context)`
 - `context.params["WS_..."]` for direct WebSocket message metadata on the request parameter map
 - `context.params`, `context.get`, `context.post`, `context.cookies`, `context.session`, and `context.header` for request/response state
@@ -111,22 +111,22 @@ Additional lifecycle hooks are also available on ordinary `.uce` units:
 CLI units can be invoked locally with the convenience wrapper or directly over HTTP-over-Unix:
 
 ```bash
-scripts/uce-cli /tests/cli.uce action=echo message=hello
-scripts/uce-cli --json '{"action":"echo","message":"hello"}' /tests/cli.uce
-curl --unix-socket /run/uce/cli.sock http://localhost/tests/cli.uce
+scripts/bearer-cli /tests/cli.uce action=echo message=hello
+scripts/bearer-cli --json '{"action":"echo","message":"hello"}' /tests/cli.uce
+curl --unix-socket /run/bearer/cli.sock http://localhost/tests/cli.uce
 ```
 
 For structured CLI commands, prefer JSON POST bodies and read them with `cli_input(context)`.
 
 ## Template Output
 
-UCE treats template parsing as one shared code-vs-literal state machine.
+BEARER treats template parsing as one shared code-vs-literal state machine.
 
 - `<>` and `?>` both enter literal output mode
 - `</>` and `<?` both return to code mode
 - the delimiter pairs are interchangeable, so either style can be used consistently or mixed locally
 
-Inside literal output, UCE supports three inline forms:
+Inside literal output, BEARER supports three inline forms:
 
 - `<? ... ?>` to emit raw C++ statements
 - `<?= expression ?>` to print HTML-escaped output
@@ -140,7 +140,7 @@ The preprocessing implementation is split between `src/lib/compiler.cpp` and `sr
 
 ## Components
 
-UCE includes a native component layer built on top of ordinary `.uce` files:
+BEARER includes a native component layer built on top of ordinary `.uce` files:
 
 - `component(name[, props[, context]])`
 - `component_render(name[, props[, context]])`
@@ -250,19 +250,19 @@ Representative test pages:
 The intended production shape is:
 
 - nginx serves static files directly
-- nginx forwards ordinary `.uce` page loads to the UCE FastCGI Unix socket
+- nginx forwards ordinary `.uce` page loads to the BEARER FastCGI Unix socket
 - nginx proxies WebSocket upgrade requests for `.uce` endpoints to the runtime's built-in HTTP/WebSocket listener
 - systemd keeps the runtime built, started, and restarted on failure
 
 The repository ships the pieces used for this:
 
-- `scripts/systemd/uce.service`
-- `scripts/systemd/manage-uce-service.sh`
-- `etc/uce/settings.cfg`
+- `scripts/systemd/bearer.service`
+- `scripts/systemd/manage-bearer-service.sh`
+- `etc/bearer/settings.cfg`
 
 ### 1. Install build and runtime dependencies
 
-On a Debian or Ubuntu host, start with the packages needed to build and run UCE behind nginx:
+On a Debian or Ubuntu host, start with the packages needed to build and run BEARER behind nginx:
 
 ```bash
 apt update
@@ -284,39 +284,39 @@ The exact package names may vary by distro. The important requirements are:
 This README assumes the repository lives at:
 
 ```bash
-/opt/uce
+/opt/bearer
 ```
 
 The examples below use that path for the runtime. Publish public application files under the normal web root, for example:
 
 ```bash
-cd /opt/uce
+cd /opt/bearer
 mkdir -p /var/www/html
 rsync -a site/ /var/www/html/
 ```
 
 If you deploy somewhere else, update the systemd unit's `WorkingDirectory`, build path, and `ExecStart` path before enabling the service.
 
-### 3. Configure `/etc/uce/settings.cfg`
+### 3. Configure `/etc/bearer/settings.cfg`
 
 The runtime reads its server settings from:
 
 ```bash
-/etc/uce/settings.cfg
+/etc/bearer/settings.cfg
 ```
 
 The example contains the filesystem and FastCGI settings:
 
 ```ini
-BIN_DIRECTORY=/var/cache/uce/work
-TMP_UPLOAD_PATH=/var/lib/uce/uploads
-SESSION_PATH=/var/lib/uce/sessions
+BIN_DIRECTORY=/var/cache/bearer/work
+TMP_UPLOAD_PATH=/var/lib/bearer/uploads
+SESSION_PATH=/var/lib/bearer/sessions
 SESSION_COOKIE_SECURE=1
 
-FCGI_SOCKET_PATH=/run/uce/fastcgi.sock
+FCGI_SOCKET_PATH=/run/bearer/fastcgi.sock
 FCGI_SOCKET_MODE=0666
 FCGI_PORT=9993
-CLI_SOCKET_PATH=/run/uce/cli.sock
+CLI_SOCKET_PATH=/run/bearer/cli.sock
 CLI_SOCKET_MODE=0600
 
 PRECOMPILE_FILES_IN=
@@ -330,9 +330,9 @@ SESSION_TIME=2592000
 
 For nginx deployments, the most important setting is:
 
-- `FCGI_SOCKET_PATH=/run/uce/fastcgi.sock`
+- `FCGI_SOCKET_PATH=/run/bearer/fastcgi.sock`
 
-That is the Unix socket nginx should use for normal `.uce` requests. `CLI_SOCKET_PATH` is for local admin/test execution through `scripts/uce-cli`; keep `CLI_SOCKET_MODE=0600` unless a trusted Unix group explicitly needs access.
+That is the Unix socket nginx should use for normal `.uce` requests. `CLI_SOCKET_PATH` is for local admin/test execution through `scripts/bearer-cli`; keep `CLI_SOCKET_MODE=0600` unless a trusted Unix group explicitly needs access.
 
 `FCGI_PORT` is optional if nginx is talking to the Unix socket. Leave it set if you also want a TCP FastCGI listener, or remove it if you want the socket to be the only FastCGI entry point.
 
@@ -355,20 +355,20 @@ Recommended deployment notes:
 - keep `HTTP_PORT` bound to localhost only at the firewall or by network policy; nginx should be the public entry point
 - keep `BIN_DIRECTORY`, `TMP_UPLOAD_PATH`, and `SESSION_PATH` on writable local storage
 - use `SESSION_COOKIE_SECURE=1` for HTTPS-only deployments; leave it `0` only for local/plain-HTTP development
-- after editing `/etc/uce/settings.cfg`, restart `uce.service`
+- after editing `/etc/bearer/settings.cfg`, restart `bearer.service`
 
 ### 4. Install and enable the systemd service
 
 As root, from the repository root:
 
 ```bash
-scripts/systemd/manage-uce-service.sh setup
+scripts/systemd/manage-bearer-service.sh setup
 ```
 
 That script:
 
-- installs `scripts/systemd/uce.service` as `/etc/systemd/system/uce.service`, rewriting the repository-root path in the unit to the checkout you ran it from
-- installs `etc/uce/settings.cfg` to `/etc/uce/settings.cfg` if it does not already exist, likewise rewriting checkout-root paths
+- installs `scripts/systemd/bearer.service` as `/etc/systemd/system/bearer.service`, rewriting the repository-root path in the unit to the checkout you ran it from
+- installs `etc/bearer/settings.cfg` to `/etc/bearer/settings.cfg` if it does not already exist, likewise rewriting checkout-root paths
 - reloads systemd
 - enables the service at boot
 - starts the runtime immediately
@@ -376,22 +376,22 @@ That script:
 Useful follow-up commands:
 
 ```bash
-scripts/systemd/manage-uce-service.sh status
-scripts/systemd/manage-uce-service.sh restart
-scripts/systemd/manage-uce-service.sh logs 200
+scripts/systemd/manage-bearer-service.sh status
+scripts/systemd/manage-bearer-service.sh restart
+scripts/systemd/manage-bearer-service.sh logs 200
 ```
 
 The unit currently:
 
 - uses systemd-managed runtime/state/cache roots under:
-  - `/run/uce`
-  - `/var/lib/uce`
-  - `/var/cache/uce`
+  - `/run/bearer`
+  - `/var/lib/bearer`
+  - `/var/cache/bearer`
 - prepares:
-  - `/var/cache/uce/work`
-  - `/var/lib/uce/uploads`
-  - `/var/lib/uce/sessions`
-- removes any stale `/run/uce/fastcgi.sock`
+  - `/var/cache/bearer/work`
+  - `/var/lib/bearer/uploads`
+  - `/var/lib/bearer/sessions`
+- removes any stale `/run/bearer/fastcgi.sock`
 - rebuilds the runtime before start
 - runs the binary from the repo root so `COMPILER_SYS_PATH` resolves correctly
 
@@ -406,11 +406,11 @@ bash scripts/make_deb.sh 0.1.2
 That script:
 
 - rebuilds the runtime first
-- stages the current runtime tree under `/usr/lib/uce`
-- installs `/etc/uce/settings.cfg` as a package conffile
-- installs a packaged `uce.service` under `/lib/systemd/system/`
+- stages the current runtime tree under `/usr/lib/bearer`
+- installs `/etc/bearer/settings.cfg` as a package conffile
+- installs a packaged `bearer.service` under `/lib/systemd/system/`
 - writes Debian maintainer scripts for systemd reload/enable handling
-- follows a more PHP-like/FHS deployment shape with immutable runtime files under `/usr/lib`, config under `/etc`, cache/state under `/var`, and the FastCGI socket under `/run/uce/`
+- follows a more PHP-like/FHS deployment shape with immutable runtime files under `/usr/lib`, config under `/etc`, cache/state under `/var`, and the FastCGI socket under `/run/bearer/`
 
 ### 5. Configure nginx for `.uce` and WebSocket upgrades
 
@@ -445,7 +445,7 @@ server {
 	}
 
 	location ~ \.uce$ {
-		error_page 418 = @uce_websocket;
+		error_page 418 = @bearer_websocket;
 		if ($http_upgrade = "websocket") {
 			return 418;
 		}
@@ -456,10 +456,10 @@ server {
 		fastcgi_param SCRIPT_NAME $fastcgi_script_name;
 		fastcgi_param DOCUMENT_URI $uri;
 		fastcgi_param REQUEST_URI $request_uri;
-		fastcgi_pass unix:/run/uce/fastcgi.sock;
+		fastcgi_pass unix:/run/bearer/fastcgi.sock;
 	}
 
-	location @uce_websocket {
+	location @bearer_websocket {
 		proxy_http_version 1.1;
 		proxy_set_header Host $host;
 		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -509,7 +509,7 @@ systemctl reload nginx
 Then verify:
 
 ```bash
-systemctl status uce.service
+systemctl status bearer.service
 curl -i http://127.0.0.1/test/index.uce
 curl -i http://127.0.0.1/doc/index.uce
 ```
@@ -521,11 +521,11 @@ If WebSockets are enabled, also verify a `.uce` endpoint that defines `WS(Reques
 Common failure modes:
 
 - `502 Bad Gateway`
-  Usually means `uce.service` is down, the Unix socket path does not match, or the request crashed before sending a valid response.
+  Usually means `bearer.service` is down, the Unix socket path does not match, or the request crashed before sending a valid response.
 - WebSocket upgrade fails
   Check that nginx is routing WebSocket upgrade requests to `proxy_pass`, not `fastcgi_pass`, and that `HTTP_PORT` is reachable on localhost.
 - Requests compile but immediately crash
-  Check `journalctl -u uce.service`. Generated units carry an ABI metadata sidecar and should be recompiled automatically after runtime ABI changes, but clearing stale artifacts under `BIN_DIRECTORY` is still a useful last-resort recovery step if the cache has been damaged manually.
+  Check `journalctl -u bearer.service`. Generated units carry an ABI metadata sidecar and should be recompiled automatically after runtime ABI changes, but clearing stale artifacts under `BIN_DIRECTORY` is still a useful last-resort recovery step if the cache has been damaged manually.
 - nginx serves raw source or internal files
   Tighten the server root and add explicit deny rules for non-public directories.
 

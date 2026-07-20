@@ -2,12 +2,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-http_port="${UCE_RAW_HTTP_TEST_PORT:-}"
-if [[ -z "$http_port" && -r /etc/uce/settings.cfg ]]; then
-	http_port=$(awk -F= '/^[[:space:]]*HTTP_PORT[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+http_port="${BEARER_RAW_HTTP_TEST_PORT:-}"
+if [[ -z "$http_port" && -r /etc/bearer/settings.cfg ]]; then
+	http_port=$(awk -F= '/^[[:space:]]*HTTP_PORT[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 fi
 http_port="${http_port:-8080}"
-request_path="${UCE_RAW_HTTP_TEST_PATH:-/info/index.uce}"
+request_path="${BEARER_RAW_HTTP_TEST_PATH:-/info/index.uce}"
 marker="raw-http-log-$$-$(date +%s%N)"
 separator="?"
 if [[ "$request_path" == *\?* ]]; then
@@ -15,7 +15,7 @@ if [[ "$request_path" == *\?* ]]; then
 fi
 started_at=$(date '+%Y-%m-%d %H:%M:%S')
 
-response=$(curl -fsS --max-time 15 "http://127.0.0.1:${http_port}${request_path}${separator}__uce_log_probe=${marker}")
+response=$(curl -fsS --max-time 15 "http://127.0.0.1:${http_port}${request_path}${separator}__bearer_log_probe=${marker}")
 if [[ -z "$response" ]]; then
 	echo "raw HTTP probe returned an empty response" >&2
 	exit 1
@@ -23,7 +23,7 @@ fi
 
 request_logs=""
 for _ in $(seq 1 30); do
-	request_logs=$(journalctl -u uce --since "$started_at" --no-pager | grep '(r)' | grep "$marker" || true)
+	request_logs=$(journalctl -u bearer --since "$started_at" --no-pager | grep '(r)' | grep "$marker" || true)
 	if [[ $(printf '%s\n' "$request_logs" | grep -c '(r)' || true) -ge 2 ]]; then
 		break
 	fi

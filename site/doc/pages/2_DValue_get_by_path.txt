@@ -17,5 +17,5 @@ Traverses nested map/list children without creating missing nodes. Empty path se
 
 :example
 DValue cfg;
-cfg["site"]["title"] = "UCE";
+cfg["site"]["title"] = "BEARER";
 print(cfg.get_by_path("site/title").to_string(), "\n");

@@ -1,9 +1,9 @@
-#ifndef UCE_SET_CURRENT_REQUEST_DEFINED
-#define UCE_SET_CURRENT_REQUEST_DEFINED
+#ifndef BEARER_SET_CURRENT_REQUEST_DEFINED
+#define BEARER_SET_CURRENT_REQUEST_DEFINED
 
 /*load_declarations*/
 
-extern "C" void __uce_set_current_request(Request* _request)
+extern "C" void __bearer_set_current_request(Request* _request)
 {
 	context = _request;
 	/*load_units*/

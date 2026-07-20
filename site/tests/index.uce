@@ -6,7 +6,7 @@ RENDER(Request& context)
 	DValue manifest = site_tests_manifest(tests_dir + "/manifest.txt");
 	StringList entries = ls(tests_dir).sort();
 
-	site_tests_page_start("Coverage Index", "Public and local-only UCE regression coverage pages.");
+	site_tests_page_start("Coverage Index", "Public and local-only BEARER regression coverage pages.");
 	?><div class="tests-grid"><?
 		for(String entry : entries)
 		{

@@ -5,6 +5,6 @@ COMPONENT(Request& context)
 	context.call["app"]["page_type"] = "blank";
 	<>
 		<?= std::to_string((u64)time()) ?> - Page 2 Section 1 loaded
-		<pre>UCE starter AJAX fragment response</pre>
+		<pre>BEARER starter AJAX fragment response</pre>
 	</>
 }

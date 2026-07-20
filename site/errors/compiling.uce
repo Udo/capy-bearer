@@ -1,4 +1,4 @@
-// Example page_compiling handler. Enable in /etc/uce/settings.cfg:
+// Example page_compiling handler. Enable in /etc/bearer/settings.cfg:
 //   page_compiling=site/errors/compiling.uce
 // Served with status 503 while the requested unit is being (re)built; the
 // page refreshes itself until the build finishes and the requested page renders.

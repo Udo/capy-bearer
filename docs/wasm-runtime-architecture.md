@@ -1,4 +1,4 @@
-# UCE WASM Runtime Architecture
+# BEARER WASM Runtime Architecture
 
 Status: current as of the W7e native-pipeline removal (June 2026). This document
 describes the **runtime architecture as built** — the process topology, the
@@ -19,14 +19,14 @@ page render.
 
 ## 1. Process topology
 
-A single native binary (`uce_fastcgi`) forks into a small set of long-lived
+A single native binary (`bearer_fastcgi`) forks into a small set of long-lived
 roles. None of them is special-cased per request mode; the differences are
 purely *which socket a process listens on* and *which function inside a unit
 gets invoked*.
 
 ```
                           ┌────────────────────────────┐
-        nginx  ──FastCGI──►  worker pool (N processes)  │  $FCGI_SOCKET_PATH (example `/run/uce/fastcgi.sock`)
+        nginx  ──FastCGI──►  worker pool (N processes)  │  $FCGI_SOCKET_PATH (example `/run/bearer/fastcgi.sock`)
    (port 80 etc.)          │  uniform unit renderers    │  (FastCGI + CLI)
                           └─────────────▲──────────────┘
                                         │ forward render (FastCGI, FCGI_SOCKET_PATH)
@@ -48,7 +48,7 @@ gets invoked*.
 | Process | Owns | Renders units? | Source |
 |---|---|---|---|
 | **Parent** | nothing; supervises children | no | `main()`, `init_base_process()` |
-| **Worker** (×`WORKER_COUNT`) | `FCGI_SOCKET_PATH` (configured socket path; example `/run/uce/fastcgi.sock`) + `CLI_SOCKET_PATH` | **yes** — the only processes that run wasm | `listen_for_connections()` |
+| **Worker** (×`WORKER_COUNT`) | `FCGI_SOCKET_PATH` (configured socket path; example `/run/bearer/fastcgi.sock`) + `CLI_SOCKET_PATH` | **yes** — the only processes that run wasm | `listen_for_connections()` |
 | **WS broker** (×1) | `HTTP_PORT` + every live WS connection + `WS_BROKER_SOCKET_PATH` | no — forwards to the pool | `run_ws_broker()` |
 | **serve_http dispatcher** (×bind) | one custom-server bind address | no — forwards to the pool | `custom_server_http_dispatcher_loop()` |
 | **Proactive compiler** | nothing; pre-compiles units | no | `run_proactive_compiler()` |
@@ -76,8 +76,8 @@ inner status line and require the exact dynamic body.
 ## 2. The membrane and the DValue ABI
 
 Units are compiled to WebAssembly and linked against a host import surface (the
-"membrane"). Host and guest exchange structured values as **UCEB** (a compact
-binary `DValue` encoding — `ucb_encode`/`ucb_decode`); strings cross as
+"membrane"). Host and guest exchange structured values as **BRRB** (a compact
+binary `DValue` encoding — `brb_encode`/`brb_decode`); strings cross as
 `std::string` on the native side throughout (no raw `char*` ownership across
 the boundary).
 
@@ -87,17 +87,17 @@ the boundary).
   children yielding `const DValue&`.
 - The request context (`params`/`get`/`post`/`cookies`/`session`, the raw body
   `in`, and—for WS—the connection context) is marshalled into a single `ctx`
-  DValue and UCEB-encoded. Immutable server configuration is UCEB-encoded once
+  DValue and BRRB-encoded. Immutable server configuration is BRRB-encoded once
   per worker as a flat string map; both byte ranges are written into one guest
   buffer. The guest decodes the flat map directly into its fresh `Server` and
   the dynamic tree into its fresh `Request`. The response (body, headers,
-  status, and any `meta` such as `ws_commands`) comes back as UCEB.
+  status, and any `meta` such as `ws_commands`) comes back as BRRB.
 
 See [`docs/wasm-phase1-dvalue-abi.md`](wasm-phase1-dvalue-abi.md) for the wire
 format details.
 
-Decoder robustness note: UCEB input is untrusted across the wasm membrane. The
-UCEB decoder must reject malformed magic/version/varint/length/trailing-data
+Decoder robustness note: BRRB input is untrusted across the wasm membrane. The
+BRRB decoder must reject malformed magic/version/varint/length/trailing-data
 inputs and excessive nesting with explicit errors, not native or wasm traps. Its
 current hard nesting cap is intentionally low (64 levels) to stay well below the
 guest stack limit. JSON decoding follows the same rule for malformed strings and
@@ -114,20 +114,20 @@ the same compiled artifact invoked at different exports. The dispatcher passes a
 **handler string**; the host maps it to an export symbol:
 
 ```
-__uce_<base>[_<sanitize(suffix)>]
+__bearer_<base>[_<sanitize(suffix)>]
 ```
 
 `handler_export_symbol()` (`src/wasm/worker.cpp`) splits on the first `:`:
 
 | Handler string | Export symbol |
 |---|---|
-| `render` | `__uce_render` |
-| `cli` | `__uce_cli` |
-| `websocket` | `__uce_websocket` |
-| `once` | `__uce_once` (optional; absence is not an error) |
-| `serve_http` | `__uce_serve_http` |
-| `serve_http:named` | `__uce_serve_http_named` |
-| `component:CARD` | `__uce_component_CARD` |
+| `render` | `__bearer_render` |
+| `cli` | `__bearer_cli` |
+| `websocket` | `__bearer_websocket` |
+| `once` | `__bearer_once` (optional; absence is not an error) |
+| `serve_http` | `__bearer_serve_http` |
+| `serve_http:named` | `__bearer_serve_http_named` |
+| `component:CARD` | `__bearer_component_CARD` |
 | `exists` | probe only — resolves the unit, loads nothing |
 
 `sanitize_symbol_suffix()` keeps `[A-Za-z0-9_]` (mirrors `ascii_safe_name`).
@@ -146,7 +146,7 @@ without instantiating it.
 
 The request entry unit is already loaded by the host, so its selected handler
 and optional `ONCE` export are placed directly into the workspace table and
-passed to `uce_wasm_invoke_loaded_entry()`. Dynamic component and unit calls
+passed to `bearer_wasm_invoke_loaded_entry()`. Dynamic component and unit calls
 continue through `wasm_resolve_target()`, where relative-path resolution is
 required. Handler cache keys include the calling unit so identically named
 relative targets in different directories cannot alias. Once a unit has passed
@@ -175,7 +175,7 @@ drops one empty workspace. This preserves Wasmtime's fork boundary while
 preventing the first request assigned to each worker from paying engine, linker,
 or pre-instantiation startup.
 Server configuration is immutable by that point. The worker therefore retains
-one native `DValue` view and one UCEB encoding of it. Each request transfers
+one native `DValue` view and one BRRB encoding of it. Each request transfers
 those cached bytes and the guest decodes the flat scalar map directly into its
 fresh `Server`, avoiding both repeated native encoding and an intermediate guest
 `DValue` tree. Request parameters, body, cookies, session, call data, and
@@ -186,7 +186,7 @@ possibly root-owned deployed `core.wasm`; freshness still uses the deployed
 artifact's metadata.
 
 Packaged deployments use systemd socket activation for FastCGI. The socket unit
-owns `/run/uce/fastcgi.sock`; UCE validates and adopts the single named listener
+owns `/run/bearer/fastcgi.sock`; BEARER validates and adopts the single named listener
 after exec. The listener therefore remains connectable and queues requests while
 the service and its post-fork workers restart. Direct launches without systemd
 activation retain the existing configured Unix/TCP listener behavior.
@@ -243,13 +243,13 @@ check. Exact repeated load paths are then deduplicated before canonicalization,
 while distinct aliases are resolved independently so symlink retargets remain
 visible by the next hard validation.
 When a current serialized module exists, the worker scans wasm section headers
-through a bounded 4 KiB positional buffer and retains only `dylink.0`, `uce.abi`,
-and the tiny `uce.module` identity. It skips code and data bodies rather than
+through a bounded 4 KiB positional buffer and retains only `dylink.0`, `bearer.abi`,
+and the tiny `bearer.module` identity. It skips code and data bodies rather than
 issuing byte-at-a-time reads or faulting those bodies into every new worker.
 The request profile reports the physical read-ahead bytes and positional read
 count. The scanner checks the same non-renewable invocation deadline before
 each section and before and after every buffer refill; expiry is returned as the
-canonical `UCE_INVOCATION_TIMEOUT` error. One in-progress regular-file
+canonical `BEARER_INVOCATION_TIMEOUT` error. One in-progress regular-file
 `pread()` remains the irreducible synchronous boundary. Initial descriptor
 validation matches device, inode, mode, nanosecond timestamps, and size from
 the preceding lookup; final validation rejects in-place truncation or mutation.
@@ -276,7 +276,7 @@ failure aborts the switch and leaves the running generation intact. Old
 generation directories are retained as an explicit rollback path. Two
 low-priority precompile processes are used by default so independent units do
 not serialize deployment time while live workers retain scheduler priority.
-`PRECOMPILE_JOBS` or `UCE_PRECOMPILE_JOBS` may select 1–16 processes. Unit
+`PRECOMPILE_JOBS` or `BEARER_PRECOMPILE_JOBS` may select 1–16 processes. Unit
 publication and the shared generation PCH use separate advisory locks, and any
 worker/reporting failure rejects the candidate generation.
 
@@ -320,7 +320,7 @@ Unit linking retains DWARF only long enough for
 `scripts/build_unit_source_map.py` to extract a compact address/file/line table.
 The published `.wasm` is debug-stripped and the table is stored beside it as
 `.wasm.source-map`, keyed to the exact temporary module identity recorded in
-the wasm's `uce.module` custom section. Normal module loading never reads this
+the wasm's `bearer.module` custom section. Normal module loading never reads this
 sidecar. On a Wasmtime trap, the worker uses structured frame module offsets to
 load only the matching map and appends source locations to the error. A missing,
 stale, or malformed map is deliberately non-fatal: the ordinary named wasm
@@ -347,8 +347,8 @@ the membrane wired in. `wasm_worker_serve(worker, ctx, entry_unit, handler)`
    remain supported through the prior per-request import path. Any future
    snapshot/CoW optimization must preserve this request-isolation contract.
 2. Resolve `entry_unit` + `handler` to an export; components referenced at
-   runtime are resolved on demand via the `uce_host_component_resolve` hostcall
-   (`component_resolve()` → `__uce_<...>` slot), loading dependency modules
+   runtime are resolved on demand via the `bearer_host_component_resolve` hostcall
+   (`component_resolve()` → `__bearer_<...>` slot), loading dependency modules
    lazily and recording resolve counts/timings.
 3. Invoke the export. Unit code calls host functions (filesystem, sqlite, regex,
    markdown, time, tasks, `ws_*`, …) across the membrane.
@@ -362,7 +362,7 @@ Wasmtime's own trap signals are not escalated into a native fatal signal (see
 
 Render workers are long-lived. The generic FastCGI transport retains a legacy
 eight-connection recycle default, but `listen_for_connections()` disables it
-for the UCE pool: recycling a healthy worker discards its Wasmtime engine and
+for the BEARER pool: recycling a healthy worker discards its Wasmtime engine and
 module cache, adding a visible cold-start request. Request state remains bounded
 by the fresh workspace and the normal per-request database/resource cleanup;
 faulted workers still exit and are replaced by the parent.
@@ -373,9 +373,9 @@ then checked again before execution. The second check belongs only to that
 state-changing branch; repeating it immediately after a successful warm check
 adds no freshness guarantee.
 
-The internal request envelope carries application `context.call` as UCEB2,
-each request `StringMap` as a flat UCEB2 map, scalar session/input metadata as
-bounded byte segments, and optional WebSocket state as UCEB2. The guest
+The internal request envelope carries application `context.call` as BRRB2,
+each request `StringMap` as a flat BRRB2 map, scalar session/input metadata as
+bounded byte segments, and optional WebSocket state as BRRB2. The guest
 validates the complete envelope before moving those values into a fresh
 `Request`; transport-only params, cookies, session data, and entry metadata no
 longer become duplicate `context.call` children. The historical by-value
@@ -388,7 +388,7 @@ worker-cached server-configuration portion.
 
 ### Task callbacks and workspace lifetime
 
-`task()` and `task_repeat()` are fork-backed. The `uce_host_task_spawn` hostcall
+`task()` and `task_repeat()` are fork-backed. The `bearer_host_task_spawn` hostcall
 captures the current `WasmWorkspace*`, but `src/lib/sys.cpp::task()` invokes the
 captured callback only in the forked child, before the hostcall stack unwinds in
 that child. The parent request may return and destroy its workspace; the child
@@ -407,23 +407,23 @@ point. It selects a handler string from request params and calls the same
 `serve_via_wasm(entry_unit, handler)` lambda for all of them:
 
 ```
-UCE_WS == "1"            → serve_via_wasm(entry_unit, "websocket")
+BEARER_WS == "1"            → serve_via_wasm(entry_unit, "websocket")
 request.resources.is_cli → serve_via_wasm(entry_unit, "cli")
-UCE_SERVE_HTTP == "1"    → serve_via_wasm(entry_unit, "serve_http"[:fn])
+BEARER_SERVE_HTTP == "1"    → serve_via_wasm(entry_unit, "serve_http"[:fn])
 otherwise (page)         → serve_via_wasm(entry_unit, "render")
 ```
 
-The `UCE_*` params are set by whichever broker forwarded the request:
+The `BEARER_*` params are set by whichever broker forwarded the request:
 
-- **Page render**: FastCGI nginx → `FCGI_SOCKET_PATH` directly; no `UCE_*` flags → `render`.
+- **Page render**: FastCGI nginx → `FCGI_SOCKET_PATH` directly; no `BEARER_*` flags → `render`.
 - **CLI**: the CLI socket sets `is_cli`.
-- **serve_http**: the custom-server dispatcher sets `UCE_SERVE_HTTP=1` plus
-  `UCE_SERVE_HTTP_FUNCTION` and rewrites `SCRIPT_FILENAME` to the configured
+- **serve_http**: the custom-server dispatcher sets `BEARER_SERVE_HTTP=1` plus
+  `BEARER_SERVE_HTTP_FUNCTION` and rewrites `SCRIPT_FILENAME` to the configured
   unit (`custom_server_http_complete`).
-- **WebSocket**: the WS broker sets `UCE_WS=1` and carries the connection
-  identity as `UCE_WS_*` params (see §6). `handle_complete` rebuilds
+- **WebSocket**: the WS broker sets `BEARER_WS=1` and carries the connection
+  identity as `BEARER_WS_*` params (see §6). `handle_complete` rebuilds
   `request.resources.websocket_*` and `request.connection` from them before
-  invoking `__uce_websocket`.
+  invoking `__bearer_websocket`.
 
 If a unit still cannot be served after the on-demand wasm compile, the worker
 returns a clean 500 with the wasm/compile error; it does not execute native unit
@@ -446,9 +446,9 @@ broker loop:
 
 1. Build FastCGI params: `SCRIPT_FILENAME`, `REQUEST_METHOD=GET`, a
    `REQUEST_URI` (required — `handle_request()` rejects requests without one
-   *before* `on_complete` runs), `UCE_WS=1`, and the connection context as
-   `UCE_WS_CONNECTION_ID / SCOPE / OPCODE / BINARY / CONNECTIONS / STATE`.
-2. The message rides as `UCE_WS_MESSAGE` (base64) with an **empty STDIN body** —
+   *before* `on_complete` runs), `BEARER_WS=1`, and the connection context as
+   `BEARER_WS_CONNECTION_ID / SCOPE / OPCODE / BINARY / CONNECTIONS / STATE`.
+2. The message rides as `BEARER_WS_MESSAGE` (base64) with an **empty STDIN body** —
    a non-empty STDIN makes the FastCGI transport flush a premature response
    before `on_complete` ever runs.
 3. Connect to `FCGI_SOCKET_PATH` (non-blocking) and queue the encoded request in
@@ -474,8 +474,8 @@ backend flushes this state-only batch to the broker.
 
 `wasm_backend_serve` (`src/wasm/backend.cpp`) flushes that batch at workspace
 teardown — in **any** scenario, not just WS handlers — to the broker's command
-socket (`WS_BROKER_SOCKET_PATH`, `/run/uce/ws-broker.sock`) via
-`fcgi_forward_request` with `UCE_WS_DISPATCH=1`. This is the only path WS data
+socket (`WS_BROKER_SOCKET_PATH`, `/run/bearer/ws-broker.sock`) via
+`fcgi_forward_request` with `BEARER_WS_DISPATCH=1`. This is the only path WS data
 takes out of a workspace.
 
 `ws_broker_apply_commands()` decodes the batch and applies each command against
@@ -486,7 +486,7 @@ matching live connection's `websocket_state`.
 ### 6.3 Un-upgraded HTTP on the WS port
 
 The WS port can also receive ordinary (non-Upgrade) HTTP requests.
-`ws_broker_complete()` routes by param: `UCE_WS_DISPATCH=1` → apply commands;
+`ws_broker_complete()` routes by param: `BEARER_WS_DISPATCH=1` → apply commands;
 otherwise → `forward_request_to_worker()` — the *same* shared facility the
 serve_http dispatcher uses, so there is no duplicated request-forwarding code.
 
@@ -511,7 +511,7 @@ in `main()`).
 
 `serve_http` units are reachable on their own bind address via a custom-server
 dispatcher (`custom_server_http_dispatcher_loop`). The dispatcher owns the bind
-socket and, on each request, sets `UCE_SERVE_HTTP=1` + the configured unit/
+socket and, on each request, sets `BEARER_SERVE_HTTP=1` + the configured unit/
 function and calls `forward_request_to_worker()`. The worker then runs
 `serve_via_wasm(entry_unit, "serve_http"[:fn])`. This is the same
 hold-connection-forward-render model as the WS broker, sharing
@@ -528,7 +528,7 @@ runtime does not recompile the whole TU (`scripts/build_linux.sh`):
 |---|---|
 | `bin/sqlite3.o` | sqlite amalgamation (cached) |
 | `bin/wasm.o` | `src/wasm/wasm_module.cpp` (backend.cpp + worker.cpp + wasmtime) |
-| `bin/main.o` | `src/linux_fastcgi.cpp` (includes `lib/uce_lib.cpp`) |
+| `bin/main.o` | `src/linux_fastcgi.cpp` (includes `lib/bearer_lib.cpp`) |
 
 Linked into one `-rdynamic` binary. ODR hazards across the objects are handled
 deliberately: `context` and `my_pid`/`parent_pid` are `extern` (guarded for the
@@ -542,16 +542,16 @@ header free-functions are `inline`. The wasm backend exposes only declarations
 
 | Key | Default | Meaning |
 |---|---|---|
-| `WASM_BACKEND_VERBOSE` | `0` | Emit `X-UCE-Wasm-*` workspace timing headers (benchmark only). |
+| `WASM_BACKEND_VERBOSE` | `0` | Emit `X-BEARER-Wasm-*` workspace timing headers (benchmark only). |
 | `WASM_EPOCH_DEADLINE_TICKS` | `200` | Maximum uninterrupted guest CPU segment in epoch ticks; must be positive. |
 | `WASM_EPOCH_PERIOD_MS` | `50` | Worker epoch-ticker period and timeout resolution; range `1`–`1000` ms. |
 | `WASM_INVOCATION_TIMEOUT_MS` | `30000` | Absolute app-owned unit load/init/handler/nested-call deadline; range `1`–`86400000` ms and nested calls cannot renew it. |
-| `FCGI_SOCKET_PATH` | runtime-configured (`/run/uce/fastcgi.sock` in this doc) | Worker pool FastCGI socket (brokers forward here). |
-| `CLI_SOCKET_PATH` | `/run/uce/cli.sock` | Worker CLI/admin socket. Keep private; reference `CLI_SOCKET_MODE` is `0600`. |
+| `FCGI_SOCKET_PATH` | runtime-configured (`/run/bearer/fastcgi.sock` in this doc) | Worker pool FastCGI socket (brokers forward here). |
+| `CLI_SOCKET_PATH` | `/run/bearer/cli.sock` | Worker CLI/admin socket. Keep private; reference `CLI_SOCKET_MODE` is `0600`. |
 | `FCGI_SOCKET_MODE` | `0666` | Permission mode applied to `FCGI_SOCKET_PATH` after bind; set tighter if nginx/Apache can use a trusted group. |
 | `CLI_SOCKET_MODE` | `0600` | Permission mode applied to `CLI_SOCKET_PATH`; set `0660` only for a trusted admin group. |
 | `HTTP_PORT` | `8080` | Raw HTTP + WebSocket port — owned by the WS broker. |
-| `WS_BROKER_SOCKET_PATH` | `/run/uce/ws-broker.sock` | Broker command socket for `ws_*` flushes. |
+| `WS_BROKER_SOCKET_PATH` | `/run/bearer/ws-broker.sock` | Broker command socket for `ws_*` flushes. |
 | `WS_BROKER_OUTBOUND_TIMEOUT_SECONDS` | `30` | Max lifetime in seconds for queued WS broker forwards before drop. |
 | `WORKER_COUNT` | `4` | Number of uniform worker processes. |
 
@@ -566,7 +566,7 @@ header free-functions are `inline`. The wasm backend exposes only declarations
   `task-lifetime`, `starter`, `tcp`, and optional `wasm-kill`) so a slow or
   failing group is visible before the rest of the gate runs. `doc-gate` can take
   several minutes on a cold runtime because it compiles generated documentation
-  examples; `UCE_CLI_TEST_TIMEOUT` controls the per-group curl timeout and
+  examples; `BEARER_CLI_TEST_TIMEOUT` controls the per-group curl timeout and
   defaults to 900 seconds. Individual doc-page checks retry transient empty
   frontend reads, but still fail persistent status, marker, compile, runtime, or
   placeholder-example errors. The dependency-invalidation gate changes a transitive
@@ -610,8 +610,8 @@ header free-functions are `inline`. The wasm backend exposes only declarations
   `scripts/test_cold_component_deadline.sh` separately compiles a deliberately
   cold component that exceeds the development epoch window and proves the
   parent request still renders it. The focused shell gates create temporary
-  `.uce` units under `UCE_TEST_SITE_DIRECTORY`, or under the installed
-  `SITE_DIRECTORY` from `/etc/uce/settings.cfg` when no override is supplied.
+  `.uce` units under `BEARER_TEST_SITE_DIRECTORY`, or under the installed
+  `SITE_DIRECTORY` from `/etc/bearer/settings.cfg` when no override is supplied.
   The dependency-invalidation gate also holds parent and child compile locks
   across a transitive source edit, proves a warmed HTTP request returns the
   last atomically published result without waiting, proves a POST returns a
@@ -644,8 +644,8 @@ header free-functions are `inline`. The wasm backend exposes only declarations
   newline-terminated diagnostic attached to its actual journal time instead of
   releasing an old block-buffered failure during unrelated later traffic. The
   private CLI timing gate labels its deliberate invalid-source request as
-  `UCE expected compile error`; public and unmarked CLI compilation failures
-  retain the ordinary `UCE compile error` operator signal.
+  `BEARER expected compile error`; public and unmarked CLI compilation failures
+  retain the ordinary `BEARER compile error` operator signal.
 
 - **WebSocket end-to-end**: a headless client performs a raw WS handshake to
   `:HTTP_PORT` with path `/site/tests/websockets.ws.uce` (self-resolving

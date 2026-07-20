@@ -19,7 +19,7 @@ A million repetitions of "a"
 /* #define LITTLE_ENDIAN * This should be #define'd already, if true. */
 /* #define SHA1HANDSOFF * Copies data before messing with it. */
 
-#ifdef __UCE_WASM_CORE__
+#ifdef __BEARER_WASM_CORE__
 #include <stdint.h>
 typedef uint32_t u_int32_t;
 #endif
@@ -346,15 +346,15 @@ f64 draw_float(f64 from, f64 to, f64 decimal_precision)
 
 
 namespace {
-struct SHA256_CTX_UCE { u8 data[64]; u32 datalen; unsigned long long bitlen; u32 state[8]; };
-#define UCE_SHA256_ROTR(a,b) (((a) >> (b)) | ((a) << (32-(b))))
-#define UCE_SHA256_CH(x,y,z) (((x) & (y)) ^ (~(x) & (z)))
-#define UCE_SHA256_MAJ(x,y,z) (((x) & (y)) ^ ((x) & (z)) ^ ((y) & (z)))
-#define UCE_SHA256_EP0(x) (UCE_SHA256_ROTR(x,2) ^ UCE_SHA256_ROTR(x,13) ^ UCE_SHA256_ROTR(x,22))
-#define UCE_SHA256_EP1(x) (UCE_SHA256_ROTR(x,6) ^ UCE_SHA256_ROTR(x,11) ^ UCE_SHA256_ROTR(x,25))
-#define UCE_SHA256_SIG0(x) (UCE_SHA256_ROTR(x,7) ^ UCE_SHA256_ROTR(x,18) ^ ((x) >> 3))
-#define UCE_SHA256_SIG1(x) (UCE_SHA256_ROTR(x,17) ^ UCE_SHA256_ROTR(x,19) ^ ((x) >> 10))
-static const u32 uce_sha256_k[64] = {
+struct SHA256_CTX_BEARER { u8 data[64]; u32 datalen; unsigned long long bitlen; u32 state[8]; };
+#define BEARER_SHA256_ROTR(a,b) (((a) >> (b)) | ((a) << (32-(b))))
+#define BEARER_SHA256_CH(x,y,z) (((x) & (y)) ^ (~(x) & (z)))
+#define BEARER_SHA256_MAJ(x,y,z) (((x) & (y)) ^ ((x) & (z)) ^ ((y) & (z)))
+#define BEARER_SHA256_EP0(x) (BEARER_SHA256_ROTR(x,2) ^ BEARER_SHA256_ROTR(x,13) ^ BEARER_SHA256_ROTR(x,22))
+#define BEARER_SHA256_EP1(x) (BEARER_SHA256_ROTR(x,6) ^ BEARER_SHA256_ROTR(x,11) ^ BEARER_SHA256_ROTR(x,25))
+#define BEARER_SHA256_SIG0(x) (BEARER_SHA256_ROTR(x,7) ^ BEARER_SHA256_ROTR(x,18) ^ ((x) >> 3))
+#define BEARER_SHA256_SIG1(x) (BEARER_SHA256_ROTR(x,17) ^ BEARER_SHA256_ROTR(x,19) ^ ((x) >> 10))
+static const u32 bearer_sha256_k[64] = {
 	0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
 	0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
 	0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
@@ -363,39 +363,39 @@ static const u32 uce_sha256_k[64] = {
 	0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
 	0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
 	0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2 };
-static void uce_sha256_transform(SHA256_CTX_UCE* ctx, const u8 data[])
+static void bearer_sha256_transform(SHA256_CTX_BEARER* ctx, const u8 data[])
 {
 	u32 m[64];
 	for(u32 i=0,j=0; i<16; ++i,j+=4) m[i]=((u32)data[j]<<24)|((u32)data[j+1]<<16)|((u32)data[j+2]<<8)|((u32)data[j+3]);
-	for(u32 i=16; i<64; ++i) m[i]=UCE_SHA256_SIG1(m[i-2])+m[i-7]+UCE_SHA256_SIG0(m[i-15])+m[i-16];
+	for(u32 i=16; i<64; ++i) m[i]=BEARER_SHA256_SIG1(m[i-2])+m[i-7]+BEARER_SHA256_SIG0(m[i-15])+m[i-16];
 	u32 a=ctx->state[0],b=ctx->state[1],c=ctx->state[2],d=ctx->state[3],e=ctx->state[4],f=ctx->state[5],g=ctx->state[6],h=ctx->state[7];
-	for(u32 i=0; i<64; ++i) { u32 t1=h+UCE_SHA256_EP1(e)+UCE_SHA256_CH(e,f,g)+uce_sha256_k[i]+m[i]; u32 t2=UCE_SHA256_EP0(a)+UCE_SHA256_MAJ(a,b,c); h=g; g=f; f=e; e=d+t1; d=c; c=b; b=a; a=t1+t2; }
+	for(u32 i=0; i<64; ++i) { u32 t1=h+BEARER_SHA256_EP1(e)+BEARER_SHA256_CH(e,f,g)+bearer_sha256_k[i]+m[i]; u32 t2=BEARER_SHA256_EP0(a)+BEARER_SHA256_MAJ(a,b,c); h=g; g=f; f=e; e=d+t1; d=c; c=b; b=a; a=t1+t2; }
 	ctx->state[0]+=a; ctx->state[1]+=b; ctx->state[2]+=c; ctx->state[3]+=d; ctx->state[4]+=e; ctx->state[5]+=f; ctx->state[6]+=g; ctx->state[7]+=h;
 }
-static void uce_sha256_init(SHA256_CTX_UCE* ctx)
+static void bearer_sha256_init(SHA256_CTX_BEARER* ctx)
 {
 	ctx->datalen=0; ctx->bitlen=0; ctx->state[0]=0x6a09e667; ctx->state[1]=0xbb67ae85; ctx->state[2]=0x3c6ef372; ctx->state[3]=0xa54ff53a; ctx->state[4]=0x510e527f; ctx->state[5]=0x9b05688c; ctx->state[6]=0x1f83d9ab; ctx->state[7]=0x5be0cd19;
 }
-static void uce_sha256_update(SHA256_CTX_UCE* ctx, const u8 data[], size_t len)
+static void bearer_sha256_update(SHA256_CTX_BEARER* ctx, const u8 data[], size_t len)
 {
-	for(size_t i=0; i<len; ++i) { ctx->data[ctx->datalen++]=data[i]; if(ctx->datalen==64) { uce_sha256_transform(ctx,ctx->data); ctx->bitlen += 512; ctx->datalen=0; } }
+	for(size_t i=0; i<len; ++i) { ctx->data[ctx->datalen++]=data[i]; if(ctx->datalen==64) { bearer_sha256_transform(ctx,ctx->data); ctx->bitlen += 512; ctx->datalen=0; } }
 }
-static void uce_sha256_final(SHA256_CTX_UCE* ctx, u8 hash[])
+static void bearer_sha256_final(SHA256_CTX_BEARER* ctx, u8 hash[])
 {
 	u32 i=ctx->datalen;
 	ctx->data[i++]=0x80;
-	if(i>56) { while(i<64) ctx->data[i++]=0; uce_sha256_transform(ctx,ctx->data); i=0; }
+	if(i>56) { while(i<64) ctx->data[i++]=0; bearer_sha256_transform(ctx,ctx->data); i=0; }
 	while(i<56) ctx->data[i++]=0;
 	ctx->bitlen += (unsigned long long)ctx->datalen * 8ull;
 	for(int j=7; j>=0; --j) ctx->data[63-j]=(u8)(ctx->bitlen >> (j*8));
-	uce_sha256_transform(ctx,ctx->data);
+	bearer_sha256_transform(ctx,ctx->data);
 	for(i=0; i<4; ++i) for(u32 j=0; j<8; ++j) hash[i + j*4] = (u8)((ctx->state[j] >> (24 - i*8)) & 0xff);
 }
 }
 
 String sha256_native(String data)
 {
-	u8 digest[32]; SHA256_CTX_UCE ctx; uce_sha256_init(&ctx); uce_sha256_update(&ctx, (const u8*)data.data(), data.size()); uce_sha256_final(&ctx, digest);
+	u8 digest[32]; SHA256_CTX_BEARER ctx; bearer_sha256_init(&ctx); bearer_sha256_update(&ctx, (const u8*)data.data(), data.size()); bearer_sha256_final(&ctx, digest);
 	return(String((const char*)digest, 32));
 }
 String sha256_hex_native(String data)
@@ -422,16 +422,16 @@ bool crypto_equal_native(String a, String b)
 	return(diff == 0);
 }
 
-#ifndef __UCE_WASM_CORE__
+#ifndef __BEARER_WASM_CORE__
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 
 namespace {
-const u64 UCE_PASSWORD_SCRYPT_N = 65536;
-const u64 UCE_PASSWORD_SCRYPT_R = 8;
-const u64 UCE_PASSWORD_SCRYPT_P = 1;
+const u64 BEARER_PASSWORD_SCRYPT_N = 65536;
+const u64 BEARER_PASSWORD_SCRYPT_R = 8;
+const u64 BEARER_PASSWORD_SCRYPT_P = 1;
 
-String uce_hex_encode(const unsigned char* bytes, size_t size)
+String bearer_hex_encode(const unsigned char* bytes, size_t size)
 {
 	String encoded;
 	encoded.reserve(size * 2);
@@ -440,7 +440,7 @@ String uce_hex_encode(const unsigned char* bytes, size_t size)
 	return(to_lower(encoded));
 }
 
-bool uce_hex_decode(String encoded, String& decoded)
+bool bearer_hex_decode(String encoded, String& decoded)
 {
 	if(encoded.size() % 2 != 0)
 		return(false);
@@ -462,7 +462,7 @@ bool uce_hex_decode(String encoded, String& decoded)
 	return(true);
 }
 
-bool uce_decimal_u64(String value, u64& parsed)
+bool bearer_decimal_u64(String value, u64& parsed)
 {
 	if(value == "")
 		return(false);
@@ -476,20 +476,20 @@ bool uce_decimal_u64(String value, u64& parsed)
 	return(true);
 }
 
-bool uce_password_parts(String encoded, u64& n, u64& r, u64& p, String& salt, String& digest)
+bool bearer_password_parts(String encoded, u64& n, u64& r, u64& p, String& salt, String& digest)
 {
-	const String prefix = "$uce$scrypt$";
+	const String prefix = "$bearer$scrypt$";
 	if(encoded.size() <= prefix.size() || encoded.substr(0, prefix.size()) != prefix)
 		return(false);
 	auto parts = split(encoded.substr(prefix.size()), "$");
-	if(parts.size() != 5 || !uce_decimal_u64(parts[0], n) || !uce_decimal_u64(parts[1], r) || !uce_decimal_u64(parts[2], p))
+	if(parts.size() != 5 || !bearer_decimal_u64(parts[0], n) || !bearer_decimal_u64(parts[1], r) || !bearer_decimal_u64(parts[2], p))
 		return(false);
-	if(n < 16384 || n > UCE_PASSWORD_SCRYPT_N || (n & (n - 1)) != 0 || r < 1 || r > UCE_PASSWORD_SCRYPT_R || p != UCE_PASSWORD_SCRYPT_P || n * r > UCE_PASSWORD_SCRYPT_N * UCE_PASSWORD_SCRYPT_R)
+	if(n < 16384 || n > BEARER_PASSWORD_SCRYPT_N || (n & (n - 1)) != 0 || r < 1 || r > BEARER_PASSWORD_SCRYPT_R || p != BEARER_PASSWORD_SCRYPT_P || n * r > BEARER_PASSWORD_SCRYPT_N * BEARER_PASSWORD_SCRYPT_R)
 		return(false);
-	return(uce_hex_decode(parts[3], salt) && salt.size() == 16 && uce_hex_decode(parts[4], digest) && digest.size() == 32);
+	return(bearer_hex_decode(parts[3], salt) && salt.size() == 16 && bearer_hex_decode(parts[4], digest) && digest.size() == 32);
 }
 
-bool uce_password_derive(String password, String salt, u64 n, u64 r, u64 p, unsigned char* output)
+bool bearer_password_derive(String password, String salt, u64 n, u64 r, u64 p, unsigned char* output)
 {
 	if(password.size() > 1024 * 1024)
 		return(false);
@@ -502,19 +502,19 @@ String password_hash_native(String password)
 {
 	unsigned char salt[16];
 	unsigned char digest[32];
-	if(RAND_bytes(salt, sizeof(salt)) != 1 || !uce_password_derive(password, String((const char*)salt, sizeof(salt)), UCE_PASSWORD_SCRYPT_N, UCE_PASSWORD_SCRYPT_R, UCE_PASSWORD_SCRYPT_P, digest))
+	if(RAND_bytes(salt, sizeof(salt)) != 1 || !bearer_password_derive(password, String((const char*)salt, sizeof(salt)), BEARER_PASSWORD_SCRYPT_N, BEARER_PASSWORD_SCRYPT_R, BEARER_PASSWORD_SCRYPT_P, digest))
 		return("");
-	return("$uce$scrypt$" + std::to_string(UCE_PASSWORD_SCRYPT_N) + "$" + std::to_string(UCE_PASSWORD_SCRYPT_R) + "$" + std::to_string(UCE_PASSWORD_SCRYPT_P) + "$" + uce_hex_encode(salt, sizeof(salt)) + "$" + uce_hex_encode(digest, sizeof(digest)));
+	return("$bearer$scrypt$" + std::to_string(BEARER_PASSWORD_SCRYPT_N) + "$" + std::to_string(BEARER_PASSWORD_SCRYPT_R) + "$" + std::to_string(BEARER_PASSWORD_SCRYPT_P) + "$" + bearer_hex_encode(salt, sizeof(salt)) + "$" + bearer_hex_encode(digest, sizeof(digest)));
 }
 
 bool password_verify_native(String password, String encoded)
 {
 	u64 n = 0, r = 0, p = 0;
 	String salt, expected;
-	if(!uce_password_parts(encoded, n, r, p, salt, expected))
+	if(!bearer_password_parts(encoded, n, r, p, salt, expected))
 		return(false);
 	unsigned char digest[32];
-	if(!uce_password_derive(password, salt, n, r, p, digest))
+	if(!bearer_password_derive(password, salt, n, r, p, digest))
 		return(false);
 	return(crypto_equal_native(String((const char*)digest, sizeof(digest)), expected));
 }
@@ -523,6 +523,6 @@ bool password_needs_rehash_native(String encoded)
 {
 	u64 n = 0, r = 0, p = 0;
 	String salt, digest;
-	return(!uce_password_parts(encoded, n, r, p, salt, digest) || n != UCE_PASSWORD_SCRYPT_N || r != UCE_PASSWORD_SCRYPT_R || p != UCE_PASSWORD_SCRYPT_P);
+	return(!bearer_password_parts(encoded, n, r, p, salt, digest) || n != BEARER_PASSWORD_SCRYPT_N || r != BEARER_PASSWORD_SCRYPT_R || p != BEARER_PASSWORD_SCRYPT_P);
 }
 #endif

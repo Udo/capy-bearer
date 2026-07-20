@@ -6,7 +6,7 @@ Refactor FastCGI server and compiler, enhance HTTP header parsing, and add WebSo
 - Enhanced split_kv function to support uppercase keys and added split_http_headers for better HTTP header parsing.
 - Introduced new session management functions to validate and handle session IDs.
 - Added WebSocket frame parsing and handling in the URI module.
-- Created systemd service scripts for easier deployment and management of the UCE FastCGI runtime.
+- Created systemd service scripts for easier deployment and management of the BEARER FastCGI runtime.
 - Added new test cases for header handling, time parsing, and WebSocket functionality.
 
 

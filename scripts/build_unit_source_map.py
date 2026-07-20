@@ -64,7 +64,7 @@ def main() -> None:
 		paths[file_id] = path
 
 	with open(args.output, "w", encoding="utf-8") as output:
-		output.write(f"UCE_SOURCE_MAP_V1\t{args.module}\n")
+		output.write(f"BEARER_SOURCE_MAP_V1\t{args.module}\n")
 		for file_id, path in sorted(paths.items()):
 			output.write(f"F\t{file_id}\t{path}\n")
 		for address, line, column, file_id in rows:

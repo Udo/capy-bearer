@@ -1,32 +1,32 @@
 // Production WASM W1 core entrypoint.
 //
-// This file deliberately includes the production UCE runtime amalgamation with
-// __UCE_WASM_CORE__ enabled. Native-only pieces are carved out in the runtime
+// This file deliberately includes the production BEARER runtime amalgamation with
+// __BEARER_WASM_CORE__ enabled. Native-only pieces are carved out in the runtime
 // sources, while the workspace-owned DValue ABI and output plumbing are built
 // into core.wasm.
 
-#define __UCE_WASM_CORE__ 1
+#define __BEARER_WASM_CORE__ 1
 #include "abi.h"
-#include "../lib/uce_lib.cpp"
+#include "../lib/bearer_lib.cpp"
 
 #include "../lib/mysql-connector.h"
 #include "../lib/sqlite-connector.h"
 
 // ---- W3 connector membranes -----------------------------------------------
 // sqlite/mysql run host-side (the host links the native connectors and owns the
-// connections in per-workspace handle tables). UCEB2-marshalled hostcalls carry
+// connections in per-workspace handle tables). BRRB2-marshalled hostcalls carry
 // operation requests/responses; `connection` holds the host handle (>0).
 
 static const char* WASM_DB_UNAVAILABLE =
 	"database connector is not available in the wasm workspace";
 
-extern "C" size_t uce_host_mysql(const char* in, size_t in_len, char* out, size_t cap);
-extern "C" size_t uce_host_zip(const char* in, size_t in_len, char* out, size_t cap);
-extern "C" size_t uce_host_units(const char* in, size_t in_len, char* out, size_t cap);
+extern "C" size_t bearer_host_mysql(const char* in, size_t in_len, char* out, size_t cap);
+extern "C" size_t bearer_host_zip(const char* in, size_t in_len, char* out, size_t cap);
+extern "C" size_t bearer_host_units(const char* in, size_t in_len, char* out, size_t cap);
 
 static DValue wasm_sized_hostcall(DValue request, size_t (*hostcall)(const char*, size_t, char*, size_t))
 {
-	String encoded = ucb_encode(request);
+	String encoded = brb_encode(request);
 	size_t need = hostcall(encoded.data(), encoded.size(), 0, 0);
 	if(need == 0)
 		return(DValue());
@@ -36,13 +36,13 @@ static DValue wasm_sized_hostcall(DValue request, size_t (*hostcall)(const char*
 		return(DValue());
 	DValue response;
 	String error;
-	ucb_decode(String(buffer.data(), got), response, &error);
+	brb_decode(String(buffer.data(), got), response, &error);
 	return(response);
 }
 
 static DValue wasm_zip_call(DValue request)
 {
-	DValue response = wasm_sized_hostcall(request, uce_host_zip);
+	DValue response = wasm_sized_hostcall(request, bearer_host_zip);
 	return(response);
 }
 
@@ -106,7 +106,7 @@ String gz_uncompress(String compressed)
 
 static DValue wasm_units_call(DValue request)
 {
-	return(wasm_sized_hostcall(request, uce_host_units));
+	return(wasm_sized_hostcall(request, bearer_host_units));
 }
 
 DValue unit_info(String path)
@@ -144,7 +144,7 @@ static DValue wasm_unit_call_result;
 
 static DValue wasm_mysql_call(DValue request)
 {
-	return(wasm_sized_hostcall(request, uce_host_mysql));
+	return(wasm_sized_hostcall(request, bearer_host_mysql));
 }
 
 bool MySQL::connect(String host, String username, String password, String database)
@@ -319,24 +319,24 @@ DValue MySQL::query(String q, StringMap params) { return(query(parse_query_param
 DValue MySQL::get_pending_result() { return(DValue()); }
 
 // sqlite runs host-side (the host links libsqlite and owns the connections in
-// a per-workspace handle table). One UCEB2-marshalled hostcall carries
+// a per-workspace handle table). One BRRB2-marshalled hostcall carries
 // {op,handle,path,query,params} in and {handle,result,insert_id,affected,
 // error_code,statement_info} out. `connection` holds the host handle (>0).
-extern "C" size_t uce_host_sqlite(const char* in, size_t in_len, char* out, size_t cap);
+extern "C" size_t bearer_host_sqlite(const char* in, size_t in_len, char* out, size_t cap);
 
 static DValue wasm_sqlite_call(DValue request)
 {
-	String encoded = ucb_encode(request);
-	size_t need = uce_host_sqlite(encoded.data(), encoded.size(), 0, 0);
+	String encoded = brb_encode(request);
+	size_t need = bearer_host_sqlite(encoded.data(), encoded.size(), 0, 0);
 	if(need == 0)
 		return(DValue());
 	String buffer(need, 0);
-	size_t got = uce_host_sqlite(encoded.data(), encoded.size(), &buffer[0], need);
+	size_t got = bearer_host_sqlite(encoded.data(), encoded.size(), &buffer[0], need);
 	if(got == 0 || got > need)
 		return(DValue());
 	DValue response;
 	String error;
-	ucb_decode(String(buffer.data(), got), response, &error);
+	brb_decode(String(buffer.data(), got), response, &error);
 	return(response);
 }
 
@@ -424,7 +424,7 @@ static String wasm_response_meta;
 // imports rather than binding locally. This function exists purely to make
 // the core instantiate — and therefore export — the ones the site tree needs.
 // Extend it when the loader reports "unresolved import env.<libc++ symbol>".
-extern "C" void uce_wasm_link_anchors()
+extern "C" void bearer_wasm_link_anchors()
 {
 	StringMap string_map;
 	string_map["k"] = "v";
@@ -468,7 +468,7 @@ extern "C" void uce_wasm_link_anchors()
 // W3 membrane: the host resolves component/render targets to funcref-table
 // slots (loading units lazily) and writes the resolved unit path back so
 // nested relative component resolution keeps working.
-extern "C" int32_t uce_host_component_resolve(
+extern "C" int32_t bearer_host_component_resolve(
 	const char* target, size_t target_len,
 	const char* handler, size_t handler_len,
 	const char* current_unit, size_t current_unit_len,
@@ -545,7 +545,7 @@ struct RequestPropsScope
 };
 
 // A unit is a bag of exported handlers; invoking any of them is one operation —
-// the host resolves __uce_<handler> in the loaded module to a funcref slot. The
+// the host resolves __bearer_<handler> in the loaded module to a funcref slot. The
 // handler is just a string: "render", "component:CARD", "render:VARIANT",
 // "once", "cli", "websocket", "serve_http:named" — or "exists" (an existence
 // probe that loads nothing). No per-mode kinds.
@@ -565,7 +565,7 @@ static s32 wasm_resolve_target(String unit_target, String handler, String* resol
 	}
 	char resolved[4096];
 	s32 once_slot = 0;
-	s32 slot = uce_host_component_resolve(
+	s32 slot = bearer_host_component_resolve(
 		unit_target.data(), unit_target.size(), handler.data(), handler.size(),
 		current.data(), current.size(),
 		resolved, sizeof(resolved), &once_slot);
@@ -771,23 +771,23 @@ struct WasmRequestEnvelopeSegment
 static bool wasm_decode_request_envelope(const char* encoded, size_t encoded_size,
 	WasmRequestEnvelopeSegment (&segments)[12], String& error)
 {
-	if(encoded_size < 6 || memcmp(encoded, "UCER", 4) != 0)
+	if(encoded_size < 6 || memcmp(encoded, "BRRQ", 4) != 0)
 	{
-		error = "missing UCE request-envelope header";
+		error = "missing BEARER request-envelope header";
 		return(false);
 	}
 	if((u8)encoded[4] != 1 || (u8)encoded[5] != 12)
 	{
-		error = "unsupported UCE request-envelope version or segment count";
+		error = "unsupported BEARER request-envelope version or segment count";
 		return(false);
 	}
 	size_t offset = 6;
 	for(u32 i = 0; i < 12; i++)
 	{
 		u64 segment_size = 0;
-		if(!ucb_read_varint(encoded, encoded_size, offset, segment_size) || segment_size > encoded_size - offset)
+		if(!brb_read_varint(encoded, encoded_size, offset, segment_size) || segment_size > encoded_size - offset)
 		{
-			error = "invalid UCE request-envelope segment " + std::to_string(i);
+			error = "invalid BEARER request-envelope segment " + std::to_string(i);
 			return(false);
 		}
 		segments[i].data = encoded + offset;
@@ -796,7 +796,7 @@ static bool wasm_decode_request_envelope(const char* encoded, size_t encoded_siz
 	}
 	if(offset != encoded_size)
 	{
-		error = "trailing bytes after UCE request envelope";
+		error = "trailing bytes after BEARER request envelope";
 		return(false);
 	}
 	return(true);
@@ -807,7 +807,7 @@ extern "C" {
 // The host has already loaded the request's entry unit and can place its
 // exports directly in the shared table. This avoids resolving that same unit
 // back through a hostcall while preserving per-request ONCE deduplication.
-void uce_wasm_invoke_loaded_entry(s32 handler_slot, s32 once_slot)
+void bearer_wasm_invoke_loaded_entry(s32 handler_slot, s32 once_slot)
 {
 	String resolved = context->resources.current_unit_file;
 	if(once_slot && resolved != "" && context->once_units.find(resolved) == context->once_units.end())
@@ -820,22 +820,22 @@ void uce_wasm_invoke_loaded_entry(s32 handler_slot, s32 once_slot)
 	handler_fn(*context);
 }
 
-void* uce_alloc(size_t len)
+void* bearer_alloc(size_t len)
 {
 	return(malloc(len));
 }
 
-void uce_free(void* ptr)
+void bearer_free(void* ptr)
 {
 	free(ptr);
 }
 
-u32 uce_wasm_core_abi_version()
+u32 bearer_wasm_core_abi_version()
 {
-	return(UCE_WASM_CORE_ABI_VERSION);
+	return(BEARER_WASM_CORE_ABI_VERSION);
 }
 
-int uce_wasm_core_init()
+int bearer_wasm_core_init()
 {
 	wasm_server.config = default_config();
 	wasm_request.server = &wasm_server;
@@ -848,10 +848,10 @@ int uce_wasm_core_init()
 	return(0);
 }
 
-void uce_wasm_core_reset_request()
+void bearer_wasm_core_reset_request()
 {
 	if(context == 0)
-		uce_wasm_core_init();
+		bearer_wasm_core_init();
 	wasm_request.call = DValue();
 	wasm_request.props = DValue();
 	wasm_request.params.clear();
@@ -881,11 +881,11 @@ void uce_wasm_core_reset_request()
 }
 
 // Host pushes the worker-cached immutable configuration followed by the
-// dynamic UCEB2 request context into one guest buffer.
-int uce_wasm_apply_context(const char* config_buf, size_t config_len, const char* context_buf, size_t context_len)
+// dynamic BRRB2 request context into one guest buffer.
+int bearer_wasm_apply_context(const char* config_buf, size_t config_len, const char* context_buf, size_t context_len)
 {
 	if(context == 0)
-		uce_wasm_core_init();
+		bearer_wasm_core_init();
 	StringMap decoded_config;
 	StringMap decoded_params;
 	StringMap decoded_get;
@@ -896,24 +896,24 @@ int uce_wasm_apply_context(const char* config_buf, size_t config_len, const char
 	DValue decoded_ws;
 	WasmRequestEnvelopeSegment segments[12];
 	String error;
-	if(!ucb_decode_flat_string_map(config_buf, config_len, decoded_config, &error))
+	if(!brb_decode_flat_string_map(config_buf, config_len, decoded_config, &error))
 	{
-		uce_host_log(3, error.data(), error.size());
+		bearer_host_log(3, error.data(), error.size());
 		return(1);
 	}
 	if(!wasm_decode_request_envelope(context_buf, context_len, segments, error))
 	{
-		uce_host_log(3, error.data(), error.size());
+		bearer_host_log(3, error.data(), error.size());
 		return(2);
 	}
 	auto decode_tree = [&](u32 index, DValue& target, const char* name) {
-		if(ucb_decode(String(segments[index].data, segments[index].size), target, &error))
+		if(brb_decode(String(segments[index].data, segments[index].size), target, &error))
 			return(true);
 		error = String(name) + ": " + error;
 		return(false);
 	};
 	auto decode_map = [&](u32 index, StringMap& target, const char* name) {
-		if(ucb_decode_flat_string_map(segments[index].data, segments[index].size, target, &error))
+		if(brb_decode_flat_string_map(segments[index].data, segments[index].size, target, &error))
 			return(true);
 		error = String(name) + ": " + error;
 		return(false);
@@ -925,12 +925,12 @@ int uce_wasm_apply_context(const char* config_buf, size_t config_len, const char
 		!decode_map(4, decoded_cookies, "request cookies") ||
 		!decode_map(5, decoded_session, "request session"))
 	{
-		uce_host_log(3, error.data(), error.size());
+		bearer_host_log(3, error.data(), error.size());
 		return(3);
 	}
 	if(segments[11].size && !decode_tree(11, decoded_ws, "request websocket"))
 	{
-		uce_host_log(3, error.data(), error.size());
+		bearer_host_log(3, error.data(), error.size());
 		return(4);
 	}
 	wasm_server.config = std::move(decoded_config);
@@ -973,16 +973,16 @@ int uce_wasm_apply_context(const char* config_buf, size_t config_len, const char
 	return(0);
 }
 
-Request* uce_wasm_request()
+Request* bearer_wasm_request()
 {
 	if(context == 0)
-		uce_wasm_core_init();
+		bearer_wasm_core_init();
 	return(&wasm_request);
 }
 
 // After render: response metadata (status line, headers, cookies, session)
-// goes back to the host as UCEB2.
-void uce_wasm_finish_response_meta()
+// goes back to the host as BRRB2.
+void bearer_wasm_finish_response_meta()
 {
 	DValue meta;
 	meta["status"] = wasm_request.response_code;
@@ -1003,8 +1003,8 @@ void uce_wasm_finish_response_meta()
 	bool ws_state_changed = false;
 	if(wasm_request.resources.websocket_dispatch_capture)
 	{
-		String prior_state = ucb_encode(wasm_request.resources.websocket_connection_state_before);
-		String current_state = ucb_encode(wasm_request.connection);
+		String prior_state = brb_encode(wasm_request.resources.websocket_connection_state_before);
+		String current_state = brb_encode(wasm_request.connection);
 		ws_state_changed = (prior_state != current_state);
 	}
 	// Any unit code (not just WS handlers) may call ws_send/ws_close; whenever the
@@ -1015,40 +1015,40 @@ void uce_wasm_finish_response_meta()
 		meta["ws_commands"] = wasm_request.resources.websocket_dispatch_commands;
 	if(ws_state_changed)
 		meta["ws_connection_state"] = wasm_request.connection;
-	wasm_response_meta = ucb_encode(meta);
+	wasm_response_meta = brb_encode(meta);
 }
 
-const char* uce_wasm_response_meta_data()
+const char* bearer_wasm_response_meta_data()
 {
 	return(wasm_response_meta.data());
 }
 
-size_t uce_wasm_response_meta_size()
+size_t bearer_wasm_response_meta_size()
 {
 	return(wasm_response_meta.size());
 }
 
-void uce_print_bytes(const char* data, size_t len)
+void bearer_print_bytes(const char* data, size_t len)
 {
 	if(context == 0)
-		uce_wasm_core_init();
+		bearer_wasm_core_init();
 	if(context->ob && data && len)
 		context->ob->write(data, len);
 }
 
-void uce_wasm_finish_output()
+void bearer_wasm_finish_output()
 {
 	// ob_stack[0] is the request's primary stream; nested captures above it
 	// belong to unbalanced ob_start() calls and are intentionally ignored
 	wasm_output = wasm_request.ob_stack.empty() ? String("") : wasm_request.ob_stack[0]->str();
 }
 
-const char* uce_wasm_output_data()
+const char* bearer_wasm_output_data()
 {
 	return(wasm_output.data());
 }
 
-size_t uce_wasm_output_size()
+size_t bearer_wasm_output_size()
 {
 	return(wasm_output.size());
 }

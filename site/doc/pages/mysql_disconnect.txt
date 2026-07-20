@@ -10,7 +10,7 @@ m : pointer to an existing MySQL connection struct
 :content
 Closes an existing connection to a MySQL server.
 
-Releases the lease returned by `mysql_connect()`. The request-local server connection remains available for another same-credential `mysql_connect()` call and is closed by UCE during request cleanup, including after exceptions or fatal request recovery. A `MySQL*` is only valid inside the request that opened it; do not use it after release or cache it across requests.
+Releases the lease returned by `mysql_connect()`. The request-local server connection remains available for another same-credential `mysql_connect()` call and is closed by BEARER during request cleanup, including after exceptions or fatal request recovery. A `MySQL*` is only valid inside the request that opened it; do not use it after release or cache it across requests.
 
 :example
 MySQL* db = mysql_connect();

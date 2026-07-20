@@ -1,29 +1,29 @@
-/* UCE Test Suite — Theme
+/* BEARER Test Suite — Theme
    Color palette: deep blue gradient · warm gold accents · frosted glass surfaces */
 @font-face {
 	font-family: 'default_sans';
-	src: url('../examples/uce-starter/themes/common/fonts/b612/b612-regular.ttf') format('truetype');
+	src: url('../examples/bearer-starter/themes/common/fonts/b612/b612-regular.ttf') format('truetype');
 	font-style: normal;
 	font-weight: 400;
 	font-display: swap;
 }
 @font-face {
 	font-family: 'default_sans';
-	src: url('../examples/uce-starter/themes/common/fonts/b612/b612-bold.ttf') format('truetype');
+	src: url('../examples/bearer-starter/themes/common/fonts/b612/b612-bold.ttf') format('truetype');
 	font-style: normal;
 	font-weight: 700;
 	font-display: swap;
 }
 @font-face {
 	font-family: 'default_mono';
-	src: url('../examples/uce-starter/themes/common/fonts/b612/b612-mono-regular.ttf') format('truetype');
+	src: url('../examples/bearer-starter/themes/common/fonts/b612/b612-mono-regular.ttf') format('truetype');
 	font-style: normal;
 	font-weight: 400;
 	font-display: swap;
 }
 @font-face {
 	font-family: 'default_mono';
-	src: url('../examples/uce-starter/themes/common/fonts/b612/b612-mono-bold.ttf') format('truetype');
+	src: url('../examples/bearer-starter/themes/common/fonts/b612/b612-mono-bold.ttf') format('truetype');
 	font-style: normal;
 	font-weight: 700;
 	font-display: swap;

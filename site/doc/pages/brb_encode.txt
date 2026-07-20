@@ -1,0 +1,19 @@
+:sig
+String brb_encode(DValue value)
+
+:see
+brb_decode
+0_DValue
+json_encode
+
+:content
+Serializes a `DValue` to BRRB1, BEARER's binary DValue wire format for the WASM membrane and future cross-instance calls.
+
+BRRB1 is length-prefixed and binary-safe. It preserves nested maps, list-shaped maps, empty lists, and scalar bytes, including embedded NUL bytes. Use JSON/YAML/XML serializers for human-facing formats; use BRRB1 when BEARER code needs the native DValue protocol.
+
+
+:example
+DValue original;
+original["msg"] = "hello";
+String packed = brb_encode(original);
+print("encoded ", packed.length(), " bytes; round-trips to: ", brb_decode(packed)["msg"].to_string(), "\n");

@@ -3,15 +3,15 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 test_name="abi-generation-test-$$"
-site_directory="${UCE_TEST_SITE_DIRECTORY:-site}"
-if [[ -z "${UCE_TEST_SITE_DIRECTORY:-}" && -r /etc/uce/settings.cfg ]]; then
-	configured_site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+site_directory="${BEARER_TEST_SITE_DIRECTORY:-site}"
+if [[ -z "${BEARER_TEST_SITE_DIRECTORY:-}" && -r /etc/bearer/settings.cfg ]]; then
+	configured_site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 	[[ -z "${configured_site_directory:-}" ]] || site_directory="$configured_site_directory"
 fi
 source_dir="$site_directory/$test_name"
-http_host="${UCE_TEST_HTTP_HOST:-uce.openfu.com}"
-body_file="/tmp/uce-abi-generation-body-$$"
-ready_file="/tmp/uce-abi-generation-ready-$$"
+http_host="${BEARER_TEST_HTTP_HOST:-bearer.openfu.com}"
+body_file="/tmp/bearer-abi-generation-body-$$"
+ready_file="/tmp/bearer-abi-generation-ready-$$"
 
 cleanup() {
 	rm -rf "$source_dir"
@@ -39,10 +39,10 @@ printf '%s\n' \
 entry_url="http://127.0.0.1/$test_name/entry.uce"
 component_url="http://127.0.0.1/$test_name/component-parent.uce"
 [[ "$(curl -fsS -H "Host: $http_host" "$entry_url")" == "entry-current" ]]
-entry_wasm=$(scripts/uce-cli --get "/$test_name/entry.uce" artifact=entry)
-component_wasm=$(scripts/uce-cli "/$test_name/component-parent.uce")
+entry_wasm=$(scripts/bearer-cli --get "/$test_name/entry.uce" artifact=entry)
+component_wasm=$(scripts/bearer-cli "/$test_name/component-parent.uce")
 artifact_dir=$(dirname "$entry_wasm")
-generation_name=$(basename "$(scripts/unit_cache_directory /tmp/uce-generation-probe)")
+generation_name=$(basename "$(scripts/unit_cache_directory /tmp/bearer-generation-probe)")
 if [[ "$entry_wasm" != *"/$generation_name/"* || "$component_wasm" != *"/$generation_name/"* ]]; then
 	echo "unit artifacts are not isolated by compiler/core ABI generation: $entry_wasm $component_wasm" >&2
 	exit 1
@@ -57,7 +57,7 @@ publish_incompatible_artifact_while_locked() {
 	(
 		exec 8>"$wasm_file.lock"
 		flock 8
-		UCE_UNIT_ABI_VERSION=6 scripts/compile_wasm_unit \
+		BEARER_UNIT_ABI_VERSION=6 scripts/compile_wasm_unit \
 			"$(dirname "$source_file")" "$destination" "$source_file" \
 			"$(basename "$source_file").cpp" "$(basename "$wasm_file")"
 		sed -i \

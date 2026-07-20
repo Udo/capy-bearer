@@ -1,4 +1,4 @@
-// Example page_compiler_error handler. Enable in /etc/uce/settings.cfg:
+// Example page_compiler_error handler. Enable in /etc/bearer/settings.cfg:
 //   page_compiler_error=site/errors/compiler-error.uce
 // Served with status 500 when the requested unit fails to build. The full
 // compiler output stays available in context.call["error"], so this page can

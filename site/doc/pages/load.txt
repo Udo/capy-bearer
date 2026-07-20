@@ -2,15 +2,15 @@
 #load "myfile.uce"
 
 :params
-file name : name of an UCE file that should be included
+file name : name of an BEARER file that should be included
 
 :see
 >ob
 
 :content
-Includes another UCE file.
+Includes another BEARER file.
 
-Use `#load` when you want the current file to pull in declarations or reusable content from another UCE source file.
+Use `#load` when you want the current file to pull in declarations or reusable content from another BEARER source file.
 
 Loaded sources are tracked transitively. Changing a direct or nested `#load` dependency invalidates and recompiles the entry unit before its next execution.
 

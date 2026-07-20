@@ -4,9 +4,9 @@
 
 namespace {
 
-const char* UCE_NAMED_RENDER_SYMBOL = "__uce_render";
-const char* UCE_NAMED_COMPONENT_SYMBOL = "__uce_component";
-const char* UCE_NAMED_SERVE_HTTP_SYMBOL = "__uce_serve_http";
+const char* BEARER_NAMED_RENDER_SYMBOL = "__bearer_render";
+const char* BEARER_NAMED_COMPONENT_SYMBOL = "__bearer_component";
+const char* BEARER_NAMED_SERVE_HTTP_SYMBOL = "__bearer_serve_http";
 
 struct CompilerCodeState
 {
@@ -25,10 +25,10 @@ String compiler_cpp_raw_string_delimiter(const String& content)
 {
 	StringList candidates = {
 		"",
-		"UCE",
-		"UCE_LITERAL",
-		"uce_literal_0",
-		"uce_literal_1"
+		"BEARER",
+		"BEARER_LITERAL",
+		"bearer_literal_0",
+		"bearer_literal_1"
 	};
 
 	u64 hash = 1469598103934665603ULL;
@@ -41,7 +41,7 @@ String compiler_cpp_raw_string_delimiter(const String& content)
 	for(u32 i = 0; i < 64; i += 1)
 	{
 		String suffix = to_hex<u64>(hash ^ ((u64)i * 0x9E3779B97F4A7C15ULL), 12);
-		candidates.push_back("UCE" + suffix);
+		candidates.push_back("BEARER" + suffix);
 	}
 
 	for(auto& delimiter : candidates)
@@ -345,7 +345,7 @@ bool compiler_line_starts_fragmentable_entrypoint(String trimmed, String& kind)
 
 String compiler_fragment_capture_prelude(String slot)
 {
-	return("\nUceFragmentCapture __uce_fragment_capture(context, " + compiler_cpp_string_literal(slot) + ");\n");
+	return("\nBearerFragmentCapture __bearer_fragment_capture(context, " + compiler_cpp_string_literal(slot) + ");\n");
 }
 
 String compiler_rewrite_fragment_attributes(String content)
@@ -472,9 +472,9 @@ String compiler_rewrite_named_render_syntax(String content)
 			line.pop_back();
 		}
 
-		compiler_rewrite_named_entrypoint_line(line, "RENDER:", UCE_NAMED_RENDER_SYMBOL) ||
-		compiler_rewrite_named_entrypoint_line(line, "COMPONENT:", UCE_NAMED_COMPONENT_SYMBOL) ||
-		compiler_rewrite_named_entrypoint_line(line, "SERVE_HTTP:", UCE_NAMED_SERVE_HTTP_SYMBOL);
+		compiler_rewrite_named_entrypoint_line(line, "RENDER:", BEARER_NAMED_RENDER_SYMBOL) ||
+		compiler_rewrite_named_entrypoint_line(line, "COMPONENT:", BEARER_NAMED_COMPONENT_SYMBOL) ||
+		compiler_rewrite_named_entrypoint_line(line, "SERVE_HTTP:", BEARER_NAMED_SERVE_HTTP_SYMBOL);
 
 		result += line + line_break;
 		current_line = "";
@@ -494,7 +494,7 @@ String compiler_rewrite_named_render_syntax(String content)
 String compiler_preprocess_shared_unit_char_wise(Request* context, SharedUnit* su, String content)
 {
 	String parsed_content =
-		"#include \"uce_lib.h\" \n"+
+		"#include \"bearer_lib.h\" \n"+
 		file_get_contents(
 			context->server->config["COMPILER_SYS_PATH"] + "/" + context->server->config["SETUP_TEMPLATE"]
 			)+

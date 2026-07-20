@@ -8,7 +8,7 @@ RENDER(Request& context)
 	<>
 		<link rel="stylesheet" href='style.css'></link>
 		<h1>
-			<a href="index.uce">UCE Test</a>:
+			<a href="index.uce">BEARER Test</a>:
 			time_parse
 		</h1>
 		<form action="?" method="post">

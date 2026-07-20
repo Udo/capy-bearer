@@ -1,5 +1,5 @@
 commit 7f757654b658d049564f1725f54fde781575e304
-fix: harden UCE runtime and starter
+fix: harden BEARER runtime and starter
 
 
 commit 20db6695890a3ac274217fd0ed9e0edf7c5eb093

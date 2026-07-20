@@ -9,7 +9,7 @@ COMPONENT:island(Request& context)
 	if(name == "")
 		return;
 	<>
-		<div id="<?= id ?>" data-uce-island="<?= name ?>" data-props="<?: html_escape(payload) ?>"></div>
+		<div id="<?= id ?>" data-bearer-island="<?= name ?>" data-props="<?: html_escape(payload) ?>"></div>
 	</>
 	if(module != "")
 	{

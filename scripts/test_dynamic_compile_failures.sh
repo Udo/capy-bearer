@@ -6,7 +6,7 @@ if [[ "${1:-}" != "--inside" ]]; then
 	exec timeout --signal=TERM --kill-after=5s 240s unshare --mount --net --fork --kill-child=TERM "$0" --inside
 fi
 ip link set lo up
-root="/tmp/uce-dynamic-compile-failures-$$"
+root="/tmp/bearer-dynamic-compile-failures-$$"
 site="$root/site"
 work="$root/work"
 settings="$root/settings.cfg"
@@ -20,20 +20,20 @@ cleanup() {
 		wait "$server_pid" 2>/dev/null || true
 	fi
 	if (( status != 0 )) && [[ -r "$log" ]]; then cat "$log" >&2; fi
-	while umount /etc/uce/settings.cfg 2>/dev/null; do :; done
+	while umount /etc/bearer/settings.cfg 2>/dev/null; do :; done
 	rm -rf "$root"
 	return "$status"
 }
 trap cleanup EXIT
 mkdir -p "$site" "$work" "$root/run" "$root/session" "$root/upload"
-cat >"$site/driver.uce" <<'UCE'
+cat >"$site/driver.uce" <<'BEARER'
 RENDER(Request& context) {
   print("driver:");
   if(context.get["mode"] == "render") unit_render("broken-render", context);
   else if(context.get["mode"] == "call") unit_call("broken-call", "COMPONENT");
   else print(component("child", context));
 }
-UCE
+BEARER
 printf '%s\n' 'COMPONENT(Request& context) { print("good-v1"); }' >"$site/child.uce"
 printf '%s\n' 'RENDER(Request& context) { print("render-ok"); }' >"$site/broken-render.uce"
 printf '%s\n' 'COMPONENT(Request& context) { print("call-ok"); }' >"$site/broken-call.uce"
@@ -41,7 +41,7 @@ printf '%s\n' 'COMPONENT(Request& context) { print("call-ok"); }' >"$site/broken
 write_settings() {
 	local show_errors="$1" serve_good="$2" proactive="$3"
 	sed -E '/^[[:space:]]*(BIN_DIRECTORY|PRECOMPILE_FILES_IN|SITE_DIRECTORY|FCGI_SOCKET_PATH|FCGI_PORT|CLI_SOCKET_PATH|WS_BROKER_SOCKET_PATH|HTTP_PORT|HTTP_DOCUMENT_ROOT|SESSION_PATH|TMP_UPLOAD_PATH|WASM_CORE_PATH|PROACTIVE_COMPILE_ENABLED|PROACTIVE_COMPILE_CHECK_INTERVAL|PROACTIVE_COMPILE_JOBS|WORKER_COUNT|SHOW_DYNAMIC_COMPILE_ERRORS|SERVE_LAST_KNOWN_GOOD)[[:space:]]*=/d' \
-		/etc/uce/settings.cfg >"$settings"
+		/etc/bearer/settings.cfg >"$settings"
 	cat >>"$settings" <<CFG
 BIN_DIRECTORY=$work
 PRECOMPILE_FILES_IN=$site
@@ -62,11 +62,11 @@ WORKER_COUNT=1
 SHOW_DYNAMIC_COMPILE_ERRORS=$show_errors
 SERVE_LAST_KNOWN_GOOD=$serve_good
 CFG
-	mount --bind "$settings" /etc/uce/settings.cfg
+	mount --bind "$settings" /etc/bearer/settings.cfg
 }
 start_server() {
 	: >"$log"
-	bin/uce_fastcgi.linux.bin >"$log" 2>&1 &
+	bin/bearer_fastcgi.linux.bin >"$log" 2>&1 &
 	server_pid=$!
 	for _ in $(seq 1 500); do
 		curl -sS --max-time 1 "http://127.0.0.1:$port/driver.uce" >/dev/null 2>&1 && return
@@ -94,18 +94,18 @@ status_of() { printf '%s' "${1##*$'\n'}"; }
 
 write_settings 1 0 0
 start_server
-printf '%s\n' 'COMPONENT(Request& context) { UCE_DYNAMIC_COMPILE_MARKER }' >"$site/child.uce"
+printf '%s\n' 'COMPONENT(Request& context) { BEARER_DYNAMIC_COMPILE_MARKER }' >"$site/child.uce"
 response=$(request GET)
 body=$(body_of "$response")
 [[ "$(status_of "$response")" == 500 ]]
-[[ "$body" == *UCE_DYNAMIC_COMPILE_MARKER* ]]
+[[ "$body" == *BEARER_DYNAMIC_COMPILE_MARKER* ]]
 [[ "$body" != *"component not found"* ]]
-printf '%s\n' 'RENDER(Request& context) { UCE_RENDER_COMPILE_MARKER }' >"$site/broken-render.uce"
+printf '%s\n' 'RENDER(Request& context) { BEARER_RENDER_COMPILE_MARKER }' >"$site/broken-render.uce"
 response=$(request GET mode=render)
-[[ "$(status_of "$response")" == 500 && "$(body_of "$response")" == *UCE_RENDER_COMPILE_MARKER* ]]
-printf '%s\n' 'COMPONENT(Request& context) { UCE_CALL_COMPILE_MARKER }' >"$site/broken-call.uce"
+[[ "$(status_of "$response")" == 500 && "$(body_of "$response")" == *BEARER_RENDER_COMPILE_MARKER* ]]
+printf '%s\n' 'COMPONENT(Request& context) { BEARER_CALL_COMPILE_MARKER }' >"$site/broken-call.uce"
 response=$(request GET mode=call)
-[[ "$(body_of "$response")" == *UCE_CALL_COMPILE_MARKER* ]]
+[[ "$(body_of "$response")" == *BEARER_CALL_COMPILE_MARKER* ]]
 [[ "$(body_of "$response")" != *"function 'COMPONENT' not found"* ]]
 printf '%s\n' 'COMPONENT(Request& context) { print("recovered"); }' >"$site/child.uce"
 response=$(request GET)
@@ -114,12 +114,12 @@ stop_server
 
 write_settings 0 0 0
 start_server
-printf '%s\n' 'COMPONENT(Request& context) { UCE_HIDDEN_COMPILE_MARKER }' >"$site/child.uce"
+printf '%s\n' 'COMPONENT(Request& context) { BEARER_HIDDEN_COMPILE_MARKER }' >"$site/child.uce"
 response=$(request GET)
 body=$(body_of "$response")
 [[ "$(status_of "$response")" == 500 ]]
 [[ "$body" == *"component not found: child"* ]]
-[[ "$body" != *UCE_HIDDEN_COMPILE_MARKER* ]]
+[[ "$body" != *BEARER_HIDDEN_COMPILE_MARKER* ]]
 stop_server
 
 printf '%s\n' 'COMPONENT(Request& context) { print("good-v1"); }' >"$site/child.uce"
@@ -134,7 +134,7 @@ done
 cache="$(scripts/unit_cache_directory "$work")$(realpath "$site")"
 for artifact in "$cache/child.uce.wasm" "$cache/child.uce.cwasm" "$cache/child.uce.wasm.source-map"; do [[ -s "$artifact" ]]; done
 before_hashes=$(sha256sum "$cache/child.uce.wasm" "$cache/child.uce.cwasm" "$cache/child.uce.wasm.source-map")
-printf '%s\n' 'COMPONENT(Request& context) { UCE_STALE_COMPILE_MARKER }' >"$site/child.uce"
+printf '%s\n' 'COMPONENT(Request& context) { BEARER_STALE_COMPILE_MARKER }' >"$site/child.uce"
 for _ in $(seq 1 30); do
 	response=$(request GET)
 	[[ "$(status_of "$response")" == 200 && "$(body_of "$response")" == "driver:good-v1" ]]

@@ -2,7 +2,7 @@
 bool unit_compile(String path = "")
 
 :params
-path : optional UCE unit path. If empty, recompiles the current executing unit.
+path : optional BEARER unit path. If empty, recompiles the current executing unit.
 return value : `true` when the host compiler accepted and compiled the unit
 
 :see
@@ -12,7 +12,7 @@ units_list
 unit_call
 
 :content
-Triggers a manual recompile of a UCE compilation unit through the host membrane.
+Triggers a manual recompile of a BEARER compilation unit through the host membrane.
 
 If `path` is relative, it is resolved by the host unit resolver. The function returns whether compilation succeeded; it does not return or expose a native `SharedUnit*` to wasm units.
 

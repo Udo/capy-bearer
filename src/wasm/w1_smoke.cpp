@@ -1,4 +1,4 @@
-// W1 smoke driver for the production UCE core.wasm.
+// W1 smoke driver for the production BEARER core.wasm.
 
 #include <wasm.h>
 #include "abi.h"
@@ -202,7 +202,7 @@ static uint32_t read_u32(wasm_memory_t* memory, uint32_t ptr)
 
 int main(int argc, char** argv)
 {
-	const char* core_path = argc > 1 ? argv[1] : "/tmp/uce/wasm-w1/core.wasm";
+	const char* core_path = argc > 1 ? argv[1] : "/tmp/bearer/wasm-w1/core.wasm";
 	wasm_engine_t* engine = wasm_engine_new();
 	CHECK(engine, "engine");
 	wasm_store_t* store = wasm_store_new(engine);
@@ -228,11 +228,11 @@ int main(int argc, char** argv)
 		CHECK(wasm_externtype_kind(et) == WASM_EXTERN_FUNC, "unexpected non-func import %s.%s", mod.c_str(), name.c_str());
 		const wasm_functype_t* ft = wasm_externtype_as_functype_const(et);
 		wasm_func_t* fn = nullptr;
-		if(mod == "env" && name == "uce_host_time") fn = wasm_func_new_with_env(store, ft, host_time, nullptr, nullptr);
-		else if(mod == "env" && name == "uce_host_time_precise") fn = wasm_func_new_with_env(store, ft, host_time_precise, nullptr, nullptr);
-		else if(mod == "env" && name == "uce_host_env") fn = wasm_func_new_with_env(store, ft, host_env, nullptr, nullptr);
-		else if(mod == "env" && name == "uce_host_random") fn = wasm_func_new_with_env(store, ft, host_random, nullptr, nullptr);
-		else if(mod == "env" && name == "uce_host_log") fn = wasm_func_new_with_env(store, ft, host_log, nullptr, nullptr);
+		if(mod == "env" && name == "bearer_host_time") fn = wasm_func_new_with_env(store, ft, host_time, nullptr, nullptr);
+		else if(mod == "env" && name == "bearer_host_time_precise") fn = wasm_func_new_with_env(store, ft, host_time_precise, nullptr, nullptr);
+		else if(mod == "env" && name == "bearer_host_env") fn = wasm_func_new_with_env(store, ft, host_env, nullptr, nullptr);
+		else if(mod == "env" && name == "bearer_host_random") fn = wasm_func_new_with_env(store, ft, host_random, nullptr, nullptr);
+		else if(mod == "env" && name == "bearer_host_log") fn = wasm_func_new_with_env(store, ft, host_log, nullptr, nullptr);
 		else if(mod == "wasi_snapshot_preview1")
 		{
 			char* label = strdup((mod + "." + name).c_str());
@@ -253,57 +253,57 @@ int main(int argc, char** argv)
 	g_memory = core.memory();
 	if(core.func("_initialize")) call_i32(core, "_initialize");
 
-	CHECK(call_i32(core, "uce_wasm_core_init") == 0, "core init failed");
-	call_i32(core, "uce_wasm_core_reset_request");
-	CHECK(call_i32(core, "uce_wasm_core_abi_version") == UCE_WASM_CORE_ABI_VERSION, "unexpected ABI version");
+	CHECK(call_i32(core, "bearer_wasm_core_init") == 0, "core init failed");
+	call_i32(core, "bearer_wasm_core_reset_request");
+	CHECK(call_i32(core, "bearer_wasm_core_abi_version") == BEARER_WASM_CORE_ABI_VERSION, "unexpected ABI version");
 
 	wasm_memory_t* memory = core.memory();
-	int32_t root = call_i32(core, "uce_dv_root");
-	CHECK(root != 0, "uce_dv_root returned null");
+	int32_t root = call_i32(core, "bearer_dv_root");
+	CHECK(root != 0, "bearer_dv_root returned null");
 	std::string key = "message";
 	std::string value = "hello from W1 core";
-	int32_t key_ptr = call_i32(core, "uce_alloc", { (int32_t)key.size() });
-	int32_t value_ptr = call_i32(core, "uce_alloc", { (int32_t)value.size() });
+	int32_t key_ptr = call_i32(core, "bearer_alloc", { (int32_t)key.size() });
+	int32_t value_ptr = call_i32(core, "bearer_alloc", { (int32_t)value.size() });
 	write_bytes(memory, key_ptr, key);
 	write_bytes(memory, value_ptr, value);
-	int32_t child = call_i32(core, "uce_dv_get", { root, key_ptr, (int32_t)key.size() });
-	CHECK(child != 0, "uce_dv_get returned null");
-	call_i32(core, "uce_dv_set_value", { child, value_ptr, (int32_t)value.size() });
-	CHECK(call_i32(core, "uce_dv_find", { root, key_ptr, (int32_t)key.size() }) == child, "uce_dv_find mismatch");
-	CHECK(call_i32(core, "uce_dv_count", { root }) == 1, "root count mismatch");
-	CHECK(call_i32(core, "uce_dv_is_list", { root }) == 0, "root unexpectedly list-shaped");
-	int32_t value_len_ptr = call_i32(core, "uce_alloc", { 4 });
-	int32_t value_result_ptr = call_i32(core, "uce_dv_value", { child, value_len_ptr });
+	int32_t child = call_i32(core, "bearer_dv_get", { root, key_ptr, (int32_t)key.size() });
+	CHECK(child != 0, "bearer_dv_get returned null");
+	call_i32(core, "bearer_dv_set_value", { child, value_ptr, (int32_t)value.size() });
+	CHECK(call_i32(core, "bearer_dv_find", { root, key_ptr, (int32_t)key.size() }) == child, "bearer_dv_find mismatch");
+	CHECK(call_i32(core, "bearer_dv_count", { root }) == 1, "root count mismatch");
+	CHECK(call_i32(core, "bearer_dv_is_list", { root }) == 0, "root unexpectedly list-shaped");
+	int32_t value_len_ptr = call_i32(core, "bearer_alloc", { 4 });
+	int32_t value_result_ptr = call_i32(core, "bearer_dv_value", { child, value_len_ptr });
 	uint32_t value_result_len = read_u32(memory, value_len_ptr);
-	CHECK(read_bytes(memory, value_result_ptr, value_result_len) == value, "uce_dv_value mismatch");
-	int32_t encoded_len = call_i32(core, "uce_dv_encode", { root, 0, 0 });
+	CHECK(read_bytes(memory, value_result_ptr, value_result_len) == value, "bearer_dv_value mismatch");
+	int32_t encoded_len = call_i32(core, "bearer_dv_encode", { root, 0, 0 });
 	CHECK(encoded_len > 5, "encoded length too small");
-	int32_t encoded_ptr = call_i32(core, "uce_alloc", { encoded_len });
-	CHECK(call_i32(core, "uce_dv_encode", { root, encoded_ptr, encoded_len }) == encoded_len, "encode length mismatch");
+	int32_t encoded_ptr = call_i32(core, "bearer_alloc", { encoded_len });
+	CHECK(call_i32(core, "bearer_dv_encode", { root, encoded_ptr, encoded_len }) == encoded_len, "encode length mismatch");
 	std::string encoded = read_bytes(memory, encoded_ptr, encoded_len);
-	CHECK(encoded.size() >= 5 && encoded.compare(0, 4, "UCEB") == 0 && (unsigned char)encoded[4] == 2, "UCEB2 header missing");
-	int32_t decoded = call_i32(core, "uce_dv_decode", { encoded_ptr, encoded_len });
-	CHECK(decoded != 0, "uce_dv_decode failed");
-	CHECK(call_i32(core, "uce_dv_count", { decoded }) == 1, "decoded root count mismatch");
-	int32_t last_error_ptr = call_i32(core, "uce_dv_last_error");
-	CHECK(last_error_ptr != 0, "uce_dv_last_error returned null");
+	CHECK(encoded.size() >= 5 && encoded.compare(0, 4, "BRRB") == 0 && (unsigned char)encoded[4] == 2, "BRRB2 header missing");
+	int32_t decoded = call_i32(core, "bearer_dv_decode", { encoded_ptr, encoded_len });
+	CHECK(decoded != 0, "bearer_dv_decode failed");
+	CHECK(call_i32(core, "bearer_dv_count", { decoded }) == 1, "decoded root count mismatch");
+	int32_t last_error_ptr = call_i32(core, "bearer_dv_last_error");
+	CHECK(last_error_ptr != 0, "bearer_dv_last_error returned null");
 	CHECK(read_cstr(memory, last_error_ptr) == "", "last error not clear after successful decode");
 	std::string bad = "bad";
-	int32_t bad_ptr = call_i32(core, "uce_alloc", { (int32_t)bad.size() });
+	int32_t bad_ptr = call_i32(core, "bearer_alloc", { (int32_t)bad.size() });
 	write_bytes(memory, bad_ptr, bad);
-	CHECK(call_i32(core, "uce_dv_decode", { bad_ptr, (int32_t)bad.size() }) == 0, "bad UCEB2 decode unexpectedly succeeded");
-	CHECK(read_cstr(memory, call_i32(core, "uce_dv_last_error")) != "", "bad UCEB2 decode did not set error");
+	CHECK(call_i32(core, "bearer_dv_decode", { bad_ptr, (int32_t)bad.size() }) == 0, "bad BRRB2 decode unexpectedly succeeded");
+	CHECK(read_cstr(memory, call_i32(core, "bearer_dv_last_error")) != "", "bad BRRB2 decode did not set error");
 
 	std::string out = "W1 output";
-	int32_t out_ptr = call_i32(core, "uce_alloc", { (int32_t)out.size() });
+	int32_t out_ptr = call_i32(core, "bearer_alloc", { (int32_t)out.size() });
 	write_bytes(memory, out_ptr, out);
-	call_i32(core, "uce_print_bytes", { out_ptr, (int32_t)out.size() });
-	call_i32(core, "uce_wasm_finish_output");
-	int32_t output_len = call_i32(core, "uce_wasm_output_size");
-	int32_t output_ptr = call_i32(core, "uce_wasm_output_data");
+	call_i32(core, "bearer_print_bytes", { out_ptr, (int32_t)out.size() });
+	call_i32(core, "bearer_wasm_finish_output");
+	int32_t output_len = call_i32(core, "bearer_wasm_output_size");
+	int32_t output_ptr = call_i32(core, "bearer_wasm_output_data");
 	CHECK(read_bytes(memory, output_ptr, output_len) == out, "output plumbing mismatch");
 
-	printf("W1 core.wasm smoke: abi=%d encoded=%d output=%d\n", UCE_WASM_CORE_ABI_VERSION, encoded_len, output_len);
+	printf("W1 core.wasm smoke: abi=%d encoded=%d output=%d\n", BEARER_WASM_CORE_ABI_VERSION, encoded_len, output_len);
 	printf("W1 EXIT CRITERION: PASS\n");
 	return(0);
 }

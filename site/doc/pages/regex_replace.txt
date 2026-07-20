@@ -31,4 +31,4 @@ For simple literal search-and-replace, use `replace()`. Use `regex_replace()` wh
 Invalid patterns, invalid flags, or invalid substitution syntax raise a request-visible runtime error.
 
 :example
-print(regex_replace("docs", "manual", "uce docs"), "\n");
+print(regex_replace("docs", "manual", "bearer docs"), "\n");

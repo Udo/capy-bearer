@@ -7,7 +7,7 @@ Starts the same bounded curl-backed request as `http_request()` in the file-back
 
 :example
 DValue req; req["method"] = "GET"; req["url"] = "http://127.0.0.1/doc/index.uce";
-req["headers"]["Host"] = "uce.openfu.com"; req["timeout_ms"] = (f64)2000;
+req["headers"]["Host"] = "bearer.openfu.com"; req["timeout_ms"] = (f64)2000;
 u64 job = http_request_async(req);
 DValue done = job_await(job, 3000);
 print("async HTTP ", done["result"]["status"].to_u64(), "\n");

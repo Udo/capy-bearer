@@ -17,7 +17,7 @@ Compresses `src` and returns a gzip-format byte string.
 The result is binary data. Store it in a file, send it with an appropriate content type/encoding, or pass it directly to `gz_uncompress()`.
 
 
-UCE writes a standard gzip wrapper around a deflate stream, including CRC32 and uncompressed-size footer fields.
+BEARER writes a standard gzip wrapper around a deflate stream, including CRC32 and uncompressed-size footer fields.
 
 :example
 String original = "hello hello hello hello hello";

@@ -21,15 +21,15 @@ RENDER(Request& context)
 			failed++;
 	};
 
-	String file_name = path_join("/tmp", "uce-site-tests-io.txt");
+	String file_name = path_join("/tmp", "bearer-site-tests-io.txt");
 	bool write_ok = file_put_contents(file_name, "alpha");
 	file_append(file_name, "|beta");
 	String file_text = file_get_contents(file_name);
 
 	site_tests_page_start("Filesystem", "Local-only file helper coverage using a temporary file under /tmp.");
 
-	check("path_join()", file_name == "/tmp/uce-site-tests-io.txt", file_name);
-	check("basename() / dirname() / expand_path()", basename(file_name) == "uce-site-tests-io.txt" && dirname(file_name) == "/tmp" && expand_path("child", "/tmp/base") == "/tmp/base/child" && contains(expand_path("../sibling", "/tmp/base"), "sibling"), basename(file_name) + " / " + dirname(file_name) + " / " + expand_path("../sibling", "/tmp/base"));
+	check("path_join()", file_name == "/tmp/bearer-site-tests-io.txt", file_name);
+	check("basename() / dirname() / expand_path()", basename(file_name) == "bearer-site-tests-io.txt" && dirname(file_name) == "/tmp" && expand_path("child", "/tmp/base") == "/tmp/base/child" && contains(expand_path("../sibling", "/tmp/base"), "sibling"), basename(file_name) + " / " + dirname(file_name) + " / " + expand_path("../sibling", "/tmp/base"));
 	check("file_put_contents()", write_ok, file_name);
 	check("file_append() automatic exclusive lock", file_append(file_name, "|gamma") && contains(file_get_contents(file_name), "|gamma"), file_get_contents(file_name));
 	file_put_contents(file_name, "alpha|beta");
@@ -38,7 +38,7 @@ RENDER(Request& context)
 
 	String real_tmp = path_real("/tmp");
 	String real_file = path_real(file_name);
-	check("path_real() / path_is_within() canonical containment", real_tmp != "" && real_file != "" && path_is_within(file_name, "/tmp") && path_is_within("/tmp/../tmp/uce-site-tests-io.txt", "/tmp") && !path_is_within("/tmp", file_name) && !path_is_within("/tmp", "/tmp/uce-site-tests-io.txt"), real_tmp + " / " + real_file);
+	check("path_real() / path_is_within() canonical containment", real_tmp != "" && real_file != "" && path_is_within(file_name, "/tmp") && path_is_within("/tmp/../tmp/bearer-site-tests-io.txt", "/tmp") && !path_is_within("/tmp", file_name) && !path_is_within("/tmp", "/tmp/bearer-site-tests-io.txt"), real_tmp + " / " + real_file);
 
 	String shell_escaped = shell_escape("a'b; echo injected");
 	String shell_out = shell_exec("printf %s " + shell_escaped);
@@ -65,7 +65,7 @@ RENDER(Request& context)
 	DValue http_req;
 	http_req["method"] = "GET";
 	http_req["url"] = "http://127.0.0.1/tests/security_headers.uce";
-	http_req["headers"]["Host"] = "uce.openfu.com";
+	http_req["headers"]["Host"] = "bearer.openfu.com";
 	http_req["timeout_ms"] = (f64)2000;
 	DValue http_res;
 	DValue http_async;
@@ -82,11 +82,11 @@ RENDER(Request& context)
 	}
 	check("http_request() / http_request_async()", http_res["status"].to_u64() == 500 && contains(http_res["body"].to_string(), "security header sanitizer test") && http_job > 0 && http_async["done"].to_bool() && http_async["result"]["status"].to_u64() == 500, json_encode(http_res) + " async=" + json_encode(http_async));
 
-	String auto_lock_file = "/tmp/uce-site-tests-auto-lock.txt";
+	String auto_lock_file = "/tmp/bearer-site-tests-auto-lock.txt";
 	bool auto_lock_ok = file_put_contents(auto_lock_file, "one") && file_append(auto_lock_file, "|two") && file_get_contents(auto_lock_file) == "one|two";
 	check("automatic file locking API shape", auto_lock_ok, file_get_contents(auto_lock_file));
 
-	String stream_file = "/tmp/uce-site-tests-stream.txt";
+	String stream_file = "/tmp/bearer-site-tests-stream.txt";
 	u64 wh = file_open(stream_file, "w");
 	u64 stream_write_ok = wh ? file_write(wh, "abcdef") : 0;
 	s64 stream_pos = file_tell(wh);
@@ -108,28 +108,28 @@ RENDER(Request& context)
 	DValue st = file_stat(stream_file);
 	DValue dl = dir_list("/tmp");
 	bool found_stream = false;
-	dl.each([&](const DValue& item, String key) { if(item.key("name") && item.key("name")->to_string() == "uce-site-tests-stream.txt") found_stream = true; });
+	dl.each([&](const DValue& item, String key) { if(item.key("name") && item.key("name")->to_string() == "bearer-site-tests-stream.txt") found_stream = true; });
 	check("file_stat() / dir_list()", st["exists"].to_bool() && st["is_file"].to_bool() && st["size"].to_u64() == 7 && found_stream, json_encode(st));
 
-	String ops_src = "/tmp/uce-site-tests-ops-src.txt";
-	String ops_copy = "/tmp/uce-site-tests-ops-copy.txt";
-	String ops_renamed = "/tmp/uce-site-tests-ops-renamed.txt";
+	String ops_src = "/tmp/bearer-site-tests-ops-src.txt";
+	String ops_copy = "/tmp/bearer-site-tests-ops-copy.txt";
+	String ops_renamed = "/tmp/bearer-site-tests-ops-renamed.txt";
 	file_put_contents(ops_src, "abcdef");
 	bool copy_ok = file_copy(ops_src, ops_copy);
 	bool trunc_ok = file_truncate(ops_copy, 3);
 	bool rename_ok = file_rename(ops_copy, ops_renamed);
-	String dir_ops = "/tmp/uce-site-tests-rmdir";
+	String dir_ops = "/tmp/bearer-site-tests-rmdir";
 	mkdir(dir_ops);
 	file_put_contents(path_join(dir_ops, "child.txt"), "child");
 	bool dir_remove_ok = dir_remove(dir_ops, true);
 	check("file_rename() / file_copy() / file_truncate() / dir_remove()", copy_ok && trunc_ok && rename_ok && file_get_contents(ops_renamed) == "abc" && dir_remove_ok && !file_exists(dir_ops), file_get_contents(ops_renamed));
 
-	String tmp_created = file_temp("/tmp/uce-site-tests-temp-");
+	String tmp_created = file_temp("/tmp/bearer-site-tests-temp-");
 	bool chmod_ok = tmp_created != "" && file_chmod(tmp_created, 0600);
 	u64 fsync_h = file_open(tmp_created, "a");
 	bool fsync_ok = fsync_h > 0 && file_write(fsync_h, "durable") == 7 && file_fsync(fsync_h);
 	file_close(fsync_h);
-	String link_path = "/tmp/uce-site-tests-link";
+	String link_path = "/tmp/bearer-site-tests-link";
 	file_unlink(link_path);
 	bool symlink_ok = file_symlink(tmp_created, link_path);
 	bool temp_ready = tmp_created != "" && file_exists(tmp_created) && chmod_ok && fsync_ok && symlink_ok;
@@ -180,7 +180,7 @@ RENDER(Request& context)
 		operation_hostcalls += operation["count"].to_u64();
 		operation_hostcall_us += operation["us"].to_u64();
 		operation_hostcall_cpu_us += operation["cpu_us"].to_u64();
-		hostcall_operation_profile_valid = hostcall_operation_profile_valid && name != "" && !contains(name, "uce_host_") && !contains(name, "/") && operation["count"].to_u64() > 0 && operation["cpu_us"].to_u64() <= operation["us"].to_u64() + 2;
+		hostcall_operation_profile_valid = hostcall_operation_profile_valid && name != "" && !contains(name, "bearer_host_") && !contains(name, "/") && operation["count"].to_u64() > 0 && operation["cpu_us"].to_u64() <= operation["us"].to_u64() + 2;
 	});
 	u64 dropped_hostcall_operations = perf["hostcall_operations_dropped"].to_u64();
 	hostcall_operation_profile_valid = hostcall_operation_profile_valid && perf["hostcall_cpu_profiled"].type == 'B' && perf["hostcall_cpu_us"].to_u64() <= perf["hostcall_us"].to_u64() + 2 && operation_kinds > 0 && operation_kinds <= 32 && ((dropped_hostcall_operations == 0 && operation_hostcalls == perf["hostcall_count"].to_u64() && operation_hostcall_us == perf["hostcall_us"].to_u64() && operation_hostcall_cpu_us == perf["hostcall_cpu_us"].to_u64()) || (dropped_hostcall_operations > 0 && operation_kinds == 32 && operation_hostcalls < perf["hostcall_count"].to_u64() && operation_hostcall_us <= perf["hostcall_us"].to_u64() && operation_hostcall_cpu_us <= perf["hostcall_cpu_us"].to_u64()));
@@ -243,12 +243,12 @@ RENDER(Request& context)
 	String crypto_b64_dec = base64_decode(crypto_b64);
 	check("sha256() / hmac_sha256() / base64 / random_bytes() / crypto_equal()", sha256_hex("abc") == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" && hmac_sha256_hex("key", "The quick brown fox jumps over the lazy dog") == "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8" && crypto_b64 == "aGVsbG8=" && crypto_b64_dec == "hello" && crypto_random.length() == 16 && crypto_equal("same", "same") && !crypto_equal("same", "diff"), crypto_b64 + " / " + sha256_hex("abc"));
 	String password_encoded = password_hash("correct horse battery staple");
-	check("password_hash() / password_verify() / password_needs_rehash()", contains(password_encoded, "$uce$scrypt$65536$8$1$") && password_verify("correct horse battery staple", password_encoded) && !password_verify("wrong password", password_encoded) && !password_needs_rehash(password_encoded) && password_needs_rehash("malformed") && !password_verify("correct horse battery staple", "$uce$scrypt$999999999$8$1$00$00"), password_encoded);
+	check("password_hash() / password_verify() / password_needs_rehash()", contains(password_encoded, "$bearer$scrypt$65536$8$1$") && password_verify("correct horse battery staple", password_encoded) && !password_verify("wrong password", password_encoded) && !password_needs_rehash(password_encoded) && password_needs_rehash("malformed") && !password_verify("correct horse battery staple", "$bearer$scrypt$999999999$8$1$00$00"), password_encoded);
 
 	StringList escaped_keys = memcache_escape_keys({"a b", "line\nkey"});
 	check("memcache_escape_key() / memcache_escape_keys()", memcache_escape_key("a b") == "a_b" && escaped_keys.size() == 2 && !contains(escaped_keys[1], "\n"), join(escaped_keys, ","));
 	check("signal_name() / runtime_safe_key() / backtrace helpers", signal_name(SIGSEGV) == "SIGSEGV" && runtime_safe_key(" task one ") == gen_sha1("task one") && runtime_safe_key("  ") == "" && backtrace_capture() == "" && backtrace_get_frames(0, 0) == "", signal_name(SIGSEGV) + " / " + runtime_safe_key(" task one "));
 
-	site_tests_summary(passed, failed, skipped, "This page limits writes to /tmp/uce-site-tests-io.txt so it stays disposable.");
+	site_tests_summary(passed, failed, skipped, "This page limits writes to /tmp/bearer-site-tests-io.txt so it stays disposable.");
 	site_tests_page_end();
 }

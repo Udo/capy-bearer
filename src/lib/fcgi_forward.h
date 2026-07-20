@@ -7,7 +7,7 @@
 // the connection but forwards the actual unit invocation to a clean-engine
 // worker — the "broker holds connections, units respond like RENDER()" model.
 //
-// Native-only; compiled into the main object. Needs String/StringMap (uce_lib.h)
+// Native-only; compiled into the main object. Needs String/StringMap (bearer_lib.h)
 // plus the socket headers below.
 
 #include <sys/socket.h>

@@ -8,7 +8,7 @@ RENDER(Request& context)
 		return;
 	}
 
-	String base = "/tmp/uce-demo-zip";
+	String base = "/tmp/bearer-demo-zip";
 	String archive = path_join(base, "demo.zip");
 	String extract_dir = path_join(base, "extract");
 	mkdir(base);
@@ -16,7 +16,7 @@ RENDER(Request& context)
 
 	DValue entries;
 	entries["hello.txt"] = "Hello from a generated ZIP archive.\n";
-	entries["notes/readme.txt"] = "zip_create(), zip_list(), zip_read(), and zip_extract() are available to UCE pages.\n";
+	entries["notes/readme.txt"] = "zip_create(), zip_list(), zip_read(), and zip_extract() are available to BEARER pages.\n";
 	zip_create(archive, entries);
 
 	DValue listing = zip_list(archive);
@@ -33,7 +33,7 @@ RENDER(Request& context)
 		<link rel="stylesheet" href="style.css?v=<?= time() ?>"></link>
 	</head>
 	<body>
-		<h1><a href="index.uce">UCE Test Suite</a> / ZIP</h1>
+		<h1><a href="index.uce">BEARER Test Suite</a> / ZIP</h1>
 		<p>This demo creates a temporary archive at <code><?= archive ?></code>, lists it, reads one member, and extracts it under <code><?= extract_dir ?></code>.</p>
 		<h2>zip_list()</h2>
 		<pre><?= json_encode(listing) ?></pre>

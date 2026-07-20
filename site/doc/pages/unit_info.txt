@@ -2,7 +2,7 @@
 DValue unit_info(String path = "")
 
 :params
-path : optional UCE unit path. If empty, uses the current executing unit.
+path : optional BEARER unit path. If empty, uses the current executing unit.
 return value : metadata tree for the resolved unit, or an empty tree if the unit cannot be resolved
 
 :see
@@ -12,7 +12,7 @@ unit_compile
 0_Request
 
 :content
-Returns runtime metadata for a UCE compilation unit.
+Returns runtime metadata for a BEARER compilation unit.
 
 The returned tree is supplied by the host runtime and may include normalized source/artifact paths, compile/runtime status, ABI/wasm availability, timing counters, mtimes, and exported API declarations. Treat absent fields as unavailable rather than as false.
 

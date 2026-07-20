@@ -17,7 +17,7 @@ Defines a worker-load hook for the current `.uce` unit.
 
 When a worker instantiates the unit's compiled wasm module, the runtime checks whether the unit exposes `INIT(Request& context)`. If it does, the hook runs once for that instance before the unit begins serving requests from that worker-local copy.
 
-Because UCE usually loads units on demand during a request, `INIT()` still receives a valid `Request& context`. Use it for worker-local initialization, not for request-local state that should reset each request.
+Because BEARER usually loads units on demand during a request, `INIT()` still receives a valid `Request& context`. Use it for worker-local initialization, not for request-local state that should reset each request.
 
 ## Typical Uses
 

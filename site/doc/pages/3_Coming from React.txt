@@ -2,7 +2,7 @@
 Coming from React, Next, or Remix
 
 :sig
-UCE orientation for React-framework developers
+BEARER orientation for React-framework developers
 
 :see
 1_RENDER
@@ -16,7 +16,7 @@ filter
 2_DValue_map
 
 :content
-UCE is server-first C++ with a small template preprocessor. It does not try to be React, but several concepts map cleanly.
+BEARER is server-first C++ with a small template preprocessor. It does not try to be React, but several concepts map cleanly.
 
 ## Concept Map
 
@@ -33,13 +33,13 @@ UCE is server-first C++ with a small template preprocessor. It does not try to b
 
 ## Routes and Layouts
 
-UCE does not require a framework-level router. A front controller can keep routing explicit and app-local. The starter example demonstrates this in `site/examples/uce-starter/index.uce`: it resolves a request path by checking:
+BEARER does not require a framework-level router. A front controller can keep routing explicit and app-local. The starter example demonstrates this in `site/examples/bearer-starter/index.uce`: it resolves a request path by checking:
 
 1. `views/<path>.uce`
 2. `views/<path>/index.uce`
 3. parent index handlers such as `views/workspace/index.uce` with the last segment as a route parameter
 
-That keeps file-based and hierarchical routing in normal UCE code instead of hiding it in the runtime.
+That keeps file-based and hierarchical routing in normal BEARER code instead of hiding it in the runtime.
 
 ## Data Shaping Near Render Code
 
@@ -50,19 +50,19 @@ Use these when a short transformation is clearer than a loop. Prefer explicit lo
 
 ## Assets and Islands
 
-UCE core does not provide a global asset or island registry. The starter emits CSS and JavaScript from the owning unit's `ONCE(Request& context)` hook, with a few shared sibling asset components when multiple components need the same files. The starter's `COMPONENT:island` helper in `components/theme/web_affordances.uce` covers small progressive-enhancement modules while keeping app policy in the app.
+BEARER core does not provide a global asset or island registry. The starter emits CSS and JavaScript from the owning unit's `ONCE(Request& context)` hook, with a few shared sibling asset components when multiple components need the same files. The starter's `COMPONENT:island` helper in `components/theme/web_affordances.uce` covers small progressive-enhancement modules while keeping app policy in the app.
 
 ## Debugging
 
-When a unit fails to compile, UCE reports the source path, generated C++ path, compile-output artifact, a source/generated excerpt when it can identify a line, and the raw compiler output. The generated C++ under `BIN_DIRECTORY` is the source of truth for what the configured compiler actually saw.
+When a unit fails to compile, BEARER reports the source path, generated C++ path, compile-output artifact, a source/generated excerpt when it can identify a line, and the raw compiler output. The generated C++ under `BIN_DIRECTORY` is the source of truth for what the configured compiler actually saw.
 
 ## What Not To Expect
 
-- No client-side virtual DOM is built into UCE.
+- No client-side virtual DOM is built into BEARER.
 - No global file-router is imposed by the runtime.
 - No JSX-like component tags are required for this workflow.
-- Component children/slot syntax is not part of UCE yet; use explicit props and component calls for now.
+- Component children/slot syntax is not part of BEARER yet; use explicit props and component calls for now.
 
 :example
-// Components are UCE's reusable, props-driven building blocks (like React components).
+// Components are BEARER's reusable, props-driven building blocks (like React components).
 print(component("examples/sample_unit"), "\n");

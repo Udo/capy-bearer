@@ -6,7 +6,7 @@ raw : binary-safe source bytes
 return value : the Base64-encoded text
 
 :content
-Encodes bytes as Base64 text. UCE strings are binary-safe, so `raw` may contain NUL and other non-text bytes — handy for embedding `random_bytes()` or a `sha256()` digest in headers, cookies, or JSON.
+Encodes bytes as Base64 text. BEARER strings are binary-safe, so `raw` may contain NUL and other non-text bytes — handy for embedding `random_bytes()` or a `sha256()` digest in headers, cookies, or JSON.
 
 :example
 print(base64_encode("hello"), "\n");

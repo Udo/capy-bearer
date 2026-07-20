@@ -18,7 +18,7 @@ json_decode
 :content
 Renders Markdown source into HTML and returns the generated markup as a `String`.
 
-`markdown_to_html()` does not write to the output stream directly. This keeps it aligned with the UCE naming convention where `render_*` names are reserved for direct-output helpers.
+`markdown_to_html()` does not write to the output stream directly. This keeps it aligned with the BEARER naming convention where `render_*` names are reserved for direct-output helpers.
 
 Because the return value is HTML markup, embed it with `<?: markdown_to_html(...) ?>`, `print(markdown_to_html(...))`, or pass it through a component.
 
@@ -46,7 +46,7 @@ Options:
 - `options["gfm"]` defaults to `true` and turns on GitHub-style extras such as tables, task lists, autolinks, and strikethrough.
 - `options["allow_html"]` defaults to `false`. When true, raw HTML blocks and inline tags may pass through as `raw_html` nodes instead of being escaped as plain text.
 - `options["heading_offset"]` shifts rendered heading levels while leaving AST `level` values unchanged. The default is `0`; final levels clamp to `h1` through `h6`. Use `1` when Markdown is nested below a component-owned page title.
-- `options["components"]` declares renderer extension points using normal UCE components.
+- `options["components"]` declares renderer extension points using normal BEARER components.
 
 Directive hook example:
 

@@ -370,7 +370,7 @@ typedef Request FastCGIRequest;
 // declared here and defined once in types.cpp. The wasm core is a single TU and
 // wasm units resolve context through the loader's GOT, so both keep the
 // in-place definition (unchanged ABI).
-#if defined(__UCE_WASM_CORE__) || defined(__UCE_WASM_UNIT__)
+#if defined(__BEARER_WASM_CORE__) || defined(__BEARER_WASM_UNIT__)
 Request* context;
 #else
 extern Request* context;
@@ -402,4 +402,4 @@ inline String concat(Ts... args)
 
 // The global allocator override (request memory accounting) is defined once in
 // types.cpp so it lives in a single runtime object; a header definition would
-// duplicate it across core/wasm/main. Units (__UCE_WASM_UNIT__) import it.
+// duplicate it across core/wasm/main. Units (__BEARER_WASM_UNIT__) import it.

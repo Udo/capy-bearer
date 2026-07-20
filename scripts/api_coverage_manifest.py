@@ -80,7 +80,7 @@ def main() -> int:
         if needs_doc and status in {"public", "integration"} and not doc_exists(name):
             errors.append(f"missing active doc page: {name}")
     compiler_h = (ROOT / "src" / "lib" / "compiler.h").read_text(errors="ignore")
-    if "#ifndef __UCE_WASM_UNIT__\nSharedUnit* unit_load" not in compiler_h:
+    if "#ifndef __BEARER_WASM_UNIT__\nSharedUnit* unit_load" not in compiler_h:
         errors.append("unit_load is not guarded out of wasm-unit exposure")
     for name in REMOVED_APIS:
         page = DOC_DIR / f"{name}.txt"

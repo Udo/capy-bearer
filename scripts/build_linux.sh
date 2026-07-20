@@ -5,7 +5,7 @@ cd ..
 
 BUILDMODE=${2:-"debug"}
 OPT_FLAG="O0"
-GF="uce_fastcgi"
+GF="bearer_fastcgi"
 
 mkdir -p bin/tmp bin/assets bin/wasm work
 exec 9>bin/.build.lock
@@ -33,7 +33,7 @@ SRCFLAGS="-D EXEC_NAME=\"$GF\" -D PLATFORM_NAME=\"linux\""
 # does not recompile the rest, and vendored SQLite is built once):
 #   bin/sqlite3.o  vendored SQLite amalgamation (depends only on its own source)
 #   bin/wasm.o     wasm backend + worker + wasmtime.hh (src/wasm)
-#   bin/main.o     linux_fastcgi.cpp + the uce_lib core amalgamation
+#   bin/main.o     linux_fastcgi.cpp + the bearer_lib core amalgamation
 # All link into the single -rdynamic binary. Delete bin/*.o to force a clean
 # rebuild.
 
@@ -82,10 +82,10 @@ else
 	echo "Reusing bin/wasm.o"
 fi
 
-# main object: the FastCGI entrypoint + the uce_lib core amalgamation. Depends
+# main object: the FastCGI entrypoint + the bearer_lib core amalgamation. Depends
 # on linux_fastcgi.cpp, the whole lib tree, fcgicc, and the wasm backend header
 # (its only view of the wasm object) — but not the wasm .cpp sources.
-if needs_rebuild bin/main.o src/linux_fastcgi.cpp src/lib src/fastcgi src/wasm/backend.h; then
+if needs_rebuild bin/main.o src/linux_fastcgi.cpp src/lib src/fastcgi src/wasm/backend.h src/wasm/abi.h; then
 	echo "Compiling main..."
 	tmp="bin/main.o.tmp.$$"
 	build_tmp_files+=("$tmp")

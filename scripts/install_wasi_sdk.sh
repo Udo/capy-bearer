@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install the pinned WASI SDK used by UCE's request-time wasm compiler.
-# This is a runtime dependency: UCE compiles .uce units on demand and during
+# Install the pinned WASI SDK used by BEARER's request-time wasm compiler.
+# This is a runtime dependency: BEARER compiles .uce units on demand and during
 # proactive startup scans, so every deployment host needs the same toolchain.
 
 WASI_SDK_VERSION="${WASI_SDK_VERSION:-33.0}"
@@ -13,13 +13,13 @@ WASI_SDK_URL="${WASI_SDK_URL:-https://github.com/WebAssembly/wasi-sdk/releases/d
 INSTALL_BASE="${INSTALL_BASE:-/opt}"
 INSTALL_DIR="${WASI_SDK_INSTALL_DIR:-${INSTALL_BASE}/wasi-sdk-${WASI_SDK_VERSION}-x86_64-linux}"
 SYMLINK_PATH="${WASI_SDK_SYMLINK:-${INSTALL_BASE}/wasi-sdk}"
-CACHE_DIR="${WASI_SDK_CACHE_DIR:-/tmp/uce-deps}"
+CACHE_DIR="${WASI_SDK_CACHE_DIR:-/tmp/bearer-deps}"
 
 usage() {
 	cat <<EOF
 Usage: scripts/install_wasi_sdk.sh [--check-only]
 
-Installs pinned WASI SDK ${WASI_SDK_VERSION} for UCE request-time unit compilation.
+Installs pinned WASI SDK ${WASI_SDK_VERSION} for BEARER request-time unit compilation.
 
 Environment overrides:
   WASI_SDK_VERSION       ${WASI_SDK_VERSION}
@@ -60,7 +60,7 @@ verify_tree() {
 		fi
 	done
 	if ! command -v curl >/dev/null 2>&1; then
-		echo "Missing runtime dependency: curl (required by UCE http_request/http_request_async)" >&2
+		echo "Missing runtime dependency: curl (required by BEARER http_request/http_request_async)" >&2
 		return 1
 	fi
 	"$root/bin/clang++" --version | head -n 1

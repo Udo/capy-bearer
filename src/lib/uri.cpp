@@ -4,8 +4,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#ifdef __UCE_WASM_CORE__
-extern "C" size_t uce_host_random(char* buf, size_t len);
+#ifdef __BEARER_WASM_CORE__
+extern "C" size_t bearer_host_random(char* buf, size_t len);
 #endif
 
 String base64_encode(String raw)
@@ -706,9 +706,9 @@ StringMap parse_cookies(String cookie_String)
 
 String session_id_create()
 {
-#ifdef __UCE_WASM_CORE__
+#ifdef __BEARER_WASM_CORE__
 	unsigned char bytes[32];
-	if(uce_host_random((char*)bytes, sizeof(bytes)) != sizeof(bytes))
+	if(bearer_host_random((char*)bytes, sizeof(bytes)) != sizeof(bytes))
 		__builtin_trap();
 	String result;
 	static const char* hex = "0123456789abcdef";

@@ -24,7 +24,7 @@ RENDER(Request& context)
 	String mode = first(context.get["mode"], "run");
 	if(mode == "late")
 	{
-		String late_file = "/tmp/uce-site-tests-late-task.txt";
+		String late_file = "/tmp/bearer-site-tests-late-task.txt";
 		file_unlink(late_file);
 		pid_t late_pid = task("site-tests-late-callback", [late_file]() {
 			sleep(2);
@@ -50,7 +50,7 @@ RENDER(Request& context)
 		});
 
 		repeat_pid = task_repeat("site-tests-repeat", 1.0, []() {
-			file_put_contents("/tmp/uce-site-tests-repeat.txt", time_format_utc("%Y-%m-%d %H:%M:%S"));
+			file_put_contents("/tmp/bearer-site-tests-repeat.txt", time_format_utc("%Y-%m-%d %H:%M:%S"));
 		}, 4);
 	}
 
@@ -97,6 +97,6 @@ RENDER(Request& context)
 		<a class="button" href="?mode=stop">Stop Repeat Worker</a>
 	</div><?
 
-	site_tests_summary(passed, failed, skipped, "The repeat worker writes its heartbeat to /tmp/uce-site-tests-repeat.txt and is bounded by a short timeout.");
+	site_tests_summary(passed, failed, skipped, "The repeat worker writes its heartbeat to /tmp/bearer-site-tests-repeat.txt and is bounded by a short timeout.");
 	site_tests_page_end();
 }

@@ -7,9 +7,9 @@ page_compiler_error=site/errors/compiler-error.uce
 page_runtime_error=site/errors/runtime-error.uce
 
 :params
-page_compiling : UCE page rendered (status 503) while the requested page is being built
-page_compiler_error : UCE page rendered (status 500) when the requested page fails to build
-page_runtime_error : UCE page rendered (status 500) after a recovered fault or uncaught exception
+page_compiling : BEARER page rendered (status 503) while the requested page is being built
+page_compiler_error : BEARER page rendered (status 500) when the requested page fails to build
+page_runtime_error : BEARER page rendered (status 500) after a recovered fault or uncaught exception
 
 :see
 >runtime
@@ -18,7 +18,7 @@ page_runtime_error : UCE page rendered (status 500) after a recovered fault or u
 2_Request_set_status
 
 :content
-Three optional keys in `/etc/uce/settings.cfg` route error conditions to developer-defined UCE pages. Each key names a `.uce` file, either absolute or relative to the server's working directory. When a key is unset, or the named file does not exist, or the error page itself fails, the runtime's built-in plain-text behavior stands.
+Three optional keys in `/etc/bearer/settings.cfg` route error conditions to developer-defined BEARER pages. Each key names a `.uce` file, either absolute or relative to the server's working directory. When a key is unset, or the named file does not exist, or the error page itself fails, the runtime's built-in plain-text behavior stands.
 
 All three pages receive the error context in `context.call["error"]`:
 

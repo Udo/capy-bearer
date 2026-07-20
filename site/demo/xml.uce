@@ -9,7 +9,7 @@ RENDER(Request& context)
 
 	DValue title;
 	title["name"] = "title";
-	title["text"] = "UCE & XML";
+	title["text"] = "BEARER & XML";
 	book["children"].push(title);
 
 	DValue chapter;
@@ -25,13 +25,13 @@ RENDER(Request& context)
 	simple["title"] = "Hello";
 	simple["count"] = "3";
 
-	String incoming = "<note priority=\"high\"><to>UCE</to><body><![CDATA[5 < 6]]></body><symbol>&#x41;&#66;</symbol></note>";
+	String incoming = "<note priority=\"high\"><to>BEARER</to><body><![CDATA[5 < 6]]></body><symbol>&#x41;&#66;</symbol></note>";
 	DValue incoming_tree = xml_decode(incoming);
 
 	<>
 		<link rel="stylesheet" href='style.css'></link>
 		<h1>
-			<a href="index.uce">UCE Test</a>:
+			<a href="index.uce">BEARER Test</a>:
 			XML
 		</h1>
 

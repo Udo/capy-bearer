@@ -1,0 +1,25 @@
+[Unit]
+Description=BEARER FastCGI Runtime
+After=network-online.target mariadb.service memcached.service bearer.socket
+Wants=network-online.target
+Requires=bearer.socket
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/lib/bearer
+RuntimeDirectory=bearer
+RuntimeDirectoryPreserve=yes
+StateDirectory=bearer
+CacheDirectory=bearer
+ExecStartPre=/usr/bin/mkdir -p /var/cache/bearer/work /var/lib/bearer/uploads /var/lib/bearer/sessions
+ExecStart=/usr/lib/bearer/bin/bearer_fastcgi.linux.bin
+ExecStartPost=/usr/bin/bash /usr/lib/bearer/scripts/systemd/wait-ready.sh
+Restart=always
+RestartSec=2
+TimeoutStopSec=30
+KillMode=mixed
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -35,4 +35,4 @@ Behavior notes:
 - Zero-length separators are handled safely to avoid infinite loops.
 
 :example
-print(join(regex_split("\\s+", "uce docs api"), ","), "\n");
+print(join(regex_split("\\s+", "bearer docs api"), ","), "\n");

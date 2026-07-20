@@ -751,7 +751,7 @@ FastCGIServer::process_cli_request(FastCGIRequest& request, String& data)
 	{
 		connection->output_buffer += make_http_text_response(
 			"HTTP/1.1 500 Internal Server Error",
-			"UCE CLI dispatcher is not configured\n"
+			"BEARER CLI dispatcher is not configured\n"
 		);
 	}
 	else

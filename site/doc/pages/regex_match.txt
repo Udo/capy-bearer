@@ -34,7 +34,7 @@ Supported flags:
 - `u` explicitly enables UTF-8 and Unicode character properties.
 - `a` disables UTF-8 / Unicode property mode for ASCII-oriented matching.
 
-UCE uses PCRE2 in UTF-8 + Unicode-property mode by default, so patterns such as `\\p{L}+` work naturally on Unicode text.
+BEARER uses PCRE2 in UTF-8 + Unicode-property mode by default, so patterns such as `\\p{L}+` work naturally on Unicode text.
 
 Invalid patterns or invalid flags raise a request-visible runtime error with the PCRE2 diagnostic message.
 

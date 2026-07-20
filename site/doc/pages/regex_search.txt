@@ -40,5 +40,5 @@ Capture entries contain:
 If no match is found, `matched` is `false` and match-specific fields are omitted.
 
 :example
-DValue match = regex_search("docs", "uce docs");
+DValue match = regex_search("docs", "bearer docs");
 print(match["match"].to_string(), "\n");

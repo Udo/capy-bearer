@@ -3,7 +3,7 @@ void unit_render(String file_name)
 void unit_render(String file_name, Request& context)
 
 :params
-file_name : UCE file to load and execute
+file_name : BEARER file to load and execute
 context : optional request context to pass into the target page
 
 :see
@@ -14,7 +14,7 @@ unit_load
 component
 
 :content
-Calls another UCE file and executes its `RENDER(Request& context)` function.
+Calls another BEARER file and executes its `RENDER(Request& context)` function.
 
 If `context` is omitted, the current active request context is used.
 

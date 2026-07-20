@@ -15,4 +15,4 @@ This function is not yet Unicode-aware.
 
 
 :example
-print(to_lower("UCE"), "\n");
+print(to_lower("BEARER"), "\n");

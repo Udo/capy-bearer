@@ -31,6 +31,6 @@ chore: narrow wasm backend entrypoint API
 
 
 commit 6bb4f7f0ad801a0127956f49e54d2be722c6537f
-test: port network suite to uce cli runner
+test: port network suite to bearer cli runner
 
 

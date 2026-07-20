@@ -2,7 +2,7 @@
 
 ## Objective
 
-Implement the DOCS-TODO.md overhaul for the UCE `/doc` system on the sshfs source-of-truth tree, verifying builds/tests only on `root@10.4.2.110:/Code/uce.openfu.com/uce`.
+Implement the DOCS-TODO.md overhaul for the BEARER `/doc` system on the sshfs source-of-truth tree, verifying builds/tests only on `root@10.4.2.110:/Code/bearer.openfu.com/bearer`.
 
 ## Success Criteria
 
@@ -16,8 +16,8 @@ Implement the DOCS-TODO.md overhaul for the UCE `/doc` system on the sshfs sourc
 
 - Status: verifying; Phase 1 + gate complete, StringList conversion complete, Phase 2 example/filler sweep complete.
 - Last updated: 2026-06-16
-- Source of truth: `/root/mount_ssh/uce-dev-root-htdocs-uce`
-- Runtime/live target: `root@10.4.2.110:/Code/uce.openfu.com/uce`
+- Source of truth: `/root/mount_ssh/bearer-dev-root-htdocs-bearer`
+- Runtime/live target: `root@10.4.2.110:/Code/bearer.openfu.com/bearer`
 
 ## Goal Tree
 

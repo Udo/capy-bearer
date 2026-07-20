@@ -1,4 +1,4 @@
-#ifdef __UCE_WASM_CORE__
+#ifdef __BEARER_WASM_CORE__
 #include <cmath>
 #include "types.h"
 #include "functionlib.h"
@@ -7,77 +7,77 @@
 #include "sys.h"
 
 extern "C" {
-uint64_t uce_host_time(void);
-double uce_host_time_precise(void);
-size_t uce_host_env(const char* key, size_t key_len, char* buf, size_t cap);
-size_t uce_host_random(char* buf, size_t len);
-void uce_host_log(int level, const char* buf, size_t len);
+uint64_t bearer_host_time(void);
+double bearer_host_time_precise(void);
+size_t bearer_host_env(const char* key, size_t key_len, char* buf, size_t cap);
+size_t bearer_host_random(char* buf, size_t len);
+void bearer_host_log(int level, const char* buf, size_t len);
 // read-only file membrane, policy-gated host-side to the site tree;
 // relative paths resolve against the current unit's directory (the native
 // cwd convention); file_read uses the length-query convention
-int uce_host_file_exists(const char* path, size_t path_len, const char* current, size_t current_len);
-size_t uce_host_file_read(const char* path, size_t path_len, const char* current, size_t current_len, char* buf, size_t cap);
-int uce_host_file_write(const char* path, size_t path_len, const char* current, size_t current_len, const char* content, size_t content_len, int append);
-void uce_host_file_unlink(const char* path, size_t path_len, const char* current, size_t current_len);
-size_t uce_host_file_list(const char* path, size_t path_len, const char* current, size_t current_len, char* buf, size_t cap);
-int uce_host_file_mkdir(const char* path, size_t path_len, const char* current, size_t current_len);
-int64_t uce_host_file_mtime(const char* path, size_t path_len, const char* current, size_t current_len);
-uint64_t uce_host_file_open(const char* path, size_t path_len, const char* current, size_t current_len, const char* mode, size_t mode_len);
-size_t uce_host_file_handle_read(uint64_t handle, uint64_t len, char* buf, size_t cap);
-size_t uce_host_file_handle_pread(uint64_t handle, uint64_t offset, uint64_t len, char* buf, size_t cap);
-uint64_t uce_host_file_handle_write(uint64_t handle, const char* data, size_t data_len);
-uint64_t uce_host_file_handle_pwrite(uint64_t handle, uint64_t offset, const char* data, size_t data_len);
-int64_t uce_host_file_handle_seek(uint64_t handle, int64_t offset, int whence);
-int64_t uce_host_file_handle_tell(uint64_t handle);
-void uce_host_file_handle_close(uint64_t handle);
-size_t uce_host_file_stat(const char* path, size_t path_len, const char* current, size_t current_len, char* buf, size_t cap);
-size_t uce_host_dir_list(const char* path, size_t path_len, const char* current, size_t current_len, char* buf, size_t cap);
-int uce_host_file_rename(const char* from, size_t from_len, const char* to, size_t to_len, const char* current, size_t current_len);
-int uce_host_file_copy(const char* from, size_t from_len, const char* to, size_t to_len, const char* current, size_t current_len);
-int uce_host_file_truncate(const char* path, size_t path_len, const char* current, size_t current_len, uint64_t size);
-int uce_host_dir_remove(const char* path, size_t path_len, const char* current, size_t current_len, int recursive);
-size_t uce_host_file_temp(const char* prefix, size_t prefix_len, const char* current, size_t current_len, char* buf, size_t cap);
-int uce_host_file_chmod(const char* path, size_t path_len, const char* current, size_t current_len, uint32_t mode);
-int uce_host_file_symlink(const char* target, size_t target_len, const char* linkpath, size_t linkpath_len, const char* current, size_t current_len);
-int uce_host_file_fsync(uint64_t handle);
-int uce_host_task_spawn(const char* key, size_t key_len, uint64_t callback_id, double interval, uint64_t timeout, int repeat);
-int uce_host_task_pid(const char* key, size_t key_len);
-int uce_host_task_kill(int pid, int sig);
-unsigned int uce_host_sleep_us(uint64_t usec);
-uint64_t uce_host_socket_connect(const char* host, size_t host_len, int port);
-void uce_host_socket_close(uint64_t sockfd);
-int uce_host_socket_write(uint64_t sockfd, const char* data, size_t data_len);
-size_t uce_host_socket_read(uint64_t sockfd, uint32_t max_length, uint32_t timeout, char* buf, size_t cap);
-int uce_host_server_start_http(const char* key, size_t key_len, const char* bind, size_t bind_len, const char* file, size_t file_len, const char* function, size_t function_len, const char* current, size_t current_len);
-int uce_host_server_stop(const char* key, size_t key_len);
-size_t uce_host_memcache_command(uint64_t sockfd, const char* command, size_t command_len, char* buf, size_t cap);
-size_t uce_host_mysql(const char* in, size_t in_len, char* out, size_t cap);
-size_t uce_host_request_perf(const char* in, size_t in_len, char* out, size_t cap);
-size_t uce_host_shell_exec(const char* cmd, size_t cmd_len, char* buf, size_t cap);
-size_t uce_host_sha256(const char* data, size_t data_len, char* out, size_t cap);
-size_t uce_host_sha256_hex(const char* data, size_t data_len, char* out, size_t cap);
-size_t uce_host_hmac_sha256(const char* key, size_t key_len, const char* data, size_t data_len, char* out, size_t cap);
-size_t uce_host_hmac_sha256_hex(const char* key, size_t key_len, const char* data, size_t data_len, char* out, size_t cap);
-size_t uce_host_base64_encode(const char* data, size_t data_len, char* out, size_t cap);
-size_t uce_host_base64_decode(const char* data, size_t data_len, char* out, size_t cap);
-int uce_host_crypto_equal(const char* a, size_t a_len, const char* b, size_t b_len);
-size_t uce_host_password_hash(const char* password, size_t password_len, char* out, size_t cap);
-int uce_host_password_verify(const char* password, size_t password_len, const char* encoded, size_t encoded_len);
-int uce_host_password_needs_rehash(const char* encoded, size_t encoded_len);
-size_t uce_host_http_request(const char* in, size_t in_len, char* out, size_t cap);
-uint64_t uce_host_http_request_async(const char* in, size_t in_len);
-size_t uce_host_shell_exec_dv(const char* in, size_t in_len, char* out, size_t cap);
-uint64_t uce_host_shell_spawn(const char* in, size_t in_len);
-size_t uce_host_job_status(uint64_t job_id, char* out, size_t cap);
-size_t uce_host_job_result(uint64_t job_id, char* out, size_t cap);
-size_t uce_host_job_await(uint64_t job_id, uint64_t timeout_ms, char* out, size_t cap);
-int uce_host_job_cancel(uint64_t job_id);
-size_t uce_host_path_real(const char* path, size_t path_len, char* buf, size_t cap);
-int uce_host_path_is_within(const char* path, size_t path_len, const char* root, size_t root_len);
-size_t uce_host_cwd_get(char* buf, size_t cap);
-int uce_host_cwd_set(const char* path, size_t path_len);
-size_t uce_host_process_start_directory(char* buf, size_t cap);
-size_t uce_host_last_trap_trace(char* buf, size_t cap);
+int bearer_host_file_exists(const char* path, size_t path_len, const char* current, size_t current_len);
+size_t bearer_host_file_read(const char* path, size_t path_len, const char* current, size_t current_len, char* buf, size_t cap);
+int bearer_host_file_write(const char* path, size_t path_len, const char* current, size_t current_len, const char* content, size_t content_len, int append);
+void bearer_host_file_unlink(const char* path, size_t path_len, const char* current, size_t current_len);
+size_t bearer_host_file_list(const char* path, size_t path_len, const char* current, size_t current_len, char* buf, size_t cap);
+int bearer_host_file_mkdir(const char* path, size_t path_len, const char* current, size_t current_len);
+int64_t bearer_host_file_mtime(const char* path, size_t path_len, const char* current, size_t current_len);
+uint64_t bearer_host_file_open(const char* path, size_t path_len, const char* current, size_t current_len, const char* mode, size_t mode_len);
+size_t bearer_host_file_handle_read(uint64_t handle, uint64_t len, char* buf, size_t cap);
+size_t bearer_host_file_handle_pread(uint64_t handle, uint64_t offset, uint64_t len, char* buf, size_t cap);
+uint64_t bearer_host_file_handle_write(uint64_t handle, const char* data, size_t data_len);
+uint64_t bearer_host_file_handle_pwrite(uint64_t handle, uint64_t offset, const char* data, size_t data_len);
+int64_t bearer_host_file_handle_seek(uint64_t handle, int64_t offset, int whence);
+int64_t bearer_host_file_handle_tell(uint64_t handle);
+void bearer_host_file_handle_close(uint64_t handle);
+size_t bearer_host_file_stat(const char* path, size_t path_len, const char* current, size_t current_len, char* buf, size_t cap);
+size_t bearer_host_dir_list(const char* path, size_t path_len, const char* current, size_t current_len, char* buf, size_t cap);
+int bearer_host_file_rename(const char* from, size_t from_len, const char* to, size_t to_len, const char* current, size_t current_len);
+int bearer_host_file_copy(const char* from, size_t from_len, const char* to, size_t to_len, const char* current, size_t current_len);
+int bearer_host_file_truncate(const char* path, size_t path_len, const char* current, size_t current_len, uint64_t size);
+int bearer_host_dir_remove(const char* path, size_t path_len, const char* current, size_t current_len, int recursive);
+size_t bearer_host_file_temp(const char* prefix, size_t prefix_len, const char* current, size_t current_len, char* buf, size_t cap);
+int bearer_host_file_chmod(const char* path, size_t path_len, const char* current, size_t current_len, uint32_t mode);
+int bearer_host_file_symlink(const char* target, size_t target_len, const char* linkpath, size_t linkpath_len, const char* current, size_t current_len);
+int bearer_host_file_fsync(uint64_t handle);
+int bearer_host_task_spawn(const char* key, size_t key_len, uint64_t callback_id, double interval, uint64_t timeout, int repeat);
+int bearer_host_task_pid(const char* key, size_t key_len);
+int bearer_host_task_kill(int pid, int sig);
+unsigned int bearer_host_sleep_us(uint64_t usec);
+uint64_t bearer_host_socket_connect(const char* host, size_t host_len, int port);
+void bearer_host_socket_close(uint64_t sockfd);
+int bearer_host_socket_write(uint64_t sockfd, const char* data, size_t data_len);
+size_t bearer_host_socket_read(uint64_t sockfd, uint32_t max_length, uint32_t timeout, char* buf, size_t cap);
+int bearer_host_server_start_http(const char* key, size_t key_len, const char* bind, size_t bind_len, const char* file, size_t file_len, const char* function, size_t function_len, const char* current, size_t current_len);
+int bearer_host_server_stop(const char* key, size_t key_len);
+size_t bearer_host_memcache_command(uint64_t sockfd, const char* command, size_t command_len, char* buf, size_t cap);
+size_t bearer_host_mysql(const char* in, size_t in_len, char* out, size_t cap);
+size_t bearer_host_request_perf(const char* in, size_t in_len, char* out, size_t cap);
+size_t bearer_host_shell_exec(const char* cmd, size_t cmd_len, char* buf, size_t cap);
+size_t bearer_host_sha256(const char* data, size_t data_len, char* out, size_t cap);
+size_t bearer_host_sha256_hex(const char* data, size_t data_len, char* out, size_t cap);
+size_t bearer_host_hmac_sha256(const char* key, size_t key_len, const char* data, size_t data_len, char* out, size_t cap);
+size_t bearer_host_hmac_sha256_hex(const char* key, size_t key_len, const char* data, size_t data_len, char* out, size_t cap);
+size_t bearer_host_base64_encode(const char* data, size_t data_len, char* out, size_t cap);
+size_t bearer_host_base64_decode(const char* data, size_t data_len, char* out, size_t cap);
+int bearer_host_crypto_equal(const char* a, size_t a_len, const char* b, size_t b_len);
+size_t bearer_host_password_hash(const char* password, size_t password_len, char* out, size_t cap);
+int bearer_host_password_verify(const char* password, size_t password_len, const char* encoded, size_t encoded_len);
+int bearer_host_password_needs_rehash(const char* encoded, size_t encoded_len);
+size_t bearer_host_http_request(const char* in, size_t in_len, char* out, size_t cap);
+uint64_t bearer_host_http_request_async(const char* in, size_t in_len);
+size_t bearer_host_shell_exec_dv(const char* in, size_t in_len, char* out, size_t cap);
+uint64_t bearer_host_shell_spawn(const char* in, size_t in_len);
+size_t bearer_host_job_status(uint64_t job_id, char* out, size_t cap);
+size_t bearer_host_job_result(uint64_t job_id, char* out, size_t cap);
+size_t bearer_host_job_await(uint64_t job_id, uint64_t timeout_ms, char* out, size_t cap);
+int bearer_host_job_cancel(uint64_t job_id);
+size_t bearer_host_path_real(const char* path, size_t path_len, char* buf, size_t cap);
+int bearer_host_path_is_within(const char* path, size_t path_len, const char* root, size_t root_len);
+size_t bearer_host_cwd_get(char* buf, size_t cap);
+int bearer_host_cwd_set(const char* path, size_t path_len);
+size_t bearer_host_process_start_directory(char* buf, size_t cap);
+size_t bearer_host_last_trap_trace(char* buf, size_t cap);
 }
 
 static String wasm_current_unit_file()
@@ -87,11 +87,11 @@ static String wasm_current_unit_file()
 
 String shell_exec(String cmd)
 {
-	size_t required = uce_host_shell_exec(cmd.data(), cmd.size(), 0, 0);
+	size_t required = bearer_host_shell_exec(cmd.data(), cmd.size(), 0, 0);
 	if(required == 0)
 		return("");
 	String output(required, 0);
-	size_t got = uce_host_shell_exec(cmd.data(), cmd.size(), &output[0], required);
+	size_t got = bearer_host_shell_exec(cmd.data(), cmd.size(), &output[0], required);
 	output.resize(got <= required ? got : 0);
 	return(output);
 }
@@ -112,145 +112,145 @@ String dirname(String fn) { auto pos = fn.find_last_of('/'); return(pos == Strin
 String path_join(String base, String child) { if(base == "") return(child); if(child == "") return(base); if(child[0] == '/') return(child); return(base + (base.back() == '/' ? "" : "/") + child); }
 String path_real(String path)
 {
-	size_t required = uce_host_path_real(path.data(), path.size(), 0, 0);
+	size_t required = bearer_host_path_real(path.data(), path.size(), 0, 0);
 	if(required == 0)
 		return("");
 	String resolved(required, 0);
-	size_t got = uce_host_path_real(path.data(), path.size(), &resolved[0], required);
+	size_t got = bearer_host_path_real(path.data(), path.size(), &resolved[0], required);
 	resolved.resize(got <= required ? got : 0);
 	return(resolved);
 }
 bool path_is_within(String path, String root)
 {
-	return(uce_host_path_is_within(path.data(), path.size(), root.data(), root.size()) != 0);
+	return(bearer_host_path_is_within(path.data(), path.size(), root.data(), root.size()) != 0);
 }
 bool mkdir(String path)
 {
 	String current = wasm_current_unit_file();
-	return(uce_host_file_mkdir(path.data(), path.size(), current.data(), current.size()) != 0);
+	return(bearer_host_file_mkdir(path.data(), path.size(), current.data(), current.size()) != 0);
 }
 bool file_exists(String path)
 {
 	String current = wasm_current_unit_file();
-	return(uce_host_file_exists(path.data(), path.size(), current.data(), current.size()) != 0);
+	return(bearer_host_file_exists(path.data(), path.size(), current.data(), current.size()) != 0);
 }
 String file_get_contents(String file_name)
 {
 	String current = wasm_current_unit_file();
-	size_t required = uce_host_file_read(file_name.data(), file_name.size(), current.data(), current.size(), 0, 0);
+	size_t required = bearer_host_file_read(file_name.data(), file_name.size(), current.data(), current.size(), 0, 0);
 	if(required == 0)
 		return("");
 	String content(required, 0);
-	size_t got = uce_host_file_read(file_name.data(), file_name.size(), current.data(), current.size(), &content[0], required);
+	size_t got = bearer_host_file_read(file_name.data(), file_name.size(), current.data(), current.size(), &content[0], required);
 	content.resize(got <= required ? got : 0);
 	return(content);
 }
 bool file_put_contents(String file_name, String content)
 {
 	String current = wasm_current_unit_file();
-	return(uce_host_file_write(file_name.data(), file_name.size(), current.data(), current.size(), content.data(), content.size(), 0) != 0);
+	return(bearer_host_file_write(file_name.data(), file_name.size(), current.data(), current.size(), content.data(), content.size(), 0) != 0);
 }
 bool file_append(String file_name, String content)
 {
 	String current = wasm_current_unit_file();
-	return(uce_host_file_write(file_name.data(), file_name.size(), current.data(), current.size(), content.data(), content.size(), 1) != 0);
+	return(bearer_host_file_write(file_name.data(), file_name.size(), current.data(), current.size(), content.data(), content.size(), 1) != 0);
 }
 u64 file_open(String path, String mode)
 {
 	String current = wasm_current_unit_file();
-	return((u64)uce_host_file_open(path.data(), path.size(), current.data(), current.size(), mode.data(), mode.size()));
+	return((u64)bearer_host_file_open(path.data(), path.size(), current.data(), current.size(), mode.data(), mode.size()));
 }
 String file_read(u64 h, u64 len)
 {
-	size_t required = uce_host_file_handle_read(h, len, 0, 0);
+	size_t required = bearer_host_file_handle_read(h, len, 0, 0);
 	if(required == 0)
 		return("");
 	String content(required, 0);
-	size_t got = uce_host_file_handle_read(h, len, &content[0], required);
+	size_t got = bearer_host_file_handle_read(h, len, &content[0], required);
 	content.resize(got <= required ? got : 0);
 	return(content);
 }
 String file_pread(u64 h, u64 offset, u64 len)
 {
-	size_t required = uce_host_file_handle_pread(h, offset, len, 0, 0);
+	size_t required = bearer_host_file_handle_pread(h, offset, len, 0, 0);
 	if(required == 0)
 		return("");
 	String content(required, 0);
-	size_t got = uce_host_file_handle_pread(h, offset, len, &content[0], required);
+	size_t got = bearer_host_file_handle_pread(h, offset, len, &content[0], required);
 	content.resize(got <= required ? got : 0);
 	return(content);
 }
-u64 file_write(u64 h, String data) { return(uce_host_file_handle_write(h, data.data(), data.size())); }
-u64 file_pwrite(u64 h, u64 offset, String data) { return(uce_host_file_handle_pwrite(h, offset, data.data(), data.size())); }
-s64 file_seek(u64 h, s64 offset, s64 whence) { return((s64)uce_host_file_handle_seek(h, offset, (int)whence)); }
-s64 file_tell(u64 h) { return((s64)uce_host_file_handle_tell(h)); }
-void file_close(u64 h) { uce_host_file_handle_close(h); }
+u64 file_write(u64 h, String data) { return(bearer_host_file_handle_write(h, data.data(), data.size())); }
+u64 file_pwrite(u64 h, u64 offset, String data) { return(bearer_host_file_handle_pwrite(h, offset, data.data(), data.size())); }
+s64 file_seek(u64 h, s64 offset, s64 whence) { return((s64)bearer_host_file_handle_seek(h, offset, (int)whence)); }
+s64 file_tell(u64 h) { return((s64)bearer_host_file_handle_tell(h)); }
+void file_close(u64 h) { bearer_host_file_handle_close(h); }
 static DValue wasm_decode_dvalue_result(String encoded)
 {
 	DValue out;
 	String error;
-	ucb_decode(encoded, out, &error);
+	brb_decode(encoded, out, &error);
 	return(out);
 }
 DValue file_stat(String path)
 {
 	String current = wasm_current_unit_file();
-	size_t required = uce_host_file_stat(path.data(), path.size(), current.data(), current.size(), 0, 0);
+	size_t required = bearer_host_file_stat(path.data(), path.size(), current.data(), current.size(), 0, 0);
 	String encoded(required, 0);
-	size_t got = required ? uce_host_file_stat(path.data(), path.size(), current.data(), current.size(), &encoded[0], required) : 0;
+	size_t got = required ? bearer_host_file_stat(path.data(), path.size(), current.data(), current.size(), &encoded[0], required) : 0;
 	encoded.resize(got <= required ? got : 0);
 	return(wasm_decode_dvalue_result(encoded));
 }
 DValue dir_list(String path)
 {
 	String current = wasm_current_unit_file();
-	size_t required = uce_host_dir_list(path.data(), path.size(), current.data(), current.size(), 0, 0);
+	size_t required = bearer_host_dir_list(path.data(), path.size(), current.data(), current.size(), 0, 0);
 	String encoded(required, 0);
-	size_t got = required ? uce_host_dir_list(path.data(), path.size(), current.data(), current.size(), &encoded[0], required) : 0;
+	size_t got = required ? bearer_host_dir_list(path.data(), path.size(), current.data(), current.size(), &encoded[0], required) : 0;
 	encoded.resize(got <= required ? got : 0);
 	return(wasm_decode_dvalue_result(encoded));
 }
 bool file_rename(String from, String to)
 {
 	String current = wasm_current_unit_file();
-	return(uce_host_file_rename(from.data(), from.size(), to.data(), to.size(), current.data(), current.size()) != 0);
+	return(bearer_host_file_rename(from.data(), from.size(), to.data(), to.size(), current.data(), current.size()) != 0);
 }
 bool file_copy(String from, String to)
 {
 	String current = wasm_current_unit_file();
-	return(uce_host_file_copy(from.data(), from.size(), to.data(), to.size(), current.data(), current.size()) != 0);
+	return(bearer_host_file_copy(from.data(), from.size(), to.data(), to.size(), current.data(), current.size()) != 0);
 }
 bool file_truncate(String path, u64 size)
 {
 	String current = wasm_current_unit_file();
-	return(uce_host_file_truncate(path.data(), path.size(), current.data(), current.size(), size) != 0);
+	return(bearer_host_file_truncate(path.data(), path.size(), current.data(), current.size(), size) != 0);
 }
 bool dir_remove(String path, bool recursive)
 {
 	String current = wasm_current_unit_file();
-	return(uce_host_dir_remove(path.data(), path.size(), current.data(), current.size(), recursive ? 1 : 0) != 0);
+	return(bearer_host_dir_remove(path.data(), path.size(), current.data(), current.size(), recursive ? 1 : 0) != 0);
 }
 String file_temp(String prefix)
 {
 	String current = wasm_current_unit_file();
-	size_t required = uce_host_file_temp(prefix.data(), prefix.size(), current.data(), current.size(), 0, 0);
+	size_t required = bearer_host_file_temp(prefix.data(), prefix.size(), current.data(), current.size(), 0, 0);
 	if(required == 0) return("");
 	String out(required, 0);
-	size_t got = uce_host_file_temp(prefix.data(), prefix.size(), current.data(), current.size(), &out[0], required);
+	size_t got = bearer_host_file_temp(prefix.data(), prefix.size(), current.data(), current.size(), &out[0], required);
 	out.resize(got <= required ? got : 0);
 	return(out);
 }
 bool file_chmod(String path, u32 mode)
 {
 	String current = wasm_current_unit_file();
-	return(uce_host_file_chmod(path.data(), path.size(), current.data(), current.size(), mode) != 0);
+	return(bearer_host_file_chmod(path.data(), path.size(), current.data(), current.size(), mode) != 0);
 }
 bool file_symlink(String target, String linkpath)
 {
 	String current = wasm_current_unit_file();
-	return(uce_host_file_symlink(target.data(), target.size(), linkpath.data(), linkpath.size(), current.data(), current.size()) != 0);
+	return(bearer_host_file_symlink(target.data(), target.size(), linkpath.data(), linkpath.size(), current.data(), current.size()) != 0);
 }
-bool file_fsync(u64 h) { return(uce_host_file_fsync(h) != 0); }
+bool file_fsync(u64 h) { return(bearer_host_file_fsync(h) != 0); }
 
 
 static String wasm_string_hostcall_1(size_t (*fn)(const char*, size_t, char*, size_t), String data)
@@ -261,130 +261,130 @@ static String wasm_string_hostcall_1(size_t (*fn)(const char*, size_t, char*, si
 	out.resize(got <= required ? got : 0);
 	return(out);
 }
-String sha256(String data) { return(wasm_string_hostcall_1(uce_host_sha256, data)); }
-String sha256_hex(String data) { return(wasm_string_hostcall_1(uce_host_sha256_hex, data)); }
+String sha256(String data) { return(wasm_string_hostcall_1(bearer_host_sha256, data)); }
+String sha256_hex(String data) { return(wasm_string_hostcall_1(bearer_host_sha256_hex, data)); }
 String hmac_sha256(String key, String data)
 {
-	size_t required = uce_host_hmac_sha256(key.data(), key.size(), data.data(), data.size(), 0, 0);
-	String out(required, 0); size_t got = required ? uce_host_hmac_sha256(key.data(), key.size(), data.data(), data.size(), &out[0], required) : 0; out.resize(got <= required ? got : 0); return(out);
+	size_t required = bearer_host_hmac_sha256(key.data(), key.size(), data.data(), data.size(), 0, 0);
+	String out(required, 0); size_t got = required ? bearer_host_hmac_sha256(key.data(), key.size(), data.data(), data.size(), &out[0], required) : 0; out.resize(got <= required ? got : 0); return(out);
 }
 String hmac_sha256_hex(String key, String data)
 {
-	size_t required = uce_host_hmac_sha256_hex(key.data(), key.size(), data.data(), data.size(), 0, 0);
-	String out(required, 0); size_t got = required ? uce_host_hmac_sha256_hex(key.data(), key.size(), data.data(), data.size(), &out[0], required) : 0; out.resize(got <= required ? got : 0); return(out);
+	size_t required = bearer_host_hmac_sha256_hex(key.data(), key.size(), data.data(), data.size(), 0, 0);
+	String out(required, 0); size_t got = required ? bearer_host_hmac_sha256_hex(key.data(), key.size(), data.data(), data.size(), &out[0], required) : 0; out.resize(got <= required ? got : 0); return(out);
 }
 String password_hash(String password)
 {
 	String encoded(256, 0);
-	size_t got = uce_host_password_hash(password.data(), password.size(), &encoded[0], encoded.size());
+	size_t got = bearer_host_password_hash(password.data(), password.size(), &encoded[0], encoded.size());
 	if(got > encoded.size())
 		return("");
 	encoded.resize(got);
 	return(encoded);
 }
-bool password_verify(String password, String encoded) { return(uce_host_password_verify(password.data(), password.size(), encoded.data(), encoded.size()) != 0); }
-bool password_needs_rehash(String encoded) { return(uce_host_password_needs_rehash(encoded.data(), encoded.size()) != 0); }
-String base64_decode(String raw) { return(wasm_string_hostcall_1(uce_host_base64_decode, raw)); }
+bool password_verify(String password, String encoded) { return(bearer_host_password_verify(password.data(), password.size(), encoded.data(), encoded.size()) != 0); }
+bool password_needs_rehash(String encoded) { return(bearer_host_password_needs_rehash(encoded.data(), encoded.size()) != 0); }
+String base64_decode(String raw) { return(wasm_string_hostcall_1(bearer_host_base64_decode, raw)); }
 String random_bytes(u64 n)
 {
 	if(n > 1024 * 1024) n = 1024 * 1024;
-	String out(n, 0); size_t got = n ? uce_host_random(&out[0], n) : 0; out.resize(got <= n ? got : 0); return(out);
+	String out(n, 0); size_t got = n ? bearer_host_random(&out[0], n) : 0; out.resize(got <= n ? got : 0); return(out);
 }
-bool crypto_equal(String a, String b) { return(uce_host_crypto_equal(a.data(), a.size(), b.data(), b.size()) != 0); }
+bool crypto_equal(String a, String b) { return(bearer_host_crypto_equal(a.data(), a.size(), b.data(), b.size()) != 0); }
 
 
 DValue http_request(DValue req)
 {
-	String encoded = ucb_encode(req);
-	size_t required = uce_host_http_request(encoded.data(), encoded.size(), 0, 0);
-	String out(required, 0); size_t got = required ? uce_host_http_request(encoded.data(), encoded.size(), &out[0], required) : 0; out.resize(got <= required ? got : 0); return(wasm_decode_dvalue_result(out));
+	String encoded = brb_encode(req);
+	size_t required = bearer_host_http_request(encoded.data(), encoded.size(), 0, 0);
+	String out(required, 0); size_t got = required ? bearer_host_http_request(encoded.data(), encoded.size(), &out[0], required) : 0; out.resize(got <= required ? got : 0); return(wasm_decode_dvalue_result(out));
 }
 u64 http_request_async(DValue req)
 {
-	String encoded = ucb_encode(req);
-	return((u64)uce_host_http_request_async(encoded.data(), encoded.size()));
+	String encoded = brb_encode(req);
+	return((u64)bearer_host_http_request_async(encoded.data(), encoded.size()));
 }
 
 DValue shell_exec(DValue spec)
 {
-	String encoded = ucb_encode(spec);
-	size_t required = uce_host_shell_exec_dv(encoded.data(), encoded.size(), 0, 0);
+	String encoded = brb_encode(spec);
+	size_t required = bearer_host_shell_exec_dv(encoded.data(), encoded.size(), 0, 0);
 	String out(required, 0);
-	size_t got = required ? uce_host_shell_exec_dv(encoded.data(), encoded.size(), &out[0], required) : 0;
+	size_t got = required ? bearer_host_shell_exec_dv(encoded.data(), encoded.size(), &out[0], required) : 0;
 	out.resize(got <= required ? got : 0);
 	return(wasm_decode_dvalue_result(out));
 }
 u64 shell_spawn(DValue spec)
 {
-	String encoded = ucb_encode(spec);
-	return((u64)uce_host_shell_spawn(encoded.data(), encoded.size()));
+	String encoded = brb_encode(spec);
+	return((u64)bearer_host_shell_spawn(encoded.data(), encoded.size()));
 }
 DValue job_status(u64 job_id)
 {
-	size_t required = uce_host_job_status(job_id, 0, 0);
+	size_t required = bearer_host_job_status(job_id, 0, 0);
 	String out(required, 0);
-	size_t got = required ? uce_host_job_status(job_id, &out[0], required) : 0;
+	size_t got = required ? bearer_host_job_status(job_id, &out[0], required) : 0;
 	out.resize(got <= required ? got : 0);
 	return(wasm_decode_dvalue_result(out));
 }
 DValue job_result(u64 job_id)
 {
-	size_t required = uce_host_job_result(job_id, 0, 0);
+	size_t required = bearer_host_job_result(job_id, 0, 0);
 	String out(required, 0);
-	size_t got = required ? uce_host_job_result(job_id, &out[0], required) : 0;
+	size_t got = required ? bearer_host_job_result(job_id, &out[0], required) : 0;
 	out.resize(got <= required ? got : 0);
 	return(wasm_decode_dvalue_result(out));
 }
 DValue job_await(u64 job_id, u64 timeout_ms)
 {
-	size_t required = uce_host_job_await(job_id, timeout_ms, 0, 0);
+	size_t required = bearer_host_job_await(job_id, timeout_ms, 0, 0);
 	String out(required, 0);
-	size_t got = required ? uce_host_job_await(job_id, timeout_ms, &out[0], required) : 0;
+	size_t got = required ? bearer_host_job_await(job_id, timeout_ms, &out[0], required) : 0;
 	out.resize(got <= required ? got : 0);
 	return(wasm_decode_dvalue_result(out));
 }
-bool job_cancel(u64 job_id) { return(uce_host_job_cancel(job_id) != 0); }
+bool job_cancel(u64 job_id) { return(bearer_host_job_cancel(job_id) != 0); }
 
 String cwd_get()
 {
-	size_t required = uce_host_cwd_get(0, 0);
+	size_t required = bearer_host_cwd_get(0, 0);
 	if(required == 0)
 		return("");
 	String cwd(required, 0);
-	size_t got = uce_host_cwd_get(&cwd[0], required);
+	size_t got = bearer_host_cwd_get(&cwd[0], required);
 	cwd.resize(got <= required ? got : 0);
 	return(cwd);
 }
-void cwd_set(String path) { uce_host_cwd_set(path.data(), path.size()); }
+void cwd_set(String path) { bearer_host_cwd_set(path.data(), path.size()); }
 String process_start_directory()
 {
-	size_t required = uce_host_process_start_directory(0, 0);
+	size_t required = bearer_host_process_start_directory(0, 0);
 	if(required == 0)
 		return("");
 	String cwd(required, 0);
-	size_t got = uce_host_process_start_directory(&cwd[0], required);
+	size_t got = bearer_host_process_start_directory(&cwd[0], required);
 	cwd.resize(got <= required ? got : 0);
 	return(cwd);
 }
 u64 file_mtime(String file_name)
 {
 	String current = wasm_current_unit_file();
-	return((u64)uce_host_file_mtime(file_name.data(), file_name.size(), current.data(), current.size()));
+	return((u64)bearer_host_file_mtime(file_name.data(), file_name.size(), current.data(), current.size()));
 }
 void file_unlink(String file_name)
 {
 	String current = wasm_current_unit_file();
-	uce_host_file_unlink(file_name.data(), file_name.size(), current.data(), current.size());
+	bearer_host_file_unlink(file_name.data(), file_name.size(), current.data(), current.size());
 }
 String expand_path(String path, String relative_to_path) { return(path_join(relative_to_path, path)); }
 StringList ls(String dir)
 {
 	String current = wasm_current_unit_file();
-	size_t required = uce_host_file_list(dir.data(), dir.size(), current.data(), current.size(), 0, 0);
+	size_t required = bearer_host_file_list(dir.data(), dir.size(), current.data(), current.size(), 0, 0);
 	if(required == 0)
 		return(StringList());
 	String listing(required, 0);
-	size_t got = uce_host_file_list(dir.data(), dir.size(), current.data(), current.size(), &listing[0], required);
+	size_t got = bearer_host_file_list(dir.data(), dir.size(), current.data(), current.size(), &listing[0], required);
 	listing.resize(got <= required ? got : 0);
 	if(listing == "")
 		return(StringList());
@@ -392,22 +392,22 @@ StringList ls(String dir)
 }
 DValue request_perf()
 {
-	size_t required = uce_host_request_perf("", 0, 0, 0);
+	size_t required = bearer_host_request_perf("", 0, 0, 0);
 	if(required == 0)
 		return(DValue());
 	String encoded_response(required, 0);
-	size_t got = uce_host_request_perf("", 0, &encoded_response[0], required);
+	size_t got = bearer_host_request_perf("", 0, &encoded_response[0], required);
 	if(got == 0 || got > required)
 		return(DValue());
 	DValue response;
 	String decode_error;
-	if(ucb_decode(encoded_response, response, &decode_error))
+	if(brb_decode(encoded_response, response, &decode_error))
 		return(response);
 	return(DValue());
 }
 
-f64 time_precise() { return(uce_host_time_precise()); }
-u64 time() { return(uce_host_time()); }
+f64 time_precise() { return(bearer_host_time_precise()); }
+u64 time() { return(bearer_host_time()); }
 // The native build shells out to `date`; the wasm core has no shell, so it
 // formats with wasi-libc strftime (no TZ data → local == UTC, acceptable).
 static String wasm_time_strftime(String format, u64 timestamp, bool utc)
@@ -484,20 +484,20 @@ u64 time_parse(String time_String)
 }
 u64 socket_connect(String host, u16 port)
 {
-	return(uce_host_socket_connect(host.data(), host.size(), (int)port));
+	return(bearer_host_socket_connect(host.data(), host.size(), (int)port));
 }
-void socket_close(u64 sockfd) { uce_host_socket_close(sockfd); }
+void socket_close(u64 sockfd) { bearer_host_socket_close(sockfd); }
 bool socket_write(u64 sockfd, String data)
 {
-	return(uce_host_socket_write(sockfd, data.data(), data.size()) != 0);
+	return(bearer_host_socket_write(sockfd, data.data(), data.size()) != 0);
 }
 String socket_read(u64 sockfd, u32 max_length, u32 timeout)
 {
-	size_t required = uce_host_socket_read(sockfd, max_length, timeout, 0, 0);
+	size_t required = bearer_host_socket_read(sockfd, max_length, timeout, 0, 0);
 	if(required == 0)
 		return("");
 	String content(required, 0);
-	size_t got = uce_host_socket_read(sockfd, max_length, timeout, &content[0], required);
+	size_t got = bearer_host_socket_read(sockfd, max_length, timeout, &content[0], required);
 	content.resize(got <= required ? got : 0);
 	return(content);
 }
@@ -554,11 +554,11 @@ String backtrace_capture(u32 max_frames, u32 skip_frames)
 {
 	(void)max_frames;
 	(void)skip_frames;
-	size_t required = uce_host_last_trap_trace(0, 0);
+	size_t required = bearer_host_last_trap_trace(0, 0);
 	if(required == 0)
 		return("");
 	String trace(required, 0);
-	size_t got = uce_host_last_trap_trace(&trace[0], required);
+	size_t got = bearer_host_last_trap_trace(&trace[0], required);
 	trace.resize(got <= required ? got : 0);
 	return(trace);
 }
@@ -604,11 +604,11 @@ u64 memcache_connect(String host, u16 port)
 }
 String memcache_command(u64 connection, String command)
 {
-	size_t required = uce_host_memcache_command(connection, command.data(), command.size(), 0, 0);
+	size_t required = bearer_host_memcache_command(connection, command.data(), command.size(), 0, 0);
 	if(required == 0)
 		return("");
 	String content(required, 0);
-	size_t got = uce_host_memcache_command(connection, command.data(), command.size(), &content[0], required);
+	size_t got = bearer_host_memcache_command(connection, command.data(), command.size(), &content[0], required);
 	content.resize(got <= required ? got : 0);
 	return(content);
 }
@@ -671,7 +671,7 @@ void on_segfault(int sig) { (void)sig; }
 static u64 wasm_next_task_callback_id = 1;
 static std::map<u64, std::function<void()>> wasm_task_callbacks;
 
-extern "C" int uce_wasm_task_run(uint64_t callback_id)
+extern "C" int bearer_wasm_task_run(uint64_t callback_id)
 {
 	auto it = wasm_task_callbacks.find(callback_id);
 	if(it == wasm_task_callbacks.end())
@@ -680,7 +680,7 @@ extern "C" int uce_wasm_task_run(uint64_t callback_id)
 	return(0);
 }
 
-int task_kill(pid_t pid, s32 sig) { return(uce_host_task_kill(pid, (int)sig)); }
+int task_kill(pid_t pid, s32 sig) { return(bearer_host_task_kill(pid, (int)sig)); }
 String runtime_safe_key(String key, String label)
 {
 	(void)label;
@@ -693,7 +693,7 @@ pid_t task(String key, std::function<void()> exec_after_spawn, u64 timeout)
 {
 	u64 id = wasm_next_task_callback_id++;
 	wasm_task_callbacks[id] = exec_after_spawn;
-	return((pid_t)uce_host_task_spawn(key.data(), key.size(), id, 0.0, timeout, 0));
+	return((pid_t)bearer_host_task_spawn(key.data(), key.size(), id, 0.0, timeout, 0));
 }
 pid_t task_repeat(String key, f64 interval, std::function<void()> exec_after_spawn, u64 timeout)
 {
@@ -701,23 +701,23 @@ pid_t task_repeat(String key, f64 interval, std::function<void()> exec_after_spa
 		return(0);
 	u64 id = wasm_next_task_callback_id++;
 	wasm_task_callbacks[id] = exec_after_spawn;
-	return((pid_t)uce_host_task_spawn(key.data(), key.size(), id, interval, timeout, 1));
+	return((pid_t)bearer_host_task_spawn(key.data(), key.size(), id, interval, timeout, 1));
 }
-pid_t task_pid(String key) { return((pid_t)uce_host_task_pid(key.data(), key.size())); }
-extern "C" unsigned int sleep(unsigned int seconds) { return(uce_host_sleep_us((uint64_t)seconds * 1000000ull)); }
-extern "C" s32 usleep(u32 usec) { uce_host_sleep_us(usec); return(0); }
-pid_t server_start_http(String key, String socket_fn_or_port, String call_uce_filename, String call_function)
+pid_t task_pid(String key) { return((pid_t)bearer_host_task_pid(key.data(), key.size())); }
+extern "C" unsigned int sleep(unsigned int seconds) { return(bearer_host_sleep_us((uint64_t)seconds * 1000000ull)); }
+extern "C" s32 usleep(u32 usec) { bearer_host_sleep_us(usec); return(0); }
+pid_t server_start_http(String key, String socket_fn_or_port, String call_bearer_filename, String call_function)
 {
 	String current = wasm_current_unit_file();
-	return((pid_t)uce_host_server_start_http(
+	return((pid_t)bearer_host_server_start_http(
 		key.data(), key.size(),
 		socket_fn_or_port.data(), socket_fn_or_port.size(),
-		call_uce_filename.data(), call_uce_filename.size(),
+		call_bearer_filename.data(), call_bearer_filename.size(),
 		call_function.data(), call_function.size(),
 		current.data(), current.size()
 	));
 }
-bool server_stop(String key) { return(uce_host_server_stop(key.data(), key.size()) != 0); }
+bool server_stop(String key) { return(bearer_host_server_stop(key.data(), key.size()) != 0); }
 StringMap default_config()
 {
 	StringMap cfg;
@@ -761,7 +761,7 @@ namespace {
 
 u64 file_lock_timeout_ms()
 {
-	const char* raw = getenv("UCE_FILE_LOCK_TIMEOUT_MS");
+	const char* raw = getenv("BEARER_FILE_LOCK_TIMEOUT_MS");
 	if(!raw || !*raw)
 		return(2000);
 	char* end = 0;
@@ -1895,7 +1895,7 @@ StringMap make_server_settings()
 {
 	StringMap cfg;
 
-	cfg["BIN_DIRECTORY"] = "/tmp/uce/work";
+	cfg["BIN_DIRECTORY"] = "/tmp/bearer/work";
 	cfg["WASM_COMPILE_SCRIPT"] = "scripts/compile_wasm_unit";
 	cfg["WASM_BACKEND_VERBOSE"] = "0";
 	cfg["WASM_PROFILE_HOSTCALL_CPU"] = "0";
@@ -1907,18 +1907,18 @@ StringMap make_server_settings()
 	cfg["SETUP_TEMPLATE"] = "scripts/setup.h.template";
 	cfg["LIT_ESC"] = "3d5b5_1";
 	cfg["CONTENT_TYPE"] = "text/html; charset=utf-8";
-	cfg["FCGI_SOCKET_PATH"] = "/run/uce/fastcgi.sock";
+	cfg["FCGI_SOCKET_PATH"] = "/run/bearer/fastcgi.sock";
 	cfg["FCGI_SOCKET_MODE"] = "0666";
-	cfg["CLI_SOCKET_PATH"] = "/run/uce/cli.sock";
+	cfg["CLI_SOCKET_PATH"] = "/run/bearer/cli.sock";
 	cfg["CLI_SOCKET_MODE"] = "0600";
 	// Command socket the WS broker listens on; workers flush ws_* dispatch
 	// command batches here at workspace teardown.
-	cfg["WS_BROKER_SOCKET_PATH"] = "/run/uce/ws-broker.sock";
+	cfg["WS_BROKER_SOCKET_PATH"] = "/run/bearer/ws-broker.sock";
 	cfg["WS_BROKER_OUTBOUND_TIMEOUT_SECONDS"] = "30";
-	// Comma-separated uce_host_* names a sysadmin disables; empty = nothing blocked.
-	cfg["UCE_HOSTCALL_BLOCKLIST"] = "";
-	cfg["TMP_UPLOAD_PATH"] = "/tmp/uce/uploads";
-	cfg["SESSION_PATH"] = "/tmp/uce/sessions";
+	// Comma-separated bearer_host_* names a sysadmin disables; empty = nothing blocked.
+	cfg["BEARER_HOSTCALL_BLOCKLIST"] = "";
+	cfg["TMP_UPLOAD_PATH"] = "/tmp/bearer/uploads";
+	cfg["SESSION_PATH"] = "/tmp/bearer/sessions";
 	cfg["SESSION_COOKIE_SECURE"] = "0";
 	cfg["COMPILER_SYS_PATH"] = ".";
 	cfg["PRECOMPILE_FILES_IN"] = "";
@@ -1945,9 +1945,9 @@ StringMap make_server_settings()
 	cfg["CUSTOM_SERVER_MIN_PORT"] = "1024";
 	cfg["CUSTOM_SERVER_MAX_PORT"] = "65535";
 	cfg["CUSTOM_SERVER_ALLOW_PUBLIC_BIND"] = "0";
-	cfg["CUSTOM_SERVER_UNIX_SOCKET_PREFIX"] = "/tmp/uce/custom-servers/";
+	cfg["CUSTOM_SERVER_UNIX_SOCKET_PREFIX"] = "/tmp/bearer/custom-servers/";
 	cfg["CUSTOM_SERVER_HANDLER_TIMEOUT_SECONDS"] = "30";
-	cfg["CUSTOM_SERVER_UCE_ROOT"] = "";
+	cfg["CUSTOM_SERVER_BEARER_ROOT"] = "";
 	cfg["ARCHIVE_MAX_INPUT_BYTES"] = std::to_string(64 * 1024 * 1024);
 	cfg["ARCHIVE_MAX_OUTPUT_BYTES"] = std::to_string(64 * 1024 * 1024);
 	cfg["ARCHIVE_MAX_ZIP_ENTRIES"] = "4096";
@@ -1957,7 +1957,7 @@ StringMap make_server_settings()
 	cfg["WORKER_COUNT"] = std::to_string(4);
 	cfg["MAX_MEMORY"] = std::to_string(1024*1024*16);
 
-	for(auto& it : split_kv(file_get_contents("/etc/uce/settings.cfg")))
+	for(auto& it : split_kv(file_get_contents("/etc/bearer/settings.cfg")))
 	{
 		cfg[it.first] = it.second;
 	}

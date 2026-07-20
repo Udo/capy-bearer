@@ -1,4 +1,4 @@
-#include "lib/uce_lib.cpp"
+#include "lib/bearer_lib.cpp"
 // The wasm backend is its own object (src/wasm/wasm_module.cpp → wasm.o); the
 // main object only needs its declarations, so editing the wasm runtime no
 // longer recompiles the whole native TU.
@@ -21,7 +21,7 @@ std::vector<pid_t> proactive_compiler_pids;
 pid_t priority_compiler_pid = 0;
 
 // The central WS broker process: owns the WS port + every connection, forwards
-// renders to the worker pool over uce.sock, and applies ws_* commands flushed
+// renders to the worker pool over bearer.sock, and applies ws_* commands flushed
 // back from workers. ws_broker_outbound holds in-flight async render
 // connections and their enqueue timestamps.
 struct WsBrokerOutbound
@@ -118,7 +118,7 @@ bool render_wasm_error_page(Request& request, String config_key, s32 status_code
 	ob_start();
 	String wasm_error = "";
 	if(compile_timed_out)
-		wasm_error = "UCE_INVOCATION_TIMEOUT: wasm invocation exceeded " + std::to_string(invocation_budget_ms) + " ms";
+		wasm_error = "BEARER_INVOCATION_TIMEOUT: wasm invocation exceeded " + std::to_string(invocation_budget_ms) + " ms";
 	else if(wasm_backend_should_handle(request, unit))
 		wasm_error = wasm_backend_serve(request, unit, "render", wasm_invocation_remaining_ms(invocation_deadline));
 	else
@@ -174,14 +174,14 @@ void render_request_failure(Request& request, String title, String details, Stri
 		if(render_wasm_error_page(request, "page_runtime_error", status_code, "Internal Server Error", error_info,
 			invocation_deadline, invocation_budget_ms))
 		{
-			request.err = "UCE runtime error: " + title + (details != "" ? " (" + details + ")" : "");
+			request.err = "BEARER runtime error: " + title + (details != "" ? " (" + details + ")" : "");
 			restore_active_request(previous_context);
 			return;
 		}
 	}
 
 	String body;
-	body += "UCE runtime error\n";
+	body += "BEARER runtime error\n";
 	body += "Request: " + first(request.params["REQUEST_URI"], request.params["SCRIPT_FILENAME"]) + "\n";
 	body += "Script: " + request.params["SCRIPT_FILENAME"] + "\n";
 	body += "Error: " + title + "\n";
@@ -375,7 +375,7 @@ u64 request_seed_from_time(f64 time_value)
 void prepare_request_body_maps(Request& request)
 {
 	if(request.server)
-		request.params["UCE_BIN_DIRECTORY"] = request.server->config["BIN_DIRECTORY"];
+		request.params["BEARER_BIN_DIRECTORY"] = request.server->config["BIN_DIRECTORY"];
 
 	String route_path;
 	request.get = parse_query(request.params["QUERY_STRING"], &route_path);
@@ -405,7 +405,7 @@ int handle_cli_complete(FastCGIRequest& request)
 	server_state.request_count += 1;
 	request.server = &server_state;
 	request.resources.is_cli = true;
-	request.params["UCE_CLI"] = "1";
+	request.params["BEARER_CLI"] = "1";
 	request.stats.time_start = time_precise();
 	request.header["Content-Type"] = "text/plain; charset=utf-8";
 	request.random_index = 0;
@@ -423,15 +423,15 @@ int handle_cli_complete(FastCGIRequest& request)
 		{
 			request.set_status(405, "Method Not Allowed");
 			request.header["Allow"] = "GET, POST";
-			print("UCE CLI socket accepts GET and POST commands only\n");
+			print("BEARER CLI socket accepts GET and POST commands only\n");
 		}
 		else if(command == "/" || command == "/help")
 		{
-			print("UCE CLI command socket\n\nAvailable test hooks:\n  GET /ping\n  GET /status\n");
+			print("BEARER CLI command socket\n\nAvailable test hooks:\n  GET /ping\n  GET /status\n");
 		}
 		else if(command == "/ping" || command == "/test")
 		{
-			print("uce-cli: ok\n");
+			print("bearer-cli: ok\n");
 		}
 		else if(command == "/status")
 		{
@@ -442,7 +442,7 @@ int handle_cli_complete(FastCGIRequest& request)
 			if(!cli_path_is_safe(command))
 			{
 				request.set_status(400, "Bad Request");
-				print("invalid UCE CLI unit path\n");
+				print("invalid BEARER CLI unit path\n");
 			}
 			else
 			{
@@ -451,7 +451,7 @@ int handle_cli_complete(FastCGIRequest& request)
 				if(script_filename == "")
 				{
 					request.set_status(404, "Not Found");
-					print("UCE CLI unit not found: ", command, "\n");
+					print("BEARER CLI unit not found: ", command, "\n");
 				}
 				else
 				{
@@ -481,7 +481,7 @@ int handle_cli_complete(FastCGIRequest& request)
 					if(cli_compile_timed_out)
 					{
 						request.set_status(500, "Internal Server Error");
-						print("UCE_INVOCATION_TIMEOUT: wasm invocation exceeded ", invocation_budget_ms, " ms\n");
+						print("BEARER_INVOCATION_TIMEOUT: wasm invocation exceeded ", invocation_budget_ms, " ms\n");
 					}
 					else if(cli_wasm_ready)
 					{
@@ -489,14 +489,14 @@ int handle_cli_complete(FastCGIRequest& request)
 						if(wasm_error != "")
 						{
 							request.set_status(500, "Internal Server Error");
-							print("UCE CLI wasm error: ", wasm_error, "\n");
+							print("BEARER CLI wasm error: ", wasm_error, "\n");
 						}
 					}
 					else
 					{
 						request.set_status(500, "Internal Server Error");
 						String compile_error = cli_compile_state ? first(cli_compile_state->compiler_messages, cli_compile_state->compile_error_status) : String("");
-						print("UCE CLI wasm unit unavailable after compile: ", script_filename);
+						print("BEARER CLI wasm unit unavailable after compile: ", script_filename);
 						if(compile_error != "")
 							print(": ", compile_error);
 						print("\n");
@@ -507,7 +507,7 @@ int handle_cli_complete(FastCGIRequest& request)
 		else
 		{
 			request.set_status(404, "Not Found");
-			print("unknown UCE CLI command: ", command, "\n");
+			print("unknown BEARER CLI command: ", command, "\n");
 		}
 	}
 	catch(const std::exception& e)
@@ -603,7 +603,7 @@ int handle_complete(FastCGIRequest& request) {
 				request_fault_active = 1;
 				if(wasm_error != "")
 				{
-					size_t blocked_at = wasm_error.find("UCE_POLICY_BLOCKED:");
+					size_t blocked_at = wasm_error.find("BEARER_POLICY_BLOCKED:");
 					if(blocked_at != String::npos)
 					{
 						String fn = wasm_error.substr(blocked_at + 19);
@@ -611,7 +611,7 @@ int handle_complete(FastCGIRequest& request) {
 						if(fn_end != String::npos)
 							fn = fn.substr(0, fn_end);
 						failure_title = "function disabled by server policy";
-						failure_details = "this unit called " + fn + ", which is disabled on this server by configuration (UCE_HOSTCALL_BLOCKLIST)";
+						failure_details = "this unit called " + fn + ", which is disabled on this server by configuration (BEARER_HOSTCALL_BLOCKLIST)";
 						failure_trace = "";
 					}
 					else
@@ -661,7 +661,7 @@ int handle_complete(FastCGIRequest& request) {
 				{
 					failure_title = "wasm invocation timeout";
 					failure_details = "";
-					failure_trace = "UCE_INVOCATION_TIMEOUT: wasm invocation exceeded " + std::to_string(invocation_budget_ms) + " ms";
+					failure_trace = "BEARER_INVOCATION_TIMEOUT: wasm invocation exceeded " + std::to_string(invocation_budget_ms) + " ms";
 					return;
 				}
 				failure_title = "wasm unit unavailable after compile";
@@ -674,25 +674,25 @@ int handle_complete(FastCGIRequest& request) {
 			{
 				// The response above deliberately bypasses all stale application code.
 			}
-			else if(request.params["UCE_WS"] == "1")
+			else if(request.params["BEARER_WS"] == "1")
 			{
 				// A WS message the broker forwarded here: rebuild the connection
-				// context the broker passed as params, then run __uce_websocket.
-				request.resources.websocket_connection_id = request.params["UCE_WS_CONNECTION_ID"];
-				request.resources.websocket_scope = request.params["UCE_WS_SCOPE"];
-				request.resources.websocket_opcode = (u8)int_val(request.params["UCE_WS_OPCODE"]);
-				request.resources.websocket_is_binary = request.params["UCE_WS_BINARY"] == "1";
+				// context the broker passed as params, then run __bearer_websocket.
+				request.resources.websocket_connection_id = request.params["BEARER_WS_CONNECTION_ID"];
+				request.resources.websocket_scope = request.params["BEARER_WS_SCOPE"];
+				request.resources.websocket_opcode = (u8)int_val(request.params["BEARER_WS_OPCODE"]);
+				request.resources.websocket_is_binary = request.params["BEARER_WS_BINARY"] == "1";
 				bool msg_ok = false;
-				request.in = base64_decode(request.params["UCE_WS_MESSAGE"], msg_ok);
-				for(auto& id : split(request.params["UCE_WS_CONNECTIONS"], "\n"))
+				request.in = base64_decode(request.params["BEARER_WS_MESSAGE"], msg_ok);
+				for(auto& id : split(request.params["BEARER_WS_CONNECTIONS"], "\n"))
 					if(id != "")
 						request.resources.websocket_scope_connection_ids.push_back(id);
 				bool decoded = false;
-				String state_raw = base64_decode(request.params["UCE_WS_STATE"], decoded);
+				String state_raw = base64_decode(request.params["BEARER_WS_STATE"], decoded);
 				if(state_raw != "")
 				{
 					DValue state; String e;
-					if(ucb_decode(state_raw, state, &e))
+					if(brb_decode(state_raw, state, &e))
 						request.connection = state;
 				}
 				if(wasm_ready(entry_unit))
@@ -707,14 +707,14 @@ int handle_complete(FastCGIRequest& request) {
 				else
 					fail_wasm_unavailable("cli");
 			}
-			else if(request.params["UCE_SERVE_HTTP"] == "1")
+			else if(request.params["BEARER_SERVE_HTTP"] == "1")
 			{
 				// W7c: this runs in a normal worker (clean engine) — the custom-server
 				// dispatcher forwarded the request here via FastCGI rather than render
 				// wasm in its own fork (Wasmtime cannot be re-created across fork).
 				if(wasm_ready(entry_unit))
 				{
-					String fn = request.params["UCE_SERVE_HTTP_FUNCTION"];
+					String fn = request.params["BEARER_SERVE_HTTP_FUNCTION"];
 					serve_via_wasm(entry_unit, fn == "" ? String("serve_http") : "serve_http:" + fn);
 				}
 				else
@@ -892,7 +892,7 @@ int custom_server_bind_http(FastCGIServer& dispatcher, String bind)
 		String bind_address = to_bool(server_state.config["CUSTOM_SERVER_ALLOW_PUBLIC_BIND"], false) ? "0.0.0.0" : "127.0.0.1";
 		return(dispatcher.listen_http((unsigned)port, bind_address));
 	}
-	String socket_prefix = first(server_state.config["CUSTOM_SERVER_UNIX_SOCKET_PREFIX"], "/tmp/uce/custom-servers/");
+	String socket_prefix = first(server_state.config["CUSTOM_SERVER_UNIX_SOCKET_PREFIX"], "/tmp/bearer/custom-servers/");
 	if(!str_starts_with(bind, socket_prefix))
 		throw std::runtime_error("server_start_http(): Unix socket path is outside configured custom server prefix");
 	int socket_handle = dispatcher.listen(bind);
@@ -915,10 +915,10 @@ static String custom_server_dispatcher_key = "";
 // HTTP server dispatcher and the WS broker): they own a listening socket but
 // render through the clean-engine worker pool rather than host a Wasmtime engine
 // (which cannot be re-created across fork). The caller sets the routing params
-// (UCE_SERVE_HTTP / UCE_WS, SCRIPT_FILENAME, etc.) before calling.
+// (BEARER_SERVE_HTTP / BEARER_WS, SCRIPT_FILENAME, etc.) before calling.
 int forward_request_to_worker(FastCGIRequest& request, u32 timeout_seconds = 30)
 {
-	String fcgi_socket = first(server_state.config["FCGI_SOCKET_PATH"], "/run/uce.sock");
+	String fcgi_socket = first(server_state.config["FCGI_SOCKET_PATH"], "/run/bearer.sock");
 	StringMap forward_params = request.params;
 	// The broker accepted raw HTTP, but this hop is FastCGI. Without the CGI
 	// marker Request::set_status() emits an HTTP status line that the FastCGI
@@ -943,7 +943,7 @@ int forward_request_to_worker(FastCGIRequest& request, u32 timeout_seconds = 30)
 
 int custom_server_http_complete(FastCGIRequest& request)
 {
-	String key = first(request.params["UCE_SERVER_KEY"], custom_server_dispatcher_key);
+	String key = first(request.params["BEARER_SERVER_KEY"], custom_server_dispatcher_key);
 	StringMap cfg = custom_server_read_config(key);
 	if(cfg["type"] != "http" || cfg["file"] == "")
 	{
@@ -954,10 +954,10 @@ int custom_server_http_complete(FastCGIRequest& request)
 		return(request.flags.status);
 	}
 
-	request.params["UCE_SERVE_HTTP"] = "1";
-	request.params["UCE_SERVE_HTTP_KEY"] = key;
-	request.params["UCE_SERVE_HTTP_BIND"] = cfg["bind"];
-	request.params["UCE_SERVE_HTTP_FUNCTION"] = cfg["function"];
+	request.params["BEARER_SERVE_HTTP"] = "1";
+	request.params["BEARER_SERVE_HTTP_KEY"] = key;
+	request.params["BEARER_SERVE_HTTP_BIND"] = cfg["bind"];
+	request.params["BEARER_SERVE_HTTP_FUNCTION"] = cfg["function"];
 	request.params["SCRIPT_FILENAME"] = cfg["file"];
 	u64 timeout = to_u64(server_state.config["CUSTOM_SERVER_HANDLER_TIMEOUT_SECONDS"], 30);
 	return(forward_request_to_worker(request, timeout > 0 ? (u32)timeout : 30));
@@ -997,7 +997,7 @@ void ws_broker_apply_commands(FastCGIRequest& request)
 {
 	DValue batch;
 	String err;
-	bool ok = ucb_decode(request.in, batch, &err);
+	bool ok = brb_decode(request.in, batch, &err);
 	if(ok)
 	{
 		if(DValue* cmds = batch.key("commands"))
@@ -1030,7 +1030,7 @@ void ws_broker_apply_commands(FastCGIRequest& request)
 // HTTP request that hit the WS port (forwarded to the pool via the shared facility).
 int ws_broker_complete(FastCGIRequest& request)
 {
-	if(request.params["UCE_WS_DISPATCH"] == "1")
+	if(request.params["BEARER_WS_DISPATCH"] == "1")
 	{
 		ws_broker_apply_commands(request);
 		return(request.flags.status);
@@ -1040,7 +1040,7 @@ int ws_broker_complete(FastCGIRequest& request)
 
 // A complete WS message: fire a render to the worker pool WITHOUT blocking the
 // broker loop (the connection identity + state ride as params; the message is
-// the body). The worker renders __uce_websocket and flushes ws_* back to us.
+// the body). The worker renders __bearer_websocket and flushes ws_* back to us.
 int ws_broker_ws_message(FastCGIRequest& request, const String& message, u8 opcode)
 {
 	StringMap params;
@@ -1049,20 +1049,20 @@ int ws_broker_ws_message(FastCGIRequest& request, const String& message, u8 opco
 	// handle_request() rejects any request without REQUEST_URI before on_complete.
 	params["REQUEST_URI"] = first(request.params["REQUEST_URI"], request.params["DOCUMENT_URI"],
 		request.params["SCRIPT_FILENAME"]);
-	params["UCE_WS"] = "1";
+	params["BEARER_WS"] = "1";
 	// The message rides as a param (empty STDIN) so the forwarded request
 	// completes cleanly — a STDIN body makes the FastCGI transport flush a
 	// premature response before on_complete (handle_complete) ever runs.
-	params["UCE_WS_MESSAGE"] = base64_encode(message);
-	params["UCE_WS_CONNECTION_ID"] = request.resources.websocket_connection_id;
-	params["UCE_WS_SCOPE"] = request.resources.websocket_scope;
-	params["UCE_WS_OPCODE"] = std::to_string((int)opcode);
-	params["UCE_WS_BINARY"] = request.resources.websocket_is_binary ? "1" : "0";
-	params["UCE_WS_CONNECTIONS"] = join(ws_broker.websocket_connection_ids(request.resources.websocket_scope), "\n");
+	params["BEARER_WS_MESSAGE"] = base64_encode(message);
+	params["BEARER_WS_CONNECTION_ID"] = request.resources.websocket_connection_id;
+	params["BEARER_WS_SCOPE"] = request.resources.websocket_scope;
+	params["BEARER_WS_OPCODE"] = std::to_string((int)opcode);
+	params["BEARER_WS_BINARY"] = request.resources.websocket_is_binary ? "1" : "0";
+	params["BEARER_WS_CONNECTIONS"] = join(ws_broker.websocket_connection_ids(request.resources.websocket_scope), "\n");
 	if(request.resources.websocket_connection_state)
-		params["UCE_WS_STATE"] = base64_encode(ucb_encode(*request.resources.websocket_connection_state));
+		params["BEARER_WS_STATE"] = base64_encode(brb_encode(*request.resources.websocket_connection_state));
 
-	int fd = ws_broker_connect_unix(first(server_state.config["FCGI_SOCKET_PATH"], "/run/uce.sock"));
+	int fd = ws_broker_connect_unix(first(server_state.config["FCGI_SOCKET_PATH"], "/run/bearer.sock"));
 	if(fd < 0)
 		return(0);
 	ws_broker_outbound[fd] = {fcgi_build_request(params, ""), time_precise()};
@@ -1200,31 +1200,31 @@ void custom_server_http_dispatcher_loop(String key)
 	}
 }
 
-pid_t server_start_http(String key, String socket_fn_or_port, String call_uce_filename, String call_function)
+pid_t server_start_http(String key, String socket_fn_or_port, String call_bearer_filename, String call_function)
 {
 	key = trim(key);
 	socket_fn_or_port = trim(socket_fn_or_port);
-	call_uce_filename = trim(call_uce_filename);
+	call_bearer_filename = trim(call_bearer_filename);
 	call_function = trim(call_function);
 	if(key == "")
 		throw std::runtime_error("server_start_http(): key cannot be empty");
 	if(socket_fn_or_port == "")
 		throw std::runtime_error("server_start_http(): socket_fn_or_port cannot be empty");
-	if(call_uce_filename == "")
-		throw std::runtime_error("server_start_http(): call_uce_filename cannot be empty");
-	if(call_uce_filename[0] != '/')
-		call_uce_filename = expand_path(call_uce_filename, cwd_get());
-	String allowed_root = first(server_state.config["CUSTOM_SERVER_UCE_ROOT"], path_join(server_state.config["COMPILER_SYS_PATH"], server_state.config["SITE_DIRECTORY"]));
-	String real_call_uce_filename = path_real(call_uce_filename);
-	if(real_call_uce_filename == "" || !path_is_within(real_call_uce_filename, allowed_root))
-		throw std::runtime_error("server_start_http(): call_uce_filename is outside configured custom server UCE root");
-	call_uce_filename = real_call_uce_filename;
+	if(call_bearer_filename == "")
+		throw std::runtime_error("server_start_http(): call_bearer_filename cannot be empty");
+	if(call_bearer_filename[0] != '/')
+		call_bearer_filename = expand_path(call_bearer_filename, cwd_get());
+	String allowed_root = first(server_state.config["CUSTOM_SERVER_BEARER_ROOT"], path_join(server_state.config["COMPILER_SYS_PATH"], server_state.config["SITE_DIRECTORY"]));
+	String real_call_bearer_filename = path_real(call_bearer_filename);
+	if(real_call_bearer_filename == "" || !path_is_within(real_call_bearer_filename, allowed_root))
+		throw std::runtime_error("server_start_http(): call_bearer_filename is outside configured custom server BEARER root");
+	call_bearer_filename = real_call_bearer_filename;
 
 	String config_file = custom_server_config_file(key);
 	StringMap previous_config;
 	if(file_exists(config_file))
 		previous_config = custom_server_config_decode(file_get_contents(config_file));
-	String new_config = custom_server_config_encode(key, "http", socket_fn_or_port, call_uce_filename, call_function);
+	String new_config = custom_server_config_encode(key, "http", socket_fn_or_port, call_bearer_filename, call_function);
 	String task_key = custom_server_task_key(key);
 	u64 max_servers = to_u64(server_state.config["CUSTOM_SERVER_MAX_SERVERS"], 16);
 	if(!file_exists(config_file) && max_servers > 0 && custom_server_registry_count() >= max_servers)
@@ -1628,7 +1628,7 @@ int systemd_fastcgi_listener()
 	if(to_u64(listen_pid, 0) != (u64)getpid())
 		return(-1);
 	if(to_u64(listen_fds, 0) != 1)
-		throw std::runtime_error("UCE requires exactly one systemd FastCGI listener");
+		throw std::runtime_error("BEARER requires exactly one systemd FastCGI listener");
 	const char* names = getenv("LISTEN_FDNAMES");
 	if(names && names[0] != '\0' && String(names) != "fastcgi")
 		throw std::runtime_error("systemd listener must be named fastcgi");
@@ -1754,10 +1754,10 @@ int precompile_unit_generation()
 {
 	f64 started_at = time_precise();
 	server_state.config = make_server_settings();
-	const char* precompile_files_in = getenv("UCE_PRECOMPILE_FILES_IN");
+	const char* precompile_files_in = getenv("BEARER_PRECOMPILE_FILES_IN");
 	if(precompile_files_in && precompile_files_in[0] != '\0')
 		server_state.config["PRECOMPILE_FILES_IN"] = precompile_files_in;
-	const char* precompile_bin_directory = getenv("UCE_PRECOMPILE_BIN_DIRECTORY");
+	const char* precompile_bin_directory = getenv("BEARER_PRECOMPILE_BIN_DIRECTORY");
 	if(precompile_bin_directory && precompile_bin_directory[0] != '\0')
 		server_state.config["BIN_DIRECTORY"] = precompile_bin_directory;
 	server_state.config["COMPILER_SYS_PATH"] = cwd_get();
@@ -1769,7 +1769,7 @@ int precompile_unit_generation()
 	set_active_request(background_context);
 	auto files = compiler_scan_site_units(&background_context);
 	compiler_set_known_units(&background_context, files);
-	const char* jobs_env = getenv("UCE_PRECOMPILE_JOBS");
+	const char* jobs_env = getenv("BEARER_PRECOMPILE_JOBS");
 	String jobs_text = trim(jobs_env && jobs_env[0] != '\0' ? String(jobs_env) : server_state.config["PRECOMPILE_JOBS"]);
 	u64 jobs = std::min<u64>(bounded_compile_jobs(jobs_text), files.size() == 0 ? 1 : files.size());
 	PrecompileWorkerResult total;
@@ -1869,8 +1869,8 @@ int precompile_unit_generation()
 void print_fastcgi_usage(FILE* stream)
 {
 	fprintf(stream,
-		"Usage: uce_fastcgi [--precompile]\n"
-		"       uce_fastcgi --help\n\n"
+		"Usage: bearer_fastcgi [--precompile]\n"
+		"       bearer_fastcgi --help\n\n"
 		"Without options, start the FastCGI server.\n"
 		"  --precompile  Compile the current source generation without starting listeners.\n"
 		"  -h, --help    Show this help and exit.\n");

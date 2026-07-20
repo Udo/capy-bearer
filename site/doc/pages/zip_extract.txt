@@ -16,7 +16,7 @@ zip_read
 Extracts every member in a ZIP archive into `destination_directory`.
 
 
-UCE creates the destination directory and any needed child directories when they do not already exist.
+BEARER creates the destination directory and any needed child directories when they do not already exist.
 
 For safety, every member name is normalized and checked before extraction. Absolute paths, drive-qualified paths, empty names, and `..` path segments are rejected so archives cannot write outside the destination directory.
 

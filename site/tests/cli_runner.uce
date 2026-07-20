@@ -41,7 +41,7 @@ CliHttpResponse cli_http_request(String host, u16 port, String path, String extr
 	}
 	String host_header = host;
 	if(host == "127.0.0.1" && port == 80)
-		host_header = "uce.openfu.com";
+		host_header = "bearer.openfu.com";
 	else if(host == "127.0.0.1" && port == 8080)
 		host_header = "localhost";
 	String request = "GET " + path + " HTTP/1.0\r\nHost: " + host_header + "\r\nConnection: close\r\n" + extra_headers + "\r\n";
@@ -146,7 +146,7 @@ bool cli_expect_http(String name, String path, u64 expected_status, String marke
 StringList cli_demo_error_markers()
 {
 	StringList markers;
-	markers.push_back(String("uce compile ") + "error");
+	markers.push_back(String("bearer compile ") + "error");
 	markers.push_back(String("fatal signal during ") + "request");
 	markers.push_back(String("uncaught exception during ") + "request");
 	markers.push_back("component not found");
@@ -157,7 +157,7 @@ void cli_run_demo_smoke()
 {
 	StringList files = split("call_file.uce\ncall_file_funcs.uce\ncollections.uce\ncomponents.uce\ncookie.uce\ndvalue.uce\nempty.uce\nerror-reporting.uce\nfile_append.uce\nfileio.uce\nheader.uce\nhello.uce\nindex.uce\njson.uce\nmarkdown.uce\nmemcached.uce\nmysql.uce\nonce-init.uce\nparse_time.uce\npost-multipart.uce\npost.uce\npreprocessor-comments.uce\nrandom.uce\nregex.uce\nscript.uce\nsession.uce\nsharedunit.uce\nshell.uce\nsqlite.uce\nstr_replace.uce\nstring.uce\ntask-status.uce\ntask.uce\ntask_repeat.uce\nunit-browser.uce\nunit-info.uce\nuri.uce\nutf8.uce\nwebsockets.ws.uce\nworking-dir.uce\nxml.uce\nyaml.uce\nzip.uce", "\n");
 	for(String file : files)
-		cli_expect_http("uce_demo_smoke:demo page " + file, "/demo/" + file, 200, "", file == "unit-browser.uce" ? StringList() : cli_demo_error_markers());
+		cli_expect_http("bearer_demo_smoke:demo page " + file, "/demo/" + file, 200, "", file == "unit-browser.uce" ? StringList() : cli_demo_error_markers());
 }
 
 bool cli_doc_source_has_example(String source)
@@ -192,7 +192,7 @@ bool cli_doc_example_is_placeholder(String source)
 		return(true);
 	if(cli_contains(joined, "is resource-bound; configure"))
 		return(true);
-	if(cli_contains(joined, "documents a UCE concept"))
+	if(cli_contains(joined, "documents a BEARER concept"))
 		return(true);
 	return(false);
 }
@@ -201,7 +201,7 @@ void cli_run_doc_pages_gate(u64 shard = 0, u64 shard_count = 1)
 {
 	StringList error_markers;
 	error_markers.push_back("doc example error");
-	error_markers.push_back(String("uce compile ") + "error");
+	error_markers.push_back(String("bearer compile ") + "error");
 	error_markers.push_back(String("wasm runtime error during ") + "request");
 	error_markers.push_back(String("fatal signal during ") + "request");
 	error_markers.push_back(String("uncaught exception during ") + "request");
@@ -251,35 +251,35 @@ void cli_run_doc_pages_gate(u64 shard = 0, u64 shard_count = 1)
 			if(ok)
 				break;
 		}
-		cli_test_case("uce_doc_gate:doc page " + page, ok, ok ? summary : summary + "; body=" + cli_truncate(res.body));
+		cli_test_case("bearer_doc_gate:doc page " + page, ok, ok ? summary : summary + "; body=" + cli_truncate(res.body));
 	}
 }
 
 void cli_run_http_smoke()
 {
-	cli_expect_http("uce_http_smoke:doc index", "/doc/index.uce", 200, "<html>");
+	cli_expect_http("bearer_http_smoke:doc index", "/doc/index.uce", 200, "<html>");
 	// Regression guard: the index enumerates pages via ls("pages/"). When that
 	// returned empty (wasm ls() was a stub), the page still rendered <html> but
 	// listed nothing — so assert the function grid is actually populated.
-	cli_expect_http("uce_http_smoke:doc index lists functions", "/doc/index.uce", 200, "func-item");
-	cli_expect_http("uce_http_smoke:doc singlepage", "/doc/singlepage.uce", 200, "<html>");
-	cli_expect_http("uce_http_smoke:doc component page", "/doc/index.uce?p=component", 200, "component()");
-	cli_expect_http("uce_http_smoke:doc regex page", "/doc/index.uce?p=regex_search", 200, "regex_search");
-	cli_expect_http("uce_http_smoke:doc xml page", "/doc/index.uce?p=xml_encode", 200, "xml_encode");
-	cli_expect_http("uce_http_smoke:doc yaml page", "/doc/index.uce?p=yaml_encode", 200, "yaml_encode");
-	cli_expect_http("uce_http_smoke:doc relative time page", "/doc/index.uce?p=time_format_relative", 200, "time_format_relative");
-	cli_expect_http("uce_http_smoke:starter home", "/examples/uce-starter/", 200, "Stunning Apps");
-	cli_expect_http("uce_http_smoke:starter dashboard", "/examples/uce-starter/?dashboard", 200, "Dashboard");
-	cli_expect_http("uce_http_smoke:starter dashboard ONCE assets reach head", "/examples/uce-starter/?dashboard", 200, "views/dashboard.css");
-	cli_expect_http("uce_http_smoke:starter workspace nested route", "/examples/uce-starter/?workspace/projects", 200, "Workspace");
-	cli_expect_http("uce_http_smoke:starter workspace ONCE assets reach head", "/examples/uce-starter/?workspace/projects", 200, "css/workspace.css");
-	cli_expect_http("uce_http_smoke:starter ajax section", "/examples/uce-starter/?page2-section1", 200, "UCE starter AJAX fragment response");
-	cli_expect_http("uce_http_smoke:starter route traversal blocked", "/examples/uce-starter/?../../../demo/index", 404, "The requested page does not exist.");
+	cli_expect_http("bearer_http_smoke:doc index lists functions", "/doc/index.uce", 200, "func-item");
+	cli_expect_http("bearer_http_smoke:doc singlepage", "/doc/singlepage.uce", 200, "<html>");
+	cli_expect_http("bearer_http_smoke:doc component page", "/doc/index.uce?p=component", 200, "component()");
+	cli_expect_http("bearer_http_smoke:doc regex page", "/doc/index.uce?p=regex_search", 200, "regex_search");
+	cli_expect_http("bearer_http_smoke:doc xml page", "/doc/index.uce?p=xml_encode", 200, "xml_encode");
+	cli_expect_http("bearer_http_smoke:doc yaml page", "/doc/index.uce?p=yaml_encode", 200, "yaml_encode");
+	cli_expect_http("bearer_http_smoke:doc relative time page", "/doc/index.uce?p=time_format_relative", 200, "time_format_relative");
+	cli_expect_http("bearer_http_smoke:starter home", "/examples/bearer-starter/", 200, "Stunning Apps");
+	cli_expect_http("bearer_http_smoke:starter dashboard", "/examples/bearer-starter/?dashboard", 200, "Dashboard");
+	cli_expect_http("bearer_http_smoke:starter dashboard ONCE assets reach head", "/examples/bearer-starter/?dashboard", 200, "views/dashboard.css");
+	cli_expect_http("bearer_http_smoke:starter workspace nested route", "/examples/bearer-starter/?workspace/projects", 200, "Workspace");
+	cli_expect_http("bearer_http_smoke:starter workspace ONCE assets reach head", "/examples/bearer-starter/?workspace/projects", 200, "css/workspace.css");
+	cli_expect_http("bearer_http_smoke:starter ajax section", "/examples/bearer-starter/?page2-section1", 200, "BEARER starter AJAX fragment response");
+	cli_expect_http("bearer_http_smoke:starter route traversal blocked", "/examples/bearer-starter/?../../../demo/index", 404, "The requested page does not exist.");
 	// Configurable error page (page_runtime_error): a runtime fault must render the
 	// developer-defined error-page unit with the real error info marshalled across
 	// the membrane, at the error status. Asserts HTTP 500 AND that error["request_uri"]
 	// reached the page (the "mode=trap" query is only shown if error_info crossed).
-	cli_expect_http("uce_http_smoke:configurable error page 500 + error info", "/demo/error-reporting.uce?mode=trap", 500, "mode=trap");
+	cli_expect_http("bearer_http_smoke:configurable error page 500 + error info", "/demo/error-reporting.uce?mode=trap", 500, "mode=trap");
 }
 
 bool cli_site_body_reports_failure(String lower)
@@ -301,7 +301,7 @@ void cli_run_site_suite(bool skip_local_service_pages = false)
 		String file = trim(parts[0]);
 		if(skip_local_service_pages && (file == "io.uce" || file == "services.uce"))
 		{
-			cli_test_skip(String("uce_site_suite:site tests ") + (file == "io.uce" ? "filesystem" : "services"), "skipped local nested self-HTTP service probe pages for this environment");
+			cli_test_skip(String("bearer_site_suite:site tests ") + (file == "io.uce" ? "filesystem" : "services"), "skipped local nested self-HTTP service probe pages for this environment");
 			continue;
 		}
 		String title = trim(parts[1]);
@@ -324,7 +324,7 @@ void cli_run_site_suite(bool skip_local_service_pages = false)
 			if(ok)
 				break;
 		}
-		String name = "uce_site_suite:site tests " + (file == "index.uce" ? "index" : file == "io.uce" ? "filesystem" : file == "websockets.ws.uce" ? "websockets page" : replace(replace(replace(file, ".uce", ""), ".ws", ""), "_", " "));
+		String name = "bearer_site_suite:site tests " + (file == "index.uce" ? "index" : file == "io.uce" ? "filesystem" : file == "websockets.ws.uce" ? "websockets page" : replace(replace(replace(file, ".uce", ""), ".ws", ""), "_", " "));
 		String fail_detail = "; status=" + std::to_string(res.status) + "; expected_marker=" + (cli_contains(res.body, expected) ? "yes" : "no") + "; summary=" + (cli_contains(lower, "<div class=\"tests-summary\">") ? "yes" : "no") + "; failed_zero=" + (cli_contains(lower, ">failed 0</span>") ? "yes" : "no") + "; reports_failure=" + (cli_site_body_reports_failure(lower) ? "yes" : "no") + "; body=" + cli_truncate(res.body) + "; tail=" + cli_tail(res.body);
 		cli_test_case(name, ok, (ok ? "HTTP 200 with suite page marker and no failed cases for /tests/" : "site suite failed for /tests/") + file + (ok ? "" : fail_detail));
 	}
@@ -333,58 +333,58 @@ void cli_run_site_suite(bool skip_local_service_pages = false)
 void cli_run_security_smoke()
 {
 	CliHttpResponse missing_unit = cli_frontend("/tests/unit_failure.uce");
-	cli_test_case("uce_unit_failure:unit_render missing target is HTTP 500",
+	cli_test_case("bearer_unit_failure:unit_render missing target is HTTP 500",
 		missing_unit.status == 500 && cli_contains(missing_unit.body, "unit not found: does-not-exist.uce"),
 		"status=" + std::to_string(missing_unit.status) + " body=" + cli_truncate(missing_unit.body));
 
 	CliHttpResponse missing_component = cli_frontend("/tests/component_failure.uce");
-	cli_test_case("uce_component_failure:component_render missing target is HTTP 500",
+	cli_test_case("bearer_component_failure:component_render missing target is HTTP 500",
 		missing_component.status == 500 && cli_contains(missing_component.body, "component not found: components/does-not-exist"),
 		"status=" + std::to_string(missing_component.status) + " body=" + cli_truncate(missing_component.body));
 
 	CliHttpResponse missing_captured_component = cli_frontend("/tests/component_failure.uce?mode=capture");
-	cli_test_case("uce_component_failure:component missing target is HTTP 500",
+	cli_test_case("bearer_component_failure:component missing target is HTTP 500",
 		missing_captured_component.status == 500 && cli_contains(missing_captured_component.body, "component not found: components/does-not-exist"),
 		"status=" + std::to_string(missing_captured_component.status) + " body=" + cli_truncate(missing_captured_component.body));
 
 	CliHttpResponse optional_component = cli_frontend("/tests/component_failure.uce?mode=optional");
-	cli_test_case("uce_component_failure:component_exists keeps optional lookup non-fatal",
+	cli_test_case("bearer_component_failure:component_exists keeps optional lookup non-fatal",
 		optional_component.status == 200 && optional_component.body == "optional component absent",
 		"status=" + std::to_string(optional_component.status) + " body=" + cli_truncate(optional_component.body));
 
 	CliHttpResponse dotdot = cli_direct_http("/../site/demo/hello.uce");
-	cli_test_case("uce_security_smoke:direct HTTP rejects dot-dot script traversal", dotdot.status == 404 && !cli_contains(dotdot.body, "hello world"), "direct HTTP dot-dot traversal returned HTTP " + std::to_string(dotdot.status));
+	cli_test_case("bearer_security_smoke:direct HTTP rejects dot-dot script traversal", dotdot.status == 404 && !cli_contains(dotdot.body, "hello world"), "direct HTTP dot-dot traversal returned HTTP " + std::to_string(dotdot.status));
 
-	CliHttpResponse spoof = cli_direct_http("/no-such-script.uce", "Script-Filename: /Code/uce.openfu.com/uce/site/demo/hello.uce\r\n");
-	cli_test_case("uce_security_smoke:direct HTTP ignores Script-Filename header", spoof.status == 404 && !cli_contains(spoof.body, "hello world"), "direct HTTP Script-Filename override returned HTTP " + std::to_string(spoof.status));
+	CliHttpResponse spoof = cli_direct_http("/no-such-script.uce", "Script-Filename: /Code/bearer.openfu.com/bearer/site/demo/hello.uce\r\n");
+	cli_test_case("bearer_security_smoke:direct HTTP ignores Script-Filename header", spoof.status == 404 && !cli_contains(spoof.body, "hello world"), "direct HTTP Script-Filename override returned HTTP " + std::to_string(spoof.status));
 
 	CliHttpResponse sanitizer = cli_frontend("/tests/security_headers.uce");
 	String headers_lower = to_lower(sanitizer.headers);
 	bool injected = false;
-	for(String header : { "x-uce-injected", "x-uce-injected-name", "x-uce-cookie-injected", "x-uce-redirect-injected", "x-uce-status-injected" })
+	for(String header : { "x-bearer-injected", "x-bearer-injected-name", "x-bearer-cookie-injected", "x-bearer-redirect-injected", "x-bearer-status-injected" })
 		if(cli_contains(headers_lower, "\r\n" + to_lower(header) + ":"))
 			injected = true;
 	CliHttpResponse direct_sanitizer = cli_direct_http("/site/tests/security_headers.uce");
 	bool direct_ok = direct_sanitizer.status < 500 || cli_contains(direct_sanitizer.body, "security header sanitizer test");
-	cli_test_case("uce_security_smoke:response headers sanitize CRLF", !injected && direct_ok, "CRLF response header injection sanitized");
+	cli_test_case("bearer_security_smoke:response headers sanitize CRLF", !injected && direct_ok, "CRLF response header injection sanitized");
 
 	String attacker = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-	CliHttpResponse session = cli_frontend("/tests/http.uce", "Cookie: uce-site-tests=" + attacker + "\r\n");
+	CliHttpResponse session = cli_frontend("/tests/http.uce", "Cookie: bearer-site-tests=" + attacker + "\r\n");
 	String session_headers = session.headers;
-	bool adopted = cli_contains(session_headers, "Set-Cookie: uce-site-tests=" + attacker);
-	bool hardened = cli_contains(session_headers, "Set-Cookie: uce-site-tests=") && cli_contains(session_headers, "HttpOnly") && cli_contains(session_headers, "SameSite=Lax");
-	cli_test_case("uce_security_smoke:unknown session ids are not adopted", !adopted && hardened, "unknown caller-supplied session id was replaced");
+	bool adopted = cli_contains(session_headers, "Set-Cookie: bearer-site-tests=" + attacker);
+	bool hardened = cli_contains(session_headers, "Set-Cookie: bearer-site-tests=") && cli_contains(session_headers, "HttpOnly") && cli_contains(session_headers, "SameSite=Lax");
+	cli_test_case("bearer_security_smoke:unknown session ids are not adopted", !adopted && hardened, "unknown caller-supplied session id was replaced");
 }
 
 void cli_run_starter_parity()
 {
 	StringList markers = {
-		"landing\t\tHome | UCE Starter",
-		"dashboard\t?dashboard\tDashboard | UCE Starter",
-		"gauges\t?gauges\tGauges | UCE Starter",
-		"features\t?features\tFeatures | UCE Starter",
-		"components\t?page1\tComponents | UCE Starter",
-		"workspace\t?workspace\tWorkspace | UCE Starter"
+		"landing\t\tHome | BEARER Starter",
+		"dashboard\t?dashboard\tDashboard | BEARER Starter",
+		"gauges\t?gauges\tGauges | BEARER Starter",
+		"features\t?features\tFeatures | BEARER Starter",
+		"components\t?page1\tComponents | BEARER Starter",
+		"workspace\t?workspace\tWorkspace | BEARER Starter"
 	};
 	for(String row : markers)
 	{
@@ -392,19 +392,19 @@ void cli_run_starter_parity()
 		String name = parts[0];
 		String query = parts[1];
 		String title = parts[2];
-		cli_expect_http("uce_starter_parity:starter view " + name, "/examples/uce-starter/index.uce" + query, 200, "<title>" + title + "</title>", cli_demo_error_markers());
+		cli_expect_http("bearer_starter_parity:starter view " + name, "/examples/bearer-starter/index.uce" + query, 200, "<title>" + title + "</title>", cli_demo_error_markers());
 	}
-	cli_expect_http("uce_starter_parity:starter unknown route 404", "/examples/uce-starter/index.uce?does-not-exist", 404, "<title>404 Not Found | UCE Starter</title>", cli_demo_error_markers());
+	cli_expect_http("bearer_starter_parity:starter unknown route 404", "/examples/bearer-starter/index.uce?does-not-exist", 404, "<title>404 Not Found | BEARER Starter</title>", cli_demo_error_markers());
 }
 
 void cli_run_task_lifetime_smoke()
 {
-	String late_file = "/tmp/uce-site-tests-late-task.txt";
+	String late_file = "/tmp/bearer-site-tests-late-task.txt";
 	file_unlink(late_file);
 	CliHttpResponse res = cli_frontend("/tests/tasks.uce?mode=late");
 	usleep(3000000);
 	String observed = file_exists(late_file) ? file_get_contents(late_file) : "";
-	cli_test_case("uce_task_lifetime:delayed callback after request return", res.status == 200 && cli_contains(res.body, "late task scheduled") && cli_contains(observed, "late callback ran"), "status=" + std::to_string(res.status) + " observed=" + cli_truncate(observed));
+	cli_test_case("bearer_task_lifetime:delayed callback after request return", res.status == 200 && cli_contains(res.body, "late task scheduled") && cli_contains(observed, "late callback ran"), "status=" + std::to_string(res.status) + " observed=" + cli_truncate(observed));
 }
 
 void cli_run_pool_isolation()
@@ -430,24 +430,24 @@ void cli_run_pool_isolation()
 		if(count.to_u64() > 1)
 			reused = true;
 	});
-	cli_test_case("uce_pool_isolation:recycled slots reset request state", clean && reused,
+	cli_test_case("bearer_pool_isolation:recycled slots reset request state", clean && reused,
 		clean && reused ? "64 requests retained fresh globals, constructors, ONCE, context, and worker identity" : first(detail, "no worker served a repeated request"));
 }
 
 void cli_run_tcp_smoke()
 {
 	u64 fd80 = socket_connect("127.0.0.1", 80);
-	cli_test_case("uce_tcp_smoke:frontend port 80", fd80 != 0, "TCP connect " + String(fd80 != 0 ? "succeeded" : "failed") + " on port 80");
+	cli_test_case("bearer_tcp_smoke:frontend port 80", fd80 != 0, "TCP connect " + String(fd80 != 0 ? "succeeded" : "failed") + " on port 80");
 	if(fd80 != 0)
 		socket_close(fd80);
 	u64 fd8080 = socket_connect("127.0.0.1", 8080);
-	cli_test_case("uce_tcp_smoke:http websocket port 8080", fd8080 != 0, "TCP connect " + String(fd8080 != 0 ? "succeeded" : "failed") + " on port 8080");
+	cli_test_case("bearer_tcp_smoke:http websocket port 8080", fd8080 != 0, "TCP connect " + String(fd8080 != 0 ? "succeeded" : "failed") + " on port 8080");
 	if(fd8080 != 0)
 		socket_close(fd8080);
 	CliHttpResponse direct = cli_direct_http("/tests/pool-isolation.uce?token=raw-http-framing");
 	StringList direct_parts = split(trim(direct.body), "|");
 	bool one_response = direct.status == 200 && direct_parts.size() == 3 && direct_parts[0] == "fresh" && direct_parts[1] == "raw-http-framing" && direct.body.find("HTTP/1.1 ") == String::npos;
-	cli_test_case("uce_tcp_smoke:raw HTTP dynamic response is framed once", one_response,
+	cli_test_case("bearer_tcp_smoke:raw HTTP dynamic response is framed once", one_response,
 		one_response ? "single status/header block and exact dynamic body" : "status=" + std::to_string(direct.status) + " body=" + cli_truncate(direct.body));
 }
 
@@ -461,13 +461,13 @@ void cli_run_wasm_kill(bool include_kill)
 		CliHttpResponse res = cli_frontend(parts[1]);
 		CliHttpResponse health = cli_frontend("/demo/hello.uce");
 		bool ok = res.status == 500 && cli_contains(res.body, "wasm runtime error during request") && cli_contains(res.body, parts[2]) && health.status == 200 && cli_contains(health.body, "hello world");
-		cli_test_case("uce_wasm_kill:" + parts[0], ok, ok ? "clean wasm trap page and post-trap health check for " + parts[1] : "kill check failed; status=" + std::to_string(res.status) + " health=" + std::to_string(health.status));
+		cli_test_case("bearer_wasm_kill:" + parts[0], ok, ok ? "clean wasm trap page and post-trap health check for " + parts[1] : "kill check failed; status=" + std::to_string(res.status) + " health=" + std::to_string(health.status));
 	}
 }
 
 void cli_print_list(bool include_kill)
 {
-	print("UCE CLI test groups:\n");
+	print("BEARER CLI test groups:\n");
 	print("  demo, http, site, doc-gate-1..30, security, task-lifetime, pool-isolation, starter, tcp");
 	if(include_kill)
 		print(", wasm-kill");
@@ -488,7 +488,7 @@ bool cli_run_group(String group, bool skip_local_service_pages, bool include_kil
 		u64 shard = int_val(group.substr(9));
 		if(shard < 1 || shard > 30)
 		{
-			cli_test_case("uce_cli_runner:known doc gate shard", false, "unknown group: " + group);
+			cli_test_case("bearer_cli_runner:known doc gate shard", false, "unknown group: " + group);
 			return(false);
 		}
 		cli_run_doc_pages_gate(shard - 1, 30);
@@ -505,14 +505,14 @@ bool cli_run_group(String group, bool skip_local_service_pages, bool include_kil
 	{
 		cli_run_tcp_smoke();
 		String repo_root = process_start_directory();
-		String cli_arg_out = shell_exec("cd " + shell_escape(repo_root) + " && bash scripts/uce-cli /tests/cli.uce action=arg message=hello-cli 2>&1");
-		cli_test_case("uce_cli_fixture:cli_arg", contains(cli_arg_out, "hello-cli") && contains(cli_arg_out, "fallback"), cli_truncate(cli_arg_out));
+		String cli_arg_out = shell_exec("cd " + shell_escape(repo_root) + " && bash scripts/bearer-cli /tests/cli.uce action=arg message=hello-cli 2>&1");
+		cli_test_case("bearer_cli_fixture:cli_arg", contains(cli_arg_out, "hello-cli") && contains(cli_arg_out, "fallback"), cli_truncate(cli_arg_out));
 	}
 	else if(group == "wasm-kill")
 		cli_run_wasm_kill(include_kill);
 	else
 	{
-		cli_test_case("uce_cli_runner:known group", false, "unknown group: " + group);
+		cli_test_case("bearer_cli_runner:known group", false, "unknown group: " + group);
 		return(false);
 	}
 	print("[GROUP] ", group, " ", std::to_string((u64)((time_precise() - group_start) * 1000)), " ms\n");
@@ -531,7 +531,7 @@ CLI(Request& context)
 		return;
 	}
 
-	print("Running UCE CLI tests\n");
+	print("Running BEARER CLI tests\n");
 	String group = input["group"].to_string();
 	if(group != "")
 		cli_run_group(group, input["skip_local_service_pages"].to_bool(), include_kill);
@@ -559,5 +559,5 @@ RENDER(Request& context)
 {
 	context.set_status(404, "Not Found");
 	context.header["Content-Type"] = "text/plain; charset=utf-8";
-	print("Invoke this test runner through the UCE CLI socket.\n");
+	print("Invoke this test runner through the BEARER CLI socket.\n");
 }

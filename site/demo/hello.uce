@@ -179,7 +179,7 @@ RENDER(Request& context)
 	<><html>
 		<link rel="stylesheet" href='style.css?v=1'></link>
 		<h1>
-			<a href="index.uce">UCE Test</a>:
+			<a href="index.uce">BEARER Test</a>:
 			Index
 		</h1>
 		<? show_stuff(context); ?>

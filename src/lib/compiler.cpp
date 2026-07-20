@@ -18,7 +18,7 @@
 
 namespace {
 
-const u64 UCE_UNIT_ABI_VERSION = UCE_COMPILER_UNIT_ABI_VERSION;
+const u64 BEARER_UNIT_ABI_VERSION = BEARER_COMPILER_UNIT_ABI_VERSION;
 
 struct SharedUnitFilesystemState
 {
@@ -36,9 +36,9 @@ struct SharedUnitFilesystemState
 	time_t compiler_abi_time = 0;
 	time_t required_time = 0;
 	u64 metadata_abi_version = 0;
-	u64 runtime_abi_version = UCE_UNIT_ABI_VERSION;
+	u64 runtime_abi_version = BEARER_UNIT_ABI_VERSION;
 	u64 metadata_wasm_core_abi_version = 0;
-	u64 runtime_wasm_core_abi_version = UCE_WASM_CORE_ABI_VERSION;
+	u64 runtime_wasm_core_abi_version = BEARER_WASM_CORE_ABI_VERSION;
 	String metadata_content;
 	String compile_output_content;
 	String metadata_build_token;
@@ -107,7 +107,7 @@ struct UnitSourceSignatureEntry
 	StringList loaded_paths;
 };
 
-const u64 UCE_UNIT_SOURCE_SIGNATURE_CACHE_MAX = 4096;
+const u64 BEARER_UNIT_SOURCE_SIGNATURE_CACHE_MAX = 4096;
 std::mutex unit_source_signature_cache_mutex;
 std::map<String, UnitSourceSignatureEntry> unit_source_signature_cache;
 
@@ -254,7 +254,7 @@ UnitSourceSignatureEntry compiler_unit_source_entry(String file_name, bool allow
 	entry.loaded_paths = compiler_unit_load_paths(file_name, content);
 	{
 		std::lock_guard<std::mutex> lock(unit_source_signature_cache_mutex);
-		if(unit_source_signature_cache.size() >= UCE_UNIT_SOURCE_SIGNATURE_CACHE_MAX)
+		if(unit_source_signature_cache.size() >= BEARER_UNIT_SOURCE_SIGNATURE_CACHE_MAX)
 			unit_source_signature_cache.clear();
 		unit_source_signature_cache[file_name] = entry;
 	}
@@ -295,7 +295,7 @@ void compiler_append_unit_source_signature(String file_name, std::set<String>& v
 String compiler_unit_source_signature(String file_name, bool allow_recent_stat = false)
 {
 	std::set<String> visited;
-	String signature = "uce-load-graph-v1\n";
+	String signature = "bearer-load-graph-v1\n";
 	compiler_append_unit_source_signature(file_name, visited, signature, allow_recent_stat);
 	return(gen_sha1(signature));
 }
@@ -309,8 +309,8 @@ String compiler_unit_input_signature(Request* context, SharedUnit* su, bool allo
 	return(
 		compiler_unit_source_signature(su->file_name, allow_recent_source_stat) + ":" +
 		gen_sha1(file_get_contents(setup_template)) + ":" +
-		std::to_string(UCE_UNIT_ABI_VERSION) + ":" +
-		std::to_string(UCE_WASM_CORE_ABI_VERSION)
+		std::to_string(BEARER_UNIT_ABI_VERSION) + ":" +
+		std::to_string(BEARER_WASM_CORE_ABI_VERSION)
 	);
 }
 
@@ -327,9 +327,9 @@ String compiler_unit_metadata_text(Request* context, SharedUnit* su, String inpu
 	if(input_signature == "")
 		input_signature = compiler_unit_input_signature(context, su);
 	return(
-		"format=uce-unit-metadata-v1\n"
-		"unit_abi_version=" + std::to_string(UCE_UNIT_ABI_VERSION) + "\n"
-		"wasm_core_abi_version=" + std::to_string(UCE_WASM_CORE_ABI_VERSION) + "\n"
+		"format=bearer-unit-metadata-v1\n"
+		"unit_abi_version=" + std::to_string(BEARER_UNIT_ABI_VERSION) + "\n"
+		"wasm_core_abi_version=" + std::to_string(BEARER_WASM_CORE_ABI_VERSION) + "\n"
 		"source_path=" + su->file_name + "\n"
 		"input_signature=" + input_signature + "\n"
 		"build_token=" + compiler_unit_build_token() + "\n"
@@ -617,13 +617,13 @@ time_t compiler_runtime_abi_time(Request* context)
 	(void)context;
 	// Do not force every unit stale on every server/core rebuild. The stable unit
 	// ABI is tracked explicitly in compiler_unit_input_signature() via
-	// UCE_UNIT_ABI_VERSION; bump that when generated-unit/runtime ABI changes.
+	// BEARER_UNIT_ABI_VERSION; bump that when generated-unit/runtime ABI changes.
 	return(0);
 }
 
 String compiler_registry_file_name(Request* context)
 {
-	return(compiler_unit_bin_directory(context) + "/known-uce-files.txt");
+	return(compiler_unit_bin_directory(context) + "/known-bearer-files.txt");
 }
 
 String compiler_registry_lock_file_name(Request* context)
@@ -1098,8 +1098,8 @@ String compiler_unit_bin_directory(Request* context)
 		return("");
 	return(path_join(
 		context->server->config["BIN_DIRECTORY"],
-		"units-c" + std::to_string(UCE_UNIT_ABI_VERSION) +
-		"-w" + std::to_string(UCE_WASM_CORE_ABI_VERSION)
+		"units-c" + std::to_string(BEARER_UNIT_ABI_VERSION) +
+		"-w" + std::to_string(BEARER_WASM_CORE_ABI_VERSION)
 	));
 }
 
@@ -1141,9 +1141,9 @@ void setup_unit_paths(Request* context, SharedUnit* su, String file_name)
 /*String compile_setup_file(Request* context, SharedUnit* su)
 {
 	String result =
-		String("#ifndef UCE_LIB_INCLUDED\n") +
-		"#define UCE_LIB_INCLUDED\n" +
-		"#include \"uce_lib.h\" \n"+
+		String("#ifndef BEARER_LIB_INCLUDED\n") +
+		"#define BEARER_LIB_INCLUDED\n" +
+		"#include \"bearer_lib.h\" \n"+
 		file_get_contents(
 			context->server->config["COMPILER_SYS_PATH"] + "/" + context->server->config["SETUP_TEMPLATE"]) +
 		"#endif \n";
@@ -1197,9 +1197,9 @@ String compiler_format_compile_failure(Request* context, SharedUnit* su, String 
 	bool expected_cli_failure =
 		context &&
 		context->resources.is_cli &&
-		first(context->get["__uce_expected_compile_failure"], context->post["__uce_expected_compile_failure"]) == "1";
+		first(context->get["__bearer_expected_compile_failure"], context->post["__bearer_expected_compile_failure"]) == "1";
 	String generated_file = compiler_generated_cpp_path(su);
-	String result = expected_cli_failure ? "UCE expected compile error\n" : "UCE compile error\n";
+	String result = expected_cli_failure ? "BEARER expected compile error\n" : "BEARER compile error\n";
 	result += "Source: " + su->file_name + "\n";
 	result += "Generated C++: " + generated_file + "\n";
 	result += "Compile output: " + su->compile_output_file_name + "\n";
@@ -1225,8 +1225,8 @@ String compiler_format_source_read_failure(Request* context, SharedUnit* su, Str
 	bool expected_cli_failure =
 		context &&
 		context->resources.is_cli &&
-		first(context->get["__uce_expected_source_read_failure"], context->post["__uce_expected_source_read_failure"]) == "1";
-	String result = expected_cli_failure ? "UCE expected source read failure\n" : "UCE source read failure\n";
+		first(context->get["__bearer_expected_source_read_failure"], context->post["__bearer_expected_source_read_failure"]) == "1";
+	String result = expected_cli_failure ? "BEARER expected source read failure\n" : "BEARER source read failure\n";
 	result += "Source: " + su->file_name + "\n";
 	result += "Compile output: " + su->compile_output_file_name + "\n";
 	result += "\nMessage:\n" + trim(raw_messages) + "\n";
@@ -1406,7 +1406,7 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 		file_unlink(staged_pre_name);
 		file_unlink(staged_api_name);
 		file_unlink(staged_meta_name);
-		su->compiler_messages = "UCE_INVOCATION_TIMEOUT: unit compilation exceeded the invocation deadline";
+		su->compiler_messages = "BEARER_INVOCATION_TIMEOUT: unit compilation exceeded the invocation deadline";
 		compiler_record_compile_result(su, time_precise() - comp_start, false, "compile_timeout", su->compiler_messages);
 		return;
 	}
@@ -1697,7 +1697,7 @@ bool compiler_unit_compile_in_progress(Request* context, String file_name)
 bool compiler_request_can_serve_stale_artifact(Request* context)
 {
 	return(context && context->server && !context->resources.is_cli &&
-		context->params["UCE_WS"] != "1" &&
+		context->params["BEARER_WS"] != "1" &&
 		to_bool(context->server->config["SERVE_LAST_KNOWN_GOOD"], false) &&
 		to_bool(context->server->config["PROACTIVE_COMPILE_ENABLED"], true) &&
 		float_val(context->server->config["PROACTIVE_COMPILE_CHECK_INTERVAL"]) > 0);

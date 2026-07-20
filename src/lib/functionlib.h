@@ -128,17 +128,17 @@ String ob_get_close();
 
 // RAII capture used by the preprocessor's @fragment rewrite: buffers the
 // handler's output and appends it to context.call["fragments"][slot].
-struct UceFragmentCapture
+struct BearerFragmentCapture
 {
 	Request& context;
 	String slot;
 
-	UceFragmentCapture(Request& c, String s) : context(c), slot(s)
+	BearerFragmentCapture(Request& c, String s) : context(c), slot(s)
 	{
 		ob_start();
 	}
 
-	~UceFragmentCapture()
+	~BearerFragmentCapture()
 	{
 		String html = ob_get_close();
 		if(html != "")

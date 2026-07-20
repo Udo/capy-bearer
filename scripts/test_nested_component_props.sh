@@ -3,20 +3,20 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 test_name="nested-component-props-test-$$"
-site_directory="${UCE_TEST_SITE_DIRECTORY:-site}"
-if [[ -z "${UCE_TEST_SITE_DIRECTORY:-}" && -r /etc/uce/settings.cfg ]]; then
-	configured_site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+site_directory="${BEARER_TEST_SITE_DIRECTORY:-site}"
+if [[ -z "${BEARER_TEST_SITE_DIRECTORY:-}" && -r /etc/bearer/settings.cfg ]]; then
+	configured_site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 	if [[ -n "${configured_site_directory:-}" ]]; then
 		site_directory="$configured_site_directory"
 	fi
 fi
 source_dir="$site_directory/$test_name"
-threshold_ms="${UCE_NESTED_COMPONENT_PROPS_MAX_MS:-1500}"
+threshold_ms="${BEARER_NESTED_COMPONENT_PROPS_MAX_MS:-1500}"
 bin_directory="${BIN_DIRECTORY:-}"
-if [[ -z "$bin_directory" && -r /etc/uce/settings.cfg ]]; then
-	bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/uce/settings.cfg)
+if [[ -z "$bin_directory" && -r /etc/bearer/settings.cfg ]]; then
+	bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 fi
-bin_directory="${bin_directory:-/tmp/uce/work}"
+bin_directory="${bin_directory:-/tmp/bearer/work}"
 cache_dir=""
 
 cleanup() {
@@ -54,14 +54,14 @@ printf '%s\n' \
 	'  if(context.props["index"].to_string() == "") print("leaf props missing");' \
 	'}' >"$source_dir/leaf.uce"
 
-warm_output=$(scripts/uce-cli "/$test_name/parent.uce")
+warm_output=$(scripts/bearer-cli "/$test_name/parent.uce")
 if [[ "$warm_output" != "nested-component-props-ok" ]]; then
 	echo "nested component props warmup failed: $warm_output" >&2
 	exit 1
 fi
 
 start_ns=$(date +%s%N)
-output=$(scripts/uce-cli "/$test_name/parent.uce")
+output=$(scripts/bearer-cli "/$test_name/parent.uce")
 elapsed_ms=$(( ($(date +%s%N) - start_ns) / 1000000 ))
 if [[ "$output" != "nested-component-props-ok" ]]; then
 	echo "nested component props failed: $output" >&2

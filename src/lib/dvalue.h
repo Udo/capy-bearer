@@ -2,7 +2,7 @@
 
 String json_escape(String s, char quote_char = '"');
 
-// DValue is UCE's general-purpose structured value container.
+// DValue is BEARER's general-purpose structured value container.
 // It stores scalar values, nested map/list-like values, and internal references.
 // Numeric and boolean reads are intentionally permissive so request data,
 // JSON-decoded values, and metadata trees can be consumed without repetitive
@@ -77,32 +77,32 @@ struct DValue {
 String to_String(DValue t);
 String var_dump(const DValue& map, String prefix = "", String postfix = "\n");
 
-String ucb_encode(const DValue& value);
-String ucb_encode_flat_string_map(const StringMap& value);
-DValue ucb_decode(const String& encoded);
-bool ucb_decode(const String& encoded, DValue& out, String* error_out = 0);
+String brb_encode(const DValue& value);
+String brb_encode_flat_string_map(const StringMap& value);
+DValue brb_decode(const String& encoded);
+bool brb_decode(const String& encoded, DValue& out, String* error_out = 0);
 
 extern "C" {
 
-typedef struct DValue uce_dvalue;
+typedef struct DValue bearer_dvalue;
 
-typedef struct uce_dv_iter
+typedef struct bearer_dv_iter
 {
 	size_t position;
 	size_t reserved[3];
-} uce_dv_iter;
+} bearer_dv_iter;
 
-uce_dvalue* uce_dv_root(void);
-uce_dvalue* uce_dv_get(uce_dvalue* value, const char* key, size_t key_len);
-uce_dvalue* uce_dv_find(uce_dvalue* value, const char* key, size_t key_len);
-const char* uce_dv_value(uce_dvalue* value, size_t* len_out);
-void uce_dv_set_value(uce_dvalue* value, const char* bytes, size_t len);
-size_t uce_dv_count(uce_dvalue* value);
-int uce_dv_is_list(uce_dvalue* value);
-uce_dv_iter uce_dv_iter_begin(uce_dvalue* value);
-int uce_dv_iter_next(uce_dvalue* value, uce_dv_iter* iter, const char** key_out, size_t* key_len_out, uce_dvalue** child_out);
-size_t uce_dv_encode(uce_dvalue* value, char* buf, size_t cap);
-uce_dvalue* uce_dv_decode(const char* buf, size_t len);
-const char* uce_dv_last_error(void);
+bearer_dvalue* bearer_dv_root(void);
+bearer_dvalue* bearer_dv_get(bearer_dvalue* value, const char* key, size_t key_len);
+bearer_dvalue* bearer_dv_find(bearer_dvalue* value, const char* key, size_t key_len);
+const char* bearer_dv_value(bearer_dvalue* value, size_t* len_out);
+void bearer_dv_set_value(bearer_dvalue* value, const char* bytes, size_t len);
+size_t bearer_dv_count(bearer_dvalue* value);
+int bearer_dv_is_list(bearer_dvalue* value);
+bearer_dv_iter bearer_dv_iter_begin(bearer_dvalue* value);
+int bearer_dv_iter_next(bearer_dvalue* value, bearer_dv_iter* iter, const char** key_out, size_t* key_len_out, bearer_dvalue** child_out);
+size_t bearer_dv_encode(bearer_dvalue* value, char* buf, size_t cap);
+bearer_dvalue* bearer_dv_decode(const char* buf, size_t len);
+const char* bearer_dv_last_error(void);
 
 }

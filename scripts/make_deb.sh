@@ -4,8 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DEB_ASSET_DIR="$SCRIPT_DIR/deb"
-PACKAGE_NAME="uce"
-REVISION="${UCE_DEB_REVISION:-}"
+PACKAGE_NAME="bearer"
+REVISION="${BEARER_DEB_REVISION:-}"
 
 usage() {
 	cat <<'EOF'
@@ -15,11 +15,11 @@ Usage:
 When VERSION is omitted, scripts/make_deb.sh reads VERSION from version.txt.
 
 Environment:
-  UCE_DEB_REVISION             Optional Debian package revision suffix
-  UCE_DEB_ARCH                 Override package architecture
-  UCE_DEB_WEBROOT              Public web root staged into the package (default: /var/www/html)
-  UCE_DEB_BUNDLE_WASI_SDK      Bundle pinned /opt/wasi-sdk into the package (default: 1)
-  UCE_DEB_BUNDLE_WASMTIME      Bundle /opt/wasmtime into the package (default: 1)
+  BEARER_DEB_REVISION             Optional Debian package revision suffix
+  BEARER_DEB_ARCH                 Override package architecture
+  BEARER_DEB_WEBROOT              Public web root staged into the package (default: /var/www/html)
+  BEARER_DEB_BUNDLE_WASI_SDK      Bundle pinned /opt/wasi-sdk into the package (default: 1)
+  BEARER_DEB_BUNDLE_WASMTIME      Bundle /opt/wasmtime into the package (default: 1)
 EOF
 }
 
@@ -31,8 +31,8 @@ require_command() {
 }
 
 resolve_arch() {
-	if [[ -n "${UCE_DEB_ARCH:-}" ]]; then
-		printf '%s\n' "$UCE_DEB_ARCH"
+	if [[ -n "${BEARER_DEB_ARCH:-}" ]]; then
+		printf '%s\n' "$BEARER_DEB_ARCH"
 		return
 	fi
 	if command -v dpkg-architecture >/dev/null 2>&1; then
@@ -59,21 +59,21 @@ copy_payload() {
 		cp -a "$REPO_ROOT/$path" "$destination/"
 	done
 	mkdir -p "$destination/etc" "$stage_dir$webroot"
-	cp -a "$REPO_ROOT/etc/uce" "$destination/etc/"
+	cp -a "$REPO_ROOT/etc/bearer" "$destination/etc/"
 	cp -a "$REPO_ROOT/site/." "$stage_dir$webroot/"
 }
 
 write_packaged_settings() {
 	local output_file="$1"
 	local webroot="$2"
-	python3 - "$REPO_ROOT/etc/uce/settings.cfg" "$output_file" "$webroot" <<'PY'
+	python3 - "$REPO_ROOT/etc/bearer/settings.cfg" "$output_file" "$webroot" <<'PY'
 from pathlib import Path
 import sys
 src, dst, webroot = sys.argv[1:4]
 s = Path(src).read_text()
 replacements = {
     "SITE_DIRECTORY=site": f"SITE_DIRECTORY={webroot}",
-    "WASM_CORE_PATH=/Code/uce.openfu.com/uce/bin/wasm/core.wasm": "WASM_CORE_PATH=/usr/lib/uce/bin/wasm/core.wasm",
+    "WASM_CORE_PATH=/Code/bearer.openfu.com/bearer/bin/wasm/core.wasm": "WASM_CORE_PATH=/usr/lib/bearer/bin/wasm/core.wasm",
     "HTTP_DOCUMENT_ROOT=": f"HTTP_DOCUMENT_ROOT={webroot}",
 }
 for old, new in replacements.items():
@@ -102,11 +102,11 @@ write_control_file() {
 bundle_wasi_sdk() {
 	local stage_dir="$1"
 	local wasi_root="${WASI_SDK:-/opt/wasi-sdk}"
-	if [[ "${UCE_DEB_BUNDLE_WASI_SDK:-1}" != "1" ]]; then
+	if [[ "${BEARER_DEB_BUNDLE_WASI_SDK:-1}" != "1" ]]; then
 		return
 	fi
 	if [[ ! -x "$wasi_root/bin/clang++" || ! -x "$wasi_root/bin/wasm-ld" || ! -x "$wasi_root/bin/llvm-nm" ]]; then
-		echo "UCE_DEB_BUNDLE_WASI_SDK=1 but WASI_SDK does not point at a complete SDK: $wasi_root" >&2
+		echo "BEARER_DEB_BUNDLE_WASI_SDK=1 but WASI_SDK does not point at a complete SDK: $wasi_root" >&2
 		exit 1
 	fi
 	local resolved
@@ -121,11 +121,11 @@ bundle_wasi_sdk() {
 bundle_wasmtime() {
 	local stage_dir="$1"
 	local wasmtime_root="${WASMTIME_HOME:-/opt/wasmtime}"
-	if [[ "${UCE_DEB_BUNDLE_WASMTIME:-1}" != "1" ]]; then
+	if [[ "${BEARER_DEB_BUNDLE_WASMTIME:-1}" != "1" ]]; then
 		return
 	fi
 	if [[ ! -f "$wasmtime_root/include/wasmtime.hh" || ! -f "$wasmtime_root/lib/libwasmtime.so" ]]; then
-		echo "UCE_DEB_BUNDLE_WASMTIME=1 but WASMTIME_HOME does not point at a complete C API tree: $wasmtime_root" >&2
+		echo "BEARER_DEB_BUNDLE_WASMTIME=1 but WASMTIME_HOME does not point at a complete C API tree: $wasmtime_root" >&2
 		exit 1
 	fi
 	local resolved
@@ -186,8 +186,8 @@ fi
 PACKAGE_BASENAME="${PACKAGE_NAME}_${PACKAGE_VERSION}_${ARCH}"
 STAGE_DIR="$REPO_ROOT/pkg/$PACKAGE_BASENAME"
 DEBIAN_DIR="$STAGE_DIR/DEBIAN"
-INSTALL_ROOT="$STAGE_DIR/usr/lib/uce"
-WEBROOT="${UCE_DEB_WEBROOT:-/var/www/html}"
+INSTALL_ROOT="$STAGE_DIR/usr/lib/bearer"
+WEBROOT="${BEARER_DEB_WEBROOT:-/var/www/html}"
 DIST_DIR="$REPO_ROOT/dist"
 OUTPUT_DEB="$DIST_DIR/$PACKAGE_BASENAME.deb"
 
@@ -197,15 +197,15 @@ echo "==================================="
 bash "$REPO_ROOT/scripts/build_linux.sh"
 
 rm -rf -- "$STAGE_DIR"
-mkdir -p "$DEBIAN_DIR" "$INSTALL_ROOT" "$STAGE_DIR/etc/uce" "$STAGE_DIR/lib/systemd/system" "$DIST_DIR"
+mkdir -p "$DEBIAN_DIR" "$INSTALL_ROOT" "$STAGE_DIR/etc/bearer" "$STAGE_DIR/lib/systemd/system" "$DIST_DIR"
 
 copy_payload "$INSTALL_ROOT" "$WEBROOT" "$STAGE_DIR"
 bundle_wasi_sdk "$STAGE_DIR"
 bundle_wasmtime "$STAGE_DIR"
 
-write_packaged_settings "$STAGE_DIR/etc/uce/settings.cfg" "$WEBROOT"
-install -m 0644 "$DEB_ASSET_DIR/uce.service" "$STAGE_DIR/lib/systemd/system/uce.service"
-install -m 0644 "$DEB_ASSET_DIR/uce.socket" "$STAGE_DIR/lib/systemd/system/uce.socket"
+write_packaged_settings "$STAGE_DIR/etc/bearer/settings.cfg" "$WEBROOT"
+install -m 0644 "$DEB_ASSET_DIR/bearer.service" "$STAGE_DIR/lib/systemd/system/bearer.service"
+install -m 0644 "$DEB_ASSET_DIR/bearer.socket" "$STAGE_DIR/lib/systemd/system/bearer.socket"
 install -m 0644 "$DEB_ASSET_DIR/conffiles" "$DEBIAN_DIR/conffiles"
 install -m 0755 "$DEB_ASSET_DIR/postinst" "$DEBIAN_DIR/postinst"
 install -m 0755 "$DEB_ASSET_DIR/prerm" "$DEBIAN_DIR/prerm"

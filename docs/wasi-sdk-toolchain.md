@@ -1,8 +1,8 @@
 # WASI SDK Toolchain Pin
 
-UCE treats WASI SDK as a deployment/runtime dependency, not just a developer build tool.
+BEARER treats WASI SDK as a deployment/runtime dependency, not just a developer build tool.
 
-The runtime compiles `.uce` units to wasm on demand during requests and during the proactive compiler scan. That means every deployment host must have the same compiler/linker toolchain available, and the generated `.wasm`/`.cwasm` artifacts are tied to that toolchain version and UCE unit ABI version.
+The runtime compiles `.uce` units to wasm on demand during requests and during the proactive compiler scan. That means every deployment host must have the same compiler/linker toolchain available, and the generated `.wasm`/`.cwasm` artifacts are tied to that toolchain version and BEARER unit ABI version.
 
 ## Current pin
 
@@ -24,7 +24,7 @@ scripts/install_wasi_sdk.sh --check-only
 
 ## Required tools
 
-UCE expects these executables on each deployment host:
+BEARER expects these executables on each deployment host:
 
 ```text
 /opt/wasi-sdk/bin/clang++
@@ -40,7 +40,7 @@ source map before debug sections are stripped from the runtime artifact. The
 map is consulted only on a wasm trap.
 
 The native compiler passes the ABI-generation root to
-`scripts/compile_wasm_unit`. Unless `UCE_WASM_PCH_DIR` is explicitly set, the
+`scripts/compile_wasm_unit`. Unless `BEARER_WASM_PCH_DIR` is explicitly set, the
 unit PCH lives beneath that writable generation rather than a
 process-user-dependent `/tmp` path. Managed precompile therefore behaves the
 same inside and outside the service unit.

@@ -13,10 +13,10 @@ return value : zero-based position of the first match, or `-1` if `needle` is no
 :content
 Finds the first occurrence of `needle` inside `haystack`.
 
-This is the closest UCE equivalent to PHP `strpos()`, but it returns `-1` instead of `false` when no match is found.
+This is the closest BEARER equivalent to PHP `strpos()`, but it returns `-1` instead of `false` when no match is found.
 
 If `needle` is an empty string, `strpos()` returns the normalized start offset.
 
 
 :example
-print(strpos("uce docs", "docs"), "\n");
+print(strpos("bearer docs", "docs"), "\n");

@@ -29,7 +29,7 @@ void render_link_card(String href, String title, String body, String meta)
 	</a></>
 }
 
-DValue code_example_props(String eyebrow, String title, String summary, String code, String note, String language = "uce")
+DValue code_example_props(String eyebrow, String title, String summary, String code, String note, String language = "bearer")
 {
 	DValue props;
 	props["eyebrow"] = eyebrow;
@@ -43,7 +43,7 @@ DValue code_example_props(String eyebrow, String title, String summary, String c
 
 RENDER(Request& context)
 {
-	String page_title = "UCE: make dynamic websites like it's 2006";
+	String page_title = "BEARER: make dynamic websites like it's 2006";
 	String generated_at = time_format_utc("%Y-%m-%d %H:%M:%S UTC");
 
 	String snippet_minimal =
@@ -124,13 +124,13 @@ RENDER(Request& context)
 
 	String snippet_nginx =
 		"location ~ \\.uce$ {\n"
-		"\terror_page 418 = @uce_websocket;\n"
+		"\terror_page 418 = @bearer_websocket;\n"
 		"\tif ($http_upgrade = \"websocket\") { return 418; }\n"
 		"\tinclude fastcgi_params;\n"
 		"\tfastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;\n"
-		"\tfastcgi_pass unix:/run/uce/fastcgi.sock;\n"
+		"\tfastcgi_pass unix:/run/bearer/fastcgi.sock;\n"
 		"}\n\n"
-		"location @uce_websocket {\n"
+		"location @bearer_websocket {\n"
 		"\tproxy_http_version 1.1;\n"
 		"\tproxy_set_header Upgrade $http_upgrade;\n"
 		"\tproxy_set_header Connection $connection_upgrade;\n"
@@ -143,13 +143,13 @@ RENDER(Request& context)
 		<meta charset="utf-8"></meta>
 		<meta name="viewport" content="width=device-width, initial-scale=1"></meta>
 		<title><?= page_title ?></title>
-		<meta name="description" content="UCE is a PHP-inspired C++ web runtime for building dynamic websites with templates, components, FastCGI, and built-in WebSockets."></meta>
+		<meta name="description" content="BEARER is a PHP-inspired C++ web runtime for building dynamic websites with templates, components, FastCGI, and built-in WebSockets."></meta>
 		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
 	</head>
 	<body>
 		<div class="page-shell">
 			<header class="topbar">
-				<a class="brand" href="index.uce">UCE</a>
+				<a class="brand" href="index.uce">BEARER</a>
 				<nav>
 					<? render_nav_link("#why", "Why"); ?>
 					<? render_nav_link("#examples", "Examples"); ?>
@@ -165,7 +165,7 @@ RENDER(Request& context)
 						<div class="eyebrow">PHP energy, C++ runtime</div>
 						<h1>Make dynamic websites like it's 2006.</h1>
 						<p class="hero-lead">
-							UCE is a direct web runtime: files are pages, templates live next to control flow,
+							BEARER is a direct web runtime: files are pages, templates live next to control flow,
 							nginx fronts the whole thing, and a request can compile into a wasm module on first hit.
 							It is built in the image of PHP's non-architecture, but with an explicit request object,
 							component rendering, and a built-in WebSocket broker.
@@ -173,7 +173,7 @@ RENDER(Request& context)
 						<div class="hero-actions">
 							<a class="button button-primary" href="../demo/index.uce">Open the demo area</a>
 							<a class="button button-secondary" href="../doc/index.uce">Read the docs</a>
-							<a class="button button-secondary" href="../examples/uce-starter/index.uce">Browse the starter</a>
+							<a class="button button-secondary" href="../examples/bearer-starter/index.uce">Browse the starter</a>
 						</div>
 						<div class="signal-grid">
 							<? render_signal("Files are routes", "A .uce page is the thing you edit and the thing nginx serves."); ?>
@@ -202,7 +202,7 @@ RENDER(Request& context)
 
 				<section class="section" id="why">
 					<div class="section-heading">
-						<div class="eyebrow">Why UCE</div>
+						<div class="eyebrow">Why BEARER</div>
 						<h2>The old web had the right instincts.</h2>
 						<p>
 							Put code where the page lives. Let runtime state die with the request. Keep deployment boring.
@@ -210,7 +210,7 @@ RENDER(Request& context)
 						</p>
 					</div>
 					<div class="feature-grid">
-						<? render_feature_card("templating", "Inline markup without framework tax", "UCE templates live directly inside handler code with escaped and raw output modes, so rendering stays local to the request logic that owns it."); ?>
+						<? render_feature_card("templating", "Inline markup without framework tax", "BEARER templates live directly inside handler code with escaped and raw output modes, so rendering stays local to the request logic that owns it."); ?>
 						<? render_feature_card("composition", "Components and sub-rendering", "Components are just .uce files. Props flow through context.props. Full pages can call other units without inventing a second application runtime."); ?>
 						<? render_feature_card("transport", "FastCGI for pages, HTTP for sockets", "Normal page renders stay on the FastCGI socket. WebSocket upgrades for .uce endpoints are proxied to the built-in HTTP listener."); ?>
 						<? render_feature_card("operations", "nginx in front, systemd behind", "Static files stay static, nginx does the edge work, and the runtime handles compilation, request execution, and socket fan-out."); ?>
@@ -241,7 +241,7 @@ RENDER(Request& context)
 				<section class="section" id="examples">
 					<div class="section-heading">
 						<div class="eyebrow">Code first</div>
-						<h2>Common things in UCE</h2>
+						<h2>Common things in BEARER</h2>
 						<p>
 							The examples below are modeled on the current runtime API and the published demo pages.
 							The point is not abstraction depth. The point is that the code stays obvious.
@@ -249,9 +249,9 @@ RENDER(Request& context)
 					</div>
 					<div class="code-grid">
 						<?: component("components/code_example", code_example_props("templating", "A page with request data", "Drop from C++ into markup, escape output by default, and keep request handling next to the HTML it controls.", snippet_minimal, "See the live demos for forms, headers, sessions, JSON, markdown, and more."), context) ?>
-						<?: component("components/code_example", code_example_props("forms", "POST + session flash", "Old-school dynamic websites still matter. UCE keeps form handling and page rendering in one file when that is the simplest thing.", snippet_forms, "Request data lives on context.get, context.post, context.cookies, and context.session."), context) ?>
+						<?: component("components/code_example", code_example_props("forms", "POST + session flash", "Old-school dynamic websites still matter. BEARER keeps form handling and page rendering in one file when that is the simplest thing.", snippet_forms, "Request data lives on context.get, context.post, context.cookies, and context.session."), context) ?>
 						<?: component("components/code_example", code_example_props("components", "Reusable UI without a second framework", "Components are ordinary .uce files. Pass props through context.props and choose when to render or return markup.", snippet_components, "Named handlers and component_render() are also available for direct output flows."), context) ?>
-						<?: component("components/code_example", code_example_props("content", "Markdown when you want it", "UCE also ships a markdown module, so content-heavy pages do not need an external rendering stack.", snippet_markdown, "The runtime supports markdown_to_ast() and markdown_to_html() for content pipelines and component hooks."), context) ?>
+						<?: component("components/code_example", code_example_props("content", "Markdown when you want it", "BEARER also ships a markdown module, so content-heavy pages do not need an external rendering stack.", snippet_markdown, "The runtime supports markdown_to_ast() and markdown_to_html() for content pipelines and component hooks."), context) ?>
 						<?: component("components/code_example", code_example_props("realtime", "WebSockets with broker-owned state", "Any .uce page can render HTML and also accept live socket messages with WS(Request& context). Connection-local state lives on context.connection.", snippet_websocket, "Route WebSocket upgrade requests for .uce paths to the runtime HTTP listener."), context) ?>
 						<?: component("components/code_example", code_example_props("deploy", "nginx wiring", "Use FastCGI for ordinary requests and send websocket upgrades to the runtime's built-in HTTP listener.", snippet_nginx, "Route upgrade requests for .uce paths to HTTP_PORT; plain page loads stay on FastCGI.", "nginx"), context) ?>
 					</div>
@@ -275,9 +275,9 @@ RENDER(Request& context)
 						<div class="deploy-card">
 							<h3>The practical settings</h3>
 							<ul>
-								<li>`FCGI_SOCKET_PATH=/run/uce/fastcgi.sock` for normal requests</li>
+								<li>`FCGI_SOCKET_PATH=/run/bearer/fastcgi.sock` for normal requests</li>
 								<li>`HTTP_PORT=8080` for `.uce` websocket upgrades</li>
-								<li>`scripts/systemd/manage-uce-service.sh` for build and service control</li>
+								<li>`scripts/systemd/manage-bearer-service.sh` for build and service control</li>
 								<li>published root should be `/var/www/html`, not the repo root</li>
 							</ul>
 						</div>
@@ -290,11 +290,11 @@ RENDER(Request& context)
 						<h2>Go straight to the useful parts.</h2>
 					</div>
 					<div class="link-grid">
-							<? render_link_card("../demo/index.uce", "Demo Area", "Open the published UCE demo pages for strings, forms, sessions, JSON, components, markdown, and runtime behavior.", "Try things"); ?>
+							<? render_link_card("../demo/index.uce", "Demo Area", "Open the published BEARER demo pages for strings, forms, sessions, JSON, components, markdown, and runtime behavior.", "Try things"); ?>
 							<? render_link_card("../demo/websockets.ws.uce", "WebSocket Demo", "See the built-in broker model in a page that renders HTML, upgrades the same route, and broadcasts chat events.", "Realtime"); ?>
 							<? render_link_card("../doc/index.uce", "Reference Docs", "Browse the manual-style function and concept docs for the current runtime surface.", "Manual"); ?>
 							<? render_link_card("../doc/singlepage.uce", "Single-Page Docs", "Read the reference as one long page if you want the PHP-manual energy without the clicking.", "Reference"); ?>
-							<? render_link_card("../examples/uce-starter/index.uce", "UCE Starter", "Browse the larger example app built in UCE using components, themes, views, and richer page composition.", "Starter"); ?>
+							<? render_link_card("../examples/bearer-starter/index.uce", "BEARER Starter", "Browse the larger example app built in BEARER using components, themes, views, and richer page composition.", "Starter"); ?>
 							<? render_link_card("../README.md", "Repository README", "The repo README covers runtime shape, deployment, WebSockets, and the current project status in one place.", "Source"); ?>
 					</div>
 				</section>
@@ -305,7 +305,7 @@ RENDER(Request& context)
 						<h2>What this is and what it is not</h2>
 					</div>
 					<details open>
-						<summary>Is UCE production ready?</summary>
+						<summary>Is BEARER production ready?</summary>
 						<p>The runtime is still experimental. The point of this site is to explain the model, show the current surface area, and make it easy to evaluate the demos and docs.</p>
 					</details>
 					<details>
@@ -320,8 +320,8 @@ RENDER(Request& context)
 			</main>
 
 			<footer class="page-footer">
-				<p>UCE is a web runtime for people who still think pages, handlers, sockets, and deployment scripts should be understandable.</p>
-				<p><a href="../demo/index.uce">Demo</a> <span>/</span> <a href="../doc/index.uce">Docs</a> <span>/</span> <a href="../examples/uce-starter/index.uce">Starter</a></p>
+				<p>BEARER is a web runtime for people who still think pages, handlers, sockets, and deployment scripts should be understandable.</p>
+				<p><a href="../demo/index.uce">Demo</a> <span>/</span> <a href="../doc/index.uce">Docs</a> <span>/</span> <a href="../examples/bearer-starter/index.uce">Starter</a></p>
 			</footer>
 		</div>
 	</body>

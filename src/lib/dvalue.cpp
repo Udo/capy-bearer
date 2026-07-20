@@ -901,16 +901,16 @@ void DValue::clear()
 
 namespace {
 
-const char* UCEB_MAGIC = "UCEB";
-const u8 UCEB_VERSION = 2;
-const u8 UCEB_FLAG_LIST = 1;
-const u32 UCEB_MAX_NESTING_DEPTH = 64;
+const char* BRRB_MAGIC = "BRRB";
+const u8 BRRB_VERSION = 2;
+const u8 BRRB_FLAG_LIST = 1;
+const u32 BRRB_MAX_NESTING_DEPTH = 64;
 
-thread_local String uce_dv_last_error_text;
-thread_local String uce_dv_value_result;
-thread_local DValue uce_dv_decode_result;
+thread_local String bearer_dv_last_error_text;
+thread_local String bearer_dv_value_result;
+thread_local DValue bearer_dv_decode_result;
 
-bool ucb_append_varint(String& out, u64 value)
+bool brb_append_varint(String& out, u64 value)
 {
 	while(value >= 0x80)
 	{
@@ -921,7 +921,7 @@ bool ucb_append_varint(String& out, u64 value)
 	return(true);
 }
 
-bool ucb_read_varint(const char* src, size_t src_size, size_t& offset, u64& value_out)
+bool brb_read_varint(const char* src, size_t src_size, size_t& offset, u64& value_out)
 {
 	value_out = 0;
 	u32 shift = 0;
@@ -936,12 +936,12 @@ bool ucb_read_varint(const char* src, size_t src_size, size_t& offset, u64& valu
 	return(false);
 }
 
-bool ucb_read_varint(const String& src, size_t& offset, u64& value_out)
+bool brb_read_varint(const String& src, size_t& offset, u64& value_out)
 {
-	return(ucb_read_varint(src.data(), src.size(), offset, value_out));
+	return(brb_read_varint(src.data(), src.size(), offset, value_out));
 }
 
-char ucb_node_type(const DValue& value)
+char brb_node_type(const DValue& value)
 {
 	const DValue& target = value.deref();
 	switch(target.type)
@@ -958,7 +958,7 @@ char ucb_node_type(const DValue& value)
 	}
 }
 
-String ucb_node_scalar(const DValue& value)
+String brb_node_scalar(const DValue& value)
 {
 	const DValue& target = value.deref();
 	switch(target.type)
@@ -980,7 +980,7 @@ String ucb_node_scalar(const DValue& value)
 	}
 }
 
-bool ucb_decode_scalar(char node_type, const String& scalar, DValue& out, String& error)
+bool brb_decode_scalar(char node_type, const String& scalar, DValue& out, String& error)
 {
 	switch(node_type)
 	{
@@ -994,7 +994,7 @@ bool ucb_decode_scalar(char node_type, const String& scalar, DValue& out, String
 			f64 value = strtod(begin, &end);
 			if(end == begin || end != begin + scalar.size() || !std::isfinite(value))
 			{
-				error = "invalid UCEB2 f64 scalar";
+				error = "invalid BRRB2 f64 scalar";
 				return(false);
 			}
 			out = value;
@@ -1011,132 +1011,132 @@ bool ucb_decode_scalar(char node_type, const String& scalar, DValue& out, String
 				out.set_bool(false);
 				return(true);
 			}
-			error = "invalid UCEB2 bool scalar";
+			error = "invalid BRRB2 bool scalar";
 			return(false);
 	}
-	error = "invalid UCEB2 scalar type tag";
+	error = "invalid BRRB2 scalar type tag";
 	return(false);
 }
 
-void ucb_encode_node(String& out, const DValue& value)
+void brb_encode_node(String& out, const DValue& value)
 {
 	const DValue& target = value.deref();
-	u8 flags = target.is_list() ? UCEB_FLAG_LIST : 0;
+	u8 flags = target.is_list() ? BRRB_FLAG_LIST : 0;
 	out.push_back((char)flags);
-	out.push_back(ucb_node_type(target));
-	String scalar = ucb_node_scalar(target);
-	ucb_append_varint(out, scalar.size());
+	out.push_back(brb_node_type(target));
+	String scalar = brb_node_scalar(target);
+	brb_append_varint(out, scalar.size());
 	out.append(scalar.data(), scalar.size());
 
 	if(target.type != 'M')
 	{
-		ucb_append_varint(out, 0);
+		brb_append_varint(out, 0);
 		return;
 	}
-	ucb_append_varint(out, target._map.size());
+	brb_append_varint(out, target._map.size());
 	target.each([&](const DValue& child, String key) {
-		ucb_append_varint(out, key.size());
+		brb_append_varint(out, key.size());
 		out.append(key.data(), key.size());
-		ucb_encode_node(out, child);
+		brb_encode_node(out, child);
 	});
 }
 
-bool ucb_decode_node(const String& src, size_t& offset, DValue& out, String& error, u32 depth = 0)
+bool brb_decode_node(const String& src, size_t& offset, DValue& out, String& error, u32 depth = 0)
 {
-	if(depth >= UCEB_MAX_NESTING_DEPTH)
+	if(depth >= BRRB_MAX_NESTING_DEPTH)
 	{
-		error = "UCEB2 nesting limit exceeded";
+		error = "BRRB2 nesting limit exceeded";
 		return(false);
 	}
 	if(offset > src.size() || src.size() - offset < 2)
 	{
-		error = "unexpected end of UCEB2 node";
+		error = "unexpected end of BRRB2 node";
 		return(false);
 	}
 	u8 flags = (u8)src[offset++];
 	char node_type = src[offset++];
 	if(node_type != 'M' && node_type != 'S' && node_type != 'F' && node_type != 'B')
 	{
-		error = "invalid UCEB2 node type tag";
+		error = "invalid BRRB2 node type tag";
 		return(false);
 	}
 	u64 scalar_len = 0;
-	if(!ucb_read_varint(src, offset, scalar_len))
+	if(!brb_read_varint(src, offset, scalar_len))
 	{
-		error = "invalid UCEB2 scalar length";
+		error = "invalid BRRB2 scalar length";
 		return(false);
 	}
 	if(offset > src.size() || scalar_len > src.size() - offset)
 	{
-		error = "UCEB2 scalar length exceeds input";
+		error = "BRRB2 scalar length exceeds input";
 		return(false);
 	}
 	String scalar(src.data() + offset, (size_t)scalar_len);
 	offset += (size_t)scalar_len;
 
 	u64 child_count = 0;
-	if(!ucb_read_varint(src, offset, child_count))
+	if(!brb_read_varint(src, offset, child_count))
 	{
-		error = "invalid UCEB2 child count";
+		error = "invalid BRRB2 child count";
 		return(false);
 	}
 
 	out.clear();
 	if(node_type != 'M')
 	{
-		if(child_count != 0 || (flags & UCEB_FLAG_LIST) != 0)
+		if(child_count != 0 || (flags & BRRB_FLAG_LIST) != 0)
 		{
-			error = "UCEB2 scalar node cannot have children or list flag";
+			error = "BRRB2 scalar node cannot have children or list flag";
 			return(false);
 		}
-		return(ucb_decode_scalar(node_type, scalar, out, error));
+		return(brb_decode_scalar(node_type, scalar, out, error));
 	}
-	if((flags & UCEB_FLAG_LIST) != 0)
+	if((flags & BRRB_FLAG_LIST) != 0)
 		out.set_array();
 
 	for(u64 i = 0; i < child_count; i++)
 	{
 		u64 key_len = 0;
-		if(!ucb_read_varint(src, offset, key_len))
+		if(!brb_read_varint(src, offset, key_len))
 		{
-			error = "invalid UCEB2 child key length";
+			error = "invalid BRRB2 child key length";
 			return(false);
 		}
 		if(offset > src.size() || key_len > src.size() - offset)
 		{
-			error = "UCEB2 child key length exceeds input";
+			error = "BRRB2 child key length exceeds input";
 			return(false);
 		}
 		String key(src.data() + offset, (size_t)key_len);
 		offset += (size_t)key_len;
-		if(depth + 1 >= UCEB_MAX_NESTING_DEPTH)
+		if(depth + 1 >= BRRB_MAX_NESTING_DEPTH)
 		{
-			error = "UCEB2 nesting limit exceeded";
+			error = "BRRB2 nesting limit exceeded";
 			return(false);
 		}
 		DValue child;
-		if(!ucb_decode_node(src, offset, child, error, depth + 1))
+		if(!brb_decode_node(src, offset, child, error, depth + 1))
 			return(false);
 		out[key] = std::move(child);
 	}
 	return(true);
 }
 
-String uce_dv_key(const char* key, size_t key_len)
+String bearer_dv_key(const char* key, size_t key_len)
 {
 	if(key == 0)
 		return("");
 	return(String(key, key_len));
 }
 
-DValue* uce_dv_target(uce_dvalue* value)
+DValue* bearer_dv_target(bearer_dvalue* value)
 {
 	if(value == 0)
 		return(0);
 	return(reinterpret_cast<DValue*>(value)->reference_target() ? reinterpret_cast<DValue*>(value)->reference_target() : reinterpret_cast<DValue*>(value));
 }
 
-const DValue* uce_dv_target_const(uce_dvalue* value)
+const DValue* bearer_dv_target_const(bearer_dvalue* value)
 {
 	if(value == 0)
 		return(0);
@@ -1145,51 +1145,51 @@ const DValue* uce_dv_target_const(uce_dvalue* value)
 
 }
 
-String ucb_encode(const DValue& value)
+String brb_encode(const DValue& value)
 {
 	String out;
-	out.append(UCEB_MAGIC, 4);
-	out.push_back((char)UCEB_VERSION);
-	ucb_encode_node(out, value);
+	out.append(BRRB_MAGIC, 4);
+	out.push_back((char)BRRB_VERSION);
+	brb_encode_node(out, value);
 	return(out);
 }
 
-// Internal request/config transport uses the same UCEB2 map representation
+// Internal request/config transport uses the same BRRB2 map representation
 // without first building a duplicate DValue tree.
-String ucb_encode_flat_string_map(const StringMap& value)
+String brb_encode_flat_string_map(const StringMap& value)
 {
 	String out;
-	out.append(UCEB_MAGIC, 4);
-	out.push_back((char)UCEB_VERSION);
+	out.append(BRRB_MAGIC, 4);
+	out.push_back((char)BRRB_VERSION);
 	out.push_back(0);
 	out.push_back('M');
-	ucb_append_varint(out, 0);
-	ucb_append_varint(out, value.size());
+	brb_append_varint(out, 0);
+	brb_append_varint(out, value.size());
 	for(auto& child : value)
 	{
-		ucb_append_varint(out, child.first.size());
+		brb_append_varint(out, child.first.size());
 		out.append(child.first.data(), child.first.size());
 		out.push_back(0);
 		out.push_back('S');
-		ucb_append_varint(out, child.second.size());
+		brb_append_varint(out, child.second.size());
 		out.append(child.second.data(), child.second.size());
-		ucb_append_varint(out, 0);
+		brb_append_varint(out, 0);
 	}
 	return(out);
 }
 
-bool ucb_decode(const String& encoded, DValue& out, String* error_out)
+bool brb_decode(const String& encoded, DValue& out, String* error_out)
 {
 	String error;
-	if(encoded.size() < 5 || encoded.compare(0, 4, UCEB_MAGIC) != 0)
-		error = "missing UCEB magic header";
-	else if((u8)encoded[4] != UCEB_VERSION)
-		error = "unsupported UCEB version";
+	if(encoded.size() < 5 || encoded.compare(0, 4, BRRB_MAGIC) != 0)
+		error = "missing BRRB magic header";
+	else if((u8)encoded[4] != BRRB_VERSION)
+		error = "unsupported BRRB version";
 	else
 	{
 		size_t offset = 5;
 		DValue decoded;
-		if(ucb_decode_node(encoded, offset, decoded, error) && offset == encoded.size())
+		if(brb_decode_node(encoded, offset, decoded, error) && offset == encoded.size())
 		{
 			out = std::move(decoded);
 			if(error_out)
@@ -1197,15 +1197,15 @@ bool ucb_decode(const String& encoded, DValue& out, String* error_out)
 			return(true);
 		}
 		if(error == "")
-			error = "trailing bytes after UCEB2 document";
+			error = "trailing bytes after BRRB2 document";
 	}
 	if(error_out)
 		*error_out = error;
 	return(false);
 }
 
-#ifdef __UCE_WASM_CORE__
-static bool ucb_decode_flat_string_map(const char* encoded, size_t encoded_size, StringMap& out, String* error_out)
+#ifdef __BEARER_WASM_CORE__
+static bool brb_decode_flat_string_map(const char* encoded, size_t encoded_size, StringMap& out, String* error_out)
 {
 	String error;
 	StringMap decoded;
@@ -1214,61 +1214,61 @@ static bool ucb_decode_flat_string_map(const char* encoded, size_t encoded_size,
 		error = message;
 		return(false);
 	};
-	if(encoded_size < 5 || memcmp(encoded, UCEB_MAGIC, 4) != 0)
-		fail("missing UCEB magic header");
-	else if((u8)encoded[4] != UCEB_VERSION)
-		fail("unsupported UCEB version");
+	if(encoded_size < 5 || memcmp(encoded, BRRB_MAGIC, 4) != 0)
+		fail("missing BRRB magic header");
+	else if((u8)encoded[4] != BRRB_VERSION)
+		fail("unsupported BRRB version");
 	else
 	{
 		offset = 5;
 		if(encoded_size - offset < 2)
-			fail("unexpected end of UCEB2 string map");
+			fail("unexpected end of BRRB2 string map");
 		else
 		{
 			u8 flags = (u8)encoded[offset++];
 			char type = encoded[offset++];
 			u64 scalar_len = 0, child_count = 0;
 			if(flags != 0 || type != 'M')
-				fail("UCEB2 string map root must be a map");
-			else if(!ucb_read_varint(encoded, encoded_size, offset, scalar_len) || scalar_len != 0)
-				fail("UCEB2 string map root must have no scalar");
-			else if(!ucb_read_varint(encoded, encoded_size, offset, child_count))
-				fail("invalid UCEB2 string map child count");
+				fail("BRRB2 string map root must be a map");
+			else if(!brb_read_varint(encoded, encoded_size, offset, scalar_len) || scalar_len != 0)
+				fail("BRRB2 string map root must have no scalar");
+			else if(!brb_read_varint(encoded, encoded_size, offset, child_count))
+				fail("invalid BRRB2 string map child count");
 			else
 			{
 				for(u64 i = 0; error == "" && i < child_count; i++)
 				{
 					u64 key_len = 0, value_len = 0, value_children = 0;
-					if(!ucb_read_varint(encoded, encoded_size, offset, key_len) || key_len > encoded_size - offset)
+					if(!brb_read_varint(encoded, encoded_size, offset, key_len) || key_len > encoded_size - offset)
 					{
-						fail("invalid UCEB2 string map key");
+						fail("invalid BRRB2 string map key");
 						break;
 					}
 					String key(encoded + offset, (size_t)key_len);
 					offset += (size_t)key_len;
 					if(encoded_size - offset < 2)
 					{
-						fail("unexpected end of UCEB2 string map value");
+						fail("unexpected end of BRRB2 string map value");
 						break;
 					}
 					u8 value_flags = (u8)encoded[offset++];
 					char value_type = encoded[offset++];
-					if(value_flags != 0 || value_type != 'S' || !ucb_read_varint(encoded, encoded_size, offset, value_len) || value_len > encoded_size - offset)
+					if(value_flags != 0 || value_type != 'S' || !brb_read_varint(encoded, encoded_size, offset, value_len) || value_len > encoded_size - offset)
 					{
-						fail("UCEB2 string map value must be a string scalar");
+						fail("BRRB2 string map value must be a string scalar");
 						break;
 					}
 					String value(encoded + offset, (size_t)value_len);
 					offset += (size_t)value_len;
-					if(!ucb_read_varint(encoded, encoded_size, offset, value_children) || value_children != 0)
+					if(!brb_read_varint(encoded, encoded_size, offset, value_children) || value_children != 0)
 					{
-						fail("UCEB2 string map value cannot have children");
+						fail("BRRB2 string map value cannot have children");
 						break;
 					}
 					decoded[std::move(key)] = std::move(value);
 				}
 				if(error == "" && offset != encoded_size)
-					fail("trailing bytes after UCEB2 string map");
+					fail("trailing bytes after BRRB2 string map");
 			}
 		}
 	}
@@ -1285,57 +1285,57 @@ static bool ucb_decode_flat_string_map(const char* encoded, size_t encoded_size,
 }
 #endif
 
-DValue ucb_decode(const String& encoded)
+DValue brb_decode(const String& encoded)
 {
 	DValue out;
 	String error;
-	ucb_decode(encoded, out, &error);
+	brb_decode(encoded, out, &error);
 	return(out);
 }
 
 extern "C" {
 
-uce_dvalue* uce_dv_root(void)
+bearer_dvalue* bearer_dv_root(void)
 {
 	if(context == 0)
 		return(0);
-	return(reinterpret_cast<uce_dvalue*>(&context->call));
+	return(reinterpret_cast<bearer_dvalue*>(&context->call));
 }
 
-uce_dvalue* uce_dv_get(uce_dvalue* value, const char* key, size_t key_len)
+bearer_dvalue* bearer_dv_get(bearer_dvalue* value, const char* key, size_t key_len)
 {
-	DValue* target = uce_dv_target(value);
+	DValue* target = bearer_dv_target(value);
 	if(target == 0)
 		return(0);
-	return(reinterpret_cast<uce_dvalue*>(target->get_or_create(uce_dv_key(key, key_len))));
+	return(reinterpret_cast<bearer_dvalue*>(target->get_or_create(bearer_dv_key(key, key_len))));
 }
 
-uce_dvalue* uce_dv_find(uce_dvalue* value, const char* key, size_t key_len)
+bearer_dvalue* bearer_dv_find(bearer_dvalue* value, const char* key, size_t key_len)
 {
-	DValue* target = uce_dv_target(value);
+	DValue* target = bearer_dv_target(value);
 	if(target == 0)
 		return(0);
-	return(reinterpret_cast<uce_dvalue*>(target->key(uce_dv_key(key, key_len))));
+	return(reinterpret_cast<bearer_dvalue*>(target->key(bearer_dv_key(key, key_len))));
 }
 
-const char* uce_dv_value(uce_dvalue* value, size_t* len_out)
+const char* bearer_dv_value(bearer_dvalue* value, size_t* len_out)
 {
-	const DValue* target = uce_dv_target_const(value);
+	const DValue* target = bearer_dv_target_const(value);
 	if(target == 0)
 	{
 		if(len_out)
 			*len_out = 0;
 		return(0);
 	}
-	uce_dv_value_result = ucb_node_scalar(*target);
+	bearer_dv_value_result = brb_node_scalar(*target);
 	if(len_out)
-		*len_out = uce_dv_value_result.size();
-	return(uce_dv_value_result.data());
+		*len_out = bearer_dv_value_result.size();
+	return(bearer_dv_value_result.data());
 }
 
-void uce_dv_set_value(uce_dvalue* value, const char* bytes, size_t len)
+void bearer_dv_set_value(bearer_dvalue* value, const char* bytes, size_t len)
 {
-	DValue* target = uce_dv_target(value);
+	DValue* target = bearer_dv_target(value);
 	if(target == 0)
 		return;
 	if(bytes == 0 && len > 0)
@@ -1346,23 +1346,23 @@ void uce_dv_set_value(uce_dvalue* value, const char* bytes, size_t len)
 	target->set(String(bytes ? bytes : "", len));
 }
 
-size_t uce_dv_count(uce_dvalue* value)
+size_t bearer_dv_count(bearer_dvalue* value)
 {
-	const DValue* target = uce_dv_target_const(value);
+	const DValue* target = bearer_dv_target_const(value);
 	if(target == 0 || target->type != 'M')
 		return(0);
 	return(target->_map.size());
 }
 
-int uce_dv_is_list(uce_dvalue* value)
+int bearer_dv_is_list(bearer_dvalue* value)
 {
-	const DValue* target = uce_dv_target_const(value);
+	const DValue* target = bearer_dv_target_const(value);
 	return(target && target->is_list() ? 1 : 0);
 }
 
-uce_dv_iter uce_dv_iter_begin(uce_dvalue* value)
+bearer_dv_iter bearer_dv_iter_begin(bearer_dvalue* value)
 {
-	uce_dv_iter iter;
+	bearer_dv_iter iter;
 	iter.position = 0;
 	iter.reserved[0] = 0;
 	iter.reserved[1] = 0;
@@ -1370,9 +1370,9 @@ uce_dv_iter uce_dv_iter_begin(uce_dvalue* value)
 	return(iter);
 }
 
-int uce_dv_iter_next(uce_dvalue* value, uce_dv_iter* iter, const char** key_out, size_t* key_len_out, uce_dvalue** child_out)
+int bearer_dv_iter_next(bearer_dvalue* value, bearer_dv_iter* iter, const char** key_out, size_t* key_len_out, bearer_dvalue** child_out)
 {
-	const DValue* target = uce_dv_target_const(value);
+	const DValue* target = bearer_dv_target_const(value);
 	if(target == 0 || target->type != 'M' || iter == 0)
 		return(0);
 	std::map<String, DValue>::const_iterator entry;
@@ -1394,17 +1394,17 @@ int uce_dv_iter_next(uce_dvalue* value, uce_dv_iter* iter, const char** key_out,
 	if(key_len_out)
 		*key_len_out = entry->first.size();
 	if(child_out)
-		*child_out = reinterpret_cast<uce_dvalue*>(const_cast<DValue*>(&entry->second));
+		*child_out = reinterpret_cast<bearer_dvalue*>(const_cast<DValue*>(&entry->second));
 	iter->position += 1;
 	return(1);
 }
 
-size_t uce_dv_encode(uce_dvalue* value, char* buf, size_t cap)
+size_t bearer_dv_encode(bearer_dvalue* value, char* buf, size_t cap)
 {
-	const DValue* target = uce_dv_target_const(value);
+	const DValue* target = bearer_dv_target_const(value);
 	if(target == 0)
 		return(0);
-	String encoded = ucb_encode(*target);
+	String encoded = brb_encode(*target);
 	if(buf != 0 && cap > 0)
 	{
 		size_t copy_len = encoded.size() < cap ? encoded.size() : cap;
@@ -1413,24 +1413,24 @@ size_t uce_dv_encode(uce_dvalue* value, char* buf, size_t cap)
 	return(encoded.size());
 }
 
-uce_dvalue* uce_dv_decode(const char* buf, size_t len)
+bearer_dvalue* bearer_dv_decode(const char* buf, size_t len)
 {
 	String encoded(buf ? buf : "", buf ? len : 0);
 	String error;
 	DValue decoded;
-	if(!ucb_decode(encoded, decoded, &error))
+	if(!brb_decode(encoded, decoded, &error))
 	{
-		uce_dv_last_error_text = error;
+		bearer_dv_last_error_text = error;
 		return(0);
 	}
-	uce_dv_last_error_text = "";
-	uce_dv_decode_result = decoded;
-	return(reinterpret_cast<uce_dvalue*>(&uce_dv_decode_result));
+	bearer_dv_last_error_text = "";
+	bearer_dv_decode_result = decoded;
+	return(reinterpret_cast<bearer_dvalue*>(&bearer_dv_decode_result));
 }
 
-const char* uce_dv_last_error(void)
+const char* bearer_dv_last_error(void)
 {
-	return(uce_dv_last_error_text.c_str());
+	return(bearer_dv_last_error_text.c_str());
 }
 
 }

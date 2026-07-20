@@ -52,32 +52,32 @@ String code_wrap(String cls, String text)
 	return("<span class=\"tok tok-" + cls + "\">" + html_escape(text) + "</span>");
 }
 
-String uce_markup_open_token()
+String bearer_markup_open_token()
 {
 	return("<" ">");
 }
 
-String uce_markup_close_token()
+String bearer_markup_close_token()
 {
 	return("</" ">");
 }
 
-String uce_code_open_token()
+String bearer_code_open_token()
 {
 	return("<" "?");
 }
 
-String uce_code_expr_token()
+String bearer_code_expr_token()
 {
 	return("<" "?=");
 }
 
-String uce_code_raw_token()
+String bearer_code_raw_token()
 {
 	return("<" "?:");
 }
 
-String uce_code_close_token()
+String bearer_code_close_token()
 {
 	return("?" ">");
 }
@@ -386,16 +386,16 @@ String highlight_markup_tag(String tag)
 	return(out);
 }
 
-String highlight_uce_code(String code)
+String highlight_bearer_code(String code)
 {
 	String out;
 	bool in_markup = false;
-	String markup_open = uce_markup_open_token();
-	String markup_close = uce_markup_close_token();
-	String code_open = uce_code_open_token();
-	String code_expr = uce_code_expr_token();
-	String code_raw = uce_code_raw_token();
-	String code_close = uce_code_close_token();
+	String markup_open = bearer_markup_open_token();
+	String markup_close = bearer_markup_close_token();
+	String code_open = bearer_code_open_token();
+	String code_expr = bearer_code_expr_token();
+	String code_raw = bearer_code_raw_token();
+	String code_close = bearer_code_close_token();
 	for(u64 i = 0; i < code.length(); )
 	{
 		if(!in_markup)
@@ -570,15 +570,15 @@ String highlight_code(String code)
 {
 	if(contains(code, "fastcgi_pass") || contains(code, "proxy_pass"))
 		return(highlight_nginx_code(code));
-	return(highlight_uce_code(code));
+	return(highlight_bearer_code(code));
 }
 
 String highlight_code(String code, String language)
 {
 	if(language == "nginx")
 		return(highlight_nginx_code(code));
-	if(language == "uce")
-		return(highlight_uce_code(code));
+	if(language == "bearer")
+		return(highlight_bearer_code(code));
 	return(highlight_code(code));
 }
 
@@ -586,7 +586,7 @@ String code_language_label(String language)
 {
 	if(language == "nginx")
 		return("nginx");
-	return("uce");
+	return("bearer");
 }
 
 COMPONENT(Request& props)
@@ -596,7 +596,7 @@ COMPONENT(Request& props)
 	String summary = props.props["summary"].to_string();
 	String code = props.props["code"].to_string();
 	String note = props.props["note"].to_string();
-	String language = first(props.props["language"].to_string(), "uce");
+	String language = first(props.props["language"].to_string(), "bearer");
 
 	<><article class="code-card">
 		<div class="eyebrow"><?= eyebrow ?></div>

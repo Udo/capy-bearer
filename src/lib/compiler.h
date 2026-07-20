@@ -1,31 +1,31 @@
 #pragma once
 
-#if defined(__UCE_WASM_UNIT__)
-#define UCE_UNIT_EXPORT __attribute__((visibility("default")))
+#if defined(__BEARER_WASM_UNIT__)
+#define BEARER_UNIT_EXPORT __attribute__((visibility("default")))
 #else
-#define UCE_UNIT_EXPORT
+#define BEARER_UNIT_EXPORT
 #endif
 
-#define RENDER(X) extern "C" UCE_UNIT_EXPORT void __uce_render(X)
-#define COMPONENT(X) extern "C" UCE_UNIT_EXPORT void __uce_component(X)
-#define ONCE(X) extern "C" UCE_UNIT_EXPORT void __uce_once(X)
-#define INIT(X) extern "C" UCE_UNIT_EXPORT void __uce_init(X)
-#define WS(X) extern "C" UCE_UNIT_EXPORT void __uce_websocket(X)
-#define CLI(X) extern "C" UCE_UNIT_EXPORT void __uce_cli(X)
-#define SERVE_HTTP(X) extern "C" UCE_UNIT_EXPORT void __uce_serve_http(X)
-#define EXPORT extern "C" UCE_UNIT_EXPORT
+#define RENDER(X) extern "C" BEARER_UNIT_EXPORT void __bearer_render(X)
+#define COMPONENT(X) extern "C" BEARER_UNIT_EXPORT void __bearer_component(X)
+#define ONCE(X) extern "C" BEARER_UNIT_EXPORT void __bearer_once(X)
+#define INIT(X) extern "C" BEARER_UNIT_EXPORT void __bearer_init(X)
+#define WS(X) extern "C" BEARER_UNIT_EXPORT void __bearer_websocket(X)
+#define CLI(X) extern "C" BEARER_UNIT_EXPORT void __bearer_cli(X)
+#define SERVE_HTTP(X) extern "C" BEARER_UNIT_EXPORT void __bearer_serve_http(X)
+#define EXPORT extern "C" BEARER_UNIT_EXPORT
 
 String preprocess_shared_unit(Request* context, SharedUnit* su);
 String compiler_generated_cpp_path(Request* context, String source_file);
 String compiler_generated_cpp_path(SharedUnit* su);
-#ifndef __UCE_WASM_UNIT__
+#ifndef __BEARER_WASM_UNIT__
 String compiler_unit_bin_directory(Request* context);
 String compiler_unit_wasm_path(Request* context, String source_file);
 #endif
 void setup_unit_paths(Request* context, SharedUnit* su, String file_name);
 void compile_shared_unit(Request* context, SharedUnit* su);
 SharedUnit* get_shared_unit(Request* context, String file_name);
-#ifndef __UCE_WASM_UNIT__
+#ifndef __BEARER_WASM_UNIT__
 SharedUnit* get_shared_unit_for_preprocess(Request* context, String file_name);
 SharedUnit* get_shared_unit_bounded(Request* context, String file_name, u64 timeout_ms, bool* timed_out);
 bool unit_compile_bounded(Request* context, String path, u64 timeout_ms, bool* timed_out, String* error = 0);
@@ -51,7 +51,7 @@ DValue unit_info(String path = "");
 StringList units_list();
 bool unit_compile(String path = "");
 
-#ifndef __UCE_WASM_UNIT__
+#ifndef __BEARER_WASM_UNIT__
 SharedUnit* unit_load(String file_name);
 #endif
 void unit_render(String file_name);

@@ -3,9 +3,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 test_name="mysql-persistent-pool-test-$$"
-settings_file="${UCE_SETTINGS_FILE:-/etc/uce/settings.cfg}"
-site_directory="${UCE_TEST_SITE_DIRECTORY:-site}"
-if [[ -z "${UCE_TEST_SITE_DIRECTORY:-}" && -r "$settings_file" ]]; then
+settings_file="${BEARER_SETTINGS_FILE:-/etc/bearer/settings.cfg}"
+site_directory="${BEARER_TEST_SITE_DIRECTORY:-site}"
+if [[ -z "${BEARER_TEST_SITE_DIRECTORY:-}" && -r "$settings_file" ]]; then
 	configured_site_directory=$(awk -F= '/^[[:space:]]*SITE_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "$settings_file")
 	if [[ -n "${configured_site_directory:-}" ]]; then
 		site_directory="$configured_site_directory"
@@ -13,12 +13,12 @@ if [[ -z "${UCE_TEST_SITE_DIRECTORY:-}" && -r "$settings_file" ]]; then
 fi
 source_dir="$site_directory/$test_name"
 bin_directory=$(awk -F= '/^[[:space:]]*BIN_DIRECTORY[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "$settings_file" 2>/dev/null || true)
-bin_directory="${bin_directory:-/tmp/uce/work}"
+bin_directory="${bin_directory:-/tmp/bearer/work}"
 cache_dir=""
-http_host="${UCE_TEST_HTTP_HOST:-uce.openfu.com}"
-test_user="uce_pool_$$"
-test_database="uce_pool_$$"
-test_database_other="uce_pool_other_$$"
+http_host="${BEARER_TEST_HTTP_HOST:-bearer.openfu.com}"
+test_user="bearer_pool_$$"
+test_database="bearer_pool_$$"
+test_database_other="bearer_pool_other_$$"
 test_password=$(printf '%s' "$test_name-$(date +%s%N)" | sha256sum | cut -c1-32)
 
 cleanup() {
@@ -46,13 +46,13 @@ printf '%s\n' \
 	'  String unselected_database;' \
 	'  mysql_query(unselected, "SELECT DATABASE() AS db").each([&](DValue row, String key) { unselected_database = row["db"].to_string(); });' \
 	"  bool database_clean = primary_database == \"$test_database\" && primary_label == \"primary\" && other_database == \"$test_database_other\" && other_label == \"other\" && unselected_database == \"\";" \
-	'  DValue marker_rows = mysql_query(db, "SELECT @uce_pool_marker AS marker");' \
+	'  DValue marker_rows = mysql_query(db, "SELECT @bearer_pool_marker AS marker");' \
 	'  String marker; marker_rows.each([&](DValue row, String key) { marker = row["marker"].to_string(); });' \
 	'  bool marker_clean = marker == "";' \
-	'  mysql_query(db, "SELECT id FROM uce_persistent_temp LIMIT 1");' \
+	'  mysql_query(db, "SELECT id FROM bearer_persistent_temp LIMIT 1");' \
 	'  bool temp_clean = mysql_error(db) != "";' \
-	"  mysql_query(db, \"SET @uce_pool_marker='dirty'\");" \
-	'  mysql_query(db, "CREATE TEMPORARY TABLE uce_persistent_temp (id INT PRIMARY KEY)");' \
+	"  mysql_query(db, \"SET @bearer_pool_marker='dirty'\");" \
+	'  mysql_query(db, "CREATE TEMPORARY TABLE bearer_persistent_temp (id INT PRIMARY KEY)");' \
 	"  mysql_query(db, \"USE \\\`$test_database_other\\\`\");" \
 	"  mysql_query(other, \"USE \\\`$test_database\\\`\");" \
 	"  mysql_query(unselected, \"USE \\\`$test_database\\\`\");" \

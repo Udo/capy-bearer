@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-service_name="${UCE_TEST_SERVICE:-uce.service}"
-socket_name="${UCE_TEST_SOCKET_SERVICE:-uce.socket}"
-http_host="${UCE_TEST_HTTP_HOST:-uce.openfu.com}"
-http_path="${UCE_TEST_HTTP_PATH:-/info/}"
-requests="${UCE_TEST_RESTART_REQUESTS:-100}"
+service_name="${BEARER_TEST_SERVICE:-bearer.service}"
+socket_name="${BEARER_TEST_SOCKET_SERVICE:-bearer.socket}"
+http_host="${BEARER_TEST_HTTP_HOST:-bearer.openfu.com}"
+http_path="${BEARER_TEST_HTTP_PATH:-/info/}"
+requests="${BEARER_TEST_RESTART_REQUESTS:-100}"
 statuses=$(mktemp)
 trap 'rm -f "$statuses"' EXIT
 

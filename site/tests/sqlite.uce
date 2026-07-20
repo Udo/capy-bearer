@@ -17,7 +17,7 @@ RENDER(Request& context)
 
 	site_tests_page_start("SQLite", "SQLite connector coverage for prepared params, result typing, metadata, and cleanup.");
 
-	String db_path = "/tmp/uce-site-tests-sqlite.sqlite";
+	String db_path = "/tmp/bearer-site-tests-sqlite.sqlite";
 	file_unlink(db_path);
 	file_unlink(db_path + "-wal");
 	file_unlink(db_path + "-shm");
@@ -88,6 +88,6 @@ RENDER(Request& context)
 	file_unlink(db_path + "-wal");
 	file_unlink(db_path + "-shm");
 
-	site_tests_summary(passed, failed, skipped, "SQLite tests write only under /tmp/uce-site-tests-sqlite.sqlite and clean up WAL/SHM sidecars.");
+	site_tests_summary(passed, failed, skipped, "SQLite tests write only under /tmp/bearer-site-tests-sqlite.sqlite and clean up WAL/SHM sidecars.");
 	site_tests_page_end();
 }

@@ -1,5 +1,5 @@
 :sig
-void session_destroy(String session_name = "uce-session")
+void session_destroy(String session_name = "bearer-session")
 
 :params
 session_name : the name of the session
@@ -14,6 +14,6 @@ This also empties `context.session_id`, `context.session_name`, and `context.ses
 
 
 :example
-String id = session_start("uce-doc-example-destroy");
-session_destroy("uce-doc-example-destroy");
+String id = session_start("bearer-doc-example-destroy");
+session_destroy("bearer-doc-example-destroy");
 print(id != "" ? "destroyed\n" : "empty\n");

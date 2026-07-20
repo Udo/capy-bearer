@@ -19,7 +19,7 @@ sqlite_affected_rows
 :content
 Executes one SQLite statement and returns result rows as a `DValue` array. Multi-statement SQL strings are rejected so migrations cannot silently run only their first statement.
 
-Use named parameters with `:name` placeholders only. Positional `?` placeholders and SQLite's other named marker forms (`@name`, `$name`) are rejected so UCE SQLite queries use the same placeholder style as the MySQL helper. UCE binds parameters with SQLite prepared statements; it does not substitute values into the SQL string.
+Use named parameters with `:name` placeholders only. Positional `?` placeholders and SQLite's other named marker forms (`@name`, `$name`) are rejected so BEARER SQLite queries use the same placeholder style as the MySQL helper. BEARER binds parameters with SQLite prepared statements; it does not substitute values into the SQL string.
 
 Result rows are objects keyed by column name. SQLite integer, float, text, blob, and null values are converted to DValue values. Blob values are returned as byte strings.
 

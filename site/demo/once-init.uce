@@ -40,7 +40,7 @@ RENDER(Request& context)
 	<><html>
 		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
 		<h1>
-			<a href="index.uce">UCE Test</a>:
+			<a href="index.uce">BEARER Test</a>:
 			ONCE() and INIT()
 		</h1>
 		<p>

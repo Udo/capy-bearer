@@ -2,7 +2,7 @@
 C++ Preprocessor
 
 :sig
-UCE source preprocessing
+BEARER source preprocessing
 
 :see
 load
@@ -12,7 +12,7 @@ unit_call
 1_COMPONENT
 
 :content
-UCE runs a small custom source-to-source preprocessor before Clang sees a `.uce` or `.ws.uce` file.
+BEARER runs a small custom source-to-source preprocessor before Clang sees a `.uce` or `.ws.uce` file.
 
 The template rewriting implementation lives in `src/lib/compiler-parser.cpp`, with orchestration in `src/lib/compiler.cpp`. It does not try to parse all of C++. Instead, it performs a narrow character-wise rewrite that understands literal output, inline code islands, `#load`, and `EXPORT` harvesting, then writes a generated `.cpp` file and compiles that file into a WebAssembly side module.
 
@@ -24,7 +24,7 @@ The template rewriting implementation lives in `src/lib/compiler-parser.cpp`, wi
 - Inside literal output, `<? ... ?>` emits raw C++.
 - Inside a literal block, `<?= expression ?>` emits `print(html_escape(expression));`.
 - Inside a literal block, `<?: expression ?>` emits `print(expression);` without HTML escaping.
-- `#load "other.uce"` injects another UCE unit at compile time.
+- `#load "other.uce"` injects another BEARER unit at compile time.
 - `RENDER(Request& context)`, `COMPONENT(Request& context)`, `CLI(Request& context)`, `ONCE(Request& context)`, `INIT(Request& context)`, and `WS(Request& context)` are normal C++ macros from `src/lib/compiler.h`.
 - `ONCE`, `RENDER`, and `COMPONENT` may be followed by a preprocessor attribute line such as `@fragment head` before the opening `{`. The handler's output is then captured and appended to `context.call["fragments"]["head"]` instead of being emitted at the call site. `ONCE` defaults to `@fragment once` when no fragment is specified.
 - `COMPONENT:NAME(Request& context)` is rewritten by the custom pass into an exported named component handler.
@@ -32,8 +32,8 @@ The template rewriting implementation lives in `src/lib/compiler-parser.cpp`, wi
 
 ## Pipeline
 
-- The generated file starts by including the logical runtime header `uce_lib.h`; the wasm unit compile script provides the include path.
-- It then inlines the configured setup template from `SETUP_TEMPLATE` (by default `scripts/setup.h.template`), which defines the internal hook `__uce_set_current_request(Request*)`.
+- The generated file starts by including the logical runtime header `bearer_lib.h`; the wasm unit compile script provides the include path.
+- It then inlines the configured setup template from `SETUP_TEMPLATE` (by default `scripts/setup.h.template`), which defines the internal hook `__bearer_set_current_request(Request*)`.
 - It inserts `#line 1` before page code so compiler diagnostics point back to the original `.uce` file.
 - Each literal region is rewritten into one or more `print(R"...( ... )...");` calls using a safe raw-string delimiter selected for that literal content.
 - `<>` and `?>` both switch from code mode into literal output.
@@ -44,8 +44,8 @@ The template rewriting implementation lives in `src/lib/compiler-parser.cpp`, wi
 - `#load "file.uce"` is replaced with a generated C++ `#include` that points at the loaded unit's preprocessed `.cpp` file under `BIN_DIRECTORY`.
 - Lines beginning with `EXPORT` are scanned so their declarations can be written to a sibling `.exports.txt` file.
 - `@fragment slot-name` lines immediately following `ONCE`, `RENDER`, or `COMPONENT` are removed and replaced with an output-capture guard at the start of the handler body.
-- Lines beginning with `RENDER:NAME(...)` are rewritten into exported `__uce_render_NAME(...)` functions.
-- Lines beginning with `COMPONENT:NAME(...)` are rewritten into exported `__uce_component_NAME(...)` functions for the component helpers.
+- Lines beginning with `RENDER:NAME(...)` are rewritten into exported `__bearer_render_NAME(...)` functions.
+- Lines beginning with `COMPONENT:NAME(...)` are rewritten into exported `__bearer_component_NAME(...)` functions for the component helpers.
 - The final generated source is written to `BIN_DIRECTORY + src_path + "/" + source_file + ".cpp"`.
 - `scripts/compile_wasm_unit` then compiles that generated `.cpp` into `source_file + ".wasm"` as a PIC WebAssembly side module.
 - When a worker instantiates the compiled unit, the runtime checks for `INIT(Request& context)` and calls it once for that worker-side instance.
@@ -112,9 +112,9 @@ The page template can then render `context.call["fragments"]["head"]` inside `<h
 
 ## Debugging
 
-- Inspect the generated file under `BIN_DIRECTORY` first. That file shows the exact C++ produced by the UCE preprocessor.
+- Inspect the generated file under `BIN_DIRECTORY` first. That file shows the exact C++ produced by the BEARER preprocessor.
 - Compiler errors usually point back to the `.uce` source because the preprocessor inserts `#line 1`, but the generated `.cpp` is still the best place to inspect expansion problems.
-- Compile failures are reported with the source path, generated C++ path, compile-output artifact path, an excerpt when UCE can identify a line, and the raw compiler output from the configured compile script.
+- Compile failures are reported with the source path, generated C++ path, compile-output artifact path, an excerpt when BEARER can identify a line, and the raw compiler output from the configured compile script.
 - Runtime request failures include the request/script path, generated C++ path, a hint about inspecting template delimiters and recent component/unit calls, and a native trace when available.
 - If a `#load` include looks wrong, check the current file's directory, the configured `BIN_DIRECTORY`, and whether the loaded page already produced its own generated `.cpp`.
 

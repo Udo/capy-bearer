@@ -1,6 +1,6 @@
 #include "functionlib.h"
 
-#ifndef __UCE_WASM_CORE__
+#ifndef __BEARER_WASM_CORE__
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
 #endif
@@ -159,7 +159,7 @@ String replace(String s, String search, String replace_with)
 	return(result);
 }
 
-#ifndef __UCE_WASM_CORE__
+#ifndef __BEARER_WASM_CORE__
 namespace {
 
 String regex_flags_label(String flags)
@@ -504,11 +504,11 @@ StringList regex_split(String pattern, String subject, String flags)
 #else
 
 // PCRE2 is not compiled into the wasm core; regex runs host-side (the host
-// already links libpcre2). One UCEB2-marshalled hostcall carries the request
+// already links libpcre2). One BRRB2-marshalled hostcall carries the request
 // {op,pattern,subject,flags,replacement} in and the result tree out — the host
-// runs the native regex_* and packs the answer. See uce_host_regex in
+// runs the native regex_* and packs the answer. See bearer_host_regex in
 // src/wasm/worker.cpp.
-extern "C" size_t uce_host_regex(const char* in, size_t in_len, char* out, size_t cap);
+extern "C" size_t bearer_host_regex(const char* in, size_t in_len, char* out, size_t cap);
 
 static DValue wasm_regex_call(String op, String pattern, String subject, String flags, String replacement = "")
 {
@@ -518,17 +518,17 @@ static DValue wasm_regex_call(String op, String pattern, String subject, String 
 	request["subject"] = subject;
 	request["flags"] = flags;
 	request["replacement"] = replacement;
-	String encoded = ucb_encode(request);
-	size_t need = uce_host_regex(encoded.data(), encoded.size(), 0, 0);
+	String encoded = brb_encode(request);
+	size_t need = bearer_host_regex(encoded.data(), encoded.size(), 0, 0);
 	if(need == 0)
 		return(DValue());
 	String buffer(need, 0);
-	size_t got = uce_host_regex(encoded.data(), encoded.size(), &buffer[0], need);
+	size_t got = bearer_host_regex(encoded.data(), encoded.size(), &buffer[0], need);
 	if(got == 0 || got > need)
 		return(DValue());
 	DValue response;
 	String error;
-	ucb_decode(String(buffer.data(), got), response, &error);
+	brb_decode(String(buffer.data(), got), response, &error);
 	return(response);
 }
 
@@ -1307,7 +1307,7 @@ String xml_decode_text(String s)
 
 void xml_throw(String message)
 {
-#ifdef __UCE_WASM_CORE__
+#ifdef __BEARER_WASM_CORE__
 	(void)message;
 	__builtin_trap();
 #else
@@ -1845,7 +1845,7 @@ String yaml_decode_quoted(String raw)
 
 void yaml_throw(String message)
 {
-#ifdef __UCE_WASM_CORE__
+#ifdef __BEARER_WASM_CORE__
 	(void)message;
 	__builtin_trap();
 #else

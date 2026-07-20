@@ -30,7 +30,7 @@ void test_num(String label, s64 result, s64 expect)
 
 RENDER(Request& context)
 {
-	String sample = "  Hello UCE World  ";
+	String sample = "  Hello BEARER World  ";
 
 	<>
 		<link rel="stylesheet" href='style.css'></link>
@@ -43,7 +43,7 @@ RENDER(Request& context)
 			.test-status.fail { color: #f66; }
 		</style>
 		<h1>
-			<a href="index.uce">UCE Test</a>:
+			<a href="index.uce">BEARER Test</a>:
 			Strings
 		</h1>
 
@@ -51,19 +51,19 @@ RENDER(Request& context)
 
 		<h2>trim</h2>
 		<table class="tests"><?
-			test_row("trim(sample)", "[" + trim(sample) + "]", "[Hello UCE World]");
+			test_row("trim(sample)", "[" + trim(sample) + "]", "[Hello BEARER World]");
 		?></table>
 
 		<h2>substr</h2>
 		<table class="tests"><?
 			test_row("substr(sample, 2, 5)", substr(sample, 2, 5), "Hello");
 			test_row("substr(sample, -7)", substr(sample, -7), "World  ");
-			test_row("substr(sample, 2, -2)", substr(sample, 2, -2), "Hello UCE World");
+			test_row("substr(sample, 2, -2)", substr(sample, 2, -2), "Hello BEARER World");
 		?></table>
 
 		<h2>strpos</h2>
 		<table class="tests"><?
-			test_num("strpos(sample, \"UCE\")", strpos(sample, "UCE"), 8);
+			test_num("strpos(sample, \"BEARER\")", strpos(sample, "BEARER"), 8);
 			test_num("strpos(sample, \"missing\")", strpos(sample, "missing"), -1);
 		?></table>
 
@@ -83,14 +83,14 @@ RENDER(Request& context)
 
 		<h2>replace / split / join</h2>
 		<table class="tests"><?
-			test_row("replace(sample, \"UCE\", \"C++\")", replace(sample, "UCE", "C++"), "  Hello C++ World  ");
-			test_row("join(split(trim(sample), \" \"), \"-\")", join(split(trim(sample), " "), "-"), "Hello-UCE-World");
+			test_row("replace(sample, \"BEARER\", \"C++\")", replace(sample, "BEARER", "C++"), "  Hello C++ World  ");
+			test_row("join(split(trim(sample), \" \"), \"-\")", join(split(trim(sample), " "), "-"), "Hello-BEARER-World");
 		?></table>
 
 		<h2>to_upper / to_lower</h2>
 		<table class="tests"><?
-			test_row("to_upper(trim(sample))", to_upper(trim(sample)), "HELLO UCE WORLD");
-			test_row("to_lower(trim(sample))", to_lower(trim(sample)), "hello uce world");
+			test_row("to_upper(trim(sample))", to_upper(trim(sample)), "HELLO BEARER WORLD");
+			test_row("to_lower(trim(sample))", to_lower(trim(sample)), "hello bearer world");
 		?></table>
 
 		<details>

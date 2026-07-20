@@ -30,7 +30,7 @@ If the file defines `INIT(Request& context)`, the runtime calls that hook once w
 
 For a normal direct page request, `context.props` starts empty.
 
-If the page is invoked from another UCE file via `unit_render(file_name, context)`, the callee receives that same `context`.
+If the page is invoked from another BEARER file via `unit_render(file_name, context)`, the callee receives that same `context`.
 
 Pages that serve WebSocket traffic may expose both `RENDER(Request& context)` and `WS(Request& context)`. Files may also define `COMPONENT()` handlers when one unit needs both page and component behavior.
 

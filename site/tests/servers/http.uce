@@ -11,6 +11,6 @@ SERVE_HTTP:named(Request* req)
 {
 	req->header["Content-Type"] = "text/plain; charset=utf-8";
 	print("custom-http-named\n");
-	print("function=", req->params["UCE_SERVE_HTTP_FUNCTION"], "\n");
+	print("function=", req->params["BEARER_SERVE_HTTP_FUNCTION"], "\n");
 	print("query=", req->params["QUERY_STRING"], "\n");
 }
