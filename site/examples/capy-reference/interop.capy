@@ -1,0 +1,14 @@
+function RENDER {
+    print("<!doctype html><html lang='en'><head><meta name='viewport' content='width=device-width,initial-scale=1'><title>Capy Bearer Interop</title><link rel='stylesheet' href='style.css'></head><body><div class='shell'><header class='top'><strong><a href='index.capy'>Capy Reference</a></strong><span>Bearer interoperability</span></header><div class='layout'><nav aria-label='Reference chapters'><a href='index.capy'>Overview</a><a href='syntax.capy'>Syntax</a><a href='types.capy'>Types & overloads</a><a href='ownership.capy'>ARC ownership</a><a class='active' aria-current='page' href='interop.capy'>Bearer interop</a><a href='status.capy'>Implementation status</a></nav><main><h1>Bearer interoperability</h1><p>Capy and C++ communicate through Bearer unit, component, handler, and copied BRRB2 membranes. They never assume compatible in-language object layouts.</p><h2>Handler exports</h2><table><tr><th>Capy declaration</th><th>Bearer export</th></tr><tr><td><code>RENDER</code></td><td><code>__bearer_render</code></td></tr><tr><td><code>COMPONENT</code></td><td><code>__bearer_component</code></td></tr><tr><td><code>COMPONENT_CARD</code></td><td><code>__bearer_component_CARD</code></td></tr><tr><td><code>CLI</code></td><td><code>__bearer_cli</code></td></tr><tr><td><code>WS</code>, <code>ONCE</code>, <code>INIT</code></td><td>Matching Bearer lifecycle handlers</td></tr><tr><td><code>SERVE_HTTP_NAME</code></td><td>Named HTTP handler export</td></tr></table><pre>function COMPONENT_CARD {
+    print(\"card from Capy\")
+}</pre><h2>Rendering another unit</h2><pre>function CLI {
+    unit_render(\"/views/page.uce\")
+    component_render(\"/components/card.capy:CARD\")
+}</pre><p>Both builtins enter the ordinary Bearer resolver and preserve current-unit, ONCE, props, and workspace behavior.</p><h2>Copied dval calls</h2><pre>var input := dval(\"hello\")
+var output := unit_call(
+    \"/services/echo.uce\",
+    \"echo\",
+    input
+)
+print(dval_string(output))</pre><p><code>dval</code> owns copied BRRB2 bytes under ARC. The staged sizing/copy protocol executes the target once. Copy and reassignment use the same retain-before-release rules as other managed values.</p><div class='note'>Current dval construction and extraction cover string scalars and opaque round trips. Rich map/list access and Capy custom DValue exports are planned.</div><h2>Module metadata</h2><p>Capy emits PIC Wasm with <code>dylink.0</code>, <code>bearer.abi</code>, <code>bearer.module</code>, and a <code>BEARER_SOURCE_MAP_V1</code> sidecar. Current generation is c17/w10.</p></main></div></div></body></html>")
+}

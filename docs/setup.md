@@ -507,14 +507,14 @@ server {
     server_name example.com;
 
     root /var/www/html;
-    index index.uce index.html;
+    index index.uce index.capy index.html;
 
-    # Serve static files directly. Directory requests use index.uce when present.
+    # Serve static files directly. Directory requests prefer index.uce, then index.capy.
     location / {
         try_files $uri $uri/ =404;
     }
 
-    # BEARER page requests use FastCGI. If the client asks to upgrade a .uce
+    # BEARER page requests use FastCGI. If the client asks to upgrade a unit
     # request to WebSocket, send that connection to the built-in listener.
     location ~ \.(?:uce|capy)$ {
         error_page 418 = @bearer_websocket;

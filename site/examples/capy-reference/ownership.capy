@@ -1,0 +1,16 @@
+function RENDER {
+    print("<!doctype html><html lang='en'><head><meta name='viewport' content='width=device-width,initial-scale=1'><title>Capy ARC Ownership</title><link rel='stylesheet' href='style.css'></head><body><div class='shell'><header class='top'><strong><a href='index.capy'>Capy Reference</a></strong><span>ARC ownership</span></header><div class='layout'><nav aria-label='Reference chapters'><a href='index.capy'>Overview</a><a href='syntax.capy'>Syntax</a><a href='types.capy'>Types & overloads</a><a class='active' aria-current='page' href='ownership.capy'>ARC ownership</a><a href='interop.capy'>Bearer interop</a><a href='status.capy'>Implementation status</a></nav><main><h1>Automatic reference counting</h1><p>Dynamic values use non-atomic, workspace-local ARC. Bearer workspace destruction is the final reclamation boundary, including after a trap.</p><h2>Ownership rules</h2><ul><li>New dynamic objects and function results are owned.</li><li>Managed function parameters are borrowed and cannot be rebound.</li><li>Copying a borrow into owned storage retains it.</li><li>Assignment retains the replacement before releasing the old value.</li><li>Normal scope exits and explicit or early returns release owned locals.</li><li>Arrays, tuples, and structs recursively release managed children.</li><li>String literals are immutable immortal objects.</li></ul><pre>function passthrough(value : string) string {
+    value  // borrowed input is retained for the owned result
+}
+
+function example {
+    var first := clone(\"first\")
+    var second := first
+    first = clone(\"replacement\")
+    print(second)
+}</pre><h2>Object model</h2><pre>u32 strong_count
+u32 weak_count
+u32 type_descriptor
+u32 size_and_flags
+// type-specific payload follows</pre><p>Objects are eight-byte aligned. Strings start with a length and UTF-8 payload. Aggregate type descriptors select generated drop glue.</p><h2>Arguments and results</h2><p>Owned temporary arguments are kept alive through a call and released afterward. Managed results transfer one owned reference. Extracting a managed field from an owned temporary retains the field before dropping its container.</p><h2>Traps and cycles</h2><div class='note'>A trap skips lexical cleanup, but the complete request workspace is discarded. Strong cycles are not collected before teardown. Planned <code>weak&lt;T&gt;</code> handles will express deliberate back-references.</div><h2>Conformance aid</h2><p><code>arc_live()</code> is currently available as a diagnostic builtin in Capy tests. Production code should not use it as application state.</p></main></div></div></body></html>")
+}

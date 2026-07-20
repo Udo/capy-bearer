@@ -1,0 +1,33 @@
+function RENDER {
+    print("<!doctype html><html lang='en'><head><meta name='viewport' content='width=device-width,initial-scale=1'><title>Capy Syntax</title><link rel='stylesheet' href='style.css'></head><body><div class='shell'><header class='top'><strong><a href='index.capy'>Capy Reference</a></strong><span>Syntax</span></header><div class='layout'><nav aria-label='Reference chapters'><a href='index.capy'>Overview</a><a class='active' aria-current='page' href='syntax.capy'>Syntax</a><a href='types.capy'>Types & overloads</a><a href='ownership.capy'>ARC ownership</a><a href='interop.capy'>Bearer interop</a><a href='status.capy'>Implementation status</a></nav><main><h1>Syntax</h1><p>Declarations and statements are expressions. Newlines or semicolons separate expressions.</p><h2>Function declarations</h2><p>A declaration is <code>function</code>, a name, an optional parameter expression, an optional result-type expression, and a block. Parentheses remain ordinary grouping or tuple syntax.</p><pre>function add(left : s32, right : s32) s32 {
+    left + right
+}
+
+function origin (s32, s32) {
+    (0, 0)
+}</pre><h2>Variables and assignment</h2><pre>var inferred := 10
+var explicit : s32 = 20
+inferred = inferred + explicit</pre><p><code>:=</code> infers a local type. <code>:</code> declares it explicitly. Locals are lexical and may shadow names in nested blocks.</p><h2>Control flow</h2><pre>if value &gt; 0 {
+    print(\"positive\")
+} else {
+    print(\"not positive\")
+}
+
+while value &gt; 0 {
+    value = value - 1
+}
+
+for index = 0..3 {
+    print(index)
+}</pre><p>Ranges are exclusive at the upper bound. Arrays are also iterable.</p><h2>Arrays, tuples, and structs</h2><pre>struct Pair {
+    label : string
+    value : s32
+}
+
+var numbers := [10, 20, 30]
+var pair := Pair(clone(\"score\"), numbers[1])
+var result := (pair.label, pair.value)
+print(result[0], result[1])</pre><p>Array indexes are runtime bounds-checked. Tuple indexes must be compile-time integer constants.</p><h2>Comments and strings</h2><pre>// line comment
+print(\"strings may span
+source lines\")</pre></main></div></div></body></html>")
+}

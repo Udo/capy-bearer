@@ -69,6 +69,7 @@ if [[ "$action" == "run" ]]; then
 	scripts/test_dependency_invalidation.sh
 	scripts/test_abi_generation_rollout.sh
 	scripts/test_capy_phase1.sh
+	scripts/test_capy_reference.sh
 	scripts/test_parallel_precompile.sh
 	timeout --signal=TERM --kill-after=5s 175s scripts/test_parallel_proactive_compile.sh
 	scripts/test_cold_component_deadline.sh

@@ -31,7 +31,7 @@ RENDER(Request& context)
 
 *The runtime is still experimental. This is not production-ready. Use at your own risk!*
 
-Capy is the new direct-to-WebAssembly language under development for Bearer. Its expression-based declaration grammar, compile-time polymorphism, direct side-module ABI, and ARC direction are documented in [`docs/capy-language.md`](docs/capy-language.md). C++ `.uce` units remain supported alongside `.capy` units.
+Capy is the new direct-to-WebAssembly language under development for Bearer. Its expression-based declaration grammar, compile-time polymorphism, direct side-module ABI, and ARC direction are documented in [`docs/capy-language.md`](docs/capy-language.md). A browsable reference implemented entirely as Capy units lives at [`site/examples/capy-reference/`](site/examples/capy-reference/) and is served from `/examples/capy-reference/`. C++ `.uce` units remain supported alongside `.capy` units.
 
 ## Build
 
@@ -440,7 +440,7 @@ server {
 	server_name example.com;
 	root /var/www/html;
 
-	index index.uce index.html;
+	index index.uce index.capy index.html;
 
 	location / {
 		try_files $uri $uri/ =404;
