@@ -37,7 +37,7 @@ RENDER(Request& context)
 
 		<pre><?
 
-			print(shell_exec("git show"));
+			print(shell_exec("git show --no-patch --decorate --oneline HEAD"));
 
 		?></pre>
 
