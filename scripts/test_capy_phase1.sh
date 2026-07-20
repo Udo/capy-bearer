@@ -17,6 +17,17 @@ python3 scripts/test_capy_compiler.py >/dev/null
 output=$(scripts/bearer-cli /tests/capy-phase1.capy)
 [[ "$output" == "capy-direct-ok" ]] || { echo "Capy CLI output mismatch: $output" >&2; exit 1; }
 
+language_output=$(scripts/bearer-cli /tests/capy-language.capy)
+[[ "$language_output" == "sum=30;012;ok;01" ]] || {
+	echo "Capy functions/locals/control-flow output mismatch: $language_output" >&2
+	exit 1
+}
+render_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-render.capy)
+[[ "$render_output" == "capy-render-ok" ]] || {
+	echo "Capy HTTP RENDER output mismatch: $render_output" >&2
+	exit 1
+}
+
 cache="$(scripts/unit_cache_directory "$bin_directory")$site_directory/tests/capy-phase1.capy"
 [[ -s "$cache.wasm" && -s "$cache.cwasm" && -s "$cache.wasm.source-map" && -s "$cache.meta.txt" ]]
 python3 scripts/check_unit_wasm.py "$cache.wasm" --abi-version "$(awk '/BEARER_WASM_CORE_ABI_VERSION/ {print $3; exit}' src/wasm/abi.h)"
@@ -70,7 +81,7 @@ failure=$(scripts/bearer-cli "/$fixture/entry.capy" 2>&1)
 status=$?
 set -e
 [[ $status -ne 0 ]]
-[[ "$failure" == *"entry.capy:1:"* && "$failure" == *"print arguments must be string or integer constants"* ]]
+[[ "$failure" == *"entry.capy:1:"* && "$failure" == *"unknown local 'not_a_constant'"* ]]
 [[ ! -e "$artifact_dir/entry.capy.wasm" ]]
 
 printf '%s\n' 'function CLI { print("capy-recovered") }' >"$source_dir/entry.capy"

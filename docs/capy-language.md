@@ -118,4 +118,4 @@ Capy values never expose their object layout to C++. Dynamic cross-language valu
 
 ## Current implementation boundary
 
-The current first vertical slice includes the lexer, expression parser, overload declaration index, bounded diagnostics, direct Wasm encoding, `.capy` artifact integration, and real Bearer CLI execution for constant-output handlers. It is intentionally not yet the complete phase-1 language; the authoritative remaining work is tracked in `/root/docs/work/capy-compiler.md`.
+The current phase-1 slice includes the lexer, expression parser, exact parameter overload index, bounded diagnostics, direct Wasm encoding, `.capy` artifact integration, and real Bearer CLI/HTTP execution. Scalar `s32`/`bool` locals, assignment, arithmetic/comparison, direct overloaded function calls, `if`, `while`, exclusive ranges, variadic printing, explicit returns, and inferred local declarations execute as native Wasm. Strings remain literal-only and structs, ARC values, full inference, tuples, Capy/C++ calls, and phase-3 polymorphism are not implemented yet. The authoritative remaining work is tracked in `/root/docs/work/capy-compiler.md`.

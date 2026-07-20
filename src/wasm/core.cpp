@@ -1037,6 +1037,13 @@ void bearer_print_bytes(const char* data, size_t len)
 		context->ob->write(data, len);
 }
 
+void bearer_print_s32(s32 value)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	print(std::to_string(value));
+}
+
 void bearer_wasm_finish_output()
 {
 	// ob_stack[0] is the request's primary stream; nested captures above it

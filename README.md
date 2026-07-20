@@ -446,7 +446,7 @@ server {
 		try_files $uri $uri/ =404;
 	}
 
-	location ~ \.uce$ {
+	location ~ \.(?:uce|capy)$ {
 		error_page 418 = @bearer_websocket;
 		if ($http_upgrade = "websocket") {
 			return 418;

@@ -516,7 +516,7 @@ server {
 
     # BEARER page requests use FastCGI. If the client asks to upgrade a .uce
     # request to WebSocket, send that connection to the built-in listener.
-    location ~ \.uce$ {
+    location ~ \.(?:uce|capy)$ {
         error_page 418 = @bearer_websocket;
         if ($http_upgrade = "websocket") {
             return 418;

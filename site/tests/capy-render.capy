@@ -1,0 +1,3 @@
+function RENDER {
+    print("capy-render-ok")
+}

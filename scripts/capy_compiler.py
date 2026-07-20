@@ -261,6 +261,19 @@ class For(Expr):
 
 
 @dataclass
+class If(Expr):
+    condition: Expr
+    then_body: Block
+    else_body: Block | None
+
+
+@dataclass
+class While(Expr):
+    condition: Expr
+    body: Block
+
+
+@dataclass
 class Program:
     items: list[Expr]
 
@@ -300,13 +313,13 @@ class Parser:
         return token
 
     def match(self, text: str) -> bool:
-        if self.token.text == text:
+        if self.token.kind != "string" and self.token.text == text:
             self.take()
             return True
         return False
 
     def require(self, text: str) -> Token:
-        if self.token.text != text:
+        if self.token.kind == "string" or self.token.text != text:
             raise CapyError(self.token.location, f"expected {text!r}, found {self.token.text or 'end of file'!r}")
         return self.take()
 
@@ -316,7 +329,7 @@ class Parser:
         return self.take()
 
     def skip_separators(self) -> None:
-        while self.token.kind == "newline" or self.token.text == ";":
+        while self.token.kind == "newline" or (self.token.kind == "symbol" and self.token.text == ";"):
             self.take()
 
     def parse(self) -> Program:
@@ -396,6 +409,10 @@ class Parser:
                 return self.return_expr(token.location)
             if token.text == "for":
                 return self.for_expr(token.location)
+            if token.text == "if":
+                return self.if_expr(token.location)
+            if token.text == "while":
+                return self.while_expr(token.location)
             return Name(token.location, token.text)
         if token.text == "(":
             return self.parenthesized(token.location)
@@ -513,6 +530,25 @@ class Parser:
         body_location = self.require("{").location
         return For(location, name.text, iterable, self.block(body_location))
 
+    def if_expr(self, location: Location) -> If:
+        condition = self.expression()
+        body_location = self.require("{").location
+        then_body = self.block(body_location)
+        separator_position = self.position
+        self.skip_separators()
+        else_body = None
+        if self.match("else"):
+            else_location = self.require("{").location
+            else_body = self.block(else_location)
+        else:
+            self.position = separator_position
+        return If(location, condition, then_body, else_body)
+
+    def while_expr(self, location: Location) -> While:
+        condition = self.expression()
+        body_location = self.require("{").location
+        return While(location, condition, self.block(body_location))
+
 
 @dataclass(frozen=True)
 class FunctionKey:
@@ -612,115 +648,331 @@ def wasm_custom(name: str, payload: bytes) -> bytes:
     return wasm_section(0, wasm_string(name) + payload)
 
 
-def handler_output(function: Function) -> bytes:
-    output: list[str] = []
-    for expression in function.body.items:
-        if isinstance(expression, Call) and isinstance(expression.function, Name) and expression.function.value == "print":
-            for argument in expression.arguments:
-                if isinstance(argument, String):
-                    output.append(argument.value)
-                elif isinstance(argument, Integer):
-                    output.append(str(argument.value))
-                else:
-                    raise CapyError(argument.location, "phase-1 print arguments must be string or integer constants")
-        elif isinstance(expression, Return) and expression.value is None:
-            continue
+SCALAR_TYPES = {"s32", "bool"}
+HANDLER_EXPORTS = {
+    "RENDER": "__bearer_render",
+    "CLI": "__bearer_cli",
+    "WS": "__bearer_websocket",
+    "ONCE": "__bearer_once",
+    "INIT": "__bearer_init",
+}
+
+
+def capy_type(expression: Expr | None, location: Location, allow_void: bool = False) -> str:
+    if expression is None:
+        if allow_void:
+            return "void"
+        raise CapyError(location, "function return type cannot be inferred yet; declare it explicitly")
+    name = type_name(expression)
+    if name == "any" or "::type" in name:
+        raise CapyError(expression.location, "compile-time any and dependent result types are reserved for phase 3")
+    if name not in SCALAR_TYPES | {"string", "request", "void"}:
+        raise CapyError(expression.location, f"phase-1 backend does not yet support type {name!r}")
+    return name
+
+
+@dataclass
+class CompiledDefinition:
+    function: Function
+    parameter_types: tuple[str, ...]
+    result_type: str
+    export_name: str | None
+    function_index: int = 0
+    type_index: int = 0
+
+
+class WasmFunctionCompiler:
+    def __init__(self, module: "CapyModuleCompiler", definition: CompiledDefinition):
+        self.module = module
+        self.definition = definition
+        self.scopes: list[dict[str, tuple[int, str]]] = [{}]
+        self.parameter_count = 1 if definition.export_name else len(definition.parameter_types)
+        self.local_count = 0
+        if definition.export_name:
+            if len(definition.function.parameters) == 1:
+                parameter = definition.function.parameters[0]
+                self.scopes[0][parameter.name] = (0, "request")
         else:
-            raise CapyError(expression.location, "phase-1 Bearer handlers currently support print(constants) and empty return")
-    return "".join(output).encode("utf-8")
+            for index, parameter in enumerate(definition.function.parameters):
+                self.scopes[0][parameter.name] = (index, definition.parameter_types[index])
+
+    def lookup(self, name: Name) -> tuple[int, str]:
+        for scope in reversed(self.scopes):
+            if name.value in scope:
+                return scope[name.value]
+        raise CapyError(name.location, f"unknown local {name.value!r}")
+
+    def allocate_local(self, value_type: str, location: Location) -> int:
+        if value_type not in SCALAR_TYPES:
+            raise CapyError(location, f"phase-1 local type {value_type!r} is not scalar")
+        index = self.parameter_count + self.local_count
+        self.local_count += 1
+        return index
+
+    def add_local(self, name: str, value_type: str, location: Location) -> int:
+        if name in self.scopes[-1]:
+            raise CapyError(location, f"local {name!r} is already declared in this scope")
+        index = self.allocate_local(value_type, location)
+        self.scopes[-1][name] = (index, value_type)
+        return index
+
+    def compile_body(self) -> bytes:
+        code = self.compile_block(self.definition.function.body, self.definition.result_type)
+        if self.definition.result_type == "void":
+            code += b"\x0b"
+        else:
+            code += b"\x0b"
+        locals_prefix = b"\x00" if self.local_count == 0 else b"\x01" + uleb(self.local_count) + b"\x7f"
+        body = locals_prefix + code
+        return uleb(len(body)) + body
+
+    def compile_block(self, block: Block, expected_result: str = "void") -> bytes:
+        self.scopes.append({})
+        code = bytearray()
+        for index, expression in enumerate(block.items):
+            is_last = index == len(block.items) - 1
+            expression_code, result_type = self.compile_expr(expression)
+            code.extend(expression_code)
+            if result_type != "void":
+                if is_last and expected_result != "void":
+                    self.require_type(expression.location, expected_result, result_type)
+                else:
+                    code.append(0x1A)  # drop
+        self.scopes.pop()
+        if expected_result != "void" and not block.items:
+            raise CapyError(block.location, f"function must produce {expected_result}")
+        return bytes(code)
+
+    def require_type(self, location: Location, expected: str, actual: str) -> None:
+        if expected != actual:
+            raise CapyError(location, f"expected {expected}, found {actual}")
+
+    def compile_expr(self, expression: Expr) -> tuple[bytes, str]:
+        if isinstance(expression, Integer):
+            return b"\x41" + sleb32(expression.value), "s32"
+        if isinstance(expression, String):
+            return b"", "string"
+        if isinstance(expression, Name):
+            if expression.value in {"true", "false"}:
+                return b"\x41" + sleb32(1 if expression.value == "true" else 0), "bool"
+            index, value_type = self.lookup(expression)
+            return b"\x20" + uleb(index), value_type
+        if isinstance(expression, Variable):
+            value_code, value_type = self.compile_expr(expression.value)
+            declared = capy_type(expression.annotation, expression.location) if expression.annotation else value_type
+            self.require_type(expression.location, declared, value_type)
+            local = self.add_local(expression.name, declared, expression.location)
+            return value_code + b"\x21" + uleb(local), "void"
+        if isinstance(expression, Binary):
+            if expression.operator == "=":
+                if not isinstance(expression.left, Name):
+                    raise CapyError(expression.left.location, "assignment target must be a local name")
+                local, target_type = self.lookup(expression.left)
+                value_code, value_type = self.compile_expr(expression.right)
+                self.require_type(expression.location, target_type, value_type)
+                return value_code + b"\x22" + uleb(local), target_type
+            left_code, left_type = self.compile_expr(expression.left)
+            right_code, right_type = self.compile_expr(expression.right)
+            self.require_type(expression.location, left_type, right_type)
+            arithmetic = {"+": 0x6A, "-": 0x6B, "*": 0x6C, "/": 0x6D, "%": 0x6F}
+            comparison = {"==": 0x46, "!=": 0x47, "<": 0x48, ">": 0x4A, "<=": 0x4C, ">=": 0x4E}
+            if expression.operator in arithmetic:
+                self.require_type(expression.location, "s32", left_type)
+                return left_code + right_code + bytes([arithmetic[expression.operator]]), "s32"
+            if expression.operator in comparison:
+                if left_type not in SCALAR_TYPES:
+                    raise CapyError(expression.location, "comparison requires scalar operands")
+                return left_code + right_code + bytes([comparison[expression.operator]]), "bool"
+            raise CapyError(expression.location, f"phase-1 backend does not support operator {expression.operator!r}")
+        if isinstance(expression, Call):
+            if not isinstance(expression.function, Name):
+                raise CapyError(expression.function.location, "phase-1 calls require a named function")
+            if expression.function.value == "print":
+                code = bytearray()
+                for argument in expression.arguments:
+                    if isinstance(argument, String):
+                        offset, length = self.module.add_data(argument.value.encode("utf-8"))
+                        code.extend(b"\x23\x00\x41" + sleb32(offset) + b"\x6a")
+                        code.extend(b"\x41" + sleb32(length) + b"\x10\x00")
+                    else:
+                        argument_code, argument_type = self.compile_expr(argument)
+                        if argument_type not in SCALAR_TYPES:
+                            raise CapyError(argument.location, f"print does not yet support {argument_type}")
+                        code.extend(argument_code + b"\x10\x01")
+                return bytes(code), "void"
+            arguments = [self.compile_expr(argument) for argument in expression.arguments]
+            parameter_types = tuple(value_type for _, value_type in arguments)
+            target = self.module.resolve_function(expression.function.value, parameter_types, expression.location)
+            code = b"".join(argument_code for argument_code, _ in arguments) + b"\x10" + uleb(target.function_index)
+            return code, target.result_type
+        if isinstance(expression, Return):
+            expected = self.definition.result_type
+            if expression.value is None:
+                self.require_type(expression.location, "void", expected)
+                return b"\x0f", "void"
+            value_code, value_type = self.compile_expr(expression.value)
+            self.require_type(expression.location, expected, value_type)
+            return value_code + b"\x0f", "void"
+        if isinstance(expression, If):
+            condition_code, condition_type = self.compile_expr(expression.condition)
+            if condition_type not in SCALAR_TYPES:
+                raise CapyError(expression.condition.location, "if condition must be scalar")
+            then_code = self.compile_block(expression.then_body)
+            code = bytearray(condition_code + b"\x04\x40" + then_code)
+            if expression.else_body:
+                code.extend(b"\x05" + self.compile_block(expression.else_body))
+            code.append(0x0B)
+            return bytes(code), "void"
+        if isinstance(expression, While):
+            condition_code, condition_type = self.compile_expr(expression.condition)
+            if condition_type not in SCALAR_TYPES:
+                raise CapyError(expression.condition.location, "while condition must be scalar")
+            body = self.compile_block(expression.body)
+            return b"\x02\x40\x03\x40" + condition_code + b"\x45\x0d\x01" + body + b"\x0c\x00\x0b\x0b", "void"
+        if isinstance(expression, For):
+            if not isinstance(expression.iterable, Binary) or expression.iterable.operator != "..":
+                raise CapyError(expression.iterable.location, "phase-1 for loop requires an exclusive range")
+            start_code, start_type = self.compile_expr(expression.iterable.left)
+            end_code, end_type = self.compile_expr(expression.iterable.right)
+            self.require_type(expression.location, "s32", start_type)
+            self.require_type(expression.location, "s32", end_type)
+            loop_local = self.allocate_local("s32", expression.location)
+            end_local = self.allocate_local("s32", expression.location)
+            self.scopes.append({expression.name: (loop_local, "s32")})
+            body = self.compile_block(expression.body)
+            self.scopes.pop()
+            code = start_code + b"\x21" + uleb(loop_local) + end_code + b"\x21" + uleb(end_local)
+            code += b"\x02\x40\x03\x40\x20" + uleb(loop_local) + b"\x20" + uleb(end_local) + b"\x4e\x0d\x01"
+            code += body + b"\x20" + uleb(loop_local) + b"\x41\x01\x6a\x21" + uleb(loop_local) + b"\x0c\x00\x0b\x0b"
+            return code, "void"
+        if isinstance(expression, Block):
+            return self.compile_block(expression), "void"
+        raise CapyError(expression.location, f"phase-1 backend cannot lower {expression.__class__.__name__}")
+
+
+class CapyModuleCompiler:
+    def __init__(self, program: Program, source: str, module_name: str, abi_version: int):
+        self.program = program
+        self.source = source
+        self.module_name = module_name
+        self.abi_version = abi_version
+        self.data = bytearray()
+        self.definitions: list[CompiledDefinition] = []
+        self.functions: dict[FunctionKey, CompiledDefinition] = {}
+        self.types: list[tuple[tuple[str, ...], str]] = []
+        self.type_indices: dict[tuple[tuple[str, ...], str], int] = {}
+
+    def add_data(self, value: bytes) -> tuple[int, int]:
+        offset = len(self.data)
+        self.data.extend(value)
+        return offset, len(value)
+
+    def wasm_type(self, parameters: tuple[str, ...], result: str) -> int:
+        key = (parameters, result)
+        if key not in self.type_indices:
+            self.type_indices[key] = len(self.types)
+            self.types.append(key)
+        return self.type_indices[key]
+
+    def collect(self) -> None:
+        seen_handlers: dict[str, Location] = {}
+        top_level: list[Expr] = []
+        for item in self.program.items:
+            if isinstance(item, Function):
+                parameter_types = tuple(capy_type(parameter.type_expr, item.location) for parameter in item.parameters)
+                if item.name in HANDLER_EXPORTS:
+                    if len(item.parameters) > 1:
+                        raise CapyError(item.location, "Bearer handler accepts zero parameters or one request parameter")
+                    export_name = HANDLER_EXPORTS[item.name]
+                    if export_name in seen_handlers:
+                        first = seen_handlers[export_name]
+                        raise CapyError(item.location, f"Bearer handler {item.name} is already declared at {first.line}:{first.column}; handlers cannot be overloaded")
+                    seen_handlers[export_name] = item.location
+                    definition = CompiledDefinition(item, parameter_types, "void", export_name)
+                else:
+                    result_type = capy_type(item.return_type, item.location)
+                    definition = CompiledDefinition(item, parameter_types, result_type, None)
+                    key = FunctionKey(item.name, parameter_types)
+                    self.functions[key] = definition
+                self.definitions.append(definition)
+            elif isinstance(item, Struct):
+                raise CapyError(item.location, "struct lowering is not implemented yet")
+            elif isinstance(item, Variable):
+                raise CapyError(item.location, "top-level variables are not implemented yet")
+            else:
+                top_level.append(item)
+        if top_level:
+            if "__bearer_cli" in seen_handlers:
+                raise CapyError(top_level[0].location, "top-level executable expressions conflict with an explicit CLI handler")
+            synthetic = Function(top_level[0].location, "CLI", [], None, Block(top_level[0].location, top_level))
+            self.definitions.append(CompiledDefinition(synthetic, (), "void", "__bearer_cli"))
+        if not any(definition.export_name for definition in self.definitions):
+            raise CapyError(Location(self.source, 1, 1, 0), "Capy Bearer unit exports no CLI, RENDER, WS, ONCE, or INIT handler")
+
+    def resolve_function(self, name: str, parameters: tuple[str, ...], location: Location) -> CompiledDefinition:
+        key = FunctionKey(name, parameters)
+        if key not in self.functions:
+            rendered = ", ".join(parameters)
+            raise CapyError(location, f"no overload {name}({rendered})")
+        return self.functions[key]
+
+    def compile(self) -> tuple[bytes, str]:
+        self.collect()
+        # Stable direct-language imports are function indices 0 and 1.
+        print_bytes_type = self.wasm_type(("s32", "s32"), "void")
+        print_s32_type = self.wasm_type(("s32",), "void")
+        for index, definition in enumerate(self.definitions):
+            definition.function_index = 2 + index
+            wasm_parameters = ("s32",) if definition.export_name else definition.parameter_types
+            definition.type_index = self.wasm_type(wasm_parameters, definition.result_type)
+        bodies = [WasmFunctionCompiler(self, definition).compile_body() for definition in self.definitions]
+
+        def encode_type(signature: tuple[tuple[str, ...], str]) -> bytes:
+            parameters, result = signature
+            wasm_parameters = [b"\x7f" for _ in parameters]
+            wasm_results = [] if result == "void" else [b"\x7f"]
+            return b"\x60" + wasm_vector(wasm_parameters) + wasm_vector(wasm_results)
+
+        imports = [
+            wasm_string("env") + wasm_string("memory") + b"\x02\x00\x01",
+            wasm_string("env") + wasm_string("__memory_base") + b"\x03\x7f\x00",
+            wasm_string("env") + wasm_string("bearer_print_bytes") + b"\x00" + uleb(print_bytes_type),
+            wasm_string("env") + wasm_string("bearer_print_s32") + b"\x00" + uleb(print_s32_type),
+        ]
+        exports = [
+            wasm_string(definition.export_name) + b"\x00" + uleb(definition.function_index)
+            for definition in self.definitions if definition.export_name
+        ]
+        mem_info = uleb(len(self.data)) + uleb(0) + uleb(0) + uleb(0)
+        data_segment = b"\x00\x23\x00\x0b" + uleb(len(self.data)) + bytes(self.data)
+        abi = (
+            "format=bearer-wasm-unit-abi-v1\n"
+            f"unit_abi_version={self.abi_version}\n"
+            "toolchain=capyc-direct-wasm-phase1\n"
+            f"source={self.source}\n"
+        ).encode("utf-8")
+        wasm = b"\x00asm\x01\x00\x00\x00" + b"".join([
+            wasm_custom("dylink.0", b"\x01" + uleb(len(mem_info)) + mem_info),
+            wasm_section(1, wasm_vector([encode_type(signature) for signature in self.types])),
+            wasm_section(2, wasm_vector(imports)),
+            wasm_section(3, wasm_vector([uleb(definition.type_index) for definition in self.definitions])),
+            wasm_section(7, wasm_vector(exports)),
+            wasm_section(10, wasm_vector(bodies)),
+            wasm_section(11, wasm_vector([data_segment])),
+            wasm_custom("bearer.abi", abi),
+            wasm_custom("bearer.module", self.module_name.encode("utf-8")),
+        ])
+        source_map = "\n".join([
+            f"BEARER_SOURCE_MAP_V1\t{self.module_name}",
+            f"F\t1\t{self.source}",
+            *[f"L\t0\t1\t{definition.function.location.line}\t{definition.function.location.column}" for definition in self.definitions],
+            "",
+        ])
+        return wasm, source_map
 
 
 def compile_bearer_unit(program: Program, source: str, module_name: str, abi_version: int) -> tuple[bytes, str]:
-    handlers: list[tuple[str, bytes, Location]] = []
-    export_names = {
-        "RENDER": "__bearer_render",
-        "CLI": "__bearer_cli",
-        "WS": "__bearer_websocket",
-        "ONCE": "__bearer_once",
-        "INIT": "__bearer_init",
-    }
-    seen_handlers: dict[str, Location] = {}
-    for item in program.items:
-        if isinstance(item, Function) and item.name in export_names:
-            if len(item.parameters) > 1:
-                raise CapyError(item.location, "Bearer handler accepts zero parameters or one request parameter")
-            export_name = export_names[item.name]
-            if export_name in seen_handlers:
-                first = seen_handlers[export_name]
-                raise CapyError(item.location, f"Bearer handler {item.name} is already declared at {first.line}:{first.column}; handlers cannot be overloaded")
-            seen_handlers[export_name] = item.location
-            handlers.append((export_name, handler_output(item), item.location))
-    top_level = [item for item in program.items if not isinstance(item, (Function, Struct, Variable))]
-    if top_level:
-        synthetic = Function(top_level[0].location, "CLI", [], None, Block(top_level[0].location, top_level))
-        if any(name == "__bearer_cli" for name, _, _ in handlers):
-            raise CapyError(top_level[0].location, "top-level executable expressions conflict with an explicit CLI handler")
-        handlers.append(("__bearer_cli", handler_output(synthetic), top_level[0].location))
-    if not handlers:
-        raise CapyError(Location(source, 1, 1, 0), "Capy Bearer unit exports no CLI, RENDER, WS, ONCE, or INIT handler")
-
-    # Type 0: bearer_print_bytes(i32, i32) -> (); type 1: Bearer handler(i32) -> ().
-    type_payload = wasm_vector([
-        b"\x60" + wasm_vector([b"\x7f", b"\x7f"]) + wasm_vector([]),
-        b"\x60" + wasm_vector([b"\x7f"]) + wasm_vector([]),
-    ])
-    imports = [
-        wasm_string("env") + wasm_string("memory") + b"\x02\x00\x01",
-        wasm_string("env") + wasm_string("__memory_base") + b"\x03\x7f\x00",
-        wasm_string("env") + wasm_string("bearer_print_bytes") + b"\x00" + uleb(0),
-    ]
-    import_payload = wasm_vector(imports)
-    function_payload = wasm_vector([uleb(1) for _ in handlers])
-
-    data = bytearray()
-    bodies: list[bytes] = []
-    exports: list[bytes] = []
-    source_rows: list[str] = []
-    for index, (export_name, output, location) in enumerate(handlers):
-        offset = len(data)
-        data.extend(output)
-        code = bytearray()
-        code.extend(b"\x00")  # local declaration count
-        code.extend(b"\x23\x00")  # global.get __memory_base
-        code.extend(b"\x41" + sleb32(offset))
-        code.extend(b"\x6a")  # i32.add
-        code.extend(b"\x41" + sleb32(len(output)))
-        code.extend(b"\x10\x00")  # call imported bearer_print_bytes
-        code.extend(b"\x0b")
-        bodies.append(uleb(len(code)) + code)
-        function_index = 1 + index  # one imported function precedes definitions
-        exports.append(wasm_string(export_name) + b"\x00" + uleb(function_index))
-        source_rows.append(f"L\t0\t1\t{location.line}\t{location.column}")
-
-    # PIC memory is allocated by Bearer from dylink.0 and addressed through __memory_base.
-    mem_info = uleb(len(data)) + uleb(0) + uleb(0) + uleb(0)
-    dylink = b"\x01" + uleb(len(mem_info)) + mem_info
-    data_segment = b"\x00\x23\x00\x0b" + uleb(len(data)) + bytes(data)
-    abi = (
-        "format=bearer-wasm-unit-abi-v1\n"
-        f"unit_abi_version={abi_version}\n"
-        "toolchain=capyc-direct-wasm-phase1\n"
-        f"source={source}\n"
-    ).encode("utf-8")
-    module = module_name.encode("utf-8")
-    wasm = b"\x00asm\x01\x00\x00\x00" + b"".join([
-        wasm_custom("dylink.0", dylink),
-        wasm_section(1, type_payload),
-        wasm_section(2, import_payload),
-        wasm_section(3, function_payload),
-        wasm_section(7, wasm_vector(exports)),
-        wasm_section(10, wasm_vector(bodies)),
-        wasm_section(11, wasm_vector([data_segment])),
-        wasm_custom("bearer.abi", abi),
-        wasm_custom("bearer.module", module),
-    ])
-    source_map = "\n".join([
-        f"BEARER_SOURCE_MAP_V1\t{module_name}",
-        f"F\t1\t{source}",
-        *source_rows,
-        "",
-    ])
-    return wasm, source_map
+    return CapyModuleCompiler(program, source, module_name, abi_version).compile()
 
 
 def main(argv: list[str] | None = None) -> int:

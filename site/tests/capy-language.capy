@@ -1,0 +1,19 @@
+function add(x : s32, y : s32) s32 {
+    return x + y
+}
+function CLI {
+    var a : s32 = add(10, 20)
+    print("sum=", a, ";")
+    for i = 0..3 {
+        print(i)
+    }
+    print(";")
+    if a == 30 {
+        print("ok;")
+    }
+    var n := 0
+    while n < 2 {
+        print(n)
+        n = n + 1
+    }
+}

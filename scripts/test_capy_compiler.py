@@ -107,6 +107,11 @@ class LexerParserTests(unittest.TestCase):
         self.assertIsInstance(value, String)
         self.assertEqual(value.value, "one and\n  two")
 
+    def test_punctuation_string_is_not_consumed_as_parser_structure(self):
+        function = self.parse_one('function CLI { print(";", ",", "}") }\n')
+        call = function.body.items[0]
+        self.assertEqual([argument.value for argument in call.arguments], [";", ",", "}"])
+
     def test_comments_do_not_hide_newline_separator(self):
         program = parse("var a := 1 // first\nvar b := 2\n", "comments.capy")
         self.assertEqual(len(program.items), 2)
@@ -118,6 +123,11 @@ class LexerParserTests(unittest.TestCase):
     def test_unterminated_string_has_source_location(self):
         with self.assertRaisesRegex(CapyError, r"bad.capy:1:1: unterminated string"):
             parse('"broken', "bad.capy")
+
+    def test_range_variable_does_not_escape_its_scope(self):
+        program = parse('function CLI { for i = 0..1 { print(i) }\nprint(i) }\n', "scope.capy")
+        with self.assertRaisesRegex(CapyError, "unknown local 'i'"):
+            compile_bearer_unit(program, "scope.capy", "scope.wasm", 9)
 
     def test_i32_constants_use_signed_leb32(self):
         self.assertEqual(sleb32(0), b"\x00")
