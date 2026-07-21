@@ -61,6 +61,22 @@ var pair := (10, 20)
 
 `()` is the empty tuple/unit value and `(x)` is grouping. Calls distinguish two arguments from one tuple argument: `f(a, b)` versus `f((a, b))`.
 
+## Markup values
+
+JSX/UCE fragment delimiters form a value-producing markup expression:
+
+```capy
+var title := clone("<Capy & Bearer>")
+var page := <><h1><?= title ?></h1></>
+print(page)
+```
+
+`<?= expression ?>` HTML-escapes strings using the same five replacements as UCE (`&`, `<`, `>`, `"`, and `'`). `s32` and `bool` interpolate as text. A nested `markup` value composes without double escaping. `<?: expression ?>` is the explicit raw-composition form and requires `markup`; `trusted_markup(string)` is the deliberately named unsafe conversion for externally established trusted HTML.
+
+Markup expressions evaluate every field exactly once. Static markup is emitted as raw immortal bytes. Dynamic markup evaluates fields into locals, computes the exact escaped byte length, performs one workspace allocation, writes one ARC-managed value, and can be printed through one `bearer_print_bytes` call. Managed field temporaries are released after copying, and ordinary ARC return/assignment/cleanup rules apply to the resulting `markup` value.
+
+The `<>...</>` boundary is both JSX fragment syntax and the existing UCE markup boundary. It keeps markup starts unambiguous with ordinary `<` comparisons and permits nested fragment delimiters. In literal markup, `\<>` and `\</>` emit the delimiter text without opening or closing a fragment; this is useful in scripts and documentation.
+
 ## Bearer unit ABI
 
 A Capy source uses `.capy`; C++/template units retain `.uce`. Both compile into the same request-local Bearer workspace and export the same handler names:

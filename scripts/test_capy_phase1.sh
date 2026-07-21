@@ -22,6 +22,11 @@ language_output=$(scripts/bearer-cli /tests/capy-language.capy)
 	echo "Capy functions/locals/control-flow output mismatch: $language_output" >&2
 	exit 1
 }
+markup_output=$(scripts/bearer-cli /tests/capy-markup.capy)
+[[ "$markup_output" == "<p>static</p>|once;<main>&lt;side&gt;&lt;&amp;&gt;&quot;&#39;<strong>&lt;&amp;&gt;&quot;&#39;</strong><em>trusted</em><i>&lt;&amp;&gt;&quot;&#39;</i><aside>-2147483648:0:2147483647:true:false</aside></main>|0" ]] || {
+	echo "Capy markup output mismatch: $markup_output" >&2
+	exit 1
+}
 loop_control_output=$(scripts/bearer-cli /tests/capy-loop-control.capy)
 [[ "$loop_control_output" == "7|owned-return|0|13|0|023|0|ab|0|0002||2022|0" ]] || {
 	echo "Capy break/continue ARC output mismatch: $loop_control_output" >&2

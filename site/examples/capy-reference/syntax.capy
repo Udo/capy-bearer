@@ -29,7 +29,9 @@ for index = 0..5 {
 var numbers := [10, 20, 30]
 var pair := Pair(clone(\"score\"), numbers[1])
 var result := (pair.label, pair.value)
-print(result[0], result[1])</pre><p>Array indexes are runtime bounds-checked. Tuple indexes must be compile-time integer constants.</p><h2>Comments and strings</h2><pre>// line comment
+print(result[0], result[1])</pre><p>Array indexes are runtime bounds-checked. Tuple indexes must be compile-time integer constants.</p><h2>Markup expressions</h2><p>JSX/UCE fragment delimiters produce an ARC-managed <code>markup</code> value. <code>&lt;?= expression ?&gt;</code> escapes strings by default; nested markup composes without double escaping. <code>&lt;?: expression ?&gt;</code> requires a markup value, and <code>trusted_markup(string)</code> is the explicit unsafe conversion.</p><pre>var title := clone(\"&lt;Capy &amp; Bearer&gt;\")
+var page := &lt;&gt;&lt;h1&gt;&lt;?= title ?&gt;&lt;/h1&gt;&lt;/&gt;
+print(page)</pre><p>Each interpolation evaluates once. A dynamic value is allocated once at its exact byte size and printing it uses one byte-span hostcall.</p><h2>Comments and strings</h2><pre>// line comment
 print(\"strings may span
 source lines\")</pre></main></div></div></body></html>")
 }

@@ -1,0 +1,16 @@
+function side_effect () string {
+    print("once;")
+    return clone("<side>")
+}
+
+function build_page () markup {
+    var dangerous := clone("<&>\"'")
+    var nested := <><strong><?= dangerous ?></strong></>
+    var trusted := trusted_markup(clone("<em>trusted</em>"))
+    return <><main><?= side_effect() ?><?= dangerous ?><?: nested ?><?: trusted ?><?= <><i><?= dangerous ?></i></> ?><aside><?= 0 - 2147483647 - 1 ?>:<?= 0 ?>:<?= 2147483647 ?>:<?= true ?>:<?= false ?></aside></main></>
+}
+
+function CLI {
+    print(<><p>static</p></>, "|")
+    print(build_page(), "|", arc_live())
+}

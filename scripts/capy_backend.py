@@ -55,7 +55,7 @@ SCALAR_TYPES = {"s32", "bool"}
 
 
 def managed_type(value_type: str) -> bool:
-    return value_type in {"string", "dval"} or value_type.startswith(("array<", "struct:", "tuple<"))
+    return value_type in {"string", "markup", "dval"} or value_type.startswith(("array<", "struct:", "tuple<"))
 
 
 HANDLER_EXPORTS = {
@@ -97,7 +97,7 @@ def capy_type(expression: Expr | None, location: Location, allow_void: bool = Fa
     name = type_name(expression)
     if name == "any" or "::type" in name:
         raise CapyError(expression.location, "compile-time any and dependent result types are reserved for phase 3")
-    if name in SCALAR_TYPES | {"string", "dval", "request", "void"}:
+    if name in SCALAR_TYPES | {"string", "markup", "dval", "request", "void"}:
         return name
     return f"struct:{name}"
 
@@ -153,7 +153,7 @@ class WasmFunctionCompiler:
         return None
 
     def allocate_local(self, value_type: str, location: Location) -> int:
-        if value_type not in SCALAR_TYPES | {"string", "dval"} and not value_type.startswith(("array<", "struct:", "tuple<", "function#")):
+        if value_type not in SCALAR_TYPES | {"string", "markup", "dval"} and not value_type.startswith(("array<", "struct:", "tuple<", "function#")):
             raise CapyError(location, f"phase-1 local type {value_type!r} is unsupported")
         index = self.parameter_count + self.local_count
         self.local_count += 1
@@ -257,6 +257,8 @@ class WasmFunctionCompiler:
         return bytes(code)
 
     def expression_is_owned(self, expression: Expr) -> bool:
+        if isinstance(expression, Markup):
+            return any(isinstance(part, MarkupField) for part in expression.parts)
         if isinstance(expression, (ArrayLiteral, TupleExpr)):
             return True
         if isinstance(expression, Index):
@@ -269,6 +271,8 @@ class WasmFunctionCompiler:
                 return managed_type(self.module.function_value_signatures[local_function[1]][1])
             if expression.function.value in self.module.structs:
                 return True
+            if expression.function.value == "trusted_markup":
+                return self.expression_is_owned(expression.arguments[0]) if expression.arguments else False
             if expression.function.value in {"clone", "dval", "dval_string", "unit_call"}:
                 return True
             argument_types = tuple(self.infer_expr_type(argument) for argument in expression.arguments)
@@ -279,6 +283,8 @@ class WasmFunctionCompiler:
     def infer_expr_type(self, expression: Expr) -> str:
         if isinstance(expression, String):
             return "string"
+        if isinstance(expression, Markup):
+            return "markup"
         if isinstance(expression, Integer):
             return "s32"
         if isinstance(expression, TupleExpr):
@@ -342,6 +348,11 @@ class WasmFunctionCompiler:
                 return result_type
             if expression.function.value in self.module.structs:
                 return f"struct:{expression.function.value}"
+            if expression.function.value == "trusted_markup":
+                if len(expression.arguments) != 1:
+                    raise CapyError(expression.location, "trusted_markup expects one string")
+                self.require_type(expression.arguments[0].location, "string", self.infer_expr_type(expression.arguments[0]))
+                return "markup"
             if expression.function.value == "dval":
                 if len(expression.arguments) != 1:
                     raise CapyError(expression.location, "dval expects one string")
@@ -404,12 +415,147 @@ class WasmFunctionCompiler:
         code.extend(b"\x20" + uleb(pointer))
         return bytes(code), output_type
 
+    def markup_escape_length(self, source: int, total: int, location: Location) -> bytes:
+        index = self.allocate_local("s32", location)
+        length = self.allocate_local("s32", location)
+        byte = self.allocate_local("s32", location)
+        code = bytearray(b"\x20" + uleb(source) + b"\x28\x02\x10\x21" + uleb(length))
+        code.extend(b"\x41\x00\x21" + uleb(index) + b"\x02\x40\x03\x40")
+        code.extend(b"\x20" + uleb(index) + b"\x20" + uleb(length) + b"\x4f\x0d\x01")
+        code.extend(b"\x20" + uleb(source) + b"\x41\x14\x6a\x20" + uleb(index) + b"\x6a\x2d\x00\x00\x21" + uleb(byte))
+        code.extend(b"\x20" + uleb(total) + b"\x41\x01\x6a\x21" + uleb(total))
+        for character, extra in ((38, 4), (60, 3), (62, 3), (34, 5), (39, 4)):
+            code.extend(b"\x20" + uleb(byte) + b"\x41" + sleb32(character) + b"\x46\x04\x40")
+            code.extend(b"\x20" + uleb(total) + b"\x41" + sleb32(extra) + b"\x6a\x21" + uleb(total) + b"\x0b")
+        code.extend(b"\x20" + uleb(index) + b"\x41\x01\x6a\x21" + uleb(index) + b"\x0c\x00\x0b\x0b")
+        return bytes(code)
+
+    def markup_write_bytes(self, cursor: int, value: bytes) -> bytes:
+        code = bytearray()
+        for byte in value:
+            code.extend(b"\x20" + uleb(cursor) + b"\x41" + sleb32(byte) + b"\x3a\x00\x00")
+            code.extend(b"\x20" + uleb(cursor) + b"\x41\x01\x6a\x21" + uleb(cursor))
+        return bytes(code)
+
+    def markup_escape_write(self, source: int, cursor: int, location: Location) -> bytes:
+        index = self.allocate_local("s32", location)
+        length = self.allocate_local("s32", location)
+        byte = self.allocate_local("s32", location)
+        code = bytearray(b"\x20" + uleb(source) + b"\x28\x02\x10\x21" + uleb(length))
+        code.extend(b"\x41\x00\x21" + uleb(index) + b"\x02\x40\x03\x40")
+        code.extend(b"\x20" + uleb(index) + b"\x20" + uleb(length) + b"\x4f\x0d\x01")
+        code.extend(b"\x20" + uleb(source) + b"\x41\x14\x6a\x20" + uleb(index) + b"\x6a\x2d\x00\x00\x21" + uleb(byte))
+        code.extend(b"\x02\x40")
+        for character, escaped in ((38, b"&amp;"), (60, b"&lt;"), (62, b"&gt;"), (34, b"&quot;"), (39, b"&#39;")):
+            code.extend(b"\x20" + uleb(byte) + b"\x41" + sleb32(character) + b"\x46\x04\x40")
+            code.extend(self.markup_write_bytes(cursor, escaped) + b"\x0c\x01\x0b")
+        code.extend(b"\x20" + uleb(cursor) + b"\x20" + uleb(byte) + b"\x3a\x00\x00")
+        code.extend(b"\x20" + uleb(cursor) + b"\x41\x01\x6a\x21" + uleb(cursor) + b"\x0b")
+        code.extend(b"\x20" + uleb(index) + b"\x41\x01\x6a\x21" + uleb(index) + b"\x0c\x00\x0b\x0b")
+        return bytes(code)
+
+    def markup_s32_length(self, source: int, total: int, location: Location) -> bytes:
+        value = self.allocate_local("s32", location)
+        digits = self.allocate_local("s32", location)
+        code = bytearray(b"\x20" + uleb(source) + b"\x21" + uleb(value))
+        code.extend(b"\x20" + uleb(source) + b"\x41\x00\x48\x04\x40")
+        code.extend(b"\x20" + uleb(total) + b"\x41\x01\x6a\x21" + uleb(total) + b"\x0b")
+        code.extend(b"\x41\x00\x21" + uleb(digits) + b"\x02\x40\x03\x40")
+        code.extend(b"\x20" + uleb(digits) + b"\x41\x01\x6a\x21" + uleb(digits))
+        code.extend(b"\x20" + uleb(value) + b"\x41\x0a\x6d\x22" + uleb(value) + b"\x0d\x00\x0b\x0b")
+        code.extend(b"\x20" + uleb(total) + b"\x20" + uleb(digits) + b"\x6a\x21" + uleb(total))
+        return bytes(code)
+
+    def markup_s32_write(self, source: int, cursor: int, location: Location) -> bytes:
+        value = self.allocate_local("s32", location)
+        divisor = self.allocate_local("s32", location)
+        digit = self.allocate_local("s32", location)
+        code = bytearray(b"\x20" + uleb(source) + b"\x21" + uleb(value))
+        code.extend(b"\x20" + uleb(value) + b"\x41\x00\x48\x04\x40")
+        code.extend(self.markup_write_bytes(cursor, b"-") + b"\x05")
+        code.extend(b"\x41\x00\x20" + uleb(value) + b"\x6b\x21" + uleb(value) + b"\x0b")
+        code.extend(b"\x41\x01\x21" + uleb(divisor) + b"\x02\x40\x03\x40")
+        code.extend(b"\x20" + uleb(value) + b"\x20" + uleb(divisor) + b"\x6d\x41\x76\x4c\x45\x0d\x01")
+        code.extend(b"\x20" + uleb(divisor) + b"\x41\x0a\x6c\x21" + uleb(divisor) + b"\x0c\x00\x0b\x0b")
+        code.extend(b"\x02\x40\x03\x40")
+        code.extend(b"\x41\x00\x20" + uleb(value) + b"\x20" + uleb(divisor) + b"\x6d\x6b\x21" + uleb(digit))
+        code.extend(b"\x20" + uleb(cursor) + b"\x20" + uleb(digit) + b"\x41\x30\x6a\x3a\x00\x00")
+        code.extend(b"\x20" + uleb(cursor) + b"\x41\x01\x6a\x21" + uleb(cursor))
+        code.extend(b"\x20" + uleb(value) + b"\x20" + uleb(divisor) + b"\x6f\x21" + uleb(value))
+        code.extend(b"\x20" + uleb(divisor) + b"\x41\x0a\x6d\x22" + uleb(divisor) + b"\x0d\x00\x0b\x0b")
+        return bytes(code)
+
+    def compile_markup(self, expression: Markup) -> tuple[bytes, str]:
+        fields = [part for part in expression.parts if isinstance(part, MarkupField)]
+        if not fields:
+            value = "".join(part.value for part in expression.parts if isinstance(part, MarkupText)).encode("utf-8")
+            offset = self.module.add_static_string(value)
+            return b"\x23\x00\x41" + sleb32(offset) + b"\x6a", "markup"
+
+        code = bytearray()
+        compiled_fields: dict[int, tuple[int, str, bool]] = {}
+        for field in fields:
+            value_code, value_type = self.compile_expr(field.value)
+            if value_type not in {"string", "markup", "s32", "bool"}:
+                raise CapyError(field.location, f"markup interpolation does not support {value_type}")
+            if not field.escaped and value_type != "markup":
+                raise CapyError(field.location, "raw markup interpolation requires a markup value")
+            local = self.allocate_local(value_type, field.location)
+            code.extend(value_code + b"\x21" + uleb(local))
+            compiled_fields[id(field)] = (local, value_type, self.expression_is_owned(field.value))
+
+        total = self.allocate_local("s32", expression.location)
+        static_length = sum(len(part.value.encode("utf-8")) for part in expression.parts if isinstance(part, MarkupText))
+        code.extend(b"\x41" + sleb32(static_length) + b"\x21" + uleb(total))
+        for field in fields:
+            local, value_type, _ = compiled_fields[id(field)]
+            if field.escaped and value_type == "string":
+                code.extend(self.markup_escape_length(local, total, field.location))
+            elif value_type == "s32":
+                code.extend(self.markup_s32_length(local, total, field.location))
+            elif value_type == "bool":
+                code.extend(b"\x20" + uleb(total) + b"\x41\x04\x6a\x21" + uleb(total))
+                code.extend(b"\x20" + uleb(local) + b"\x45\x04\x40\x20" + uleb(total) + b"\x41\x01\x6a\x21" + uleb(total) + b"\x0b")
+            else:
+                code.extend(b"\x20" + uleb(total) + b"\x20" + uleb(local) + b"\x28\x02\x10\x6a\x21" + uleb(total))
+
+        allocation, pointer = self.allocate_blob("markup", 1, total, expression.location)
+        code.extend(allocation)
+        cursor = self.allocate_local("s32", expression.location)
+        code.extend(b"\x20" + uleb(pointer) + b"\x41\x14\x6a\x21" + uleb(cursor))
+        for part in expression.parts:
+            if isinstance(part, MarkupText):
+                value = part.value.encode("utf-8")
+                if value:
+                    offset = self.module.add_static_bytes(value)
+                    code.extend(b"\x20" + uleb(cursor) + b"\x23\x00\x41" + sleb32(offset) + b"\x6a\x41" + sleb32(len(value)) + b"\xfc\x0a\x00\x00")
+                    code.extend(b"\x20" + uleb(cursor) + b"\x41" + sleb32(len(value)) + b"\x6a\x21" + uleb(cursor))
+                continue
+            local, value_type, owned = compiled_fields[id(part)]
+            if part.escaped and value_type == "string":
+                code.extend(self.markup_escape_write(local, cursor, part.location))
+            elif value_type == "s32":
+                code.extend(self.markup_s32_write(local, cursor, part.location))
+            elif value_type == "bool":
+                code.extend(b"\x20" + uleb(local) + b"\x04\x40")
+                code.extend(self.markup_write_bytes(cursor, b"true") + b"\x05")
+                code.extend(self.markup_write_bytes(cursor, b"false") + b"\x0b")
+            else:
+                code.extend(b"\x20" + uleb(cursor) + b"\x20" + uleb(local) + b"\x41\x14\x6a\x20" + uleb(local) + b"\x28\x02\x10\xfc\x0a\x00\x00")
+                code.extend(b"\x20" + uleb(cursor) + b"\x20" + uleb(local) + b"\x28\x02\x10\x6a\x21" + uleb(cursor))
+            if owned:
+                code.extend(b"\x20" + uleb(local) + b"\x10" + uleb(self.module.release_index))
+        code.extend(b"\x20" + uleb(pointer))
+        return bytes(code), "markup"
+
     def compile_expr(self, expression: Expr) -> tuple[bytes, str]:
         if isinstance(expression, Integer):
             return b"\x41" + sleb32(expression.value), "s32"
         if isinstance(expression, String):
             offset = self.module.add_static_string(expression.value.encode("utf-8"))
             return b"\x23\x00\x41" + sleb32(offset) + b"\x6a", "string"
+        if isinstance(expression, Markup):
+            return self.compile_markup(expression)
         if isinstance(expression, TupleExpr):
             value_type = self.infer_expr_type(expression)
             type_id, element_types = self.module.tuples[value_type]
@@ -626,6 +772,12 @@ class WasmFunctionCompiler:
                     code.extend(b"\x36\x02" + uleb(16 + 4 * index))
                 code.extend(b"\x20" + uleb(pointer))
                 return bytes(code), value_type
+            if expression.function.value == "trusted_markup":
+                if len(expression.arguments) != 1:
+                    raise CapyError(expression.location, "trusted_markup expects one string")
+                value_code, value_type = self.compile_expr(expression.arguments[0])
+                self.require_type(expression.arguments[0].location, "string", value_type)
+                return value_code, "markup"
             if expression.function.value == "dval":
                 return self.compile_blob_conversion(expression, "string", "dval", "bearer_dv_string_to_brrb", 4)
             if expression.function.value == "dval_string":
@@ -677,6 +829,12 @@ class WasmFunctionCompiler:
             if expression.function.value == "print":
                 code = bytearray()
                 for argument in expression.arguments:
+                    if isinstance(argument, Markup) and not any(isinstance(part, MarkupField) for part in argument.parts):
+                        value = "".join(part.value for part in argument.parts if isinstance(part, MarkupText)).encode("utf-8")
+                        offset = self.module.add_static_bytes(value)
+                        code.extend(b"\x23\x00\x41" + sleb32(offset) + b"\x6a\x41" + sleb32(len(value)))
+                        code.extend(self.module.host_call("bearer_print_bytes"))
+                        continue
                     if isinstance(argument, String):
                         value = argument.value.encode("utf-8")
                         offset = self.module.add_static_bytes(value)
@@ -684,8 +842,8 @@ class WasmFunctionCompiler:
                         code.extend(self.module.host_call("bearer_print_bytes"))
                         continue
                     argument_code, argument_type = self.compile_expr(argument)
-                    if argument_type == "string":
-                        temporary = self.allocate_local("string", argument.location)
+                    if argument_type in {"string", "markup"}:
+                        temporary = self.allocate_local(argument_type, argument.location)
                         code.extend(argument_code + b"\x21" + uleb(temporary))
                         code.extend(b"\x20" + uleb(temporary) + b"\x41\x14\x6a")
                         code.extend(b"\x20" + uleb(temporary) + b"\x28\x02\x10")

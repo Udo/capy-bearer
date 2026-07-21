@@ -36,6 +36,7 @@ class Token:
     kind: str
     text: str
     location: Location
+    value: object | None = None
 
 
 class Lexer:
@@ -43,15 +44,16 @@ class Lexer:
     TWO = {"::", ":=", "..", "==", "!=", "<=", ">=", "&&", "||"}
     ONE = set("(){}[],:=+-*/%<>.!;")
 
-    def __init__(self, source: str, file: str = "<input>"):
+    def __init__(self, source: str, file: str = "<input>", line: int = 1, column: int = 1, base_offset: int = 0):
         self.source = source
         self.file = file
         self.offset = 0
-        self.line = 1
-        self.column = 1
+        self.line = line
+        self.column = column
+        self.base_offset = base_offset
 
     def location(self) -> Location:
-        return Location(self.file, self.line, self.column, self.offset)
+        return Location(self.file, self.line, self.column, self.base_offset + self.offset)
 
     def advance(self) -> str:
         ch = self.source[self.offset]
@@ -83,6 +85,9 @@ class Lexer:
                     self.advance()
                 continue
             loc = self.location()
+            if self.source.startswith("<>", self.offset):
+                result.append(self.markup_token())
+                continue
             if ch.isalpha() or ch == "_":
                 start = self.offset
                 while self.offset < len(self.source):
@@ -130,6 +135,119 @@ class Lexer:
         result.append(Token("eof", "", self.location()))
         return result
 
+    def markup_token(self) -> Token:
+        location = self.location()
+        self.advance()
+        self.advance()
+        parts: list[tuple[str, str, Location]] = []
+        literal: list[str] = []
+        literal_location = self.location()
+        depth = 0
+
+        def flush_literal() -> None:
+            nonlocal literal, literal_location
+            if literal:
+                parts.append(("text", "".join(literal), literal_location))
+                literal = []
+            literal_location = self.location()
+
+        while self.offset < len(self.source):
+            if self.source.startswith("<?=", self.offset) or self.source.startswith("<?:", self.offset):
+                flush_literal()
+                escaped = self.source.startswith("<?=", self.offset)
+                marker_location = self.location()
+                for _ in range(3):
+                    self.advance()
+                field_location = self.location()
+                field: list[str] = []
+                quote = ""
+                line_comment = False
+                markup_depth = 0
+                nested_fields = 0
+                while self.offset < len(self.source):
+                    if line_comment:
+                        ch = self.advance()
+                        field.append(ch)
+                        if ch == "\n":
+                            line_comment = False
+                        continue
+                    if quote:
+                        ch = self.advance()
+                        field.append(ch)
+                        if ch == "\\" and self.offset < len(self.source):
+                            field.append(self.advance())
+                        elif ch == quote:
+                            quote = ""
+                        continue
+                    if self.source.startswith("//", self.offset):
+                        field.append(self.advance())
+                        field.append(self.advance())
+                        line_comment = True
+                        continue
+                    if self.source.startswith("<>", self.offset):
+                        field.append(self.advance())
+                        field.append(self.advance())
+                        markup_depth += 1
+                        continue
+                    if markup_depth and self.source.startswith("</>", self.offset):
+                        for _ in range(3):
+                            field.append(self.advance())
+                        markup_depth -= 1
+                        continue
+                    if markup_depth and (self.source.startswith("<?=", self.offset) or self.source.startswith("<?:", self.offset)):
+                        for _ in range(3):
+                            field.append(self.advance())
+                        nested_fields += 1
+                        continue
+                    if self.source.startswith("?>", self.offset):
+                        if nested_fields:
+                            field.append(self.advance())
+                            field.append(self.advance())
+                            nested_fields -= 1
+                            continue
+                        if markup_depth == 0:
+                            break
+                    ch = self.advance()
+                    field.append(ch)
+                    if ch == '"':
+                        quote = ch
+                if self.offset >= len(self.source):
+                    self.error(marker_location, "unterminated markup interpolation")
+                self.advance()
+                self.advance()
+                if not "".join(field).strip():
+                    self.error(marker_location, "empty markup interpolation")
+                parts.append(("escaped" if escaped else "raw", "".join(field), field_location))
+                literal_location = self.location()
+                continue
+            if self.source.startswith("\\</>", self.offset):
+                self.advance()
+                literal.extend(self.advance() for _ in range(3))
+                continue
+            if self.source.startswith("\\<>", self.offset):
+                self.advance()
+                literal.extend(self.advance() for _ in range(2))
+                continue
+            if self.source.startswith("<>", self.offset):
+                depth += 1
+                self.advance()
+                self.advance()
+                continue
+            if self.source.startswith("</>", self.offset):
+                if depth == 0:
+                    flush_literal()
+                    self.advance()
+                    self.advance()
+                    self.advance()
+                    return Token("markup", "", location, parts)
+                depth -= 1
+                self.advance()
+                self.advance()
+                self.advance()
+                continue
+            literal.append(self.advance())
+        self.error(location, "unterminated markup expression")
+
     def string_token(self) -> Token:
         loc = self.location()
         self.advance()
@@ -169,6 +287,22 @@ class Integer(Expr):
 @dataclass
 class String(Expr):
     value: str
+
+
+@dataclass
+class MarkupText(Expr):
+    value: str
+
+
+@dataclass
+class MarkupField(Expr):
+    value: Expr
+    escaped: bool
+
+
+@dataclass
+class Markup(Expr):
+    parts: list[Expr]
 
 
 @dataclass
@@ -423,6 +557,19 @@ class Parser:
             return Integer(token.location, int(token.text))
         if token.kind == "string":
             return String(token.location, token.text)
+        if token.kind == "markup":
+            parts: list[Expr] = []
+            for kind, source, location in token.value:
+                if kind == "text":
+                    parts.append(MarkupText(location, source))
+                    continue
+                field_parser = Parser(Lexer(source, location.file, location.line, location.column, location.offset).tokens())
+                value = field_parser.expression()
+                field_parser.skip_separators()
+                if field_parser.token.kind != "eof":
+                    raise CapyError(field_parser.token.location, "markup interpolation must contain one expression")
+                parts.append(MarkupField(location, value, kind == "escaped"))
+            return Markup(token.location, parts)
         if token.kind == "directive":
             if token.text in {"compile", "callsite"}:
                 raise CapyError(token.location, f"#{token.text} compile-time metaprogramming is deferred beyond Capy phase 3")

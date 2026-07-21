@@ -14,6 +14,9 @@ from capy_compiler import (
     DeclarationIndex,
     Function,
     Name,
+    Markup,
+    MarkupField,
+    MarkupText,
     Return,
     ScopeLookup,
     String,
@@ -117,6 +120,42 @@ class LexerParserTests(unittest.TestCase):
         value = self.parse_one('"one and\n  two"\n')
         self.assertIsInstance(value, String)
         self.assertEqual(value.value, "one and\n  two")
+
+    def test_markup_fragment_has_static_escaped_and_raw_parts(self):
+        markup = self.parse_one('<><h1><?= title ?></h1><?: trusted ?></>\n')
+        self.assertIsInstance(markup, Markup)
+        self.assertEqual(len(markup.parts), 4)
+        self.assertIsInstance(markup.parts[0], MarkupText)
+        self.assertEqual(markup.parts[0].value, "<h1>")
+        self.assertIsInstance(markup.parts[1], MarkupField)
+        self.assertTrue(markup.parts[1].escaped)
+        self.assertEqual(markup.parts[1].value.value, "title")
+        self.assertFalse(markup.parts[3].escaped)
+
+    def test_nested_markup_fragment_delimiters_are_not_output(self):
+        markup = self.parse_one('<><div><><span>x</span></></div></>\n')
+        self.assertEqual([part.value for part in markup.parts], ["<div><span>x</span></div>"])
+
+    def test_markup_interpolation_tracks_nested_markup_and_comments(self):
+        nested = self.parse_one('<><p><?= <><b><?= clone("x") ?></b></> ?></p></>\n')
+        outer = next(part for part in nested.parts if isinstance(part, MarkupField))
+        self.assertIsInstance(outer.value, Markup)
+        self.assertIsInstance(outer.value.parts[1], MarkupField)
+
+        commented = self.parse_one('<><?= value // ?>\n ?></>\n')
+        self.assertEqual(commented.parts[0].value.value, "value")
+
+    def test_markup_literal_delimiter_escape(self):
+        markup = self.parse_one('<><script>const close = "\\</>";</script></>\n')
+        self.assertEqual(markup.parts[0].value, '<script>const close = "</>";</script>')
+
+    def test_markup_reports_empty_and_unterminated_interpolation(self):
+        with self.assertRaisesRegex(CapyError, "empty markup interpolation"):
+            parse("<><?=   ?></>", "empty-markup.capy")
+        with self.assertRaisesRegex(CapyError, "unterminated markup interpolation"):
+            parse("<><?= value </>", "unterminated-field.capy")
+        with self.assertRaisesRegex(CapyError, "unterminated markup expression"):
+            parse("<><p>missing", "unterminated-markup.capy")
 
     def test_punctuation_string_is_not_consumed_as_parser_structure(self):
         function = self.parse_one('function CLI { print(";", ",", "}") }\n')
@@ -238,6 +277,29 @@ class LexerParserTests(unittest.TestCase):
         self.assertEqual(module.used_helpers, {"clone", "release"})
         self.assertNotIn("retain", module.helper_indices)
         self.assertTrue(module.uses_arc_global)
+
+    def test_markup_runtime_surface_and_raw_type_boundary(self):
+        static = parse('function CLI { print(<><p>static</p></>) }\n', "static-markup.capy")
+        module = CapyModuleCompiler(static, "static-markup.capy", "static-markup.wasm", 10)
+        module.compile()
+        self.assertEqual(module.host_indices, {"bearer_print_bytes": 0})
+        self.assertEqual(module.helper_indices, {})
+        self.assertFalse(module.uses_arc_global)
+        self.assertEqual(module.data, b"<p>static</p>")
+
+        dynamic = parse(
+            'function CLI { var value := clone("<&"); print(<><b><?= value ?></b></>) }\n',
+            "dynamic-markup.capy",
+        )
+        module = CapyModuleCompiler(dynamic, "dynamic-markup.capy", "dynamic-markup.wasm", 10)
+        module.compile()
+        self.assertEqual(set(module.host_indices), {"bearer_print_bytes", "bearer_alloc", "bearer_free"})
+        self.assertEqual(module.used_helpers, {"clone", "release"})
+        self.assertTrue(module.uses_arc_global)
+
+        unsafe = parse('function CLI { print(<><?: "raw" ?></>) }\n', "unsafe-markup.capy")
+        with self.assertRaisesRegex(CapyError, "raw markup interpolation requires a markup value"):
+            compile_bearer_unit(unsafe, "unsafe-markup.capy", "unsafe-markup.wasm", 10)
 
     def test_compacted_adapter_and_release_indices(self):
         adapters = parse(
