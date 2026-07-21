@@ -1078,6 +1078,164 @@ size_t bearer_dv_brrb_to_string(const char* value, size_t value_len, char* out, 
 	return(result.size());
 }
 
+struct BearerDValueEntry
+{
+	const char* key;
+	u32 key_len;
+	const char* value;
+	u32 value_len;
+};
+
+static bool bearer_decode_brrb_span(const char* value, size_t value_len, DValue& decoded)
+{
+	String error;
+	return(brb_decode(String(value ? value : "", value ? value_len : 0), decoded, &error));
+}
+
+static size_t bearer_copy_bytes(const String& value, char* out, size_t cap)
+{
+	if(out && cap >= value.size())
+		memcpy(out, value.data(), value.size());
+	return(value.size());
+}
+
+size_t bearer_dv_s32_to_brrb(s32 value, char* out, size_t cap)
+{
+	DValue encoded;
+	encoded = (f64)value;
+	return(bearer_copy_bytes(brb_encode(encoded), out, cap));
+}
+
+size_t bearer_dv_bool_to_brrb(s32 value, char* out, size_t cap)
+{
+	DValue encoded;
+	encoded.set_bool(value != 0);
+	return(bearer_copy_bytes(brb_encode(encoded), out, cap));
+}
+
+size_t bearer_dv_build_brrb(s32 list_mode, const BearerDValueEntry* entries, size_t count, char* out, size_t cap)
+{
+	DValue result;
+	if(list_mode)
+		result.set_array();
+	else
+		result.set_type('M');
+	for(size_t i = 0; i < count; i++)
+	{
+		DValue child;
+		if(!bearer_decode_brrb_span(entries[i].value, entries[i].value_len, child))
+			return(0);
+		if(list_mode)
+			result.push(child);
+		else
+			result[String(entries[i].key ? entries[i].key : "", entries[i].key ? entries[i].key_len : 0)] = child;
+	}
+	return(bearer_copy_bytes(brb_encode(result), out, cap));
+}
+
+s32 bearer_dv_get_brrb(const char* value, size_t value_len, s32 index_mode,
+	const char* key, size_t key_len, s32 index, char* out, size_t cap)
+{
+	DValue decoded;
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || !decoded.is_array())
+		return(-2);
+	String lookup = index_mode ? std::to_string(index) : String(key ? key : "", key ? key_len : 0);
+	const DValue* child = decoded.key(lookup);
+	if(!child)
+		return(-1);
+	String encoded = brb_encode(*child);
+	bearer_copy_bytes(encoded, out, cap);
+	return((s32)encoded.size());
+}
+
+s32 bearer_dv_count_brrb(const char* value, size_t value_len)
+{
+	DValue decoded;
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || !decoded.is_array())
+		return(-1);
+	return((s32)decoded._map.size());
+}
+
+static bool bearer_dv_entry_at(const DValue& decoded, size_t ordinal, String& key, const DValue*& child)
+{
+	size_t position = 0;
+	bool found = false;
+	decoded.each([&](const DValue& item, String item_key) {
+		if(!found && position++ == ordinal)
+		{
+			key = item_key;
+			child = &item;
+			found = true;
+		}
+	});
+	return(found);
+}
+
+s32 bearer_dv_entry_key_brrb(const char* value, size_t value_len, size_t ordinal, char* out, size_t cap)
+{
+	DValue decoded;
+	String key;
+	const DValue* child = 0;
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || !decoded.is_array() || !bearer_dv_entry_at(decoded, ordinal, key, child))
+		return(-1);
+	bearer_copy_bytes(key, out, cap);
+	return((s32)key.size());
+}
+
+s32 bearer_dv_entry_value_brrb(const char* value, size_t value_len, size_t ordinal, char* out, size_t cap)
+{
+	DValue decoded;
+	String key;
+	const DValue* child = 0;
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || !decoded.is_array() || !bearer_dv_entry_at(decoded, ordinal, key, child))
+		return(-1);
+	String encoded = brb_encode(*child);
+	bearer_copy_bytes(encoded, out, cap);
+	return((s32)encoded.size());
+}
+
+s32 bearer_dv_scalar_type_brrb(const char* value, size_t value_len)
+{
+	DValue decoded;
+	if(!bearer_decode_brrb_span(value, value_len, decoded))
+		return(-1);
+	return((s32)decoded.deref().type);
+}
+
+s32 bearer_dv_s32_brrb(const char* value, size_t value_len, s32* out)
+{
+	DValue decoded;
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || decoded.deref().type != 'F' || !out)
+		return(0);
+	f64 number = decoded.deref()._float;
+	if(number < (f64)std::numeric_limits<s32>::min() || number > (f64)std::numeric_limits<s32>::max() || std::floor(number) != number)
+		return(0);
+	*out = (s32)number;
+	return(1);
+}
+
+s32 bearer_dv_bool_brrb(const char* value, size_t value_len, s32* out)
+{
+	DValue decoded;
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || decoded.deref().type != 'B' || !out)
+		return(0);
+	*out = decoded.to_bool() ? 1 : 0;
+	return(1);
+}
+
+size_t bearer_dv_ptr_to_brrb(DValue* value, char* out, size_t cap)
+{
+	return(bearer_copy_bytes(brb_encode(value ? *value : DValue()), out, cap));
+}
+
+DValue* bearer_dv_brrb_to_ptr(const char* value, size_t value_len)
+{
+	String error;
+	if(!brb_decode(String(value ? value : "", value ? value_len : 0), wasm_unit_call_result, &error))
+		return(0);
+	return(&wasm_unit_call_result);
+}
+
 size_t bearer_unit_call_brrb(const char* target, size_t target_len,
 	const char* function_name, size_t function_len,
 	const char* input, size_t input_len, char* out, size_t cap)

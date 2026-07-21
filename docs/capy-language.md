@@ -97,7 +97,7 @@ The first direct-Wasm backend emits:
 - a matching `BEARER_SOURCE_MAP_V1` sidecar;
 - no WASI imports; dynamic values use Bearer’s workspace allocator.
 
-Compiler generation c17 uses core ABI w10. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
+Compiler generation c18 uses core ABI w11. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
 
 ## Automatic reference counting
 
@@ -132,10 +132,50 @@ Current managed-value lowering imports Bearer’s workspace allocator/free funct
 
 Capy values never expose their object layout to C++. Dynamic cross-language values use owned/copied DValue/BRRB adapters at the Bearer membrane.
 
+## Structured DValues
+
+`dval(...)` accepts strings, `s32`, `bool`, nested map literals, list literals, and existing DValues:
+
+```capy
+var profile := dval({
+    "name": "Ada",
+    "age": 42,
+    "active": true,
+    "tags": ["math", "logic"]
+})
+```
+
+String and integer indexing return copied `dval` children. Strict indexing traps on a missing key, invalid index, malformed value, or scalar container; `dval_has(value, key)` is the explicit non-trapping absence check. `dval_string`, `dval_s32`, and `dval_bool` require the matching BRRB scalar type rather than applying C++'s permissive conversions.
+
+```capy
+if dval_has(profile, "name") {
+    print(dval_string(profile["name"]))
+}
+for key, value = profile["tags"] {
+    print(key, "=", dval_string(value))
+}
+```
+
+Maps iterate in lexical key order and lists in numeric order. Every key/value crossing into Capy is copied into an ARC-managed object; no borrowed C++ tree pointer is exposed.
+
+A declaration named `EXPORT_name` with signature `(dval) dval` publishes the ordinary Bearer custom export `name`:
+
+```capy
+function EXPORT_echo(input : dval) dval {
+    dval({"echo": input})
+}
+```
+
+The generated wrapper converts the opaque core DValue pointer to copied BRRB2, invokes the Capy function once, converts the result back into a core-owned DValue, and releases its Capy temporaries. Existing C++ `EXPORT DValue*(DValue*)` symbols and `unit_call` semantics remain unchanged. Structured Capy→C++, C++→Capy, and Capy→Capy calls all use the same copied membrane and execute-once staging.
+
+## Expression-level source maps
+
+Capy's `BEARER_SOURCE_MAP_V1` sidecar records sorted absolute byte offsets in the final Wasm artifact. Function-entry markers provide a fallback, while array bounds, strict DValue access/extraction, explicit traps, and allocation checks carry their originating expression locations. Wasmtime trap offsets therefore resolve to the relevant Capy line and column rather than only the enclosing function declaration. C++ units continue using their independent DWARF-derived map path.
+
 ## Deferred features
 
 `#compile`, `#callsite`, and `emit` are reserved but deferred beyond phase 3. The parser emits a targeted diagnostic and never executes them. Their eventual implementation requires staged compilation, a compile-time workspace, ordering/hygiene rules, dependency tracking, bounded execution, and source provenance.
 
 ## Current implementation boundary
 
-The current implementation includes the lexer, expression parser, bounded diagnostics, direct Wasm encoding, `.capy` artifact integration, and real Bearer CLI/HTTP execution. Scalar control flow—including ARC-safe `break` and `continue` through nested while/range/array loops—plus ARC strings, arrays, and nominal structs execute as native Wasm. Units emit only the Bearer host imports, ARC helpers/global, and function table they use; direct literal output is stored as raw UTF-8 bytes and lowered to one pointer/byte-length hostcall. Parameter `any` now monomorphizes lazily by concrete argument types, caches specializations, validates operators after substitution, supports `x::type` results, prefers exact overloads, and rejects equally ranked generic matches. Parenthesized comma expressions lower as managed heterogeneous tuples; parenthesized function results carry multiple values through static checked indexing and recursive ARC drop glue. Explicit `as` conversions are implemented for `s32`/`bool`; conversion-ranked overload candidates and string formatting remain open. A uniquely overloaded function name can be stored in an inferred local and invoked through a module-private Wasm table with its fixed signature; closure captures and function types in public annotations remain open. Capy exports `COMPONENT` alongside the other Bearer handlers. `unit_render(string)` and `component_render(string)` enter other units through core Bearer dispatch; tested Capy→C++ render and C++→Capy component calls do not share language object layouts. `dval(string)` creates an owned ARC object containing copied BRRB2 bytes, `dval_string` decodes a copied scalar, and `unit_call(target, function, dval)` crosses the existing Bearer unit membrane with a staged copied result so the target executes once. Copy/reassignment and managed temporary cleanup are covered. Rich DValue construction/indexing and Capy custom DValue exports remain open, as do reflection and weak references. The authoritative remaining work is tracked in `/root/docs/work/capy-compiler.md`.
+The current implementation includes the lexer, expression parser, bounded diagnostics, direct Wasm encoding, `.capy` artifact integration, and real Bearer CLI/HTTP execution. Scalar control flow—including ARC-safe `break` and `continue` through nested while/range/array loops—plus ARC strings, arrays, and nominal structs execute as native Wasm. Units emit only the Bearer host imports, ARC helpers/global, and function table they use; direct literal output is stored as raw UTF-8 bytes and lowered to one pointer/byte-length hostcall. Parameter `any` now monomorphizes lazily by concrete argument types, caches specializations, validates operators after substitution, supports `x::type` results, prefers exact overloads, and rejects equally ranked generic matches. Parenthesized comma expressions lower as managed heterogeneous tuples; parenthesized function results carry multiple values through static checked indexing and recursive ARC drop glue. Explicit `as` conversions are implemented for `s32`/`bool`; conversion-ranked overload candidates and string formatting remain open. A uniquely overloaded function name can be stored in an inferred local and invoked through a module-private Wasm table with its fixed signature; closure captures and function types in public annotations remain open. Capy exports `COMPONENT` alongside the other Bearer handlers. `unit_render(string)` and `component_render(string)` enter other units through core Bearer dispatch; tested Capy→C++ render and C++→Capy component calls do not share language object layouts. `dval(string)` creates an owned ARC object containing copied BRRB2 bytes, `dval_string` decodes a copied scalar, and `unit_call(target, function, dval)` crosses the existing Bearer unit membrane with a staged copied result so the target executes once. Copy/reassignment and managed temporary cleanup are covered. Nested DValue maps/lists, strict string/integer indexing, explicit missing checks, strict scalar extraction, ordered map/list iteration, Capy custom exports, and structured round trips in both language directions are implemented. Reflection and weak references remain open. The authoritative remaining work is tracked in `/root/docs/work/capy-compiler.md`.

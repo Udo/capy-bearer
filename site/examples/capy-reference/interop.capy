@@ -10,5 +10,13 @@ var output := unit_call(
     \"echo\",
     input
 )
-print(dval_string(output))</pre><p><code>dval</code> owns copied BRRB2 bytes under ARC. The staged sizing/copy protocol executes the target once. Copy and reassignment use the same retain-before-release rules as other managed values.</p><div class='note'>Current dval construction and extraction cover string scalars and opaque round trips. Rich map/list access and Capy custom DValue exports are planned.</div><h2>Module metadata</h2><p>Capy emits PIC Wasm with <code>dylink.0</code>, <code>bearer.abi</code>, <code>bearer.module</code>, and a <code>BEARER_SOURCE_MAP_V1</code> sidecar. Current generation is c17/w10.</p></main></div></div></body></html>")
+print(dval_string(output))</pre><p><code>dval</code> owns copied BRRB2 bytes under ARC. The staged sizing/copy protocol executes the target once. Copy and reassignment use the same retain-before-release rules as other managed values.</p><h2>Structured dval</h2><pre>var profile := dval({\"name\": \"Ada\", \"tags\": [\"math\", \"logic\"]})
+if dval_has(profile, \"name\") {
+    print(dval_string(profile[\"name\"]))
+}
+for key, value = profile[\"tags\"] {
+    print(key, \"=\", dval_string(value))
+}</pre><p>Maps and lists are copied BRRB2 values. String/integer indexing is strict, missing checks are explicit, scalar extraction is typed, and iteration returns copied ARC key/value values.</p><h2>Custom exports</h2><pre>function EXPORT_echo(input : dval) dval {
+    dval({\"echo\": input})
+}</pre><p>Capy custom exports retain the ordinary Bearer export name and interoperate with existing C++ <code>EXPORT DValue*(DValue*)</code> callers without sharing object layouts.</p><h2>Module metadata</h2><p>Capy emits PIC Wasm with <code>dylink.0</code>, <code>bearer.abi</code>, <code>bearer.module</code>, and a <code>BEARER_SOURCE_MAP_V1</code> sidecar with expression-level Wasm offsets for trap diagnostics. Current generation is c18/w11.</p></main></div></div></body></html>")
 }

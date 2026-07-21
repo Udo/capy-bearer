@@ -129,7 +129,7 @@ class WasmFunctionCompiler:
         self.local_count = 0
         self.borrowed_managed_slots: set[int] = set()
         self.control_depth = 0
-        self.loop_contexts: list[tuple[int, int, int]] = []  # break target, continue target, owned boundary
+        self.loop_contexts: list[tuple[int, int, int, bytes, bytes]] = []  # targets, owned boundary, edge cleanup
         if definition.export_name:
             if len(definition.function.parameters) == 1:
                 parameter = definition.function.parameters[0]
@@ -230,7 +230,7 @@ class WasmFunctionCompiler:
     def allocate_blob(self, value_type: str, type_id: int, length_local: int, location: Location) -> tuple[bytes, int]:
         pointer = self.allocate_local(value_type, location)
         code = bytearray(b"\x20" + uleb(length_local) + b"\x41\x14\x6a" + self.module.host_call("bearer_alloc") + b"\x21" + uleb(pointer))
-        code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40\x00\x0b")
+        code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40" + self.module.source_marker(location) + b"\x00\x0b")
         for value, offset in [(1, 0), (1, 4), (type_id, 8)]:
             code.extend(b"\x20" + uleb(pointer) + b"\x41" + sleb32(value) + b"\x36\x02" + uleb(offset))
         code.extend(b"\x20" + uleb(pointer) + b"\x20" + uleb(length_local) + b"\x41\x14\x6a\x36\x02\x0c")
@@ -262,6 +262,8 @@ class WasmFunctionCompiler:
         if isinstance(expression, (ArrayLiteral, TupleExpr)):
             return True
         if isinstance(expression, Index):
+            if self.infer_expr_type(expression.value) == "dval":
+                return True
             return managed_type(self.infer_expr_type(expression)) and self.expression_is_owned(expression.value)
         if isinstance(expression, Member):
             return managed_type(self.infer_expr_type(expression)) and self.expression_is_owned(expression.value)
@@ -291,6 +293,8 @@ class WasmFunctionCompiler:
             if len(expression.items) < 2:
                 raise CapyError(expression.location, "tuple value requires at least two elements")
             return self.module.register_tuple(tuple(self.infer_expr_type(item) for item in expression.items))
+        if isinstance(expression, MapLiteral):
+            raise CapyError(expression.location, "map literals must be wrapped in dval(...)")
         if isinstance(expression, ArrayLiteral):
             if not expression.items:
                 raise CapyError(expression.location, "empty array literal needs an explicit element type")
@@ -302,6 +306,11 @@ class WasmFunctionCompiler:
             return f"array<{element_types[0]}>"
         if isinstance(expression, Index):
             value_type = self.infer_expr_type(expression.value)
+            if value_type == "dval":
+                index_type = self.infer_expr_type(expression.index)
+                if index_type not in {"string", "s32"}:
+                    raise CapyError(expression.index.location, "dval index must be string or s32")
+                return "dval"
             if value_type.startswith("array<"):
                 return value_type[6:-1]
             if value_type.startswith("tuple<"):
@@ -355,9 +364,26 @@ class WasmFunctionCompiler:
                 return "markup"
             if expression.function.value == "dval":
                 if len(expression.arguments) != 1:
-                    raise CapyError(expression.location, "dval expects one string")
-                self.require_type(expression.arguments[0].location, "string", self.infer_expr_type(expression.arguments[0]))
+                    raise CapyError(expression.location, "dval expects one scalar, map, or list")
+                argument = expression.arguments[0]
+                if isinstance(argument, (MapLiteral, ArrayLiteral)):
+                    return "dval"
+                argument_type = self.infer_expr_type(argument)
+                if argument_type not in {"string", "s32", "bool", "dval"}:
+                    raise CapyError(argument.location, f"cannot construct dval from {argument_type}")
                 return "dval"
+            if expression.function.value == "dval_has":
+                if len(expression.arguments) != 2:
+                    raise CapyError(expression.location, "dval_has expects dval and string/s32 key")
+                self.require_type(expression.arguments[0].location, "dval", self.infer_expr_type(expression.arguments[0]))
+                if self.infer_expr_type(expression.arguments[1]) not in {"string", "s32"}:
+                    raise CapyError(expression.arguments[1].location, "dval key must be string or s32")
+                return "bool"
+            if expression.function.value in {"dval_s32", "dval_bool"}:
+                if len(expression.arguments) != 1:
+                    raise CapyError(expression.location, f"{expression.function.value} expects one dval")
+                self.require_type(expression.arguments[0].location, "dval", self.infer_expr_type(expression.arguments[0]))
+                return "s32" if expression.function.value == "dval_s32" else "bool"
             if expression.function.value == "dval_string":
                 if len(expression.arguments) != 1:
                     raise CapyError(expression.location, "dval_string expects one dval")
@@ -414,6 +440,160 @@ class WasmFunctionCompiler:
             code.extend(b"\x20" + uleb(source_local) + b"\x10" + uleb(self.module.release_index))
         code.extend(b"\x20" + uleb(pointer))
         return bytes(code), output_type
+
+    def compile_scalar_dval(self, source: Expr, value_type: str) -> tuple[bytes, str]:
+        value_code, actual_type = self.compile_expr(source)
+        self.require_type(source.location, value_type, actual_type)
+        value_local = self.allocate_local(value_type, source.location)
+        length_local = self.allocate_local("s32", source.location)
+        import_name = "bearer_dv_s32_to_brrb" if value_type == "s32" else "bearer_dv_bool_to_brrb"
+        code = bytearray(value_code + b"\x21" + uleb(value_local))
+        code.extend(b"\x20" + uleb(value_local) + b"\x41\x00\x41\x00" + self.module.host_call(import_name))
+        code.extend(b"\x21" + uleb(length_local))
+        allocation, pointer = self.allocate_blob("dval", 4, length_local, source.location)
+        code.extend(allocation)
+        code.extend(b"\x20" + uleb(value_local) + b"\x20" + uleb(pointer) + b"\x41\x14\x6a\x20" + uleb(length_local))
+        code.extend(self.module.host_call(import_name) + b"\x20" + uleb(length_local) + b"\x47\x04\x40\x00\x0b")
+        code.extend(b"\x20" + uleb(pointer))
+        return bytes(code), "dval"
+
+    def compile_dval_value(self, expression: Expr) -> tuple[bytes, str]:
+        if isinstance(expression, MapLiteral):
+            return self.compile_dval_container(expression.entries, False, expression.location)
+        if isinstance(expression, ArrayLiteral):
+            return self.compile_dval_container([(str(index), item) for index, item in enumerate(expression.items)], True, expression.location)
+        value_type = self.infer_expr_type(expression)
+        if value_type == "dval":
+            return self.compile_expr(expression)
+        if value_type == "string":
+            synthetic = Call(expression.location, Name(expression.location, "dval"), [expression])
+            return self.compile_blob_conversion(synthetic, "string", "dval", "bearer_dv_string_to_brrb", 4)
+        if value_type in {"s32", "bool"}:
+            return self.compile_scalar_dval(expression, value_type)
+        raise CapyError(expression.location, f"cannot construct dval from {value_type}")
+
+    def compile_dval_container(self, entries: list[tuple[str, Expr]], list_mode: bool, location: Location) -> tuple[bytes, str]:
+        if not list_mode:
+            keys = [key for key, _ in entries]
+            if len(set(keys)) != len(keys):
+                raise CapyError(location, "dval map literal contains a duplicate key")
+        code = bytearray()
+        values: list[tuple[int, bool]] = []
+        for _, expression in entries:
+            source_is_dval = not isinstance(expression, (MapLiteral, ArrayLiteral)) and self.infer_expr_type(expression) == "dval"
+            value_code, value_type = self.compile_dval_value(expression)
+            self.require_type(expression.location, "dval", value_type)
+            local = self.allocate_local("dval", expression.location)
+            code.extend(value_code + b"\x21" + uleb(local))
+            values.append((local, self.expression_is_owned(expression) if source_is_dval else True))
+        descriptor = self.allocate_local("s32", location)
+        descriptor_size = len(entries) * 16
+        if descriptor_size:
+            code.extend(b"\x41" + sleb32(descriptor_size) + self.module.host_call("bearer_alloc") + b"\x21" + uleb(descriptor))
+            code.extend(b"\x20" + uleb(descriptor) + b"\x45\x04\x40" + self.module.source_marker(location) + b"\x00\x0b")
+        else:
+            code.extend(b"\x41\x00\x21" + uleb(descriptor))
+        for index, ((key, _), (value_local, _)) in enumerate(zip(entries, values)):
+            key_bytes = key.encode("utf-8")
+            key_offset = self.module.add_static_bytes(key_bytes)
+            base = index * 16
+            code.extend(b"\x20" + uleb(descriptor) + b"\x23\x00\x41" + sleb32(key_offset) + b"\x6a\x36\x02" + uleb(base))
+            code.extend(b"\x20" + uleb(descriptor) + b"\x41" + sleb32(len(key_bytes)) + b"\x36\x02" + uleb(base + 4))
+            code.extend(b"\x20" + uleb(descriptor) + b"\x20" + uleb(value_local) + b"\x41\x14\x6a\x36\x02" + uleb(base + 8))
+            code.extend(b"\x20" + uleb(descriptor) + b"\x20" + uleb(value_local) + b"\x28\x02\x10\x36\x02" + uleb(base + 12))
+        length = self.allocate_local("s32", location)
+        code.extend(b"\x41" + sleb32(1 if list_mode else 0) + b"\x20" + uleb(descriptor) + b"\x41" + sleb32(len(entries)) + b"\x41\x00\x41\x00")
+        code.extend(self.module.host_call("bearer_dv_build_brrb") + b"\x21" + uleb(length))
+        allocation, pointer = self.allocate_blob("dval", 4, length, location)
+        code.extend(allocation)
+        code.extend(b"\x41" + sleb32(1 if list_mode else 0) + b"\x20" + uleb(descriptor) + b"\x41" + sleb32(len(entries)))
+        code.extend(b"\x20" + uleb(pointer) + b"\x41\x14\x6a\x20" + uleb(length) + self.module.host_call("bearer_dv_build_brrb"))
+        code.extend(b"\x20" + uleb(length) + b"\x47\x04\x40\x00\x0b")
+        if descriptor_size:
+            code.extend(b"\x20" + uleb(descriptor) + self.module.host_call("bearer_free"))
+        for value_local, owned in reversed(values):
+            if owned:
+                code.extend(b"\x20" + uleb(value_local) + b"\x10" + uleb(self.module.release_index))
+        code.extend(b"\x20" + uleb(pointer))
+        return bytes(code), "dval"
+
+    def compile_dval_lookup(self, value: Expr, key: Expr, require_present: bool) -> tuple[bytes, str]:
+        value_code, value_type = self.compile_expr(value)
+        self.require_type(value.location, "dval", value_type)
+        key_code, key_type = self.compile_expr(key)
+        if key_type not in {"string", "s32"}:
+            raise CapyError(key.location, "dval index must be string or s32")
+        value_local = self.allocate_local("dval", value.location)
+        key_local = self.allocate_local(key_type, key.location)
+        length = self.allocate_local("s32", key.location)
+        code = bytearray(value_code + b"\x21" + uleb(value_local) + key_code + b"\x21" + uleb(key_local))
+
+        def append_call(out: bytes, cap: bytes) -> None:
+            code.extend(b"\x20" + uleb(value_local) + b"\x41\x14\x6a\x20" + uleb(value_local) + b"\x28\x02\x10")
+            if key_type == "string":
+                code.extend(b"\x41\x00\x20" + uleb(key_local) + b"\x41\x14\x6a\x20" + uleb(key_local) + b"\x28\x02\x10\x41\x00")
+            else:
+                code.extend(b"\x41\x01\x41\x00\x41\x00\x20" + uleb(key_local))
+            code.extend(out + cap + self.module.host_call("bearer_dv_get_brrb"))
+
+        append_call(b"\x41\x00", b"\x41\x00")
+        code.extend(b"\x21" + uleb(length))
+        if not require_present:
+            code.extend(b"\x20" + uleb(length) + b"\x41\x00\x4e")
+            result = self.allocate_local("bool", key.location)
+            code.extend(b"\x21" + uleb(result))
+            if self.expression_is_owned(key):
+                code.extend(b"\x20" + uleb(key_local) + b"\x10" + uleb(self.module.release_index))
+            if self.expression_is_owned(value):
+                code.extend(b"\x20" + uleb(value_local) + b"\x10" + uleb(self.module.release_index))
+            code.extend(b"\x20" + uleb(result))
+            return bytes(code), "bool"
+        code.extend(b"\x20" + uleb(length) + b"\x41\x00\x48\x04\x40" + self.module.source_marker(key.location) + b"\x00\x0b")
+        allocation, pointer = self.allocate_blob("dval", 4, length, key.location)
+        code.extend(allocation)
+        append_call(b"\x20" + uleb(pointer) + b"\x41\x14\x6a", b"\x20" + uleb(length))
+        code.extend(b"\x20" + uleb(length) + b"\x47\x04\x40\x00\x0b")
+        if self.expression_is_owned(key):
+            code.extend(b"\x20" + uleb(key_local) + b"\x10" + uleb(self.module.release_index))
+        if self.expression_is_owned(value):
+            code.extend(b"\x20" + uleb(value_local) + b"\x10" + uleb(self.module.release_index))
+        code.extend(b"\x20" + uleb(pointer))
+        return bytes(code), "dval"
+
+    def compile_dval_scalar(self, expression: Call, result_type: str) -> tuple[bytes, str]:
+        if len(expression.arguments) != 1:
+            raise CapyError(expression.location, f"{expression.function.value} expects one dval")
+        source = expression.arguments[0]
+        source_code, source_type = self.compile_expr(source)
+        self.require_type(source.location, "dval", source_type)
+        source_local = self.allocate_local("dval", source.location)
+        code = bytearray(source_code + b"\x21" + uleb(source_local))
+        if result_type == "string":
+            code.extend(b"\x20" + uleb(source_local) + b"\x41\x14\x6a\x20" + uleb(source_local) + b"\x28\x02\x10")
+            code.extend(self.module.host_call("bearer_dv_scalar_type_brrb") + b"\x41" + sleb32(ord("S")) + b"\x47\x04\x40" + self.module.source_marker(expression.location) + b"\x00\x0b")
+            length = self.allocate_local("s32", expression.location)
+            code.extend(b"\x20" + uleb(source_local) + b"\x41\x14\x6a\x20" + uleb(source_local) + b"\x28\x02\x10\x41\x00\x41\x00")
+            code.extend(self.module.host_call("bearer_dv_brrb_to_string") + b"\x21" + uleb(length))
+            allocation, pointer = self.allocate_blob("string", 1, length, expression.location)
+            code.extend(allocation)
+            code.extend(b"\x20" + uleb(source_local) + b"\x41\x14\x6a\x20" + uleb(source_local) + b"\x28\x02\x10")
+            code.extend(b"\x20" + uleb(pointer) + b"\x41\x14\x6a\x20" + uleb(length) + self.module.host_call("bearer_dv_brrb_to_string"))
+            code.extend(b"\x20" + uleb(length) + b"\x47\x04\x40\x00\x0b")
+            result_local = pointer
+        else:
+            result_local = self.allocate_local(result_type, expression.location)
+            result_pointer = self.allocate_local("s32", expression.location)
+            import_name = "bearer_dv_s32_brrb" if result_type == "s32" else "bearer_dv_bool_brrb"
+            code.extend(b"\x41\x04" + self.module.host_call("bearer_alloc") + b"\x21" + uleb(result_pointer))
+            code.extend(b"\x20" + uleb(result_pointer) + b"\x45\x04\x40" + self.module.source_marker(expression.location) + b"\x00\x0b")
+            code.extend(b"\x20" + uleb(source_local) + b"\x41\x14\x6a\x20" + uleb(source_local) + b"\x28\x02\x10\x20" + uleb(result_pointer))
+            code.extend(self.module.host_call(import_name) + b"\x45\x04\x40" + self.module.source_marker(expression.location) + b"\x00\x0b")
+            code.extend(b"\x20" + uleb(result_pointer) + b"\x28\x02\x00\x21" + uleb(result_local))
+            code.extend(b"\x20" + uleb(result_pointer) + self.module.host_call("bearer_free"))
+        if self.expression_is_owned(source):
+            code.extend(b"\x20" + uleb(source_local) + b"\x10" + uleb(self.module.release_index))
+        code.extend(b"\x20" + uleb(result_local))
+        return bytes(code), result_type
 
     def markup_escape_length(self, source: int, total: int, location: Location) -> bytes:
         index = self.allocate_local("s32", location)
@@ -562,7 +742,7 @@ class WasmFunctionCompiler:
             size = 16 + 4 * len(expression.items)
             pointer = self.allocate_local(value_type, expression.location)
             code = bytearray(b"\x41" + sleb32(size) + self.module.host_call("bearer_alloc") + b"\x21" + uleb(pointer))
-            code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40\x00\x0b")
+            code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40" + self.module.source_marker(expression.location) + b"\x00\x0b")
             for value, offset in [(1, 0), (1, 4), (type_id, 8), (size, 12)]:
                 code.extend(b"\x20" + uleb(pointer) + b"\x41" + sleb32(value) + b"\x36\x02" + uleb(offset))
             code.extend(b"\x23\x01\x41\x01\x6a\x24\x01")
@@ -582,7 +762,7 @@ class WasmFunctionCompiler:
             size = 20 + 4 * len(expression.items)
             pointer = self.allocate_local(value_type, expression.location)
             code = bytearray(b"\x41" + sleb32(size) + self.module.host_call("bearer_alloc") + b"\x21" + uleb(pointer))
-            code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40\x00\x0b")
+            code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40" + self.module.source_marker(expression.location) + b"\x00\x0b")
             element_type = value_type[6:-1]
             type_id = 3 if element_type == "string" else 2
             for value, offset in [(1, 0), (1, 4), (type_id, 8), (size, 12), (len(expression.items), 16)]:
@@ -601,6 +781,8 @@ class WasmFunctionCompiler:
             code.extend(b"\x20" + uleb(pointer))
             return bytes(code), value_type
         if isinstance(expression, Index):
+            if self.infer_expr_type(expression.value) == "dval":
+                return self.compile_dval_lookup(expression.value, expression.index, True)
             value_code, value_type = self.compile_expr(expression.value)
             if value_type.startswith("tuple<"):
                 if not isinstance(expression.index, Integer):
@@ -629,9 +811,9 @@ class WasmFunctionCompiler:
             index_local = self.allocate_local("s32", expression.index.location)
             code = bytearray(value_code + b"\x21" + uleb(array_local))
             code.extend(index_code + b"\x21" + uleb(index_local))
-            code.extend(b"\x20" + uleb(index_local) + b"\x41\x00\x48\x04\x40\x00\x0b")
+            code.extend(b"\x20" + uleb(index_local) + b"\x41\x00\x48\x04\x40" + self.module.source_marker(expression.location) + b"\x00\x0b")
             code.extend(b"\x20" + uleb(index_local) + b"\x20" + uleb(array_local))
-            code.extend(b"\x28\x02\x10\x4f\x04\x40\x00\x0b")
+            code.extend(b"\x28\x02\x10\x4f\x04\x40" + self.module.source_marker(expression.location) + b"\x00\x0b")
             code.extend(b"\x20" + uleb(array_local) + b"\x20" + uleb(index_local))
             code.extend(b"\x41\x04\x6c\x6a\x28\x02\x14")
             if self.expression_is_owned(expression.value):
@@ -757,7 +939,7 @@ class WasmFunctionCompiler:
                 size = 16 + 4 * len(members)
                 pointer = self.allocate_local(value_type, expression.location)
                 code = bytearray(b"\x41" + sleb32(size) + self.module.host_call("bearer_alloc") + b"\x21" + uleb(pointer))
-                code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40\x00\x0b")
+                code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40" + self.module.source_marker(expression.location) + b"\x00\x0b")
                 for value, offset in [(1, 0), (1, 4), (type_id, 8), (size, 12)]:
                     code.extend(b"\x20" + uleb(pointer) + b"\x41" + sleb32(value) + b"\x36\x02" + uleb(offset))
                 code.extend(b"\x23\x01\x41\x01\x6a\x24\x01")
@@ -779,9 +961,19 @@ class WasmFunctionCompiler:
                 self.require_type(expression.arguments[0].location, "string", value_type)
                 return value_code, "markup"
             if expression.function.value == "dval":
-                return self.compile_blob_conversion(expression, "string", "dval", "bearer_dv_string_to_brrb", 4)
+                if len(expression.arguments) != 1:
+                    raise CapyError(expression.location, "dval expects one scalar, map, or list")
+                return self.compile_dval_value(expression.arguments[0])
+            if expression.function.value == "dval_has":
+                if len(expression.arguments) != 2:
+                    raise CapyError(expression.location, "dval_has expects dval and string/s32 key")
+                return self.compile_dval_lookup(expression.arguments[0], expression.arguments[1], False)
             if expression.function.value == "dval_string":
-                return self.compile_blob_conversion(expression, "dval", "string", "bearer_dv_brrb_to_string", 1)
+                return self.compile_dval_scalar(expression, "string")
+            if expression.function.value == "dval_s32":
+                return self.compile_dval_scalar(expression, "s32")
+            if expression.function.value == "dval_bool":
+                return self.compile_dval_scalar(expression, "bool")
             if expression.function.value == "unit_call":
                 if len(expression.arguments) != 3:
                     raise CapyError(expression.location, "unit_call expects target, function, and dval")
@@ -876,7 +1068,7 @@ class WasmFunctionCompiler:
             if expression.function.value == "trap":
                 if expression.arguments:
                     raise CapyError(expression.location, "trap expects no arguments")
-                return b"\x00", "void"
+                return self.module.source_marker(expression.location) + b"\x00", "void"
             arguments = [self.compile_expr(argument) for argument in expression.arguments]
             parameter_types = tuple(value_type for _, value_type in arguments)
             target = self.module.resolve_function(expression.function.value, parameter_types, expression.location)
@@ -913,12 +1105,13 @@ class WasmFunctionCompiler:
             if not self.loop_contexts:
                 keyword = "break" if isinstance(expression, Break) else "continue"
                 raise CapyError(expression.location, f"{keyword} is only valid inside a loop")
-            break_target, continue_target, ownership_boundary = self.loop_contexts[-1]
+            break_target, continue_target, ownership_boundary, break_cleanup, continue_cleanup = self.loop_contexts[-1]
             target_depth = break_target if isinstance(expression, Break) else continue_target
+            edge_cleanup = break_cleanup if isinstance(expression, Break) else continue_cleanup
             label_depth = self.control_depth - target_depth
             if label_depth < 0:
                 raise CapyError(expression.location, "invalid loop control nesting")
-            return self.cleanup_scopes_from(ownership_boundary) + b"\x0c" + uleb(label_depth), "void"
+            return self.cleanup_scopes_from(ownership_boundary) + edge_cleanup + b"\x0c" + uleb(label_depth), "void"
         if isinstance(expression, If):
             condition_code, condition_type = self.compile_expr(expression.condition)
             if condition_type not in SCALAR_TYPES:
@@ -941,12 +1134,69 @@ class WasmFunctionCompiler:
             outer_depth = self.control_depth
             ownership_boundary = len(self.owned_scopes)
             self.control_depth += 2
-            self.loop_contexts.append((outer_depth + 1, outer_depth + 2, ownership_boundary))
+            self.loop_contexts.append((outer_depth + 1, outer_depth + 2, ownership_boundary, b"", b""))
             body = self.compile_block(expression.body)
             self.loop_contexts.pop()
             self.control_depth -= 2
             return b"\x02\x40\x03\x40" + condition_code + b"\x45\x0d\x01" + body + b"\x0c\x00\x0b\x0b", "void"
         if isinstance(expression, For):
+            iterable_type = self.infer_expr_type(expression.iterable)
+            if iterable_type == "dval":
+                if len(expression.names) not in {1, 2}:
+                    raise CapyError(expression.location, "dval iteration accepts value or key,value bindings")
+                iterable_code, _ = self.compile_expr(expression.iterable)
+                iterable_local = self.allocate_local("dval", expression.iterable.location)
+                count_local = self.allocate_local("s32", expression.location)
+                index_local = self.allocate_local("s32", expression.location)
+                value_local = self.allocate_local("dval", expression.location)
+                key_local = self.allocate_local("string", expression.location) if len(expression.names) == 2 else -1
+                self.borrowed_managed_slots.add(value_local)
+                if key_local >= 0:
+                    self.borrowed_managed_slots.add(key_local)
+                code = bytearray(iterable_code + b"\x21" + uleb(iterable_local))
+                code.extend(b"\x20" + uleb(iterable_local) + b"\x41\x14\x6a\x20" + uleb(iterable_local) + b"\x28\x02\x10")
+                code.extend(self.module.host_call("bearer_dv_count_brrb") + b"\x21" + uleb(count_local))
+                code.extend(b"\x20" + uleb(count_local) + b"\x41\x00\x48\x04\x40" + self.module.source_marker(expression.iterable.location) + b"\x00\x0b\x41\x00\x21" + uleb(index_local))
+                code.extend(b"\x02\x40\x03\x40\x20" + uleb(index_local) + b"\x20" + uleb(count_local) + b"\x4f\x0d\x01")
+
+                def append_entry(import_name: str, value_type: str, target_local: int) -> None:
+                    length = self.allocate_local("s32", expression.location)
+                    code.extend(b"\x20" + uleb(iterable_local) + b"\x41\x14\x6a\x20" + uleb(iterable_local) + b"\x28\x02\x10\x20" + uleb(index_local) + b"\x41\x00\x41\x00")
+                    code.extend(self.module.host_call(import_name) + b"\x21" + uleb(length))
+                    code.extend(b"\x20" + uleb(length) + b"\x41\x00\x48\x04\x40" + self.module.source_marker(expression.location) + b"\x00\x0b")
+                    allocation, pointer = self.allocate_blob(value_type, 1 if value_type == "string" else 4, length, expression.location)
+                    code.extend(allocation)
+                    code.extend(b"\x20" + uleb(iterable_local) + b"\x41\x14\x6a\x20" + uleb(iterable_local) + b"\x28\x02\x10\x20" + uleb(index_local))
+                    code.extend(b"\x20" + uleb(pointer) + b"\x41\x14\x6a\x20" + uleb(length) + self.module.host_call(import_name))
+                    code.extend(b"\x20" + uleb(length) + b"\x47\x04\x40\x00\x0b\x20" + uleb(pointer) + b"\x21" + uleb(target_local))
+
+                if key_local >= 0:
+                    append_entry("bearer_dv_entry_key_brrb", "string", key_local)
+                append_entry("bearer_dv_entry_value_brrb", "dval", value_local)
+                scope = {expression.names[-1]: (value_local, "dval")}
+                if key_local >= 0:
+                    scope[expression.names[0]] = (key_local, "string")
+                self.scopes.append(scope)
+                release_items = bytearray()
+                release_items.extend(b"\x20" + uleb(value_local) + b"\x10" + uleb(self.module.release_index))
+                if key_local >= 0:
+                    release_items.extend(b"\x20" + uleb(key_local) + b"\x10" + uleb(self.module.release_index))
+                increment = b"\x20" + uleb(index_local) + b"\x41\x01\x6a\x21" + uleb(index_local)
+                outer_depth = self.control_depth
+                ownership_boundary = len(self.owned_scopes)
+                self.control_depth += 2
+                self.loop_contexts.append((outer_depth + 1, outer_depth + 2, ownership_boundary, bytes(release_items), bytes(release_items) + increment))
+                body = self.compile_block(expression.body)
+                self.loop_contexts.pop()
+                self.control_depth -= 2
+                self.scopes.pop()
+                code.extend(body + release_items + increment + b"\x0c\x00\x0b\x0b")
+                if self.expression_is_owned(expression.iterable):
+                    code.extend(b"\x20" + uleb(iterable_local) + b"\x10" + uleb(self.module.release_index))
+                return bytes(code), "void"
+            if len(expression.names) != 1:
+                raise CapyError(expression.location, "two-variable iteration requires a dval map or list")
+            loop_name = expression.names[0]
             if isinstance(expression.iterable, Binary) and expression.iterable.operator == "..":
                 start_code, start_type = self.compile_expr(expression.iterable.left)
                 end_code, end_type = self.compile_expr(expression.iterable.right)
@@ -954,11 +1204,11 @@ class WasmFunctionCompiler:
                 self.require_type(expression.location, "s32", end_type)
                 loop_local = self.allocate_local("s32", expression.location)
                 end_local = self.allocate_local("s32", expression.location)
-                self.scopes.append({expression.name: (loop_local, "s32")})
+                self.scopes.append({loop_name: (loop_local, "s32")})
                 outer_depth = self.control_depth
                 ownership_boundary = len(self.owned_scopes)
                 self.control_depth += 3
-                self.loop_contexts.append((outer_depth + 1, outer_depth + 3, ownership_boundary))
+                self.loop_contexts.append((outer_depth + 1, outer_depth + 3, ownership_boundary, b"", b""))
                 body = self.compile_block(expression.body)
                 self.loop_contexts.pop()
                 self.control_depth -= 3
@@ -978,12 +1228,12 @@ class WasmFunctionCompiler:
             if managed_type(element_type):
                 self.borrowed_managed_slots.add(item_local)
             owns_iterable = self.expression_is_owned(expression.iterable)
-            self.scopes.append({expression.name: (item_local, element_type)})
+            self.scopes.append({loop_name: (item_local, element_type)})
             self.owned_scopes.append([(array_local, iterable_type)] if owns_iterable else [])
             outer_depth = self.control_depth
             ownership_boundary = len(self.owned_scopes)
             self.control_depth += 3
-            self.loop_contexts.append((outer_depth + 1, outer_depth + 3, ownership_boundary))
+            self.loop_contexts.append((outer_depth + 1, outer_depth + 3, ownership_boundary, b"", b""))
             body = self.compile_block(expression.body)
             self.loop_contexts.pop()
             self.control_depth -= 3
@@ -1016,13 +1266,18 @@ class CapyModuleCompiler:
         self.structs: dict[str, tuple[int, list[tuple[str, str]]]] = {}
         self.tuples: dict[str, tuple[int, tuple[str, ...]]] = {}
         self.function_value_signatures: dict[str, tuple[tuple[str, ...], str]] = {}
+        self.custom_exports: list[tuple[str, CompiledDefinition]] = []
         self.table_slots: dict[FunctionKey, int] = {}
         self.types: list[tuple[tuple[str, ...], str]] = []
         self.type_indices: dict[tuple[tuple[str, ...], str], int] = {}
         self.host_import_order = (
             "bearer_print_bytes", "bearer_print_s32", "bearer_alloc", "bearer_free",
             "bearer_unit_render_bytes", "bearer_component_render_bytes",
-            "bearer_dv_string_to_brrb", "bearer_dv_brrb_to_string", "bearer_unit_call_brrb",
+            "bearer_dv_string_to_brrb", "bearer_dv_s32_to_brrb", "bearer_dv_bool_to_brrb",
+            "bearer_dv_build_brrb", "bearer_dv_get_brrb", "bearer_dv_count_brrb",
+            "bearer_dv_entry_key_brrb", "bearer_dv_entry_value_brrb", "bearer_dv_scalar_type_brrb",
+            "bearer_dv_s32_brrb", "bearer_dv_bool_brrb", "bearer_dv_ptr_to_brrb",
+            "bearer_dv_brrb_to_ptr", "bearer_dv_brrb_to_string", "bearer_unit_call_brrb",
         )
         self.host_indices = {name: index for index, name in enumerate(self.host_import_order)}
         self.helper_indices = {"retain": 9, "release": 10, "clone": 11}
@@ -1030,6 +1285,12 @@ class CapyModuleCompiler:
         self.used_helpers: set[str] = set()
         self.uses_arc_global = False
         self.first_user_index = 12
+        self.source_markers: list[tuple[bytes, Location]] = []
+
+    def source_marker(self, location: Location) -> bytes:
+        marker = b"\x41" + sleb32(0x5A000000 + len(self.source_markers)) + b"\x1a"
+        self.source_markers.append((marker, location))
+        return marker
 
     def encoded_host_call(self, name: str) -> bytes:
         return b"\x10" + uleb(self.host_indices[name])
@@ -1210,6 +1471,15 @@ class CapyModuleCompiler:
                     key = FunctionKey(item.name, parameter_types)
                     self.functions[key] = definition
                     self.definitions.append(definition)
+                    if item.name.startswith("EXPORT_"):
+                        export_name = item.name[7:]
+                        if not export_name:
+                            raise CapyError(item.location, "custom DValue export requires a name after EXPORT_")
+                        if parameter_types != ("dval",) or result_type != "dval":
+                            raise CapyError(item.location, "custom DValue export must have signature (dval) dval")
+                        if any(existing == export_name for existing, _ in self.custom_exports):
+                            raise CapyError(item.location, f"custom DValue export {export_name!r} is already declared")
+                        self.custom_exports.append((export_name, definition))
             elif isinstance(item, Struct):
                 continue
             elif isinstance(item, Variable):
@@ -1310,6 +1580,27 @@ class CapyModuleCompiler:
         }
         return [bodies[name] for name in ("retain", "release", "clone") if name in self.used_helpers]
 
+    def custom_export_body(self, target: CompiledDefinition) -> bytes:
+        length, input_value, result_value, output_pointer = 1, 2, 3, 4
+        code = bytearray(b"\x20\x00\x41\x00\x41\x00" + self.encoded_host_call("bearer_dv_ptr_to_brrb") + b"\x21" + uleb(length))
+        code.extend(b"\x20" + uleb(length) + b"\x41\x14\x6a" + self.encoded_host_call("bearer_alloc") + b"\x21" + uleb(input_value))
+        code.extend(b"\x20" + uleb(input_value) + b"\x45\x04\x40\x00\x0b")
+        for value, offset in ((1, 0), (1, 4), (4, 8)):
+            code.extend(b"\x20" + uleb(input_value) + b"\x41" + sleb32(value) + b"\x36\x02" + uleb(offset))
+        code.extend(b"\x20" + uleb(input_value) + b"\x20" + uleb(length) + b"\x41\x14\x6a\x36\x02\x0c")
+        code.extend(b"\x20" + uleb(input_value) + b"\x20" + uleb(length) + b"\x36\x02\x10")
+        code.extend(b"\x23\x01\x41\x01\x6a\x24\x01")
+        code.extend(b"\x20\x00\x20" + uleb(input_value) + b"\x41\x14\x6a\x20" + uleb(length) + self.encoded_host_call("bearer_dv_ptr_to_brrb"))
+        code.extend(b"\x20" + uleb(length) + b"\x47\x04\x40\x00\x0b")
+        code.extend(b"\x20" + uleb(input_value) + b"\x10" + uleb(target.function_index) + b"\x21" + uleb(result_value))
+        code.extend(b"\x20" + uleb(result_value) + b"\x41\x14\x6a\x20" + uleb(result_value) + b"\x28\x02\x10")
+        code.extend(self.encoded_host_call("bearer_dv_brrb_to_ptr") + b"\x21" + uleb(output_pointer))
+        code.extend(b"\x20" + uleb(input_value) + b"\x10" + uleb(self.helper_indices["release"]))
+        code.extend(b"\x20" + uleb(result_value) + b"\x10" + uleb(self.helper_indices["release"]))
+        code.extend(b"\x20" + uleb(output_pointer) + b"\x0b")
+        content = b"\x01\x04\x7f" + bytes(code)
+        return uleb(len(content)) + content
+
     def compile(self) -> tuple[bytes, str]:
         self.collect()
         # Stable direct-language imports are function indices 0..8.
@@ -1317,9 +1608,14 @@ class CapyModuleCompiler:
         print_s32_type = self.wasm_type(("s32",), "void")
         allocator_type = self.wasm_type(("s32",), "s32")
         blob_adapter_type = self.wasm_type(("s32", "s32", "s32", "s32"), "s32")
+        scalar_adapter_type = self.wasm_type(("s32", "s32", "s32"), "s32")
+        build_adapter_type = self.wasm_type(("s32", "s32", "s32", "s32", "s32"), "s32")
+        get_adapter_type = self.wasm_type(("s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"), "s32")
+        entry_adapter_type = self.wasm_type(("s32", "s32", "s32", "s32", "s32"), "s32")
         unit_call_type = self.wasm_type(("s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"), "s32")
         retain_type = self.wasm_type(("s32",), "void")
         clone_type = self.wasm_type(("s32",), "s32")
+        custom_export_type = self.wasm_type(("s32",), "s32")
         for index, definition in enumerate(self.definitions):
             definition.function_index = self.first_user_index + index
             wasm_parameters = ("s32",) if definition.export_name else definition.parameter_types
@@ -1330,6 +1626,10 @@ class CapyModuleCompiler:
         while definition_index < len(self.definitions):
             WasmFunctionCompiler(self, self.definitions[definition_index]).compile_body()
             definition_index += 1
+        if self.custom_exports:
+            self.used_host_imports.update({"bearer_alloc", "bearer_free", "bearer_dv_ptr_to_brrb", "bearer_dv_brrb_to_ptr"})
+            self.used_helpers.add("release")
+            self.uses_arc_global = True
         required_helpers = tuple(name for name in ("retain", "release", "clone") if name in self.used_helpers)
         if "clone" in required_helpers:
             self.used_host_imports.add("bearer_alloc")
@@ -1347,12 +1647,17 @@ class CapyModuleCompiler:
             definition.function_index = self.first_user_index + index
 
         self.data.clear()
+        self.source_markers.clear()
         self.used_host_imports.clear()
         self.used_helpers.clear()
         self.uses_arc_global = False
         user_bodies: list[bytes] = []
         for definition in self.definitions:
             user_bodies.append(WasmFunctionCompiler(self, definition).compile_body())
+        if self.custom_exports:
+            self.used_host_imports.update({"bearer_alloc", "bearer_free", "bearer_dv_ptr_to_brrb", "bearer_dv_brrb_to_ptr"})
+            self.used_helpers.add("release")
+            self.uses_arc_global = True
         if (
             not self.used_host_imports.issubset(required_imports)
             or not self.used_helpers.issubset(required_helpers)
@@ -1360,7 +1665,9 @@ class CapyModuleCompiler:
         ):
             raise RuntimeError("Capy runtime-surface discovery changed during final lowering")
         self.used_helpers.update(required_helpers)
-        bodies = self.runtime_bodies() + user_bodies
+        runtime_bodies = self.runtime_bodies()
+        custom_bodies = [self.custom_export_body(target) for _, target in self.custom_exports]
+        bodies = runtime_bodies + user_bodies + custom_bodies
 
         def encode_type(signature: tuple[tuple[str, ...], str]) -> bytes:
             parameters, result = signature
@@ -1376,6 +1683,18 @@ class CapyModuleCompiler:
             "bearer_unit_render_bytes": print_bytes_type,
             "bearer_component_render_bytes": print_bytes_type,
             "bearer_dv_string_to_brrb": blob_adapter_type,
+            "bearer_dv_s32_to_brrb": scalar_adapter_type,
+            "bearer_dv_bool_to_brrb": scalar_adapter_type,
+            "bearer_dv_build_brrb": build_adapter_type,
+            "bearer_dv_get_brrb": get_adapter_type,
+            "bearer_dv_count_brrb": self.wasm_type(("s32", "s32"), "s32"),
+            "bearer_dv_entry_key_brrb": entry_adapter_type,
+            "bearer_dv_entry_value_brrb": entry_adapter_type,
+            "bearer_dv_scalar_type_brrb": self.wasm_type(("s32", "s32"), "s32"),
+            "bearer_dv_s32_brrb": scalar_adapter_type,
+            "bearer_dv_bool_brrb": scalar_adapter_type,
+            "bearer_dv_ptr_to_brrb": scalar_adapter_type,
+            "bearer_dv_brrb_to_ptr": self.wasm_type(("s32", "s32"), "s32"),
             "bearer_dv_brrb_to_string": blob_adapter_type,
             "bearer_unit_call_brrb": unit_call_type,
         }
@@ -1391,6 +1710,10 @@ class CapyModuleCompiler:
             wasm_string(definition.export_name) + b"\x00" + uleb(definition.function_index)
             for definition in self.definitions if definition.export_name
         ]
+        exports.extend(
+            wasm_string(name) + b"\x00" + uleb(self.first_user_index + len(self.definitions) + index)
+            for index, (name, _) in enumerate(self.custom_exports)
+        )
         mem_info = uleb(len(self.data)) + uleb(3) + uleb(0) + uleb(0)
         data_segment = b"\x00\x23\x00\x0b" + uleb(len(self.data)) + bytes(self.data)
         abi = (
@@ -1407,6 +1730,8 @@ class CapyModuleCompiler:
             ordered_keys = [key for key, _ in sorted(self.table_slots.items(), key=lambda item: item[1])]
             element = b"\x00\x41\x00\x0b" + wasm_vector([uleb(self.functions[key].function_index) for key in ordered_keys])
             table_sections.append(wasm_section(9, wasm_vector([element])))
+        code_payload = wasm_vector(bodies)
+        code_section = wasm_section(10, code_payload)
         wasm = b"\x00asm\x01\x00\x00\x00" + b"".join([
             wasm_custom("dylink.0", b"\x01" + uleb(len(mem_info)) + mem_info),
             wasm_section(1, wasm_vector([encode_type(signature) for signature in self.types])),
@@ -1417,21 +1742,62 @@ class CapyModuleCompiler:
                     for name in required_helpers
                 ],
                 *[uleb(definition.type_index) for definition in self.definitions],
+                *[uleb(custom_export_type) for _ in self.custom_exports],
             ])),
             *table_sections[:1],
             *([wasm_section(6, wasm_vector([b"\x7f\x01\x41\x00\x0b"]))] if requires_arc_global else []),
             wasm_section(7, wasm_vector(exports)),
             *table_sections[1:],
-            wasm_section(10, wasm_vector(bodies)),
+            code_section,
             wasm_section(11, wasm_vector([data_segment])),
             wasm_custom("name", name_section),
             wasm_custom("bearer.abi", abi),
             wasm_custom("bearer.module", self.module_name.encode("utf-8")),
         ])
+        def decode_uleb_at(data: bytes, offset: int) -> tuple[int, int]:
+            value = 0
+            shift = 0
+            while True:
+                byte = data[offset]
+                offset += 1
+                value |= (byte & 0x7F) << shift
+                if not (byte & 0x80):
+                    return value, offset
+                shift += 7
+
+        code_address = wasm.find(code_section)
+        if code_address < 0 or wasm.find(code_section, code_address + 1) >= 0:
+            raise RuntimeError("Capy code section is missing or ambiguous in final Wasm")
+        body_address = code_address + 1 + len(uleb(len(code_payload))) + len(uleb(len(bodies)))
+        body_entries: list[int] = []
+        cursor = body_address
+        for body in bodies:
+            _, content = decode_uleb_at(body, 0)
+            local_groups, instruction = decode_uleb_at(body, content)
+            for _ in range(local_groups):
+                _, instruction = decode_uleb_at(body, instruction)
+                instruction += 1
+            body_entries.append(cursor + instruction)
+            cursor += len(body)
+
+        source_rows: list[tuple[int, Location]] = [
+            (body_entries[len(runtime_bodies) + index], definition.function.location)
+            for index, definition in enumerate(self.definitions)
+        ]
+        source_rows.extend(
+            (body_entries[len(runtime_bodies) + len(self.definitions) + index], target.function.location)
+            for index, (_, target) in enumerate(self.custom_exports)
+        )
+        for marker, location in self.source_markers:
+            address = wasm.find(marker)
+            if address < 0 or wasm.find(marker, address + 1) >= 0:
+                raise RuntimeError("Capy source marker is missing or ambiguous in final Wasm")
+            source_rows.append((address, location))
+        source_rows.sort(key=lambda row: row[0])
         source_map = "\n".join([
             f"BEARER_SOURCE_MAP_V1\t{self.module_name}",
             f"F\t1\t{self.source}",
-            *[f"L\t0\t1\t{definition.function.location.line}\t{definition.function.location.column}" for definition in self.definitions],
+            *[f"L\t{address:x}\t1\t{location.line}\t{location.column}" for address, location in source_rows],
             "",
         ])
         return wasm, source_map

@@ -8,6 +8,16 @@ EXPORT DValue* echo(DValue* call)
 	return(call);
 }
 
+EXPORT DValue* structured(DValue* call)
+{
+	static DValue result;
+	result.clear();
+	result["source"] = "cpp";
+	result["name"] = call ? (*call)["user"]["name"].to_string() : "missing";
+	result["second"] = call ? (*call)["items"]["1"].to_s64() : -1;
+	return(&result);
+}
+
 u32 counted_calls = 0;
 
 EXPORT DValue* counted(DValue* call)

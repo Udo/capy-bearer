@@ -17,6 +17,7 @@ from capy_compiler import (
     Markup,
     MarkupField,
     MarkupText,
+    MapLiteral,
     Return,
     ScopeLookup,
     String,
@@ -110,6 +111,16 @@ class LexerParserTests(unittest.TestCase):
         self.assertFalse(a.inferred)
         self.assertTrue(b.inferred)
         self.assertIsNone(b.annotation)
+
+    def test_dval_map_literal_and_two_name_iteration_parse(self):
+        program = parse(
+            'var value := dval({"name": "Ada", age: 42})\nfor key, item = value { print(key) }\n',
+            "dval-syntax.capy",
+        )
+        call = program.items[0].value
+        self.assertIsInstance(call.arguments[0], MapLiteral)
+        self.assertEqual([key for key, _ in call.arguments[0].entries], ["name", "age"])
+        self.assertEqual(program.items[1].names, ["key", "item"])
 
     def test_range_is_an_expression(self):
         expression = self.parse_one("0..10\n")
@@ -278,6 +289,41 @@ class LexerParserTests(unittest.TestCase):
         self.assertNotIn("retain", module.helper_indices)
         self.assertTrue(module.uses_arc_global)
 
+    def test_expression_source_map_rows_are_absolute_sorted_and_precise(self):
+        source = 'function CLI {\n    var values := [1]\n    print(values[2])\n    trap()\n}\n'
+        program = parse(source, "expression-map.capy")
+        wasm, source_map = compile_bearer_unit(program, "expression-map.capy", "expression-map.wasm", 11)
+        rows = [line.split("\t") for line in source_map.splitlines() if line.startswith("L\t")]
+        addresses = [int(row[1], 16) for row in rows]
+        locations = {(int(row[3]), int(row[4])) for row in rows}
+        self.assertEqual(addresses, sorted(addresses))
+        self.assertEqual(len(addresses), len(set(addresses)))
+        self.assertTrue(all(0 < address < len(wasm) for address in addresses))
+        self.assertIn((3, 17), locations)
+        self.assertIn((4, 5), locations)
+
+    def test_rich_dval_and_custom_export_compile(self):
+        program = parse(
+            'function EXPORT_echo(input : dval) dval { dval({"copy": input, "count": 2}) }\n'
+            'function CLI { var value := dval({"items": ["a", "b"]}); '
+            'for key, item = value["items"] { print(key, dval_string(item)) } }\n',
+            "rich-dval.capy",
+        )
+        module = CapyModuleCompiler(program, "rich-dval.capy", "rich-dval.wasm", 11)
+        wasm, _ = module.compile()
+        self.assertTrue(wasm.startswith(b"\0asm"))
+        self.assertEqual([name for name, _ in module.custom_exports], ["echo"])
+        self.assertIn("bearer_dv_build_brrb", module.host_indices)
+        self.assertIn("bearer_dv_entry_value_brrb", module.host_indices)
+        self.assertIn("bearer_dv_ptr_to_brrb", module.host_indices)
+
+        duplicate = parse('function CLI { var value := dval({"x": 1, "x": 2}) }\n', "duplicate-dval.capy")
+        with self.assertRaisesRegex(CapyError, "duplicate key"):
+            compile_bearer_unit(duplicate, "duplicate-dval.capy", "duplicate-dval.wasm", 11)
+        invalid_export = parse('function EXPORT_bad(input : string) string { input }\n', "bad-export.capy")
+        with self.assertRaisesRegex(CapyError, "custom DValue export must have signature"):
+            compile_bearer_unit(invalid_export, "bad-export.capy", "bad-export.wasm", 11)
+
     def test_markup_runtime_surface_and_raw_type_boundary(self):
         static = parse('function CLI { print(<><p>static</p></>) }\n', "static-markup.capy")
         module = CapyModuleCompiler(static, "static-markup.capy", "static-markup.wasm", 10)
@@ -318,12 +364,13 @@ class LexerParserTests(unittest.TestCase):
                 "bearer_unit_render_bytes": 3,
                 "bearer_component_render_bytes": 4,
                 "bearer_dv_string_to_brrb": 5,
-                "bearer_dv_brrb_to_string": 6,
-                "bearer_unit_call_brrb": 7,
+                "bearer_dv_scalar_type_brrb": 6,
+                "bearer_dv_brrb_to_string": 7,
+                "bearer_unit_call_brrb": 8,
             },
         )
-        self.assertEqual(module.helper_indices, {"release": 8})
-        self.assertEqual(module.definitions[0].function_index, 9)
+        self.assertEqual(module.helper_indices, {"release": 9})
+        self.assertEqual(module.definitions[0].function_index, 10)
 
         release_only = parse(
             'function keep(value : string) { var local := value }\nfunction CLI {}\n',

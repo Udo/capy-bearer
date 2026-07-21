@@ -1,0 +1,4 @@
+function CLI {
+    var value := dval({"present": "yes"})
+    print(dval_string(value["missing"]))
+}

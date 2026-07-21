@@ -1,0 +1,59 @@
+function EXPORT_enrich (input : dval) dval {
+    print("custom-once;")
+    return dval({"input": input, "language": "capy", "items": [1, 2, 3]})
+}
+
+function CLI {
+    {
+        var cpp := unit_call("/tests/capy-cross-target.uce", "structured", dval({"user": {"name": "Ada"}, "items": [4, 9]}))
+        print(dval_string(cpp["source"]), "|", dval_string(cpp["name"]), "|", dval_s32(cpp["second"]), "|")
+        var capy := unit_call("/tests/capy-dval-rich.capy", "enrich", dval({"origin": "capy"}))
+        print(dval_string(capy["language"]), "|", dval_string(capy["input"]["origin"]), "|")
+        var profile := dval({
+            "name": "Ada",
+            "age": 42,
+            "active": true,
+            "tags": ["math", "logic"]
+        })
+        print(
+            dval_string(profile["name"]), "|",
+            dval_s32(profile["age"]), "|",
+            dval_bool(profile["active"]), "|",
+            dval_string(profile["tags"][1]), "|",
+            dval_has(profile, "name"), dval_has(profile, "missing"), "|",
+            arc_live(), "|"
+        )
+        for key, value = profile {
+            print(key, ";")
+        }
+        print("|")
+        for key, value = profile["tags"] {
+            print(key, "=", dval_string(value), ";")
+        }
+        print("|")
+        for key, value = dval([1, 2, 3]) {
+            if dval_s32(value) == 1 {
+                continue
+            }
+            print(dval_s32(value), ";")
+            if dval_s32(value) == 2 {
+                break
+            }
+        }
+        print("|", arc_live(), "|")
+    }
+    print(arc_live(), "|")
+    {
+        var empty_map := dval({:})
+        var empty_list := dval([])
+        print(dval_has(empty_map, "missing"), dval_has(empty_list, 0), "|")
+        for key, value = empty_map {
+            print("unexpected-map")
+        }
+        for key, value = empty_list {
+            print("unexpected-list")
+        }
+        print(arc_live(), "|")
+    }
+    print(arc_live())
+}

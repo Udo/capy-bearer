@@ -316,6 +316,11 @@ class ArrayLiteral(Expr):
 
 
 @dataclass
+class MapLiteral(Expr):
+    entries: list[tuple[str, Expr]]
+
+
+@dataclass
 class Annotation(Expr):
     value: Expr
     type_expr: Expr
@@ -410,7 +415,7 @@ class Struct(Expr):
 
 @dataclass
 class For(Expr):
-    name: str
+    names: list[str]
     iterable: Expr
     body: Block
 
@@ -599,6 +604,13 @@ class Parser:
         if token.text == "[":
             return self.array_literal(token.location)
         if token.text == "{":
+            self.skip_separators()
+            if self.token.text == ":" or (
+                self.token.kind in {"identifier", "string"}
+                and self.position + 1 < len(self.tokens)
+                and self.tokens[self.position + 1].text == ":"
+            ):
+                return self.map_literal(token.location)
             return self.block(token.location)
         if token.text in {"-", "!"}:
             return Binary(token.location, "unary" + token.text, Integer(token.location, 0), self.expression(70))
@@ -633,8 +645,28 @@ class Parser:
             self.require("]")
         return ArrayLiteral(location, items)
 
+    def map_literal(self, location: Location) -> MapLiteral:
+        entries: list[tuple[str, Expr]] = []
+        self.skip_separators()
+        if self.match(":"):
+            self.require("}")
+            return MapLiteral(location, entries)
+        while True:
+            key = self.take()
+            if key.kind not in {"identifier", "string"}:
+                raise CapyError(key.location, "DValue map key must be an identifier or string")
+            self.require(":")
+            entries.append((key.text, self.expression()))
+            self.skip_separators()
+            if not self.match(","):
+                break
+            self.skip_separators()
+        self.require("}")
+        return MapLiteral(location, entries)
+
     def finish_call(self, function: Expr) -> Expr:
-        location = self.require("(").location
+        self.require("(")
+        location = function.location
         arguments: list[Expr] = []
         self.skip_separators()
         if not self.match(")"):
@@ -730,12 +762,14 @@ class Parser:
         return Return(location, value)
 
     def for_expr(self, location: Location) -> For:
-        name = self.require_identifier("loop variable")
+        names = [self.require_identifier("loop variable").text]
+        if self.match(","):
+            names.append(self.require_identifier("second loop variable").text)
         if not (self.match("=") or self.match("in")):
             raise CapyError(self.token.location, "expected '=' or 'in' after loop variable")
         iterable = self.expression()
         body_location = self.require("{").location
-        return For(location, name.text, iterable, self.block(body_location))
+        return For(location, names, iterable, self.block(body_location))
 
     def if_expr(self, location: Location) -> If:
         condition = self.expression()

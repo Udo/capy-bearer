@@ -47,6 +47,46 @@ wasm-validate "$phase3_cache.wasm"
 	echo "C++-to-Capy Bearer component dispatch failed" >&2
 	exit 1
 }
+rich_dval_output=$(scripts/bearer-cli /tests/capy-dval-rich.capy)
+[[ "$rich_dval_output" == "cpp|Ada|9|custom-once;capy|capy|Ada|42|1|logic|10|3|active;age;name;tags;|0=math;1=logic;|2;|3|0|00|2|0" ]] || {
+	echo "Capy rich DValue output mismatch: $rich_dval_output" >&2
+	exit 1
+}
+[[ "$(scripts/bearer-cli /tests/capy-dval-rich-caller.uce)" == "custom-once;capy|C++|roundtrip|3" ]] || {
+	echo "C++-to-Capy custom DValue export failed" >&2
+	exit 1
+}
+set +e
+dval_trap_output=$(scripts/bearer-cli /tests/capy-dval-missing-trap.capy 2>&1)
+dval_trap_status=$?
+set -e
+[[ $dval_trap_status -ne 0 && "$dval_trap_output" == *'wasm `unreachable` instruction executed'* && "$dval_trap_output" == *'capy-dval-missing-trap.capy:3:29'* ]] || {
+	echo "Capy missing DValue trap mismatch: status=$dval_trap_status output=$dval_trap_output" >&2
+	exit 1
+}
+[[ "$(scripts/bearer-cli /tests/capy-dval-rich.capy)" == "$rich_dval_output" ]] || {
+	echo "Capy DValue workspace did not reset after trap" >&2
+	exit 1
+}
+for fixture_and_location in \
+	"capy-dval-negative-trap:3:32" \
+	"capy-dval-range-trap:3:30" \
+	"capy-dval-scalar-trap:3:29"; do
+	fixture=${fixture_and_location%%:*}
+	location=${fixture_and_location#*:}
+	set +e
+	strict_trap_output=$(scripts/bearer-cli "/tests/$fixture.capy" 2>&1)
+	strict_trap_status=$?
+	set -e
+	[[ $strict_trap_status -ne 0 && "$strict_trap_output" == *"$fixture.capy:$location"* ]] || {
+		echo "Capy strict DValue trap mismatch: fixture=$fixture output=$strict_trap_output" >&2
+		exit 1
+	}
+	[[ "$(scripts/bearer-cli /tests/capy-dval-rich.capy)" == "$rich_dval_output" ]] || {
+		echo "Capy DValue workspace did not reset after $fixture" >&2
+		exit 1
+	}
+done
 arc_output=$(scripts/bearer-cli /tests/capy-arc.capy)
 expected_arc='first|0|alphaalpha|1|1|1|789|1|8|2|4|1|12|3|ownedtwo|4|temp|1|picked|1|4|2|pair42|3|pair|6|inside|9|field|1|betaalpha|2|betaalphaalphabeta|3|tempz|4|double|5|nested|6|5|0'
 [[ "$arc_output" == "$expected_arc" ]] || {
@@ -78,7 +118,7 @@ for array_trap in capy-array-trap capy-array-negative-trap; do
 	array_trap_output=$(scripts/bearer-cli "/tests/$array_trap.capy" 2>&1)
 	array_trap_status=$?
 	set -e
-	[[ $array_trap_status -ne 0 && "$array_trap_output" == *"$array_trap.capy:1"* ]] || {
+	[[ $array_trap_status -ne 0 && "$array_trap_output" == *"$array_trap.capy:2:14"* ]] || {
 		echo "Capy array bounds trap/source mapping mismatch: fixture=$array_trap status=$array_trap_status output=$array_trap_output" >&2
 		exit 1
 	}

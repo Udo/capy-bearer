@@ -1,0 +1,4 @@
+function CLI {
+    var values := dval(["only"])
+    print(dval_string(values[1]))
+}

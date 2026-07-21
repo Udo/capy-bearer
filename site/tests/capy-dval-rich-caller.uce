@@ -1,0 +1,16 @@
+CLI(Request& request)
+{
+	DValue input;
+	input["name"] = "C++";
+	input["nested"]["value"] = "roundtrip";
+	DValue* result = unit_call("/tests/capy-dval-rich.capy", "enrich", &input);
+	if(result == 0)
+	{
+		print("missing-result");
+		return;
+	}
+	print((*result)["language"].to_string(), "|");
+	print((*result)["input"]["name"].to_string(), "|");
+	print((*result)["input"]["nested"]["value"].to_string(), "|");
+	print((*result)["items"]["2"].to_s64());
+}

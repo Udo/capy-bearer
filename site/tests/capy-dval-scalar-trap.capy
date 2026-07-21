@@ -1,0 +1,4 @@
+function CLI {
+    var value := dval("scalar")
+    print(dval_string(value["key"]))
+}
