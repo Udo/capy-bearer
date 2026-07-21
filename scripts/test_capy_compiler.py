@@ -244,6 +244,21 @@ class LexerParserTests(unittest.TestCase):
         with self.assertRaisesRegex(CapyError, "not all paths produce string"):
             compile_bearer_unit(program, "returns.capy", "returns.wasm", 9)
 
+    def test_break_and_continue_reject_arguments_and_operators(self):
+        for source in (
+            "function CLI { break junk }\n",
+            "function CLI { continue() }\n",
+            "function CLI { while true { break() } }\n",
+        ):
+            with self.assertRaisesRegex(CapyError, "does not accept arguments or operators"):
+                parse(source, "malformed-loop-control.capy")
+
+    def test_break_and_continue_require_loop_context(self):
+        for keyword in ("break", "continue"):
+            program = parse(f"function CLI {{ {keyword} }}\n", f"{keyword}.capy")
+            with self.assertRaisesRegex(CapyError, f"{keyword} is only valid inside a loop"):
+                compile_bearer_unit(program, f"{keyword}.capy", f"{keyword}.wasm", 10)
+
     def test_borrowed_managed_loop_value_cannot_be_reassigned(self):
         program = parse(
             'function CLI { for value = ["old"] { value = clone("new") } }\n',

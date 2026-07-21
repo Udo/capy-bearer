@@ -128,6 +128,8 @@ class WasmFunctionCompiler:
         self.parameter_count = 1 if definition.export_name else len(definition.parameter_types)
         self.local_count = 0
         self.borrowed_managed_slots: set[int] = set()
+        self.control_depth = 0
+        self.loop_contexts: list[tuple[int, int, int]] = []  # break target, continue target, owned boundary
         if definition.export_name:
             if len(definition.function.parameters) == 1:
                 parameter = definition.function.parameters[0]
@@ -244,8 +246,11 @@ class WasmFunctionCompiler:
         return bytes(code)
 
     def cleanup_all_scopes(self) -> bytes:
+        return self.cleanup_scopes_from(0)
+
+    def cleanup_scopes_from(self, boundary: int) -> bytes:
         code = bytearray()
-        for scope in reversed(self.owned_scopes):
+        for scope in reversed(self.owned_scopes[boundary:]):
             for local, value_type in reversed(scope):
                 if managed_type(value_type):
                     code.extend(b"\x20" + uleb(local) + b"\x10" + uleb(self.module.release_index))
@@ -368,7 +373,7 @@ class WasmFunctionCompiler:
                 return "void"
             parameters = tuple(self.infer_expr_type(argument) for argument in expression.arguments)
             return self.module.resolve_function(expression.function.value, parameters, expression.location).result_type
-        if isinstance(expression, (Variable, Return, If, While, For, Block)):
+        if isinstance(expression, (Variable, Return, Break, Continue, If, While, For, Block)):
             return "void"
         raise CapyError(expression.location, f"cannot infer type of {expression.__class__.__name__}")
 
@@ -739,21 +744,42 @@ class WasmFunctionCompiler:
                 code.extend(b"\x20" + uleb(temporary) + b"\x0f")
                 return bytes(code), "void"
             return value_code + self.cleanup_all_scopes() + b"\x0f", "void"
+        if isinstance(expression, (Break, Continue)):
+            if not self.loop_contexts:
+                keyword = "break" if isinstance(expression, Break) else "continue"
+                raise CapyError(expression.location, f"{keyword} is only valid inside a loop")
+            break_target, continue_target, ownership_boundary = self.loop_contexts[-1]
+            target_depth = break_target if isinstance(expression, Break) else continue_target
+            label_depth = self.control_depth - target_depth
+            if label_depth < 0:
+                raise CapyError(expression.location, "invalid loop control nesting")
+            return self.cleanup_scopes_from(ownership_boundary) + b"\x0c" + uleb(label_depth), "void"
         if isinstance(expression, If):
             condition_code, condition_type = self.compile_expr(expression.condition)
             if condition_type not in SCALAR_TYPES:
                 raise CapyError(expression.condition.location, "if condition must be scalar")
+            self.control_depth += 1
             then_code = self.compile_block(expression.then_body)
+            self.control_depth -= 1
             code = bytearray(condition_code + b"\x04\x40" + then_code)
             if expression.else_body:
-                code.extend(b"\x05" + self.compile_block(expression.else_body))
+                self.control_depth += 1
+                else_code = self.compile_block(expression.else_body)
+                self.control_depth -= 1
+                code.extend(b"\x05" + else_code)
             code.append(0x0B)
             return bytes(code), "void"
         if isinstance(expression, While):
             condition_code, condition_type = self.compile_expr(expression.condition)
             if condition_type not in SCALAR_TYPES:
                 raise CapyError(expression.condition.location, "while condition must be scalar")
+            outer_depth = self.control_depth
+            ownership_boundary = len(self.owned_scopes)
+            self.control_depth += 2
+            self.loop_contexts.append((outer_depth + 1, outer_depth + 2, ownership_boundary))
             body = self.compile_block(expression.body)
+            self.loop_contexts.pop()
+            self.control_depth -= 2
             return b"\x02\x40\x03\x40" + condition_code + b"\x45\x0d\x01" + body + b"\x0c\x00\x0b\x0b", "void"
         if isinstance(expression, For):
             if isinstance(expression.iterable, Binary) and expression.iterable.operator == "..":
@@ -764,11 +790,17 @@ class WasmFunctionCompiler:
                 loop_local = self.allocate_local("s32", expression.location)
                 end_local = self.allocate_local("s32", expression.location)
                 self.scopes.append({expression.name: (loop_local, "s32")})
+                outer_depth = self.control_depth
+                ownership_boundary = len(self.owned_scopes)
+                self.control_depth += 3
+                self.loop_contexts.append((outer_depth + 1, outer_depth + 3, ownership_boundary))
                 body = self.compile_block(expression.body)
+                self.loop_contexts.pop()
+                self.control_depth -= 3
                 self.scopes.pop()
                 code = start_code + b"\x21" + uleb(loop_local) + end_code + b"\x21" + uleb(end_local)
-                code += b"\x02\x40\x03\x40\x20" + uleb(loop_local) + b"\x20" + uleb(end_local) + b"\x4e\x0d\x01"
-                code += body + b"\x20" + uleb(loop_local) + b"\x41\x01\x6a\x21" + uleb(loop_local) + b"\x0c\x00\x0b\x0b"
+                code += b"\x02\x40\x03\x40\x20" + uleb(loop_local) + b"\x20" + uleb(end_local) + b"\x4e\x0d\x01\x02\x40"
+                code += body + b"\x0b\x20" + uleb(loop_local) + b"\x41\x01\x6a\x21" + uleb(loop_local) + b"\x0c\x00\x0b\x0b"
                 return code, "void"
             iterable_code, iterable_type = self.compile_expr(expression.iterable)
             if not iterable_type.startswith("array<"):
@@ -783,14 +815,20 @@ class WasmFunctionCompiler:
             owns_iterable = self.expression_is_owned(expression.iterable)
             self.scopes.append({expression.name: (item_local, element_type)})
             self.owned_scopes.append([(array_local, iterable_type)] if owns_iterable else [])
+            outer_depth = self.control_depth
+            ownership_boundary = len(self.owned_scopes)
+            self.control_depth += 3
+            self.loop_contexts.append((outer_depth + 1, outer_depth + 3, ownership_boundary))
             body = self.compile_block(expression.body)
+            self.loop_contexts.pop()
+            self.control_depth -= 3
             self.owned_scopes.pop()
             self.scopes.pop()
             code = bytearray(iterable_code + b"\x21" + uleb(array_local) + b"\x41\x00\x21" + uleb(index_local))
             code.extend(b"\x20" + uleb(array_local) + b"\x28\x02\x10\x21" + uleb(length_local))
             code.extend(b"\x02\x40\x03\x40\x20" + uleb(index_local) + b"\x20" + uleb(length_local) + b"\x4f\x0d\x01")
             code.extend(b"\x20" + uleb(array_local) + b"\x20" + uleb(index_local) + b"\x41\x04\x6c\x6a\x28\x02\x14")
-            code.extend(b"\x21" + uleb(item_local) + body)
+            code.extend(b"\x21" + uleb(item_local) + b"\x02\x40" + body + b"\x0b")
             code.extend(b"\x20" + uleb(index_local) + b"\x41\x01\x6a\x21" + uleb(index_local) + b"\x0c\x00\x0b\x0b")
             if owns_iterable:
                 code.extend(b"\x20" + uleb(array_local) + b"\x10" + uleb(self.module.release_index))

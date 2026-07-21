@@ -22,6 +22,11 @@ language_output=$(scripts/bearer-cli /tests/capy-language.capy)
 	echo "Capy functions/locals/control-flow output mismatch: $language_output" >&2
 	exit 1
 }
+loop_control_output=$(scripts/bearer-cli /tests/capy-loop-control.capy)
+[[ "$loop_control_output" == "7|owned-return|0|13|0|023|0|ab|0|0002||2022|0" ]] || {
+	echo "Capy break/continue ARC output mismatch: $loop_control_output" >&2
+	exit 1
+}
 phase3_output=$(scripts/bearer-cli /tests/capy-phase3.capy)
 [[ "$phase3_output" == "7|generic|5|fallback|2|name|9tuple|2|tuple|0|tuple|0|tuple|3|innerouter|4|temporary|0|nested|0|5-1tuple|0|0|011|0" ]] || {
 	echo "Capy generic specialization output mismatch: $phase3_output" >&2

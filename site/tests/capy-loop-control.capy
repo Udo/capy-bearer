@@ -1,0 +1,71 @@
+function return_from_range () s32 {
+    for value = 0..3 {
+        if value == 1 {
+            return 7
+        }
+    }
+    return 0
+}
+
+function return_from_owned_array () string {
+    for value = [clone("owned-return")] {
+        return value
+    }
+    return clone("fallback")
+}
+
+function CLI {
+    print(return_from_range(), "|", return_from_owned_array(), "|", arc_live(), "|")
+    var index := 0
+    while index < 5 {
+        index = index + 1
+        if index == 2 {
+            continue
+        }
+        if index == 4 {
+            break
+        }
+        print(index)
+    }
+    print("|", arc_live(), "|")
+
+    for value = 0..6 {
+        var temporary := clone("range")
+        if value == 1 {
+            continue
+        }
+        if value == 4 {
+            break
+        }
+        print(value)
+    }
+    print("|", arc_live(), "|")
+
+    var seen := 0
+    for word = [clone("a"), clone("b"), clone("c")] {
+        var local := clone("array")
+        seen = seen + 1
+        print(word)
+        if seen == 1 {
+            continue
+        }
+        if seen == 2 {
+            break
+        }
+    }
+    print("|", arc_live(), "|")
+
+    for outer = 0..3 {
+        for inner = 0..3 {
+            if inner == 1 {
+                continue
+            }
+            if outer == 1 {
+                break
+            }
+            print(outer, inner)
+        }
+        print("|")
+    }
+    print(arc_live())
+}

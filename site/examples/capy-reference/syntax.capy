@@ -17,9 +17,11 @@ while value &gt; 0 {
     value = value - 1
 }
 
-for index = 0..3 {
+for index = 0..5 {
+    if index == 1 { continue }
+    if index == 4 { break }
     print(index)
-}</pre><p>Ranges are exclusive at the upper bound. Arrays are also iterable.</p><h2>Arrays, tuples, and structs</h2><pre>struct Pair {
+}</pre><p>Ranges are exclusive at the upper bound. Arrays are also iterable. <code>break</code> and <code>continue</code> target the nearest loop and release managed locals on the escaping edge.</p><h2>Arrays, tuples, and structs</h2><pre>struct Pair {
     label : string
     value : s32
 }

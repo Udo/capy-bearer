@@ -235,6 +235,16 @@ class Return(Expr):
 
 
 @dataclass
+class Break(Expr):
+    pass
+
+
+@dataclass
+class Continue(Expr):
+    pass
+
+
+@dataclass
 class Variable(Expr):
     name: str
     annotation: Expr | None
@@ -358,6 +368,9 @@ class Parser:
         while self.token.kind == "newline":
             self.take()
         left = self.prefix()
+        if isinstance(left, (Break, Continue)) and self.token.kind not in {"newline", "eof"} and self.token.text not in {"}", ";"}:
+            keyword = "break" if isinstance(left, Break) else "continue"
+            raise CapyError(self.token.location, f"{keyword} does not accept arguments or operators")
         while True:
             token = self.token
             if token.kind in {"newline", "eof"} or token.text in {",", ")", "]", "}", ";", "{"}:
@@ -423,6 +436,10 @@ class Parser:
                 return self.variable(token.location)
             if token.text == "return":
                 return self.return_expr(token.location)
+            if token.text == "break":
+                return Break(token.location)
+            if token.text == "continue":
+                return Continue(token.location)
             if token.text == "for":
                 return self.for_expr(token.location)
             if token.text == "if":
