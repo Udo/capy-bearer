@@ -207,6 +207,86 @@ class LexerParserTests(unittest.TestCase):
         with self.assertRaisesRegex(CapyError, "ambiguous generic overload choose"):
             compile_bearer_unit(program, "ambiguous.capy", "ambiguous.wasm", 9)
 
+    def test_literal_output_omits_unused_imports_helpers_and_arc_header(self):
+        program = parse('function CLI { print("hé") }\n', "literal.capy")
+        module = CapyModuleCompiler(program, "literal.capy", "literal.wasm", 10)
+        wasm, _ = module.compile()
+        self.assertEqual(module.used_host_imports, {"bearer_print_bytes"})
+        self.assertEqual(module.used_helpers, set())
+        self.assertEqual(module.first_user_index, 1)
+        self.assertFalse(module.uses_arc_global)
+        self.assertEqual(module.data, "hé".encode("utf-8"))
+        self.assertLess(len(wasm), 400)
+
+    def test_empty_handler_has_no_function_imports_or_helpers(self):
+        program = parse("function CLI {}\n", "empty.capy")
+        module = CapyModuleCompiler(program, "empty.capy", "empty.wasm", 10)
+        module.compile()
+        self.assertEqual(module.host_indices, {})
+        self.assertEqual(module.helper_indices, {})
+        self.assertEqual(module.first_user_index, 0)
+        self.assertFalse(module.uses_arc_global)
+
+    def test_arc_unit_emits_only_required_runtime_surface(self):
+        program = parse('function CLI { var value := clone("x"); print(value) }\n', "arc-surface.capy")
+        module = CapyModuleCompiler(program, "arc-surface.capy", "arc-surface.wasm", 10)
+        module.compile()
+        self.assertEqual(
+            set(module.host_indices),
+            {"bearer_print_bytes", "bearer_alloc", "bearer_free"},
+        )
+        self.assertEqual(module.used_helpers, {"clone", "release"})
+        self.assertNotIn("retain", module.helper_indices)
+        self.assertTrue(module.uses_arc_global)
+
+    def test_compacted_adapter_and_release_indices(self):
+        adapters = parse(
+            'function CLI { unit_render("/x"); component_render("/x"); '
+            'print(dval_string(unit_call("/x", "f", dval("x")))) }\n',
+            "adapters.capy",
+        )
+        module = CapyModuleCompiler(adapters, "adapters.capy", "adapters.wasm", 10)
+        module.compile()
+        self.assertEqual(
+            module.host_indices,
+            {
+                "bearer_print_bytes": 0,
+                "bearer_alloc": 1,
+                "bearer_free": 2,
+                "bearer_unit_render_bytes": 3,
+                "bearer_component_render_bytes": 4,
+                "bearer_dv_string_to_brrb": 5,
+                "bearer_dv_brrb_to_string": 6,
+                "bearer_unit_call_brrb": 7,
+            },
+        )
+        self.assertEqual(module.helper_indices, {"release": 8})
+        self.assertEqual(module.definitions[0].function_index, 9)
+
+        release_only = parse(
+            'function keep(value : string) { var local := value }\nfunction CLI {}\n',
+            "release-only.capy",
+        )
+        module = CapyModuleCompiler(release_only, "release-only.capy", "release-only.wasm", 10)
+        module.compile()
+        self.assertEqual(module.host_indices, {"bearer_free": 0})
+        self.assertEqual(module.helper_indices, {"retain": 1, "release": 2})
+        self.assertEqual(module.first_user_index, 3)
+
+    def test_indirect_table_uses_rebased_function_index(self):
+        program = parse(
+            'function identity(value : s32) s32 { value }\n'
+            'function CLI { var selected := identity; print(selected(7)) }\n',
+            "indirect-surface.capy",
+        )
+        module = CapyModuleCompiler(program, "indirect-surface.capy", "indirect-surface.wasm", 10)
+        module.compile()
+        identity = next(definition for definition in module.definitions if definition.function.name == "identity")
+        self.assertEqual(module.host_indices, {"bearer_print_s32": 0})
+        self.assertEqual(module.helper_indices, {})
+        self.assertEqual(identity.function_index, 1)
+        self.assertEqual(list(module.table_slots.values()), [0])
+
     def test_array_and_managed_struct_program_compiles(self):
         program = parse(
             'struct Pair { label : string; value : s32 }\n'

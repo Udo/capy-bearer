@@ -229,7 +229,7 @@ class WasmFunctionCompiler:
 
     def allocate_blob(self, value_type: str, type_id: int, length_local: int, location: Location) -> tuple[bytes, int]:
         pointer = self.allocate_local(value_type, location)
-        code = bytearray(b"\x20" + uleb(length_local) + b"\x41\x14\x6a\x10\x02\x21" + uleb(pointer))
+        code = bytearray(b"\x20" + uleb(length_local) + b"\x41\x14\x6a" + self.module.host_call("bearer_alloc") + b"\x21" + uleb(pointer))
         code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40\x00\x0b")
         for value, offset in [(1, 0), (1, 4), (type_id, 8)]:
             code.extend(b"\x20" + uleb(pointer) + b"\x41" + sleb32(value) + b"\x36\x02" + uleb(offset))
@@ -381,7 +381,7 @@ class WasmFunctionCompiler:
         if expected != actual:
             raise CapyError(location, f"expected {expected}, found {actual}")
 
-    def compile_blob_conversion(self, expression: Call, input_type: str, output_type: str, import_index: int, type_id: int) -> tuple[bytes, str]:
+    def compile_blob_conversion(self, expression: Call, input_type: str, output_type: str, import_name: str, type_id: int) -> tuple[bytes, str]:
         if len(expression.arguments) != 1:
             raise CapyError(expression.location, f"{expression.function.value} expects one {input_type}")
         source = expression.arguments[0]
@@ -392,13 +392,13 @@ class WasmFunctionCompiler:
         code = bytearray(source_code + b"\x21" + uleb(source_local))
         code.extend(b"\x20" + uleb(source_local) + b"\x41\x14\x6a")
         code.extend(b"\x20" + uleb(source_local) + b"\x28\x02\x10\x41\x00\x41\x00")
-        code.extend(b"\x10" + uleb(import_index) + b"\x21" + uleb(length_local))
+        code.extend(self.module.host_call(import_name) + b"\x21" + uleb(length_local))
         allocation, pointer = self.allocate_blob(output_type, type_id, length_local, expression.location)
         code.extend(allocation)
         code.extend(b"\x20" + uleb(source_local) + b"\x41\x14\x6a")
         code.extend(b"\x20" + uleb(source_local) + b"\x28\x02\x10")
         code.extend(b"\x20" + uleb(pointer) + b"\x41\x14\x6a\x20" + uleb(length_local))
-        code.extend(b"\x10" + uleb(import_index) + b"\x20" + uleb(length_local) + b"\x47\x04\x40\x00\x0b")
+        code.extend(self.module.host_call(import_name) + b"\x20" + uleb(length_local) + b"\x47\x04\x40\x00\x0b")
         if self.expression_is_owned(source):
             code.extend(b"\x20" + uleb(source_local) + b"\x10" + uleb(self.module.release_index))
         code.extend(b"\x20" + uleb(pointer))
@@ -415,7 +415,7 @@ class WasmFunctionCompiler:
             type_id, element_types = self.module.tuples[value_type]
             size = 16 + 4 * len(expression.items)
             pointer = self.allocate_local(value_type, expression.location)
-            code = bytearray(b"\x41" + sleb32(size) + b"\x10\x02\x21" + uleb(pointer))
+            code = bytearray(b"\x41" + sleb32(size) + self.module.host_call("bearer_alloc") + b"\x21" + uleb(pointer))
             code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40\x00\x0b")
             for value, offset in [(1, 0), (1, 4), (type_id, 8), (size, 12)]:
                 code.extend(b"\x20" + uleb(pointer) + b"\x41" + sleb32(value) + b"\x36\x02" + uleb(offset))
@@ -435,7 +435,7 @@ class WasmFunctionCompiler:
             value_type = self.infer_expr_type(expression)
             size = 20 + 4 * len(expression.items)
             pointer = self.allocate_local(value_type, expression.location)
-            code = bytearray(b"\x41" + sleb32(size) + b"\x10\x02\x21" + uleb(pointer))
+            code = bytearray(b"\x41" + sleb32(size) + self.module.host_call("bearer_alloc") + b"\x21" + uleb(pointer))
             code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40\x00\x0b")
             element_type = value_type[6:-1]
             type_id = 3 if element_type == "string" else 2
@@ -610,7 +610,7 @@ class WasmFunctionCompiler:
                 value_type = f"struct:{expression.function.value}"
                 size = 16 + 4 * len(members)
                 pointer = self.allocate_local(value_type, expression.location)
-                code = bytearray(b"\x41" + sleb32(size) + b"\x10\x02\x21" + uleb(pointer))
+                code = bytearray(b"\x41" + sleb32(size) + self.module.host_call("bearer_alloc") + b"\x21" + uleb(pointer))
                 code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40\x00\x0b")
                 for value, offset in [(1, 0), (1, 4), (type_id, 8), (size, 12)]:
                     code.extend(b"\x20" + uleb(pointer) + b"\x41" + sleb32(value) + b"\x36\x02" + uleb(offset))
@@ -627,9 +627,9 @@ class WasmFunctionCompiler:
                 code.extend(b"\x20" + uleb(pointer))
                 return bytes(code), value_type
             if expression.function.value == "dval":
-                return self.compile_blob_conversion(expression, "string", "dval", 6, 4)
+                return self.compile_blob_conversion(expression, "string", "dval", "bearer_dv_string_to_brrb", 4)
             if expression.function.value == "dval_string":
-                return self.compile_blob_conversion(expression, "dval", "string", 7, 1)
+                return self.compile_blob_conversion(expression, "dval", "string", "bearer_dv_brrb_to_string", 1)
             if expression.function.value == "unit_call":
                 if len(expression.arguments) != 3:
                     raise CapyError(expression.location, "unit_call expects target, function, and dval")
@@ -646,13 +646,13 @@ class WasmFunctionCompiler:
                         code.extend(b"\x20" + uleb(temporary) + b"\x41\x14\x6a")
                         code.extend(b"\x20" + uleb(temporary) + b"\x28\x02\x10")
                 append_inputs()
-                code.extend(b"\x41\x00\x41\x00\x10\x08")
+                code.extend(b"\x41\x00\x41\x00" + self.module.host_call("bearer_unit_call_brrb"))
                 length_local = self.allocate_local("s32", expression.location)
                 code.extend(b"\x21" + uleb(length_local))
                 allocation, pointer = self.allocate_blob("dval", 4, length_local, expression.location)
                 code.extend(allocation)
                 append_inputs()
-                code.extend(b"\x20" + uleb(pointer) + b"\x41\x14\x6a\x20" + uleb(length_local) + b"\x10\x08")
+                code.extend(b"\x20" + uleb(pointer) + b"\x41\x14\x6a\x20" + uleb(length_local) + self.module.host_call("bearer_unit_call_brrb"))
                 code.extend(b"\x20" + uleb(length_local) + b"\x47\x04\x40\x00\x0b")
                 for temporary, source in reversed(locals_and_sources):
                     if self.expression_is_owned(source):
@@ -669,25 +669,31 @@ class WasmFunctionCompiler:
                 code = bytearray(target_code + b"\x21" + uleb(temporary))
                 code.extend(b"\x20" + uleb(temporary) + b"\x41\x14\x6a")
                 code.extend(b"\x20" + uleb(temporary) + b"\x28\x02\x10")
-                import_index = 4 if expression.function.value == "unit_render" else 5
-                code.extend(b"\x10" + uleb(import_index))
+                import_name = "bearer_unit_render_bytes" if expression.function.value == "unit_render" else "bearer_component_render_bytes"
+                code.extend(self.module.host_call(import_name))
                 if self.expression_is_owned(target_expression):
                     code.extend(b"\x20" + uleb(temporary) + b"\x10" + uleb(self.module.release_index))
                 return bytes(code), "void"
             if expression.function.value == "print":
                 code = bytearray()
                 for argument in expression.arguments:
+                    if isinstance(argument, String):
+                        value = argument.value.encode("utf-8")
+                        offset = self.module.add_static_bytes(value)
+                        code.extend(b"\x23\x00\x41" + sleb32(offset) + b"\x6a\x41" + sleb32(len(value)))
+                        code.extend(self.module.host_call("bearer_print_bytes"))
+                        continue
                     argument_code, argument_type = self.compile_expr(argument)
                     if argument_type == "string":
                         temporary = self.allocate_local("string", argument.location)
                         code.extend(argument_code + b"\x21" + uleb(temporary))
                         code.extend(b"\x20" + uleb(temporary) + b"\x41\x14\x6a")
                         code.extend(b"\x20" + uleb(temporary) + b"\x28\x02\x10")
-                        code.extend(b"\x10\x00")
+                        code.extend(self.module.host_call("bearer_print_bytes"))
                         if self.expression_is_owned(argument):
                             code.extend(b"\x20" + uleb(temporary) + b"\x10" + uleb(self.module.release_index))
                     elif argument_type in SCALAR_TYPES:
-                        code.extend(argument_code + b"\x10\x01")
+                        code.extend(argument_code + self.module.host_call("bearer_print_s32"))
                     else:
                         raise CapyError(argument.location, f"print does not yet support {argument_type}")
                 return bytes(code), "void"
@@ -707,6 +713,7 @@ class WasmFunctionCompiler:
             if expression.function.value == "arc_live":
                 if expression.arguments:
                     raise CapyError(expression.location, "arc_live expects no arguments")
+                self.module.uses_arc_global = True
                 return b"\x23\x01", "s32"
             if expression.function.value == "trap":
                 if expression.arguments:
@@ -854,9 +861,44 @@ class CapyModuleCompiler:
         self.table_slots: dict[FunctionKey, int] = {}
         self.types: list[tuple[tuple[str, ...], str]] = []
         self.type_indices: dict[tuple[tuple[str, ...], str], int] = {}
-        self.retain_index = 9
-        self.release_index = 10
-        self.clone_index = 11
+        self.host_import_order = (
+            "bearer_print_bytes", "bearer_print_s32", "bearer_alloc", "bearer_free",
+            "bearer_unit_render_bytes", "bearer_component_render_bytes",
+            "bearer_dv_string_to_brrb", "bearer_dv_brrb_to_string", "bearer_unit_call_brrb",
+        )
+        self.host_indices = {name: index for index, name in enumerate(self.host_import_order)}
+        self.helper_indices = {"retain": 9, "release": 10, "clone": 11}
+        self.used_host_imports: set[str] = set()
+        self.used_helpers: set[str] = set()
+        self.uses_arc_global = False
+        self.first_user_index = 12
+
+    def encoded_host_call(self, name: str) -> bytes:
+        return b"\x10" + uleb(self.host_indices[name])
+
+    def host_call(self, name: str) -> bytes:
+        self.used_host_imports.add(name)
+        if name == "bearer_alloc":
+            self.uses_arc_global = True
+        return self.encoded_host_call(name)
+
+    def helper_index(self, name: str) -> int:
+        self.used_helpers.add(name)
+        if name in {"release", "clone"}:
+            self.uses_arc_global = True
+        return self.helper_indices[name]
+
+    @property
+    def retain_index(self) -> int:
+        return self.helper_index("retain")
+
+    @property
+    def release_index(self) -> int:
+        return self.helper_index("release")
+
+    @property
+    def clone_index(self) -> int:
+        return self.helper_index("clone")
 
     def align_data(self, alignment: int = 4) -> None:
         while len(self.data) % alignment:
@@ -867,6 +909,11 @@ class CapyModuleCompiler:
         offset = len(self.data)
         # Immortal ARC header: strong, weak, type-id, allocation bytes, length.
         self.data.extend(struct.pack("<IIIII", 0xFFFFFFFF, 0xFFFFFFFF, 1, 20 + len(value), len(value)))
+        self.data.extend(value)
+        return offset
+
+    def add_static_bytes(self, value: bytes) -> int:
+        offset = len(self.data)
         self.data.extend(value)
         return offset
 
@@ -1041,7 +1088,7 @@ class CapyModuleCompiler:
         generic = best[0]
         result_type = parameters[generic.dependent_result] if generic.dependent_result >= 0 else "void"
         definition = CompiledDefinition(generic.function, parameters, result_type, None)
-        definition.function_index = 12 + len(self.definitions)
+        definition.function_index = self.first_user_index + len(self.definitions)
         definition.type_index = self.wasm_type(parameters, result_type)
         self.functions[key] = definition
         self.definitions.append(definition)
@@ -1065,7 +1112,7 @@ class CapyModuleCompiler:
         release += b"\x20\x00\x28\x02\x08\x41\x03\x46\x04\x40"  # string-array drop glue
         release += b"\x20\x00\x28\x02\x10\x21\x02\x41\x00\x21\x01"
         release += b"\x02\x40\x03\x40\x20\x01\x20\x02\x4f\x0d\x01"
-        release += b"\x20\x00\x20\x01\x41\x04\x6c\x6a\x28\x02\x14\x10" + uleb(self.release_index)
+        release += b"\x20\x00\x20\x01\x41\x04\x6c\x6a\x28\x02\x14\x10" + uleb(self.helper_indices.get("release", 0))
         release += b"\x20\x01\x41\x01\x6a\x21\x01\x0c\x00\x0b\x0b\x0b"
         for _, (type_id, members) in self.structs.items():
             managed_members = [(index, value_type) for index, (_, value_type) in enumerate(members) if managed_type(value_type)]
@@ -1073,7 +1120,7 @@ class CapyModuleCompiler:
                 continue
             release += b"\x20\x00\x28\x02\x08\x41" + sleb32(type_id) + b"\x46\x04\x40"
             for index, _ in managed_members:
-                release += b"\x20\x00\x28\x02" + uleb(16 + 4 * index) + b"\x10" + uleb(self.release_index)
+                release += b"\x20\x00\x28\x02" + uleb(16 + 4 * index) + b"\x10" + uleb(self.helper_indices.get("release", 0))
             release += b"\x0b"
         for type_id, element_types in self.tuples.values():
             managed_elements = [index for index, value_type in enumerate(element_types) if managed_type(value_type)]
@@ -1081,13 +1128,13 @@ class CapyModuleCompiler:
                 continue
             release += b"\x20\x00\x28\x02\x08\x41" + sleb32(type_id) + b"\x46\x04\x40"
             for index in managed_elements:
-                release += b"\x20\x00\x28\x02" + uleb(16 + 4 * index) + b"\x10" + uleb(self.release_index)
+                release += b"\x20\x00\x28\x02" + uleb(16 + 4 * index) + b"\x10" + uleb(self.helper_indices.get("release", 0))
             release += b"\x0b"
-        release += b"\x23\x01\x41\x01\x6b\x24\x01\x20\x00\x10\x03\x0b"
+        release += b"\x23\x01\x41\x01\x6b\x24\x01\x20\x00\x10" + uleb(self.host_indices.get("bearer_free", 0)) + b"\x0b"
 
         clone = bytearray()
         clone.extend(b"\x20\x00\x28\x02\x10\x21\x02")  # len = source.length
-        clone.extend(b"\x20\x02\x41\x14\x6a\x10\x02\x21\x01")
+        clone.extend(b"\x20\x02\x41\x14\x6a\x10" + uleb(self.host_indices.get("bearer_alloc", 0)) + b"\x21\x01")
         clone.extend(b"\x20\x01\x45\x04\x40\x00\x0b")  # deterministic OOM trap before writes
         for value_code, offset in [
             (b"\x41\x01", 0), (b"\x41\x01", 4), (b"\x41\x01", 8),
@@ -1098,11 +1145,12 @@ class CapyModuleCompiler:
         clone.extend(b"\x20\x01\x41\x14\x6a\x20\x00\x41\x14\x6a\x20\x02\xfc\x0a\x00\x00")
         clone.extend(b"\x23\x01\x41\x01\x6a\x24\x01")
         clone.extend(b"\x20\x01")
-        return [
-            body(b"\x00", retain),
-            body(b"\x01\x02\x7f", release),
-            body(b"\x01\x02\x7f", bytes(clone)),
-        ]
+        bodies = {
+            "retain": body(b"\x00", retain),
+            "release": body(b"\x01\x02\x7f", release),
+            "clone": body(b"\x01\x02\x7f", bytes(clone)),
+        }
+        return [bodies[name] for name in ("retain", "release", "clone") if name in self.used_helpers]
 
     def compile(self) -> tuple[bytes, str]:
         self.collect()
@@ -1115,14 +1163,45 @@ class CapyModuleCompiler:
         retain_type = self.wasm_type(("s32",), "void")
         clone_type = self.wasm_type(("s32",), "s32")
         for index, definition in enumerate(self.definitions):
-            definition.function_index = 12 + index
+            definition.function_index = self.first_user_index + index
             wasm_parameters = ("s32",) if definition.export_name else definition.parameter_types
             definition.type_index = self.wasm_type(wasm_parameters, definition.result_type)
-        user_bodies: list[bytes] = []
+
+        # Lower once against stable provisional indexes to discover the exact runtime surface.
         definition_index = 0
         while definition_index < len(self.definitions):
-            user_bodies.append(WasmFunctionCompiler(self, self.definitions[definition_index]).compile_body())
+            WasmFunctionCompiler(self, self.definitions[definition_index]).compile_body()
             definition_index += 1
+        required_helpers = tuple(name for name in ("retain", "release", "clone") if name in self.used_helpers)
+        if "clone" in required_helpers:
+            self.used_host_imports.add("bearer_alloc")
+        if "release" in required_helpers:
+            self.used_host_imports.add("bearer_free")
+        required_imports = tuple(name for name in self.host_import_order if name in self.used_host_imports)
+        requires_arc_global = self.uses_arc_global
+
+        self.host_indices = {name: index for index, name in enumerate(required_imports)}
+        self.helper_indices = {
+            name: len(required_imports) + index for index, name in enumerate(required_helpers)
+        }
+        self.first_user_index = len(required_imports) + len(required_helpers)
+        for index, definition in enumerate(self.definitions):
+            definition.function_index = self.first_user_index + index
+
+        self.data.clear()
+        self.used_host_imports.clear()
+        self.used_helpers.clear()
+        self.uses_arc_global = False
+        user_bodies: list[bytes] = []
+        for definition in self.definitions:
+            user_bodies.append(WasmFunctionCompiler(self, definition).compile_body())
+        if (
+            not self.used_host_imports.issubset(required_imports)
+            or not self.used_helpers.issubset(required_helpers)
+            or self.uses_arc_global != requires_arc_global
+        ):
+            raise RuntimeError("Capy runtime-surface discovery changed during final lowering")
+        self.used_helpers.update(required_helpers)
         bodies = self.runtime_bodies() + user_bodies
 
         def encode_type(signature: tuple[tuple[str, ...], str]) -> bytes:
@@ -1131,18 +1210,24 @@ class CapyModuleCompiler:
             wasm_results = [] if result == "void" else [b"\x7f"]
             return b"\x60" + wasm_vector(wasm_parameters) + wasm_vector(wasm_results)
 
+        import_types = {
+            "bearer_print_bytes": print_bytes_type,
+            "bearer_print_s32": print_s32_type,
+            "bearer_alloc": allocator_type,
+            "bearer_free": retain_type,
+            "bearer_unit_render_bytes": print_bytes_type,
+            "bearer_component_render_bytes": print_bytes_type,
+            "bearer_dv_string_to_brrb": blob_adapter_type,
+            "bearer_dv_brrb_to_string": blob_adapter_type,
+            "bearer_unit_call_brrb": unit_call_type,
+        }
         imports = [
             wasm_string("env") + wasm_string("memory") + b"\x02\x00\x01",
             wasm_string("env") + wasm_string("__memory_base") + b"\x03\x7f\x00",
-            wasm_string("env") + wasm_string("bearer_print_bytes") + b"\x00" + uleb(print_bytes_type),
-            wasm_string("env") + wasm_string("bearer_print_s32") + b"\x00" + uleb(print_s32_type),
-            wasm_string("env") + wasm_string("bearer_alloc") + b"\x00" + uleb(allocator_type),
-            wasm_string("env") + wasm_string("bearer_free") + b"\x00" + uleb(retain_type),
-            wasm_string("env") + wasm_string("bearer_unit_render_bytes") + b"\x00" + uleb(print_bytes_type),
-            wasm_string("env") + wasm_string("bearer_component_render_bytes") + b"\x00" + uleb(print_bytes_type),
-            wasm_string("env") + wasm_string("bearer_dv_string_to_brrb") + b"\x00" + uleb(blob_adapter_type),
-            wasm_string("env") + wasm_string("bearer_dv_brrb_to_string") + b"\x00" + uleb(blob_adapter_type),
-            wasm_string("env") + wasm_string("bearer_unit_call_brrb") + b"\x00" + uleb(unit_call_type),
+            *[
+                wasm_string("env") + wasm_string(name) + b"\x00" + uleb(import_types[name])
+                for name in required_imports
+            ],
         ]
         exports = [
             wasm_string(definition.export_name) + b"\x00" + uleb(definition.function_index)
@@ -1169,11 +1254,14 @@ class CapyModuleCompiler:
             wasm_section(1, wasm_vector([encode_type(signature) for signature in self.types])),
             wasm_section(2, wasm_vector(imports)),
             wasm_section(3, wasm_vector([
-                uleb(retain_type), uleb(retain_type), uleb(clone_type),
+                *[
+                    uleb(clone_type if name == "clone" else retain_type)
+                    for name in required_helpers
+                ],
                 *[uleb(definition.type_index) for definition in self.definitions],
             ])),
             *table_sections[:1],
-            wasm_section(6, wasm_vector([b"\x7f\x01\x41\x00\x0b"])),
+            *([wasm_section(6, wasm_vector([b"\x7f\x01\x41\x00\x0b"]))] if requires_arc_global else []),
             wasm_section(7, wasm_vector(exports)),
             *table_sections[1:],
             wasm_section(10, wasm_vector(bodies)),
