@@ -55,7 +55,7 @@ SCALAR_TYPES = {"s32", "bool"}
 
 
 def managed_type(value_type: str) -> bool:
-    return value_type in {"string", "markup", "dval"} or value_type.startswith(("array<", "struct:", "tuple<"))
+    return value_type in {"string", "markup", "dval"} or value_type.startswith(("array<", "struct:", "tuple<", "function#"))
 
 
 HANDLER_EXPORTS = {
@@ -117,6 +117,8 @@ class CompiledDefinition:
     export_name: str | None
     function_index: int = 0
     type_index: int = 0
+    captures: tuple[tuple[str, str], ...] = ()
+    closure_body: bool = False
 
 
 class WasmFunctionCompiler:
@@ -127,6 +129,7 @@ class WasmFunctionCompiler:
         self.owned_scopes: list[list[tuple[int, str]]] = [[]]
         self.parameter_count = 1 if definition.export_name else len(definition.parameter_types)
         self.local_count = 0
+        self.capture_locals: list[tuple[int, str]] = []
         self.borrowed_managed_slots: set[int] = set()
         self.control_depth = 0
         self.loop_contexts: list[tuple[int, int, int, bytes, bytes]] = []  # targets, owned boundary, edge cleanup
@@ -134,11 +137,97 @@ class WasmFunctionCompiler:
             if len(definition.function.parameters) == 1:
                 parameter = definition.function.parameters[0]
                 self.scopes[0][parameter.name] = (0, "request")
+        elif definition.closure_body:
+            for index, parameter in enumerate(definition.function.parameters):
+                value_type = definition.parameter_types[index + 1]
+                self.scopes[0][parameter.name] = (index + 1, value_type)
+                if managed_type(value_type):
+                    self.borrowed_managed_slots.add(index + 1)
+            for capture_index, (name, value_type) in enumerate(definition.captures):
+                local = self.allocate_local(value_type, definition.function.location)
+                self.scopes[0][name] = (local, value_type)
+                self.capture_locals.append((local, value_type))
+                if managed_type(value_type):
+                    self.borrowed_managed_slots.add(local)
         else:
             for index, parameter in enumerate(definition.function.parameters):
                 self.scopes[0][parameter.name] = (index, definition.parameter_types[index])
                 if managed_type(definition.parameter_types[index]):
                     self.borrowed_managed_slots.add(index)
+
+    def lambda_captures(self, expression: Lambda) -> tuple[tuple[str, str], ...]:
+        scopes: list[set[str]] = [{parameter.name for parameter in expression.parameters}]
+        captures: list[tuple[str, str]] = []
+        seen: set[str] = set()
+
+        def visit(value: object) -> None:
+            if isinstance(value, Lambda):
+                scopes.append({parameter.name for parameter in value.parameters})
+                for item in value.body.items:
+                    visit(item)
+                scopes.pop()
+                return
+            if isinstance(value, Name):
+                if value.value in {"true", "false"} or any(value.value in scope for scope in reversed(scopes)):
+                    return
+                outer = self.lookup_optional(value.value)
+                if outer and value.value not in seen:
+                    seen.add(value.value)
+                    captures.append((value.value, outer[1]))
+                return
+            if isinstance(value, Variable):
+                visit(value.value)
+                scopes[-1].add(value.name)
+                return
+            if isinstance(value, For):
+                visit(value.iterable)
+                scopes.append(set(value.names))
+                visit(value.body)
+                scopes.pop()
+                return
+            if isinstance(value, Block):
+                scopes.append(set())
+                for item in value.items:
+                    visit(item)
+                scopes.pop()
+                return
+            if isinstance(value, Expr):
+                for field_name in value.__dataclass_fields__:
+                    if field_name != "location":
+                        visit(getattr(value, field_name))
+            elif isinstance(value, (list, tuple)):
+                for item in value:
+                    visit(item)
+
+        for item in expression.body.items:
+            visit(item)
+        return tuple(captures)
+
+    def register_lambda(self, expression: Lambda) -> tuple[str, int, int, CompiledDefinition, tuple[tuple[str, str], ...]]:
+        existing = self.module.lambdas.get(id(expression))
+        if existing:
+            return existing
+        parameters = tuple(self.module.value_type(parameter.type_expr, parameter.type_expr.location) for parameter in expression.parameters)
+        result_type = self.module.value_type(expression.return_type, expression.location, True)
+        captures = self.lambda_captures(expression)
+        indirect_type = self.module.wasm_type(("s32",) + parameters, result_type)
+        value_type = f"function#{indirect_type}"
+        self.module.function_value_signatures[value_type] = (parameters, result_type)
+        name = f"__lambda_{len(self.module.lambdas)}"
+        function = Function(expression.location, name, expression.parameters, expression.return_type, expression.body)
+        definition = CompiledDefinition(function, ("s32",) + parameters, result_type, None, closure_body=True, captures=captures)
+        definition.type_index = indirect_type
+        definition.function_index = self.module.first_user_index + len(self.module.definitions)
+        key = FunctionKey(name, definition.parameter_types)
+        self.module.functions[key] = definition
+        self.module.definitions.append(definition)
+        slot = len(self.module.table_slots)
+        self.module.table_slots[key] = slot
+        type_id = 0x40000000 + len(self.module.lambdas)
+        self.module.closure_types[type_id] = tuple(value_type for _, value_type in captures)
+        result = (value_type, slot, type_id, definition, captures)
+        self.module.lambdas[id(expression)] = result
+        return result
 
     def lookup(self, name: Name) -> tuple[int, str]:
         for scope in reversed(self.scopes):
@@ -167,13 +256,16 @@ class WasmFunctionCompiler:
         return index
 
     def compile_body(self) -> bytes:
-        code = self.compile_block(self.definition.function.body, self.definition.result_type)
+        code = bytearray()
+        for capture_index, (local, _) in enumerate(self.capture_locals):
+            code.extend(b"\x20\x00\x28\x02" + uleb(20 + 4 * capture_index) + b"\x21" + uleb(local))
+        code.extend(self.compile_block(self.definition.function.body, self.definition.result_type))
         if self.definition.result_type == "void":
             code += b"\x0b"
         else:
             code += b"\x0b"
         locals_prefix = b"\x00" if self.local_count == 0 else b"\x01" + uleb(self.local_count) + b"\x7f"
-        body = locals_prefix + code
+        body = locals_prefix + bytes(code)
         return uleb(len(body)) + body
 
     def compile_block(self, block: Block, expected_result: str = "void") -> bytes:
@@ -257,6 +349,8 @@ class WasmFunctionCompiler:
         return bytes(code)
 
     def expression_is_owned(self, expression: Expr) -> bool:
+        if isinstance(expression, Lambda):
+            return bool(self.register_lambda(expression)[4])
         if isinstance(expression, Markup):
             return any(isinstance(part, MarkupField) for part in expression.parts)
         if isinstance(expression, (ArrayLiteral, TupleExpr)):
@@ -283,6 +377,8 @@ class WasmFunctionCompiler:
         return False
 
     def infer_expr_type(self, expression: Expr) -> str:
+        if isinstance(expression, Lambda):
+            return self.register_lambda(expression)[0]
         if isinstance(expression, String):
             return "string"
         if isinstance(expression, Markup):
@@ -736,6 +832,26 @@ class WasmFunctionCompiler:
             return b"\x23\x00\x41" + sleb32(offset) + b"\x6a", "string"
         if isinstance(expression, Markup):
             return self.compile_markup(expression)
+        if isinstance(expression, Lambda):
+            value_type, slot, type_id, _, captures = self.register_lambda(expression)
+            if not captures:
+                offset = self.module.add_static_closure(slot)
+                return b"\x23\x00\x41" + sleb32(offset) + b"\x6a", value_type
+            size = 20 + 4 * len(captures)
+            pointer = self.allocate_local(value_type, expression.location)
+            code = bytearray(b"\x41" + sleb32(size) + self.module.host_call("bearer_alloc") + b"\x21" + uleb(pointer))
+            code.extend(b"\x20" + uleb(pointer) + b"\x45\x04\x40" + self.module.source_marker(expression.location) + b"\x00\x0b")
+            for value, offset in ((1, 0), (1, 4), (type_id, 8), (size, 12), (slot, 16)):
+                code.extend(b"\x20" + uleb(pointer) + b"\x41" + sleb32(value) + b"\x36\x02" + uleb(offset))
+            code.extend(b"\x23\x01\x41\x01\x6a\x24\x01")
+            for capture_index, (name, capture_type) in enumerate(captures):
+                local, actual_type = self.lookup(Name(expression.location, name))
+                self.require_type(expression.location, capture_type, actual_type)
+                if managed_type(capture_type):
+                    code.extend(b"\x20" + uleb(local) + b"\x10" + uleb(self.module.retain_index))
+                code.extend(b"\x20" + uleb(pointer) + b"\x20" + uleb(local) + b"\x36\x02" + uleb(20 + 4 * capture_index))
+            code.extend(b"\x20" + uleb(pointer))
+            return bytes(code), value_type
         if isinstance(expression, TupleExpr):
             value_type = self.infer_expr_type(expression)
             type_id, element_types = self.module.tuples[value_type]
@@ -863,10 +979,11 @@ class WasmFunctionCompiler:
                 index, value_type = local
                 return b"\x20" + uleb(index), value_type
             value_type, table_slot = self.module.reference_function(expression.value, expression.location)
-            return b"\x41" + sleb32(table_slot), value_type
+            offset = self.module.add_static_closure(table_slot)
+            return b"\x23\x00\x41" + sleb32(offset) + b"\x6a", value_type
         if isinstance(expression, Variable):
             value_code, value_type = self.compile_expr(expression.value)
-            declared = capy_type(expression.annotation, expression.location) if expression.annotation else value_type
+            declared = self.module.value_type(expression.annotation, expression.location) if expression.annotation else value_type
             self.require_type(expression.location, declared, value_type)
             local = self.add_local(expression.name, declared, expression.location)
             code = bytearray(value_code + b"\x21" + uleb(local))
@@ -908,7 +1025,37 @@ class WasmFunctionCompiler:
             raise CapyError(expression.location, f"phase-1 backend does not support operator {expression.operator!r}")
         if isinstance(expression, Call):
             if not isinstance(expression.function, Name):
-                raise CapyError(expression.function.location, "phase-1 calls require a named function")
+                function_code, function_type = self.compile_expr(expression.function)
+                if not function_type.startswith("function#"):
+                    raise CapyError(expression.function.location, "call target is not a function value")
+                parameters, result_type = self.module.function_value_signatures[function_type]
+                arguments = [self.compile_expr(argument) for argument in expression.arguments]
+                actual = tuple(value_type for _, value_type in arguments)
+                if actual != parameters:
+                    raise CapyError(expression.location, f"function value expects ({', '.join(parameters)}), found ({', '.join(actual)})")
+                closure_local = self.allocate_local(function_type, expression.function.location)
+                code = bytearray(function_code + b"\x21" + uleb(closure_local) + b"\x20" + uleb(closure_local))
+                owned_arguments: list[int] = []
+                for source_expression, (argument_code, argument_type) in zip(expression.arguments, arguments):
+                    if managed_type(argument_type) and self.expression_is_owned(source_expression):
+                        temporary = self.allocate_local(argument_type, source_expression.location)
+                        code.extend(argument_code + b"\x21" + uleb(temporary) + b"\x20" + uleb(temporary))
+                        owned_arguments.append(temporary)
+                    else:
+                        code.extend(argument_code)
+                code.extend(b"\x20" + uleb(closure_local) + b"\x28\x02\x10")
+                code.extend(b"\x11" + uleb(int(function_type[9:])) + b"\x00")
+                result_local = -1
+                if result_type != "void":
+                    result_local = self.allocate_local(result_type, expression.location)
+                    code.extend(b"\x21" + uleb(result_local))
+                for temporary in reversed(owned_arguments):
+                    code.extend(b"\x20" + uleb(temporary) + b"\x10" + uleb(self.module.release_index))
+                if self.expression_is_owned(expression.function):
+                    code.extend(b"\x20" + uleb(closure_local) + b"\x10" + uleb(self.module.release_index))
+                if result_local >= 0:
+                    code.extend(b"\x20" + uleb(result_local))
+                return bytes(code), result_type
             local_function = self.lookup_optional(expression.function.value)
             if local_function and local_function[1].startswith("function#"):
                 parameters, result_type = self.module.function_value_signatures[local_function[1]]
@@ -916,7 +1063,7 @@ class WasmFunctionCompiler:
                 actual = tuple(value_type for _, value_type in arguments)
                 if actual != parameters:
                     raise CapyError(expression.location, f"function value expects ({', '.join(parameters)}), found ({', '.join(actual)})")
-                code = bytearray()
+                code = bytearray(b"\x20" + uleb(local_function[0]))
                 owned_argument_locals: list[int] = []
                 for source_expression, (argument_code, argument_type) in zip(expression.arguments, arguments):
                     if managed_type(argument_type) and self.expression_is_owned(source_expression):
@@ -925,7 +1072,7 @@ class WasmFunctionCompiler:
                         owned_argument_locals.append(temporary)
                     else:
                         code.extend(argument_code)
-                code.extend(b"\x20" + uleb(local_function[0]))
+                code.extend(b"\x20" + uleb(local_function[0]) + b"\x28\x02\x10")
                 type_index = int(local_function[1][9:])
                 code.extend(b"\x11" + uleb(type_index) + b"\x00")
                 for temporary in reversed(owned_argument_locals):
@@ -1268,6 +1415,9 @@ class CapyModuleCompiler:
         self.function_value_signatures: dict[str, tuple[tuple[str, ...], str]] = {}
         self.custom_exports: list[tuple[str, CompiledDefinition]] = []
         self.table_slots: dict[FunctionKey, int] = {}
+        self.function_thunks: dict[FunctionKey, FunctionKey] = {}
+        self.lambdas: dict[int, tuple[str, int, int, CompiledDefinition, tuple[tuple[str, str], ...]]] = {}
+        self.closure_types: dict[int, tuple[str, ...]] = {}
         self.types: list[tuple[tuple[str, ...], str]] = []
         self.type_indices: dict[tuple[tuple[str, ...], str], int] = {}
         self.host_import_order = (
@@ -1336,6 +1486,12 @@ class CapyModuleCompiler:
         self.data.extend(value)
         return offset
 
+    def add_static_closure(self, table_slot: int) -> int:
+        self.align_data(8)
+        offset = len(self.data)
+        self.data.extend(struct.pack("<IIIII", 0xFFFFFFFF, 0xFFFFFFFF, 0x3FFFFFFF, 20, table_slot))
+        return offset
+
     def register_tuple(self, element_types: tuple[str, ...]) -> str:
         value_type = "tuple<" + ",".join(element_types) + ">"
         if value_type not in self.tuples:
@@ -1344,7 +1500,7 @@ class CapyModuleCompiler:
 
     def register_type_expression(self, expression: Expr | None) -> None:
         if isinstance(expression, TupleExpr):
-            element_types = tuple(capy_type(item, item.location) for item in expression.items)
+            element_types = tuple(self.value_type(item, item.location) for item in expression.items)
             self.register_tuple(element_types)
             for item in expression.items:
                 self.register_type_expression(item)
@@ -1358,11 +1514,27 @@ class CapyModuleCompiler:
         if len(candidates) != 1:
             raise CapyError(location, f"function value {name!r} requires exactly one concrete overload; found more than one overload")
         key, definition = candidates[0]
-        value_type = f"function#{definition.type_index}"
+        indirect_type = self.wasm_type(("s32",) + definition.parameter_types, definition.result_type)
+        value_type = f"function#{indirect_type}"
         self.function_value_signatures[value_type] = (definition.parameter_types, definition.result_type)
-        if key not in self.table_slots:
-            self.table_slots[key] = len(self.table_slots)
-        return value_type, self.table_slots[key]
+        if key not in self.function_thunks:
+            parameters = [Parameter(parameter.name, parameter.type_expr) for parameter in definition.function.parameters]
+            arguments = [Name(location, parameter.name) for parameter in parameters]
+            call = Call(location, Name(location, definition.function.name), arguments)
+            body_item: Expr = call if definition.result_type == "void" else Return(location, call)
+            thunk_name = f"__closure_thunk_{len(self.function_thunks)}"
+            function = Function(location, thunk_name, parameters, definition.function.return_type, Block(location, [body_item]))
+            thunk = CompiledDefinition(function, ("s32",) + definition.parameter_types, definition.result_type, None, closure_body=True)
+            thunk.type_index = indirect_type
+            thunk.function_index = self.first_user_index + len(self.definitions)
+            thunk_key = FunctionKey(thunk_name, thunk.parameter_types)
+            self.functions[thunk_key] = thunk
+            self.definitions.append(thunk)
+            self.function_thunks[key] = thunk_key
+        thunk_key = self.function_thunks[key]
+        if thunk_key not in self.table_slots:
+            self.table_slots[thunk_key] = len(self.table_slots)
+        return value_type, self.table_slots[thunk_key]
 
     def wasm_type(self, parameters: tuple[str, ...], result: str) -> int:
         key = (parameters, result)
@@ -1370,6 +1542,20 @@ class CapyModuleCompiler:
             self.type_indices[key] = len(self.types)
             self.types.append(key)
         return self.type_indices[key]
+
+    def value_type(self, expression: Expr | None, location: Location, allow_void: bool = False) -> str:
+        if isinstance(expression, TupleExpr):
+            if len(expression.items) < 2:
+                raise CapyError(expression.location, "tuple type requires at least two element types")
+            return self.register_tuple(tuple(self.value_type(item, item.location) for item in expression.items))
+        if isinstance(expression, FunctionType):
+            parameters = tuple(self.value_type(parameter.type_expr, parameter.type_expr.location) for parameter in expression.parameters)
+            result = self.value_type(expression.return_type, expression.location, True)
+            indirect_type = self.wasm_type(("s32",) + parameters, result)
+            value_type = f"function#{indirect_type}"
+            self.function_value_signatures[value_type] = (parameters, result)
+            return value_type
+        return capy_type(expression, location, allow_void)
 
     def collect(self) -> None:
         struct_nodes: list[Struct] = []
@@ -1390,7 +1576,7 @@ class CapyModuleCompiler:
                     raise CapyError(member.location, f"struct member {member.value.value!r} is already declared")
                 seen_members.add(member.value.value)
                 self.register_type_expression(member.type_expr)
-                members.append((member.value.value, capy_type(member.type_expr, member.location)))
+                members.append((member.value.value, self.value_type(member.type_expr, member.location)))
             type_id, _ = self.structs[item.name]
             self.structs[item.name] = (type_id, members)
 
@@ -1416,7 +1602,7 @@ class CapyModuleCompiler:
                 self.register_type_expression(item.return_type)
                 parameter_patterns = tuple(
                     None if isinstance(parameter.type_expr, Name) and parameter.type_expr.value == "any"
-                    else capy_type(parameter.type_expr, item.location)
+                    else self.value_type(parameter.type_expr, item.location)
                     for parameter in item.parameters
                 )
                 concrete_parameters = tuple(value_type for value_type in parameter_patterns if value_type is not None)
@@ -1451,7 +1637,7 @@ class CapyModuleCompiler:
                         dependent_result = names.index(item.return_type.value.value)
                         result_type = "void"
                     else:
-                        result_type = capy_type(item.return_type, item.location)
+                        result_type = self.value_type(item.return_type, item.location)
                         if result_type != "void":
                             raise CapyError(item.location, "generic results must be void or use x::type")
                     self.generics.setdefault(item.name, []).append(GenericDefinition(item, parameter_patterns, dependent_result))
@@ -1465,7 +1651,7 @@ class CapyModuleCompiler:
                             raise CapyError(item.return_type.location, "dependent result names an unknown parameter")
                         result_type = parameter_types[names.index(item.return_type.value.value)]
                     else:
-                        result_type = capy_type(item.return_type, item.location)
+                        result_type = self.value_type(item.return_type, item.location)
                     validate_type(result_type, item.location)
                     definition = CompiledDefinition(item, parameter_types, result_type, None)
                     key = FunctionKey(item.name, parameter_types)
@@ -1557,6 +1743,14 @@ class CapyModuleCompiler:
             release += b"\x20\x00\x28\x02\x08\x41" + sleb32(type_id) + b"\x46\x04\x40"
             for index in managed_elements:
                 release += b"\x20\x00\x28\x02" + uleb(16 + 4 * index) + b"\x10" + uleb(self.helper_indices.get("release", 0))
+            release += b"\x0b"
+        for type_id, capture_types in self.closure_types.items():
+            managed_captures = [index for index, value_type in enumerate(capture_types) if managed_type(value_type)]
+            if not managed_captures:
+                continue
+            release += b"\x20\x00\x28\x02\x08\x41" + sleb32(type_id) + b"\x46\x04\x40"
+            for index in managed_captures:
+                release += b"\x20\x00\x28\x02" + uleb(20 + 4 * index) + b"\x10" + uleb(self.helper_indices.get("release", 0))
             release += b"\x0b"
         release += b"\x23\x01\x41\x01\x6b\x24\x01\x20\x00\x10" + uleb(self.host_indices.get("bearer_free", 0)) + b"\x0b"
 

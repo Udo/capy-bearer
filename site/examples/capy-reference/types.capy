@@ -7,5 +7,9 @@ function measure(value : string) string { value }</pre><h2>Compile-time any</h2>
 var number := identity(7)
 var text := identity(clone(\"capy\"))</pre><p><code>value::type</code> is a dependent result type. Operators are checked after substitution, so an unsupported specialization fails compilation.</p><h2>Ranking and casts</h2><p>Exact overloads win over generic candidates. Equally ranked generic candidates are rejected as ambiguous. Results do not participate in ranking.</p><pre>var truth := 2 as bool
 var number := true as s32</pre><p>Explicit <code>as</code> currently supports <code>s32</code> and <code>bool</code>. Conversion-ranked overload candidates and string formatting are planned.</p><h2>Function values</h2><pre>var operation := add
-print(operation(2, 3))</pre><p>A unique concrete function can be stored in an inferred local and called indirectly. Generic or overloaded names require future explicit function-type syntax.</p></main></div></div></body></html>")
+print(operation(2, 3))</pre><p>Public fixed-signature function types and lambdas use <code>function(parameter : type) result</code>. Capturing lambdas retain managed captures in ARC environments; named calls stay direct, and Wasm tables are emitted only when a function value is formed.</p><pre>function make(base : s32) (function(value : s32) s32) {
+    return function(value : s32) s32 { return base + value }
+}
+var add := make(10)
+print(add(5))</pre></main></div></div></body></html>")
 }

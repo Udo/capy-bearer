@@ -400,6 +400,19 @@ class Parameter:
 
 
 @dataclass
+class FunctionType(Expr):
+    parameters: list[Parameter]
+    return_type: Expr | None
+
+
+@dataclass
+class Lambda(Expr):
+    parameters: list[Parameter]
+    return_type: Expr | None
+    body: Block
+
+
+@dataclass
 class Function(Expr):
     name: str
     parameters: list[Parameter]
@@ -581,7 +594,9 @@ class Parser:
             raise CapyError(token.location, f"unknown compiler directive #{token.text}")
         if token.kind == "identifier":
             if token.text == "function":
-                return self.function(token.location)
+                if self.token.kind == "identifier":
+                    return self.function(token.location)
+                return self.function_expression(token.location)
             if token.text == "struct":
                 return self.struct(token.location)
             if token.text == "var":
@@ -690,6 +705,17 @@ class Parser:
                 raise CapyError(self.token.location, f"expected expression separator, found {self.token.text!r}")
             self.skip_separators()
         return Block(location, items)
+
+    def function_expression(self, location: Location) -> Expr:
+        if self.token.text != "(":
+            raise CapyError(self.token.location, "anonymous function requires a parameter expression")
+        parameter_expr = self.parenthesized(self.take().location)
+        parameters = self.parameters(parameter_expr)
+        return_type = None if self.token.text == "{" else self.expression(81)
+        if self.token.text != "{":
+            return FunctionType(location, parameters, return_type)
+        body_location = self.require("{").location
+        return Lambda(location, parameters, return_type, self.block(body_location))
 
     def function(self, location: Location) -> Function:
         name = self.require_identifier("function name")
@@ -820,6 +846,10 @@ def type_name(expression: Expr) -> str:
         return expression.value
     if isinstance(expression, ScopeLookup):
         return f"{type_name(expression.value)}::{expression.member}"
+    if isinstance(expression, FunctionType):
+        parameters = ",".join(type_name(parameter.type_expr) for parameter in expression.parameters)
+        result = type_name(expression.return_type) if expression.return_type else "void"
+        return f"function({parameters}) {result}"
     if isinstance(expression, TupleExpr):
         return "(" + ",".join(type_name(item) for item in expression.items) + ")"
     if isinstance(expression, ArrayLiteral):

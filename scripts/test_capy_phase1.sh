@@ -32,6 +32,11 @@ loop_control_output=$(scripts/bearer-cli /tests/capy-loop-control.capy)
 	echo "Capy break/continue ARC output mismatch: $loop_control_output" >&2
 	exit 1
 }
+closure_output=$(scripts/bearer-cli /tests/capy-closures.capy)
+[[ "$closure_output" == "captured:15|2|second:22|2|5|2|second:23|3|temporary:31|3|immediate:42|3|nested:7|3|0" ]] || {
+	echo "Capy closure output mismatch: $closure_output" >&2
+	exit 1
+}
 phase3_output=$(scripts/bearer-cli /tests/capy-phase3.capy)
 [[ "$phase3_output" == "7|generic|5|fallback|2|name|9tuple|2|tuple|0|tuple|0|tuple|3|innerouter|4|temporary|0|nested|0|5-1tuple|0|0|011|0" ]] || {
 	echo "Capy generic specialization output mismatch: $phase3_output" >&2

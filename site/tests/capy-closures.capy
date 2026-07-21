@@ -1,0 +1,41 @@
+function apply(callback : function(value : s32) s32, value : s32) s32 {
+    return callback(value)
+}
+
+function make_adder(base : s32, label : string) (function(value : s32) s32) {
+    return function(value : s32) s32 {
+        print(label, ":")
+        return base + value
+    }
+}
+
+function make_nested(label : string) (function(value : s32) s32) {
+    return function(value : s32) s32 {
+        var inner := function(other : s32) s32 {
+            print(label, ":")
+            return value + other
+        }
+        return inner(1)
+    }
+}
+
+function CLI {
+    {
+        var add := make_adder(10, clone("captured"))
+        print(apply(add, 5), "|", arc_live(), "|")
+        add = make_adder(20, clone("second"))
+        print(add(2), "|", arc_live(), "|")
+        var direct : function(value : s32) s32 = function(value : s32) s32 {
+            return value + 1
+        }
+        print(direct(4), "|", arc_live(), "|")
+        var nested := function(value : s32) s32 {
+            return add(value)
+        }
+        print(nested(3), "|", arc_live(), "|")
+        print(apply(make_adder(30, clone("temporary")), 1), "|", arc_live(), "|")
+        print(make_adder(40, clone("immediate"))(2), "|", arc_live(), "|")
+        print(make_nested(clone("nested"))(6), "|", arc_live(), "|")
+    }
+    print(arc_live())
+}

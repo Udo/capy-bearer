@@ -13,6 +13,8 @@ from capy_compiler import (
     CapyModuleCompiler,
     DeclarationIndex,
     Function,
+    FunctionType,
+    Lambda,
     Name,
     Markup,
     MarkupField,
@@ -45,6 +47,23 @@ class LexerParserTests(unittest.TestCase):
         function = self.parse_one("function pair (s32, string) { return (1, \"x\") }\n")
         self.assertEqual(function.parameters, [])
         self.assertEqual(type_name(function.return_type), "(s32,string)")
+
+    def test_public_function_type_and_lambda_are_expression_based(self):
+        variable = self.parse_one(
+            "var callback : function(value : s32) s32 = function(value : s32) s32 { return value + 1 }\n"
+        )
+        self.assertIsInstance(variable.annotation, FunctionType)
+        self.assertIsInstance(variable.value, Lambda)
+        self.assertEqual(type_name(variable.annotation), "function(s32) s32")
+
+    def test_function_types_compose_inside_tuple_signatures(self):
+        program = parse(
+            'function invoke(pair : (function(value : s32) s32, s32)) s32 { pair[0](pair[1]) }\n'
+            'function CLI { var callback := function(value : s32) s32 { value + 1 }; print(invoke((callback, 2))) }\n',
+            "function-tuple.capy",
+        )
+        wasm, _ = compile_bearer_unit(program, "function-tuple.capy", "function-tuple.wasm", 11)
+        self.assertTrue(wasm.startswith(b"\0asm"))
 
     def test_function_header_is_expression_based(self):
         function = self.parse_one("function test(x : s32) s32 { return x + 100 }\n")
@@ -265,6 +284,7 @@ class LexerParserTests(unittest.TestCase):
         self.assertEqual(module.used_helpers, set())
         self.assertEqual(module.first_user_index, 1)
         self.assertFalse(module.uses_arc_global)
+        self.assertEqual(module.table_slots, {})
         self.assertEqual(module.data, "hé".encode("utf-8"))
         self.assertLess(len(wasm), 400)
 
@@ -301,6 +321,22 @@ class LexerParserTests(unittest.TestCase):
         self.assertTrue(all(0 < address < len(wasm) for address in addresses))
         self.assertIn((3, 17), locations)
         self.assertIn((4, 5), locations)
+
+    def test_capturing_closure_emits_environment_drop_glue_and_table(self):
+        program = parse(
+            'function apply(callback : function(value : s32) s32) s32 { callback(2) }\n'
+            'function CLI { var label := clone("x"); var base := 5; '
+            'var callback : function(value : s32) s32 = function(value : s32) s32 { print(label); base + value }; '
+            'print(apply(callback), arc_live()) }\n',
+            "closure.capy",
+        )
+        module = CapyModuleCompiler(program, "closure.capy", "closure.wasm", 11)
+        wasm, _ = module.compile()
+        self.assertTrue(wasm.startswith(b"\0asm"))
+        self.assertTrue(module.table_slots)
+        self.assertTrue(module.closure_types)
+        self.assertIn("bearer_alloc", module.host_indices)
+        self.assertIn("release", module.helper_indices)
 
     def test_rich_dval_and_custom_export_compile(self):
         program = parse(
@@ -391,9 +427,11 @@ class LexerParserTests(unittest.TestCase):
         module = CapyModuleCompiler(program, "indirect-surface.capy", "indirect-surface.wasm", 10)
         module.compile()
         identity = next(definition for definition in module.definitions if definition.function.name == "identity")
-        self.assertEqual(module.host_indices, {"bearer_print_s32": 0})
-        self.assertEqual(module.helper_indices, {})
-        self.assertEqual(identity.function_index, 1)
+        self.assertEqual(module.host_indices, {"bearer_print_s32": 0, "bearer_free": 1})
+        self.assertEqual(module.helper_indices, {"retain": 2, "release": 3})
+        self.assertEqual(identity.function_index, 4)
+        thunk_key = next(iter(module.table_slots))
+        self.assertEqual(module.functions[thunk_key].function_index, 6)
         self.assertEqual(list(module.table_slots.values()), [0])
 
     def test_array_and_managed_struct_program_compiles(self):
