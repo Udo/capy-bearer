@@ -46,10 +46,21 @@ int main()
 	const auto returning = capy::compile_bearer_unit(
 		"function choose(value : bool) s32 { if value { return 1 } else { return 2 } }\nfunction CLI { print(choose(true)) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(returning.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto boundary = capy::compile_bearer_unit("function CLI { print(-2147483648, 2147483647) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(boundary.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto marker_collision = capy::compile_bearer_unit("function CLI { 1509949440; print([1][1]) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(marker_collision.wasm, {.bearer_abi_version = "11"}).valid);
+	assert(marker_collision.source_map.find("\t1\t1\t37\n") != std::string::npos);
 	for (const auto source : {
 			 "function square(value : any) value::type { value * value }\nfunction CLI { square(clone(\"x\")) }\n",
 			 "function choose(a : any, b : s32) a::type { a }\nfunction choose(a : s32, b : any) b::type { b }\nfunction CLI { choose(1, 1) }\n",
 			 "function incomplete(value : bool) s32 { if value { return 1 } }\nfunction CLI { print(incomplete(false)) }\n",
+			 "function CLI { print(2147483648) }\n",
+			 "function CLI { print(-2147483649) }\n",
+			 "function CLI { print(999999999999999999999999999999999999) }\n",
+			 "function CLI { value := 1; value := 2 }\n",
+			 "function CLI { print(1 && true) }\n",
+			 "function CLI { false && (hidden := true); print(hidden) }\n",
 		 })
 	{
 		try

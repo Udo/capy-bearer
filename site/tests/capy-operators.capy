@@ -1,0 +1,20 @@
+function noisy() bool {
+    print("X")
+    return true
+}
+
+function make_value() s32 {
+    local := 7
+    return local
+}
+
+function consume(value : string) bool {
+    return true
+}
+
+function CLI {
+    number := 5
+    print(false && noisy(), "|", true || noisy(), "|", true && noisy(), "|", make_value(), "|", -number, "|", !false, "|")
+    print(false && consume(skipped := clone("skip")), arc_live(), "|")
+    print(true && consume(used := clone("used")), arc_live())
+}

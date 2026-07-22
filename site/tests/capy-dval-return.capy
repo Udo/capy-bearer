@@ -1,0 +1,52 @@
+function leave_dval_loop() s32 {
+    for key, value = dval({"answer": 42}) {
+        return arc_live()
+    }
+    return 0 - 1
+}
+
+function first_dval_value() dval {
+    for key, value = dval({"answer": 42}) {
+        return value
+    }
+    return dval(0)
+}
+
+function implicit_dval_value() dval {
+    result := dval(9)
+}
+
+function break_owned_dval() s32 {
+    for value = dval([1]) {
+        break
+    }
+    return arc_live()
+}
+
+function continue_owned_dval() s32 {
+    for value = dval([1]) {
+        continue
+    }
+    return arc_live()
+}
+
+function exhaust_owned_dval() s32 {
+    for value = dval([1]) {
+        dval_s32(value)
+    }
+    return arc_live()
+}
+
+function CLI {
+    print(leave_dval_loop(), "|", arc_live(), "|")
+    {
+        var result := first_dval_value()
+        print(dval_s32(result), "|", arc_live(), "|")
+    }
+    print(arc_live(), "|", break_owned_dval(), continue_owned_dval(), exhaust_owned_dval(), "|", arc_live(), "|")
+    {
+        var result := implicit_dval_value()
+        print(dval_s32(result), "|", arc_live(), "|")
+    }
+    print(arc_live())
+}

@@ -30,6 +30,12 @@ A parenthesized header expression occupies one declaration slot, so `function pa
 
 Function overload identity is the function name plus normalized parameter type patterns. Return types never distinguish overloads and expected result types never select an overload.
 
+## Locals and operators
+
+`var name := value` is the ordinary inferred local declaration. The expression form `name := value` also introduces an inferred local in the current lexical scope and produces its value; redeclaration in that scope is an error. `name = value` assigns an existing local.
+
+`&&` and `||` require `bool` operands and short-circuit their right side. Their conditional right side is a nested lexical scope, so inferred locals declared there are cleaned at the branch edge and do not escape it. Unary `!` requires `bool`; unary `-` requires `s32`. Integer literals are limited to `-2147483648` through `2147483647` and out-of-range literals are source-located compile errors.
+
 ## Compile-time polymorphism
 
 `any` is specified as a compile-time type placeholder, not an erased runtime value. Phase 3 will bind each `any` parameter to its concrete static argument type, type-check the specialization, and cache it by function plus concrete parameter types.

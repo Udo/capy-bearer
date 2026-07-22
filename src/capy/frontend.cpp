@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdint>
+#include <limits>
 #include <unordered_set>
 
 namespace capy
@@ -43,6 +45,27 @@ bool is_digit(unsigned value)
 bool is_alnum(unsigned value)
 {
 	return is_alpha(value) || is_digit(value);
+}
+
+long long parse_integer(const Token& token, bool negative = false)
+{
+	long long magnitude;
+	try
+	{
+		magnitude = std::stoll(token.text);
+	}
+	catch (const std::invalid_argument&)
+	{
+		throw Error(token.location, "invalid integer literal '" + token.text + "'");
+	}
+	catch (const std::out_of_range&)
+	{
+		throw Error(token.location, "integer literal is outside the s32 range");
+	}
+	const long long limit = negative ? -(static_cast<long long>(std::numeric_limits<std::int32_t>::min())) : std::numeric_limits<std::int32_t>::max();
+	if (magnitude > limit)
+		throw Error(token.location, "integer literal is outside the s32 range");
+	return negative ? -magnitude : magnitude;
 }
 [[noreturn]] void fail(Location location, std::string message)
 {
@@ -406,13 +429,18 @@ While::While(Location l) : Expr(ExprKind::While, std::move(l)), condition(nullpt
 
 Token& Parser::token()
 {
-	return tokens_[position_];
+	if (tokens_.empty())
+		throw Error({"<input>", 1, 1, 0}, "parser received no tokens");
+	return tokens_[std::min(position_, tokens_.size() - 1)];
 }
 Token Parser::take()
 {
 	if ((position_ & 255) == 0 && cancelled_ && cancelled_())
 		throw Error(token().location, "Capy compilation cancelled");
-	return tokens_[position_++];
+	Token current = token();
+	if (position_ + 1 < tokens_.size())
+		++position_;
+	return current;
 }
 bool Parser::match(std::string_view text)
 {
@@ -527,7 +555,7 @@ Expr* Parser::prefix()
 {
 	Token current = take();
 	if (current.kind == TokenKind::integer)
-		return program_.make<Integer>(current.location, std::stoll(current.text));
+		return program_.make<Integer>(current.location, parse_integer(current));
 	if (current.kind == TokenKind::string)
 		return program_.make<String>(current.location, current.text);
 	if (current.kind == TokenKind::markup)
@@ -591,6 +619,11 @@ Expr* Parser::prefix()
 									tokens_[position_ + 1].text == ":"))
 			return map_literal(current.location);
 		return block(current.location);
+	}
+	if (current.text == "-" && token().kind == TokenKind::integer)
+	{
+		Token integer = take();
+		return program_.make<Integer>(current.location, parse_integer(integer, true));
 	}
 	if (current.text == "-" || current.text == "!")
 		return program_.make<Binary>(current.location, "unary" + current.text, program_.make<Integer>(current.location, 0), expression(70));

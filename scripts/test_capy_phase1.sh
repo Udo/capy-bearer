@@ -27,6 +27,16 @@ language_output=$(scripts/bearer-cli /tests/capy-language.capy)
 	echo "Capy functions/locals/control-flow output mismatch: $language_output" >&2
 	exit 1
 }
+operator_output=$(scripts/bearer-cli /tests/capy-operators.capy)
+[[ "$operator_output" == "0|1|X1|7|-5|1|00|10" ]] || {
+	echo "Capy logical/unary/inferred-declaration output mismatch: $operator_output" >&2
+	exit 1
+}
+dval_return_output=$(scripts/bearer-cli /tests/capy-dval-return.capy)
+[[ "$dval_return_output" == "3|0|42|1|0|000|0|9|1|0" ]] || {
+	echo "Capy dval-loop early-return ARC mismatch: $dval_return_output" >&2
+	exit 1
+}
 markup_output=$(scripts/bearer-cli /tests/capy-markup.capy)
 [[ "$markup_output" == "<p>static</p>|once;<main>&lt;side&gt;&lt;&amp;&gt;&quot;&#39;<strong>&lt;&amp;&gt;&quot;&#39;</strong><em>trusted</em><i>&lt;&amp;&gt;&quot;&#39;</i><aside>-2147483648:0:2147483647:true:false</aside></main>|0" ]] || {
 	echo "Capy markup output mismatch: $markup_output" >&2

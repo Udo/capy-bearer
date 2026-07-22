@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <deque>
 #include <fstream>
+#include <limits>
 #include <map>
 #include <set>
 #include <sstream>
@@ -406,7 +407,7 @@ struct Module
 	{
 		const std::int32_t value = static_cast<std::int32_t>(0x5a000000u + markers_.size());
 		markers_.push_back(location);
-		Bytes code{0x41};
+		Bytes code{0x01, 0x01, 0x01, 0x41};
 		wasm::append_sleb32(code, value);
 		code.push_back(0x1a);
 		return code;
@@ -664,8 +665,24 @@ std::vector<std::pair<std::string, std::string>> FunctionLowerer::lambda_capture
 		}
 		else if (auto binary = dynamic_cast<Binary*>(value))
 		{
-			visit(binary->left);
-			visit(binary->right);
+			if (binary->operator_ == ":=")
+			{
+				visit(binary->right);
+				if (auto name = dynamic_cast<Name*>(binary->left))
+					scopes.back().insert(name->value);
+			}
+			else if (binary->operator_ == "&&" || binary->operator_ == "||")
+			{
+				visit(binary->left);
+				scopes.push_back({});
+				visit(binary->right);
+				scopes.pop_back();
+			}
+			else
+			{
+				visit(binary->left);
+				visit(binary->right);
+			}
 		}
 		else if (auto cast = dynamic_cast<Cast*>(value))
 			visit(cast->value);
@@ -902,8 +919,20 @@ std::string FunctionLowerer::infer(Expr* value)
 	{
 		if (binary->operator_ == "..")
 			return "range";
-		if (binary->operator_ == "=")
+		if (binary->operator_ == "=" || binary->operator_ == ":=")
 			return infer(binary->right);
+		if (binary->operator_ == "&&" || binary->operator_ == "||" || binary->operator_ == "unary!")
+		{
+			if (infer(binary->right) != "bool" || (binary->operator_ != "unary!" && infer(binary->left) != "bool"))
+				throw Error(binary->location, "logical operators require bool operands");
+			return "bool";
+		}
+		if (binary->operator_ == "unary-")
+		{
+			if (infer(binary->right) != "s32")
+				throw Error(binary->location, "unary - requires an s32 operand");
+			return "s32";
+		}
 		return binary->operator_ == "==" || binary->operator_ == "!=" || binary->operator_ == "<" || binary->operator_ == ">" || binary->operator_ == "<=" ||
 					   binary->operator_ == ">="
 				   ? "bool"
@@ -1522,6 +1551,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 	module_.check_cancelled();
 	if (auto integer = dynamic_cast<Integer*>(value))
 	{
+		if (integer->value < std::numeric_limits<std::int32_t>::min() || integer->value > std::numeric_limits<std::int32_t>::max())
+			throw Error(integer->location, "integer literal is outside the s32 range");
 		Bytes code{0x41};
 		wasm::append_sleb32(code, static_cast<std::int32_t>(integer->value));
 		return {code, "s32"};
@@ -2127,6 +2158,77 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			wasm::append_uleb(code, slot);
 			return {code, actual};
 		}
+		if (binary->operator_ == ":=")
+		{
+			auto target = dynamic_cast<Name*>(binary->left);
+			if (!target)
+				throw Error(binary->left->location, "inferred declaration target must be a local name");
+			auto [code, actual] = expression(binary->right);
+			const unsigned slot = add_local(target->value, actual, target->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, slot);
+			if (managed_type(actual))
+			{
+				if (!expression_is_owned(binary->right))
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, slot);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.retain_index());
+				}
+				owned_scopes_.back().push_back({slot, actual});
+			}
+			code.push_back(0x20);
+			wasm::append_uleb(code, slot);
+			return {code, actual};
+		}
+		if (binary->operator_ == "&&" || binary->operator_ == "||")
+		{
+			auto [left, left_type] = expression(binary->left);
+			scopes_.push_back({});
+			owned_scopes_.push_back({});
+			auto [right, right_type] = expression(binary->right);
+			if (left_type != "bool" || right_type != "bool")
+				throw Error(value->location, "logical operators require bool operands");
+			const unsigned right_result = add_local("", "bool", binary->right->location);
+			right.push_back(0x21);
+			wasm::append_uleb(right, right_result);
+			append(right, cleanup_scopes(owned_scopes_.size() - 1));
+			right.push_back(0x20);
+			wasm::append_uleb(right, right_result);
+			owned_scopes_.pop_back();
+			scopes_.pop_back();
+			left.insert(left.end(), {0x04, 0x7f});
+			if (binary->operator_ == "&&")
+			{
+				append(left, right);
+				left.insert(left.end(), {0x05, 0x41, 0x00});
+			}
+			else
+			{
+				left.insert(left.end(), {0x41, 0x01, 0x05});
+				append(left, right);
+			}
+			left.push_back(0x0b);
+			return {left, "bool"};
+		}
+		if (binary->operator_ == "unary-" || binary->operator_ == "unary!")
+		{
+			auto [right, right_type] = expression(binary->right);
+			if (binary->operator_ == "unary-")
+			{
+				if (right_type != "s32")
+					throw Error(value->location, "unary - requires an s32 operand");
+				Bytes code{0x41, 0x00};
+				append(code, right);
+				code.push_back(0x6b);
+				return {code, "s32"};
+			}
+			if (right_type != "bool")
+				throw Error(value->location, "unary ! requires a bool operand");
+			right.push_back(0x45);
+			return {right, "bool"};
+		}
 		auto [left, left_type] = expression(binary->left);
 		auto [right, right_type] = expression(binary->right);
 		if (left_type != right_type)
@@ -2698,6 +2800,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			borrowed_managed_slots_.insert(item);
 			if (key != 0xffffffffu)
 				borrowed_managed_slots_.insert(key);
+			const bool owned_iterable = expression_is_owned(loop->iterable);
 			Bytes code = std::move(iterable_code);
 			code.push_back(0x21);
 			wasm::append_uleb(code, iterable);
@@ -2766,40 +2869,34 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			if (key != 0xffffffffu)
 				scope[loop->names.front()] = {key, "string"};
 			scopes_.push_back(std::move(scope));
-			Bytes release;
-			release.push_back(0x20);
-			wasm::append_uleb(release, item);
-			release.push_back(0x10);
-			wasm::append_uleb(release, module_.release_index());
+			if (owned_iterable)
+				owned_scopes_.push_back({{iterable, "dval"}});
+			const unsigned boundary = static_cast<unsigned>(owned_scopes_.size());
+			std::vector<std::pair<unsigned, std::string>> iteration_values{{item, "dval"}};
 			if (key != 0xffffffffu)
-			{
-				release.push_back(0x20);
-				wasm::append_uleb(release, key);
-				release.push_back(0x10);
-				wasm::append_uleb(release, module_.release_index());
-			}
+				iteration_values.push_back({key, "string"});
+			owned_scopes_.push_back(std::move(iteration_values));
+			Bytes release = cleanup_scopes(boundary);
 			Bytes increment{0x20};
 			wasm::append_uleb(increment, index);
 			increment.insert(increment.end(), {0x41, 0x01, 0x6a, 0x21});
 			wasm::append_uleb(increment, index);
-			const unsigned base = control_depth_, boundary = static_cast<unsigned>(owned_scopes_.size());
+			const unsigned base = control_depth_;
 			control_depth_ += 2;
-			loops_.push_back({base + 1, base + 2, boundary, release, Bytes(release)});
-			append(loops_.back().continue_edge, increment);
+			loops_.push_back({base + 1, base + 2, boundary, {}, increment});
 			Bytes body = block(loop->body);
 			loops_.pop_back();
 			control_depth_ -= 2;
+			owned_scopes_.pop_back();
 			scopes_.pop_back();
 			append(code, body);
 			append(code, release);
 			append(code, increment);
 			code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b});
-			if (expression_is_owned(loop->iterable))
+			if (owned_iterable)
 			{
-				code.push_back(0x20);
-				wasm::append_uleb(code, iterable);
-				code.push_back(0x10);
-				wasm::append_uleb(code, module_.release_index());
+				append(code, cleanup_scopes(owned_scopes_.size() - 1));
+				owned_scopes_.pop_back();
 			}
 			return {code, "void"};
 		}
@@ -3673,8 +3770,6 @@ CompileResult Module::compile()
 	wasm::append_uleb(mem, 0);
 	std::string abi = "format=bearer-wasm-unit-abi-v1\nunit_abi_version=" + std::to_string(abi_) + "\ntoolchain=capyc-native-cpp20\nsource=" + source_ + "\n";
 	Bytes result{0, 'a', 's', 'm', 1, 0, 0, 0};
-	wasm::append_custom_section(result, "dylink.0", Bytes{1, static_cast<std::uint8_t>(mem.size())}); // replace the short payload below for multi-byte ULEB
-	result.resize(8);
 	Bytes dylink{1};
 	wasm::append_uleb(dylink, static_cast<unsigned>(mem.size()));
 	dylink.insert(dylink.end(), mem.begin(), mem.end());
@@ -3710,6 +3805,7 @@ CompileResult Module::compile()
 	}
 	const std::size_t code_section_offset = result.size();
 	wasm::append_section(result, 10, code);
+	const std::size_t code_section_end = result.size();
 	wasm::append_section(result, 11, data);
 	Bytes named{0};
 	Bytes module_string;
@@ -3779,11 +3875,13 @@ CompileResult Module::compile()
 	for (std::size_t index = 0; index < markers_.size(); ++index)
 	{
 		check_cancelled();
-		Bytes marker{0x41};
+		Bytes marker{0x01, 0x01, 0x01, 0x41};
 		wasm::append_sleb32(marker, static_cast<std::int32_t>(0x5a000000u + index));
 		marker.push_back(0x1a);
-		auto found = std::search(result.begin(), result.end(), marker.begin(), marker.end());
-		if (found == result.end() || std::search(found + 1, result.end(), marker.begin(), marker.end()) != result.end())
+		auto code_begin = result.begin() + static_cast<std::ptrdiff_t>(code_section_offset);
+		auto code_end = result.begin() + static_cast<std::ptrdiff_t>(code_section_end);
+		auto found = std::search(code_begin, code_end, marker.begin(), marker.end());
+		if (found == code_end || std::search(found + 1, code_end, marker.begin(), marker.end()) != code_end)
 			throw Error(markers_[index], "native Capy source marker is missing or ambiguous in final Wasm");
 		source_rows.push_back({static_cast<std::size_t>(found - result.begin()), markers_[index]});
 	}
@@ -3807,6 +3905,8 @@ CompileResult compile_bearer_unit(std::string_view source, const CompileOptions&
 CompileResult compile_bearer_unit(const Program& program, const std::string& source_path, const std::string& module_name, unsigned abi_version,
 								  CancellationCallback cancelled)
 {
+	DeclarationIndex declarations;
+	declarations.add_program(program);
 	return Module(program, source_path, module_name, abi_version, std::move(cancelled)).compile();
 }
 

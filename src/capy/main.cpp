@@ -2,6 +2,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <fcntl.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -27,6 +28,16 @@ void write_atomic(const std::filesystem::path& path, const char* data, std::size
 		if (!output)
 			throw std::runtime_error("could not close " + temporary.string());
 	}
+	const int file = ::open(temporary.c_str(), O_RDONLY);
+	if (file < 0 || ::fsync(file) != 0)
+	{
+		const int error_number = errno;
+		if (file >= 0)
+			::close(file);
+		std::filesystem::remove(temporary);
+		throw std::runtime_error("could not sync " + temporary.string() + ": " + std::strerror(error_number));
+	}
+	::close(file);
 	std::error_code error;
 	std::filesystem::rename(temporary, path, error);
 	if (error)
@@ -34,6 +45,16 @@ void write_atomic(const std::filesystem::path& path, const char* data, std::size
 		std::filesystem::remove(temporary);
 		throw std::runtime_error("could not publish " + path.string() + ": " + error.message());
 	}
+	const std::filesystem::path directory = path.parent_path().empty() ? "." : path.parent_path();
+	const int parent = ::open(directory.c_str(), O_RDONLY | O_DIRECTORY);
+	if (parent < 0 || ::fsync(parent) != 0)
+	{
+		const int error_number = errno;
+		if (parent >= 0)
+			::close(parent);
+		throw std::runtime_error("could not sync output directory " + directory.string() + ": " + std::strerror(error_number));
+	}
+	::close(parent);
 }
 
 } // namespace
@@ -64,6 +85,7 @@ int main(int argc, char** argv)
 				source_map = value(argument.c_str());
 			else if (argument == "--abi-version")
 				abi_version = static_cast<unsigned>(std::stoul(value(argument.c_str())));
+			// Retained for compatibility with scripts/compile_wasm_unit; capyc always emits Bearer units.
 			else if (argument == "--bearer-unit")
 			{
 			}

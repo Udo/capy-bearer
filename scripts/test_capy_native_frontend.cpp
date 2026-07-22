@@ -64,6 +64,11 @@ int main(int argc, char** argv)
 		assert(static_cast<Binary*>(p.items[0])->operator_ == "..");
 	}
 	{
+		Program p = parse("-2147483648\n2147483647\n", "integers.capy");
+		assert(static_cast<Integer*>(p.items[0])->value == -2147483648LL);
+		assert(static_cast<Integer*>(p.items[1])->value == 2147483647LL);
+	}
+	{
 		Program p = parse("\"one and\n  two\"\n", "string.capy");
 		assert(static_cast<String*>(p.items[0])->value == "one and\n  two");
 	}
@@ -124,6 +129,18 @@ int main(int argc, char** argv)
 	expect_error("function meta(x : any) { #compile { emit(x) } }\n", "#compile compile-time metaprogramming is deferred beyond Capy phase 3");
 	expect_error("#wat", "unknown compiler directive #wat");
 	expect_error("@", "unexpected character '@'");
+	expect_error("2147483648", "outside the s32 range");
+	expect_error("-2147483649", "outside the s32 range");
+	expect_error("999999999999999999999999999999", "outside the s32 range");
+	try
+	{
+		Parser({}).token();
+		assert(false);
+	}
+	catch (const Error& e)
+	{
+		assert(e.message == "parser received no tokens");
+	}
 	{
 		Lexer lexer("hé\n", "utf8.capy");
 		auto tokens = lexer.tokens();
