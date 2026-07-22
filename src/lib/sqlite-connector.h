@@ -21,7 +21,6 @@ struct SQLite {
 	// instances cannot leave dangling pointers behind for request cleanup.
 	~SQLite() { disconnect(); }
 
-private:
 	void set_error(s32 code, String info = "");
 	bool apply_default_pragmas();
 	bool bind_params(void* statement, const StringMap& params);

@@ -13,6 +13,11 @@ fi
 site_directory=$(realpath "$site_directory")
 
 python3 scripts/test_capy_compiler.py >/dev/null
+native_compiler_id=$(sha256sum src/capy/*.cpp src/capy/*.h src/lib/compiler.cpp | sha256sum | awk '{print $1}')
+grep -aFq "$native_compiler_id" bin/bearer_fastcgi.linux.bin || {
+	echo "Bearer binary does not contain the current native Capy compiler identity" >&2
+	exit 1
+}
 
 output=$(scripts/bearer-cli /tests/capy-phase1.capy)
 [[ "$output" == "capy-direct-ok" ]] || { echo "Capy CLI output mismatch: $output" >&2; exit 1; }
@@ -151,26 +156,11 @@ rm -f "$cache.objdump"
 fixture="capy-compile-recovery-$$"
 source_dir="$site_directory/$fixture"
 artifact_dir="$(scripts/unit_cache_directory "$bin_directory")$source_dir"
-compiler_file=scripts/capy_backend.py
-compiler_backup=$(mktemp)
-cp -p "$compiler_file" "$compiler_backup"
 cleanup() {
-	cp -p "$compiler_backup" "$compiler_file"
-	rm -f "$compiler_backup"
 	rm -rf "$source_dir" "$artifact_dir"
 }
 trap cleanup EXIT
 
-before_build=$(awk -F= '/^build_token=/ {print $2}' "$cache.meta.txt")
-printf '\n# frontend invalidation fixture\n' >>"$compiler_file"
-[[ "$(scripts/bearer-cli /tests/capy-phase1.capy)" == "capy-direct-ok" ]]
-after_build=$(awk -F= '/^build_token=/ {print $2}' "$cache.meta.txt")
-[[ -n "$before_build" && -n "$after_build" && "$before_build" != "$after_build" ]] || {
-	echo "Capy frontend content change did not invalidate its compiled unit" >&2
-	exit 1
-}
-cp -p "$compiler_backup" "$compiler_file"
-[[ "$(scripts/bearer-cli /tests/capy-phase1.capy)" == "capy-direct-ok" ]]
 mkdir -p "$source_dir"
 for size in 63 64 127 128; do
 	payload=$(printf '%*s' "$size" '' | tr ' ' x)

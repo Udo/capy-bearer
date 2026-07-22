@@ -94,7 +94,7 @@ inline auto map(std::vector<T> items, F f)
 	return(new_items);
 }
 
-template <class ...Args>
+template <typename ...Args>
 inline String first(Args... args)
 {
     std::vector<String> vec = {args...};

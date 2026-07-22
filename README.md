@@ -1,5 +1,9 @@
 # Bearer
 
+## C++ style
+
+Use `struct` for project C++ declarations, `typename` in template parameter lists, and no `public:`, `private:`, or `protected:` access partitions. Follow the existing tab-indented, Allman-brace Bearer style.
+
 ## Current State
 
 This is in the early stages of development. Don't use this for anything important!

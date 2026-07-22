@@ -16,6 +16,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#ifndef CAPY_COMPILER_BUILD_ID
+#define CAPY_COMPILER_BUILD_ID "unversioned"
+#endif
+
 namespace {
 
 const u64 BEARER_UNIT_ABI_VERSION = BEARER_COMPILER_UNIT_ABI_VERSION;
@@ -85,10 +89,9 @@ struct CompilerDeadline
 static std::atomic<u64> compiler_invocation_stage_counter(0);
 static thread_local CompilerDeadline* compiler_active_deadline = 0;
 
-class CompilerDeadlineScope
+struct CompilerDeadlineScope
 {
 	CompilerDeadline* previous;
-public:
 	explicit CompilerDeadlineScope(CompilerDeadline* deadline) : previous(compiler_active_deadline)
 	{
 		compiler_active_deadline = deadline;
@@ -307,18 +310,13 @@ String compiler_unit_input_signature(Request* context, SharedUnit* su, bool allo
 
 	String compiler_root = context->server->config["COMPILER_SYS_PATH"];
 	String setup_template = compiler_root + "/" + context->server->config["SETUP_TEMPLATE"];
-	String frontend_signature;
-	if(su->file_name.length() >= 5 && su->file_name.substr(su->file_name.length() - 5) == ".capy")
-		frontend_signature = ":capy:" + gen_sha1(
-			file_get_contents(compiler_root + "/scripts/capy_compiler.py") +
-			file_get_contents(compiler_root + "/scripts/capy_frontend.py") +
-			file_get_contents(compiler_root + "/scripts/capy_backend.py")
-		);
+	bool capy_source = su->file_name.size() >= 5 && su->file_name.substr(su->file_name.size() - 5) == ".capy";
 	return(
 		compiler_unit_source_signature(su->file_name, allow_recent_source_stat) + ":" +
-		gen_sha1(file_get_contents(setup_template)) + frontend_signature + ":" +
+		gen_sha1(file_get_contents(setup_template)) + ":" +
 		std::to_string(BEARER_UNIT_ABI_VERSION) + ":" +
-		std::to_string(BEARER_WASM_CORE_ABI_VERSION)
+		std::to_string(BEARER_WASM_CORE_ABI_VERSION) +
+		(capy_source ? String(":") + CAPY_COMPILER_BUILD_ID : String(""))
 	);
 }
 
@@ -1250,7 +1248,8 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 {
 	f64 comp_start = time_precise();
 	bool preserve_last_known_good = compiler_preserve_last_known_good(context, su->file_name);
-	bool stage_artifacts = deadline || preserve_last_known_good;
+	bool capy_source = su->file_name.size() >= 5 && su->file_name.substr(su->file_name.size() - 5) == ".capy";
+	bool stage_artifacts = deadline || preserve_last_known_good || capy_source;
 
 	if(!file_exists(su->file_name))
 	{
@@ -1339,37 +1338,67 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 			break;
 		}
 
-		String compile_command = shell_escape(compiler_wasm_compile_script(context))+" "+
-			shell_escape(su->src_path)+" "+
-			shell_escape(su->bin_path)+" "+
-			shell_escape(su->file_name)+" "+
-			shell_escape(stage_artifacts ? staged_pre_file_name : su->pre_file_name)+" "+
-			shell_escape(stage_artifacts ? staged_wasm_file_name : su->wasm_file_name)+" "+
-			shell_escape(compiler_unit_bin_directory(context));
-		if(deadline)
+		String compiled_wasm_name = stage_artifacts ? staged_wasm_name : su->wasm_name;
+		String compiled_map_name = compiler_source_map_path(compiled_wasm_name);
+		if(capy_source)
 		{
-			u64 remaining_ms = deadline->remaining_ms();
-			if(remaining_ms == 0)
+			try
 			{
-				deadline->timed_out = true;
-				break;
+				capy::CompileOptions options;
+				options.source_path = su->file_name;
+				options.module_name = su->wasm_file_name;
+				options.abi_version = BEARER_WASM_CORE_ABI_VERSION;
+				options.cancelled = [deadline]() { return deadline && deadline->expire_if_needed(); };
+				auto result = capy::compile_bearer_unit(generated_source, options);
+				auto validation = capy::wasm::validate_bearer_unit(result.wasm,
+					{ .bearer_abi_version = std::to_string(BEARER_WASM_CORE_ABI_VERSION) });
+				if(!validation.valid)
+					throw std::runtime_error("native Capy compiler emitted invalid Wasm: " + validation.error);
+				String wasm_content((const char*)result.wasm.data(), result.wasm.size());
+				if(!file_put_contents(compiled_wasm_name, wasm_content) || !file_put_contents(compiled_map_name, result.source_map))
+					throw std::runtime_error("could not write native Capy compiler artifacts");
+				su->compiler_messages = "";
 			}
-			DValue execution = process_exec(compile_command + " 2>&1", "", StringMap(), remaining_ms, 1024 * 1024);
-			if(execution["timed_out"].to_bool())
+			catch(const std::exception& error)
 			{
-				deadline->timed_out = true;
-				break;
+				su->compiler_messages = error.what();
+				file_unlink(compiled_wasm_name);
+				file_unlink(compiled_map_name);
 			}
-			su->compiler_messages = trim(execution["stdout"].to_string() + execution["stderr"].to_string());
-			if(execution["output_truncated"].to_bool())
-				su->compiler_messages += (su->compiler_messages == "" ? "" : "\n") + String("compiler output truncated at 1048576 bytes");
-			if(execution["exit_code"].to_s64(-1) != 0 && su->compiler_messages == "")
-				su->compiler_messages = "wasm compile script exited with status " + std::to_string(execution["exit_code"].to_s64(-1));
 		}
 		else
-			su->compiler_messages = trim(shell_exec(compile_command));
+		{
+			String compile_command = shell_escape(compiler_wasm_compile_script(context))+" "+
+				shell_escape(su->src_path)+" "+
+				shell_escape(su->bin_path)+" "+
+				shell_escape(su->file_name)+" "+
+				shell_escape(stage_artifacts ? staged_pre_file_name : su->pre_file_name)+" "+
+				shell_escape(stage_artifacts ? staged_wasm_file_name : su->wasm_file_name)+" "+
+				shell_escape(compiler_unit_bin_directory(context));
+			if(deadline)
+			{
+				u64 remaining_ms = deadline->remaining_ms();
+				if(remaining_ms == 0)
+				{
+					deadline->timed_out = true;
+					break;
+				}
+				DValue execution = process_exec(compile_command + " 2>&1", "", StringMap(), remaining_ms, 1024 * 1024);
+				if(execution["timed_out"].to_bool())
+				{
+					deadline->timed_out = true;
+					break;
+				}
+				su->compiler_messages = trim(execution["stdout"].to_string() + execution["stderr"].to_string());
+				if(execution["output_truncated"].to_bool())
+					su->compiler_messages += (su->compiler_messages == "" ? "" : "\n") + String("compiler output truncated at 1048576 bytes");
+				if(execution["exit_code"].to_s64(-1) != 0 && su->compiler_messages == "")
+					su->compiler_messages = "wasm compile script exited with status " + std::to_string(execution["exit_code"].to_s64(-1));
+			}
+			else
+				su->compiler_messages = trim(shell_exec(compile_command));
+		}
 
-		String compiled_wasm_name = stage_artifacts ? staged_wasm_name : su->wasm_name;
 		if(su->compiler_messages.length() == 0 && !file_exists(compiled_wasm_name))
 			su->compiler_messages = "wasm compile script completed without creating " + compiled_wasm_name;
 		if(su->compiler_messages.length() > 0)

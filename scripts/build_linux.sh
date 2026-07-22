@@ -45,6 +45,15 @@ needs_rebuild() {
 	return 1
 }
 
+# Native Capy compiler CLI. The same src/capy compiler implementation is also
+# linked into Bearer below; this executable is the operator/build interface.
+if needs_rebuild bin/capyc src/capy scripts/build_capy.sh; then
+	echo "Compiling native Capy compiler..."
+	bash scripts/build_capy.sh bin/capyc "$BUILDMODE"
+else
+	echo "Reusing bin/capyc"
+fi
+
 # core.wasm: guest runtime loaded by the native wasm backend.
 if needs_rebuild bin/wasm/core.wasm src/wasm/core.cpp src/wasm/abi.h src/lib src/wasm/core_hostcalls.syms src/wasm/core_libc_exports.syms scripts/build_core_wasm.sh; then
 	echo "Compiling wasm core..."
@@ -85,11 +94,13 @@ fi
 # main object: the FastCGI entrypoint + the bearer_lib core amalgamation. Depends
 # on linux_fastcgi.cpp, the whole lib tree, fcgicc, and the wasm backend header
 # (its only view of the wasm object) — but not the wasm .cpp sources.
-if needs_rebuild bin/main.o src/linux_fastcgi.cpp src/lib src/fastcgi src/wasm/backend.h src/wasm/abi.h; then
+if needs_rebuild bin/main.o src/linux_fastcgi.cpp src/lib src/capy src/fastcgi src/wasm/backend.h src/wasm/abi.h; then
 	echo "Compiling main..."
 	tmp="bin/main.o.tmp.$$"
 	build_tmp_files+=("$tmp")
-	time -p $COMPILER -c src/linux_fastcgi.cpp $SRCFLAGS $FLAGS -o "$tmp" 2>&1
+	capy_compiler_build_id=$(sha256sum src/capy/*.cpp src/capy/*.h src/lib/compiler.cpp | sha256sum | awk '{print $1}')
+	time -p $COMPILER -c src/linux_fastcgi.cpp $SRCFLAGS $FLAGS \
+		"-DCAPY_COMPILER_BUILD_ID=\"$capy_compiler_build_id\"" -o "$tmp" 2>&1
 	mv "$tmp" bin/main.o
 else
 	echo "Reusing bin/main.o"

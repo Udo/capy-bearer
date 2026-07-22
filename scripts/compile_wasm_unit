@@ -24,7 +24,8 @@ PCH_DIR=${BEARER_WASM_PCH_DIR:-$UNIT_CACHE_DIR/.pch}
 if [[ "$SRC_FN" == *.capy ]]; then
 	mkdir -p "$DEST_DIR"
 	trap 'rm -f "$WASM_TMP" "$MAP_TMP"' EXIT
-	python3 scripts/capy_compiler.py "$SRC_FN" --bearer-unit --abi-version "$ABI_VERSION" -o "$WASM_TMP" --source-map "$MAP_TMP"
+	[[ -x bin/capyc ]] || { echo "native Capy compiler bin/capyc is missing" >&2; exit 1; }
+	bin/capyc "$SRC_FN" --bearer-unit --abi-version "$ABI_VERSION" -o "$WASM_TMP" --source-map "$MAP_TMP"
 	python3 scripts/check_unit_wasm.py "$WASM_TMP" --abi-version "$ABI_VERSION"
 	mv "$MAP_TMP" "$DEST_DIR/$WASM_FN.source-map"
 	mv "$WASM_TMP" "$DEST_DIR/$WASM_FN"

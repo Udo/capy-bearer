@@ -23,6 +23,9 @@ String component(String name, DValue props, Request& context);
 #endif
 
 #ifndef __BEARER_WASM_CORE__
+#include "../capy/frontend.cpp"
+#include "../capy/wasm.cpp"
+#include "../capy/compiler.cpp"
 #include "compiler-parser.cpp"
 #include "compiler.cpp"
 #include "markdown.cpp"

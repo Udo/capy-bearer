@@ -297,11 +297,10 @@ static u64 wasm_monotonic_ms()
 	return((u64)ts.tv_sec * 1000ull + (u64)ts.tv_nsec / 1000000ull);
 }
 
-class WasmSigchldBlock
+struct WasmSigchldBlock
 {
 	sigset_t previous;
 	bool blocked = false;
-public:
 	WasmSigchldBlock()
 	{
 		sigset_t mask;
@@ -1270,11 +1269,10 @@ static bool wasm_read_metadata_file(const String& path, std::vector<u8>& metadat
 
 // ---- worker (per process): engine + compiled module caches ----------------
 
-class WasmWorkspace;
+struct WasmWorkspace;
 
-class WasmWorker
+struct WasmWorker
 {
-public:
 	WasmWorkerConfig cfg;
 
 	explicit WasmWorker(WasmWorkerConfig config) : cfg(std::move(config)), engine(make_engine())
@@ -1573,8 +1571,7 @@ public:
 		return("");
 	}
 
-private:
-	friend class WasmWorkspace;
+	friend struct WasmWorkspace;
 	struct ComponentFreshnessState
 	{
 		std::chrono::steady_clock::time_point checked_at;
@@ -1741,9 +1738,8 @@ static String wasm_encode_request_envelope(const Request& request, const String&
 
 // ---- workspace (per request) ----------------------------------------------
 
-class WasmWorkspace : public WasmRequestProfile
+struct WasmWorkspace : public WasmRequestProfile
 {
-public:
 	WasmWorker& worker;
 	wasmtime::Store store;
 
@@ -1840,14 +1836,13 @@ public:
 		return(std::min(requested_ms, remaining_ms));
 	}
 
-	class InvocationScope
+	struct InvocationScope
 	{
 		WasmWorkspace& workspace;
 		bool replaced = false;
 		bool previous_active = false;
 		InvocationClock::time_point previous_deadline;
 		u64 previous_budget_ms = 0;
-	public:
 		InvocationScope(WasmWorkspace& workspace, u64 timeout_cap_ms = 0, bool force_new = false, u64 reported_budget_ms = 0) : workspace(workspace)
 		{
 			if(!workspace.invocation_active || force_new)
@@ -2253,7 +2248,6 @@ public:
 		return("");
 	}
 
-private:
 	std::optional<wasmtime::Instance> core;
 	std::optional<wasmtime::Memory> memory;
 	std::optional<wasmtime::Table> table;

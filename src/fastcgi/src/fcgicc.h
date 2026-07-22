@@ -39,8 +39,7 @@
 #include <string>
 #include <vector>
 
-class FastCGIServer {
-public:
+struct FastCGIServer {
 	~FastCGIServer();
 	void shutdown();
 

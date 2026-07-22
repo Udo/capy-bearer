@@ -1440,11 +1440,10 @@ bool child_exit_status_take(pid_t pid, int& status, unsigned int since)
 
 namespace {
 
-class ProcessSigchldBlock
+struct ProcessSigchldBlock
 {
 	sigset_t previous;
 	bool blocked = false;
-public:
 	ProcessSigchldBlock()
 	{
 		sigset_t mask;
