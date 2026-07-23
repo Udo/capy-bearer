@@ -215,6 +215,14 @@ struct Module
 	{
 	}
 
+	struct Capabilities
+	{
+		bool print_bytes = false, print_s32 = false, print_s64 = false, print_u64 = false, print_f64 = false;
+		bool format_s64 = false, format_u64 = false, format_f64 = false;
+		bool alloc = false, retain = false, release = false, clone = false, arc_live = false;
+	};
+
+	Capabilities discover_capabilities();
 	CompileResult compile();
 	void check_cancelled() const
 	{
@@ -5174,10 +5182,11 @@ void Module::collect()
 		throw Error({source_, 1, 1, 0}, "Capy Bearer unit exports no CLI, RENDER, WS, ONCE, or INIT handler");
 }
 
-CompileResult Module::compile()
+// One-shot discovery for a fresh Module. Operation-specific capability sets remain
+// Module-owned because lowering consumes them directly; the returned scalar facts
+// are the inputs still needed by ABI assignment and emission.
+Module::Capabilities Module::discover_capabilities()
 {
-	collect();
-	check_cancelled();
 	// Imports are deliberately discovered before assigning indices.  The direct ABI
 	// always imports memory and __memory_base; functions remain demand driven.
 	bool scan_print_bytes = false, scan_print_s32 = false, scan_print_s64 = false, scan_print_u64 = false, scan_print_f64 = false;
@@ -5699,6 +5708,31 @@ CompileResult Module::compile()
 		scan_retain = true;
 		scan_release = true;
 	}
+	return {.print_bytes = scan_print_bytes,
+			.print_s32 = scan_print_s32,
+			.print_s64 = scan_print_s64,
+			.print_u64 = scan_print_u64,
+			.print_f64 = scan_print_f64,
+			.format_s64 = scan_format_s64,
+			.format_u64 = scan_format_u64,
+			.format_f64 = scan_format_f64,
+			.alloc = scan_alloc,
+			.retain = scan_retain,
+			.release = scan_release,
+			.clone = scan_clone,
+			.arc_live = scan_arc_live};
+}
+
+CompileResult Module::compile()
+{
+	collect();
+	check_cancelled();
+	const Capabilities capabilities = discover_capabilities();
+	const bool scan_print_bytes = capabilities.print_bytes, scan_print_s32 = capabilities.print_s32, scan_print_s64 = capabilities.print_s64,
+			   scan_print_u64 = capabilities.print_u64, scan_print_f64 = capabilities.print_f64;
+	const bool scan_format_s64 = capabilities.format_s64, scan_format_u64 = capabilities.format_u64, scan_format_f64 = capabilities.format_f64;
+	const bool scan_alloc = capabilities.alloc, scan_retain = capabilities.retain, scan_release = capabilities.release, scan_clone = capabilities.clone,
+			   scan_arc_live = capabilities.arc_live;
 	use_retain_ = scan_retain;
 	use_release_ = scan_release;
 	use_clone_ = scan_clone;
