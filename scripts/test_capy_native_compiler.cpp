@@ -86,6 +86,8 @@ int main()
 			 std::pair{"function CLI { var values := (1s64, 2) }\n", "s64, u64, and f64 are not yet supported in tuple layouts"},
 			 std::pair{"struct Wide { value : f64 }\nfunction CLI {}\n", "not yet supported in struct layouts"},
 			 std::pair{"function CLI { print(first(\"ok\", 1)) }\n", "expected string, found s32"},
+			 std::pair{"function CLI { array_merge(dval({\"x\": \"y\"}), \"bad\") }\n", "expected dval, found string"},
+			 std::pair{"function CLI { array_merge(dval({\"x\": \"y\"})) }\n", "array_merge expects two dvals"},
 			 std::pair{"function CLI { var value := 1u64; var closure := function() u64 { value } }\n", "not yet supported in captured closure layouts"},
 		 })
 	{

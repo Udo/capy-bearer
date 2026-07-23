@@ -136,7 +136,7 @@ The first direct-Wasm backend emits:
 - a matching `BEARER_SOURCE_MAP_V1` sidecar;
 - no WASI imports; dynamic values use Bearer’s workspace allocator.
 
-Compiler generation c29 uses core ABI w21. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
+Compiler generation c30 uses core ABI w22. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
 
 ## Automatic reference counting
 
@@ -211,7 +211,7 @@ for key, value = profile["tags"] {
 }
 ```
 
-Maps iterate in lexical key order and lists in numeric order. Every key/value crossing into Capy is copied into an ARC-managed object; no borrowed C++ tree pointer is exposed.
+Maps iterate in lexical key order and lists in numeric order. Every key/value crossing into Capy is copied into an ARC-managed object; no borrowed C++ tree pointer is exposed. `array_merge(left, right)` applies Bearer's copied DValue merge policy: string keys from the right overwrite, list-shaped numeric keys append and reindex, a non-map left yields the right value, and a non-map right leaves a map left unchanged. The C++-specific `StringMap` overload is not exposed. As with every BRRB membrane, reference nodes cross as copied dereferenced values; native alias/reference identity is not preserved.
 
 A declaration named `EXPORT_name` with signature `(dval) dval` publishes the ordinary Bearer custom export `name`:
 

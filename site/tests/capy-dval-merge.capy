@@ -1,0 +1,23 @@
+function CLI {
+    {
+        var mapped := array_merge(
+            dval({"name": "left", "keep": "yes", "nested": {"side": "left"}}),
+            dval({"name": "right", "add": "new", "nested": {"side": "right"}})
+        )
+        var listed := array_merge(dval(["a", "b"]), dval(["c", "d"]))
+        var mixed := array_merge(dval({"key": "value"}), dval(["item"]))
+        var scalar_left := array_merge(dval("left"), dval("right"))
+        var scalar_right := array_merge(dval({"key": "value"}), dval("ignored"))
+        var empty_list := array_merge(dval([]), dval(["z"]))
+        var numeric_key := array_merge(dval(["base"]), dval({"01": "odd", "label": "keep"}))
+        var scalar_map := array_merge(dval("ignored"), dval({"key": "map"}))
+        print(
+            dval_string(mapped["name"]), dval_string(mapped["keep"]), dval_string(mapped["add"]), dval_string(mapped["nested"]["side"]), "|",
+            dval_string(listed[0]), dval_string(listed[1]), dval_string(listed[2]), dval_string(listed[3]), "|",
+            dval_string(mixed["key"]), dval_string(mixed[0]), "|",
+            dval_string(scalar_left), "|", dval_string(scalar_right["key"]), "|",
+            dval_string(empty_list[0]), "|", dval_string(numeric_key[1]), dval_string(numeric_key["label"]), "|", dval_string(scalar_map["key"]), "|", arc_live()
+        )
+    }
+    print("|", arc_live())
+}

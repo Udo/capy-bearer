@@ -151,6 +151,7 @@ static String wasm_units_list_result;
 static String wasm_codec_result;
 static String wasm_regex_result;
 static String wasm_string_list_result;
+static String wasm_dval_merge_result;
 static size_t bearer_copy_bytes(const String& value, char* out, size_t cap);
 static size_t bearer_copy_staged(String& staged, char* out, size_t cap);
 static String wasm_unit_call_encoded_result;
@@ -901,6 +902,7 @@ void bearer_wasm_core_reset_request()
 	wasm_codec_result.clear();
 	wasm_regex_result.clear();
 	wasm_string_list_result.clear();
+	wasm_dval_merge_result.clear();
 }
 
 // Host pushes the worker-cached immutable configuration followed by the
@@ -1789,6 +1791,26 @@ size_t bearer_dv_build_brrb(s32 list_mode, const BearerDValueEntry* entries, siz
 			result[String(entries[i].key ? entries[i].key : "", entries[i].key ? entries[i].key_len : 0)] = child;
 	}
 	return(bearer_copy_bytes(brb_encode(result), out, cap));
+}
+
+size_t bearer_dv_merge_brrb(const char* left, size_t left_len, const char* right, size_t right_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		wasm_dval_merge_result.clear();
+		DValue left_value;
+		DValue right_value;
+		if(!bearer_decode_brrb_span(left, left_len, left_value) || !bearer_decode_brrb_span(right, right_len, right_value))
+			return(std::numeric_limits<size_t>::max());
+		wasm_dval_merge_result = brb_encode(array_merge(left_value, right_value));
+		if(wasm_dval_merge_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
+		{
+			wasm_dval_merge_result.clear();
+			return(std::numeric_limits<size_t>::max());
+		}
+		return(wasm_dval_merge_result.size());
+	}
+	return(bearer_copy_staged(wasm_dval_merge_result, out, cap));
 }
 
 s32 bearer_dv_get_brrb(const char* value, size_t value_len, s32 index_mode,

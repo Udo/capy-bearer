@@ -464,7 +464,7 @@ struct Module
 	Bytes data_;
 	bool print_bytes_ = false, print_s32_ = false, print_s64_ = false, print_u64_ = false, print_f64_ = false, alloc_ = false;
 	bool unit_render_ = false, component_render_ = false, component_render_props_ = false, component_capture_ = false, component_capture_props_ = false;
-	bool dval_ = false, unit_call_ = false, unit_info_ = false, units_list_ = false, unit_compile_ = false;
+	bool dval_ = false, dval_merge_ = false, unit_call_ = false, unit_info_ = false, units_list_ = false, unit_compile_ = false;
 	bool request_context_ambient_ = false, request_context_explicit_ = false;
 	bool response_status_ = false, response_header_ = false, time_ = false, time_precise_ = false;
 	bool string_substr_ = false, string_first_ = false, redirect_ = false;
@@ -951,7 +951,7 @@ std::string FunctionLowerer::infer(Expr* value)
 			return "s32";
 		if (name->value == "trusted_markup")
 			return "markup";
-		if (name->value == "split")
+		if (name->value == "split" || name->value == "array_merge")
 			return "dval";
 		if (name->value == "join" || name->value == "first")
 			return "string";
@@ -3589,6 +3589,66 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 				throw Error(value->location, "dval expects one scalar, map, or list");
 			return dval_value(call->arguments[0]);
 		}
+		if (named->value == "array_merge")
+		{
+			if (call->arguments.size() != 2)
+				throw Error(value->location, "array_merge expects two dvals");
+			Bytes code;
+			std::vector<unsigned> arguments;
+			for (Expr* argument : call->arguments)
+			{
+				auto [part, type] = expression(argument);
+				if (type != "dval")
+					throw Error(argument->location, "expected dval, found " + type);
+				const unsigned local = add_local("", "dval", argument->location);
+				append(code, part);
+				code.push_back(0x21);
+				wasm::append_uleb(code, local);
+				arguments.push_back(local);
+			}
+			auto adapter_inputs = [&]
+			{
+				for (unsigned local : arguments)
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, local);
+					code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+					wasm::append_uleb(code, local);
+					code.insert(code.end(), {0x28, 0x02, 0x10});
+				}
+			};
+			adapter_inputs();
+			code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10});
+			wasm::append_uleb(code, module_.import_index("bearer_dv_merge_brrb"));
+			const unsigned length = add_local("", "s32", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, length);
+			auto [allocation, pointer] = allocate_blob("dval", 4, length, value->location);
+			append(code, allocation);
+			adapter_inputs();
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+			wasm::append_uleb(code, length);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index("bearer_dv_merge_brrb"));
+			code.push_back(0x20);
+			wasm::append_uleb(code, length);
+			code.insert(code.end(), {0x47, 0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b});
+			for (std::size_t i = 0; i < arguments.size(); ++i)
+				if (expression_is_owned(call->arguments[i]))
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, arguments[i]);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.release_index());
+				}
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			return {code, "dval"};
+		}
 		if (named->value == "dval_has")
 		{
 			if (call->arguments.size() != 2)
@@ -5170,7 +5230,7 @@ CompileResult Module::compile()
 					return "f64";
 				if (name->value == "join" || name->value == "first")
 					return "string";
-				if (name->value == "split")
+				if (name->value == "split" || name->value == "array_merge")
 					return "dval";
 				std::vector<std::string> arguments;
 				for (Expr* argument : call->arguments)
@@ -5254,6 +5314,14 @@ CompileResult Module::compile()
 				scan_release = true;
 				if (n->value == "clone")
 					scan_clone = true;
+			}
+			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "array_merge")
+			{
+				dval_ = true;
+				dval_merge_ = true;
+				scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
 			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && (n->value == "dval" || n->value == "dval_has" || n->value == "dval_string" ||
 																 n->value == "dval_s32" || n->value == "dval_f64" || n->value == "dval_bool"))
@@ -5671,6 +5739,8 @@ CompileResult Module::compile()
 								 "bearer_dv_get_brrb", "bearer_dv_count_brrb", "bearer_dv_entry_key_brrb", "bearer_dv_entry_value_brrb",
 								 "bearer_dv_scalar_type_brrb", "bearer_dv_s32_brrb", "bearer_dv_f64_brrb", "bearer_dv_bool_brrb", "bearer_dv_brrb_to_string"})
 			imports_[name] = next++;
+	if (dval_merge_)
+		imports_["bearer_dv_merge_brrb"] = next++;
 	if (!custom_exports_.empty())
 	{
 		imports_["bearer_dv_ptr_to_brrb"] = next++;
@@ -5774,6 +5844,7 @@ CompileResult Module::compile()
 	unsigned blob_type = dval_ ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned scalar_adapter_type = dval_ ? wasm_type({"s32", "s32", "s32"}, "s32") : 0;
 	unsigned f64_adapter_type = dval_ ? wasm_type({"f64", "s32", "s32"}, "s32") : 0;
+	unsigned dval_merge_type = dval_merge_ ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned build_type = dval_ ? wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned get_type = dval_ ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned entry_type = dval_ ? wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
@@ -5871,6 +5942,7 @@ CompileResult Module::compile()
 							  : name == "bearer_dv_build_brrb"																		  ? build_type
 							  : name == "bearer_dv_get_brrb"																		  ? get_type
 							  : name == "bearer_dv_count_brrb" || name == "bearer_dv_scalar_type_brrb"								  ? count_type
+							  : name == "bearer_dv_merge_brrb"																		  ? dval_merge_type
 							  : name == "bearer_dv_entry_key_brrb" || name == "bearer_dv_entry_value_brrb"							  ? entry_type
 							  : name == "bearer_dv_ptr_to_brrb"																		  ? scalar_adapter_type
 							  : name == "bearer_dv_brrb_to_ptr"																		  ? count_type

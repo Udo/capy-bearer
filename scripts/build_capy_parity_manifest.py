@@ -64,6 +64,7 @@ PARTIAL = {
     "2_DValue_key": ("site/tests/capy-dval-rich.capy", "for key, value"),
     "2_DValue_keys": ("site/tests/capy-dval-rich.capy", "for key, value"),
     "0_StringList": ("site/tests/capy-string-lists.capy", "split("),
+    "array_merge": ("site/tests/capy-dval-merge.capy", "array_merge("),
     "2_DValue_to_bool": ("site/tests/capy-dval-rich.capy", "dval_bool("),
     "2_DValue_to_f64": ("site/tests/capy-codecs.capy", "dval_f64("),
     "2_DValue_to_string": ("site/tests/capy-dval-rich.capy", "dval_string("),
