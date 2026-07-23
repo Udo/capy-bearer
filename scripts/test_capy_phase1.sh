@@ -54,6 +54,7 @@ file_output=$(scripts/bearer-cli /tests/capy-files.capy)
 	echo "Capy file handle/ARC mismatch: $file_output" >&2
 	exit 1
 }
+[[ "$(scripts/bearer-cli /tests/capy-unit-admin.capy)" == "1|1|1|2|0" ]]
 if compgen -G '/tmp/capy-files-phase-*' >/dev/null; then
 	echo "Capy file_temp sizing created an unreturned file" >&2
 	rm -f /tmp/capy-files-phase-*

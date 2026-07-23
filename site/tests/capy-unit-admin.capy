@@ -1,0 +1,14 @@
+function CLI {
+    {
+        var info := unit_info("capy-files.capy")
+        var known := units_list()
+        var found := false
+        for item = known {
+            if find(dval_string(item), "capy-files.capy") >= 0 {
+                found = true
+            }
+        }
+        print(dval_bool(info["source_exists"]), "|", found, "|", unit_compile("capy-files.capy"), "|", arc_live())
+    }
+    print("|", arc_live())
+}

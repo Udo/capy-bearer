@@ -32,6 +32,8 @@ SUPPORTED = {
     "file_close": ("site/tests/capy-files.capy", "file_close("),
     "file_temp": ("site/tests/capy-files.capy", "file_temp("),
     "file_unlink": ("site/tests/capy-files.capy", "file_unlink("),
+    "unit_info": ("site/tests/capy-unit-admin.capy", "unit_info("),
+    "unit_compile": ("site/tests/capy-unit-admin.capy", "unit_compile("),
 }
 PARTIAL = {
     "0_Request": ("site/tests/capy-request-context.capy", "request_context("),
@@ -39,6 +41,7 @@ PARTIAL = {
     "2_Request_set_status": ("site/tests/capy-request-context.capy", "response_status("),
     "component_render": ("site/tests/capy-component-props.capy", "component_render("),
     "unit_call": ("site/tests/capy-cross.capy", "unit_call("),
+    "units_list": ("site/tests/capy-unit-admin.capy", "units_list("),
     "2_DValue_get_type_name": ("site/tests/capy-dval-rich.capy", "dval_bool("),
     "2_DValue_is_array": ("site/tests/capy-dval-rich.capy", "dval(["),
     "2_DValue_is_list": ("site/tests/capy-dval-rich.capy", "dval(["),

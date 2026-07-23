@@ -464,7 +464,7 @@ struct Module
 	Bytes data_;
 	bool print_bytes_ = false, print_s32_ = false, print_s64_ = false, print_u64_ = false, print_f64_ = false, alloc_ = false;
 	bool unit_render_ = false, component_render_ = false, component_render_props_ = false, component_capture_ = false, component_capture_props_ = false;
-	bool dval_ = false, unit_call_ = false;
+	bool dval_ = false, unit_call_ = false, unit_info_ = false, units_list_ = false, unit_compile_ = false;
 	bool request_context_ambient_ = false, request_context_explicit_ = false;
 	bool response_status_ = false, response_header_ = false, time_ = false, time_precise_ = false;
 	bool string_substr_ = false, redirect_ = false;
@@ -966,9 +966,10 @@ std::string FunctionLowerer::infer(Expr* value)
 		if (name->value == "dval_s32")
 			return "s32";
 		if (name->value == "dval_bool" || name->value == "csrf_valid" || name->value == "component_exists" || name->value == "file_fsync" ||
-			name->value == "ws_is_binary" || name->value == "ws_send" || name->value == "ws_send_to" || name->value == "ws_close")
+			name->value == "unit_compile" || name->value == "ws_is_binary" || name->value == "ws_send" || name->value == "ws_send_to" ||
+			name->value == "ws_close")
 			return "bool";
-		if (name->value == "unit_call" || name->value == "request_context")
+		if (name->value == "unit_call" || name->value == "request_context" || name->value == "unit_info" || name->value == "units_list")
 			return "dval";
 		if (name->value == "unit_render" || name->value == "component_render" || name->value == "response_status" || name->value == "response_header" ||
 			name->value == "file_close" || name->value == "file_unlink" || name->value == "session_start" || name->value == "session_set" ||
@@ -3435,6 +3436,89 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 				throw Error(call->arguments[0]->location, "expected string, found " + type);
 			return {std::move(source), "markup"};
 		}
+		if (named->value == "unit_info" || named->value == "units_list" || named->value == "unit_compile")
+		{
+			const bool list = named->value == "units_list";
+			if ((list && !call->arguments.empty()) || (!list && call->arguments.size() > 1))
+				throw Error(value->location, named->value + (list ? " expects no arguments" : " expects an optional string path"));
+			Bytes code;
+			unsigned path = 0;
+			if (!call->arguments.empty())
+			{
+				auto [part, type] = expression(call->arguments[0]);
+				if (type != "string")
+					throw Error(call->arguments[0]->location, "expected string, found " + type);
+				path = add_local("", "string", call->arguments[0]->location);
+				append(code, part);
+				code.push_back(0x21);
+				wasm::append_uleb(code, path);
+			}
+			auto input = [&]
+			{
+				if (list)
+					return;
+				if (call->arguments.empty())
+					code.insert(code.end(), {0x41, 0x00, 0x41, 0x00});
+				else
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, path);
+					code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+					wasm::append_uleb(code, path);
+					code.insert(code.end(), {0x28, 0x02, 0x10});
+				}
+			};
+			const std::string import = "bearer_" + named->value + (named->value == "unit_compile" ? "" : "_brrb");
+			if (named->value == "unit_compile")
+			{
+				input();
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.import_index(import));
+				const unsigned result = add_local("", "bool", value->location);
+				code.push_back(0x21);
+				wasm::append_uleb(code, result);
+				if (!call->arguments.empty() && expression_is_owned(call->arguments[0]))
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, path);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.release_index());
+				}
+				code.push_back(0x20);
+				wasm::append_uleb(code, result);
+				return {code, "bool"};
+			}
+			input();
+			code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10});
+			wasm::append_uleb(code, module_.import_index(import));
+			const unsigned length = add_local("", "s32", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, length);
+			auto [allocation, pointer] = allocate_blob("dval", 4, length, value->location);
+			append(code, allocation);
+			input();
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+			wasm::append_uleb(code, length);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index(import));
+			code.push_back(0x20);
+			wasm::append_uleb(code, length);
+			code.insert(code.end(), {0x47, 0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b});
+			if (!call->arguments.empty() && expression_is_owned(call->arguments[0]))
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, path);
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.release_index());
+			}
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			return {code, "dval"};
+		}
 		if (named->value == "unit_call")
 		{
 			if (call->arguments.size() != 3)
@@ -4873,6 +4957,19 @@ CompileResult Module::compile()
 				scan_retain = true;
 				scan_release = true;
 			}
+			if (auto n = dynamic_cast<Name*>(c->function); n && (n->value == "unit_info" || n->value == "units_list" || n->value == "unit_compile"))
+			{
+				unit_info_ = unit_info_ || n->value == "unit_info";
+				units_list_ = units_list_ || n->value == "units_list";
+				unit_compile_ = unit_compile_ || n->value == "unit_compile";
+				if (n->value != "unit_compile")
+				{
+					dval_ = true;
+					scan_alloc = true;
+				}
+				scan_retain = true;
+				scan_release = true;
+			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "unit_call")
 			{
 				unit_call_ = true;
@@ -5168,6 +5265,12 @@ CompileResult Module::compile()
 	}
 	if (unit_call_)
 		imports_["bearer_unit_call_brrb"] = next++;
+	if (unit_info_)
+		imports_["bearer_unit_info_brrb"] = next++;
+	if (units_list_)
+		imports_["bearer_units_list_brrb"] = next++;
+	if (unit_compile_)
+		imports_["bearer_unit_compile"] = next++;
 	if (request_context_ambient_)
 		imports_["bearer_request_context_brrb"] = next++;
 	if (request_context_explicit_)
@@ -5337,6 +5440,8 @@ CompileResult Module::compile()
 			: name == "bearer_dv_ptr_to_brrb"																		? scalar_adapter_type
 			: name == "bearer_dv_brrb_to_ptr"																		? count_type
 			: name == "bearer_unit_call_brrb"																		? unit_call_type
+			: name == "bearer_unit_info_brrb"																		? blob_type
+			: name == "bearer_units_list_brrb" || name == "bearer_unit_compile"										? count_type
 			: name == "bearer_request_context_brrb"																	? count_type
 			: name == "bearer_request_context_for_brrb"																? scalar_adapter_type
 			: name == "bearer_response_set_status"																	? response_status_type

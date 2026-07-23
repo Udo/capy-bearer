@@ -144,6 +144,8 @@ static DValue wasm_unit_call_result;
 static String wasm_component_capture_result;
 static String wasm_file_read_result;
 static String wasm_file_temp_result;
+static String wasm_unit_info_result;
+static String wasm_units_list_result;
 static size_t bearer_copy_bytes(const String& value, char* out, size_t cap);
 static String wasm_unit_call_encoded_result;
 
@@ -888,6 +890,8 @@ void bearer_wasm_core_reset_request()
 	wasm_component_capture_result.clear();
 	wasm_file_read_result.clear();
 	wasm_file_temp_result.clear();
+	wasm_unit_info_result.clear();
+	wasm_units_list_result.clear();
 }
 
 // Host pushes the worker-cached immutable configuration followed by the
@@ -1044,6 +1048,50 @@ void bearer_print_bytes(const char* data, size_t len)
 		bearer_wasm_core_init();
 	if(context->ob && data && len)
 		context->ob->write(data, len);
+}
+
+static size_t bearer_copy_staged(String& staged, char* out, size_t cap)
+{
+	if(cap < staged.size())
+		return(staged.size());
+	if(!staged.empty())
+		memcpy(out, staged.data(), staged.size());
+	size_t size = staged.size();
+	staged.clear();
+	return(size);
+}
+
+size_t bearer_unit_info_brrb(const char* path, size_t path_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		wasm_unit_info_result = brb_encode(unit_info(String(path ? path : "", path ? path_len : 0)));
+		return(wasm_unit_info_result.size());
+	}
+	return(bearer_copy_staged(wasm_unit_info_result, out, cap));
+}
+
+size_t bearer_units_list_brrb(char* out, size_t cap)
+{
+	if(!out)
+	{
+		DValue result;
+		result.set_array();
+		for(const String& path : units_list())
+		{
+			DValue value;
+			value.set(path);
+			result.push(value);
+		}
+		wasm_units_list_result = brb_encode(result);
+		return(wasm_units_list_result.size());
+	}
+	return(bearer_copy_staged(wasm_units_list_result, out, cap));
+}
+
+s32 bearer_unit_compile(const char* path, size_t path_len)
+{
+	return(unit_compile(String(path ? path : "", path ? path_len : 0)));
 }
 
 u64 bearer_file_open(const char* path, size_t path_len, const char* mode, size_t mode_len)
