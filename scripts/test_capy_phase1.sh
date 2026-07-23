@@ -37,8 +37,14 @@ dval_return_output=$(scripts/bearer-cli /tests/capy-dval-return.capy)
 	echo "Capy dval-loop early-return ARC mismatch: $dval_return_output" >&2
 	exit 1
 }
+[[ "$(scripts/bearer-cli /tests/capy-string-concat-only.capy)" == "ab|0" ]]
+string_output=$(scripts/bearer-cli /tests/capy-strings.capy)
+[[ "$string_output" == "Capy Bearer|11|11|Bearer|Bearer|Capy|3|3|0" ]] || {
+	echo "Capy string operations/ARC mismatch: $string_output" >&2
+	exit 1
+}
 markup_output=$(scripts/bearer-cli /tests/capy-markup.capy)
-[[ "$markup_output" == "<p>static</p>|once;<main>&lt;side&gt;&lt;&amp;&gt;&quot;&#39;<strong>&lt;&amp;&gt;&quot;&#39;</strong><em>trusted</em><i>&lt;&amp;&gt;&quot;&#39;</i><aside>-2147483648:0:2147483647:true:false</aside></main>|0" ]] || {
+[[ "$markup_output" == "<p>static</p>|once;<main>&lt;side&gt;&lt;&amp;&gt;&quot;&#39;<strong>&lt;&amp;&gt;&quot;&#39;</strong><em>trusted</em><i>&lt;&amp;&gt;&quot;&#39;</i><aside>-2147483648:0:2147483647:true:false</aside></main>|-2147483648|0" ]] || {
 	echo "Capy markup output mismatch: $markup_output" >&2
 	exit 1
 }
@@ -68,13 +74,13 @@ wasm-validate "$phase3_cache.wasm"
 	exit 1
 }
 request_component_output=$(scripts/bearer-cli /tests/capy-request-context-caller.uce)
-[[ "$request_component_output" == "component-prop|1" ]] || {
+[[ "$request_component_output" == "component-prop|1|handle|1" ]] || {
 	echo "Capy request props snapshot mismatch: $request_component_output" >&2
 	exit 1
 }
 request_headers=$(mktemp)
 request_http_output=$(curl -fsS --max-time 30 -D "$request_headers" -H 'Host: bearer.openfu.com' -d 'answer=42' 'http://127.0.0.1/tests/capy-request-context.capy?name=Ada')
-[[ "$request_http_output" == "POST|Ada|42|answer=42|1" ]] || {
+[[ "$request_http_output" == "POST|Ada|42|answer=42|0" ]] || {
 	echo "Capy HTTP request snapshot mismatch: $request_http_output" >&2
 	exit 1
 }
@@ -84,7 +90,7 @@ grep -Eqi '^X-Capy-Clean: first  X-Injected: bad' "$request_headers"
 ! grep -Eqi '^X-Injected:' "$request_headers"
 rm -f "$request_headers"
 request_http_second=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' -d 'answer=7' 'http://127.0.0.1/tests/capy-request-context.capy?name=Grace')
-[[ "$request_http_second" == "POST|Grace|7|answer=7|1" ]] || {
+[[ "$request_http_second" == "POST|Grace|7|answer=7|0" ]] || {
 	echo "Capy request isolation mismatch: $request_http_second" >&2
 	exit 1
 }
@@ -110,10 +116,39 @@ rm -f "$status_http_body"
 	echo "Capy invalid HTTP response status did not fail: HTTP $status_http_result" >&2
 	exit 1
 }
-[[ "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' -d 'answer=8' 'http://127.0.0.1/tests/capy-request-context.capy?name=Reset')" == "POST|Reset|8|answer=8|1" ]] || {
+[[ "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' -d 'answer=8' 'http://127.0.0.1/tests/capy-request-context.capy?name=Reset')" == "POST|Reset|8|answer=8|0" ]] || {
 	echo "Capy request workspace did not recover after response trap" >&2
 	exit 1
 }
+session_jar=$(mktemp)
+session_headers=$(mktemp)
+[[ "$(curl -fsS --max-time 30 -D "$session_headers" -c "$session_jar" -b "$session_jar" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-session.capy?action=set&value=Ada')" == "set" ]]
+grep -Eiq '^Set-Cookie: capy-session=.*HttpOnly.*SameSite=Lax' "$session_headers"
+grep -Eiq '^Set-Cookie: capy-extra=yes.*HttpOnly.*SameSite=Lax' "$session_headers"
+[[ "$(curl -fsS --max-time 30 -c "$session_jar" -b "$session_jar" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-session.capy?action=read')" == "Ada|yes|1" ]]
+[[ "$(curl -fsS --max-time 30 -c "$session_jar" -b "$session_jar" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-session.capy?action=remove')" == "removed" ]]
+[[ "$(curl -fsS --max-time 30 -c "$session_jar" -b "$session_jar" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-session.capy?action=read')" == "missing|yes|1" ]]
+[[ "$(curl -fsS --max-time 30 -c "$session_jar" -b "$session_jar" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-session.capy?action=set&value=Grace')" == "set" ]]
+[[ "$(curl -fsS --max-time 30 -c "$session_jar" -b "$session_jar" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-session.capy?action=destroy')" == "destroyed" ]]
+[[ "$(curl -fsS --max-time 30 -c "$session_jar" -b "$session_jar" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-session.capy?action=read')" == "missing|yes|1" ]]
+rm -f "$session_jar" "$session_headers"
+redirect_headers=$(mktemp)
+redirect_body=$(curl -sS --max-time 30 -D "$redirect_headers" -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-redirect.capy)
+grep -Eq '^HTTP/1\.[01] 302 ' "$redirect_headers"
+grep -Eqi '^Location: /tests/capy-session.capy\?action=read' "$redirect_headers"
+[[ "$redirect_body" == "redirected" ]]
+rm -f "$redirect_headers"
+csrf_jar=$(mktemp)
+csrf_token=$(curl -fsS --max-time 30 -c "$csrf_jar" -b "$csrf_jar" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-csrf.capy?action=token')
+[[ "$csrf_token" =~ ^[0-9a-f]{64}$ ]]
+[[ "$(curl -fsS --max-time 30 -c "$csrf_jar" -b "$csrf_jar" -H 'Host: bearer.openfu.com' "http://127.0.0.1/tests/capy-csrf.capy?action=valid&submitted=$csrf_token")" == "1" ]]
+[[ "$(curl -fsS --max-time 30 -c "$csrf_jar" -b "$csrf_jar" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-csrf.capy?action=valid&submitted=wrong')" == "0" ]]
+csrf_rotated=$(curl -fsS --max-time 30 -c "$csrf_jar" -b "$csrf_jar" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-csrf.capy?action=rotate')
+[[ "$csrf_rotated" =~ ^[0-9a-f]{64}$ && "$csrf_rotated" != "$csrf_token" ]]
+[[ "$(curl -fsS --max-time 30 -c "$csrf_jar" -b "$csrf_jar" -H 'Host: bearer.openfu.com' "http://127.0.0.1/tests/capy-csrf.capy?action=valid&submitted=$csrf_token")" == "0" ]]
+[[ "$(curl -fsS --max-time 30 -c "$csrf_jar" -b "$csrf_jar" -H 'Host: bearer.openfu.com' "http://127.0.0.1/tests/capy-csrf.capy?action=valid&submitted=$csrf_rotated")" == "1" ]]
+rm -f "$csrf_jar"
+python3 scripts/test_capy_websocket.py >/dev/null
 rich_dval_output=$(scripts/bearer-cli /tests/capy-dval-rich.capy)
 [[ "$rich_dval_output" == "cpp|Ada|9|custom-once;capy|capy|Ada|42|1|logic|10|3|active;age;name;tags;|0=math;1=logic;|2;|3|0|00|2|0" ]] || {
 	echo "Capy rich DValue output mismatch: $rich_dval_output" >&2

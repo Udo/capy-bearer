@@ -1,0 +1,4 @@
+function RENDER {
+    redirect("/tests/capy-session.capy?action=read", 302)
+    print("redirected")
+}

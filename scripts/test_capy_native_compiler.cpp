@@ -61,6 +61,7 @@ int main()
 			 "function CLI { value := 1; value := 2 }\n",
 			 "function CLI { print(1 && true) }\n",
 			 "function CLI { false && (hidden := true); print(hidden) }\n",
+			 "function CLI { var held := clone(\"old\"); var replace := function() { held = clone(\"new\") } }\n",
 		 })
 	{
 		try
@@ -70,6 +71,23 @@ int main()
 		}
 		catch (const capy::Error&)
 		{
+		}
+	}
+	for (const auto& [source, expected] : {
+			 std::pair{"function CLI { (1 + 2) := 3 }\n", "inferred declaration target must be a local name"},
+			 std::pair{"function CLI { print(1 && true) }\n", "logical operators require bool operands"},
+			 std::pair{"function CLI { var held := clone(\"old\"); var replace := function() { held = clone(\"new\") } }\n", "unknown local 'held'"},
+		 })
+	{
+		try
+		{
+			capy::compile_bearer_unit(source, options);
+			assert(false);
+		}
+		catch (const capy::Error& error)
+		{
+			assert(error.message.find(expected) != std::string::npos);
+			assert(error.message.find("unsupported operator") == std::string::npos);
 		}
 	}
 

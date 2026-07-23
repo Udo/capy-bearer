@@ -1,0 +1,16 @@
+function CLI {
+    {
+        var left := clone("Capy")
+        var right := clone("Bearer")
+        var joined := left + " " + right
+        print(
+            joined, "|", length(joined), "|",
+            joined == "Capy Bearer", joined != "other", "|",
+            substr(joined, 5, 6), "|",
+            substr(joined, -6, 6), "|",
+            substr(joined, 0, -7), "|",
+            length([1, 2, 3]), "|", arc_live()
+        )
+    }
+    print("|", arc_live())
+}

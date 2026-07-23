@@ -2,17 +2,17 @@ function RENDER {
     response_status(201)
     response_header("X-Capy-Context", "yes")
     response_header("X-Capy-Clean", "first\r\nX-Injected: bad")
-    var request := request_context()
-    print(
-        dval_string(request["params"]["REQUEST_METHOD"]), "|",
-        dval_string(request["get"]["name"]), "|",
-        dval_string(request["post"]["answer"]), "|",
-        dval_string(request["input"]), "|",
-        arc_live()
-    )
+    print(request_param("REQUEST_METHOD"), "|", request_get("name"), "|", request_post("answer"), "|", request_body(), "|", arc_live())
 }
 
 function COMPONENT {
     var request := request_context()
     print(dval_string(request["props"]["name"]), "|", arc_live())
+}
+
+function COMPONENT_HANDLE (request : request) {
+    var snapshot := request_context(request)
+    if length(dval_string(snapshot["current_unit"])) > 0 {
+        print("handle|", arc_live())
+    }
 }

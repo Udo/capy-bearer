@@ -1099,6 +1099,127 @@ static size_t bearer_copy_bytes(const String& value, char* out, size_t cap)
 	return(value.size());
 }
 
+size_t bearer_string_substr(const char* value, size_t value_len, s32 start, s32 length, char* out, size_t cap)
+{
+	return(bearer_copy_bytes(substr(String(value ? value : "", value ? value_len : 0), start, length), out, cap));
+}
+
+s32 bearer_session_start(const char* name, size_t name_len)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	return(session_start(String(name ? name : "", name ? name_len : 0)) != "");
+}
+
+s32 bearer_session_set(const char* key, size_t key_len, const char* value, size_t value_len)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	if(context->session_id == "")
+		return(0);
+	context->session[String(key ? key : "", key ? key_len : 0)] = String(value ? value : "", value ? value_len : 0);
+	return(1);
+}
+
+s32 bearer_session_remove(const char* key, size_t key_len)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	if(context->session_id == "")
+		return(0);
+	context->session.erase(String(key ? key : "", key ? key_len : 0));
+	return(1);
+}
+
+s32 bearer_session_destroy(const char* name, size_t name_len)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	session_destroy(String(name ? name : "", name ? name_len : 0));
+	return(1);
+}
+
+s32 bearer_response_cookie(const char* name, size_t name_len, const char* value, size_t value_len)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	set_cookie(String(name ? name : "", name ? name_len : 0), String(value ? value : "", value ? value_len : 0));
+	return(1);
+}
+
+size_t bearer_ws_message(char* out, size_t cap)
+{
+	return(bearer_copy_bytes(ws_message(), out, cap));
+}
+
+size_t bearer_ws_connection_id(char* out, size_t cap)
+{
+	return(bearer_copy_bytes(ws_connection_id(), out, cap));
+}
+
+size_t bearer_ws_scope(char* out, size_t cap)
+{
+	return(bearer_copy_bytes(ws_scope(), out, cap));
+}
+
+s32 bearer_ws_opcode()
+{
+	return((s32)ws_opcode());
+}
+
+s32 bearer_ws_is_binary()
+{
+	return(ws_is_binary());
+}
+
+s32 bearer_ws_send(const char* message, size_t message_len, s32 binary)
+{
+	return(ws_send(String(message ? message : "", message ? message_len : 0), binary != 0));
+}
+
+s32 bearer_ws_send_to(const char* connection_id, size_t connection_id_len, const char* message, size_t message_len, s32 binary)
+{
+	return(ws_send_to(String(connection_id ? connection_id : "", connection_id ? connection_id_len : 0),
+		String(message ? message : "", message ? message_len : 0), binary != 0));
+}
+
+s32 bearer_ws_close(const char* connection_id, size_t connection_id_len)
+{
+	return(ws_close(String(connection_id ? connection_id : "", connection_id ? connection_id_len : 0)));
+}
+
+size_t bearer_csrf_token(const char* session_name, size_t session_name_len, const char* token_name, size_t token_name_len, char* out, size_t cap)
+{
+	String token = csrf_token(String(session_name ? session_name : "", session_name ? session_name_len : 0),
+		String(token_name ? token_name : "", token_name ? token_name_len : 0));
+	return(bearer_copy_bytes(token, out, cap));
+}
+
+s32 bearer_csrf_valid(const char* submitted, size_t submitted_len, const char* session_name, size_t session_name_len,
+	const char* token_name, size_t token_name_len)
+{
+	return(csrf_valid(String(submitted ? submitted : "", submitted ? submitted_len : 0),
+		String(session_name ? session_name : "", session_name ? session_name_len : 0),
+		String(token_name ? token_name : "", token_name ? token_name_len : 0)));
+}
+
+s32 bearer_csrf_rotate(const char* session_name, size_t session_name_len, const char* token_name, size_t token_name_len)
+{
+	csrf_rotate(String(session_name ? session_name : "", session_name ? session_name_len : 0),
+		String(token_name ? token_name : "", token_name ? token_name_len : 0));
+	return(1);
+}
+
+s32 bearer_redirect(const char* url, size_t url_len, s32 status)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	if(status < 300 || status > 399)
+		return(0);
+	redirect(String(url ? url : "", url ? url_len : 0), status);
+	return(1);
+}
+
 s32 bearer_response_set_status(s32 status)
 {
 	if(context == 0)
@@ -1120,29 +1241,59 @@ s32 bearer_response_set_header(const char* name, size_t name_len, const char* va
 	return(1);
 }
 
+size_t bearer_request_value(s32 kind, const char* key, size_t key_len, char* out, size_t cap)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	String lookup(key ? key : "", key ? key_len : 0);
+	const StringMap* values = kind == 0 ? &context->params : kind == 1 ? &context->get : kind == 2 ? &context->post : kind == 3 ? &context->cookies : &context->session;
+	auto found = values->find(lookup);
+	return(bearer_copy_bytes(found == values->end() ? String("") : found->second, out, cap));
+}
+
+size_t bearer_request_body(char* out, size_t cap)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	return(bearer_copy_bytes(context->in, out, cap));
+}
+
+static size_t bearer_request_context_encode(Request* request, char* out, size_t cap)
+{
+	if(!request)
+		return(0);
+	DValue snapshot;
+	auto copy_map = [&](String key, const StringMap& values) {
+		snapshot[key].set_type('M');
+		for(const auto& entry : values)
+			snapshot[key][entry.first] = entry.second;
+	};
+	copy_map("params", request->params);
+	copy_map("get", request->get);
+	copy_map("post", request->post);
+	copy_map("cookies", request->cookies);
+	copy_map("session", request->session);
+	snapshot["call"] = request->call;
+	snapshot["cfg"] = request->cfg;
+	snapshot["props"] = request->props;
+	snapshot["connection"] = request->connection;
+	snapshot["input"] = request->in;
+	snapshot["session_id"] = request->session_id;
+	snapshot["session_name"] = request->session_name;
+	snapshot["current_unit"] = request->resources.current_unit_file;
+	return(bearer_copy_bytes(brb_encode(snapshot), out, cap));
+}
+
 size_t bearer_request_context_brrb(char* out, size_t cap)
 {
 	if(context == 0)
 		bearer_wasm_core_init();
-	DValue snapshot;
-	auto copy_map = [&](String key, const StringMap& values) {
-		for(const auto& entry : values)
-			snapshot[key][entry.first] = entry.second;
-	};
-	copy_map("params", context->params);
-	copy_map("get", context->get);
-	copy_map("post", context->post);
-	copy_map("cookies", context->cookies);
-	copy_map("session", context->session);
-	snapshot["call"] = context->call;
-	snapshot["cfg"] = context->cfg;
-	snapshot["props"] = context->props;
-	snapshot["connection"] = context->connection;
-	snapshot["input"] = context->in;
-	snapshot["session_id"] = context->session_id;
-	snapshot["session_name"] = context->session_name;
-	snapshot["current_unit"] = context->resources.current_unit_file;
-	return(bearer_copy_bytes(brb_encode(snapshot), out, cap));
+	return(bearer_request_context_encode(context, out, cap));
+}
+
+size_t bearer_request_context_for_brrb(Request* request, char* out, size_t cap)
+{
+	return(bearer_request_context_encode(request, out, cap));
 }
 
 size_t bearer_dv_s32_to_brrb(s32 value, char* out, size_t cap)

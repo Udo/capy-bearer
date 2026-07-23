@@ -437,8 +437,11 @@ struct Module
 	std::map<std::string, unsigned> helpers_;
 	Bytes data_;
 	bool print_bytes_ = false, print_s32_ = false, alloc_ = false;
-	bool unit_render_ = false, component_render_ = false, dval_ = false, unit_call_ = false, request_context_ = false;
+	bool unit_render_ = false, component_render_ = false, dval_ = false, unit_call_ = false;
+	bool request_context_ambient_ = false, request_context_explicit_ = false;
 	bool response_status_ = false, response_header_ = false;
+	bool string_substr_ = false, redirect_ = false;
+	std::set<std::string> request_mutators_, request_value_ops_, csrf_ops_, ws_ops_;
 	std::vector<std::pair<std::string, Definition*>> custom_exports_;
 	bool use_retain_ = false, use_release_ = false, use_clone_ = false, use_arc_global_ = false;
 	std::vector<Location> markers_;
@@ -504,7 +507,7 @@ FunctionLowerer::FunctionLowerer(Module& module, Definition& definition) : modul
 		return;
 	scopes_.push_back({});
 	owned_scopes_.push_back({});
-	unsigned parameter = definition.exported.empty() ? 0 : (definition.function->parameters.empty() ? 0 : 1);
+	unsigned parameter = 0;
 	if (definition.closure_body)
 	{
 		parameter = 1;
@@ -581,6 +584,8 @@ bool FunctionLowerer::expression_is_owned(const Expr* value)
 	}
 	if (auto member = dynamic_cast<const Member*>(value))
 		return managed_type(infer(member->value)) && expression_is_owned(member->value);
+	if (auto binary = dynamic_cast<const Binary*>(value))
+		return binary->operator_ == "+" && infer(binary->left) == "string" && infer(binary->right) == "string";
 	if (auto call = dynamic_cast<const Call*>(value))
 	{
 		if (auto name = dynamic_cast<const Name*>(call->function))
@@ -672,6 +677,8 @@ std::vector<std::pair<std::string, std::string>> FunctionLowerer::lambda_capture
 				if (auto name = dynamic_cast<Name*>(binary->left))
 					scopes.back().insert(name->value);
 			}
+			else if (binary->operator_ == "=")
+				visit(binary->right);
 			else if (binary->operator_ == "&&" || binary->operator_ == "||")
 			{
 				visit(binary->left);
@@ -880,8 +887,12 @@ std::string FunctionLowerer::infer(Expr* value)
 			}
 		if (module_.has_struct(name->value))
 			return "struct:" + name->value;
-		if (name->value == "clone")
+		if (name->value == "clone" || name->value == "substr" || name->value == "csrf_token" || name->value == "ws_message" ||
+			name->value == "ws_connection_id" || name->value == "ws_scope" || name->value == "request_param" || name->value == "request_get" ||
+			name->value == "request_post" || name->value == "request_cookie" || name->value == "request_session" || name->value == "request_body")
 			return "string";
+		if (name->value == "length")
+			return "s32";
 		if (name->value == "trusted_markup")
 			return "markup";
 		if (name->value == "dval")
@@ -901,13 +912,16 @@ std::string FunctionLowerer::infer(Expr* value)
 			return "string";
 		if (name->value == "dval_s32")
 			return "s32";
-		if (name->value == "dval_bool")
+		if (name->value == "dval_bool" || name->value == "csrf_valid" || name->value == "ws_is_binary" || name->value == "ws_send" ||
+			name->value == "ws_send_to" || name->value == "ws_close")
 			return "bool";
 		if (name->value == "unit_call" || name->value == "request_context")
 			return "dval";
-		if (name->value == "unit_render" || name->value == "component_render" || name->value == "response_status" || name->value == "response_header")
+		if (name->value == "unit_render" || name->value == "component_render" || name->value == "response_status" || name->value == "response_header" ||
+			name->value == "session_start" || name->value == "session_set" || name->value == "session_remove" || name->value == "session_destroy" ||
+			name->value == "response_cookie" || name->value == "redirect" || name->value == "csrf_rotate")
 			return "void";
-		if (name->value == "arc_live")
+		if (name->value == "arc_live" || name->value == "ws_opcode")
 			return "s32";
 		if (name->value == "print" || name->value == "trap")
 			return "void";
@@ -928,6 +942,8 @@ std::string FunctionLowerer::infer(Expr* value)
 				throw Error(binary->location, "logical operators require bool operands");
 			return "bool";
 		}
+		if (binary->operator_ == "+" && infer(binary->left) == "string" && infer(binary->right) == "string")
+			return "string";
 		if (binary->operator_ == "unary-")
 		{
 			if (infer(binary->right) != "s32")
@@ -1148,6 +1164,12 @@ std::pair<Bytes, unsigned> FunctionLowerer::allocate_blob(const std::string& typ
 {
 	const unsigned pointer = add_local("", type, location);
 	Bytes code{0x20};
+	wasm::append_uleb(code, length);
+	code.push_back(0x41);
+	wasm::append_sleb32(code, -21);
+	code.insert(code.end(), {0x4b, 0x04, 0x40});
+	append(code, module_.marker(location));
+	code.insert(code.end(), {0x00, 0x0b, 0x20});
 	wasm::append_uleb(code, length);
 	code.insert(code.end(), {0x41, 0x14, 0x6a, 0x10});
 	wasm::append_uleb(code, module_.import_index("bearer_alloc"));
@@ -2230,6 +2252,121 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			right.push_back(0x45);
 			return {right, "bool"};
 		}
+		if (infer(binary->left) == "string" || infer(binary->right) == "string")
+		{
+			auto [left_code, left_type] = expression(binary->left);
+			auto [right_code, right_type] = expression(binary->right);
+			if (left_type != "string" || right_type != "string")
+				throw Error(value->location, "string operators require string operands");
+			if (binary->operator_ != "+" && binary->operator_ != "==" && binary->operator_ != "!=")
+				throw Error(value->location, "strings support only +, ==, and != operators");
+			const unsigned left = add_local("", "string", binary->left->location), right = add_local("", "string", binary->right->location);
+			const unsigned left_length = add_local("", "s32", binary->left->location), right_length = add_local("", "s32", binary->right->location);
+			Bytes code = std::move(left_code);
+			code.push_back(0x21);
+			wasm::append_uleb(code, left);
+			append(code, right_code);
+			code.push_back(0x21);
+			wasm::append_uleb(code, right);
+			for (const auto [object, length] : {std::pair<unsigned, unsigned>{left, left_length}, {right, right_length}})
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, object);
+				code.insert(code.end(), {0x28, 0x02, 0x10, 0x21});
+				wasm::append_uleb(code, length);
+			}
+			unsigned result = 0;
+			if (binary->operator_ == "+")
+			{
+				const unsigned total = add_local("", "s32", value->location);
+				code.push_back(0x20);
+				wasm::append_uleb(code, left_length);
+				code.push_back(0x20);
+				wasm::append_uleb(code, right_length);
+				code.insert(code.end(), {0x6a, 0x22});
+				wasm::append_uleb(code, total);
+				code.push_back(0x20);
+				wasm::append_uleb(code, left_length);
+				code.insert(code.end(), {0x49, 0x04, 0x40});
+				append(code, module_.marker(value->location));
+				code.insert(code.end(), {0x00, 0x0b});
+				auto [allocation, pointer] = allocate_blob("string", 1, total, value->location);
+				append(code, allocation);
+				auto append_copy = [&](unsigned destination_offset, unsigned source, unsigned length)
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, pointer);
+					code.insert(code.end(), {0x41, 0x14, 0x6a});
+					if (destination_offset != 0xffffffffu)
+					{
+						code.push_back(0x20);
+						wasm::append_uleb(code, destination_offset);
+						code.push_back(0x6a);
+					}
+					code.push_back(0x20);
+					wasm::append_uleb(code, source);
+					code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+					wasm::append_uleb(code, length);
+					code.insert(code.end(), {0xfc, 0x0a, 0x00, 0x00});
+				};
+				append_copy(0xffffffffu, left, left_length);
+				append_copy(left_length, right, right_length);
+				result = pointer;
+			}
+			else
+			{
+				const unsigned index = add_local("", "s32", value->location);
+				result = add_local("", "bool", value->location);
+				code.insert(code.end(), {0x41, 0x00, 0x21});
+				wasm::append_uleb(code, result);
+				code.push_back(0x20);
+				wasm::append_uleb(code, left_length);
+				code.push_back(0x20);
+				wasm::append_uleb(code, right_length);
+				code.insert(code.end(), {0x46, 0x04, 0x40, 0x41, 0x01, 0x21});
+				wasm::append_uleb(code, result);
+				code.insert(code.end(), {0x41, 0x00, 0x21});
+				wasm::append_uleb(code, index);
+				code.insert(code.end(), {0x02, 0x40, 0x03, 0x40, 0x20});
+				wasm::append_uleb(code, index);
+				code.push_back(0x20);
+				wasm::append_uleb(code, left_length);
+				code.insert(code.end(), {0x4f, 0x0d, 0x01});
+				for (unsigned object : {left, right})
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, object);
+					code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+					wasm::append_uleb(code, index);
+					code.insert(code.end(), {0x6a, 0x2d, 0x00, 0x00});
+				}
+				code.insert(code.end(), {0x47, 0x04, 0x40, 0x41, 0x00, 0x21});
+				wasm::append_uleb(code, result);
+				code.insert(code.end(), {0x0c, 0x02, 0x0b, 0x20});
+				wasm::append_uleb(code, index);
+				code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21});
+				wasm::append_uleb(code, index);
+				code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b, 0x0b});
+				if (binary->operator_ == "!=")
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, result);
+					code.insert(code.end(), {0x45, 0x21});
+					wasm::append_uleb(code, result);
+				}
+			}
+			for (const auto& [expression_value, local] : {std::pair<Expr*, unsigned>{binary->left, left}, {binary->right, right}})
+				if (expression_is_owned(expression_value))
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, local);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.release_index());
+				}
+			code.push_back(0x20);
+			wasm::append_uleb(code, result);
+			return {code, binary->operator_ == "+" ? "string" : "bool"};
+		}
 		auto [left, left_type] = expression(binary->left);
 		auto [right, right_type] = expression(binary->right);
 		if (left_type != right_type)
@@ -2456,6 +2593,408 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			wasm::append_uleb(code, pointer);
 			return {code, type};
 		}
+		if (named->value == "request_param" || named->value == "request_get" || named->value == "request_post" || named->value == "request_cookie" ||
+			named->value == "request_session" || named->value == "request_body")
+		{
+			const bool body = named->value == "request_body";
+			if (call->arguments.size() != (body ? 0 : 1))
+				throw Error(value->location, named->value + " argument count mismatch");
+			Bytes code;
+			unsigned key = 0;
+			if (!body)
+			{
+				auto [key_code, key_type] = expression(call->arguments[0]);
+				if (key_type != "string")
+					throw Error(call->arguments[0]->location, "expected string, found " + key_type);
+				key = add_local("", "string", call->arguments[0]->location);
+				append(code, key_code);
+				code.push_back(0x21);
+				wasm::append_uleb(code, key);
+			}
+			auto inputs = [&]
+			{
+				if (!body)
+				{
+					const std::map<std::string, std::int32_t> kinds{
+						{"request_param", 0}, {"request_get", 1}, {"request_post", 2}, {"request_cookie", 3}, {"request_session", 4}};
+					code.push_back(0x41);
+					wasm::append_sleb32(code, kinds.at(named->value));
+					code.push_back(0x20);
+					wasm::append_uleb(code, key);
+					code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+					wasm::append_uleb(code, key);
+					code.insert(code.end(), {0x28, 0x02, 0x10});
+				}
+			};
+			inputs();
+			code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10});
+			const char* import = body ? "bearer_request_body" : "bearer_request_value";
+			wasm::append_uleb(code, module_.import_index(import));
+			const unsigned length = add_local("", "s32", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, length);
+			auto [allocation, pointer] = allocate_blob("string", 1, length, value->location);
+			append(code, allocation);
+			inputs();
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+			wasm::append_uleb(code, length);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index(import));
+			code.push_back(0x20);
+			wasm::append_uleb(code, length);
+			code.insert(code.end(), {0x47, 0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b});
+			if (!body && expression_is_owned(call->arguments[0]))
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, key);
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.release_index());
+			}
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			return {code, "string"};
+		}
+		if (named->value == "length")
+		{
+			if (call->arguments.size() != 1)
+				throw Error(value->location, "length expects one string, markup, or array");
+			auto [code, type] = expression(call->arguments[0]);
+			if (type != "string" && type != "markup" && type.rfind("array<", 0) != 0)
+				throw Error(call->arguments[0]->location, "length expects a string, markup, or array, found " + type);
+			const unsigned source = add_local("", type, call->arguments[0]->location), result = add_local("", "s32", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, source);
+			code.push_back(0x20);
+			wasm::append_uleb(code, source);
+			code.insert(code.end(), {0x28, 0x02, 0x10, 0x21});
+			wasm::append_uleb(code, result);
+			if (expression_is_owned(call->arguments[0]))
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, source);
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.release_index());
+			}
+			code.push_back(0x20);
+			wasm::append_uleb(code, result);
+			return {code, "s32"};
+		}
+		if (named->value == "substr")
+		{
+			if (call->arguments.size() != 3)
+				throw Error(value->location, "substr expects string, start, and length arguments");
+			std::vector<unsigned> locals;
+			Bytes code;
+			for (std::size_t index = 0; index < call->arguments.size(); ++index)
+			{
+				auto [part, type] = expression(call->arguments[index]);
+				const std::string expected = index == 0 ? "string" : "s32";
+				if (type != expected)
+					throw Error(call->arguments[index]->location, "expected " + expected + ", found " + type);
+				const unsigned local = add_local("", expected, call->arguments[index]->location);
+				append(code, part);
+				code.push_back(0x21);
+				wasm::append_uleb(code, local);
+				locals.push_back(local);
+			}
+			auto inputs = [&]
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, locals[0]);
+				code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+				wasm::append_uleb(code, locals[0]);
+				code.insert(code.end(), {0x28, 0x02, 0x10, 0x20});
+				wasm::append_uleb(code, locals[1]);
+				code.push_back(0x20);
+				wasm::append_uleb(code, locals[2]);
+			};
+			inputs();
+			code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10});
+			wasm::append_uleb(code, module_.import_index("bearer_string_substr"));
+			const unsigned length = add_local("", "s32", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, length);
+			auto [allocation, pointer] = allocate_blob("string", 1, length, value->location);
+			append(code, allocation);
+			inputs();
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+			wasm::append_uleb(code, length);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index("bearer_string_substr"));
+			code.push_back(0x20);
+			wasm::append_uleb(code, length);
+			code.insert(code.end(), {0x47, 0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b});
+			if (expression_is_owned(call->arguments[0]))
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, locals[0]);
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.release_index());
+			}
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			return {code, "string"};
+		}
+		if (named->value == "ws_message" || named->value == "ws_connection_id" || named->value == "ws_scope")
+		{
+			if (!call->arguments.empty())
+				throw Error(value->location, named->value + " expects no arguments");
+			Bytes code{0x41, 0x00, 0x41, 0x00, 0x10};
+			wasm::append_uleb(code, module_.import_index("bearer_" + named->value));
+			const unsigned length = add_local("", "s32", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, length);
+			auto [allocation, pointer] = allocate_blob("string", 1, length, value->location);
+			append(code, allocation);
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+			wasm::append_uleb(code, length);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index("bearer_" + named->value));
+			code.push_back(0x20);
+			wasm::append_uleb(code, length);
+			code.insert(code.end(), {0x47, 0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b, 0x20});
+			wasm::append_uleb(code, pointer);
+			return {code, "string"};
+		}
+		if (named->value == "ws_opcode" || named->value == "ws_is_binary")
+		{
+			if (!call->arguments.empty())
+				throw Error(value->location, named->value + " expects no arguments");
+			Bytes code{0x10};
+			wasm::append_uleb(code, module_.import_index("bearer_" + named->value));
+			return {code, named->value == "ws_opcode" ? "s32" : "bool"};
+		}
+		if (named->value == "ws_send" || named->value == "ws_send_to" || named->value == "ws_close")
+		{
+			const std::size_t string_count = named->value == "ws_send_to" ? 2 : 1;
+			const std::size_t expected_count = named->value == "ws_close" ? 1 : string_count + 1;
+			if (call->arguments.size() != expected_count)
+				throw Error(value->location, named->value + " argument count mismatch");
+			Bytes code;
+			std::vector<unsigned> strings;
+			for (std::size_t index = 0; index < string_count; ++index)
+			{
+				auto [part, type] = expression(call->arguments[index]);
+				if (type != "string")
+					throw Error(call->arguments[index]->location, "expected string, found " + type);
+				const unsigned local = add_local("", "string", call->arguments[index]->location);
+				append(code, part);
+				code.push_back(0x21);
+				wasm::append_uleb(code, local);
+				strings.push_back(local);
+			}
+			for (unsigned local : strings)
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, local);
+				code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+				wasm::append_uleb(code, local);
+				code.insert(code.end(), {0x28, 0x02, 0x10});
+			}
+			if (named->value != "ws_close")
+			{
+				auto [binary, type] = expression(call->arguments.back());
+				if (type != "bool")
+					throw Error(call->arguments.back()->location, "expected bool, found " + type);
+				append(code, binary);
+			}
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index("bearer_" + named->value));
+			const unsigned result = add_local("", "bool", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, result);
+			for (std::size_t index = 0; index < string_count; ++index)
+				if (expression_is_owned(call->arguments[index]))
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, strings[index]);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.release_index());
+				}
+			code.push_back(0x20);
+			wasm::append_uleb(code, result);
+			return {code, "bool"};
+		}
+		if (named->value == "csrf_token" || named->value == "csrf_valid" || named->value == "csrf_rotate")
+		{
+			const std::size_t expected_count = named->value == "csrf_valid" ? 3 : 2;
+			if (call->arguments.size() != expected_count)
+				throw Error(value->location, named->value + " expects " + std::to_string(expected_count) + " string arguments");
+			Bytes code;
+			std::vector<unsigned> locals;
+			for (Expr* argument : call->arguments)
+			{
+				auto [part, type] = expression(argument);
+				if (type != "string")
+					throw Error(argument->location, "expected string, found " + type);
+				const unsigned local = add_local("", "string", argument->location);
+				append(code, part);
+				code.push_back(0x21);
+				wasm::append_uleb(code, local);
+				locals.push_back(local);
+			}
+			auto inputs = [&]
+			{
+				for (unsigned local : locals)
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, local);
+					code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+					wasm::append_uleb(code, local);
+					code.insert(code.end(), {0x28, 0x02, 0x10});
+				}
+			};
+			unsigned result = 0;
+			if (named->value == "csrf_token")
+			{
+				inputs();
+				code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10});
+				wasm::append_uleb(code, module_.import_index("bearer_csrf_token"));
+				const unsigned length = add_local("", "s32", value->location);
+				code.push_back(0x21);
+				wasm::append_uleb(code, length);
+				auto [allocation, pointer] = allocate_blob("string", 1, length, value->location);
+				append(code, allocation);
+				inputs();
+				code.push_back(0x20);
+				wasm::append_uleb(code, pointer);
+				code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+				wasm::append_uleb(code, length);
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.import_index("bearer_csrf_token"));
+				code.push_back(0x20);
+				wasm::append_uleb(code, length);
+				code.insert(code.end(), {0x47, 0x04, 0x40});
+				append(code, module_.marker(value->location));
+				code.insert(code.end(), {0x00, 0x0b});
+				result = pointer;
+			}
+			else
+			{
+				inputs();
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.import_index("bearer_" + named->value));
+				result = add_local("", "bool", value->location);
+				code.push_back(0x21);
+				wasm::append_uleb(code, result);
+			}
+			for (std::size_t index = 0; index < call->arguments.size(); ++index)
+				if (expression_is_owned(call->arguments[index]))
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, locals[index]);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.release_index());
+				}
+			if (named->value == "csrf_rotate")
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, result);
+				code.insert(code.end(), {0x45, 0x04, 0x40});
+				append(code, module_.marker(value->location));
+				code.insert(code.end(), {0x00, 0x0b});
+				return {code, "void"};
+			}
+			code.push_back(0x20);
+			wasm::append_uleb(code, result);
+			return {code, named->value == "csrf_token" ? "string" : "bool"};
+		}
+		if (named->value == "redirect")
+		{
+			if (call->arguments.size() != 2)
+				throw Error(value->location, "redirect expects URL string and s32 status");
+			auto [url_code, url_type] = expression(call->arguments[0]);
+			auto [status_code, status_type] = expression(call->arguments[1]);
+			if (url_type != "string" || status_type != "s32")
+				throw Error(value->location, "redirect expects URL string and s32 status");
+			const unsigned url = add_local("", "string", call->arguments[0]->location);
+			Bytes code = std::move(url_code);
+			code.push_back(0x21);
+			wasm::append_uleb(code, url);
+			code.push_back(0x20);
+			wasm::append_uleb(code, url);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+			wasm::append_uleb(code, url);
+			code.insert(code.end(), {0x28, 0x02, 0x10});
+			append(code, status_code);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index("bearer_redirect"));
+			const unsigned success = add_local("", "bool", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, success);
+			if (expression_is_owned(call->arguments[0]))
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, url);
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.release_index());
+			}
+			code.push_back(0x20);
+			wasm::append_uleb(code, success);
+			code.insert(code.end(), {0x45, 0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b});
+			return {code, "void"};
+		}
+		if (named->value == "session_start" || named->value == "session_set" || named->value == "session_remove" || named->value == "session_destroy" ||
+			named->value == "response_cookie")
+		{
+			const std::size_t expected_count = named->value == "session_set" || named->value == "response_cookie" ? 2 : 1;
+			if (call->arguments.size() != expected_count)
+				throw Error(value->location, named->value + " expects " + std::to_string(expected_count) + " string argument(s)");
+			Bytes code;
+			std::vector<unsigned> locals;
+			for (Expr* argument : call->arguments)
+			{
+				auto [part, type] = expression(argument);
+				if (type != "string")
+					throw Error(argument->location, "expected string, found " + type);
+				const unsigned local = add_local("", "string", argument->location);
+				append(code, part);
+				code.push_back(0x21);
+				wasm::append_uleb(code, local);
+				locals.push_back(local);
+			}
+			for (unsigned local : locals)
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, local);
+				code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+				wasm::append_uleb(code, local);
+				code.insert(code.end(), {0x28, 0x02, 0x10});
+			}
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index("bearer_" + named->value));
+			const unsigned success = add_local("", "bool", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, success);
+			for (std::size_t index = 0; index < call->arguments.size(); ++index)
+				if (expression_is_owned(call->arguments[index]))
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, locals[index]);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.release_index());
+				}
+			code.push_back(0x20);
+			wasm::append_uleb(code, success);
+			code.insert(code.end(), {0x45, 0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b});
+			return {code, "void"};
+		}
 		if (named->value == "response_status")
 		{
 			if (call->arguments.size() != 1)
@@ -2517,21 +3056,42 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 		}
 		if (named->value == "request_context")
 		{
-			if (!call->arguments.empty())
-				throw Error(value->location, "request_context expects no arguments");
-			Bytes code{0x41, 0x00, 0x41, 0x00, 0x10};
-			wasm::append_uleb(code, module_.import_index("bearer_request_context_brrb"));
+			if (call->arguments.size() > 1)
+				throw Error(value->location, "request_context expects no arguments or one request handle");
+			const bool explicit_request = !call->arguments.empty();
+			const char* import = explicit_request ? "bearer_request_context_for_brrb" : "bearer_request_context_brrb";
+			Bytes code;
+			unsigned request = 0;
+			if (explicit_request)
+			{
+				auto [request_code, request_type] = expression(call->arguments[0]);
+				if (request_type != "request")
+					throw Error(call->arguments[0]->location, "expected request, found " + request_type);
+				request = add_local("", "request", call->arguments[0]->location);
+				append(code, request_code);
+				code.push_back(0x21);
+				wasm::append_uleb(code, request);
+				code.push_back(0x20);
+				wasm::append_uleb(code, request);
+			}
+			code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10});
+			wasm::append_uleb(code, module_.import_index(import));
 			const unsigned length = add_local("", "s32", value->location);
 			code.push_back(0x21);
 			wasm::append_uleb(code, length);
 			auto [allocation, pointer] = allocate_blob("dval", 4, length, value->location);
 			append(code, allocation);
+			if (explicit_request)
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, request);
+			}
 			code.push_back(0x20);
 			wasm::append_uleb(code, pointer);
 			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
 			wasm::append_uleb(code, length);
 			code.push_back(0x10);
-			wasm::append_uleb(code, module_.import_index("bearer_request_context_brrb"));
+			wasm::append_uleb(code, module_.import_index(import));
 			code.push_back(0x20);
 			wasm::append_uleb(code, length);
 			code.insert(code.end(), {0x47, 0x04, 0x40});
@@ -3534,6 +4094,29 @@ CompileResult Module::compile()
 	// always imports memory and __memory_base; functions remain demand driven.
 	bool scan_print_bytes = false, scan_print_s32 = false, scan_alloc = false;
 	bool scan_retain = false, scan_release = false, scan_clone = false, scan_arc_live = false;
+	std::set<std::string> scan_string_names;
+	std::function<bool(Expr*)> scan_is_string = [&](Expr* e)
+	{
+		if (dynamic_cast<String*>(e) || dynamic_cast<Markup*>(e))
+			return true;
+		if (auto name = dynamic_cast<Name*>(e))
+			return scan_string_names.contains(name->value);
+		if (auto binary = dynamic_cast<Binary*>(e))
+			return binary->operator_ == "+" && (scan_is_string(binary->left) || scan_is_string(binary->right));
+		if (auto call = dynamic_cast<Call*>(e))
+			if (auto name = dynamic_cast<Name*>(call->function))
+			{
+				static const std::set<std::string> builtins{"clone",	   "substr",		"dval_string", "csrf_token",   "ws_message",	 "ws_connection_id",
+															"ws_scope",	   "request_param", "request_get", "request_post", "request_cookie", "request_session",
+															"request_body"};
+				if (builtins.contains(name->value))
+					return true;
+				for (const Definition& definition : definitions_)
+					if (definition.function->name == name->value && definition.result == "string")
+						return true;
+			}
+		return false;
+	};
 	std::function<void(Expr*)> scan = [&](Expr* e)
 	{
 		check_cancelled();
@@ -3554,6 +4137,52 @@ CompileResult Module::compile()
 				scan_retain = true;
 				scan_release = true;
 			}
+			if (auto n = dynamic_cast<Name*>(c->function); n && (n->value == "request_param" || n->value == "request_get" || n->value == "request_post" ||
+																 n->value == "request_cookie" || n->value == "request_session" || n->value == "request_body"))
+			{
+				request_value_ops_.insert(n->value);
+				scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
+			}
+			if (auto n = dynamic_cast<Name*>(c->function);
+				n && (n->value == "ws_message" || n->value == "ws_connection_id" || n->value == "ws_scope" || n->value == "ws_opcode" ||
+					  n->value == "ws_is_binary" || n->value == "ws_send" || n->value == "ws_send_to" || n->value == "ws_close"))
+			{
+				ws_ops_.insert(n->value);
+				if (n->value == "ws_message" || n->value == "ws_connection_id" || n->value == "ws_scope")
+					scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
+			}
+			if (auto n = dynamic_cast<Name*>(c->function); n && (n->value == "csrf_token" || n->value == "csrf_valid" || n->value == "csrf_rotate"))
+			{
+				csrf_ops_.insert(n->value);
+				if (n->value == "csrf_token")
+					scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
+			}
+			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "redirect")
+			{
+				redirect_ = true;
+				scan_retain = true;
+				scan_release = true;
+			}
+			if (auto n = dynamic_cast<Name*>(c->function); n && (n->value == "session_start" || n->value == "session_set" || n->value == "session_remove" ||
+																 n->value == "session_destroy" || n->value == "response_cookie"))
+			{
+				request_mutators_.insert(n->value);
+				scan_retain = true;
+				scan_release = true;
+			}
+			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "substr")
+			{
+				string_substr_ = true;
+				scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
+			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "response_status")
 				response_status_ = true;
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "response_header")
@@ -3564,7 +4193,10 @@ CompileResult Module::compile()
 			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "request_context")
 			{
-				request_context_ = true;
+				if (c->arguments.empty())
+					request_context_ambient_ = true;
+				else
+					request_context_explicit_ = true;
 				dval_ = true;
 				scan_alloc = true;
 				scan_retain = true;
@@ -3592,7 +4224,12 @@ CompileResult Module::compile()
 					else if (auto called = dynamic_cast<Call*>(a))
 					{
 						auto function = dynamic_cast<Name*>(called->function);
-						bool string_result = function && function->value == "dval_string";
+						bool string_result =
+							function &&
+							(function->value == "dval_string" || function->value == "clone" || function->value == "substr" || function->value == "csrf_token" ||
+							 function->value == "ws_message" || function->value == "ws_connection_id" || function->value == "ws_scope" ||
+							 function->value == "request_param" || function->value == "request_get" || function->value == "request_post" ||
+							 function->value == "request_cookie" || function->value == "request_session" || function->value == "request_body");
 						if (function)
 							for (const auto& d : definitions_)
 								if (d.function->name == function->value && d.result == "string")
@@ -3615,7 +4252,15 @@ CompileResult Module::compile()
 			for (auto x : b->items)
 				scan(x);
 		else if (auto f = dynamic_cast<Function*>(e))
+		{
+			auto outer_strings = scan_string_names;
+			scan_string_names.clear();
+			for (const Parameter& parameter : f->parameters)
+				if (type_of_expression(parameter.type_expr) == "string")
+					scan_string_names.insert(parameter.name);
 			scan(f->body);
+			scan_string_names = std::move(outer_strings);
+		}
 		else if (auto lambda = dynamic_cast<Lambda*>(e))
 		{
 			scan_alloc = true;
@@ -3626,6 +4271,8 @@ CompileResult Module::compile()
 		else if (auto v = dynamic_cast<Variable*>(e))
 		{
 			scan(v->value);
+			if ((v->annotation && type_of_expression(v->annotation) == "string") || (!v->annotation && scan_is_string(v->value)))
+				scan_string_names.insert(v->name);
 			if (v->annotation && managed_type(type_of_expression(v->annotation)))
 			{
 				scan_retain = true;
@@ -3634,6 +4281,12 @@ CompileResult Module::compile()
 		}
 		else if (auto b = dynamic_cast<Binary*>(e))
 		{
+			if (b->operator_ == "+" && (scan_is_string(b->left) || scan_is_string(b->right)))
+			{
+				scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
+			}
 			scan(b->left);
 			scan(b->right);
 		}
@@ -3746,12 +4399,28 @@ CompileResult Module::compile()
 	}
 	if (unit_call_)
 		imports_["bearer_unit_call_brrb"] = next++;
-	if (request_context_)
+	if (request_context_ambient_)
 		imports_["bearer_request_context_brrb"] = next++;
+	if (request_context_explicit_)
+		imports_["bearer_request_context_for_brrb"] = next++;
 	if (response_status_)
 		imports_["bearer_response_set_status"] = next++;
 	if (response_header_)
 		imports_["bearer_response_set_header"] = next++;
+	if (string_substr_)
+		imports_["bearer_string_substr"] = next++;
+	if (redirect_)
+		imports_["bearer_redirect"] = next++;
+	for (const std::string& name : request_mutators_)
+		imports_["bearer_" + name] = next++;
+	if (request_value_ops_.contains("request_body"))
+		imports_["bearer_request_body"] = next++;
+	if (request_value_ops_.size() > request_value_ops_.count("request_body"))
+		imports_["bearer_request_value"] = next++;
+	for (const std::string& name : csrf_ops_)
+		imports_["bearer_" + name] = next++;
+	for (const std::string& name : ws_ops_)
+		imports_["bearer_" + name] = next++;
 	if (use_retain_)
 		helpers_["retain"] = next++;
 	if (use_release_)
@@ -3779,6 +4448,18 @@ CompileResult Module::compile()
 	unsigned unit_call_type = unit_call_ ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned response_status_type = response_status_ ? wasm_type({"s32"}, "s32") : 0;
 	unsigned response_header_type = response_header_ ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned string_substr_type = string_substr_ ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned request_one_string_type = !request_mutators_.empty() ? wasm_type({"s32", "s32"}, "s32") : 0;
+	unsigned request_two_string_type = !request_mutators_.empty() ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned redirect_type = redirect_ ? wasm_type({"s32", "s32", "s32"}, "s32") : 0;
+	unsigned csrf_six_type = !csrf_ops_.empty() ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned csrf_four_type = !csrf_ops_.empty() ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned ws_string_type = !ws_ops_.empty() ? wasm_type({"s32", "s32"}, "s32") : 0;
+	unsigned ws_scalar_type = !ws_ops_.empty() ? wasm_type({}, "s32") : 0;
+	unsigned ws_send_type = !ws_ops_.empty() ? wasm_type({"s32", "s32", "s32"}, "s32") : 0;
+	unsigned ws_send_to_type = !ws_ops_.empty() ? wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned request_body_type = !request_value_ops_.empty() ? wasm_type({"s32", "s32"}, "s32") : 0;
+	unsigned request_value_type = !request_value_ops_.empty() ? wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
 	std::vector<Bytes> user_bodies;
 	for (std::size_t i = 0; i < definitions_.size(); ++i)
 		user_bodies.push_back(FunctionLowerer(*this, definitions_[i]).lower());
@@ -3823,17 +4504,30 @@ CompileResult Module::compile()
 			: name == "bearer_dv_string_to_brrb" || name == "bearer_dv_brrb_to_string"									  ? blob_type
 			: name == "bearer_dv_s32_to_brrb" || name == "bearer_dv_bool_to_brrb" || name == "bearer_dv_s32_brrb" || name == "bearer_dv_bool_brrb"
 				? scalar_adapter_type
-			: name == "bearer_dv_build_brrb"											 ? build_type
-			: name == "bearer_dv_get_brrb"												 ? get_type
-			: name == "bearer_dv_count_brrb" || name == "bearer_dv_scalar_type_brrb"	 ? count_type
-			: name == "bearer_dv_entry_key_brrb" || name == "bearer_dv_entry_value_brrb" ? entry_type
-			: name == "bearer_dv_ptr_to_brrb"											 ? scalar_adapter_type
-			: name == "bearer_dv_brrb_to_ptr"											 ? count_type
-			: name == "bearer_unit_call_brrb"											 ? unit_call_type
-			: name == "bearer_request_context_brrb"										 ? count_type
-			: name == "bearer_response_set_status"										 ? response_status_type
-			: name == "bearer_response_set_header"										 ? response_header_type
-																						 : scalar_type;
+			: name == "bearer_dv_build_brrb"																		? build_type
+			: name == "bearer_dv_get_brrb"																			? get_type
+			: name == "bearer_dv_count_brrb" || name == "bearer_dv_scalar_type_brrb"								? count_type
+			: name == "bearer_dv_entry_key_brrb" || name == "bearer_dv_entry_value_brrb"							? entry_type
+			: name == "bearer_dv_ptr_to_brrb"																		? scalar_adapter_type
+			: name == "bearer_dv_brrb_to_ptr"																		? count_type
+			: name == "bearer_unit_call_brrb"																		? unit_call_type
+			: name == "bearer_request_context_brrb"																	? count_type
+			: name == "bearer_request_context_for_brrb"																? scalar_adapter_type
+			: name == "bearer_response_set_status"																	? response_status_type
+			: name == "bearer_response_set_header"																	? response_header_type
+			: name == "bearer_string_substr"																		? string_substr_type
+			: name == "bearer_redirect"																				? redirect_type
+			: name == "bearer_session_start" || name == "bearer_session_remove" || name == "bearer_session_destroy" ? request_one_string_type
+			: name == "bearer_session_set" || name == "bearer_response_cookie"										? request_two_string_type
+			: name == "bearer_csrf_token" || name == "bearer_csrf_valid"											? csrf_six_type
+			: name == "bearer_csrf_rotate"																			? csrf_four_type
+			: name == "bearer_ws_message" || name == "bearer_ws_connection_id" || name == "bearer_ws_scope" || name == "bearer_ws_close" ? ws_string_type
+			: name == "bearer_ws_opcode" || name == "bearer_ws_is_binary"																 ? ws_scalar_type
+			: name == "bearer_ws_send"																									 ? ws_send_type
+			: name == "bearer_ws_send_to"																								 ? ws_send_to_type
+			: name == "bearer_request_body"																								 ? request_body_type
+			: name == "bearer_request_value"																							 ? request_value_type
+																																		 : scalar_type;
 		wasm::append_uleb(imports, type);
 	}
 	Bytes functions;

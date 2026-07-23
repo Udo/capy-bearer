@@ -12,5 +12,5 @@ function build_page () markup {
 
 function CLI {
     print(<><p>static</p></>, "|")
-    print(build_page(), "|", arc_live())
+    print(build_page(), "|", <><?= -2147483648 ?></>, "|", arc_live())
 }

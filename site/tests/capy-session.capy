@@ -1,0 +1,28 @@
+function RENDER {
+    var action := request_get("action")
+    if action == "set" {
+        session_start("capy-session")
+        session_set("value", request_get("value"))
+        response_cookie("capy-extra", "yes")
+        print("set")
+    } else {
+        if action == "remove" {
+            session_start("capy-session")
+            session_remove("value")
+            print("removed")
+        } else {
+            if action == "destroy" {
+                session_destroy("capy-session")
+                print("destroyed")
+            } else {
+                session_start("capy-session")
+                if length(request_session("value")) > 0 {
+                    print(request_session("value"))
+                } else {
+                    print("missing")
+                }
+                print("|", request_cookie("capy-extra"), "|", arc_live())
+            }
+        }
+    }
+}

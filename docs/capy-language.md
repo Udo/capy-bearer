@@ -67,6 +67,10 @@ var pair := (10, 20)
 
 `()` is the empty tuple/unit value and `(x)` is grouping. Calls distinguish two arguments from one tuple argument: `f(a, b)` versus `f((a, b))`.
 
+## Strings
+
+Strings support byte-preserving concatenation with `+`, byte equality with `==`/`!=`, `length(value)` for strings, markup, and arrays, and C++-compatible `substr(string, start, length)`. Negative substring starts count from the end; a negative length excludes bytes from the end. Concatenation and substring return ARC-managed strings.
+
 ## Markup values
 
 JSX/UCE fragment delimiters form a value-producing markup expression:
@@ -85,9 +89,13 @@ The `<>...</>` boundary is both JSX fragment syntax and the existing UCE markup 
 
 ## Request and response context
 
-`request_context()` returns an ARC-managed copied `dval` snapshot of the current request. It contains `params`, `get`, `post`, `cookies`, `session`, `call`, `cfg`, `props`, `connection`, `input`, `session_id`, `session_name`, and `current_unit`. Server configuration is deliberately not copied into the snapshot; capabilities that need configuration receive narrow typed adapters rather than the complete operational settings map. The snapshot is a read-only copy; indexing and iteration follow ordinary strict `dval` rules.
+`request_context()` returns an ARC-managed copied `dval` snapshot of the ambient current request. A handler that declares its reserved opaque request handle can instead call `request_context(request)`; this routes access through that handle without exposing the C++ `Request` layout. The zero-argument form exists for concise handlers and both forms copy the same request-local state. It contains `params`, `get`, `post`, `cookies`, `session`, `call`, `cfg`, `props`, `connection`, `input`, `session_id`, `session_name`, and `current_unit`. Server configuration is deliberately not copied into the snapshot; capabilities that need configuration receive narrow typed adapters rather than the complete operational settings map. The snapshot is a read-only copy; indexing and iteration follow ordinary strict `dval` rules. Its `cfg` member is the app-owned `Request::cfg` value and is distinct from Bearer's operational `ServerState::config`, which is not exposed.
 
-`response_status(code)` updates the current response status. `response_header(name, value)` sets a validated header and removes CR/LF from its value; an invalid status or header name traps at the callsite. These operations mutate only the current request workspace.
+Common scalar reads should use `request_param(key)`, `request_get(key)`, `request_post(key)`, `request_cookie(key)`, `request_session(key)`, and `request_body()`. They copy only the requested bytes and return an owned string (empty when a map key is absent), avoiding full BRRB snapshot encoding. Use `request_context` when structured maps or props are actually needed.
+
+`response_status(code)` updates the current response status. `response_header(name, value)` sets a validated header and removes CR/LF from its value; an invalid status or header name traps at the callsite. `response_cookie(name, value)` emits a safe HttpOnly/Lax cookie. `redirect(url, status)` sets a validated 3xx status and Location header. These operations mutate only the current request workspace.
+
+`session_start(name)`, `session_set(key, value)`, `session_remove(key)`, and `session_destroy(name)` use Bearer's existing session storage and cookie policy. `csrf_token(session, key)`, `csrf_valid(submitted, session, key)`, and `csrf_rotate(session, key)` use the same session-backed CSRF implementation as `.uce`. The current bindings require explicit arguments rather than C++ default arguments.
 
 ```capy
 function RENDER {
@@ -97,6 +105,10 @@ function RENDER {
     print(dval_string(request["get"]["name"]))
 }
 ```
+
+## WebSockets
+
+A `WS` handler can inspect `ws_message()`, `ws_connection_id()`, `ws_scope()`, `ws_opcode()`, and `ws_is_binary()`. It can enqueue `ws_send(message, binary)`, `ws_send_to(connection, message, binary)`, and `ws_close(connection)` commands through Bearer's existing broker and request-isolated dispatch list. Send/close calls return `bool`.
 
 ## Bearer unit ABI
 
@@ -207,7 +219,7 @@ function make(base : s32) (function(value : s32) s32) {
 }
 ```
 
-A function value is an ARC-compatible closure pointer. Its payload stores a private Wasm table slot followed by captured fields. Scalars copy into the environment; managed captures retain one reference and generated type-directed drop glue releases them. Parameters and captures are borrowed inside the closure body, while managed results remain owned. Returning a closure therefore safely extends captured parameter/local lifetimes, and closure reassignment uses the normal retain-before-release rule.
+A function value is an ARC-compatible closure pointer. Its payload stores a private Wasm table slot followed by captured fields. Scalars copy into the environment; managed captures retain one reference and generated type-directed drop glue releases them. Parameters and captures are borrowed inside the closure body, while managed results remain owned. Returning a closure therefore safely extends captured parameter/local lifetimes, and closure reassignment uses the normal retain-before-release rule. Assignment targets are not implicit captures: a lambda may read captured outer values, but assigning an outer local from inside the lambda is currently rejected as an unknown local rather than silently mutating a copied capture.
 
 Ordinary statically named calls remain direct Wasm calls. A private thunk is generated only when a named function is converted to a function value. Noncapturing lambdas use immortal closure records; capturing lambdas allocate one workspace-local environment. A table and element section are emitted only when the source actually forms a function value.
 

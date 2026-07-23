@@ -9,14 +9,41 @@ ROOT = Path(__file__).resolve().parent.parent
 PAGES = ROOT / "site/doc/pages"
 
 SUPPORTED = {
-    "print", "unit_render", "2_DValue_each", "2_DValue_has", "2_DValue_operator_index",
+    "print": ("site/tests/capy-phase1.capy", "print("),
+    "unit_render": ("site/tests/capy-cross.capy", "unit_render("),
+    "2_DValue_each": ("site/tests/capy-dval-rich.capy", "for key, value"),
+    "2_DValue_has": ("site/tests/capy-dval-rich.capy", "dval_has("),
+    "2_DValue_operator_index": ("site/tests/capy-dval-rich.capy", "profile["),
 }
 PARTIAL = {
-    "0_Request", "2_Request_set_status", "cli_arg", "cli_input", "component_render",
-    "request_base_url", "request_context_params", "request_query_path",
-    "request_query_route", "request_route_from_raw_path", "request_script_url", "unit_call",
-    "2_DValue_get_type_name", "2_DValue_is_array", "2_DValue_is_list", "2_DValue_key",
-    "2_DValue_keys", "2_DValue_to_bool", "2_DValue_to_string", "2_DValue_values",
+    "0_Request": ("site/tests/capy-request-context.capy", "request_context("),
+    "0_String": ("site/tests/capy-strings.capy", "left +"),
+    "2_Request_set_status": ("site/tests/capy-request-context.capy", "response_status("),
+    "component_render": ("site/examples/capy-reference/interop.capy", "component_render("),
+    "unit_call": ("site/tests/capy-cross.capy", "unit_call("),
+    "2_DValue_get_type_name": ("site/tests/capy-dval-rich.capy", "dval_bool("),
+    "2_DValue_is_array": ("site/tests/capy-dval-rich.capy", "dval(["),
+    "2_DValue_is_list": ("site/tests/capy-dval-rich.capy", "dval(["),
+    "2_DValue_key": ("site/tests/capy-dval-rich.capy", "for key, value"),
+    "2_DValue_keys": ("site/tests/capy-dval-rich.capy", "for key, value"),
+    "2_DValue_to_bool": ("site/tests/capy-dval-rich.capy", "dval_bool("),
+    "2_DValue_to_string": ("site/tests/capy-dval-rich.capy", "dval_string("),
+    "2_DValue_values": ("site/tests/capy-dval-rich.capy", "for key, value"),
+    "substr": ("site/tests/capy-strings.capy", "substr("),
+    "redirect": ("site/tests/capy-redirect.capy", "redirect("),
+    "session_start": ("site/tests/capy-session.capy", "session_start("),
+    "session_destroy": ("site/tests/capy-session.capy", "session_destroy("),
+    "csrf_token": ("site/tests/capy-csrf.capy", "csrf_token("),
+    "csrf_valid": ("site/tests/capy-csrf.capy", "csrf_valid("),
+    "csrf_rotate": ("site/tests/capy-csrf.capy", "csrf_rotate("),
+    "ws_message": ("site/tests/capy-websocket.capy", "ws_message("),
+    "ws_connection_id": ("site/tests/capy-websocket.capy", "ws_connection_id("),
+    "ws_scope": ("site/tests/capy-websocket.capy", "ws_scope("),
+    "ws_opcode": ("site/tests/capy-websocket.capy", "ws_opcode("),
+    "ws_is_binary": ("site/tests/capy-websocket.capy", "ws_is_binary("),
+    "ws_send": ("site/tests/capy-websocket.capy", "ws_send("),
+    "ws_send_to": ("site/tests/capy-websocket.capy", "ws_send_to("),
+    "ws_close": ("site/tests/capy-websocket.capy", "ws_close("),
 }
 CPP_SPECIFIC = {"3_Blocked functions", "3_C++ Preprocessor", "3_Coming from React", "3_Documentation format"}
 
@@ -51,19 +78,31 @@ def category(name: str) -> str:
     return "core utility"
 
 
+def checked_evidence(entries: dict[str, tuple[str, str]]) -> None:
+    runtime_driver = (ROOT / "scripts/test_capy_phase1.sh").read_text() + (ROOT / "scripts/test_capy_websocket.py").read_text()
+    for capability, (relative_path, marker) in entries.items():
+        path = ROOT / relative_path
+        if not path.is_file() or marker not in path.read_text():
+            raise SystemExit(f"{capability}: missing parity evidence {relative_path!r} marker {marker!r}")
+        if relative_path.startswith("site/tests/") and path.name not in runtime_driver:
+            raise SystemExit(f"{capability}: parity fixture is not wired into scripts/test_capy_phase1.sh: {relative_path}")
+
+
 def classify(name: str) -> tuple[str, str]:
     if name in CPP_SPECIFIC:
         return "cpp-specific", "No Capy runtime equivalent required."
     if name.startswith("1_"):
         return "export-only", "Capy emits the handler export; lifecycle behavior still needs parity acceptance."
     if name in SUPPORTED:
-        return "supported", "Native Capy equivalent is runtime-tested."
+        return "supported", f"Runtime evidence: `{SUPPORTED[name][0]}`."
     if name in PARTIAL:
-        return "partial", "Underlying data/outcome is available, but the documented convenience API is incomplete."
+        return "partial", f"Partial runtime evidence: `{PARTIAL[name][0]}`; the documented convenience API remains incomplete."
     return "missing", "No native Capy binding in the checked compiler surface."
 
 
 def render() -> str:
+    checked_evidence(SUPPORTED)
+    checked_evidence(PARTIAL)
     rows = []
     for page in sorted(PAGES.glob("*.txt"), key=lambda path: path.name.lower()):
         name = page.stem
@@ -77,6 +116,14 @@ def render() -> str:
         "This inventory is a progress boundary: `partial`, `export-only`, and `missing` are not parity.",
         "",
         f"Documented pages: **{len(rows)}**. " + ", ".join(f"{key}: **{counts[key]}**" for key in sorted(counts)),
+        "",
+        "## Binding boundary",
+        "",
+        "- Pure, common value operations (strings, numeric conversion, collection access) lower directly in Capy when compact and faster than a call.",
+        "- Request/response, sessions, WebSockets, and other current-workspace operations use narrow typed core adapters; Capy never reads C++ layouts.",
+        "- Structured policy-heavy operations already represented by DValues (HTTP client, jobs, regex/codecs, unit administration) use bounded copied BRRB capability adapters rather than `unit_call` shims.",
+        "- Filesystem, sockets, shell, cache, database, and archive operations reuse Bearer's existing core/host policy. Opaque resources become typed numeric handles only after u64 support; no direct OS imports are added to side units.",
+        "- `unit_call` remains application composition, not a substitute for missing standard bindings.",
         "",
         "| Documented capability | Category | Status | Evidence/remaining work |",
         "|---|---|---|---|",
