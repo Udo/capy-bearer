@@ -1,0 +1,3 @@
+function CLI {
+    print(sqlite_error(0u64))
+}

@@ -1,0 +1,6 @@
+function CLI {
+    var db := sqlite_connect("/missing-capy-sqlite-parent/database.sqlite")
+    sqlite_query(db, "select 1")
+    print(contains(sqlite_error(db), "without an open connection"), "|", arc_live())
+    sqlite_disconnect(db)
+}

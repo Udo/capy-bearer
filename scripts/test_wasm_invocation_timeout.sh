@@ -66,6 +66,21 @@ printf '%s\n' \
 	'}' >"$source_dir/sleep.uce"
 printf '%s\n' \
 	'CLI(Request& context) { print(request_perf()["worker_pid"].to_u64(), "|health"); }' >"$source_dir/health.uce"
+cat >"$source_dir/sqlite-timeout.capy" <<'EOF'
+function CLI {
+    if request_get("warm") == "1" { print("warm"); return }
+    var db := sqlite_connect(":memory:")
+    sqlite_query(db, "with recursive counter(x) as (values(0) union all select x + 1 from counter where x < 1000000000) select sum(x) from counter")
+}
+EOF
+cat >"$source_dir/sqlite-recover.capy" <<'EOF'
+function CLI {
+    var db := sqlite_connect(":memory:")
+    var rows := sqlite_query(db, "select 7 as value")
+    print(dval_s32(rows[0]["value"]))
+    sqlite_disconnect(db)
+}
+EOF
 
 max_seconds=$(( (invocation_ms + 15000) / 1000 ))
 (( max_seconds >= 10 )) || max_seconds=10
@@ -89,6 +104,7 @@ curl -sS --max-time "$max_seconds" --fail-with-body --unix-socket "$socket_path"
 curl -sS --max-time "$max_seconds" --fail-with-body --unix-socket "$socket_path" "http://localhost/$test_name/legacy-shell.uce?warm=1" >/dev/null
 curl -sS --max-time "$max_seconds" --fail-with-body --unix-socket "$socket_path" "http://localhost/$test_name/sleep.uce?warm=1" >/dev/null
 curl -sS --max-time "$max_seconds" --fail-with-body --unix-socket "$socket_path" "http://localhost/$test_name/health.uce" >/dev/null
+curl -sS --max-time "$max_seconds" --fail-with-body --unix-socket "$socket_path" "http://localhost/$test_name/sqlite-timeout.capy?warm=1" >/dev/null
 quick=$(curl -sS --max-time 5 --fail-with-body --unix-socket "$socket_path" "http://localhost/$test_name/legacy-shell.uce?quick=1")
 [[ "$quick" == quick ]] || { echo "quick legacy shell returned: $quick" >&2; exit 1; }
 exit_status=$(curl -sS --max-time 5 --fail-with-body --unix-socket "$socket_path" "http://localhost/$test_name/legacy-shell.uce?status=1")
@@ -122,5 +138,15 @@ for unit in hostcall-loop.uce legacy-shell.uce sleep.uce; do
 	worker_pid=$(<"$pid_file")
 	same_worker_health "$worker_pid" || { echo "worker $worker_pid did not survive $unit" >&2; exit 1; }
 done
+
+started_ns=$(date +%s%N)
+status=$(request "sqlite-timeout.capy")
+elapsed_ms=$(( ($(date +%s%N) - started_ns) / 1000000 ))
+[[ "$status" == "500" ]] || { echo "sqlite-timeout.capy returned HTTP $status" >&2; exit 1; }
+grep -q 'BEARER_INVOCATION_TIMEOUT:' "$body_file" || { echo "sqlite-timeout.capy lacked invocation-timeout classification: $(cat "$body_file")" >&2; exit 1; }
+grep -q 'sqlite-timeout.capy' "$body_file" || { echo "sqlite-timeout.capy lacked a source-mapped trace" >&2; exit 1; }
+(( elapsed_ms >= invocation_ms - 1000 && elapsed_ms <= invocation_ms + 3000 )) || { echo "sqlite-timeout.capy completed in ${elapsed_ms}ms; expected about ${invocation_ms}ms" >&2; exit 1; }
+sqlite_recovery=$(curl -sS --max-time 5 --fail-with-body --unix-socket "$socket_path" "http://localhost/$test_name/sqlite-recover.capy")
+[[ "$sqlite_recovery" == 7 ]] || { echo "SQLite did not recover after deadline trap: $sqlite_recovery" >&2; exit 1; }
 
 echo "wasm invocation timeout passed (absolute ${invocation_ms}ms; sleep and process hostcalls bounded)"

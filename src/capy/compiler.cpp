@@ -476,8 +476,8 @@ struct Module
 	bool request_context_ambient_ = false, request_context_explicit_ = false;
 	bool response_status_ = false, response_header_ = false, time_ = false, time_precise_ = false;
 	bool string_substr_ = false, string_first_ = false, redirect_ = false;
-	std::set<std::string> request_mutators_, request_value_ops_, csrf_ops_, ws_ops_, string_ops_, string_list_ops_, component_ops_, file_ops_, codec_ops_,
-		regex_ops_;
+	std::set<std::string> request_mutators_, request_value_ops_, csrf_ops_, ws_ops_, string_ops_, string_list_ops_, component_ops_, file_ops_, sqlite_ops_,
+		codec_ops_, regex_ops_;
 	std::vector<std::pair<std::string, Definition*>> custom_exports_;
 	bool use_retain_ = false, use_release_ = false, use_clone_ = false, use_arc_global_ = false;
 	std::vector<Location> markers_;
@@ -1004,6 +1004,14 @@ std::string FunctionLowerer::infer(Expr* value)
 			return "s64";
 		if (name->value == "time_precise")
 			return "f64";
+		if (name->value == "sqlite_connect" || name->value == "sqlite_insert_id" || name->value == "sqlite_affected_rows")
+			return "u64";
+		if (name->value == "sqlite_error")
+			return "string";
+		if (name->value == "sqlite_query")
+			return "dval";
+		if (name->value == "sqlite_disconnect")
+			return "void";
 		if (name->value == "arc_live" || name->value == "ws_opcode" || name->value == "find")
 			return "s32";
 		if (name->value == "contains")
@@ -4192,6 +4200,138 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			wasm::append_uleb(code, pointer);
 			return {code, dval_result ? "dval" : "string"};
 		}
+		if (named->value == "sqlite_connect")
+		{
+			if (call->arguments.size() != 1)
+				throw Error(value->location, "sqlite_connect expects one path string");
+			auto [part, type] = expression(call->arguments[0]);
+			if (type != "string")
+				throw Error(call->arguments[0]->location, "expected string, found " + type);
+			const unsigned path = add_local("", "string", call->arguments[0]->location), result = add_local("", "u64", value->location);
+			Bytes code = std::move(part);
+			code.push_back(0x21);
+			wasm::append_uleb(code, path);
+			code.push_back(0x20);
+			wasm::append_uleb(code, path);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+			wasm::append_uleb(code, path);
+			code.insert(code.end(), {0x28, 0x02, 0x10, 0x10});
+			wasm::append_uleb(code, module_.import_index("bearer_sqlite_connect"));
+			code.push_back(0x21);
+			wasm::append_uleb(code, result);
+			if (expression_is_owned(call->arguments[0]))
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, path);
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.release_index());
+			}
+			code.push_back(0x20);
+			wasm::append_uleb(code, result);
+			return {code, "u64"};
+		}
+		if (named->value == "sqlite_disconnect" || named->value == "sqlite_insert_id" || named->value == "sqlite_affected_rows")
+		{
+			if (call->arguments.size() != 1)
+				throw Error(value->location, named->value + " expects one sqlite handle");
+			auto [code, type] = expression(call->arguments[0]);
+			if (type != "u64")
+				throw Error(call->arguments[0]->location, "expected u64, found " + type);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index("bearer_" + named->value));
+			const bool disconnecting = named->value == "sqlite_disconnect";
+			const unsigned result = add_local("", disconnecting ? "s32" : "u64", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, result);
+			code.push_back(0x20);
+			wasm::append_uleb(code, result);
+			if (disconnecting)
+				code.insert(code.end(), {0x41, 0x01, 0x47});
+			else
+				code.insert(code.end(), {0x42, 0x7f, 0x51});
+			code.insert(code.end(), {0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b});
+			if (disconnecting)
+				return {code, "void"};
+			code.push_back(0x20);
+			wasm::append_uleb(code, result);
+			return {code, "u64"};
+		}
+		if (named->value == "sqlite_error" || named->value == "sqlite_query")
+		{
+			const bool query = named->value == "sqlite_query";
+			if ((!query && call->arguments.size() != 1) || (query && (call->arguments.size() < 2 || call->arguments.size() > 3)))
+				throw Error(value->location, query ? "sqlite_query expects handle, query, and optional dval params" : "sqlite_error expects one handle");
+			Bytes code;
+			std::vector<unsigned> arguments;
+			for (std::size_t i = 0; i < call->arguments.size(); ++i)
+			{
+				auto [part, type] = expression(call->arguments[i]);
+				const std::string expected = i == 0 ? "u64" : i == 1 ? "string" : "dval";
+				if (type != expected)
+					throw Error(call->arguments[i]->location, "expected " + expected + ", found " + type);
+				const unsigned local = add_local("", type, call->arguments[i]->location);
+				append(code, part);
+				code.push_back(0x21);
+				wasm::append_uleb(code, local);
+				arguments.push_back(local);
+			}
+			auto adapter_inputs = [&]
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, arguments[0]);
+				if (query)
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, arguments[1]);
+					code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+					wasm::append_uleb(code, arguments[1]);
+					code.insert(code.end(), {0x28, 0x02, 0x10});
+					if (arguments.size() == 3)
+					{
+						code.push_back(0x20);
+						wasm::append_uleb(code, arguments[2]);
+						code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+						wasm::append_uleb(code, arguments[2]);
+						code.insert(code.end(), {0x28, 0x02, 0x10});
+					}
+					else
+						code.insert(code.end(), {0x41, 0x00, 0x41, 0x00});
+				}
+			};
+			adapter_inputs();
+			code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10});
+			wasm::append_uleb(code, module_.import_index(query ? "bearer_sqlite_query" : "bearer_sqlite_error"));
+			const unsigned length = add_local("", "s32", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, length);
+			auto [allocation, pointer] = allocate_blob(query ? "dval" : "string", query ? 4 : 1, length, value->location);
+			append(code, allocation);
+			adapter_inputs();
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+			wasm::append_uleb(code, length);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index(query ? "bearer_sqlite_query" : "bearer_sqlite_error"));
+			code.push_back(0x20);
+			wasm::append_uleb(code, length);
+			code.insert(code.end(), {0x47, 0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b});
+			for (std::size_t i = 1; i < arguments.size(); ++i)
+				if (expression_is_owned(call->arguments[i]))
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, arguments[i]);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.release_index());
+				}
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			return {code, query ? "dval" : "string"};
+		}
 		if (named->value == "file_open" || named->value == "file_read" || named->value == "file_write" || named->value == "file_seek" ||
 			named->value == "file_tell" || named->value == "file_fsync" || named->value == "file_close" || named->value == "file_temp" ||
 			named->value == "file_unlink")
@@ -5231,13 +5371,14 @@ Module::Capabilities Module::discover_capabilities()
 					const std::size_t result = found->second.rfind(") ");
 					return result == std::string::npos ? "" : found->second.substr(result + 2);
 				}
-				if (name->value == "time" || name->value == "file_open" || name->value == "file_write")
+				if (name->value == "time" || name->value == "file_open" || name->value == "file_write" || name->value == "sqlite_connect" ||
+					name->value == "sqlite_insert_id" || name->value == "sqlite_affected_rows")
 					return "u64";
 				if (name->value == "file_seek" || name->value == "file_tell")
 					return "s64";
 				if (name->value == "time_precise" || name->value == "dval_f64")
 					return "f64";
-				if (name->value == "join" || name->value == "first")
+				if (name->value == "join" || name->value == "first" || name->value == "sqlite_error")
 					return "string";
 				if (name->value == "split" || name->value == "array_merge")
 					return "dval";
@@ -5268,35 +5409,12 @@ Module::Capabilities Module::discover_capabilities()
 		if (auto call = dynamic_cast<Call*>(e))
 			if (auto name = dynamic_cast<Name*>(call->function))
 			{
-				static const std::set<std::string> builtins{"clone",
-															"substr",
-															"replace",
-															"lower",
-															"upper",
-															"component_capture",
-															"component_resolve",
-															"file_read",
-															"file_temp",
-															"base64_encode",
-															"base64_decode",
-															"uri_encode",
-															"uri_decode",
-															"html_escape",
-															"json_encode",
-															"regex_replace",
-															"join",
-															"first",
-															"dval_string",
-															"csrf_token",
-															"ws_message",
-															"ws_connection_id",
-															"ws_scope",
-															"request_param",
-															"request_get",
-															"request_post",
-															"request_cookie",
-															"request_session",
-															"request_body"};
+				static const std::set<std::string> builtins{
+					"clone",		   "substr",		   "replace",		"lower",		 "upper",		  "component_capture", "component_resolve",
+					"file_read",	   "file_temp",		   "sqlite_error",	"base64_encode", "base64_decode", "uri_encode",		   "uri_decode",
+					"html_escape",	   "json_encode",	   "regex_replace", "join",			 "first",		  "dval_string",	   "csrf_token",
+					"ws_message",	   "ws_connection_id", "ws_scope",		"request_param", "request_get",	  "request_post",	   "request_cookie",
+					"request_session", "request_body"};
 				if (builtins.contains(name->value))
 					return true;
 				for (const Definition& definition : definitions_)
@@ -5493,6 +5611,18 @@ Module::Capabilities Module::discover_capabilities()
 				scan_release = true;
 			}
 			if (auto n = dynamic_cast<Name*>(c->function);
+				n && (n->value == "sqlite_connect" || n->value == "sqlite_disconnect" || n->value == "sqlite_error" || n->value == "sqlite_query" ||
+					  n->value == "sqlite_insert_id" || n->value == "sqlite_affected_rows"))
+			{
+				sqlite_ops_.insert(n->value);
+				if (n->value == "sqlite_query")
+					dval_ = true;
+				if (n->value == "sqlite_error" || n->value == "sqlite_query")
+					scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
+			}
+			if (auto n = dynamic_cast<Name*>(c->function);
 				n && (n->value == "file_open" || n->value == "file_read" || n->value == "file_write" || n->value == "file_seek" || n->value == "file_tell" ||
 					  n->value == "file_fsync" || n->value == "file_close" || n->value == "file_temp" || n->value == "file_unlink"))
 			{
@@ -5533,16 +5663,16 @@ Module::Capabilities Module::discover_capabilities()
 					{
 						auto function = dynamic_cast<Name*>(called->function);
 						bool string_result =
-							function &&
-							(function->value == "dval_string" || function->value == "clone" || function->value == "substr" || function->value == "replace" ||
-							 function->value == "lower" || function->value == "upper" || function->value == "component_capture" ||
-							 function->value == "component_resolve" || function->value == "file_read" || function->value == "file_temp" ||
-							 function->value == "base64_encode" || function->value == "base64_decode" || function->value == "uri_encode" ||
-							 function->value == "uri_decode" || function->value == "html_escape" || function->value == "json_encode" ||
-							 function->value == "regex_replace" || function->value == "join" || function->value == "first" || function->value == "csrf_token" ||
-							 function->value == "ws_message" || function->value == "ws_connection_id" || function->value == "ws_scope" ||
-							 function->value == "request_param" || function->value == "request_get" || function->value == "request_post" ||
-							 function->value == "request_cookie" || function->value == "request_session" || function->value == "request_body");
+							function && (function->value == "dval_string" || function->value == "clone" || function->value == "substr" ||
+										 function->value == "replace" || function->value == "lower" || function->value == "upper" ||
+										 function->value == "component_capture" || function->value == "component_resolve" || function->value == "file_read" ||
+										 function->value == "file_temp" || function->value == "sqlite_error" || function->value == "base64_encode" ||
+										 function->value == "base64_decode" || function->value == "uri_encode" || function->value == "uri_decode" ||
+										 function->value == "html_escape" || function->value == "json_encode" || function->value == "regex_replace" ||
+										 function->value == "join" || function->value == "first" || function->value == "csrf_token" ||
+										 function->value == "ws_message" || function->value == "ws_connection_id" || function->value == "ws_scope" ||
+										 function->value == "request_param" || function->value == "request_get" || function->value == "request_post" ||
+										 function->value == "request_cookie" || function->value == "request_session" || function->value == "request_body");
 						if (function)
 							for (const auto& d : definitions_)
 								if (d.function->name == function->value && d.result == "string")
@@ -5812,6 +5942,8 @@ CompileResult Module::compile()
 		imports_["bearer_" + name] = next++;
 	for (const std::string& name : file_ops_)
 		imports_["bearer_" + name] = next++;
+	for (const std::string& name : sqlite_ops_)
+		imports_["bearer_" + name] = next++;
 	if (regex_ops_.contains("regex_match"))
 		imports_["bearer_regex_match"] = next++;
 	if (regex_ops_.size() > regex_ops_.count("regex_match"))
@@ -5867,6 +5999,11 @@ CompileResult Module::compile()
 	unsigned file_close_type = file_ops_.contains("file_close") ? wasm_type({"u64"}, "void") : 0;
 	unsigned file_temp_type = file_ops_.contains("file_temp") ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned file_unlink_type = file_ops_.contains("file_unlink") ? wasm_type({"s32", "s32"}, "void") : 0;
+	unsigned sqlite_connect_type = sqlite_ops_.contains("sqlite_connect") ? wasm_type({"s32", "s32"}, "u64") : 0;
+	unsigned sqlite_disconnect_type = sqlite_ops_.contains("sqlite_disconnect") ? wasm_type({"u64"}, "s32") : 0;
+	unsigned sqlite_error_type = sqlite_ops_.contains("sqlite_error") ? wasm_type({"u64", "s32", "s32"}, "s32") : 0;
+	unsigned sqlite_query_type = sqlite_ops_.contains("sqlite_query") ? wasm_type({"u64", "s32", "s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned sqlite_scalar_type = (sqlite_ops_.contains("sqlite_insert_id") || sqlite_ops_.contains("sqlite_affected_rows")) ? wasm_type({"u64"}, "u64") : 0;
 	unsigned regex_match_type = regex_ops_.contains("regex_match") ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned regex_type = regex_ops_.size() > regex_ops_.count("regex_match")
 							  ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"}, "s32")
@@ -5958,18 +6095,23 @@ CompileResult Module::compile()
 							  : name == "bearer_file_close"																					? file_close_type
 							  : name == "bearer_file_temp"																					? file_temp_type
 							  : name == "bearer_file_unlink"																				? file_unlink_type
-							  : name == "bearer_regex_match"																				? regex_match_type
-							  : name == "bearer_regex"																						? regex_type
-							  : name == "bearer_codec"																						? codec_type
-							  : name == "bearer_component_render_props_brrb"							 ? component_props_type
-							  : name == "bearer_component_capture"										 ? component_capture_type
-							  : name == "bearer_component_capture_props_brrb"							 ? component_capture_props_type
-							  : name == "bearer_component_exists"										 ? component_exists_type
-							  : name == "bearer_component_resolve"										 ? component_resolve_type
-							  : name == "bearer_alloc"													 ? alloc_type
-							  : name == "bearer_free"													 ? release_type
-							  : name == "bearer_dv_string_to_brrb" || name == "bearer_dv_brrb_to_string" ? blob_type
-							  : name == "bearer_dv_f64_to_brrb"											 ? f64_adapter_type
+							  : name == "bearer_sqlite_connect"											   ? sqlite_connect_type
+							  : name == "bearer_sqlite_disconnect"										   ? sqlite_disconnect_type
+							  : name == "bearer_sqlite_error"											   ? sqlite_error_type
+							  : name == "bearer_sqlite_query"											   ? sqlite_query_type
+							  : name == "bearer_sqlite_insert_id" || name == "bearer_sqlite_affected_rows" ? sqlite_scalar_type
+							  : name == "bearer_regex_match"											   ? regex_match_type
+							  : name == "bearer_regex"													   ? regex_type
+							  : name == "bearer_codec"													   ? codec_type
+							  : name == "bearer_component_render_props_brrb"							   ? component_props_type
+							  : name == "bearer_component_capture"										   ? component_capture_type
+							  : name == "bearer_component_capture_props_brrb"							   ? component_capture_props_type
+							  : name == "bearer_component_exists"										   ? component_exists_type
+							  : name == "bearer_component_resolve"										   ? component_resolve_type
+							  : name == "bearer_alloc"													   ? alloc_type
+							  : name == "bearer_free"													   ? release_type
+							  : name == "bearer_dv_string_to_brrb" || name == "bearer_dv_brrb_to_string"   ? blob_type
+							  : name == "bearer_dv_f64_to_brrb"											   ? f64_adapter_type
 							  : name == "bearer_dv_s32_to_brrb" || name == "bearer_dv_bool_to_brrb" || name == "bearer_dv_s32_brrb" ||
 									  name == "bearer_dv_f64_brrb" || name == "bearer_dv_bool_brrb"
 								  ? scalar_adapter_type

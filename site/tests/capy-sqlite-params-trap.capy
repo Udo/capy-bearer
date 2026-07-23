@@ -1,0 +1,4 @@
+function CLI {
+    var db := sqlite_connect(":memory:")
+    sqlite_query(db, "select :value", dval({"value": 1}))
+}

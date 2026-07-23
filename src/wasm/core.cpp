@@ -152,8 +152,11 @@ static String wasm_codec_result;
 static String wasm_regex_result;
 static String wasm_string_list_result;
 static String wasm_dval_merge_result;
+static String wasm_sqlite_result;
+static std::vector<SQLite*> wasm_capy_sqlite_handles;
 static size_t bearer_copy_bytes(const String& value, char* out, size_t cap);
 static size_t bearer_copy_staged(String& staged, char* out, size_t cap);
+static bool bearer_decode_brrb_span(const char* value, size_t value_len, DValue& decoded);
 static String wasm_unit_call_encoded_result;
 
 static DValue wasm_mysql_call(DValue request)
@@ -389,6 +392,13 @@ String SQLite::error()
 
 DValue SQLite::query(String q, const StringMap& params)
 {
+	if(!connection)
+	{
+		insert_id = 0;
+		affected_rows = 0;
+		set_error(21, "sqlite query called without an open connection"); // SQLITE_MISUSE
+		return(DValue());
+	}
 	DValue request;
 	request["op"] = "query";
 	request["handle"] = (f64)(uintptr_t)connection;
@@ -425,6 +435,93 @@ u64 sqlite_insert_id(SQLite* db) { return(db ? db->insert_id : 0); }
 u32 sqlite_affected_rows(SQLite* db) { return(db ? db->affected_rows : 0); }
 void cleanup_sqlite_connections() { }
 void cleanup_mysql_connections() { }
+
+static SQLite* bearer_sqlite_handle(u64 handle)
+{
+	if(handle == 0 || handle > wasm_capy_sqlite_handles.size())
+		return(0);
+	return(wasm_capy_sqlite_handles[(size_t)handle - 1]);
+}
+
+extern "C" u64 bearer_sqlite_connect(const char* path, size_t path_len)
+{
+	SQLite* db = sqlite_connect(String(path ? path : "", path ? path_len : 0));
+	if(!db)
+		return(0);
+	wasm_capy_sqlite_handles.push_back(db);
+	return((u64)wasm_capy_sqlite_handles.size());
+}
+
+extern "C" s32 bearer_sqlite_disconnect(u64 handle)
+{
+	SQLite* db = bearer_sqlite_handle(handle);
+	if(!db)
+		return(0);
+	sqlite_disconnect(db);
+	wasm_capy_sqlite_handles[(size_t)handle - 1] = 0;
+	return(1);
+}
+
+extern "C" size_t bearer_sqlite_error(u64 handle, char* out, size_t cap)
+{
+	if(!out)
+	{
+		wasm_sqlite_result.clear();
+		SQLite* db = bearer_sqlite_handle(handle);
+		if(!db)
+			return(std::numeric_limits<size_t>::max());
+		wasm_sqlite_result = sqlite_error(db);
+		return(wasm_sqlite_result.size());
+	}
+	return(bearer_copy_staged(wasm_sqlite_result, out, cap));
+}
+
+extern "C" size_t bearer_sqlite_query(u64 handle, const char* query, size_t query_len, const char* params, size_t params_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		wasm_sqlite_result.clear();
+		SQLite* db = bearer_sqlite_handle(handle);
+		if(!db)
+			return(std::numeric_limits<size_t>::max());
+		StringMap parameter_map;
+		if(params_len)
+		{
+			DValue decoded;
+			if(!bearer_decode_brrb_span(params, params_len, decoded) || !decoded.is_array())
+				return(std::numeric_limits<size_t>::max());
+			bool valid = true;
+			decoded.each([&](const DValue& value, String key) {
+				if(value.deref().type != 'S')
+					valid = false;
+				else
+					parameter_map[key] = value.to_string();
+			});
+			if(!valid)
+				return(std::numeric_limits<size_t>::max());
+		}
+		wasm_sqlite_result = brb_encode(sqlite_query(db, String(query ? query : "", query ? query_len : 0), parameter_map));
+		if(wasm_sqlite_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
+		{
+			wasm_sqlite_result.clear();
+			return(std::numeric_limits<size_t>::max());
+		}
+		return(wasm_sqlite_result.size());
+	}
+	return(bearer_copy_staged(wasm_sqlite_result, out, cap));
+}
+
+extern "C" u64 bearer_sqlite_insert_id(u64 handle)
+{
+	SQLite* db = bearer_sqlite_handle(handle);
+	return(db ? sqlite_insert_id(db) : std::numeric_limits<u64>::max());
+}
+
+extern "C" u64 bearer_sqlite_affected_rows(u64 handle)
+{
+	SQLite* db = bearer_sqlite_handle(handle);
+	return(db ? sqlite_affected_rows(db) : std::numeric_limits<u64>::max());
+}
 
 static ServerState wasm_server;
 static Request wasm_request;
@@ -903,6 +1000,11 @@ void bearer_wasm_core_reset_request()
 	wasm_regex_result.clear();
 	wasm_string_list_result.clear();
 	wasm_dval_merge_result.clear();
+	wasm_sqlite_result.clear();
+	for(SQLite* db : wasm_capy_sqlite_handles)
+		if(db)
+			sqlite_disconnect(db);
+	wasm_capy_sqlite_handles.clear();
 }
 
 // Host pushes the worker-cached immutable configuration followed by the

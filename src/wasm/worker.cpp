@@ -24,6 +24,9 @@
 //  - bearer.abi stamp must match the core ABI version; fail loudly, never guess
 
 #include <wasmtime.hh>
+#ifdef BEARER_WASM_HOST_CONNECTORS
+#include "../3rdparty/sqlite/sqlite3.h"
+#endif
 
 #include <chrono>
 #include <cmath>
@@ -4194,11 +4197,22 @@ struct WasmWorkspace : public WasmRequestProfile
 								? self->sqlite_handles[(size_t)handle - 1] : 0;
 							if(op == "query" && db)
 							{
+								u64 remaining_ms = self->invocation_remaining_ms();
+								if(remaining_ms == 0)
+									return(Trap(self->invocation_timeout_error()));
+								sqlite3* connection = (sqlite3*)db->connection;
+								sqlite3_busy_timeout(connection, (int)std::min<u64>(INT_MAX, remaining_ms));
+								sqlite3_progress_handler(connection, 1000, [](void* opaque) -> int {
+									return(((WasmWorkspace*)opaque)->invocation_expired() ? 1 : 0);
+								}, self.operator->());
 								StringMap params;
 								DValue* p = request.key("params");
 								if(p)
 									p->each([&](const DValue& value, String key) { params[key] = value.to_string(); });
 								response["result"] = db->query(request["query"].to_string(), params);
+								sqlite3_progress_handler(connection, 0, 0, 0);
+								if(self->invocation_expired())
+									return(Trap(self->invocation_timeout_error()));
 								response["insert_id"] = (f64)db->insert_id;
 								response["affected"] = (f64)db->affected_rows;
 								response["error_code"] = (f64)db->error_code;

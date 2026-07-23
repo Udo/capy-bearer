@@ -54,7 +54,7 @@ for source in "${fixtures[@]}"; do
 done
 
 wasm-objdump -x "$BUILD_DIR/phase1.wasm" >"$BUILD_DIR/phase1.objdump"
-! grep -q 'bearer_request_context_brrb\|bearer_response_set_\|bearer_\(print\|format\)_s64\|bearer_\(print\|format\)_u64\|bearer_\(print\|format\)_f64\|bearer_time\|bearer_file_\|bearer_unit_info_brrb\|bearer_units_list_brrb\|bearer_unit_compile\|bearer_codec\|bearer_regex\|bearer_string_list\|bearer_string_nonblank\|bearer_dv_merge_brrb' "$BUILD_DIR/phase1.objdump"
+! grep -q 'bearer_request_context_brrb\|bearer_response_set_\|bearer_\(print\|format\)_s64\|bearer_\(print\|format\)_u64\|bearer_\(print\|format\)_f64\|bearer_time\|bearer_file_\|bearer_unit_info_brrb\|bearer_units_list_brrb\|bearer_unit_compile\|bearer_codec\|bearer_regex\|bearer_string_list\|bearer_string_nonblank\|bearer_dv_merge_brrb\|bearer_sqlite_' "$BUILD_DIR/phase1.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-wide-scalars.capy.wasm" >"$BUILD_DIR/wide-scalars.objdump"
 grep -q 'env.bearer_print_s64' "$BUILD_DIR/wide-scalars.objdump"
 grep -q 'env.bearer_print_u64' "$BUILD_DIR/wide-scalars.objdump"
@@ -83,6 +83,10 @@ wasm-objdump -x "$BUILD_DIR/site_tests_capy-first-empty.capy.wasm" >"$BUILD_DIR/
 ! grep -q 'env.bearer_string_nonblank' "$BUILD_DIR/first-empty.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-dval-merge.capy.wasm" >"$BUILD_DIR/dval-merge.objdump"
 grep -q 'env.bearer_dv_merge_brrb' "$BUILD_DIR/dval-merge.objdump"
+wasm-objdump -x "$BUILD_DIR/site_tests_capy-sqlite.capy.wasm" >"$BUILD_DIR/sqlite.objdump"
+for import in sqlite_connect sqlite_disconnect sqlite_error sqlite_query sqlite_insert_id sqlite_affected_rows; do
+	grep -q "env.bearer_$import" "$BUILD_DIR/sqlite.objdump"
+done
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-unit-admin.capy.wasm" >"$BUILD_DIR/unit-admin.objdump"
 for import in unit_info_brrb units_list_brrb unit_compile; do
 	grep -q "env.bearer_$import" "$BUILD_DIR/unit-admin.objdump"

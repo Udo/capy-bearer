@@ -136,7 +136,7 @@ The first direct-Wasm backend emits:
 - a matching `BEARER_SOURCE_MAP_V1` sidecar;
 - no WASI imports; dynamic values use Bearer’s workspace allocator.
 
-Compiler generation c30 uses core ABI w22. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
+Compiler generation c31 uses core ABI w23. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
 
 ## Automatic reference counting
 
@@ -182,6 +182,10 @@ Capy values never expose their object layout to C++. Dynamic cross-language valu
 ## Regular expressions
 
 `regex_match(pattern, subject[, flags])`, `regex_search(pattern, subject[, flags])`, `regex_search_all(pattern, subject[, flags])`, `regex_replace(pattern, replacement, subject[, flags])`, and `regex_split(pattern, subject[, flags])` use Bearer's existing host-side PCRE2 implementation. Search and split return copied owned DValues; replace returns an owned string. Supported flags and match-tree shapes are identical to the documented `.uce` APIs. Invalid patterns, flags, and substitutions trap at the Capy call site, and staged results are cleared on request reset.
+
+## Databases
+
+`sqlite_connect(path)` returns an exact workspace-local `u64` capability handle. `sqlite_query(handle, sql[, params])` returns copied row DValues and accepts an optional string-valued DValue parameter map; `sqlite_error`, `sqlite_insert_id`, `sqlite_affected_rows`, and `sqlite_disconnect` preserve Bearer's SQLite policy. Handles cannot cross workspaces, and stale or explicitly closed handles trap at the Capy call site. Query results and errors are staged once; SQLite connections remain host-owned and are reclaimed at workspace teardown.
 
 ## Files and resource handles
 

@@ -64,6 +64,22 @@ file_output=$(scripts/bearer-cli /tests/capy-files.capy)
 }
 expect_equal "unit administration" "1|1|1|2|0" "$(scripts/bearer-cli /tests/capy-unit-admin.capy)"
 expect_equal "DValue array merge" "rightyesnewright|abcd|valueitem|right|value|z|oddkeep|map|unicode|9|0" "$(scripts/bearer-cli /tests/capy-dval-merge.capy)"
+sqlite_output=$(scripts/bearer-cli /tests/capy-sqlite.capy)
+expect_equal "SQLite lifecycle/query" "11|1Ada|1|1|0" "$sqlite_output"
+expect_equal "SQLite failed-connect diagnostic" "1|0" "$(scripts/bearer-cli /tests/capy-sqlite-failed.capy)"
+for sqlite_case in \
+	"capy-sqlite-handle-trap|4:11" \
+	"capy-sqlite-params-trap|3:5" \
+	"capy-sqlite-zero-trap|2:11"; do
+	sqlite_fixture=${sqlite_case%%|*}
+	sqlite_location=${sqlite_case#*|}
+	set +e
+	sqlite_trap_output=$(scripts/bearer-cli "/tests/$sqlite_fixture.capy" 2>&1)
+	sqlite_trap_status=$?
+	set -e
+	[[ $sqlite_trap_status -ne 0 && "$sqlite_trap_output" == *"$sqlite_fixture.capy:$sqlite_location"* ]]
+done
+expect_equal "SQLite recovery" "$sqlite_output" "$(scripts/bearer-cli /tests/capy-sqlite.capy)"
 codec_output=$(scripts/bearer-cli /tests/capy-codecs.capy)
 [[ "$codec_output" == "<Ada>|1.51|Q2FweSE=|Capy!|0|a%20b%26|a b&|&lt;&amp;&gt;&quot;&#39;|{}|3|0" ]] || {
 	echo "Capy codec/JSON/ARC mismatch: $codec_output" >&2

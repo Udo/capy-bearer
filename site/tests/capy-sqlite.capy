@@ -1,0 +1,14 @@
+function CLI {
+    {
+        var db := sqlite_connect(":memory:")
+        sqlite_query(db, "create table users(id integer primary key, name text)")
+        sqlite_query(db, "insert into users(name) values(:name)", dval({"name": "Ada"}))
+        var inserted := sqlite_insert_id(db)
+        var affected := sqlite_affected_rows(db)
+        var rows := sqlite_query(db, "select id, name from users where name=:name", dval({"name": "Ada"}))
+        sqlite_query(db, "select 1; select 2")
+        print(inserted, affected, "|", dval_s32(rows[0]["id"]), dval_string(rows[0]["name"]), "|", contains(sqlite_error(db), "exactly one SQL statement"), "|", arc_live())
+        sqlite_disconnect(db)
+    }
+    print("|", arc_live())
+}
