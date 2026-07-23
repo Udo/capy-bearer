@@ -43,6 +43,7 @@ SUPPORTED = {
     "contains": ("site/tests/capy-strings.capy", "contains("),
     "split": ("site/tests/capy-string-lists.capy", "split("),
     "join": ("site/tests/capy-string-lists.capy", "join("),
+    "first": ("site/tests/capy-string-lists.capy", "first("),
     "base64_encode": ("site/tests/capy-codecs.capy", "base64_encode("),
     "base64_decode": ("site/tests/capy-codecs.capy", "base64_decode("),
     "uri_encode": ("site/tests/capy-codecs.capy", "uri_encode("),

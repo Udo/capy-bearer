@@ -1501,6 +1501,11 @@ size_t bearer_string_upper(const char* value, size_t value_len, char* out, size_
 	return(bearer_copy_bytes(to_upper(String(value ? value : "", value ? value_len : 0)), out, cap));
 }
 
+s32 bearer_string_nonblank(const char* value, size_t value_len)
+{
+	return(trim(String(value ? value : "", value ? value_len : 0)).empty() ? 0 : 1);
+}
+
 size_t bearer_string_list(s32 operation, const char* input, size_t input_len, const char* argument, size_t argument_len, char* out, size_t cap)
 {
 	if(!out)

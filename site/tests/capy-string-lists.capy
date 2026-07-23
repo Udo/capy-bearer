@@ -1,3 +1,8 @@
+function observed(value : string, label : string) string {
+    print(label)
+    value
+}
+
 function CLI {
     {
         var parts := split("a,,b,", ",")
@@ -11,7 +16,9 @@ function CLI {
             dval_string(whole[0]), "|", dval_string(empty[0]), "|", dval_string(empty_empty[0]), "|",
             dval_string(unicode[0]), ":", dval_string(unicode[1]), "|",
             join(dval([]), ","), "|", join(dval(["one"]), ","), "|", join(dval({"0": "value"}), ","), "|",
-            join(split("x::y", "::"), "-"), "|", arc_live()
+            join(split("x::y", "::"), "-"), "|",
+            "[", first(), "]|[", first("", " \t\n", " keep ", "later"), "]|", first(clone(""), clone("chosen")), "|",
+            first(observed("", "e"), observed("pick", "p"), observed("later", "l")), "|", arc_live()
         )
     }
     print("|", arc_live())

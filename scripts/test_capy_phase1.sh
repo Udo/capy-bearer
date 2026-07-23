@@ -90,8 +90,9 @@ if compgen -G '/tmp/capy-files-phase-*' >/dev/null; then
 	exit 1
 fi
 [[ "$(scripts/bearer-cli /tests/capy-string-concat-only.capy)" == "ab|0" ]]
+[[ "$(scripts/bearer-cli /tests/capy-first-empty.capy)" == "[]|0" ]]
 string_list_output=$(scripts/bearer-cli /tests/capy-string-lists.capy)
-[[ "$string_list_output" == "a::b:|a,,b,|1|Capy|||Gr:ße||one|value|x-y|5|0" ]] || {
+[[ "$string_list_output" == "a::b:|a,,b,|1|Capy|||Gr:ße||one|value|x-y|[]|[ keep ]|chosen|eplpick|5|0" ]] || {
 	echo "Capy split/join/ARC mismatch: $string_list_output" >&2
 	exit 1
 }
