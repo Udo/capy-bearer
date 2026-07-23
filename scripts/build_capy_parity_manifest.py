@@ -25,6 +25,8 @@ PARTIAL = {
     "0_String": ("site/tests/capy-strings.capy", "left +"),
     "2_Request_set_status": ("site/tests/capy-request-context.capy", "response_status("),
     "component_render": ("site/tests/capy-component-props.capy", "component_render("),
+    "component_exists": ("site/tests/capy-component-props.capy", "component_exists("),
+    "component_resolve": ("site/tests/capy-component-props.capy", "component_resolve("),
     "unit_call": ("site/tests/capy-cross.capy", "unit_call("),
     "2_DValue_get_type_name": ("site/tests/capy-dval-rich.capy", "dval_bool("),
     "2_DValue_is_array": ("site/tests/capy-dval-rich.capy", "dval(["),

@@ -442,7 +442,7 @@ struct Module
 	bool request_context_ambient_ = false, request_context_explicit_ = false;
 	bool response_status_ = false, response_header_ = false;
 	bool string_substr_ = false, redirect_ = false;
-	std::set<std::string> request_mutators_, request_value_ops_, csrf_ops_, ws_ops_, string_ops_;
+	std::set<std::string> request_mutators_, request_value_ops_, csrf_ops_, ws_ops_, string_ops_, component_ops_;
 	std::vector<std::pair<std::string, Definition*>> custom_exports_;
 	bool use_retain_ = false, use_release_ = false, use_clone_ = false, use_arc_global_ = false;
 	std::vector<Location> markers_;
@@ -889,9 +889,9 @@ std::string FunctionLowerer::infer(Expr* value)
 		if (module_.has_struct(name->value))
 			return "struct:" + name->value;
 		if (name->value == "clone" || name->value == "substr" || name->value == "replace" || name->value == "lower" || name->value == "upper" ||
-			name->value == "component_capture" || name->value == "csrf_token" || name->value == "ws_message" || name->value == "ws_connection_id" ||
-			name->value == "ws_scope" || name->value == "request_param" || name->value == "request_get" || name->value == "request_post" ||
-			name->value == "request_cookie" || name->value == "request_session" || name->value == "request_body")
+			name->value == "component_capture" || name->value == "component_resolve" || name->value == "csrf_token" || name->value == "ws_message" ||
+			name->value == "ws_connection_id" || name->value == "ws_scope" || name->value == "request_param" || name->value == "request_get" ||
+			name->value == "request_post" || name->value == "request_cookie" || name->value == "request_session" || name->value == "request_body")
 			return "string";
 		if (name->value == "length")
 			return "s32";
@@ -914,8 +914,8 @@ std::string FunctionLowerer::infer(Expr* value)
 			return "string";
 		if (name->value == "dval_s32")
 			return "s32";
-		if (name->value == "dval_bool" || name->value == "csrf_valid" || name->value == "ws_is_binary" || name->value == "ws_send" ||
-			name->value == "ws_send_to" || name->value == "ws_close")
+		if (name->value == "dval_bool" || name->value == "csrf_valid" || name->value == "component_exists" || name->value == "ws_is_binary" ||
+			name->value == "ws_send" || name->value == "ws_send_to" || name->value == "ws_close")
 			return "bool";
 		if (name->value == "unit_call" || name->value == "request_context")
 			return "dval";
@@ -3263,6 +3263,70 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			wasm::append_uleb(code, pointer);
 			return {code, "dval"};
 		}
+		if (named->value == "component_exists" || named->value == "component_resolve")
+		{
+			if (call->arguments.size() != 1)
+				throw Error(value->location, named->value + " expects one string target");
+			auto [target, type] = expression(call->arguments[0]);
+			if (type != "string")
+				throw Error(call->arguments[0]->location, "expected string, found " + type);
+			const unsigned local = add_local("", "string", call->arguments[0]->location);
+			Bytes code = std::move(target);
+			code.push_back(0x21);
+			wasm::append_uleb(code, local);
+			auto input = [&]
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, local);
+				code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+				wasm::append_uleb(code, local);
+				code.insert(code.end(), {0x28, 0x02, 0x10});
+			};
+			input();
+			const std::string import = "bearer_" + named->value;
+			unsigned result = 0;
+			if (named->value == "component_exists")
+			{
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.import_index(import));
+				result = add_local("", "bool", value->location);
+				code.push_back(0x21);
+				wasm::append_uleb(code, result);
+			}
+			else
+			{
+				code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10});
+				wasm::append_uleb(code, module_.import_index(import));
+				const unsigned length = add_local("", "s32", value->location);
+				code.push_back(0x21);
+				wasm::append_uleb(code, length);
+				auto [allocation, pointer] = allocate_blob("string", 1, length, value->location);
+				append(code, allocation);
+				input();
+				code.push_back(0x20);
+				wasm::append_uleb(code, pointer);
+				code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+				wasm::append_uleb(code, length);
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.import_index(import));
+				code.push_back(0x20);
+				wasm::append_uleb(code, length);
+				code.insert(code.end(), {0x47, 0x04, 0x40});
+				append(code, module_.marker(value->location));
+				code.insert(code.end(), {0x00, 0x0b});
+				result = pointer;
+			}
+			if (expression_is_owned(call->arguments[0]))
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, local);
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.release_index());
+			}
+			code.push_back(0x20);
+			wasm::append_uleb(code, result);
+			return {code, named->value == "component_exists" ? "bool" : "string"};
+		}
 		if (named->value == "component_capture")
 		{
 			if (call->arguments.size() != 1 && call->arguments.size() != 2)
@@ -4269,10 +4333,24 @@ CompileResult Module::compile()
 		if (auto call = dynamic_cast<Call*>(e))
 			if (auto name = dynamic_cast<Name*>(call->function))
 			{
-				static const std::set<std::string> builtins{
-					"clone",		  "substr",			 "replace",			 "lower",	 "upper",		  "component_capture", "dval_string",
-					"csrf_token",	  "ws_message",		 "ws_connection_id", "ws_scope", "request_param", "request_get",	   "request_post",
-					"request_cookie", "request_session", "request_body"};
+				static const std::set<std::string> builtins{"clone",
+															"substr",
+															"replace",
+															"lower",
+															"upper",
+															"component_capture",
+															"component_resolve",
+															"dval_string",
+															"csrf_token",
+															"ws_message",
+															"ws_connection_id",
+															"ws_scope",
+															"request_param",
+															"request_get",
+															"request_post",
+															"request_cookie",
+															"request_session",
+															"request_body"};
 				if (builtins.contains(name->value))
 					return true;
 				for (const Definition& definition : definitions_)
@@ -4384,6 +4462,14 @@ CompileResult Module::compile()
 			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "unit_render")
 				unit_render_ = true;
+			if (auto n = dynamic_cast<Name*>(c->function); n && (n->value == "component_exists" || n->value == "component_resolve"))
+			{
+				component_ops_.insert(n->value);
+				if (n->value == "component_resolve")
+					scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
+			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "component_capture")
 			{
 				if (c->arguments.size() == 2)
@@ -4414,10 +4500,10 @@ CompileResult Module::compile()
 						bool string_result =
 							function && (function->value == "dval_string" || function->value == "clone" || function->value == "substr" ||
 										 function->value == "replace" || function->value == "lower" || function->value == "upper" ||
-										 function->value == "component_capture" || function->value == "csrf_token" || function->value == "ws_message" ||
-										 function->value == "ws_connection_id" || function->value == "ws_scope" || function->value == "request_param" ||
-										 function->value == "request_get" || function->value == "request_post" || function->value == "request_cookie" ||
-										 function->value == "request_session" || function->value == "request_body");
+										 function->value == "component_capture" || function->value == "component_resolve" || function->value == "csrf_token" ||
+										 function->value == "ws_message" || function->value == "ws_connection_id" || function->value == "ws_scope" ||
+										 function->value == "request_param" || function->value == "request_get" || function->value == "request_post" ||
+										 function->value == "request_cookie" || function->value == "request_session" || function->value == "request_body");
 						if (function)
 							for (const auto& d : definitions_)
 								if (d.function->name == function->value && d.result == "string")
@@ -4605,6 +4691,8 @@ CompileResult Module::compile()
 		imports_["bearer_string_substr"] = next++;
 	for (const std::string& name : string_ops_)
 		imports_["bearer_string_" + name] = next++;
+	for (const std::string& name : component_ops_)
+		imports_["bearer_" + name] = next++;
 	if (redirect_)
 		imports_["bearer_redirect"] = next++;
 	for (const std::string& name : request_mutators_)
@@ -4634,6 +4722,8 @@ CompileResult Module::compile()
 	unsigned component_props_type = component_render_props_ ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned component_capture_type = component_capture_ ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned component_capture_props_type = component_capture_props_ ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned component_exists_type = component_ops_.contains("component_exists") ? wasm_type({"s32", "s32"}, "s32") : 0;
+	unsigned component_resolve_type = component_ops_.contains("component_resolve") ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned scalar_type = scan_print_s32 ? wasm_type({"s32"}, "void") : 0;
 	unsigned alloc_type = (scan_alloc || scan_clone) ? wasm_type({"s32"}, "s32") : 0;
 	unsigned release_type = scan_release ? wasm_type({"s32"}, "void") : 0;
@@ -4704,6 +4794,8 @@ CompileResult Module::compile()
 			: name == "bearer_component_render_props_brrb"																  ? component_props_type
 			: name == "bearer_component_capture"																		  ? component_capture_type
 			: name == "bearer_component_capture_props_brrb"																  ? component_capture_props_type
+			: name == "bearer_component_exists"																			  ? component_exists_type
+			: name == "bearer_component_resolve"																		  ? component_resolve_type
 			: name == "bearer_alloc"																					  ? alloc_type
 			: name == "bearer_free"																						  ? release_type
 			: name == "bearer_dv_string_to_brrb" || name == "bearer_dv_brrb_to_string"									  ? blob_type

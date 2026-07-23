@@ -142,6 +142,7 @@ bool unit_compile(String path)
 
 static DValue wasm_unit_call_result;
 static String wasm_component_capture_result;
+static size_t bearer_copy_bytes(const String& value, char* out, size_t cap);
 static String wasm_unit_call_encoded_result;
 
 static DValue wasm_mysql_call(DValue request)
@@ -1051,6 +1052,16 @@ void bearer_print_s32(s32 value)
 void bearer_unit_render_bytes(const char* target, size_t target_len)
 {
 	unit_render(String(target ? target : "", target ? target_len : 0));
+}
+
+s32 bearer_component_exists(const char* target, size_t target_len)
+{
+	return(component_exists(String(target ? target : "", target ? target_len : 0)));
+}
+
+size_t bearer_component_resolve(const char* target, size_t target_len, char* out, size_t cap)
+{
+	return(bearer_copy_bytes(component_resolve(String(target ? target : "", target ? target_len : 0)), out, cap));
 }
 
 void bearer_component_render_bytes(const char* target, size_t target_len)

@@ -3,6 +3,7 @@ function RENDER {
     if request_get("trap") == "1" {
         component_capture("/tests/capy-request-context.capy:TRAP", request["get"])
     }
+    print(component_exists("/tests/capy-request-context.capy"), length(component_resolve("/tests/capy-request-context.capy")) > 0, "|")
     var captured := component_capture("/tests/capy-request-context.capy", request["get"])
     component_render("/tests/capy-request-context.capy", request["get"])
     print("|", captured, "|", arc_live())

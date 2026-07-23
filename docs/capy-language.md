@@ -171,7 +171,7 @@ Capy values never expose their object layout to C++. Dynamic cross-language valu
 
 ## Unit and component composition
 
-`unit_render(target)` renders another unit into the current output. `component_render(target)` uses the current component props; `component_render(target, props)` accepts an explicit copied `dval` map, preserving Bearer's nested props restoration and sibling isolation. `component_capture(target)` and `component_capture(target, props)` execute the component once into an owned string without leaking its bytes into the outer output. `unit_call(target, function, input)` performs a structured custom call and returns an owned `dval`. These calls cross Bearer adapters rather than sharing language object layouts.
+`component_exists(target)` checks Bearer resolution and `component_resolve(target)` returns the resolved source path. `unit_render(target)` renders another unit into the current output. `component_render(target)` uses the current component props; `component_render(target, props)` accepts an explicit copied `dval` map, preserving Bearer's nested props restoration and sibling isolation. `component_capture(target)` and `component_capture(target, props)` execute the component once into an owned string without leaking its bytes into the outer output. `unit_call(target, function, input)` performs a structured custom call and returns an owned `dval`. These calls cross Bearer adapters rather than sharing language object layouts.
 
 ## Structured DValues
 

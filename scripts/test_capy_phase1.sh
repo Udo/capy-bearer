@@ -79,7 +79,7 @@ request_component_output=$(scripts/bearer-cli /tests/capy-request-context-caller
 	exit 1
 }
 component_props_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=FromCapy')
-[[ "$component_props_output" == "FromCapy|1|FromCapy|1|2" ]] || {
+[[ "$component_props_output" == "11|FromCapy|1|FromCapy|1|2" ]] || {
 	echo "Capy component props dispatch mismatch: $component_props_output" >&2
 	exit 1
 }
@@ -87,7 +87,7 @@ component_trap_body=$(mktemp)
 component_trap_status=$(curl -sS --max-time 30 -o "$component_trap_body" -w '%{http_code}' -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=FromCapy&trap=1')
 [[ "$component_trap_status" == "500" ]] && ! grep -q 'must-not-leak' "$component_trap_body"
 rm -f "$component_trap_body"
-[[ "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=Recovered')" == "Recovered|1|Recovered|1|2" ]]
+[[ "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=Recovered')" == "11|Recovered|1|Recovered|1|2" ]]
 request_headers=$(mktemp)
 request_http_output=$(curl -fsS --max-time 30 -D "$request_headers" -H 'Host: bearer.openfu.com' -d 'answer=42' 'http://127.0.0.1/tests/capy-request-context.capy?name=Ada')
 [[ "$request_http_output" == "POST|Ada|42|answer=42|0" ]] || {
