@@ -9,6 +9,11 @@ ROOT = Path(__file__).resolve().parent.parent
 PAGES = ROOT / "site/doc/pages"
 
 SUPPORTED = {
+    "1_CLI": ("site/tests/capy-strings.capy", "function CLI"),
+    "1_RENDER": ("site/tests/capy-request-context.capy", "function RENDER"),
+    "1_COMPONENT": ("site/tests/capy-request-context.capy", "function COMPONENT"),
+    "1_WS": ("site/tests/capy-websocket.capy", "function WS"),
+    "1_SERVE_HTTP": ("site/tests/capy-serve-http.capy", "function SERVE_HTTP"),
     "print": ("site/tests/capy-phase1.capy", "print("),
     "unit_render": ("site/tests/capy-cross.capy", "unit_render("),
     "2_DValue_each": ("site/tests/capy-dval-rich.capy", "for key, value"),
@@ -19,7 +24,7 @@ PARTIAL = {
     "0_Request": ("site/tests/capy-request-context.capy", "request_context("),
     "0_String": ("site/tests/capy-strings.capy", "left +"),
     "2_Request_set_status": ("site/tests/capy-request-context.capy", "response_status("),
-    "component_render": ("site/examples/capy-reference/interop.capy", "component_render("),
+    "component_render": ("site/tests/capy-component-props.capy", "component_render("),
     "unit_call": ("site/tests/capy-cross.capy", "unit_call("),
     "2_DValue_get_type_name": ("site/tests/capy-dval-rich.capy", "dval_bool("),
     "2_DValue_is_array": ("site/tests/capy-dval-rich.capy", "dval(["),
@@ -30,6 +35,10 @@ PARTIAL = {
     "2_DValue_to_string": ("site/tests/capy-dval-rich.capy", "dval_string("),
     "2_DValue_values": ("site/tests/capy-dval-rich.capy", "for key, value"),
     "substr": ("site/tests/capy-strings.capy", "substr("),
+    "strpos": ("site/tests/capy-strings.capy", "find("),
+    "replace": ("site/tests/capy-strings.capy", "replace("),
+    "to_lower": ("site/tests/capy-strings.capy", "lower("),
+    "to_upper": ("site/tests/capy-strings.capy", "upper("),
     "redirect": ("site/tests/capy-redirect.capy", "redirect("),
     "session_start": ("site/tests/capy-session.capy", "session_start("),
     "session_destroy": ("site/tests/capy-session.capy", "session_destroy("),
@@ -79,7 +88,10 @@ def category(name: str) -> str:
 
 
 def checked_evidence(entries: dict[str, tuple[str, str]]) -> None:
-    runtime_driver = (ROOT / "scripts/test_capy_phase1.sh").read_text() + (ROOT / "scripts/test_capy_websocket.py").read_text()
+    runtime_driver = "".join(
+        (ROOT / path).read_text()
+        for path in ("scripts/test_capy_phase1.sh", "scripts/test_capy_websocket.py", "site/tests/capy-serve-http-caller.uce")
+    )
     for capability, (relative_path, marker) in entries.items():
         path = ROOT / relative_path
         if not path.is_file() or marker not in path.read_text():
@@ -91,10 +103,10 @@ def checked_evidence(entries: dict[str, tuple[str, str]]) -> None:
 def classify(name: str) -> tuple[str, str]:
     if name in CPP_SPECIFIC:
         return "cpp-specific", "No Capy runtime equivalent required."
-    if name.startswith("1_"):
-        return "export-only", "Capy emits the handler export; lifecycle behavior still needs parity acceptance."
     if name in SUPPORTED:
         return "supported", f"Runtime evidence: `{SUPPORTED[name][0]}`."
+    if name.startswith("1_"):
+        return "export-only", "Capy emits the handler export; lifecycle behavior still needs parity acceptance."
     if name in PARTIAL:
         return "partial", f"Partial runtime evidence: `{PARTIAL[name][0]}`; the documented convenience API remains incomplete."
     return "missing", "No native Capy binding in the checked compiler surface."

@@ -10,6 +10,11 @@ function COMPONENT {
     print(dval_string(request["props"]["name"]), "|", arc_live())
 }
 
+function COMPONENT_TRAP {
+    print("must-not-leak")
+    trap()
+}
+
 function COMPONENT_HANDLE (request : request) {
     var snapshot := request_context(request)
     if length(dval_string(snapshot["current_unit"])) > 0 {

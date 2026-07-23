@@ -69,7 +69,7 @@ var pair := (10, 20)
 
 ## Strings
 
-Strings support byte-preserving concatenation with `+`, byte equality with `==`/`!=`, `length(value)` for strings, markup, and arrays, and C++-compatible `substr(string, start, length)`. Negative substring starts count from the end; a negative length excludes bytes from the end. Concatenation and substring return ARC-managed strings.
+Strings support byte-preserving concatenation with `+`, byte equality with `==`/`!=`, `length(value)` for strings, markup, and arrays, and C++-compatible `substr(string, start, length)`. Negative substring starts count from the end; a negative length excludes bytes from the end. `find(value, needle)` returns a byte offset or `-1`; `replace(value, from, to)` replaces all non-overlapping matches; `lower(value)` and `upper(value)` use Bearer's established byte-oriented case conversion. String-producing operations return ARC-managed strings.
 
 ## Markup values
 
@@ -105,6 +105,10 @@ function RENDER {
     print(dval_string(request["get"]["name"]))
 }
 ```
+
+## Handler lifecycle
+
+`CLI`, `RENDER`, `COMPONENT` (including named handlers), `WS`, and `SERVE_HTTP` execute through the same Bearer selection and request-workspace path as `.uce`. Runtime acceptance covers direct CLI/HTTP, nested components, RFC 6455 text/binary dispatch, and a C++-started HTTP service targeting a Capy `SERVE_HTTP` handler. `ONCE` and `INIT` exports exist, but their ordering/dedup and automatic INIT contract remain unresolved rather than receiving Capy-only behavior.
 
 ## WebSockets
 
@@ -164,6 +168,10 @@ Rules:
 Current managed-value lowering imports Bearer’s workspace allocator/free functions and emits private retain, release, clone, and type-directed drop helpers into each Capy module. Allocation failure traps before any header or payload write. Literal strings are aligned immortal objects. Managed parameters are borrowed and cannot be rebound; managed results are owned; assignments retain-before-release; owned argument temporaries are released after calls; and every supported normal lexical/early-return edge emits cleanup. Arrays use `[T]` in type slots, bounds-check indexing, support array iteration, and currently accept scalar or string elements. Nominal structs use declaration-order constructors and checked member names. String-array and struct drop glue recursively releases managed fields before freeing the aggregate. `arc_live()` is a temporary conformance counter; trapping requests intentionally skip releases and prove that the next workspace starts clean.
 
 Capy values never expose their object layout to C++. Dynamic cross-language values use owned/copied DValue/BRRB adapters at the Bearer membrane.
+
+## Unit and component composition
+
+`unit_render(target)` renders another unit into the current output. `component_render(target)` uses the current component props; `component_render(target, props)` accepts an explicit copied `dval` map, preserving Bearer's nested props restoration and sibling isolation. `component_capture(target)` and `component_capture(target, props)` execute the component once into an owned string without leaking its bytes into the outer output. `unit_call(target, function, input)` performs a structured custom call and returns an owned `dval`. These calls cross Bearer adapters rather than sharing language object layouts.
 
 ## Structured DValues
 

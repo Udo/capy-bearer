@@ -39,7 +39,7 @@ dval_return_output=$(scripts/bearer-cli /tests/capy-dval-return.capy)
 }
 [[ "$(scripts/bearer-cli /tests/capy-string-concat-only.capy)" == "ab|0" ]]
 string_output=$(scripts/bearer-cli /tests/capy-strings.capy)
-[[ "$string_output" == "Capy Bearer|11|11|Bearer|Bearer|Capy|3|3|0" ]] || {
+[[ "$string_output" == "Capy Bearer|11|11|Bearer|Bearer|Capy|5:-1|Capy Runtime|capy bearer|CAPY BEARER|3|3|0" ]] || {
 	echo "Capy string operations/ARC mismatch: $string_output" >&2
 	exit 1
 }
@@ -78,6 +78,16 @@ request_component_output=$(scripts/bearer-cli /tests/capy-request-context-caller
 	echo "Capy request props snapshot mismatch: $request_component_output" >&2
 	exit 1
 }
+component_props_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=FromCapy')
+[[ "$component_props_output" == "FromCapy|1|FromCapy|1|2" ]] || {
+	echo "Capy component props dispatch mismatch: $component_props_output" >&2
+	exit 1
+}
+component_trap_body=$(mktemp)
+component_trap_status=$(curl -sS --max-time 30 -o "$component_trap_body" -w '%{http_code}' -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=FromCapy&trap=1')
+[[ "$component_trap_status" == "500" ]] && ! grep -q 'must-not-leak' "$component_trap_body"
+rm -f "$component_trap_body"
+[[ "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=Recovered')" == "Recovered|1|Recovered|1|2" ]]
 request_headers=$(mktemp)
 request_http_output=$(curl -fsS --max-time 30 -D "$request_headers" -H 'Host: bearer.openfu.com' -d 'answer=42' 'http://127.0.0.1/tests/capy-request-context.capy?name=Ada')
 [[ "$request_http_output" == "POST|Ada|42|answer=42|0" ]] || {
@@ -149,6 +159,7 @@ csrf_rotated=$(curl -fsS --max-time 30 -c "$csrf_jar" -b "$csrf_jar" -H 'Host: b
 [[ "$(curl -fsS --max-time 30 -c "$csrf_jar" -b "$csrf_jar" -H 'Host: bearer.openfu.com' "http://127.0.0.1/tests/capy-csrf.capy?action=valid&submitted=$csrf_rotated")" == "1" ]]
 rm -f "$csrf_jar"
 python3 scripts/test_capy_websocket.py >/dev/null
+[[ "$(scripts/bearer-cli /tests/capy-serve-http-caller.uce)" == "serve-ok" ]]
 rich_dval_output=$(scripts/bearer-cli /tests/capy-dval-rich.capy)
 [[ "$rich_dval_output" == "cpp|Ada|9|custom-once;capy|capy|Ada|42|1|logic|10|3|active;age;name;tags;|0=math;1=logic;|2;|3|0|00|2|0" ]] || {
 	echo "Capy rich DValue output mismatch: $rich_dval_output" >&2

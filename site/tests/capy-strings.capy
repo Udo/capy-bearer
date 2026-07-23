@@ -9,6 +9,9 @@ function CLI {
             substr(joined, 5, 6), "|",
             substr(joined, -6, 6), "|",
             substr(joined, 0, -7), "|",
+            find(joined, "Bearer"), ":", find(joined, "missing"), "|",
+            replace(joined, "Bearer", "Runtime"), "|",
+            lower(joined), "|", upper(joined), "|",
             length([1, 2, 3]), "|", arc_live()
         )
     }

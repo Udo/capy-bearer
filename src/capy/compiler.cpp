@@ -437,11 +437,12 @@ struct Module
 	std::map<std::string, unsigned> helpers_;
 	Bytes data_;
 	bool print_bytes_ = false, print_s32_ = false, alloc_ = false;
-	bool unit_render_ = false, component_render_ = false, dval_ = false, unit_call_ = false;
+	bool unit_render_ = false, component_render_ = false, component_render_props_ = false, component_capture_ = false, component_capture_props_ = false;
+	bool dval_ = false, unit_call_ = false;
 	bool request_context_ambient_ = false, request_context_explicit_ = false;
 	bool response_status_ = false, response_header_ = false;
 	bool string_substr_ = false, redirect_ = false;
-	std::set<std::string> request_mutators_, request_value_ops_, csrf_ops_, ws_ops_;
+	std::set<std::string> request_mutators_, request_value_ops_, csrf_ops_, ws_ops_, string_ops_;
 	std::vector<std::pair<std::string, Definition*>> custom_exports_;
 	bool use_retain_ = false, use_release_ = false, use_clone_ = false, use_arc_global_ = false;
 	std::vector<Location> markers_;
@@ -887,9 +888,10 @@ std::string FunctionLowerer::infer(Expr* value)
 			}
 		if (module_.has_struct(name->value))
 			return "struct:" + name->value;
-		if (name->value == "clone" || name->value == "substr" || name->value == "csrf_token" || name->value == "ws_message" ||
-			name->value == "ws_connection_id" || name->value == "ws_scope" || name->value == "request_param" || name->value == "request_get" ||
-			name->value == "request_post" || name->value == "request_cookie" || name->value == "request_session" || name->value == "request_body")
+		if (name->value == "clone" || name->value == "substr" || name->value == "replace" || name->value == "lower" || name->value == "upper" ||
+			name->value == "component_capture" || name->value == "csrf_token" || name->value == "ws_message" || name->value == "ws_connection_id" ||
+			name->value == "ws_scope" || name->value == "request_param" || name->value == "request_get" || name->value == "request_post" ||
+			name->value == "request_cookie" || name->value == "request_session" || name->value == "request_body")
 			return "string";
 		if (name->value == "length")
 			return "s32";
@@ -921,7 +923,7 @@ std::string FunctionLowerer::infer(Expr* value)
 			name->value == "session_start" || name->value == "session_set" || name->value == "session_remove" || name->value == "session_destroy" ||
 			name->value == "response_cookie" || name->value == "redirect" || name->value == "csrf_rotate")
 			return "void";
-		if (name->value == "arc_live" || name->value == "ws_opcode")
+		if (name->value == "arc_live" || name->value == "ws_opcode" || name->value == "find")
 			return "s32";
 		if (name->value == "print" || name->value == "trap")
 			return "void";
@@ -1166,7 +1168,7 @@ std::pair<Bytes, unsigned> FunctionLowerer::allocate_blob(const std::string& typ
 	Bytes code{0x20};
 	wasm::append_uleb(code, length);
 	code.push_back(0x41);
-	wasm::append_sleb32(code, -21);
+	wasm::append_sleb32(code, std::numeric_limits<std::int32_t>::max() - 20);
 	code.insert(code.end(), {0x4b, 0x04, 0x40});
 	append(code, module_.marker(location));
 	code.insert(code.end(), {0x00, 0x0b, 0x20});
@@ -2593,6 +2595,81 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			wasm::append_uleb(code, pointer);
 			return {code, type};
 		}
+		if (named->value == "find" || named->value == "replace" || named->value == "lower" || named->value == "upper")
+		{
+			const std::size_t count = named->value == "replace" ? 3 : named->value == "find" ? 2 : 1;
+			if (call->arguments.size() != count)
+				throw Error(value->location, named->value + " expects " + std::to_string(count) + " string arguments");
+			Bytes code;
+			std::vector<unsigned> arguments;
+			for (Expr* argument : call->arguments)
+			{
+				auto [part, type] = expression(argument);
+				if (type != "string")
+					throw Error(argument->location, "expected string, found " + type);
+				const unsigned local = add_local("", "string", argument->location);
+				append(code, part);
+				code.push_back(0x21);
+				wasm::append_uleb(code, local);
+				arguments.push_back(local);
+			}
+			auto inputs = [&]
+			{
+				for (unsigned local : arguments)
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, local);
+					code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+					wasm::append_uleb(code, local);
+					code.insert(code.end(), {0x28, 0x02, 0x10});
+				}
+			};
+			inputs();
+			const std::string import = "bearer_string_" + named->value;
+			unsigned result = 0;
+			if (named->value == "find")
+			{
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.import_index(import));
+				result = add_local("", "s32", value->location);
+				code.push_back(0x21);
+				wasm::append_uleb(code, result);
+			}
+			else
+			{
+				code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10});
+				wasm::append_uleb(code, module_.import_index(import));
+				const unsigned length = add_local("", "s32", value->location);
+				code.push_back(0x21);
+				wasm::append_uleb(code, length);
+				auto [allocation, pointer] = allocate_blob("string", 1, length, value->location);
+				append(code, allocation);
+				inputs();
+				code.push_back(0x20);
+				wasm::append_uleb(code, pointer);
+				code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+				wasm::append_uleb(code, length);
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.import_index(import));
+				code.push_back(0x20);
+				wasm::append_uleb(code, length);
+				code.insert(code.end(), {0x47, 0x04, 0x40});
+				append(code, module_.marker(value->location));
+				code.insert(code.end(), {0x00, 0x0b});
+				result = pointer;
+			}
+			for (std::size_t index = 0; index < arguments.size(); ++index)
+				if (expression_is_owned(call->arguments[index]))
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, arguments[index]);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.release_index());
+				}
+			code.push_back(0x20);
+			wasm::append_uleb(code, result);
+			return {code, named->value == "find" ? "s32" : "string"};
+		}
 		if (named->value == "request_param" || named->value == "request_get" || named->value == "request_post" || named->value == "request_cookie" ||
 			named->value == "request_session" || named->value == "request_body")
 		{
@@ -3186,33 +3263,119 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			wasm::append_uleb(code, pointer);
 			return {code, "dval"};
 		}
+		if (named->value == "component_capture")
+		{
+			if (call->arguments.size() != 1 && call->arguments.size() != 2)
+				throw Error(value->location, "component_capture expects a string target and optional dval props");
+			Bytes code;
+			std::vector<unsigned> locals;
+			for (std::size_t index = 0; index < call->arguments.size(); ++index)
+			{
+				auto [part, type] = expression(call->arguments[index]);
+				const std::string expected = index == 0 ? "string" : "dval";
+				if (type != expected)
+					throw Error(call->arguments[index]->location, "expected " + expected + ", found " + type);
+				const unsigned local = add_local("", expected, call->arguments[index]->location);
+				append(code, part);
+				code.push_back(0x21);
+				wasm::append_uleb(code, local);
+				locals.push_back(local);
+			}
+			auto inputs = [&]
+			{
+				for (unsigned local : locals)
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, local);
+					code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+					wasm::append_uleb(code, local);
+					code.insert(code.end(), {0x28, 0x02, 0x10});
+				}
+			};
+			const char* import = locals.size() == 1 ? "bearer_component_capture" : "bearer_component_capture_props_brrb";
+			inputs();
+			code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10});
+			wasm::append_uleb(code, module_.import_index(import));
+			const unsigned length = add_local("", "s32", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, length);
+			auto [allocation, pointer] = allocate_blob("string", 1, length, value->location);
+			append(code, allocation);
+			inputs();
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+			wasm::append_uleb(code, length);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index(import));
+			code.push_back(0x20);
+			wasm::append_uleb(code, length);
+			code.insert(code.end(), {0x47, 0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b});
+			for (std::size_t index = locals.size(); index-- > 0;)
+				if (expression_is_owned(call->arguments[index]))
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, locals[index]);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.release_index());
+				}
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			return {code, "string"};
+		}
 		if (named->value == "unit_render" || named->value == "component_render")
 		{
-			if (call->arguments.size() != 1)
-				throw Error(value->location, named->value + " expects one string target");
+			const bool props_call = named->value == "component_render" && call->arguments.size() == 2;
+			if ((!props_call && call->arguments.size() != 1) || (named->value == "unit_render" && props_call))
+				throw Error(value->location,
+							named->value + " expects a string target" + (named->value == "component_render" ? " and optional dval props" : ""));
 			auto [target, type] = expression(call->arguments[0]);
 			if (type != "string")
 				throw Error(call->arguments[0]->location, "expected string, found " + type);
-			const unsigned temporary = add_local("", "string", call->arguments[0]->location);
+			const unsigned target_local = add_local("", "string", call->arguments[0]->location);
 			Bytes code = std::move(target);
 			code.push_back(0x21);
-			wasm::append_uleb(code, temporary);
-			code.push_back(0x20);
-			wasm::append_uleb(code, temporary);
-			code.insert(code.end(), {0x41, 0x14, 0x6a});
-			code.push_back(0x20);
-			wasm::append_uleb(code, temporary);
-			code.insert(code.end(), {0x28, 0x02, 0x10});
-			const char* import = named->value == "unit_render" ? "bearer_unit_render_bytes" : "bearer_component_render_bytes";
-			code.push_back(0x10);
-			wasm::append_uleb(code, module_.import_index(import));
-			if (expression_is_owned(call->arguments[0]))
+			wasm::append_uleb(code, target_local);
+			unsigned props_local = 0;
+			if (props_call)
+			{
+				auto [props, props_type] = expression(call->arguments[1]);
+				if (props_type != "dval")
+					throw Error(call->arguments[1]->location, "expected dval, found " + props_type);
+				props_local = add_local("", "dval", call->arguments[1]->location);
+				append(code, props);
+				code.push_back(0x21);
+				wasm::append_uleb(code, props_local);
+			}
+			for (unsigned local : props_call ? std::vector<unsigned>{target_local, props_local} : std::vector<unsigned>{target_local})
 			{
 				code.push_back(0x20);
-				wasm::append_uleb(code, temporary);
-				code.push_back(0x10);
-				wasm::append_uleb(code, module_.release_index());
+				wasm::append_uleb(code, local);
+				code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+				wasm::append_uleb(code, local);
+				code.insert(code.end(), {0x28, 0x02, 0x10});
 			}
+			const char* import = named->value == "unit_render" ? "bearer_unit_render_bytes"
+								 : props_call				   ? "bearer_component_render_props_brrb"
+															   : "bearer_component_render_bytes";
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index(import));
+			if (props_call)
+			{
+				code.insert(code.end(), {0x45, 0x04, 0x40});
+				append(code, module_.marker(value->location));
+				code.insert(code.end(), {0x00, 0x0b});
+			}
+			for (std::size_t index = call->arguments.size(); index-- > 0;)
+				if (expression_is_owned(call->arguments[index]))
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, index == 0 ? target_local : props_local);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.release_index());
+				}
 			return {code, "void"};
 		}
 		if (named->value == "clone")
@@ -4106,9 +4269,10 @@ CompileResult Module::compile()
 		if (auto call = dynamic_cast<Call*>(e))
 			if (auto name = dynamic_cast<Name*>(call->function))
 			{
-				static const std::set<std::string> builtins{"clone",	   "substr",		"dval_string", "csrf_token",   "ws_message",	 "ws_connection_id",
-															"ws_scope",	   "request_param", "request_get", "request_post", "request_cookie", "request_session",
-															"request_body"};
+				static const std::set<std::string> builtins{
+					"clone",		  "substr",			 "replace",			 "lower",	 "upper",		  "component_capture", "dval_string",
+					"csrf_token",	  "ws_message",		 "ws_connection_id", "ws_scope", "request_param", "request_get",	   "request_post",
+					"request_cookie", "request_session", "request_body"};
 				if (builtins.contains(name->value))
 					return true;
 				for (const Definition& definition : definitions_)
@@ -4176,6 +4340,14 @@ CompileResult Module::compile()
 				scan_retain = true;
 				scan_release = true;
 			}
+			if (auto n = dynamic_cast<Name*>(c->function); n && (n->value == "find" || n->value == "replace" || n->value == "lower" || n->value == "upper"))
+			{
+				string_ops_.insert(n->value);
+				if (n->value != "find")
+					scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
+			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "substr")
 			{
 				string_substr_ = true;
@@ -4212,8 +4384,23 @@ CompileResult Module::compile()
 			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "unit_render")
 				unit_render_ = true;
+			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "component_capture")
+			{
+				if (c->arguments.size() == 2)
+					component_capture_props_ = true;
+				else
+					component_capture_ = true;
+				scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
+			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "component_render")
-				component_render_ = true;
+			{
+				if (c->arguments.size() == 2)
+					component_render_props_ = true;
+				else
+					component_render_ = true;
+			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "arc_live")
 				scan_arc_live = true;
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "print")
@@ -4225,11 +4412,12 @@ CompileResult Module::compile()
 					{
 						auto function = dynamic_cast<Name*>(called->function);
 						bool string_result =
-							function &&
-							(function->value == "dval_string" || function->value == "clone" || function->value == "substr" || function->value == "csrf_token" ||
-							 function->value == "ws_message" || function->value == "ws_connection_id" || function->value == "ws_scope" ||
-							 function->value == "request_param" || function->value == "request_get" || function->value == "request_post" ||
-							 function->value == "request_cookie" || function->value == "request_session" || function->value == "request_body");
+							function && (function->value == "dval_string" || function->value == "clone" || function->value == "substr" ||
+										 function->value == "replace" || function->value == "lower" || function->value == "upper" ||
+										 function->value == "component_capture" || function->value == "csrf_token" || function->value == "ws_message" ||
+										 function->value == "ws_connection_id" || function->value == "ws_scope" || function->value == "request_param" ||
+										 function->value == "request_get" || function->value == "request_post" || function->value == "request_cookie" ||
+										 function->value == "request_session" || function->value == "request_body");
 						if (function)
 							for (const auto& d : definitions_)
 								if (d.function->name == function->value && d.result == "string")
@@ -4387,6 +4575,12 @@ CompileResult Module::compile()
 		imports_["bearer_unit_render_bytes"] = next++;
 	if (component_render_)
 		imports_["bearer_component_render_bytes"] = next++;
+	if (component_render_props_)
+		imports_["bearer_component_render_props_brrb"] = next++;
+	if (component_capture_)
+		imports_["bearer_component_capture"] = next++;
+	if (component_capture_props_)
+		imports_["bearer_component_capture_props_brrb"] = next++;
 	if (dval_)
 		for (const char* name : {"bearer_dv_string_to_brrb", "bearer_dv_s32_to_brrb", "bearer_dv_bool_to_brrb", "bearer_dv_build_brrb", "bearer_dv_get_brrb",
 								 "bearer_dv_count_brrb", "bearer_dv_entry_key_brrb", "bearer_dv_entry_value_brrb", "bearer_dv_scalar_type_brrb",
@@ -4409,6 +4603,8 @@ CompileResult Module::compile()
 		imports_["bearer_response_set_header"] = next++;
 	if (string_substr_)
 		imports_["bearer_string_substr"] = next++;
+	for (const std::string& name : string_ops_)
+		imports_["bearer_string_" + name] = next++;
 	if (redirect_)
 		imports_["bearer_redirect"] = next++;
 	for (const std::string& name : request_mutators_)
@@ -4434,7 +4630,10 @@ CompileResult Module::compile()
 		d.type = wasm_type(d.exported.empty() ? d.parameters : std::vector<std::string>{"request"}, d.result);
 	}
 	// Ensure import signatures precede user types and lower after indexes are stable.
-	unsigned bytes_type = scan_print_bytes ? wasm_type({"s32", "s32"}, "void") : 0;
+	unsigned bytes_type = (scan_print_bytes || unit_render_ || component_render_) ? wasm_type({"s32", "s32"}, "void") : 0;
+	unsigned component_props_type = component_render_props_ ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned component_capture_type = component_capture_ ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned component_capture_props_type = component_capture_props_ ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned scalar_type = scan_print_s32 ? wasm_type({"s32"}, "void") : 0;
 	unsigned alloc_type = (scan_alloc || scan_clone) ? wasm_type({"s32"}, "s32") : 0;
 	unsigned release_type = scan_release ? wasm_type({"s32"}, "void") : 0;
@@ -4449,6 +4648,9 @@ CompileResult Module::compile()
 	unsigned response_status_type = response_status_ ? wasm_type({"s32"}, "s32") : 0;
 	unsigned response_header_type = response_header_ ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned string_substr_type = string_substr_ ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned string_find_type = string_ops_.contains("find") ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned string_case_type = (string_ops_.contains("lower") || string_ops_.contains("upper")) ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned string_replace_type = string_ops_.contains("replace") ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned request_one_string_type = !request_mutators_.empty() ? wasm_type({"s32", "s32"}, "s32") : 0;
 	unsigned request_two_string_type = !request_mutators_.empty() ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned redirect_type = redirect_ ? wasm_type({"s32", "s32", "s32"}, "s32") : 0;
@@ -4499,6 +4701,9 @@ CompileResult Module::compile()
 		imports.push_back(0);
 		const unsigned type =
 			name == "bearer_print_bytes" || name == "bearer_unit_render_bytes" || name == "bearer_component_render_bytes" ? bytes_type
+			: name == "bearer_component_render_props_brrb"																  ? component_props_type
+			: name == "bearer_component_capture"																		  ? component_capture_type
+			: name == "bearer_component_capture_props_brrb"																  ? component_capture_props_type
 			: name == "bearer_alloc"																					  ? alloc_type
 			: name == "bearer_free"																						  ? release_type
 			: name == "bearer_dv_string_to_brrb" || name == "bearer_dv_brrb_to_string"									  ? blob_type
@@ -4516,6 +4721,9 @@ CompileResult Module::compile()
 			: name == "bearer_response_set_status"																	? response_status_type
 			: name == "bearer_response_set_header"																	? response_header_type
 			: name == "bearer_string_substr"																		? string_substr_type
+			: name == "bearer_string_find"																			? string_find_type
+			: name == "bearer_string_lower" || name == "bearer_string_upper"										? string_case_type
+			: name == "bearer_string_replace"																		? string_replace_type
 			: name == "bearer_redirect"																				? redirect_type
 			: name == "bearer_session_start" || name == "bearer_session_remove" || name == "bearer_session_destroy" ? request_one_string_type
 			: name == "bearer_session_set" || name == "bearer_response_cookie"										? request_two_string_type

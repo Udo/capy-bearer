@@ -1,0 +1,3 @@
+function SERVE_HTTP {
+    print("capy-serve-http|", request_get("alpha"))
+}

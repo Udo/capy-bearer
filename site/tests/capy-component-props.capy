@@ -1,0 +1,9 @@
+function RENDER {
+    var request := request_context()
+    if request_get("trap") == "1" {
+        component_capture("/tests/capy-request-context.capy:TRAP", request["get"])
+    }
+    var captured := component_capture("/tests/capy-request-context.capy", request["get"])
+    component_render("/tests/capy-request-context.capy", request["get"])
+    print("|", captured, "|", arc_live())
+}

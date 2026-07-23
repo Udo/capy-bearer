@@ -1,0 +1,26 @@
+CLI(Request& context)
+{
+    (void)context;
+    pid_t pid = server_start_http("capy-serve-http-test", "19092", "capy-serve-http.capy", "");
+    usleep(500000);
+    u64 socket = socket_connect("127.0.0.1", 19092);
+    String response;
+    bool wrote = socket != 0 && socket_write(socket, "GET /?alpha=wide HTTP/1.0\r\nHost: localhost\r\n\r\n");
+    if(socket != 0)
+    {
+        for(u64 index = 0; index < 4; index++)
+        {
+            String chunk = socket_read(socket, 4096, 2);
+            if(chunk == "") break;
+            response += chunk;
+        }
+        socket_close(socket);
+    }
+    bool stopped = server_stop("capy-serve-http-test");
+    usleep(200000);
+    u64 stopped_socket = socket_connect("127.0.0.1", 19092);
+    bool listener_closed = stopped_socket == 0;
+    if(stopped_socket != 0) socket_close(stopped_socket);
+    bool passed = pid != 0 && wrote && response.find("HTTP/1.1 200 OK") != String::npos && response.find("capy-serve-http|wide") != String::npos && response.find("\r\nHTTP/1.1 ") == String::npos && stopped && listener_closed;
+    print(passed ? "serve-ok" : "serve-failed|pid=" + std::to_string(pid) + "|wrote=" + std::to_string(wrote) + "|stopped=" + std::to_string(stopped) + "|response=" + response);
+}

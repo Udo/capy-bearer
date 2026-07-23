@@ -141,6 +141,7 @@ bool unit_compile(String path)
 }
 
 static DValue wasm_unit_call_result;
+static String wasm_component_capture_result;
 static String wasm_unit_call_encoded_result;
 
 static DValue wasm_mysql_call(DValue request)
@@ -881,6 +882,7 @@ void bearer_wasm_core_reset_request()
 	wasm_component_paths.clear();
 	wasm_component_errors.clear();
 	wasm_unit_call_encoded_result.clear();
+	wasm_component_capture_result.clear();
 }
 
 // Host pushes the worker-cached immutable configuration followed by the
@@ -1056,6 +1058,61 @@ void bearer_component_render_bytes(const char* target, size_t target_len)
 	component_render(String(target ? target : "", target ? target_len : 0));
 }
 
+s32 bearer_component_render_props_brrb(const char* target, size_t target_len, const char* props, size_t props_len)
+{
+	DValue value;
+	String error;
+	if(!props || !brb_decode(String(props, props_len), value, &error))
+		return(0);
+	component_render(String(target ? target : "", target ? target_len : 0), value);
+	return(1);
+}
+
+static size_t bearer_component_capture_impl(const char* target, size_t target_len, const char* props, size_t props_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		ob_start();
+		if(props)
+		{
+			DValue value;
+			String error;
+			if(!brb_decode(String(props, props_len), value, &error))
+			{
+				ob_get_close();
+				return(0);
+			}
+			component_render(String(target ? target : "", target ? target_len : 0), value);
+		}
+		else
+			component_render(String(target ? target : "", target ? target_len : 0));
+		wasm_component_capture_result = ob_get_close();
+		if(wasm_component_capture_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
+		{
+			wasm_component_capture_result.clear();
+			return(std::numeric_limits<size_t>::max());
+		}
+		return(wasm_component_capture_result.size());
+	}
+	if(cap < wasm_component_capture_result.size())
+		return(wasm_component_capture_result.size());
+	if(!wasm_component_capture_result.empty())
+		memcpy(out, wasm_component_capture_result.data(), wasm_component_capture_result.size());
+	size_t size = wasm_component_capture_result.size();
+	wasm_component_capture_result.clear();
+	return(size);
+}
+
+size_t bearer_component_capture(const char* target, size_t target_len, char* out, size_t cap)
+{
+	return(bearer_component_capture_impl(target, target_len, 0, 0, out, cap));
+}
+
+size_t bearer_component_capture_props_brrb(const char* target, size_t target_len, const char* props, size_t props_len, char* out, size_t cap)
+{
+	return(bearer_component_capture_impl(target, target_len, props, props_len, out, cap));
+}
+
 size_t bearer_dv_string_to_brrb(const char* value, size_t value_len, char* out, size_t cap)
 {
 	DValue encoded_value;
@@ -1097,6 +1154,44 @@ static size_t bearer_copy_bytes(const String& value, char* out, size_t cap)
 	if(out && cap >= value.size())
 		memcpy(out, value.data(), value.size());
 	return(value.size());
+}
+
+s32 bearer_string_find(const char* value, size_t value_len, const char* needle, size_t needle_len)
+{
+	size_t found = String(value ? value : "", value ? value_len : 0).find(String(needle ? needle : "", needle ? needle_len : 0));
+	return(found == String::npos || found > (size_t)std::numeric_limits<s32>::max() ? -1 : (s32)found);
+}
+
+size_t bearer_string_replace(const char* value, size_t value_len, const char* from, size_t from_len, const char* to, size_t to_len, char* out, size_t cap)
+{
+	String result(value ? value : "", value ? value_len : 0);
+	String source(from ? from : "", from ? from_len : 0), replacement(to ? to : "", to ? to_len : 0);
+	if(!source.empty())
+	{
+		size_t position = 0;
+		while((position = result.find(source, position)) != String::npos)
+		{
+			if(replacement.size() > source.size())
+			{
+				size_t growth = replacement.size() - source.size(), limit = (size_t)std::numeric_limits<s32>::max() - 20;
+				if(growth > limit || result.size() > limit - growth)
+					return(std::numeric_limits<size_t>::max());
+			}
+			result.replace(position, source.size(), replacement);
+			position += replacement.size();
+		}
+	}
+	return(bearer_copy_bytes(result, out, cap));
+}
+
+size_t bearer_string_lower(const char* value, size_t value_len, char* out, size_t cap)
+{
+	return(bearer_copy_bytes(to_lower(String(value ? value : "", value ? value_len : 0)), out, cap));
+}
+
+size_t bearer_string_upper(const char* value, size_t value_len, char* out, size_t cap)
+{
+	return(bearer_copy_bytes(to_upper(String(value ? value : "", value ? value_len : 0)), out, cap));
 }
 
 size_t bearer_string_substr(const char* value, size_t value_len, s32 start, s32 length, char* out, size_t cap)
