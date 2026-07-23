@@ -107,6 +107,20 @@ int main()
 		assert(encoded == test.second);
 	}
 
+	for (const auto& test : std::initializer_list<std::pair<std::int64_t, Bytes>>{
+			 {0, bytes({0})},
+			 {-1, bytes({0x7f})},
+			 {std::numeric_limits<std::int64_t>::max(), bytes({0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0})},
+			 {std::numeric_limits<std::int64_t>::min(), bytes({0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x7f})}})
+	{
+		Bytes wide;
+		capy::wasm::append_sleb64(wide, test.first);
+		assert(wide == test.second);
+	}
+	Bytes floating;
+	capy::wasm::append_f64(floating, 1.0);
+	expect(floating, {0, 0, 0, 0, 0, 0, 0xf0, 0x3f});
+
 	Bytes encoded;
 	capy::wasm::append_string(encoded, "x");
 	capy::wasm::append_vector(encoded, std::vector<Bytes>{bytes({1}), bytes({2, 3})});

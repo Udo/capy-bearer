@@ -47,6 +47,51 @@ bool is_alnum(unsigned value)
 	return is_alpha(value) || is_digit(value);
 }
 
+std::uint64_t parse_unsigned_integer(const Token& token)
+{
+	try
+	{
+		return std::stoull(token.text.substr(0, token.text.size() - 3));
+	}
+	catch (const std::exception&)
+	{
+		throw Error(token.location, "integer literal is outside the u64 range");
+	}
+}
+
+std::int64_t parse_signed_integer(const Token& token, bool negative = false)
+{
+	std::uint64_t magnitude;
+	try
+	{
+		magnitude = std::stoull(token.text.substr(0, token.text.size() - 3));
+	}
+	catch (const std::exception&)
+	{
+		throw Error(token.location, "integer literal is outside the s64 range");
+	}
+	const std::uint64_t limit = negative ? std::uint64_t{1} << 63 : static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max());
+	if (magnitude > limit)
+		throw Error(token.location, "integer literal is outside the s64 range");
+	if (!negative)
+		return static_cast<std::int64_t>(magnitude);
+	if (magnitude == (std::uint64_t{1} << 63))
+		return std::numeric_limits<std::int64_t>::min();
+	return -static_cast<std::int64_t>(magnitude);
+}
+
+double parse_float(const Token& token)
+{
+	try
+	{
+		return std::stod(token.text);
+	}
+	catch (const std::exception&)
+	{
+		throw Error(token.location, "invalid f64 literal '" + token.text + "'");
+	}
+}
+
 long long parse_integer(const Token& token, bool negative = false)
 {
 	long long magnitude;
@@ -348,7 +393,39 @@ std::vector<Token> Lexer::tokens()
 			std::size_t begin = byte_;
 			while (byte_ < source_.size() && is_digit(codepoint(source_, byte_)))
 				advance();
-			result.push_back({TokenKind::integer, std::string(source_.substr(begin, byte_ - begin)), here, {}});
+			bool floating = false;
+			if (byte_ < source_.size() && source_[byte_] == '.' && !starts(".."))
+			{
+				floating = true;
+				advance();
+				while (byte_ < source_.size() && is_digit(codepoint(source_, byte_)))
+					advance();
+			}
+			if (byte_ < source_.size() && (source_[byte_] == 'e' || source_[byte_] == 'E'))
+			{
+				floating = true;
+				advance();
+				if (byte_ < source_.size() && (source_[byte_] == '+' || source_[byte_] == '-'))
+					advance();
+				std::size_t exponent = byte_;
+				while (byte_ < source_.size() && is_digit(codepoint(source_, byte_)))
+					advance();
+				if (exponent == byte_)
+					fail(here, "invalid f64 exponent");
+			}
+			if (!floating && (starts("u64") || starts("s64")))
+			{
+				const TokenKind kind = starts("u64") ? TokenKind::uinteger : TokenKind::sinteger;
+				for (int index = 0; index < 3; ++index)
+					advance();
+				if (byte_ < source_.size() && (is_alnum(codepoint(source_, byte_)) || source_[byte_] == '_'))
+					fail(here, "invalid numeric suffix");
+				result.push_back({kind, std::string(source_.substr(begin, byte_ - begin)), here, {}});
+				continue;
+			}
+			if (byte_ < source_.size() && (is_alpha(codepoint(source_, byte_)) || source_[byte_] == '_'))
+				fail(here, "invalid numeric suffix");
+			result.push_back({floating ? TokenKind::floating : TokenKind::integer, std::string(source_.substr(begin, byte_ - begin)), here, {}});
 			continue;
 		}
 		if (character == '\"')
@@ -397,6 +474,9 @@ std::vector<Token> Lexer::tokens()
 
 Name::Name(Location l, std::string v) : Expr(ExprKind::Name, std::move(l)), value(std::move(v)) {}
 Integer::Integer(Location l, long long v) : Expr(ExprKind::Integer, std::move(l)), value(v) {}
+UnsignedInteger::UnsignedInteger(Location l, std::uint64_t v) : Expr(ExprKind::UnsignedInteger, std::move(l)), value(v) {}
+SignedInteger::SignedInteger(Location l, std::int64_t v) : Expr(ExprKind::SignedInteger, std::move(l)), value(v) {}
+Float::Float(Location l, double v) : Expr(ExprKind::Float, std::move(l)), value(v) {}
 String::String(Location l, std::string v) : Expr(ExprKind::String, std::move(l)), value(std::move(v)) {}
 MarkupText::MarkupText(Location l, std::string v) : Expr(ExprKind::MarkupText, std::move(l)), value(std::move(v)) {}
 MarkupField::MarkupField(Location l, Expr* v, bool e) : Expr(ExprKind::MarkupField, std::move(l)), value(v), escaped(e) {}
@@ -556,6 +636,12 @@ Expr* Parser::prefix()
 	Token current = take();
 	if (current.kind == TokenKind::integer)
 		return program_.make<Integer>(current.location, parse_integer(current));
+	if (current.kind == TokenKind::uinteger)
+		return program_.make<UnsignedInteger>(current.location, parse_unsigned_integer(current));
+	if (current.kind == TokenKind::sinteger)
+		return program_.make<SignedInteger>(current.location, parse_signed_integer(current));
+	if (current.kind == TokenKind::floating)
+		return program_.make<Float>(current.location, parse_float(current));
 	if (current.kind == TokenKind::string)
 		return program_.make<String>(current.location, current.text);
 	if (current.kind == TokenKind::markup)
@@ -620,9 +706,11 @@ Expr* Parser::prefix()
 			return map_literal(current.location);
 		return block(current.location);
 	}
-	if (current.text == "-" && token().kind == TokenKind::integer)
+	if (current.text == "-" && (token().kind == TokenKind::integer || token().kind == TokenKind::sinteger))
 	{
 		Token integer = take();
+		if (integer.kind == TokenKind::sinteger)
+			return program_.make<SignedInteger>(current.location, parse_signed_integer(integer, true));
 		return program_.make<Integer>(current.location, parse_integer(integer, true));
 	}
 	if (current.text == "-" || current.text == "!")

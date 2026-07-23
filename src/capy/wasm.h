@@ -11,6 +11,8 @@ using Bytes = std::vector<std::uint8_t>;
 
 void append_uleb(Bytes& out, std::uint32_t value);
 void append_sleb32(Bytes& out, std::int32_t value);
+void append_sleb64(Bytes& out, std::int64_t value);
+void append_f64(Bytes& out, double value);
 void append_string(Bytes& out, const std::string& value);
 void append_vector(Bytes& out, const std::vector<Bytes>& values);
 void append_section(Bytes& out, std::uint8_t id, const Bytes& payload);

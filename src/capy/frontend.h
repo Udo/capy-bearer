@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -33,6 +34,9 @@ enum struct TokenKind
 {
 	identifier,
 	integer,
+	uinteger,
+	sinteger,
+	floating,
 	string,
 	markup,
 	directive,
@@ -73,6 +77,9 @@ enum struct ExprKind
 {
 	Name,
 	Integer,
+	UnsignedInteger,
+	SignedInteger,
+	Float,
 	String,
 	MarkupText,
 	MarkupField,
@@ -122,6 +129,21 @@ struct Integer : Expr
 {
 	long long value;
 	Integer(Location l, long long v);
+};
+struct UnsignedInteger : Expr
+{
+	std::uint64_t value;
+	UnsignedInteger(Location l, std::uint64_t v);
+};
+struct SignedInteger : Expr
+{
+	std::int64_t value;
+	SignedInteger(Location l, std::int64_t v);
+};
+struct Float : Expr
+{
+	double value;
+	Float(Location l, double v);
 };
 struct String : Expr
 {

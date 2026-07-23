@@ -1,0 +1,15 @@
+function CLI {
+    {
+        var path := file_temp("/tmp/capy-files-phase-")
+        var handle := file_open(path, "r+")
+        var written := file_write(handle, "capy!")
+        var seeked := file_seek(handle, 0s64, 0s64)
+        var content := file_read(handle, 5u64)
+        var position := file_tell(handle)
+        var synced := file_fsync(handle)
+        file_close(handle)
+        file_unlink(path)
+        print(handle != 0u64, "|", written, "|", seeked, "|", content, "|", position, "|", synced, "|", arc_live())
+    }
+    print("|", arc_live(), "|", file_open("/definitely-not-a-capy-file", "r") == 0u64, "|", length(file_read(0u64, 1u64)) == 0)
+}

@@ -37,6 +37,28 @@ dval_return_output=$(scripts/bearer-cli /tests/capy-dval-return.capy)
 	echo "Capy dval-loop early-return ARC mismatch: $dval_return_output" >&2
 	exit 1
 }
+wide_output=$(scripts/bearer-cli /tests/capy-wide-scalars.capy)
+[[ "$wide_output" == "18446744073709551615|-9223372036854775808|-1|-3|-1|1|1|3|2|1|125|-1.5|5|3.5|18446744073709551615|9|-1|1|11|inf|01|-0|0" ]] || {
+	echo "Capy wide scalar operations mismatch: $wide_output" >&2
+	exit 1
+}
+set +e
+wide_trap_output=$(scripts/bearer-cli /tests/capy-wide-conversion-trap.capy 2>&1)
+wide_trap_status=$?
+set -e
+[[ $wide_trap_status -ne 0 && "$wide_trap_output" == *"integer overflow"* && "$wide_trap_output" == *"capy-wide-conversion-trap.capy:2:16"* ]]
+[[ "$(scripts/bearer-cli /tests/capy-wide-scalars.capy)" == "$wide_output" ]]
+rm -f /tmp/capy-files-phase-*
+file_output=$(scripts/bearer-cli /tests/capy-files.capy)
+[[ "$file_output" == "1|5|0|capy!|5|1|2|0|1|1" ]] || {
+	echo "Capy file handle/ARC mismatch: $file_output" >&2
+	exit 1
+}
+if compgen -G '/tmp/capy-files-phase-*' >/dev/null; then
+	echo "Capy file_temp sizing created an unreturned file" >&2
+	rm -f /tmp/capy-files-phase-*
+	exit 1
+fi
 [[ "$(scripts/bearer-cli /tests/capy-string-concat-only.capy)" == "ab|0" ]]
 string_output=$(scripts/bearer-cli /tests/capy-strings.capy)
 [[ "$string_output" == "Capy Bearer|11|11|Bearer|Bearer|Capy|5:-1|Capy Runtime|capy bearer|CAPY BEARER|3|3|0" ]] || {
@@ -44,7 +66,7 @@ string_output=$(scripts/bearer-cli /tests/capy-strings.capy)
 	exit 1
 }
 markup_output=$(scripts/bearer-cli /tests/capy-markup.capy)
-[[ "$markup_output" == "<p>static</p>|once;<main>&lt;side&gt;&lt;&amp;&gt;&quot;&#39;<strong>&lt;&amp;&gt;&quot;&#39;</strong><em>trusted</em><i>&lt;&amp;&gt;&quot;&#39;</i><aside>-2147483648:0:2147483647:true:false</aside></main>|-2147483648|0" ]] || {
+[[ "$markup_output" == "<p>static</p>|once;<main>&lt;side&gt;&lt;&amp;&gt;&quot;&#39;<strong>&lt;&amp;&gt;&quot;&#39;</strong><em>trusted</em><i>&lt;&amp;&gt;&quot;&#39;</i><aside>-2147483648:0:2147483647:true:false</aside><wide>-9223372036854775808:18446744073709551615:-1.5</wide></main>|-2147483648|0" ]] || {
 	echo "Capy markup output mismatch: $markup_output" >&2
 	exit 1
 }

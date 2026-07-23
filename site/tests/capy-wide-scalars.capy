@@ -1,0 +1,30 @@
+function previous(value : s64) s64 {
+    return value - 1s64
+}
+
+function next(value : u64) u64 {
+    return value + 1u64
+}
+
+function half(value : f64) f64 {
+    return value / 2.0
+}
+
+function CLI {
+    var maximum : u64 = 18446744073709551615u64
+    var minimum : s64 = -9223372036854775808s64
+    var ratio : f64 = 1.25e2
+    var wide_function : function(value : u64) u64 = next
+    var float_function : function(value : f64) f64 = half
+    var not_a_number := 0.0 / 0.0
+    print(
+        maximum, "|", minimum, "|", previous(0s64), "|", -7s64 / 2s64, "|", -7s64 % 2s64, "|", -2s64 < 1s64, "|",
+        maximum + 1u64 == 0u64, "|",
+        10u64 / 3u64, "|", 10u64 % 4u64, "|", 9u64 > 4u64, "|",
+        ratio, "|", -3.0 / 2.0, "|",
+        wide_function(4u64), "|", float_function(7.0), "|",
+        -1 as u64, "|", 9.75 as u64, "|", 4294967295u64 as s32, "|",
+        9007199254740992u64 as f64 == 9007199254740992.0, "|", time() > 0u64, time_precise() > 0.0, "|",
+        1.0 / 0.0, "|", not_a_number == not_a_number, not_a_number != not_a_number, "|", -0.0, "|", arc_live()
+    )
+}

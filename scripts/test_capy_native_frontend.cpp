@@ -2,6 +2,7 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <string>
 using namespace capy;
@@ -69,6 +70,15 @@ int main(int argc, char** argv)
 		assert(static_cast<Integer*>(p.items[1])->value == 2147483647LL);
 	}
 	{
+		Program p = parse("0u64\n18446744073709551615u64\n-9223372036854775808s64\n9223372036854775807s64\n1.5\n2e3\n1..3\n", "wide.capy");
+		assert(static_cast<UnsignedInteger*>(p.items[0])->value == 0);
+		assert(static_cast<UnsignedInteger*>(p.items[1])->value == std::numeric_limits<std::uint64_t>::max());
+		assert(static_cast<SignedInteger*>(p.items[2])->value == std::numeric_limits<std::int64_t>::min());
+		assert(static_cast<SignedInteger*>(p.items[3])->value == std::numeric_limits<std::int64_t>::max());
+		assert(static_cast<Float*>(p.items[4])->value == 1.5 && static_cast<Float*>(p.items[5])->value == 2000.0);
+		assert(static_cast<Binary*>(p.items[6])->operator_ == "..");
+	}
+	{
 		Program p = parse("\"one and\n  two\"\n", "string.capy");
 		assert(static_cast<String*>(p.items[0])->value == "one and\n  two");
 	}
@@ -129,6 +139,11 @@ int main(int argc, char** argv)
 	expect_error("function meta(x : any) { #compile { emit(x) } }\n", "#compile compile-time metaprogramming is deferred beyond Capy phase 3");
 	expect_error("#wat", "unknown compiler directive #wat");
 	expect_error("@", "unexpected character '@'");
+	expect_error("18446744073709551616u64", "outside the u64 range");
+	expect_error("9223372036854775808s64", "outside the s64 range");
+	expect_error("-9223372036854775809s64", "outside the s64 range");
+	expect_error("1u64x", "invalid numeric suffix");
+	expect_error("1e", "invalid f64 exponent");
 	expect_error("2147483648", "outside the s32 range");
 	expect_error("-2147483649", "outside the s32 range");
 	expect_error("999999999999999999999999999999", "outside the s32 range");

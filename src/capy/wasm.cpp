@@ -1,6 +1,7 @@
 #include "wasm.h"
 
 #include <algorithm>
+#include <bit>
 
 namespace capy::wasm
 {
@@ -219,6 +220,26 @@ void append_sleb32(Bytes& out, std::int32_t value)
 		more = !((remaining == 0 && (byte & 0x40) == 0) || (remaining == -1 && (byte & 0x40) != 0));
 		out.push_back(more ? byte | 0x80 : byte);
 	} while (more);
+}
+
+void append_sleb64(Bytes& out, std::int64_t value)
+{
+	std::int64_t remaining = value;
+	bool more;
+	do
+	{
+		std::uint8_t byte = static_cast<std::uint8_t>(remaining) & 0x7f;
+		remaining >>= 7;
+		more = !((remaining == 0 && (byte & 0x40) == 0) || (remaining == -1 && (byte & 0x40) != 0));
+		out.push_back(more ? byte | 0x80 : byte);
+	} while (more);
+}
+
+void append_f64(Bytes& out, double value)
+{
+	std::uint64_t bits = std::bit_cast<std::uint64_t>(value);
+	for (unsigned index = 0; index < 8; ++index)
+		out.push_back(static_cast<std::uint8_t>(bits >> (8 * index)));
 }
 
 void append_string(Bytes& out, const std::string& value)

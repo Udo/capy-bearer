@@ -54,7 +54,21 @@ for source in "${fixtures[@]}"; do
 done
 
 wasm-objdump -x "$BUILD_DIR/phase1.wasm" >"$BUILD_DIR/phase1.objdump"
-! grep -q 'bearer_request_context_brrb\|bearer_response_set_' "$BUILD_DIR/phase1.objdump"
+! grep -q 'bearer_request_context_brrb\|bearer_response_set_\|bearer_\(print\|format\)_s64\|bearer_\(print\|format\)_u64\|bearer_\(print\|format\)_f64\|bearer_time\|bearer_file_' "$BUILD_DIR/phase1.objdump"
+wasm-objdump -x "$BUILD_DIR/site_tests_capy-wide-scalars.capy.wasm" >"$BUILD_DIR/wide-scalars.objdump"
+grep -q 'env.bearer_print_s64' "$BUILD_DIR/wide-scalars.objdump"
+grep -q 'env.bearer_print_u64' "$BUILD_DIR/wide-scalars.objdump"
+grep -q 'env.bearer_print_f64' "$BUILD_DIR/wide-scalars.objdump"
+grep -q 'env.bearer_time' "$BUILD_DIR/wide-scalars.objdump"
+grep -q 'env.bearer_time_precise' "$BUILD_DIR/wide-scalars.objdump"
+wasm-objdump -x "$BUILD_DIR/site_tests_capy-markup.capy.wasm" >"$BUILD_DIR/markup.objdump"
+grep -q 'env.bearer_format_s64' "$BUILD_DIR/markup.objdump"
+grep -q 'env.bearer_format_u64' "$BUILD_DIR/markup.objdump"
+grep -q 'env.bearer_format_f64' "$BUILD_DIR/markup.objdump"
+wasm-objdump -x "$BUILD_DIR/site_tests_capy-files.capy.wasm" >"$BUILD_DIR/files.objdump"
+for import in file_open file_read file_write file_seek file_tell file_fsync file_close file_temp file_unlink; do
+	grep -q "env.bearer_$import" "$BUILD_DIR/files.objdump"
+done
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-request-context.capy.wasm" >"$BUILD_DIR/request-context.objdump"
 grep -q 'env.bearer_request_context_brrb' "$BUILD_DIR/request-context.objdump"
 grep -q 'env.bearer_request_context_for_brrb' "$BUILD_DIR/request-context.objdump"

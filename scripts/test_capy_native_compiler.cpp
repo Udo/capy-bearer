@@ -48,6 +48,11 @@ int main()
 	assert(capy::wasm::validate_bearer_unit(returning.wasm, {.bearer_abi_version = "11"}).valid);
 	const auto boundary = capy::compile_bearer_unit("function CLI { print(-2147483648, 2147483647) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(boundary.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto wide =
+		capy::compile_bearer_unit("function next(value : u64) u64 { value + 1u64 }\nfunction half(value : f64) f64 { value / 2.0 }\n"
+								  "function CLI { var fn : function(value : u64) u64 = next; print(fn(4u64), half(3.0), -1 as u64, 9.0 as s32) }\n",
+								  options);
+	assert(capy::wasm::validate_bearer_unit(wide.wasm, {.bearer_abi_version = "11"}).valid);
 	const auto marker_collision = capy::compile_bearer_unit("function CLI { 1509949440; print([1][1]) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(marker_collision.wasm, {.bearer_abi_version = "11"}).valid);
 	assert(marker_collision.source_map.find("\t1\t1\t37\n") != std::string::npos);
@@ -77,6 +82,10 @@ int main()
 			 std::pair{"function CLI { (1 + 2) := 3 }\n", "inferred declaration target must be a local name"},
 			 std::pair{"function CLI { print(1 && true) }\n", "logical operators require bool operands"},
 			 std::pair{"function CLI { var held := clone(\"old\"); var replace := function() { held = clone(\"new\") } }\n", "unknown local 'held'"},
+			 std::pair{"function CLI { var values := [1u64, 2u64] }\n", "not yet supported in array layouts"},
+			 std::pair{"function CLI { var values := (1s64, 2) }\n", "s64, u64, and f64 are not yet supported in tuple layouts"},
+			 std::pair{"struct Wide { value : f64 }\nfunction CLI {}\n", "not yet supported in struct layouts"},
+			 std::pair{"function CLI { var value := 1u64; var closure := function() u64 { value } }\n", "not yet supported in captured closure layouts"},
 		 })
 	{
 		try

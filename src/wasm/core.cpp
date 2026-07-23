@@ -142,6 +142,8 @@ bool unit_compile(String path)
 
 static DValue wasm_unit_call_result;
 static String wasm_component_capture_result;
+static String wasm_file_read_result;
+static String wasm_file_temp_result;
 static size_t bearer_copy_bytes(const String& value, char* out, size_t cap);
 static String wasm_unit_call_encoded_result;
 
@@ -884,6 +886,8 @@ void bearer_wasm_core_reset_request()
 	wasm_component_errors.clear();
 	wasm_unit_call_encoded_result.clear();
 	wasm_component_capture_result.clear();
+	wasm_file_read_result.clear();
+	wasm_file_temp_result.clear();
 }
 
 // Host pushes the worker-cached immutable configuration followed by the
@@ -1042,11 +1046,137 @@ void bearer_print_bytes(const char* data, size_t len)
 		context->ob->write(data, len);
 }
 
+u64 bearer_file_open(const char* path, size_t path_len, const char* mode, size_t mode_len)
+{
+	return(file_open(String(path ? path : "", path ? path_len : 0), String(mode ? mode : "", mode ? mode_len : 0)));
+}
+
+size_t bearer_file_read(u64 handle, u64 length, char* out, size_t cap)
+{
+	if(!out)
+	{
+		wasm_file_read_result = file_read(handle, length);
+		if(wasm_file_read_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
+		{
+			wasm_file_read_result.clear();
+			return(std::numeric_limits<size_t>::max());
+		}
+		return(wasm_file_read_result.size());
+	}
+	if(cap < wasm_file_read_result.size())
+		return(wasm_file_read_result.size());
+	if(!wasm_file_read_result.empty())
+		memcpy(out, wasm_file_read_result.data(), wasm_file_read_result.size());
+	size_t size = wasm_file_read_result.size();
+	wasm_file_read_result.clear();
+	return(size);
+}
+
+u64 bearer_file_write(u64 handle, const char* data, size_t data_len)
+{
+	return(file_write(handle, String(data ? data : "", data ? data_len : 0)));
+}
+
+s64 bearer_file_seek(u64 handle, s64 offset, s64 whence)
+{
+	return(file_seek(handle, offset, whence));
+}
+
+s64 bearer_file_tell(u64 handle)
+{
+	return(file_tell(handle));
+}
+
+s32 bearer_file_fsync(u64 handle)
+{
+	return(file_fsync(handle));
+}
+
+void bearer_file_close(u64 handle)
+{
+	file_close(handle);
+}
+
+size_t bearer_file_temp(const char* prefix, size_t prefix_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		wasm_file_temp_result = file_temp(String(prefix ? prefix : "", prefix ? prefix_len : 0));
+		return(wasm_file_temp_result.size());
+	}
+	if(cap < wasm_file_temp_result.size())
+		return(wasm_file_temp_result.size());
+	if(!wasm_file_temp_result.empty())
+		memcpy(out, wasm_file_temp_result.data(), wasm_file_temp_result.size());
+	size_t size = wasm_file_temp_result.size();
+	wasm_file_temp_result.clear();
+	return(size);
+}
+
+void bearer_file_unlink(const char* path, size_t path_len)
+{
+	file_unlink(String(path ? path : "", path ? path_len : 0));
+}
+
+u64 bearer_time()
+{
+	return(time());
+}
+
+f64 bearer_time_precise()
+{
+	return(time_precise());
+}
+
 void bearer_print_s32(s32 value)
 {
 	if(context == 0)
 		bearer_wasm_core_init();
 	print(std::to_string(value));
+}
+
+static String bearer_format_f64_value(f64 value)
+{
+	std::ostringstream output;
+	output.imbue(std::locale::classic());
+	output << std::setprecision(std::numeric_limits<f64>::max_digits10) << value;
+	return(output.str());
+}
+
+size_t bearer_format_s64(s64 value, char* out, size_t cap)
+{
+	return(bearer_copy_bytes(std::to_string(value), out, cap));
+}
+
+size_t bearer_format_u64(u64 value, char* out, size_t cap)
+{
+	return(bearer_copy_bytes(std::to_string(value), out, cap));
+}
+
+size_t bearer_format_f64(f64 value, char* out, size_t cap)
+{
+	return(bearer_copy_bytes(bearer_format_f64_value(value), out, cap));
+}
+
+void bearer_print_s64(s64 value)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	print(std::to_string(value));
+}
+
+void bearer_print_u64(u64 value)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	print(std::to_string(value));
+}
+
+void bearer_print_f64(f64 value)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	print(bearer_format_f64_value(value));
 }
 
 void bearer_unit_render_bytes(const char* target, size_t target_len)
