@@ -91,7 +91,7 @@ if compgen -G '/tmp/capy-files-phase-*' >/dev/null; then
 fi
 [[ "$(scripts/bearer-cli /tests/capy-string-concat-only.capy)" == "ab|0" ]]
 string_output=$(scripts/bearer-cli /tests/capy-strings.capy)
-[[ "$string_output" == "Capy Bearer|11|11|Bearer|Bearer|Capy|5:-1|Capy Runtime|capy bearer|CAPY BEARER|3|3|0" ]] || {
+[[ "$string_output" == "Capy Bearer|11|11|Bearer|Bearer|Capy|5:-1|Capy Runtime|capy bearer|CAPY BEARER|3|101|3|0" ]] || {
 	echo "Capy string operations/ARC mismatch: $string_output" >&2
 	exit 1
 }

@@ -993,6 +993,8 @@ std::string FunctionLowerer::infer(Expr* value)
 			return "f64";
 		if (name->value == "arc_live" || name->value == "ws_opcode" || name->value == "find")
 			return "s32";
+		if (name->value == "contains")
+			return "bool";
 		if (name->value == "print" || name->value == "trap")
 			return "void";
 		std::vector<std::string> arguments;
@@ -2845,9 +2847,9 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			wasm::append_uleb(code, pointer);
 			return {code, type};
 		}
-		if (named->value == "find" || named->value == "replace" || named->value == "lower" || named->value == "upper")
+		if (named->value == "find" || named->value == "contains" || named->value == "replace" || named->value == "lower" || named->value == "upper")
 		{
-			const std::size_t count = named->value == "replace" ? 3 : named->value == "find" ? 2 : 1;
+			const std::size_t count = named->value == "replace" ? 3 : (named->value == "find" || named->value == "contains") ? 2 : 1;
 			if (call->arguments.size() != count)
 				throw Error(value->location, named->value + " expects " + std::to_string(count) + " string arguments");
 			Bytes code;
@@ -2875,9 +2877,9 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 				}
 			};
 			inputs();
-			const std::string import = "bearer_string_" + named->value;
+			const std::string import = named->value == "contains" ? "bearer_string_find" : "bearer_string_" + named->value;
 			unsigned result = 0;
-			if (named->value == "find")
+			if (named->value == "find" || named->value == "contains")
 			{
 				code.push_back(0x10);
 				wasm::append_uleb(code, module_.import_index(import));
@@ -2918,7 +2920,9 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 				}
 			code.push_back(0x20);
 			wasm::append_uleb(code, result);
-			return {code, named->value == "find" ? "s32" : "string"};
+			if (named->value == "contains")
+				code.insert(code.end(), {0x41, 0x7f, 0x47});
+			return {code, named->value == "find" ? "s32" : named->value == "contains" ? "bool" : "string"};
 		}
 		if (named->value == "request_param" || named->value == "request_get" || named->value == "request_post" || named->value == "request_cookie" ||
 			named->value == "request_session" || named->value == "request_body")
@@ -5111,9 +5115,10 @@ CompileResult Module::compile()
 				scan_retain = true;
 				scan_release = true;
 			}
-			if (auto n = dynamic_cast<Name*>(c->function); n && (n->value == "find" || n->value == "replace" || n->value == "lower" || n->value == "upper"))
+			if (auto n = dynamic_cast<Name*>(c->function);
+				n && (n->value == "find" || n->value == "contains" || n->value == "replace" || n->value == "lower" || n->value == "upper"))
 			{
-				string_ops_.insert(n->value);
+				string_ops_.insert(n->value == "contains" ? "find" : n->value);
 				if (n->value != "find")
 					scan_alloc = true;
 				scan_retain = true;

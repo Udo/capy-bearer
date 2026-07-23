@@ -40,6 +40,7 @@ SUPPORTED = {
     "regex_search_all": ("site/tests/capy-regex.capy", "regex_search_all("),
     "regex_replace": ("site/tests/capy-regex.capy", "regex_replace("),
     "regex_split": ("site/tests/capy-regex.capy", "regex_split("),
+    "contains": ("site/tests/capy-strings.capy", "contains("),
     "base64_encode": ("site/tests/capy-codecs.capy", "base64_encode("),
     "base64_decode": ("site/tests/capy-codecs.capy", "base64_decode("),
     "uri_encode": ("site/tests/capy-codecs.capy", "uri_encode("),

@@ -71,7 +71,7 @@ var pair := (10, 20)
 
 ## Strings
 
-Strings support byte-preserving concatenation with `+`, byte equality with `==`/`!=`, `length(value)` for strings, markup, and arrays, and C++-compatible `substr(string, start, length)`. Negative substring starts count from the end; a negative length excludes bytes from the end. `find(value, needle)` returns a byte offset or `-1`; `replace(value, from, to)` replaces all non-overlapping matches; `lower(value)` and `upper(value)` use Bearer's established byte-oriented case conversion. String-producing operations return ARC-managed strings.
+Strings support byte-preserving concatenation with `+`, byte equality with `==`/`!=`, `length(value)` for strings, markup, and arrays, and C++-compatible `substr(string, start, length)`. Negative substring starts count from the end; a negative length excludes bytes from the end. `find(value, needle)` returns a byte offset or `-1`; `contains(value, needle)` returns whether that offset exists and treats an empty needle as present; `replace(value, from, to)` replaces all non-overlapping matches; `lower(value)` and `upper(value)` use Bearer's established byte-oriented case conversion. String-producing operations return ARC-managed strings.
 
 ## Markup values
 

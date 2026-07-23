@@ -12,7 +12,7 @@ function CLI {
             find(joined, "Bearer"), ":", find(joined, "missing"), "|",
             replace(joined, "Bearer", "Runtime"), "|",
             lower(joined), "|", upper(joined), "|",
-            length([1, 2, 3]), "|", arc_live()
+            length([1, 2, 3]), "|", contains(joined, "Bearer"), contains(joined, "missing"), contains(joined, ""), "|", arc_live()
         )
     }
     print("|", arc_live())
