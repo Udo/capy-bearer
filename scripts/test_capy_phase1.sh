@@ -90,6 +90,19 @@ if compgen -G '/tmp/capy-files-phase-*' >/dev/null; then
 	exit 1
 fi
 [[ "$(scripts/bearer-cli /tests/capy-string-concat-only.capy)" == "ab|0" ]]
+string_list_output=$(scripts/bearer-cli /tests/capy-string-lists.capy)
+[[ "$string_list_output" == "a::b:|a,,b,|1|Capy|||Gr:ße||one|value|x-y|5|0" ]] || {
+	echo "Capy split/join/ARC mismatch: $string_list_output" >&2
+	exit 1
+}
+for string_list_trap in capy-string-list-trap capy-string-list-scalar-trap; do
+	set +e
+	string_list_trap_output=$(scripts/bearer-cli "/tests/$string_list_trap.capy" 2>&1)
+	string_list_trap_status=$?
+	set -e
+	[[ $string_list_trap_status -ne 0 && "$string_list_trap_output" == *"$string_list_trap.capy:2:11"* ]]
+done
+[[ "$(scripts/bearer-cli /tests/capy-string-lists.capy)" == "$string_list_output" ]]
 string_output=$(scripts/bearer-cli /tests/capy-strings.capy)
 [[ "$string_output" == "Capy Bearer|11|11|Bearer|Bearer|Capy|5:-1|Capy Runtime|capy bearer|CAPY BEARER|3|101|3|0" ]] || {
 	echo "Capy string operations/ARC mismatch: $string_output" >&2

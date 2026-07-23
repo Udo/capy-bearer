@@ -1,0 +1,18 @@
+function CLI {
+    {
+        var parts := split("a,,b,", ",")
+        var whole := split("Capy", "")
+        var empty := split("", ",")
+        var empty_empty := split("", "")
+        var unicode := split("Grüße", "ü")
+        print(
+            dval_string(parts[0]), ":", dval_string(parts[1]), ":", dval_string(parts[2]), ":", dval_string(parts[3]), "|",
+            join(parts, ","), "|", join(parts) == "a\n\nb\n", "|",
+            dval_string(whole[0]), "|", dval_string(empty[0]), "|", dval_string(empty_empty[0]), "|",
+            dval_string(unicode[0]), ":", dval_string(unicode[1]), "|",
+            join(dval([]), ","), "|", join(dval(["one"]), ","), "|", join(dval({"0": "value"}), ","), "|",
+            join(split("x::y", "::"), "-"), "|", arc_live()
+        )
+    }
+    print("|", arc_live())
+}

@@ -71,7 +71,7 @@ var pair := (10, 20)
 
 ## Strings
 
-Strings support byte-preserving concatenation with `+`, byte equality with `==`/`!=`, `length(value)` for strings, markup, and arrays, and C++-compatible `substr(string, start, length)`. Negative substring starts count from the end; a negative length excludes bytes from the end. `find(value, needle)` returns a byte offset or `-1`; `contains(value, needle)` returns whether that offset exists and treats an empty needle as present; `replace(value, from, to)` replaces all non-overlapping matches; `lower(value)` and `upper(value)` use Bearer's established byte-oriented case conversion. String-producing operations return ARC-managed strings.
+Strings support byte-preserving concatenation with `+`, byte equality with `==`/`!=`, `length(value)` for strings, markup, and arrays, and C++-compatible `substr(string, start, length)`. Negative substring starts count from the end; a negative length excludes bytes from the end. `find(value, needle)` returns a byte offset or `-1`; `contains(value, needle)` returns whether that offset exists and treats an empty needle as present; `replace(value, from, to)` replaces all non-overlapping matches; `lower(value)` and `upper(value)` use Bearer's established byte-oriented case conversion. String-producing operations return ARC-managed strings. `split(value, delimiter)` returns an owned copied DValue list and preserves empty fields; an empty delimiter returns the original value as one item. `join(list[, delimiter])` accepts a DValue list containing only strings, defaults to a newline delimiter, and returns an owned string. Bearer normalizes a DValue map with exactly contiguous canonical numeric keys into list shape, so such a value is accepted as the equivalent list. This list membrane avoids exposing C++ `StringList` layouts.
 
 ## Markup values
 
@@ -136,7 +136,7 @@ The first direct-Wasm backend emits:
 - a matching `BEARER_SOURCE_MAP_V1` sidecar;
 - no WASI imports; dynamic values use Bearer’s workspace allocator.
 
-Compiler generation c26 uses core ABI w19. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
+Compiler generation c28 uses core ABI w20. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
 
 ## Automatic reference counting
 

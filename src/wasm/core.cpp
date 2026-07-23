@@ -150,6 +150,7 @@ static String wasm_unit_info_result;
 static String wasm_units_list_result;
 static String wasm_codec_result;
 static String wasm_regex_result;
+static String wasm_string_list_result;
 static size_t bearer_copy_bytes(const String& value, char* out, size_t cap);
 static size_t bearer_copy_staged(String& staged, char* out, size_t cap);
 static String wasm_unit_call_encoded_result;
@@ -899,6 +900,7 @@ void bearer_wasm_core_reset_request()
 	wasm_units_list_result.clear();
 	wasm_codec_result.clear();
 	wasm_regex_result.clear();
+	wasm_string_list_result.clear();
 }
 
 // Host pushes the worker-cached immutable configuration followed by the
@@ -1497,6 +1499,53 @@ size_t bearer_string_lower(const char* value, size_t value_len, char* out, size_
 size_t bearer_string_upper(const char* value, size_t value_len, char* out, size_t cap)
 {
 	return(bearer_copy_bytes(to_upper(String(value ? value : "", value ? value_len : 0)), out, cap));
+}
+
+size_t bearer_string_list(s32 operation, const char* input, size_t input_len, const char* argument, size_t argument_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		wasm_string_list_result.clear();
+		String argument_value(argument ? argument : "", argument ? argument_len : 0);
+		if(operation == 0)
+		{
+			DValue result;
+			for(auto& part : split(String(input ? input : "", input ? input_len : 0), argument_value))
+			{
+				DValue value;
+				value = part;
+				result.push(value);
+			}
+			wasm_string_list_result = brb_encode(result);
+		}
+		else if(operation == 1)
+		{
+			DValue decoded;
+			String error;
+			if(!brb_decode(String(input ? input : "", input ? input_len : 0), decoded, &error) || !decoded.is_list() || !decoded.deref()._list_mode)
+				return(std::numeric_limits<size_t>::max());
+			StringList values;
+			bool valid = true;
+			decoded.each([&](const DValue& item, String) {
+				if(item.deref().type != 'S')
+					valid = false;
+				else
+					values.push_back(item.to_string());
+			});
+			if(!valid)
+				return(std::numeric_limits<size_t>::max());
+			wasm_string_list_result = join(values, argument_value);
+		}
+		else
+			return(std::numeric_limits<size_t>::max());
+		if(wasm_string_list_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
+		{
+			wasm_string_list_result.clear();
+			return(std::numeric_limits<size_t>::max());
+		}
+		return(wasm_string_list_result.size());
+	}
+	return(bearer_copy_staged(wasm_string_list_result, out, cap));
 }
 
 size_t bearer_string_substr(const char* value, size_t value_len, s32 start, s32 length, char* out, size_t cap)
