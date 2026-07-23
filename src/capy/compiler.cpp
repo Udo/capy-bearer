@@ -468,7 +468,7 @@ struct Module
 	bool request_context_ambient_ = false, request_context_explicit_ = false;
 	bool response_status_ = false, response_header_ = false, time_ = false, time_precise_ = false;
 	bool string_substr_ = false, redirect_ = false;
-	std::set<std::string> request_mutators_, request_value_ops_, csrf_ops_, ws_ops_, string_ops_, component_ops_, file_ops_;
+	std::set<std::string> request_mutators_, request_value_ops_, csrf_ops_, ws_ops_, string_ops_, component_ops_, file_ops_, codec_ops_;
 	std::vector<std::pair<std::string, Definition*>> custom_exports_;
 	bool use_retain_ = false, use_release_ = false, use_clone_ = false, use_arc_global_ = false;
 	std::vector<Location> markers_;
@@ -940,9 +940,10 @@ std::string FunctionLowerer::infer(Expr* value)
 			return "struct:" + name->value;
 		if (name->value == "clone" || name->value == "substr" || name->value == "replace" || name->value == "lower" || name->value == "upper" ||
 			name->value == "component_capture" || name->value == "component_resolve" || name->value == "file_read" || name->value == "file_temp" ||
-			name->value == "csrf_token" || name->value == "ws_message" || name->value == "ws_connection_id" || name->value == "ws_scope" ||
-			name->value == "request_param" || name->value == "request_get" || name->value == "request_post" || name->value == "request_cookie" ||
-			name->value == "request_session" || name->value == "request_body")
+			name->value == "base64_encode" || name->value == "base64_decode" || name->value == "uri_encode" || name->value == "uri_decode" ||
+			name->value == "html_escape" || name->value == "json_encode" || name->value == "csrf_token" || name->value == "ws_message" ||
+			name->value == "ws_connection_id" || name->value == "ws_scope" || name->value == "request_param" || name->value == "request_get" ||
+			name->value == "request_post" || name->value == "request_cookie" || name->value == "request_session" || name->value == "request_body")
 			return "string";
 		if (name->value == "length")
 			return "s32";
@@ -955,7 +956,7 @@ std::string FunctionLowerer::infer(Expr* value)
 			if (dynamic_cast<MapLiteral*>(call->arguments[0]) || dynamic_cast<ArrayLiteral*>(call->arguments[0]))
 				return "dval";
 			const std::string argument = infer(call->arguments[0]);
-			if (argument != "string" && argument != "s32" && argument != "bool" && argument != "dval")
+			if (argument != "string" && argument != "s32" && argument != "f64" && argument != "bool" && argument != "dval")
 				throw Error(call->arguments[0]->location, "cannot construct dval from " + argument);
 			return "dval";
 		}
@@ -965,11 +966,14 @@ std::string FunctionLowerer::infer(Expr* value)
 			return "string";
 		if (name->value == "dval_s32")
 			return "s32";
+		if (name->value == "dval_f64")
+			return "f64";
 		if (name->value == "dval_bool" || name->value == "csrf_valid" || name->value == "component_exists" || name->value == "file_fsync" ||
 			name->value == "unit_compile" || name->value == "ws_is_binary" || name->value == "ws_send" || name->value == "ws_send_to" ||
 			name->value == "ws_close")
 			return "bool";
-		if (name->value == "unit_call" || name->value == "request_context" || name->value == "unit_info" || name->value == "units_list")
+		if (name->value == "unit_call" || name->value == "request_context" || name->value == "unit_info" || name->value == "units_list" ||
+			name->value == "json_decode")
 			return "dval";
 		if (name->value == "unit_render" || name->value == "component_render" || name->value == "response_status" || name->value == "response_header" ||
 			name->value == "file_close" || name->value == "file_unlink" || name->value == "session_start" || name->value == "session_set" ||
@@ -1468,7 +1472,9 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_scalar(Call* call, const std
 	else
 	{
 		const unsigned output = add_local("", "s32", call->location), result_local = add_local("", result, call->location);
-		code.insert(code.end(), {0x41, 0x04, 0x10});
+		code.push_back(0x41);
+		wasm::append_sleb32(code, result == "f64" ? 8 : 4);
+		code.push_back(0x10);
 		wasm::append_uleb(code, module_.import_index("bearer_alloc"));
 		code.push_back(0x21);
 		wasm::append_uleb(code, output);
@@ -1483,12 +1489,16 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_scalar(Call* call, const std
 		code.insert(code.end(), {0x28, 0x02, 0x10, 0x20});
 		wasm::append_uleb(code, output);
 		code.push_back(0x10);
-		wasm::append_uleb(code, module_.import_index(result == "s32" ? "bearer_dv_s32_brrb" : "bearer_dv_bool_brrb"));
+		wasm::append_uleb(code, module_.import_index(result == "s32" ? "bearer_dv_s32_brrb" : result == "f64" ? "bearer_dv_f64_brrb" : "bearer_dv_bool_brrb"));
 		code.insert(code.end(), {0x45, 0x04, 0x40});
 		append(code, module_.marker(call->location));
 		code.insert(code.end(), {0x00, 0x0b, 0x20});
 		wasm::append_uleb(code, output);
-		code.insert(code.end(), {0x28, 0x02, 0x00, 0x21});
+		if (result == "f64")
+			code.insert(code.end(), {0x2b, 0x03, 0x00});
+		else
+			code.insert(code.end(), {0x28, 0x02, 0x00});
+		code.push_back(0x21);
 		wasm::append_uleb(code, result_local);
 		code.push_back(0x20);
 		wasm::append_uleb(code, output);
@@ -1515,10 +1525,13 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 		if (type == "dval")
 			return expression(value);
 		auto [source, actual] = expression(value);
-		if (actual != "string" && actual != "s32" && actual != "bool")
+		if (actual != "string" && actual != "s32" && actual != "f64" && actual != "bool")
 			throw Error(value->location, "cannot construct dval from " + actual);
 		const unsigned input = add_local("", actual, value->location), length = add_local("", "s32", value->location);
-		const char* import = actual == "string" ? "bearer_dv_string_to_brrb" : actual == "s32" ? "bearer_dv_s32_to_brrb" : "bearer_dv_bool_to_brrb";
+		const char* import = actual == "string" ? "bearer_dv_string_to_brrb"
+							 : actual == "s32"	? "bearer_dv_s32_to_brrb"
+							 : actual == "f64"	? "bearer_dv_f64_to_brrb"
+												: "bearer_dv_bool_to_brrb";
 		Bytes code = std::move(source);
 		code.push_back(0x21);
 		wasm::append_uleb(code, input);
@@ -3425,6 +3438,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			return dval_scalar(call, "string");
 		if (named->value == "dval_s32")
 			return dval_scalar(call, "s32");
+		if (named->value == "dval_f64")
+			return dval_scalar(call, "f64");
 		if (named->value == "dval_bool")
 			return dval_scalar(call, "bool");
 		if (named->value == "trusted_markup")
@@ -3780,6 +3795,63 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 				wasm::append_uleb(code, module_.release_index());
 			}
 			return {code, "string"};
+		}
+		if (named->value == "base64_encode" || named->value == "base64_decode" || named->value == "uri_encode" || named->value == "uri_decode" ||
+			named->value == "html_escape" || named->value == "json_encode" || named->value == "json_decode")
+		{
+			if (call->arguments.size() != 1)
+				throw Error(value->location, named->value + " expects one argument");
+			const std::string expected = named->value == "json_encode" ? "dval" : "string";
+			auto [part, type] = expression(call->arguments[0]);
+			if (type != expected)
+				throw Error(call->arguments[0]->location, "expected " + expected + ", found " + type);
+			const unsigned input = add_local("", type, call->arguments[0]->location);
+			Bytes code = std::move(part);
+			code.push_back(0x21);
+			wasm::append_uleb(code, input);
+			static const std::map<std::string, std::int32_t> operations{{"base64_encode", 0}, {"base64_decode", 1}, {"uri_encode", 2}, {"uri_decode", 3},
+																		{"html_escape", 4},	  {"json_encode", 5},	{"json_decode", 6}};
+			auto inputs = [&]
+			{
+				code.push_back(0x41);
+				wasm::append_sleb32(code, operations.at(named->value));
+				code.push_back(0x20);
+				wasm::append_uleb(code, input);
+				code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+				wasm::append_uleb(code, input);
+				code.insert(code.end(), {0x28, 0x02, 0x10});
+			};
+			inputs();
+			code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10});
+			wasm::append_uleb(code, module_.import_index("bearer_codec"));
+			const unsigned length = add_local("", "s32", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, length);
+			const bool dval_result = named->value == "json_decode";
+			auto [allocation, pointer] = allocate_blob(dval_result ? "dval" : "string", dval_result ? 4 : 1, length, value->location);
+			append(code, allocation);
+			inputs();
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+			wasm::append_uleb(code, length);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index("bearer_codec"));
+			code.push_back(0x20);
+			wasm::append_uleb(code, length);
+			code.insert(code.end(), {0x47, 0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b});
+			if (expression_is_owned(call->arguments[0]))
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, input);
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.release_index());
+			}
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			return {code, dval_result ? "dval" : "string"};
 		}
 		if (named->value == "file_open" || named->value == "file_read" || named->value == "file_write" || named->value == "file_seek" ||
 			named->value == "file_tell" || named->value == "file_fsync" || named->value == "file_close" || named->value == "file_temp" ||
@@ -4823,7 +4895,7 @@ CompileResult Module::compile()
 					return "u64";
 				if (name->value == "file_seek" || name->value == "file_tell")
 					return "s64";
-				if (name->value == "time_precise")
+				if (name->value == "time_precise" || name->value == "dval_f64")
 					return "f64";
 				std::vector<std::string> arguments;
 				for (Expr* argument : call->arguments)
@@ -4852,10 +4924,32 @@ CompileResult Module::compile()
 		if (auto call = dynamic_cast<Call*>(e))
 			if (auto name = dynamic_cast<Name*>(call->function))
 			{
-				static const std::set<std::string> builtins{
-					"clone",		 "substr",		"replace",		"lower",		  "upper",			 "component_capture", "component_resolve",
-					"file_read",	 "file_temp",	"dval_string",	"csrf_token",	  "ws_message",		 "ws_connection_id",  "ws_scope",
-					"request_param", "request_get", "request_post", "request_cookie", "request_session", "request_body"};
+				static const std::set<std::string> builtins{"clone",
+															"substr",
+															"replace",
+															"lower",
+															"upper",
+															"component_capture",
+															"component_resolve",
+															"file_read",
+															"file_temp",
+															"base64_encode",
+															"base64_decode",
+															"uri_encode",
+															"uri_decode",
+															"html_escape",
+															"json_encode",
+															"dval_string",
+															"csrf_token",
+															"ws_message",
+															"ws_connection_id",
+															"ws_scope",
+															"request_param",
+															"request_get",
+															"request_post",
+															"request_cookie",
+															"request_session",
+															"request_body"};
 				if (builtins.contains(name->value))
 					return true;
 				for (const Definition& definition : definitions_)
@@ -4876,8 +4970,8 @@ CompileResult Module::compile()
 				if (n->value == "clone")
 					scan_clone = true;
 			}
-			if (auto n = dynamic_cast<Name*>(c->function);
-				n && (n->value == "dval" || n->value == "dval_has" || n->value == "dval_string" || n->value == "dval_s32" || n->value == "dval_bool"))
+			if (auto n = dynamic_cast<Name*>(c->function); n && (n->value == "dval" || n->value == "dval_has" || n->value == "dval_string" ||
+																 n->value == "dval_s32" || n->value == "dval_f64" || n->value == "dval_bool"))
 			{
 				dval_ = true;
 				scan_alloc = true;
@@ -5006,6 +5100,17 @@ CompileResult Module::compile()
 					component_render_ = true;
 			}
 			if (auto n = dynamic_cast<Name*>(c->function);
+				n && (n->value == "base64_encode" || n->value == "base64_decode" || n->value == "uri_encode" || n->value == "uri_decode" ||
+					  n->value == "html_escape" || n->value == "json_encode" || n->value == "json_decode"))
+			{
+				codec_ops_.insert(n->value);
+				if (n->value == "json_decode" || n->value == "json_encode")
+					dval_ = true;
+				scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
+			}
+			if (auto n = dynamic_cast<Name*>(c->function);
 				n && (n->value == "file_open" || n->value == "file_read" || n->value == "file_write" || n->value == "file_seek" || n->value == "file_tell" ||
 					  n->value == "file_fsync" || n->value == "file_close" || n->value == "file_temp" || n->value == "file_unlink"))
 			{
@@ -5049,7 +5154,9 @@ CompileResult Module::compile()
 							function && (function->value == "dval_string" || function->value == "clone" || function->value == "substr" ||
 										 function->value == "replace" || function->value == "lower" || function->value == "upper" ||
 										 function->value == "component_capture" || function->value == "component_resolve" || function->value == "file_read" ||
-										 function->value == "file_temp" || function->value == "csrf_token" || function->value == "ws_message" ||
+										 function->value == "file_temp" || function->value == "base64_encode" || function->value == "base64_decode" ||
+										 function->value == "uri_encode" || function->value == "uri_decode" || function->value == "html_escape" ||
+										 function->value == "json_encode" || function->value == "csrf_token" || function->value == "ws_message" ||
 										 function->value == "ws_connection_id" || function->value == "ws_scope" || function->value == "request_param" ||
 										 function->value == "request_get" || function->value == "request_post" || function->value == "request_cookie" ||
 										 function->value == "request_session" || function->value == "request_body");
@@ -5254,9 +5361,9 @@ CompileResult Module::compile()
 	if (component_capture_props_)
 		imports_["bearer_component_capture_props_brrb"] = next++;
 	if (dval_)
-		for (const char* name : {"bearer_dv_string_to_brrb", "bearer_dv_s32_to_brrb", "bearer_dv_bool_to_brrb", "bearer_dv_build_brrb", "bearer_dv_get_brrb",
-								 "bearer_dv_count_brrb", "bearer_dv_entry_key_brrb", "bearer_dv_entry_value_brrb", "bearer_dv_scalar_type_brrb",
-								 "bearer_dv_s32_brrb", "bearer_dv_bool_brrb", "bearer_dv_brrb_to_string"})
+		for (const char* name : {"bearer_dv_string_to_brrb", "bearer_dv_s32_to_brrb", "bearer_dv_f64_to_brrb", "bearer_dv_bool_to_brrb", "bearer_dv_build_brrb",
+								 "bearer_dv_get_brrb", "bearer_dv_count_brrb", "bearer_dv_entry_key_brrb", "bearer_dv_entry_value_brrb",
+								 "bearer_dv_scalar_type_brrb", "bearer_dv_s32_brrb", "bearer_dv_f64_brrb", "bearer_dv_bool_brrb", "bearer_dv_brrb_to_string"})
 			imports_[name] = next++;
 	if (!custom_exports_.empty())
 	{
@@ -5291,6 +5398,8 @@ CompileResult Module::compile()
 		imports_["bearer_" + name] = next++;
 	for (const std::string& name : file_ops_)
 		imports_["bearer_" + name] = next++;
+	if (!codec_ops_.empty())
+		imports_["bearer_codec"] = next++;
 	if (redirect_)
 		imports_["bearer_redirect"] = next++;
 	for (const std::string& name : request_mutators_)
@@ -5340,11 +5449,13 @@ CompileResult Module::compile()
 	unsigned file_close_type = file_ops_.contains("file_close") ? wasm_type({"u64"}, "void") : 0;
 	unsigned file_temp_type = file_ops_.contains("file_temp") ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned file_unlink_type = file_ops_.contains("file_unlink") ? wasm_type({"s32", "s32"}, "void") : 0;
+	unsigned codec_type = !codec_ops_.empty() ? wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned alloc_type = (scan_alloc || scan_clone) ? wasm_type({"s32"}, "s32") : 0;
 	unsigned release_type = scan_release ? wasm_type({"s32"}, "void") : 0;
 	unsigned clone_type = scan_clone ? wasm_type({"s32"}, "s32") : 0;
 	unsigned blob_type = dval_ ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned scalar_adapter_type = dval_ ? wasm_type({"s32", "s32", "s32"}, "s32") : 0;
+	unsigned f64_adapter_type = dval_ ? wasm_type({"f64", "s32", "s32"}, "s32") : 0;
 	unsigned build_type = dval_ ? wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned get_type = dval_ ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned entry_type = dval_ ? wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
@@ -5404,64 +5515,67 @@ CompileResult Module::compile()
 		wasm::append_string(imports, "env");
 		wasm::append_string(imports, name);
 		imports.push_back(0);
-		const unsigned type =
-			name == "bearer_print_bytes" || name == "bearer_unit_render_bytes" || name == "bearer_component_render_bytes" ? bytes_type
-			: name == "bearer_print_s64"																				  ? print_s64_type
-			: name == "bearer_print_u64"																				  ? print_u64_type
-			: name == "bearer_print_f64"																				  ? print_f64_type
-			: name == "bearer_format_s64"																				  ? format_s64_type
-			: name == "bearer_format_u64"																				  ? format_u64_type
-			: name == "bearer_format_f64"																				  ? format_f64_type
-			: name == "bearer_time"																						  ? time_type
-			: name == "bearer_time_precise"																				  ? time_precise_type
-			: name == "bearer_file_open"																				  ? file_open_type
-			: name == "bearer_file_read"																				  ? file_read_type
-			: name == "bearer_file_write"																				  ? file_write_type
-			: name == "bearer_file_seek"																				  ? file_seek_type
-			: name == "bearer_file_tell"																				  ? file_tell_type
-			: name == "bearer_file_fsync"																				  ? file_fsync_type
-			: name == "bearer_file_close"																				  ? file_close_type
-			: name == "bearer_file_temp"																				  ? file_temp_type
-			: name == "bearer_file_unlink"																				  ? file_unlink_type
-			: name == "bearer_component_render_props_brrb"																  ? component_props_type
-			: name == "bearer_component_capture"																		  ? component_capture_type
-			: name == "bearer_component_capture_props_brrb"																  ? component_capture_props_type
-			: name == "bearer_component_exists"																			  ? component_exists_type
-			: name == "bearer_component_resolve"																		  ? component_resolve_type
-			: name == "bearer_alloc"																					  ? alloc_type
-			: name == "bearer_free"																						  ? release_type
-			: name == "bearer_dv_string_to_brrb" || name == "bearer_dv_brrb_to_string"									  ? blob_type
-			: name == "bearer_dv_s32_to_brrb" || name == "bearer_dv_bool_to_brrb" || name == "bearer_dv_s32_brrb" || name == "bearer_dv_bool_brrb"
-				? scalar_adapter_type
-			: name == "bearer_dv_build_brrb"																		? build_type
-			: name == "bearer_dv_get_brrb"																			? get_type
-			: name == "bearer_dv_count_brrb" || name == "bearer_dv_scalar_type_brrb"								? count_type
-			: name == "bearer_dv_entry_key_brrb" || name == "bearer_dv_entry_value_brrb"							? entry_type
-			: name == "bearer_dv_ptr_to_brrb"																		? scalar_adapter_type
-			: name == "bearer_dv_brrb_to_ptr"																		? count_type
-			: name == "bearer_unit_call_brrb"																		? unit_call_type
-			: name == "bearer_unit_info_brrb"																		? blob_type
-			: name == "bearer_units_list_brrb" || name == "bearer_unit_compile"										? count_type
-			: name == "bearer_request_context_brrb"																	? count_type
-			: name == "bearer_request_context_for_brrb"																? scalar_adapter_type
-			: name == "bearer_response_set_status"																	? response_status_type
-			: name == "bearer_response_set_header"																	? response_header_type
-			: name == "bearer_string_substr"																		? string_substr_type
-			: name == "bearer_string_find"																			? string_find_type
-			: name == "bearer_string_lower" || name == "bearer_string_upper"										? string_case_type
-			: name == "bearer_string_replace"																		? string_replace_type
-			: name == "bearer_redirect"																				? redirect_type
-			: name == "bearer_session_start" || name == "bearer_session_remove" || name == "bearer_session_destroy" ? request_one_string_type
-			: name == "bearer_session_set" || name == "bearer_response_cookie"										? request_two_string_type
-			: name == "bearer_csrf_token" || name == "bearer_csrf_valid"											? csrf_six_type
-			: name == "bearer_csrf_rotate"																			? csrf_four_type
-			: name == "bearer_ws_message" || name == "bearer_ws_connection_id" || name == "bearer_ws_scope" || name == "bearer_ws_close" ? ws_string_type
-			: name == "bearer_ws_opcode" || name == "bearer_ws_is_binary"																 ? ws_scalar_type
-			: name == "bearer_ws_send"																									 ? ws_send_type
-			: name == "bearer_ws_send_to"																								 ? ws_send_to_type
-			: name == "bearer_request_body"																								 ? request_body_type
-			: name == "bearer_request_value"																							 ? request_value_type
-																																		 : scalar_type;
+		const unsigned type = name == "bearer_print_bytes" || name == "bearer_unit_render_bytes" || name == "bearer_component_render_bytes" ? bytes_type
+							  : name == "bearer_print_s64"																					? print_s64_type
+							  : name == "bearer_print_u64"																					? print_u64_type
+							  : name == "bearer_print_f64"																					? print_f64_type
+							  : name == "bearer_format_s64"																					? format_s64_type
+							  : name == "bearer_format_u64"																					? format_u64_type
+							  : name == "bearer_format_f64"																					? format_f64_type
+							  : name == "bearer_time"																						? time_type
+							  : name == "bearer_time_precise"																				? time_precise_type
+							  : name == "bearer_file_open"																					? file_open_type
+							  : name == "bearer_file_read"																					? file_read_type
+							  : name == "bearer_file_write"																					? file_write_type
+							  : name == "bearer_file_seek"																					? file_seek_type
+							  : name == "bearer_file_tell"																					? file_tell_type
+							  : name == "bearer_file_fsync"																					? file_fsync_type
+							  : name == "bearer_file_close"																					? file_close_type
+							  : name == "bearer_file_temp"																					? file_temp_type
+							  : name == "bearer_file_unlink"																				? file_unlink_type
+							  : name == "bearer_codec"																						? codec_type
+							  : name == "bearer_component_render_props_brrb"							 ? component_props_type
+							  : name == "bearer_component_capture"										 ? component_capture_type
+							  : name == "bearer_component_capture_props_brrb"							 ? component_capture_props_type
+							  : name == "bearer_component_exists"										 ? component_exists_type
+							  : name == "bearer_component_resolve"										 ? component_resolve_type
+							  : name == "bearer_alloc"													 ? alloc_type
+							  : name == "bearer_free"													 ? release_type
+							  : name == "bearer_dv_string_to_brrb" || name == "bearer_dv_brrb_to_string" ? blob_type
+							  : name == "bearer_dv_f64_to_brrb"											 ? f64_adapter_type
+							  : name == "bearer_dv_s32_to_brrb" || name == "bearer_dv_bool_to_brrb" || name == "bearer_dv_s32_brrb" ||
+									  name == "bearer_dv_f64_brrb" || name == "bearer_dv_bool_brrb"
+								  ? scalar_adapter_type
+							  : name == "bearer_dv_build_brrb"																		  ? build_type
+							  : name == "bearer_dv_get_brrb"																		  ? get_type
+							  : name == "bearer_dv_count_brrb" || name == "bearer_dv_scalar_type_brrb"								  ? count_type
+							  : name == "bearer_dv_entry_key_brrb" || name == "bearer_dv_entry_value_brrb"							  ? entry_type
+							  : name == "bearer_dv_ptr_to_brrb"																		  ? scalar_adapter_type
+							  : name == "bearer_dv_brrb_to_ptr"																		  ? count_type
+							  : name == "bearer_unit_call_brrb"																		  ? unit_call_type
+							  : name == "bearer_unit_info_brrb"																		  ? blob_type
+							  : name == "bearer_units_list_brrb" || name == "bearer_unit_compile"									  ? count_type
+							  : name == "bearer_request_context_brrb"																  ? count_type
+							  : name == "bearer_request_context_for_brrb"															  ? scalar_adapter_type
+							  : name == "bearer_response_set_status"																  ? response_status_type
+							  : name == "bearer_response_set_header"																  ? response_header_type
+							  : name == "bearer_string_substr"																		  ? string_substr_type
+							  : name == "bearer_string_find"																		  ? string_find_type
+							  : name == "bearer_string_lower" || name == "bearer_string_upper"										  ? string_case_type
+							  : name == "bearer_string_replace"																		  ? string_replace_type
+							  : name == "bearer_redirect"																			  ? redirect_type
+							  : name == "bearer_session_start" || name == "bearer_session_remove" || name == "bearer_session_destroy" ? request_one_string_type
+							  : name == "bearer_session_set" || name == "bearer_response_cookie"									  ? request_two_string_type
+							  : name == "bearer_csrf_token" || name == "bearer_csrf_valid"											  ? csrf_six_type
+							  : name == "bearer_csrf_rotate"																		  ? csrf_four_type
+							  : name == "bearer_ws_message" || name == "bearer_ws_connection_id" || name == "bearer_ws_scope" || name == "bearer_ws_close"
+								  ? ws_string_type
+							  : name == "bearer_ws_opcode" || name == "bearer_ws_is_binary" ? ws_scalar_type
+							  : name == "bearer_ws_send"									? ws_send_type
+							  : name == "bearer_ws_send_to"									? ws_send_to_type
+							  : name == "bearer_request_body"								? request_body_type
+							  : name == "bearer_request_value"								? request_value_type
+																							: scalar_type;
 		wasm::append_uleb(imports, type);
 	}
 	Bytes functions;

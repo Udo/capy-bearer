@@ -1,0 +1,13 @@
+function CLI {
+    {
+        var source := dval({name: "<Ada>", values: [1.5, true]})
+        var encoded := json_encode(source)
+        var decoded := json_decode(encoded)
+        print(
+            dval_string(decoded["name"]), "|", dval_f64(decoded["values"][0]), dval_bool(decoded["values"][1]), "|",
+            base64_encode("Capy!"), "|", base64_decode("Q2FweSE="), "|", length(base64_decode("%%%")), "|",
+            uri_encode("a b&"), "|", uri_decode("a%20b%26"), "|", html_escape("<&>\"'"), "|", json_encode(json_decode("{")), "|", arc_live()
+        )
+    }
+    print("|", arc_live())
+}

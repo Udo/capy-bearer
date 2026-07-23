@@ -1,0 +1,3 @@
+function CLI {
+    print(dval_f64(dval("nan")))
+}

@@ -7,6 +7,7 @@
 
 #define __BEARER_WASM_CORE__ 1
 #include "abi.h"
+#include <charconv>
 #include "../lib/bearer_lib.cpp"
 
 #include "../lib/mysql-connector.h"
@@ -146,7 +147,9 @@ static String wasm_file_read_result;
 static String wasm_file_temp_result;
 static String wasm_unit_info_result;
 static String wasm_units_list_result;
+static String wasm_codec_result;
 static size_t bearer_copy_bytes(const String& value, char* out, size_t cap);
+static size_t bearer_copy_staged(String& staged, char* out, size_t cap);
 static String wasm_unit_call_encoded_result;
 
 static DValue wasm_mysql_call(DValue request)
@@ -892,6 +895,7 @@ void bearer_wasm_core_reset_request()
 	wasm_file_temp_result.clear();
 	wasm_unit_info_result.clear();
 	wasm_units_list_result.clear();
+	wasm_codec_result.clear();
 }
 
 // Host pushes the worker-cached immutable configuration followed by the
@@ -1048,6 +1052,48 @@ void bearer_print_bytes(const char* data, size_t len)
 		bearer_wasm_core_init();
 	if(context->ob && data && len)
 		context->ob->write(data, len);
+}
+
+size_t bearer_codec(s32 operation, const char* input, size_t input_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		String value(input ? input : "", input ? input_len : 0);
+		if(operation == 0)
+			wasm_codec_result = base64_encode(value);
+		else if(operation == 1)
+		{
+			bool ok = false;
+			wasm_codec_result = base64_decode(value, ok);
+			if(!ok) wasm_codec_result.clear();
+		}
+		else if(operation == 2)
+			wasm_codec_result = uri_encode(value);
+		else if(operation == 3)
+			wasm_codec_result = uri_decode(value);
+		else if(operation == 4)
+			wasm_codec_result = html_escape(value);
+		else if(operation == 5)
+		{
+			DValue decoded;
+			String error;
+			if(!brb_decode(value, decoded, &error))
+				wasm_codec_result.clear();
+			else
+				wasm_codec_result = json_encode(decoded);
+		}
+		else if(operation == 6)
+			wasm_codec_result = brb_encode(json_decode(value));
+		else
+			wasm_codec_result.clear();
+		if(wasm_codec_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
+		{
+			wasm_codec_result.clear();
+			return(std::numeric_limits<size_t>::max());
+		}
+		return(wasm_codec_result.size());
+	}
+	return(bearer_copy_staged(wasm_codec_result, out, cap));
 }
 
 static size_t bearer_copy_staged(String& staged, char* out, size_t cap)
@@ -1587,6 +1633,13 @@ size_t bearer_dv_s32_to_brrb(s32 value, char* out, size_t cap)
 	return(bearer_copy_bytes(brb_encode(encoded), out, cap));
 }
 
+size_t bearer_dv_f64_to_brrb(f64 value, char* out, size_t cap)
+{
+	DValue encoded;
+	encoded = value;
+	return(bearer_copy_bytes(brb_encode(encoded), out, cap));
+}
+
 size_t bearer_dv_bool_to_brrb(s32 value, char* out, size_t cap)
 {
 	DValue encoded;
@@ -1692,6 +1745,29 @@ s32 bearer_dv_s32_brrb(const char* value, size_t value_len, s32* out)
 	if(number < (f64)std::numeric_limits<s32>::min() || number > (f64)std::numeric_limits<s32>::max() || std::floor(number) != number)
 		return(0);
 	*out = (s32)number;
+	return(1);
+}
+
+s32 bearer_dv_f64_brrb(const char* value, size_t value_len, f64* out)
+{
+	DValue decoded;
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || !out)
+		return(0);
+	const DValue& scalar = decoded.deref();
+	if(scalar.type == 'F')
+	{
+		*out = scalar._float;
+		return(1);
+	}
+	if(scalar.type != 'S' || scalar._String.empty())
+		return(0);
+	f64 parsed = 0;
+	const char* begin = scalar._String.data();
+	const char* end = begin + scalar._String.size();
+	auto converted = std::from_chars(begin, end, parsed, std::chars_format::general);
+	if(converted.ec != std::errc() || converted.ptr != end || !std::isfinite(parsed))
+		return(0);
+	*out = parsed;
 	return(1);
 }
 

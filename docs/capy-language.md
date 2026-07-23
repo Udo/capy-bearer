@@ -175,13 +175,17 @@ Capy values never expose their object layout to C++. Dynamic cross-language valu
 
 `component_exists(target)` checks Bearer resolution and `component_resolve(target)` returns the resolved source path. `unit_render(target)` renders another unit into the current output. `component_render(target)` uses the current component props; `component_render(target, props)` accepts an explicit copied `dval` map, preserving Bearer's nested props restoration and sibling isolation. `component_capture(target)` and `component_capture(target, props)` execute the component once into an owned string without leaking its bytes into the outer output. `unit_call(target, function, input)` performs a structured custom call and returns an owned `dval`. `unit_info(path)` returns copied runtime metadata, `units_list()` returns a copied dval list of known unit paths, and `unit_compile(path)` requests bounded compilation through Bearer's existing coordinator. `unit_info()` and `unit_compile()` also accept no path for the current unit. These calls cross Bearer adapters rather than sharing language object layouts.
 
+## Codecs
+
+`json_encode(dval)` and `json_decode(string)` cross copied BRRB and return an owned string or dval. `base64_encode`, `base64_decode`, `uri_encode`, `uri_decode`, and `html_escape` accept a string and return an owned string using Bearer's established codecs. Malformed base64 returns an empty string. The shared codec adapter stages each result once per expression and clears it on request reset.
+
 ## Files and resource handles
 
 File descriptors remain exact `u64` Wasm values and never pass through floating-point DValues. `file_open(path, mode)`, `file_read(handle, length)`, `file_write(handle, data)`, `file_seek(handle, offset, whence)`, `file_tell(handle)`, `file_fsync(handle)`, and `file_close(handle)` reuse Bearer's existing workspace handle table and path policy. `file_temp(prefix)` creates a policy-approved temporary path and `file_unlink(path)` removes it. Reads and temporary-path creation use execute-once staged copying, so sizing neither advances the file twice nor creates an unreturned temp file; staged bytes are cleared on request reset.
 
 ## Structured DValues
 
-`dval(...)` accepts strings, `s32`, `bool`, nested map literals, list literals, and existing DValues:
+`dval(...)` accepts strings, `s32`, `f64`, `bool`, nested map literals, list literals, and existing DValues:
 
 ```capy
 var profile := dval({
@@ -192,7 +196,7 @@ var profile := dval({
 })
 ```
 
-String and integer indexing return copied `dval` children. Strict indexing traps on a missing key, invalid index, malformed value, or scalar container; `dval_has(value, key)` is the explicit non-trapping absence check. `dval_string`, `dval_s32`, and `dval_bool` require the matching BRRB scalar type rather than applying C++'s permissive conversions.
+String and integer indexing return copied `dval` children. Strict indexing traps on a missing key, invalid index, malformed value, or scalar container; `dval_has(value, key)` is the explicit non-trapping absence check. `dval_string`, `dval_s32`, and `dval_bool` require the matching BRRB scalar type. `dval_f64` accepts a BRRB float or a complete locale-independent finite numeric string because Bearer's JSON decoder deliberately preserves JSON numbers as strings; malformed and non-finite strings trap at the extraction call.
 
 ```capy
 if dval_has(profile, "name") {

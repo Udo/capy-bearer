@@ -55,6 +55,17 @@ file_output=$(scripts/bearer-cli /tests/capy-files.capy)
 	exit 1
 }
 [[ "$(scripts/bearer-cli /tests/capy-unit-admin.capy)" == "1|1|1|2|0" ]]
+codec_output=$(scripts/bearer-cli /tests/capy-codecs.capy)
+[[ "$codec_output" == "<Ada>|1.51|Q2FweSE=|Capy!|0|a%20b%26|a b&|&lt;&amp;&gt;&quot;&#39;|{}|3|0" ]] || {
+	echo "Capy codec/JSON/ARC mismatch: $codec_output" >&2
+	exit 1
+}
+set +e
+codec_trap_output=$(scripts/bearer-cli /tests/capy-dval-f64-trap.capy 2>&1)
+codec_trap_status=$?
+set -e
+[[ $codec_trap_status -ne 0 && "$codec_trap_output" == *"capy-dval-f64-trap.capy:2:11"* ]]
+[[ "$(scripts/bearer-cli /tests/capy-codecs.capy)" == "$codec_output" ]]
 if compgen -G '/tmp/capy-files-phase-*' >/dev/null; then
 	echo "Capy file_temp sizing created an unreturned file" >&2
 	rm -f /tmp/capy-files-phase-*
