@@ -55,7 +55,7 @@ file_output=$(scripts/bearer-cli /tests/capy-files.capy)
 	exit 1
 }
 [[ "$(scripts/bearer-cli /tests/capy-unit-admin.capy)" == "1|1|1|2|0" ]]
-[[ "$(scripts/bearer-cli /tests/capy-dval-merge.capy)" == "rightyesnewright|abcd|valueitem|right|value|z|oddkeep|map|8|0" ]]
+[[ "$(scripts/bearer-cli /tests/capy-dval-merge.capy)" == "rightyesnewright|abcd|valueitem|right|value|z|oddkeep|map|unicode|9|0" ]]
 codec_output=$(scripts/bearer-cli /tests/capy-codecs.capy)
 [[ "$codec_output" == "<Ada>|1.51|Q2FweSE=|Capy!|0|a%20b%26|a b&|&lt;&amp;&gt;&quot;&#39;|{}|3|0" ]] || {
 	echo "Capy codec/JSON/ARC mismatch: $codec_output" >&2

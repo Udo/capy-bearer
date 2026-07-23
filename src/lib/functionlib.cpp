@@ -744,7 +744,7 @@ bool array_merge_key_is_index(String key)
 		return(false);
 	for(auto c : key)
 	{
-		if(!isdigit(c))
+		if(!isdigit((unsigned char)c))
 			return(false);
 	}
 	return(true);

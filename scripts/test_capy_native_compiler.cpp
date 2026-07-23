@@ -56,6 +56,10 @@ int main()
 	const auto marker_collision = capy::compile_bearer_unit("function CLI { 1509949440; print([1][1]) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(marker_collision.wasm, {.bearer_abi_version = "11"}).valid);
 	assert(marker_collision.source_map.find("\t1\t1\t37\n") != std::string::npos);
+	const auto merge_marker = capy::compile_bearer_unit(
+		"function CLI {\n    array_merge(dval({\"left\": \"x\"}), dval({\"right\": \"y\"}))\n}\n", options);
+	assert(capy::wasm::validate_bearer_unit(merge_marker.wasm, {.bearer_abi_version = "11"}).valid);
+	assert(merge_marker.source_map.find("\t2\t5\n") != std::string::npos);
 	for (const auto source : {
 			 "function square(value : any) value::type { value * value }\nfunction CLI { square(clone(\"x\")) }\n",
 			 "function choose(a : any, b : s32) a::type { a }\nfunction choose(a : s32, b : any) b::type { b }\nfunction CLI { choose(1, 1) }\n",

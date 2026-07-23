@@ -68,6 +68,7 @@ if [[ "$action" == "run" ]]; then
 	done
 	scripts/test_dependency_invalidation.sh
 	scripts/test_abi_generation_rollout.sh
+	scripts/test_wasm_core_smoke.sh
 	scripts/test_capy_phase1.sh
 	scripts/test_capy_reference.sh
 	scripts/test_parallel_precompile.sh

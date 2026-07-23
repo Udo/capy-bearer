@@ -149,11 +149,10 @@ static int32_t call_i32(Instance& inst, const char* name, std::vector<int32_t> a
 {
 	wasm_func_t* f = inst.func(name);
 	CHECK(f, "missing function %s", name);
-	CHECK(argv.size() <= 4, "too many args for %s", name);
-	wasm_val_t args_buf[4];
+	std::vector<wasm_val_t> args_buf(argv.size());
 	for(size_t i = 0; i < argv.size(); ++i) args_buf[i] = WASM_I32_VAL(argv[i]);
 	wasm_val_t result_buf[1] = { WASM_INIT_VAL };
-	wasm_val_vec_t args = { argv.size(), args_buf };
+	wasm_val_vec_t args = { argv.size(), args_buf.data() };
 	wasm_val_vec_t results = { 1, result_buf };
 	wasm_val_vec_t no_results = WASM_EMPTY_VEC;
 	wasm_trap_t* trap = wasm_func_call(f, &args, wasm_func_result_arity(f) ? &results : &no_results);
@@ -233,6 +232,11 @@ int main(int argc, char** argv)
 		else if(mod == "env" && name == "bearer_host_env") fn = wasm_func_new_with_env(store, ft, host_env, nullptr, nullptr);
 		else if(mod == "env" && name == "bearer_host_random") fn = wasm_func_new_with_env(store, ft, host_random, nullptr, nullptr);
 		else if(mod == "env" && name == "bearer_host_log") fn = wasm_func_new_with_env(store, ft, host_log, nullptr, nullptr);
+		else if(mod == "env")
+		{
+			char* label = strdup((mod + "." + name).c_str());
+			fn = wasm_func_new_with_env(store, ft, stub_callback, label, nullptr);
+		}
 		else if(mod == "wasi_snapshot_preview1")
 		{
 			char* label = strdup((mod + "." + name).c_str());
@@ -293,6 +297,32 @@ int main(int argc, char** argv)
 	write_bytes(memory, bad_ptr, bad);
 	CHECK(call_i32(core, "bearer_dv_decode", { bad_ptr, (int32_t)bad.size() }) == 0, "bad BRRB2 decode unexpectedly succeeded");
 	CHECK(read_cstr(memory, call_i32(core, "bearer_dv_last_error")) != "", "bad BRRB2 decode did not set error");
+
+	CHECK(call_i32(core, "bearer_dv_merge_brrb", { bad_ptr, (int32_t)bad.size(), encoded_ptr, encoded_len, 0, 0 }) == -1,
+		"malformed merge input did not fail");
+	int32_t merge_len = call_i32(core, "bearer_dv_merge_brrb", { encoded_ptr, encoded_len, encoded_ptr, encoded_len, 0, 0 });
+	CHECK(merge_len > 0, "valid merge sizing failed after malformed input");
+	int32_t merge_ptr = call_i32(core, "bearer_alloc", { merge_len });
+	CHECK(call_i32(core, "bearer_dv_merge_brrb", { encoded_ptr, encoded_len, encoded_ptr, encoded_len, merge_ptr, merge_len }) == merge_len,
+		"valid merge copy failed after malformed input");
+	CHECK(call_i32(core, "bearer_dv_decode", { merge_ptr, merge_len }) != 0, "merged BRRB2 did not decode");
+
+	merge_len = call_i32(core, "bearer_dv_merge_brrb", { encoded_ptr, encoded_len, encoded_ptr, encoded_len, 0, 0 });
+	CHECK(merge_len > 0, "merge staging failed before malformed reset check");
+	CHECK(call_i32(core, "bearer_dv_merge_brrb", { bad_ptr, (int32_t)bad.size(), encoded_ptr, encoded_len, 0, 0 }) == -1,
+		"malformed merge did not replace staged state");
+	CHECK(call_i32(core, "bearer_dv_merge_brrb", { encoded_ptr, encoded_len, encoded_ptr, encoded_len, merge_ptr, merge_len }) == 0,
+		"malformed merge leaked prior staged bytes");
+
+	merge_len = call_i32(core, "bearer_dv_merge_brrb", { encoded_ptr, encoded_len, encoded_ptr, encoded_len, 0, 0 });
+	CHECK(merge_len > 0, "merge staging failed before request reset check");
+	call_i32(core, "bearer_wasm_core_reset_request");
+	CHECK(call_i32(core, "bearer_dv_merge_brrb", { encoded_ptr, encoded_len, encoded_ptr, encoded_len, merge_ptr, merge_len }) == 0,
+		"request reset leaked staged merge bytes");
+	merge_len = call_i32(core, "bearer_dv_merge_brrb", { encoded_ptr, encoded_len, encoded_ptr, encoded_len, 0, 0 });
+	CHECK(merge_len > 0, "valid merge did not recover after request reset");
+	CHECK(call_i32(core, "bearer_dv_merge_brrb", { encoded_ptr, encoded_len, encoded_ptr, encoded_len, merge_ptr, merge_len }) == merge_len,
+		"valid merge copy did not recover after request reset");
 
 	std::string out = "W1 output";
 	int32_t out_ptr = call_i32(core, "bearer_alloc", { (int32_t)out.size() });
