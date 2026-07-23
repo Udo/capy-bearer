@@ -70,4 +70,5 @@ bearer_host_cwd_set
 bearer_host_process_start_directory
 bearer_host_last_trap_trace
 bearer_host_regex
+bearer_host_regex_capy
 bearer_host_sqlite

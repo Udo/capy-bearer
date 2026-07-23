@@ -468,7 +468,7 @@ struct Module
 	bool request_context_ambient_ = false, request_context_explicit_ = false;
 	bool response_status_ = false, response_header_ = false, time_ = false, time_precise_ = false;
 	bool string_substr_ = false, redirect_ = false;
-	std::set<std::string> request_mutators_, request_value_ops_, csrf_ops_, ws_ops_, string_ops_, component_ops_, file_ops_, codec_ops_;
+	std::set<std::string> request_mutators_, request_value_ops_, csrf_ops_, ws_ops_, string_ops_, component_ops_, file_ops_, codec_ops_, regex_ops_;
 	std::vector<std::pair<std::string, Definition*>> custom_exports_;
 	bool use_retain_ = false, use_release_ = false, use_clone_ = false, use_arc_global_ = false;
 	std::vector<Location> markers_;
@@ -941,14 +941,19 @@ std::string FunctionLowerer::infer(Expr* value)
 		if (name->value == "clone" || name->value == "substr" || name->value == "replace" || name->value == "lower" || name->value == "upper" ||
 			name->value == "component_capture" || name->value == "component_resolve" || name->value == "file_read" || name->value == "file_temp" ||
 			name->value == "base64_encode" || name->value == "base64_decode" || name->value == "uri_encode" || name->value == "uri_decode" ||
-			name->value == "html_escape" || name->value == "json_encode" || name->value == "csrf_token" || name->value == "ws_message" ||
-			name->value == "ws_connection_id" || name->value == "ws_scope" || name->value == "request_param" || name->value == "request_get" ||
-			name->value == "request_post" || name->value == "request_cookie" || name->value == "request_session" || name->value == "request_body")
+			name->value == "html_escape" || name->value == "json_encode" || name->value == "regex_replace" || name->value == "csrf_token" ||
+			name->value == "ws_message" || name->value == "ws_connection_id" || name->value == "ws_scope" || name->value == "request_param" ||
+			name->value == "request_get" || name->value == "request_post" || name->value == "request_cookie" || name->value == "request_session" ||
+			name->value == "request_body")
 			return "string";
 		if (name->value == "length")
 			return "s32";
 		if (name->value == "trusted_markup")
 			return "markup";
+		if (name->value == "regex_match")
+			return "bool";
+		if (name->value == "regex_search" || name->value == "regex_search_all" || name->value == "regex_split")
+			return "dval";
 		if (name->value == "dval")
 		{
 			if (call->arguments.size() != 1)
@@ -3796,6 +3801,116 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			}
 			return {code, "string"};
 		}
+		if (named->value == "regex_match" || named->value == "regex_search" || named->value == "regex_search_all" || named->value == "regex_replace" ||
+			named->value == "regex_split")
+		{
+			const bool replacing = named->value == "regex_replace";
+			const std::size_t minimum = replacing ? 3 : 2;
+			const std::size_t maximum = replacing ? 4 : 3;
+			if (call->arguments.size() < minimum || call->arguments.size() > maximum)
+				throw Error(value->location, named->value + " expects " + std::to_string(minimum) + " or " + std::to_string(maximum) + " strings");
+			std::vector<unsigned> inputs;
+			std::vector<bool> owned;
+			Bytes code;
+			for (Expr* argument : call->arguments)
+			{
+				auto [part, type] = expression(argument);
+				if (type != "string")
+					throw Error(argument->location, "expected string, found " + type);
+				const unsigned local = add_local("", "string", argument->location);
+				append(code, part);
+				code.push_back(0x21);
+				wasm::append_uleb(code, local);
+				inputs.push_back(local);
+				owned.push_back(expression_is_owned(argument));
+			}
+			const unsigned empty = add_local("", "string", value->location);
+			const unsigned empty_offset = module_.add_static_string("");
+			code.insert(code.end(), {0x23, 0x00, 0x41});
+			wasm::append_sleb32(code, static_cast<std::int32_t>(empty_offset));
+			code.insert(code.end(), {0x6a, 0x21});
+			wasm::append_uleb(code, empty);
+			const unsigned pattern = inputs[0];
+			const unsigned subject = inputs[replacing ? 2 : 1];
+			const unsigned replacement = replacing ? inputs[1] : empty;
+			const unsigned flags = call->arguments.size() == maximum ? inputs.back() : empty;
+			auto span = [&](unsigned local)
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, local);
+				code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+				wasm::append_uleb(code, local);
+				code.insert(code.end(), {0x28, 0x02, 0x10});
+			};
+			auto release_inputs = [&]
+			{
+				for (std::size_t i = 0; i < inputs.size(); ++i)
+					if (owned[i])
+					{
+						code.push_back(0x20);
+						wasm::append_uleb(code, inputs[i]);
+						code.push_back(0x10);
+						wasm::append_uleb(code, module_.release_index());
+					}
+			};
+			if (named->value == "regex_match")
+			{
+				append(code, module_.marker(value->location));
+				span(pattern);
+				span(subject);
+				span(flags);
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.import_index("bearer_regex_match"));
+				const unsigned result = add_local("", "bool", value->location);
+				code.push_back(0x21);
+				wasm::append_uleb(code, result);
+				code.push_back(0x20);
+				wasm::append_uleb(code, result);
+				code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40});
+				append(code, module_.marker(value->location));
+				code.insert(code.end(), {0x00, 0x0b});
+				release_inputs();
+				code.push_back(0x20);
+				wasm::append_uleb(code, result);
+				return {code, "bool"};
+			}
+			static const std::map<std::string, std::int32_t> operations{{"regex_search", 0}, {"regex_search_all", 1}, {"regex_replace", 2}, {"regex_split", 3}};
+			auto adapter_inputs = [&]
+			{
+				code.push_back(0x41);
+				wasm::append_sleb32(code, operations.at(named->value));
+				span(pattern);
+				span(subject);
+				span(replacement);
+				span(flags);
+			};
+			append(code, module_.marker(value->location));
+			adapter_inputs();
+			code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10});
+			wasm::append_uleb(code, module_.import_index("bearer_regex"));
+			const unsigned length = add_local("", "s32", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, length);
+			const bool string_result = replacing;
+			auto [allocation, pointer] = allocate_blob(string_result ? "string" : "dval", string_result ? 1 : 4, length, value->location);
+			append(code, allocation);
+			adapter_inputs();
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+			wasm::append_uleb(code, length);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index("bearer_regex"));
+			code.push_back(0x20);
+			wasm::append_uleb(code, length);
+			code.insert(code.end(), {0x47, 0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b});
+			release_inputs();
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			return {code, string_result ? "string" : "dval"};
+		}
 		if (named->value == "base64_encode" || named->value == "base64_decode" || named->value == "uri_encode" || named->value == "uri_decode" ||
 			named->value == "html_escape" || named->value == "json_encode" || named->value == "json_decode")
 		{
@@ -4924,32 +5039,11 @@ CompileResult Module::compile()
 		if (auto call = dynamic_cast<Call*>(e))
 			if (auto name = dynamic_cast<Name*>(call->function))
 			{
-				static const std::set<std::string> builtins{"clone",
-															"substr",
-															"replace",
-															"lower",
-															"upper",
-															"component_capture",
-															"component_resolve",
-															"file_read",
-															"file_temp",
-															"base64_encode",
-															"base64_decode",
-															"uri_encode",
-															"uri_decode",
-															"html_escape",
-															"json_encode",
-															"dval_string",
-															"csrf_token",
-															"ws_message",
-															"ws_connection_id",
-															"ws_scope",
-															"request_param",
-															"request_get",
-															"request_post",
-															"request_cookie",
-															"request_session",
-															"request_body"};
+				static const std::set<std::string> builtins{
+					"clone",		 "substr",		  "replace",	   "lower",			 "upper",			"component_capture", "component_resolve",
+					"file_read",	 "file_temp",	  "base64_encode", "base64_decode",	 "uri_encode",		"uri_decode",		 "html_escape",
+					"json_encode",	 "regex_replace", "dval_string",   "csrf_token",	 "ws_message",		"ws_connection_id",	 "ws_scope",
+					"request_param", "request_get",	  "request_post",  "request_cookie", "request_session", "request_body"};
 				if (builtins.contains(name->value))
 					return true;
 				for (const Definition& definition : definitions_)
@@ -5099,6 +5193,17 @@ CompileResult Module::compile()
 				else
 					component_render_ = true;
 			}
+			if (auto n = dynamic_cast<Name*>(c->function); n && (n->value == "regex_match" || n->value == "regex_search" || n->value == "regex_search_all" ||
+																 n->value == "regex_replace" || n->value == "regex_split"))
+			{
+				regex_ops_.insert(n->value);
+				if (n->value != "regex_match" && n->value != "regex_replace")
+					dval_ = true;
+				if (n->value != "regex_match")
+					scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
+			}
 			if (auto n = dynamic_cast<Name*>(c->function);
 				n && (n->value == "base64_encode" || n->value == "base64_decode" || n->value == "uri_encode" || n->value == "uri_decode" ||
 					  n->value == "html_escape" || n->value == "json_encode" || n->value == "json_decode"))
@@ -5156,10 +5261,10 @@ CompileResult Module::compile()
 										 function->value == "component_capture" || function->value == "component_resolve" || function->value == "file_read" ||
 										 function->value == "file_temp" || function->value == "base64_encode" || function->value == "base64_decode" ||
 										 function->value == "uri_encode" || function->value == "uri_decode" || function->value == "html_escape" ||
-										 function->value == "json_encode" || function->value == "csrf_token" || function->value == "ws_message" ||
-										 function->value == "ws_connection_id" || function->value == "ws_scope" || function->value == "request_param" ||
-										 function->value == "request_get" || function->value == "request_post" || function->value == "request_cookie" ||
-										 function->value == "request_session" || function->value == "request_body");
+										 function->value == "json_encode" || function->value == "regex_replace" || function->value == "csrf_token" ||
+										 function->value == "ws_message" || function->value == "ws_connection_id" || function->value == "ws_scope" ||
+										 function->value == "request_param" || function->value == "request_get" || function->value == "request_post" ||
+										 function->value == "request_cookie" || function->value == "request_session" || function->value == "request_body");
 						if (function)
 							for (const auto& d : definitions_)
 								if (d.function->name == function->value && d.result == "string")
@@ -5398,6 +5503,10 @@ CompileResult Module::compile()
 		imports_["bearer_" + name] = next++;
 	for (const std::string& name : file_ops_)
 		imports_["bearer_" + name] = next++;
+	if (regex_ops_.contains("regex_match"))
+		imports_["bearer_regex_match"] = next++;
+	if (regex_ops_.size() > regex_ops_.count("regex_match"))
+		imports_["bearer_regex"] = next++;
 	if (!codec_ops_.empty())
 		imports_["bearer_codec"] = next++;
 	if (redirect_)
@@ -5449,6 +5558,10 @@ CompileResult Module::compile()
 	unsigned file_close_type = file_ops_.contains("file_close") ? wasm_type({"u64"}, "void") : 0;
 	unsigned file_temp_type = file_ops_.contains("file_temp") ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned file_unlink_type = file_ops_.contains("file_unlink") ? wasm_type({"s32", "s32"}, "void") : 0;
+	unsigned regex_match_type = regex_ops_.contains("regex_match") ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned regex_type = regex_ops_.size() > regex_ops_.count("regex_match")
+							  ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"}, "s32")
+							  : 0;
 	unsigned codec_type = !codec_ops_.empty() ? wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned alloc_type = (scan_alloc || scan_clone) ? wasm_type({"s32"}, "s32") : 0;
 	unsigned release_type = scan_release ? wasm_type({"s32"}, "void") : 0;
@@ -5533,6 +5646,8 @@ CompileResult Module::compile()
 							  : name == "bearer_file_close"																					? file_close_type
 							  : name == "bearer_file_temp"																					? file_temp_type
 							  : name == "bearer_file_unlink"																				? file_unlink_type
+							  : name == "bearer_regex_match"																				? regex_match_type
+							  : name == "bearer_regex"																						? regex_type
 							  : name == "bearer_codec"																						? codec_type
 							  : name == "bearer_component_render_props_brrb"							 ? component_props_type
 							  : name == "bearer_component_capture"										 ? component_capture_type

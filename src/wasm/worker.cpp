@@ -1738,6 +1738,36 @@ static String wasm_encode_request_envelope(const Request& request, const String&
 
 // ---- workspace (per request) ----------------------------------------------
 
+static String wasm_host_regex_execute(const String& encoded)
+{
+	DValue request;
+	String decode_error;
+	DValue response;
+	if(brb_decode(encoded, request, &decode_error))
+	{
+		String op = request["op"].to_string();
+		String pattern = request["pattern"].to_string();
+		String subject = request["subject"].to_string();
+		String flags = request["flags"].to_string();
+		if(op == "match")
+			response["bool"].set_bool(regex_match(pattern, subject, flags));
+		else if(op == "search")
+			response["tree"] = regex_search(pattern, subject, flags);
+		else if(op == "search_all")
+			response["tree"] = regex_search_all(pattern, subject, flags);
+		else if(op == "replace")
+			response["text"] = regex_replace(pattern, request["replacement"].to_string(), subject, flags);
+		else if(op == "split")
+			for(auto& part : regex_split(pattern, subject, flags))
+			{
+				DValue value;
+				value = part;
+				response["list"].push(value);
+			}
+	}
+	return(brb_encode(response));
+}
+
 struct WasmWorkspace : public WasmRequestProfile
 {
 	WasmWorker& worker;
@@ -1749,6 +1779,7 @@ struct WasmWorkspace : public WasmRequestProfile
 		bool writable = false;
 	};
 	std::vector<FileHandle> file_handles;
+	String capy_regex_result;
 
 	struct RequestPerfSnapshot
 	{
@@ -4497,37 +4528,41 @@ struct WasmWorkspace : public WasmRequestProfile
 				// PCRE2 lives host-side; this runs the native regex_*.
 				String encoded;
 				self->hostcall_read(args[0].i32(), args[1].i32(), encoded);
-				DValue request;
-				String decode_error;
-				DValue response;
-				if(brb_decode(encoded, request, &decode_error))
-				{
-					String op = request["op"].to_string();
-					String pattern = request["pattern"].to_string();
-					String subject = request["subject"].to_string();
-					String flags = request["flags"].to_string();
-					if(op == "match")
-						response["bool"].set_bool(regex_match(pattern, subject, flags));
-					else if(op == "search")
-						response["tree"] = regex_search(pattern, subject, flags);
-					else if(op == "search_all")
-						response["tree"] = regex_search_all(pattern, subject, flags);
-					else if(op == "replace")
-						response["text"] = regex_replace(pattern, request["replacement"].to_string(), subject, flags);
-					else if(op == "split")
-						for(auto& part : regex_split(pattern, subject, flags))
-						{
-							DValue value;
-							value = part;
-							response["list"].push(value);
-						}
-				}
-				String out = brb_encode(response);
+				String out = wasm_host_regex_execute(encoded);
 				u32 cap = (u32)args[3].i32();
 				int32_t buf = args[2].i32();
 				if(buf != 0 && cap >= out.size())
 					self->hostcall_write(buf, out);
 				results[0] = Val((int32_t)out.size());
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_regex_capy")
+			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				int32_t buf = args[2].i32();
+				u32 cap = (u32)args[3].i32();
+				if(buf == 0)
+				{
+					String encoded;
+					self->hostcall_read(args[0].i32(), args[1].i32(), encoded);
+					try
+					{
+						self->capy_regex_result = wasm_host_regex_execute(encoded);
+					}
+					catch(const std::exception& error)
+					{
+						self->capy_regex_result.clear();
+						return(Trap(error.what()));
+					}
+				}
+				if(buf != 0 && cap >= self->capy_regex_result.size())
+				{
+					self->hostcall_write(buf, self->capy_regex_result);
+					u32 size = (u32)self->capy_regex_result.size();
+					self->capy_regex_result.clear();
+					results[0] = Val((int32_t)size);
+					return(std::monostate());
+				}
+				results[0] = Val((int32_t)self->capy_regex_result.size());
 				return(std::monostate());
 			}));
 		if(mod == "env" && name == "bearer_host_component_resolve")

@@ -1,0 +1,3 @@
+function CLI {
+    print(regex_replace("(a)", "${missing}", "a"))
+}

@@ -136,7 +136,7 @@ The first direct-Wasm backend emits:
 - a matching `BEARER_SOURCE_MAP_V1` sidecar;
 - no WASI imports; dynamic values use Bearer’s workspace allocator.
 
-Compiler generation c18 uses core ABI w11. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
+Compiler generation c26 uses core ABI w19. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
 
 ## Automatic reference counting
 
@@ -178,6 +178,10 @@ Capy values never expose their object layout to C++. Dynamic cross-language valu
 ## Codecs
 
 `json_encode(dval)` and `json_decode(string)` cross copied BRRB and return an owned string or dval. `base64_encode`, `base64_decode`, `uri_encode`, `uri_decode`, and `html_escape` accept a string and return an owned string using Bearer's established codecs. Malformed base64 returns an empty string. The shared codec adapter stages each result once per expression and clears it on request reset.
+
+## Regular expressions
+
+`regex_match(pattern, subject[, flags])`, `regex_search(pattern, subject[, flags])`, `regex_search_all(pattern, subject[, flags])`, `regex_replace(pattern, replacement, subject[, flags])`, and `regex_split(pattern, subject[, flags])` use Bearer's existing host-side PCRE2 implementation. Search and split return copied owned DValues; replace returns an owned string. Supported flags and match-tree shapes are identical to the documented `.uce` APIs. Invalid patterns, flags, and substitutions trap at the Capy call site, and staged results are cleared on request reset.
 
 ## Files and resource handles
 

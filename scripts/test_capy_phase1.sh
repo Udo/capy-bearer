@@ -66,6 +66,24 @@ codec_trap_status=$?
 set -e
 [[ $codec_trap_status -ne 0 && "$codec_trap_output" == *"capy-dval-f64-trap.capy:2:11"* ]]
 [[ "$(scripts/bearer-cli /tests/capy-codecs.capy)" == "$codec_output" ]]
+regex_output=$(scripts/bearer-cli /tests/capy-regex.capy)
+[[ "$regex_output" == "1|Capy|4|Capy|3TWO|0|<one> <TWO>|a::b|1110|0|2|:a:b:|0" ]] || {
+	echo "Capy regex/ARC mismatch: $regex_output" >&2
+	exit 1
+}
+for regex_case in \
+	"capy-regex-trap|could not compile pattern" \
+	"capy-regex-flag-trap|unknown regex flag 'q'" \
+	"capy-regex-replace-trap|substitution failed: unknown substring"; do
+	regex_trap=${regex_case%%|*}
+	regex_error=${regex_case#*|}
+	set +e
+	regex_trap_output=$(scripts/bearer-cli "/tests/$regex_trap.capy" 2>&1)
+	regex_trap_status=$?
+	set -e
+	[[ $regex_trap_status -ne 0 && "$regex_trap_output" == *"$regex_error"* && "$regex_trap_output" == *"$regex_trap.capy:2:11"* ]]
+done
+[[ "$(scripts/bearer-cli /tests/capy-regex.capy)" == "$regex_output" ]]
 if compgen -G '/tmp/capy-files-phase-*' >/dev/null; then
 	echo "Capy file_temp sizing created an unreturned file" >&2
 	rm -f /tmp/capy-files-phase-*

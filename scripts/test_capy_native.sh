@@ -54,7 +54,7 @@ for source in "${fixtures[@]}"; do
 done
 
 wasm-objdump -x "$BUILD_DIR/phase1.wasm" >"$BUILD_DIR/phase1.objdump"
-! grep -q 'bearer_request_context_brrb\|bearer_response_set_\|bearer_\(print\|format\)_s64\|bearer_\(print\|format\)_u64\|bearer_\(print\|format\)_f64\|bearer_time\|bearer_file_\|bearer_unit_info_brrb\|bearer_units_list_brrb\|bearer_unit_compile\|bearer_codec' "$BUILD_DIR/phase1.objdump"
+! grep -q 'bearer_request_context_brrb\|bearer_response_set_\|bearer_\(print\|format\)_s64\|bearer_\(print\|format\)_u64\|bearer_\(print\|format\)_f64\|bearer_time\|bearer_file_\|bearer_unit_info_brrb\|bearer_units_list_brrb\|bearer_unit_compile\|bearer_codec\|bearer_regex' "$BUILD_DIR/phase1.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-wide-scalars.capy.wasm" >"$BUILD_DIR/wide-scalars.objdump"
 grep -q 'env.bearer_print_s64' "$BUILD_DIR/wide-scalars.objdump"
 grep -q 'env.bearer_print_u64' "$BUILD_DIR/wide-scalars.objdump"
@@ -73,6 +73,9 @@ wasm-objdump -x "$BUILD_DIR/site_tests_capy-codecs.capy.wasm" >"$BUILD_DIR/codec
 grep -q 'env.bearer_codec' "$BUILD_DIR/codecs.objdump"
 grep -q 'env.bearer_dv_f64_to_brrb' "$BUILD_DIR/codecs.objdump"
 grep -q 'env.bearer_dv_f64_brrb' "$BUILD_DIR/codecs.objdump"
+wasm-objdump -x "$BUILD_DIR/site_tests_capy-regex.capy.wasm" >"$BUILD_DIR/regex.objdump"
+grep -q 'env.bearer_regex_match' "$BUILD_DIR/regex.objdump"
+grep -q 'env.bearer_regex' "$BUILD_DIR/regex.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-unit-admin.capy.wasm" >"$BUILD_DIR/unit-admin.objdump"
 for import in unit_info_brrb units_list_brrb unit_compile; do
 	grep -q "env.bearer_$import" "$BUILD_DIR/unit-admin.objdump"

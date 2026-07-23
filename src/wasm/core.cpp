@@ -24,6 +24,7 @@ static const char* WASM_DB_UNAVAILABLE =
 extern "C" size_t bearer_host_mysql(const char* in, size_t in_len, char* out, size_t cap);
 extern "C" size_t bearer_host_zip(const char* in, size_t in_len, char* out, size_t cap);
 extern "C" size_t bearer_host_units(const char* in, size_t in_len, char* out, size_t cap);
+extern "C" size_t bearer_host_regex_capy(const char* in, size_t in_len, char* out, size_t cap);
 
 static DValue wasm_sized_hostcall(DValue request, size_t (*hostcall)(const char*, size_t, char*, size_t))
 {
@@ -148,6 +149,7 @@ static String wasm_file_temp_result;
 static String wasm_unit_info_result;
 static String wasm_units_list_result;
 static String wasm_codec_result;
+static String wasm_regex_result;
 static size_t bearer_copy_bytes(const String& value, char* out, size_t cap);
 static size_t bearer_copy_staged(String& staged, char* out, size_t cap);
 static String wasm_unit_call_encoded_result;
@@ -896,6 +898,7 @@ void bearer_wasm_core_reset_request()
 	wasm_unit_info_result.clear();
 	wasm_units_list_result.clear();
 	wasm_codec_result.clear();
+	wasm_regex_result.clear();
 }
 
 // Host pushes the worker-cached immutable configuration followed by the
@@ -1052,6 +1055,73 @@ void bearer_print_bytes(const char* data, size_t len)
 		bearer_wasm_core_init();
 	if(context->ob && data && len)
 		context->ob->write(data, len);
+}
+
+static bool bearer_regex_call(const char* operation, const char* pattern, size_t pattern_len, const char* subject, size_t subject_len,
+	const char* replacement, size_t replacement_len, const char* flags, size_t flags_len, DValue& response)
+{
+	DValue request;
+	request["op"] = operation;
+	request["pattern"] = String(pattern ? pattern : "", pattern ? pattern_len : 0);
+	request["subject"] = String(subject ? subject : "", subject ? subject_len : 0);
+	request["replacement"] = String(replacement ? replacement : "", replacement ? replacement_len : 0);
+	request["flags"] = String(flags ? flags : "", flags ? flags_len : 0);
+	String encoded = brb_encode(request);
+	size_t need = bearer_host_regex_capy(encoded.data(), encoded.size(), 0, 0);
+	if(need == 0)
+		return(false);
+	String buffer(need, 0);
+	size_t got = bearer_host_regex_capy(encoded.data(), encoded.size(), &buffer[0], need);
+	String decode_error;
+	if(got != need || !brb_decode(String(buffer.data(), got), response, &decode_error))
+		return(false);
+	if(DValue* error = response.key("error"))
+	{
+		String message = error->to_string();
+		bearer_host_log(3, message.data(), message.size());
+		return(false);
+	}
+	return(true);
+}
+
+s32 bearer_regex_match(const char* pattern, size_t pattern_len, const char* subject, size_t subject_len, const char* flags, size_t flags_len)
+{
+	DValue response;
+	if(!bearer_regex_call("match", pattern, pattern_len, subject, subject_len, 0, 0, flags, flags_len, response))
+		return(-1);
+	return(response["bool"].to_bool() ? 1 : 0);
+}
+
+size_t bearer_regex(s32 operation, const char* pattern, size_t pattern_len, const char* subject, size_t subject_len,
+	const char* replacement, size_t replacement_len, const char* flags, size_t flags_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		static const char* operations[] = {"search", "search_all", "replace", "split"};
+		DValue response;
+		if(operation < 0 || operation > 3 || !bearer_regex_call(operations[operation], pattern, pattern_len, subject, subject_len,
+			replacement, replacement_len, flags, flags_len, response))
+			return(std::numeric_limits<size_t>::max());
+		if(operation == 0 || operation == 1)
+		{
+			DValue* tree = response.key("tree");
+			wasm_regex_result = brb_encode(tree ? *tree : DValue());
+		}
+		else if(operation == 2)
+			wasm_regex_result = response["text"].to_string();
+		else
+		{
+			DValue* list = response.key("list");
+			wasm_regex_result = brb_encode(list ? *list : DValue());
+		}
+		if(wasm_regex_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
+		{
+			wasm_regex_result.clear();
+			return(std::numeric_limits<size_t>::max());
+		}
+		return(wasm_regex_result.size());
+	}
+	return(bearer_copy_staged(wasm_regex_result, out, cap));
 }
 
 size_t bearer_codec(s32 operation, const char* input, size_t input_len, char* out, size_t cap)

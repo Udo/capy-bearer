@@ -1,0 +1,22 @@
+function CLI {
+    {
+        var first := regex_search("(?<word>[a-z]+)", "123 Capy!", "i")
+        var all := regex_search_all("[a-z]+", "one TWO three", "i")
+        var none := regex_search("z+", "Capy")
+        var parts := regex_split(",", "a,,b")
+        var optional := regex_search("(a)|(b)", "b")
+        var zero := regex_search_all("", "é", "u")
+        var zero_parts := regex_split("", "ab")
+        print(
+            regex_match("[a-z]+", "Capy", "i"), "|",
+            dval_string(first["match"]), "|", dval_s32(first["start"]), "|", dval_string(first["named"]["word"]), "|",
+            dval_s32(all["count"]), dval_string(all["matches"][1]["match"]), "|", dval_bool(none["matched"]), "|",
+            regex_replace("([a-z]+)", "<$1>", "one TWO", "i"), "|",
+            dval_string(parts[0]), ":", dval_string(parts[1]), ":", dval_string(parts[2]), "|",
+            regex_match("\\p{L}+", "Grüße", "u"), regex_match("a.b", "a\nb", "s"), regex_match("a b", "ab", "x"), regex_match("\\w+", "é", "a"), "|",
+            dval_bool(optional["captures"][1]["matched"]), "|", dval_s32(zero["count"]), "|",
+            dval_string(zero_parts[0]), ":", dval_string(zero_parts[1]), ":", dval_string(zero_parts[2]), ":", dval_string(zero_parts[3])
+        )
+    }
+    print("|", arc_live())
+}
