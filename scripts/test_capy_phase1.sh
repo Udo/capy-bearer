@@ -67,6 +67,53 @@ wasm-validate "$phase3_cache.wasm"
 	echo "C++-to-Capy Bearer component dispatch failed" >&2
 	exit 1
 }
+request_component_output=$(scripts/bearer-cli /tests/capy-request-context-caller.uce)
+[[ "$request_component_output" == "component-prop|1" ]] || {
+	echo "Capy request props snapshot mismatch: $request_component_output" >&2
+	exit 1
+}
+request_headers=$(mktemp)
+request_http_output=$(curl -fsS --max-time 30 -D "$request_headers" -H 'Host: bearer.openfu.com' -d 'answer=42' 'http://127.0.0.1/tests/capy-request-context.capy?name=Ada')
+[[ "$request_http_output" == "POST|Ada|42|answer=42|1" ]] || {
+	echo "Capy HTTP request snapshot mismatch: $request_http_output" >&2
+	exit 1
+}
+grep -Eq '^HTTP/1\.[01] 201 ' "$request_headers"
+grep -Eqi '^X-Capy-Context: yes' "$request_headers"
+grep -Eqi '^X-Capy-Clean: first  X-Injected: bad' "$request_headers"
+! grep -Eqi '^X-Injected:' "$request_headers"
+rm -f "$request_headers"
+request_http_second=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' -d 'answer=7' 'http://127.0.0.1/tests/capy-request-context.capy?name=Grace')
+[[ "$request_http_second" == "POST|Grace|7|answer=7|1" ]] || {
+	echo "Capy request isolation mismatch: $request_http_second" >&2
+	exit 1
+}
+response_trap_body=$(mktemp)
+response_trap_status=$(curl -sS --max-time 30 -o "$response_trap_body" -w '%{http_code}' -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-response-header-trap.capy)
+rm -f "$response_trap_body"
+[[ "$response_trap_status" == "500" ]] || {
+	echo "Capy malformed response header did not fail: HTTP $response_trap_status" >&2
+	exit 1
+}
+set +e
+status_trap_output=$(scripts/bearer-cli /tests/capy-response-status-trap.capy 2>&1)
+status_trap_result=$?
+set -e
+[[ $status_trap_result -ne 0 && "$status_trap_output" == *"capy-response-status-trap.capy:2:5"* ]] || {
+	echo "Capy invalid response status trap/source mismatch: status=$status_trap_result output=$status_trap_output" >&2
+	exit 1
+}
+status_http_body=$(mktemp)
+status_http_result=$(curl -sS --max-time 30 -o "$status_http_body" -w '%{http_code}' -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-response-status-trap.capy)
+rm -f "$status_http_body"
+[[ "$status_http_result" == "500" ]] || {
+	echo "Capy invalid HTTP response status did not fail: HTTP $status_http_result" >&2
+	exit 1
+}
+[[ "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' -d 'answer=8' 'http://127.0.0.1/tests/capy-request-context.capy?name=Reset')" == "POST|Reset|8|answer=8|1" ]] || {
+	echo "Capy request workspace did not recover after response trap" >&2
+	exit 1
+}
 rich_dval_output=$(scripts/bearer-cli /tests/capy-dval-rich.capy)
 [[ "$rich_dval_output" == "cpp|Ada|9|custom-once;capy|capy|Ada|42|1|logic|10|3|active;age;name;tags;|0=math;1=logic;|2;|3|0|00|2|0" ]] || {
 	echo "Capy rich DValue output mismatch: $rich_dval_output" >&2

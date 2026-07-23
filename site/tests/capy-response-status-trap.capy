@@ -1,0 +1,7 @@
+function CLI {
+    response_status(99)
+}
+
+function RENDER {
+    response_status(99)
+}

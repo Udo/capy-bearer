@@ -1,0 +1,6 @@
+CLI(Request& request)
+{
+    DValue props;
+    props["name"] = "component-prop";
+    component_render("/tests/capy-request-context.capy", props, request);
+}

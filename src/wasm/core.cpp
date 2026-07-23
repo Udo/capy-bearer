@@ -1099,6 +1099,52 @@ static size_t bearer_copy_bytes(const String& value, char* out, size_t cap)
 	return(value.size());
 }
 
+s32 bearer_response_set_status(s32 status)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	if(status < 100 || status > 999)
+		return(0);
+	context->set_status(status);
+	return(1);
+}
+
+s32 bearer_response_set_header(const char* name, size_t name_len, const char* value, size_t value_len)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	String header_name(name ? name : "", name ? name_len : 0);
+	if(!http_header_name_valid(header_name))
+		return(0);
+	context->header[header_name] = http_header_value_clean(String(value ? value : "", value ? value_len : 0));
+	return(1);
+}
+
+size_t bearer_request_context_brrb(char* out, size_t cap)
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	DValue snapshot;
+	auto copy_map = [&](String key, const StringMap& values) {
+		for(const auto& entry : values)
+			snapshot[key][entry.first] = entry.second;
+	};
+	copy_map("params", context->params);
+	copy_map("get", context->get);
+	copy_map("post", context->post);
+	copy_map("cookies", context->cookies);
+	copy_map("session", context->session);
+	snapshot["call"] = context->call;
+	snapshot["cfg"] = context->cfg;
+	snapshot["props"] = context->props;
+	snapshot["connection"] = context->connection;
+	snapshot["input"] = context->in;
+	snapshot["session_id"] = context->session_id;
+	snapshot["session_name"] = context->session_name;
+	snapshot["current_unit"] = context->resources.current_unit_file;
+	return(bearer_copy_bytes(brb_encode(snapshot), out, cap));
+}
+
 size_t bearer_dv_s32_to_brrb(s32 value, char* out, size_t cap)
 {
 	DValue encoded;

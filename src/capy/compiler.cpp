@@ -437,7 +437,8 @@ struct Module
 	std::map<std::string, unsigned> helpers_;
 	Bytes data_;
 	bool print_bytes_ = false, print_s32_ = false, alloc_ = false;
-	bool unit_render_ = false, component_render_ = false, dval_ = false, unit_call_ = false;
+	bool unit_render_ = false, component_render_ = false, dval_ = false, unit_call_ = false, request_context_ = false;
+	bool response_status_ = false, response_header_ = false;
 	std::vector<std::pair<std::string, Definition*>> custom_exports_;
 	bool use_retain_ = false, use_release_ = false, use_clone_ = false, use_arc_global_ = false;
 	std::vector<Location> markers_;
@@ -902,9 +903,9 @@ std::string FunctionLowerer::infer(Expr* value)
 			return "s32";
 		if (name->value == "dval_bool")
 			return "bool";
-		if (name->value == "unit_call")
+		if (name->value == "unit_call" || name->value == "request_context")
 			return "dval";
-		if (name->value == "unit_render" || name->value == "component_render")
+		if (name->value == "unit_render" || name->value == "component_render" || name->value == "response_status" || name->value == "response_header")
 			return "void";
 		if (name->value == "arc_live")
 			return "s32";
@@ -2455,6 +2456,90 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			wasm::append_uleb(code, pointer);
 			return {code, type};
 		}
+		if (named->value == "response_status")
+		{
+			if (call->arguments.size() != 1)
+				throw Error(value->location, "response_status expects one s32 argument");
+			auto [code, type] = expression(call->arguments[0]);
+			if (type != "s32")
+				throw Error(call->arguments[0]->location, "expected s32, found " + type);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index("bearer_response_set_status"));
+			code.insert(code.end(), {0x45, 0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b});
+			return {code, "void"};
+		}
+		if (named->value == "response_header")
+		{
+			if (call->arguments.size() != 2)
+				throw Error(value->location, "response_header expects name and value strings");
+			Bytes code;
+			std::vector<unsigned> locals;
+			for (Expr* argument : call->arguments)
+			{
+				auto [part, type] = expression(argument);
+				if (type != "string")
+					throw Error(argument->location, "expected string, found " + type);
+				const unsigned local = add_local("", "string", argument->location);
+				append(code, part);
+				code.push_back(0x21);
+				wasm::append_uleb(code, local);
+				locals.push_back(local);
+			}
+			for (unsigned local : locals)
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, local);
+				code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+				wasm::append_uleb(code, local);
+				code.insert(code.end(), {0x28, 0x02, 0x10});
+			}
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index("bearer_response_set_header"));
+			const unsigned success = add_local("", "bool", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, success);
+			for (std::size_t index = 0; index < call->arguments.size(); ++index)
+				if (expression_is_owned(call->arguments[index]))
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, locals[index]);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.release_index());
+				}
+			code.push_back(0x20);
+			wasm::append_uleb(code, success);
+			code.insert(code.end(), {0x45, 0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b});
+			return {code, "void"};
+		}
+		if (named->value == "request_context")
+		{
+			if (!call->arguments.empty())
+				throw Error(value->location, "request_context expects no arguments");
+			Bytes code{0x41, 0x00, 0x41, 0x00, 0x10};
+			wasm::append_uleb(code, module_.import_index("bearer_request_context_brrb"));
+			const unsigned length = add_local("", "s32", value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, length);
+			auto [allocation, pointer] = allocate_blob("dval", 4, length, value->location);
+			append(code, allocation);
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+			wasm::append_uleb(code, length);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index("bearer_request_context_brrb"));
+			code.push_back(0x20);
+			wasm::append_uleb(code, length);
+			code.insert(code.end(), {0x47, 0x04, 0x40});
+			append(code, module_.marker(value->location));
+			code.insert(code.end(), {0x00, 0x0b, 0x20});
+			wasm::append_uleb(code, pointer);
+			return {code, "dval"};
+		}
 		if (named->value == "dval")
 		{
 			if (call->arguments.size() != 1)
@@ -3469,6 +3554,22 @@ CompileResult Module::compile()
 				scan_retain = true;
 				scan_release = true;
 			}
+			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "response_status")
+				response_status_ = true;
+			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "response_header")
+			{
+				response_header_ = true;
+				scan_retain = true;
+				scan_release = true;
+			}
+			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "request_context")
+			{
+				request_context_ = true;
+				dval_ = true;
+				scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
+			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "unit_call")
 			{
 				unit_call_ = true;
@@ -3645,6 +3746,12 @@ CompileResult Module::compile()
 	}
 	if (unit_call_)
 		imports_["bearer_unit_call_brrb"] = next++;
+	if (request_context_)
+		imports_["bearer_request_context_brrb"] = next++;
+	if (response_status_)
+		imports_["bearer_response_set_status"] = next++;
+	if (response_header_)
+		imports_["bearer_response_set_header"] = next++;
 	if (use_retain_)
 		helpers_["retain"] = next++;
 	if (use_release_)
@@ -3670,6 +3777,8 @@ CompileResult Module::compile()
 	unsigned entry_type = dval_ ? wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
 	unsigned count_type = dval_ ? wasm_type({"s32", "s32"}, "s32") : 0;
 	unsigned unit_call_type = unit_call_ ? wasm_type({"s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"}, "s32") : 0;
+	unsigned response_status_type = response_status_ ? wasm_type({"s32"}, "s32") : 0;
+	unsigned response_header_type = response_header_ ? wasm_type({"s32", "s32", "s32", "s32"}, "s32") : 0;
 	std::vector<Bytes> user_bodies;
 	for (std::size_t i = 0; i < definitions_.size(); ++i)
 		user_bodies.push_back(FunctionLowerer(*this, definitions_[i]).lower());
@@ -3721,6 +3830,9 @@ CompileResult Module::compile()
 			: name == "bearer_dv_ptr_to_brrb"											 ? scalar_adapter_type
 			: name == "bearer_dv_brrb_to_ptr"											 ? count_type
 			: name == "bearer_unit_call_brrb"											 ? unit_call_type
+			: name == "bearer_request_context_brrb"										 ? count_type
+			: name == "bearer_response_set_status"										 ? response_status_type
+			: name == "bearer_response_set_header"										 ? response_header_type
 																						 : scalar_type;
 		wasm::append_uleb(imports, type);
 	}

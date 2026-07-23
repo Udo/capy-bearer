@@ -1,0 +1,18 @@
+function RENDER {
+    response_status(201)
+    response_header("X-Capy-Context", "yes")
+    response_header("X-Capy-Clean", "first\r\nX-Injected: bad")
+    var request := request_context()
+    print(
+        dval_string(request["params"]["REQUEST_METHOD"]), "|",
+        dval_string(request["get"]["name"]), "|",
+        dval_string(request["post"]["answer"]), "|",
+        dval_string(request["input"]), "|",
+        arc_live()
+    )
+}
+
+function COMPONENT {
+    var request := request_context()
+    print(dval_string(request["props"]["name"]), "|", arc_live())
+}

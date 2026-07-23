@@ -83,6 +83,21 @@ Markup expressions evaluate every field exactly once. Static markup is emitted a
 
 The `<>...</>` boundary is both JSX fragment syntax and the existing UCE markup boundary. It keeps markup starts unambiguous with ordinary `<` comparisons and permits nested fragment delimiters. In literal markup, `\<>` and `\</>` emit the delimiter text without opening or closing a fragment; this is useful in scripts and documentation.
 
+## Request and response context
+
+`request_context()` returns an ARC-managed copied `dval` snapshot of the current request. It contains `params`, `get`, `post`, `cookies`, `session`, `call`, `cfg`, `props`, `connection`, `input`, `session_id`, `session_name`, and `current_unit`. Server configuration is deliberately not copied into the snapshot; capabilities that need configuration receive narrow typed adapters rather than the complete operational settings map. The snapshot is a read-only copy; indexing and iteration follow ordinary strict `dval` rules.
+
+`response_status(code)` updates the current response status. `response_header(name, value)` sets a validated header and removes CR/LF from its value; an invalid status or header name traps at the callsite. These operations mutate only the current request workspace.
+
+```capy
+function RENDER {
+    response_status(201)
+    response_header("Content-Type", "text/plain; charset=utf-8")
+    var request := request_context()
+    print(dval_string(request["get"]["name"]))
+}
+```
+
 ## Bearer unit ABI
 
 A Capy source uses `.capy`; C++/template units retain `.uce`. Both compile into the same request-local Bearer workspace and export the same handler names:

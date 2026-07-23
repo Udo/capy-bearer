@@ -1,0 +1,4 @@
+function RENDER {
+    response_header("Bad\nName", "rejected")
+    print("unexpected")
+}
