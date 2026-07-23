@@ -12,6 +12,14 @@ if [[ -r /etc/bearer/settings.cfg ]]; then
 fi
 site_directory=$(realpath "$site_directory")
 
+expect_equal() {
+	local case_name=$1 expected=$2 actual=$3
+	if [[ "$actual" != "$expected" ]]; then
+		printf '%s mismatch\nexpected: %q\nactual:   %q\n' "$case_name" "$expected" "$actual" >&2
+		exit 1
+	fi
+}
+
 python3 scripts/test_capy_compiler.py >/dev/null
 native_compiler_id=$(sha256sum src/capy/*.cpp src/capy/*.h src/lib/compiler.cpp | sha256sum | awk '{print $1}')
 grep -aFq "$native_compiler_id" bin/bearer_fastcgi.linux.bin || {
@@ -47,15 +55,15 @@ wide_trap_output=$(scripts/bearer-cli /tests/capy-wide-conversion-trap.capy 2>&1
 wide_trap_status=$?
 set -e
 [[ $wide_trap_status -ne 0 && "$wide_trap_output" == *"integer overflow"* && "$wide_trap_output" == *"capy-wide-conversion-trap.capy:2:16"* ]]
-[[ "$(scripts/bearer-cli /tests/capy-wide-scalars.capy)" == "$wide_output" ]]
+expect_equal "wide scalar recovery" "$wide_output" "$(scripts/bearer-cli /tests/capy-wide-scalars.capy)"
 rm -f /tmp/capy-files-phase-*
 file_output=$(scripts/bearer-cli /tests/capy-files.capy)
 [[ "$file_output" == "1|5|0|capy!|5|1|2|0|1|1" ]] || {
 	echo "Capy file handle/ARC mismatch: $file_output" >&2
 	exit 1
 }
-[[ "$(scripts/bearer-cli /tests/capy-unit-admin.capy)" == "1|1|1|2|0" ]]
-[[ "$(scripts/bearer-cli /tests/capy-dval-merge.capy)" == "rightyesnewright|abcd|valueitem|right|value|z|oddkeep|map|unicode|9|0" ]]
+expect_equal "unit administration" "1|1|1|2|0" "$(scripts/bearer-cli /tests/capy-unit-admin.capy)"
+expect_equal "DValue array merge" "rightyesnewright|abcd|valueitem|right|value|z|oddkeep|map|unicode|9|0" "$(scripts/bearer-cli /tests/capy-dval-merge.capy)"
 codec_output=$(scripts/bearer-cli /tests/capy-codecs.capy)
 [[ "$codec_output" == "<Ada>|1.51|Q2FweSE=|Capy!|0|a%20b%26|a b&|&lt;&amp;&gt;&quot;&#39;|{}|3|0" ]] || {
 	echo "Capy codec/JSON/ARC mismatch: $codec_output" >&2
@@ -66,7 +74,7 @@ codec_trap_output=$(scripts/bearer-cli /tests/capy-dval-f64-trap.capy 2>&1)
 codec_trap_status=$?
 set -e
 [[ $codec_trap_status -ne 0 && "$codec_trap_output" == *"capy-dval-f64-trap.capy:2:11"* ]]
-[[ "$(scripts/bearer-cli /tests/capy-codecs.capy)" == "$codec_output" ]]
+expect_equal "codec recovery" "$codec_output" "$(scripts/bearer-cli /tests/capy-codecs.capy)"
 regex_output=$(scripts/bearer-cli /tests/capy-regex.capy)
 [[ "$regex_output" == "1|Capy|4|Capy|3TWO|0|<one> <TWO>|a::b|1110|0|2|:a:b:|0" ]] || {
 	echo "Capy regex/ARC mismatch: $regex_output" >&2
@@ -84,14 +92,14 @@ for regex_case in \
 	set -e
 	[[ $regex_trap_status -ne 0 && "$regex_trap_output" == *"$regex_error"* && "$regex_trap_output" == *"$regex_trap.capy:2:11"* ]]
 done
-[[ "$(scripts/bearer-cli /tests/capy-regex.capy)" == "$regex_output" ]]
+expect_equal "regex recovery" "$regex_output" "$(scripts/bearer-cli /tests/capy-regex.capy)"
 if compgen -G '/tmp/capy-files-phase-*' >/dev/null; then
 	echo "Capy file_temp sizing created an unreturned file" >&2
 	rm -f /tmp/capy-files-phase-*
 	exit 1
 fi
-[[ "$(scripts/bearer-cli /tests/capy-string-concat-only.capy)" == "ab|0" ]]
-[[ "$(scripts/bearer-cli /tests/capy-first-empty.capy)" == "[]|0" ]]
+expect_equal "concat-only demand surface" "ab|0" "$(scripts/bearer-cli /tests/capy-string-concat-only.capy)"
+expect_equal "zero-argument first" "[]|0" "$(scripts/bearer-cli /tests/capy-first-empty.capy)"
 string_list_output=$(scripts/bearer-cli /tests/capy-string-lists.capy)
 [[ "$string_list_output" == "a::b:|a,,b,|1|Capy|||Gr:ße||one|value|x-y|[]|[ keep ]|chosen|eplpick|5|0" ]] || {
 	echo "Capy split/join/ARC mismatch: $string_list_output" >&2
@@ -104,7 +112,7 @@ for string_list_trap in capy-string-list-trap capy-string-list-scalar-trap; do
 	set -e
 	[[ $string_list_trap_status -ne 0 && "$string_list_trap_output" == *"$string_list_trap.capy:2:11"* ]]
 done
-[[ "$(scripts/bearer-cli /tests/capy-string-lists.capy)" == "$string_list_output" ]]
+expect_equal "split/join recovery" "$string_list_output" "$(scripts/bearer-cli /tests/capy-string-lists.capy)"
 string_output=$(scripts/bearer-cli /tests/capy-strings.capy)
 [[ "$string_output" == "Capy Bearer|11|11|Bearer|Bearer|Capy|5:-1|Capy Runtime|capy bearer|CAPY BEARER|3|101|3|0" ]] || {
 	echo "Capy string operations/ARC mismatch: $string_output" >&2
@@ -226,7 +234,7 @@ csrf_rotated=$(curl -fsS --max-time 30 -c "$csrf_jar" -b "$csrf_jar" -H 'Host: b
 [[ "$(curl -fsS --max-time 30 -c "$csrf_jar" -b "$csrf_jar" -H 'Host: bearer.openfu.com' "http://127.0.0.1/tests/capy-csrf.capy?action=valid&submitted=$csrf_rotated")" == "1" ]]
 rm -f "$csrf_jar"
 python3 scripts/test_capy_websocket.py >/dev/null
-[[ "$(scripts/bearer-cli /tests/capy-serve-http-caller.uce)" == "serve-ok" ]]
+expect_equal "SERVE_HTTP caller" "serve-ok" "$(scripts/bearer-cli /tests/capy-serve-http-caller.uce)"
 rich_dval_output=$(scripts/bearer-cli /tests/capy-dval-rich.capy)
 [[ "$rich_dval_output" == "cpp|Ada|9|custom-once;capy|capy|Ada|42|1|logic|10|3|active;age;name;tags;|0=math;1=logic;|2;|3|0|00|2|0" ]] || {
 	echo "Capy rich DValue output mismatch: $rich_dval_output" >&2
@@ -335,17 +343,11 @@ mkdir -p "$source_dir"
 for size in 63 64 127 128; do
 	payload=$(printf '%*s' "$size" '' | tr ' ' x)
 	printf 'function CLI { print("%s") }\n' "$payload" >"$source_dir/entry.capy"
-	[[ "$(scripts/bearer-cli "/$fixture/entry.capy")" == "$payload" ]] || {
-		echo "Capy signed-LEB output boundary failed at $size bytes" >&2
-		exit 1
-	}
+	expect_equal "signed-LEB output boundary ($size bytes)" "$payload" "$(scripts/bearer-cli "/$fixture/entry.capy")"
 done
 render_prefix=$(printf '%*s' 64 '' | tr ' ' r)
 printf 'function RENDER { print("%s") }\nfunction CLI { print("offset-ok") }\n' "$render_prefix" >"$source_dir/entry.capy"
-[[ "$(scripts/bearer-cli "/$fixture/entry.capy")" == "offset-ok" ]] || {
-	echo "Capy signed-LEB data offset boundary failed" >&2
-	exit 1
-}
+expect_equal "source-map offset runtime" "offset-ok" "$(scripts/bearer-cli "/$fixture/entry.capy")"
 
 printf '%s\n' 'function CLI { print(not_a_constant) }' >"$source_dir/entry.capy"
 set +e
@@ -357,7 +359,7 @@ set -e
 [[ ! -e "$artifact_dir/entry.capy.wasm" ]]
 
 printf '%s\n' 'function CLI { print("capy-recovered") }' >"$source_dir/entry.capy"
-[[ "$(scripts/bearer-cli "/$fixture/entry.capy")" == "capy-recovered" ]]
+expect_equal "source-map trap recovery" "capy-recovered" "$(scripts/bearer-cli "/$fixture/entry.capy")"
 [[ -s "$artifact_dir/entry.capy.wasm" ]]
 
 echo "Capy phase 1 parser/direct-Wasm/CLI smoke passed"
