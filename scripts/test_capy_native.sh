@@ -94,5 +94,6 @@ grep -q 'env.bearer_request_value' "$BUILD_DIR/request-context.objdump"
 grep -q 'env.bearer_request_body' "$BUILD_DIR/request-context.objdump"
 grep -q 'env.bearer_response_set_status' "$BUILD_DIR/request-context.objdump"
 grep -q 'env.bearer_response_set_header' "$BUILD_DIR/request-context.objdump"
+CAPYC="$BUILD_DIR/capyc" scripts/test_capy_artifact_golden.sh
 
 echo "native Capy frontend, Wasm, compiler, CLI, and tracked fixture checks passed"
