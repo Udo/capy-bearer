@@ -22,7 +22,7 @@ RENDER(Request& context)
 
 	site_tests_page_start("API Coverage Manifest", "Repository-level guard that public wasm-unit APIs have an explicit test/doc/internal decision.");
 	String repo_root = process_start_directory();
-	String out = shell_exec("cd " + shell_escape(repo_root) + " && python3 scripts/api_coverage_manifest.py");
+	String out = shell_exec("cd " + shell_escape(repo_root) + " && scripts/api_coverage_manifest.sh");
 	check("api coverage manifest", contains(out, "API coverage manifest ok"), out);
 	site_tests_summary(passed, failed, skipped, "This page runs only on trusted/local test requests.");
 	site_tests_page_end();

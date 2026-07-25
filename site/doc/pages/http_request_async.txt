@@ -1,6 +1,6 @@
 # http_request_async
 
-Starts the same bounded curl-backed request as `http_request()` in the file-backed async job registry and returns a job id. Use `job_await()` or `job_result()` to retrieve the HTTP result.
+Starts the same request shape as `http_request()`, including its opt-in `security` hardening fields, in the file-backed async job registry and returns a job id. An unknown `security` object remains legacy; any recognized hardening key requires all five keys to be explicit `true` or the request fails closed. Hardened curl remains in this job's worker process group, so `job_cancel()` kills curl and its descendants without signalling other jobs. Use `job_await()` or `job_result()` to retrieve the HTTP result.
 
 :see
 >socket

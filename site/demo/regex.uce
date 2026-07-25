@@ -21,7 +21,7 @@ RENDER(Request& context)
 	String text = "Contact ops@example.test or tag #bearer, #docs, and café.";
 	DValue first_email = regex_search("(?<user>[A-Za-z0-9._%+-]+)@(?<host>[A-Za-z0-9.-]+)", text);
 	DValue tags = regex_search_all("#(?<tag>[A-Za-z0-9_]+)", text);
-	StringList pieces = regex_split("\\s*,\\s*", "bearer, components, markdown");
+	DValue pieces = regex_split("\\s*,\\s*", "bearer, components, markdown");
 
 	<>
 		<link rel="stylesheet" href='style.css'></link>

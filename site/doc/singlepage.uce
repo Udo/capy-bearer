@@ -2,7 +2,7 @@
 
 StringMap* already_shown_items;
 
-void render_doc_params(StringList param_lines)
+void render_doc_params(DValue param_lines)
 {
 	if(param_lines.size() == 0)
 		return;
@@ -50,7 +50,7 @@ void render_doc_page(String page)
 
 void render_see_section(String name)
 {
-	StringList lines = split(file_get_contents("areas/" + name + ".txt"), "\n");
+	DValue lines = split(file_get_contents("areas/" + name + ".txt"), "\n");
 	s32 idx = 0;
 	for(auto line : lines)
 	{

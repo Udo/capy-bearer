@@ -18,7 +18,7 @@ trap cleanup_build_tmp EXIT
 
 COMPILER="clang++"
 # -rdynamic is a link-time flag; the -c compiles below do not need it.
-FLAGS="-g -w -Wall -$OPT_FLAG -std=c++20 -fpermissive -ffast-math"
+FLAGS="-g -w -Wall -$OPT_FLAG -std=c++20 -fpermissive -ffast-math -fuse-ld=lld"
 
 # Wasmtime C++ API — needed only by the wasm backend object (src/wasm).
 WASMTIME_HOME=${WASMTIME_HOME:-/opt/wasmtime}

@@ -1,0 +1,31 @@
+function CLI {
+    {
+    var escaped := shell_escape("a'b; echo injected")
+    var shell := shell_exec("printf %s " + escaped)
+    var spec := dval({"cmd": "printf spawned", "timeout_ms": 1000})
+    var job := shell_spawn(spec)
+    var done := job_await(job, 3000)
+    var status := job_status(job)
+    var stored := job_result(job)
+    var failed_job := shell_spawn(dval({"cmd": "exit 7", "timeout_ms": 1000}))
+    var failed := job_await(failed_job, 3000)
+    var cancelling := shell_spawn(dval({"cmd": "sleep 5", "timeout_ms": 10000}))
+    var cancelled := job_cancel(cancelling)
+    var cancelled_status := job_await(cancelling, 5000)
+    var inactive_pid := task_pid("capy-jobs-no-such-task")
+    var server := server_start_http("capy-jobs-server", "29994", "servers/http.uce", "named")
+    var stopped := server_stop("capy-jobs-server")
+    var shell_status := "bad-shell"
+    if shell == "a'b; echo injected" { shell_status = "shell" }
+    var cancel_status := "no-cancel"
+    if cancelled { cancel_status = "cancel" }
+    var task_status := "bad-task-pid"
+    if inactive_pid == 0 { task_status = "no-task" }
+    var cwd_status := "no-cwd"
+    if process_start_directory() != "" { cwd_status = "cwd" }
+    var server_status := "no-server"
+    if server > 0 && stopped { server_status = "server" }
+    print(shell_status, "|", dval_to_string(dval_get_by_path(done, "result/stdout"), "missing"), "|", dval_to_string(dval_get_by_path(status, "state"), "missing"), "|", dval_to_string(dval_get_by_path(stored, "state"), "missing"), "|", dval_to_string(dval_get_by_path(failed, "state"), "missing"), "|", cancel_status, "|", dval_to_string(dval_get_by_path(cancelled_status, "state"), "missing"), "|", task_status, "|", cwd_status, "|", server_status, "|", task_kill(-1, 0), "|")
+    }
+    print(arc_live())
+}

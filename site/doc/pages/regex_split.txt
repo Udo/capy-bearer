@@ -1,6 +1,6 @@
 :sig
-StringList regex_split(String pattern, String subject)
-StringList regex_split(String pattern, String subject, String flags)
+DValue regex_split(String pattern, String subject)
+DValue regex_split(String pattern, String subject, String flags)
 
 :params
 pattern : PCRE2 regular expression pattern used as the separator

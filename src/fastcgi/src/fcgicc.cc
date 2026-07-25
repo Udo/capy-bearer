@@ -117,7 +117,7 @@ render_header_map(StringMap headers)
 }
 
 static String
-render_set_cookie_headers(StringList headers)
+render_set_cookie_headers(std::vector<String> headers)
 {
 	String result;
 	for(String header : headers)
@@ -828,7 +828,7 @@ FastCGIServer::process_http_request(FastCGIRequest& request, String& data)
 	{
 		String document_root = first(http_document_root, http_script_root());
 		String document_uri = strip_leading_slashes(request.params["DOCUMENT_URI"]);
-		for(String part : split(document_uri, "/"))
+		for(String part : split_strings(document_uri, "/"))
 		{
 			if(part == "..")
 			{
@@ -1056,10 +1056,10 @@ FastCGIServer::websocket_broadcast(String scope, String message, bool binary)
 	return(sent);
 }
 
-StringList
+std::vector<String>
 FastCGIServer::websocket_connection_ids(String scope)
 {
-	StringList result;
+	std::vector<String> result;
 	for(auto& item : client_sockets)
 	{
 		Connection* connection = item.second;

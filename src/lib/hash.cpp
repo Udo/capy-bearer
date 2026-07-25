@@ -41,6 +41,7 @@ void SHA1Final(unsigned char digest[20], SHA1_CTX* context);
 #include <string.h>
 #include <sys/types.h>	/* for u_int*_t */
 #include "hash.h"
+#include "uri.h"
 
 #ifndef BYTE_ORDER
 #if (BSD >= 199103)
@@ -422,6 +423,63 @@ bool crypto_equal_native(String a, String b)
 	return(diff == 0);
 }
 
+static bool uce_crypto_utf8_string(String value)
+{
+	for(size_t i = 0; i < value.size();)
+	{
+		u8 c = (u8)value[i];
+		if(c < 0x80) { i++; continue; }
+		size_t need = c >= 0xC2 && c <= 0xDF ? 1 : (c >= 0xE0 && c <= 0xEF ? 2 : (c >= 0xF0 && c <= 0xF4 ? 3 : 0));
+		if(need == 0 || i + need >= value.size()) return(false);
+		for(size_t j = 1; j <= need; j++) if(((u8)value[i + j] & 0xC0) != 0x80) return(false);
+		u8 second = (u8)value[i + 1];
+		if((c == 0xE0 && second < 0xA0) || (c == 0xED && second >= 0xA0) || (c == 0xF0 && second < 0x90) || (c == 0xF4 && second >= 0x90)) return(false);
+		i += need + 1;
+	}
+	return(true);
+}
+
+static bool uce_crypto_utf8_json_string(String value)
+{
+	if(!uce_crypto_utf8_string(value)) return(false);
+	for(unsigned char c : value) if(c < 0x20) return(false);
+	return(true);
+}
+
+static bool uce_crypto_value_valid(const DValue& value, size_t depth, size_t& nodes, size_t& bytes)
+{
+	if(depth > 16 || ++nodes > 256) return(false);
+	const DValue& item = value.deref();
+	if(item.type == 'S')
+	{
+		bytes += item._String.size();
+		return(bytes <= 32768 && uce_crypto_utf8_json_string(item._String));
+	}
+	if(item.type == 'F') return(std::isfinite(item._float));
+	if(item.type == 'B') return(true);
+	if(item.type != 'M') return(false);
+	bool list = item.is_list();
+	for(const auto& child : item._map)
+	{
+		if(!list)
+		{
+			bytes += child.first.size();
+			if(bytes > 32768 || !uce_crypto_utf8_json_string(child.first)) return(false);
+		}
+		if(!uce_crypto_value_valid(child.second, depth + 1, nodes, bytes)) return(false);
+	}
+	return(true);
+}
+
+bool crypto_operation_request_valid(DValue request)
+{
+	const DValue& root = request.deref();
+	if(root.type != 'M' || root.is_list()) return(false);
+	size_t nodes = 0, bytes = 0;
+	return(uce_crypto_value_valid(root, 0, nodes, bytes));
+}
+
+
 #ifndef __BEARER_WASM_CORE__
 #include <openssl/evp.h>
 #include <openssl/rand.h>
@@ -481,7 +539,7 @@ bool bearer_password_parts(String encoded, u64& n, u64& r, u64& p, String& salt,
 	const String prefix = "$bearer$scrypt$";
 	if(encoded.size() <= prefix.size() || encoded.substr(0, prefix.size()) != prefix)
 		return(false);
-	auto parts = split(encoded.substr(prefix.size()), "$");
+	auto parts = split_strings(encoded.substr(prefix.size()), "$");
 	if(parts.size() != 5 || !bearer_decimal_u64(parts[0], n) || !bearer_decimal_u64(parts[1], r) || !bearer_decimal_u64(parts[2], p))
 		return(false);
 	if(n < 16384 || n > BEARER_PASSWORD_SCRYPT_N || (n & (n - 1)) != 0 || r < 1 || r > BEARER_PASSWORD_SCRYPT_R || p != BEARER_PASSWORD_SCRYPT_P || n * r > BEARER_PASSWORD_SCRYPT_N * BEARER_PASSWORD_SCRYPT_R)
@@ -525,4 +583,328 @@ bool password_needs_rehash_native(String encoded)
 	String salt, digest;
 	return(!bearer_password_parts(encoded, n, r, p, salt, digest) || n != BEARER_PASSWORD_SCRYPT_N || r != BEARER_PASSWORD_SCRYPT_R || p != BEARER_PASSWORD_SCRYPT_P);
 }
+#include <openssl/bn.h>
+#include <openssl/core_names.h>
+#include <openssl/ecdsa.h>
+#include <openssl/evp.h>
+#include <openssl/params.h>
+#include <openssl/param_build.h>
+#include <openssl/rand.h>
+
+namespace {
+static constexpr size_t UCE_ES256_COORDINATE_BYTES = 32;
+static constexpr size_t UCE_ES256_SIGNATURE_BYTES = 64;
+static constexpr size_t UCE_ES256_JSON_MAX = 16 * 1024;
+static constexpr size_t UCE_ES256_VALUE_MAX = 256;
+static constexpr size_t UCE_ES256_DEPTH_MAX = 16;
+static constexpr size_t UCE_ES256_COORDINATE_BASE64URL_MAX = 43;
+static constexpr size_t UCE_CBOR_MAX_BYTES = 16 * 1024;
+static constexpr size_t UCE_CBOR_MAX_BASE64URL = 21846;
+static constexpr size_t UCE_ES256_DER_MAX_BYTES = 144;
+static constexpr size_t UCE_ES256_DER_BASE64URL_MAX = 192;
+
+struct UcePkeyDeleter { void operator()(EVP_PKEY* value) const { EVP_PKEY_free(value); } };
+struct UcePkeyCtxDeleter { void operator()(EVP_PKEY_CTX* value) const { EVP_PKEY_CTX_free(value); } };
+struct UceEcdsaSigDeleter { void operator()(ECDSA_SIG* value) const { ECDSA_SIG_free(value); } };
+struct UceBnDeleter { void operator()(BIGNUM* value) const { BN_clear_free(value); } };
+struct UceParamBldDeleter { void operator()(OSSL_PARAM_BLD* value) const { OSSL_PARAM_BLD_free(value); } };
+struct UceParamsDeleter { void operator()(OSSL_PARAM* value) const { OSSL_PARAM_free(value); } };
+
+static String uce_base64url_encode(const unsigned char* bytes, size_t size)
+{
+	String encoded = base64_encode(String((const char*)bytes, size));
+	encoded = replace(replace(encoded, "+", "-"), "/", "_");
+	while(!encoded.empty() && encoded.back() == '=') encoded.pop_back();
+	return(encoded);
+}
+
+static bool uce_base64url_decode(String encoded, String& decoded, size_t max_encoded)
+{
+	if(encoded.empty() || encoded.size() > max_encoded || encoded.find('=') != String::npos || encoded.size() % 4 == 1)
+		return(false);
+	for(char c : encoded)
+		if(!(c >= 'A' && c <= 'Z') && !(c >= 'a' && c <= 'z') && !(c >= '0' && c <= '9') && c != '-' && c != '_')
+			return(false);
+	String padded = replace(replace(encoded, "-", "+"), "_", "/");
+	while(padded.size() % 4) padded += "=";
+	bool ok = false;
+	decoded = base64_decode(padded, ok);
+	return(ok && uce_base64url_encode((const unsigned char*)decoded.data(), decoded.size()) == encoded);
+}
+
+static bool uce_es256_json_value(const DValue& value, size_t depth, size_t& values, size_t& bytes)
+{
+	if(depth > UCE_ES256_DEPTH_MAX || ++values > UCE_ES256_VALUE_MAX)
+		return(false);
+	const DValue& item = value.deref();
+	if(item.type == 'S')
+		return((bytes += item._String.size()) <= UCE_ES256_JSON_MAX);
+	if(item.type == 'F' || item.type == 'B')
+		return(true);
+	if(item.type != 'M')
+		return(false);
+	for(const auto& child : item._map)
+	{
+		if((bytes += child.first.size()) > UCE_ES256_JSON_MAX || !uce_es256_json_value(child.second, depth + 1, values, bytes))
+			return(false);
+	}
+	return(true);
+}
+
+static bool uce_es256_json_map(const DValue& value)
+{
+	if(value.deref().type != 'M' || value.deref().is_list())
+		return(false);
+	size_t values = 0, bytes = 0;
+	return(uce_es256_json_value(value, 0, values, bytes));
+}
+
+static bool uce_es256_jwk_string(const DValue& jwk, const String& field, String& value)
+{
+	const DValue* found = jwk.key(field);
+	if(!found)
+		return(false);
+	const DValue& item = found->deref();
+	if(item.type != 'S' || item._String.empty() || item._String.size() > 32768)
+		return(false);
+	value = item._String;
+	return(true);
+}
+
+static std::unique_ptr<EVP_PKEY, UcePkeyDeleter> uce_es256_key_from_jwk(const DValue& jwk)
+{
+	if(jwk.deref().type != 'M')
+		return(nullptr);
+	String kty, crv, x64, y64, d64, x, y, d;
+	if(!uce_es256_jwk_string(jwk, "kty", kty) || !uce_es256_jwk_string(jwk, "crv", crv) || !uce_es256_jwk_string(jwk, "x", x64) || !uce_es256_jwk_string(jwk, "y", y64) || !uce_es256_jwk_string(jwk, "d", d64) ||
+		kty != "EC" || crv != "P-256" || !uce_base64url_decode(x64, x, UCE_ES256_COORDINATE_BASE64URL_MAX) || !uce_base64url_decode(y64, y, UCE_ES256_COORDINATE_BASE64URL_MAX) || !uce_base64url_decode(d64, d, UCE_ES256_COORDINATE_BASE64URL_MAX) ||
+		x.size() != UCE_ES256_COORDINATE_BYTES || y.size() != UCE_ES256_COORDINATE_BYTES || d.size() != UCE_ES256_COORDINATE_BYTES)
+		return(nullptr);
+	unsigned char public_key[65];
+	public_key[0] = 4;
+	memcpy(public_key + 1, x.data(), x.size());
+	memcpy(public_key + 33, y.data(), y.size());
+	std::unique_ptr<BIGNUM, UceBnDeleter> private_bn(BN_bin2bn((const unsigned char*)d.data(), d.size(), 0));
+	std::unique_ptr<OSSL_PARAM_BLD, UceParamBldDeleter> builder(OSSL_PARAM_BLD_new());
+	if(!private_bn || !builder || OSSL_PARAM_BLD_push_utf8_string(builder.get(), OSSL_PKEY_PARAM_GROUP_NAME, "prime256v1", 0) <= 0 ||
+		OSSL_PARAM_BLD_push_octet_string(builder.get(), OSSL_PKEY_PARAM_PUB_KEY, public_key, sizeof(public_key)) <= 0 ||
+		OSSL_PARAM_BLD_push_BN(builder.get(), OSSL_PKEY_PARAM_PRIV_KEY, private_bn.get()) <= 0)
+		return(nullptr);
+	std::unique_ptr<OSSL_PARAM, UceParamsDeleter> params(OSSL_PARAM_BLD_to_param(builder.get()));
+	std::unique_ptr<EVP_PKEY_CTX, UcePkeyCtxDeleter> ctx(EVP_PKEY_CTX_new_from_name(0, "EC", 0));
+	EVP_PKEY* raw = 0;
+	if(!params || !ctx || EVP_PKEY_fromdata_init(ctx.get()) <= 0 || EVP_PKEY_fromdata(ctx.get(), &raw, EVP_PKEY_KEYPAIR, params.get()) <= 0)
+		return(nullptr);
+	std::unique_ptr<EVP_PKEY, UcePkeyDeleter> key(raw);
+	std::unique_ptr<EVP_PKEY_CTX, UcePkeyCtxDeleter> check(EVP_PKEY_CTX_new(key.get(), 0));
+	return(check && EVP_PKEY_public_check(check.get()) > 0 && EVP_PKEY_private_check(check.get()) > 0 && EVP_PKEY_pairwise_check(check.get()) > 0 ? std::move(key) : nullptr);
+}
+
+static bool uce_es256_key_coordinates(EVP_PKEY* key, String& x, String& y, String& d)
+{
+	unsigned char public_key[65]; size_t public_key_size = sizeof(public_key);
+	BIGNUM* private_bn = 0;
+	if(EVP_PKEY_get_octet_string_param(key, OSSL_PKEY_PARAM_PUB_KEY, public_key, sizeof(public_key), &public_key_size) <= 0 || public_key_size != sizeof(public_key) || public_key[0] != 4 ||
+		EVP_PKEY_get_bn_param(key, OSSL_PKEY_PARAM_PRIV_KEY, &private_bn) <= 0)
+		return(false);
+	std::unique_ptr<BIGNUM, UceBnDeleter> private_key(private_bn);
+	if(BN_bn2binpad(private_key.get(), (unsigned char*)d.data(), UCE_ES256_COORDINATE_BYTES) != UCE_ES256_COORDINATE_BYTES)
+		return(false);
+	x.assign((const char*)public_key + 1, UCE_ES256_COORDINATE_BYTES);
+	y.assign((const char*)public_key + 33, UCE_ES256_COORDINATE_BYTES);
+	return(true);
+}
+
+enum class UceCborKind { Unsigned, Negative, Bytes, Text, Array, Map };
+struct UceCbor { UceCborKind kind; u64 number = 0; String bytes; std::vector<UceCbor> items; };
+static constexpr size_t UCE_CBOR_MAX_NODES=256, UCE_CBOR_MAX_DEPTH=16;
+
+static bool uce_cbor_uint(const String& in,size_t& p,u8 ai,u64& n)
+{
+	if(ai<24) { n=ai; return true; } size_t count=ai==24?1:ai==25?2:ai==26?4:ai==27?8:0;
+	if(!count||p>in.size()||count>in.size()-p) return false; n=0;
+	for(size_t i=0;i<count;i++) { if(n>(UINT64_MAX-(u8)in[p+i])/256) return false; n=n*256+(u8)in[p+i]; } p+=count;
+	return((count==1&&n>=24)||(count==2&&n>0xff)||(count==4&&n>0xffff)||(count==8&&n>0xffffffff));
+}
+static bool uce_cbor_equal(const UceCbor& left, const UceCbor& right)
+{
+	if(left.kind != right.kind || left.number != right.number || left.bytes != right.bytes || left.items.size() != right.items.size()) return(false);
+	for(size_t i = 0; i < left.items.size(); i++) if(!uce_cbor_equal(left.items[i], right.items[i])) return(false);
+	return(true);
+}
+static bool uce_cbor_read(const String& in,size_t& p,UceCbor& out,size_t depth,size_t& nodes)
+{
+	if(p>=in.size()||depth>UCE_CBOR_MAX_DEPTH||++nodes>UCE_CBOR_MAX_NODES) return false;
+	u8 h=(u8)in[p++], major=h>>5, ai=h&31; u64 n=0; if(ai==31||!uce_cbor_uint(in,p,ai,n)) return false;
+	if(major==0||major==1) { out.kind=major?UceCborKind::Negative:UceCborKind::Unsigned; out.number=n; return true; }
+	if(major==2||major==3) { if(n>UCE_CBOR_MAX_BYTES||n>in.size()-p||(major==3&&!uce_crypto_utf8_string(String(in.data()+p,(size_t)n)))) return false; out.kind=major==2?UceCborKind::Bytes:UceCborKind::Text; out.bytes.assign(in.data()+p,(size_t)n); p+=(size_t)n; return true; }
+	if(major!=4&&major!=5||n>UCE_CBOR_MAX_NODES) return false;
+	out.kind=major==4?UceCborKind::Array:UceCborKind::Map; if(n>(UCE_CBOR_MAX_NODES-nodes)/(major==5?2:1)) return false; out.items.reserve((size_t)n*(major==5?2:1));
+	for(u64 i=0;i<n*(major==5?2:1);i++) { UceCbor child; if(!uce_cbor_read(in,p,child,depth+1,nodes)) return false; if(major==5&&!(i&1)) for(size_t previous=0;previous<out.items.size();previous+=2) if(uce_cbor_equal(out.items[previous],child)) return false; out.items.push_back(std::move(child)); }
+	return true;
+}
+static DValue uce_cbor_value(const UceCbor& value)
+{
+	DValue out; switch(value.kind) { case UceCborKind::Unsigned: out["type"]="unsigned"; out["value"]=std::to_string(value.number); break; case UceCborKind::Negative: out["type"]="negative"; out["value"]=value.number==UINT64_MAX?"-18446744073709551616":"-"+std::to_string(value.number+1); break; case UceCborKind::Bytes: out["type"]="bytes"; out["base64url"]=uce_base64url_encode((const unsigned char*)value.bytes.data(),value.bytes.size()); break; case UceCborKind::Text: out["type"]="text"; out["value"]=value.bytes; break; case UceCborKind::Array: out["type"]="array"; out["items"].set_array(); for(const auto& x:value.items) out["items"].push(uce_cbor_value(x)); break; case UceCborKind::Map: out["type"]="map"; out["entries"].set_array(); for(size_t i=0;i<value.items.size();i+=2) { DValue entry; entry["key"]=uce_cbor_value(value.items[i]); entry["value"]=uce_cbor_value(value.items[i+1]); out["entries"].push(entry); } } return out;
+}
+static bool uce_cbor_es256(const UceCbor& cose,String& x,String& y)
+{
+	if(cose.kind!=UceCborKind::Map) return false; const UceCbor *kty=0,*alg=0,*crv=0,*xx=0,*yy=0;
+	for(size_t i=0;i<cose.items.size();i+=2) { const UceCbor& k=cose.items[i]; const UceCbor& v=cose.items[i+1]; if(k.kind!=UceCborKind::Unsigned&&k.kind!=UceCborKind::Negative) continue; bool neg=k.kind==UceCborKind::Negative; if(!neg&&k.number==1) kty=&v; else if(!neg&&k.number==3) alg=&v; else if(neg&&k.number==0) crv=&v; else if(neg&&k.number==1) xx=&v; else if(neg&&k.number==2) yy=&v; }
+	return(kty&&alg&&crv&&xx&&yy&&kty->kind==UceCborKind::Unsigned&&kty->number==2&&alg->kind==UceCborKind::Negative&&alg->number==6&&crv->kind==UceCborKind::Unsigned&&crv->number==1&&xx->kind==UceCborKind::Bytes&&yy->kind==UceCborKind::Bytes&&xx->bytes.size()==32&&yy->bytes.size()==32&&(x=xx->bytes,true)&&(y=yy->bytes,true));
+}
+static std::unique_ptr<EVP_PKEY,UcePkeyDeleter> uce_es256_public_key(String x,String y)
+{
+	if(x.size()!=32||y.size()!=32) return nullptr; unsigned char point[65]={4}; memcpy(point+1,x.data(),32); memcpy(point+33,y.data(),32); OSSL_PARAM p[]={OSSL_PARAM_construct_utf8_string(OSSL_PKEY_PARAM_GROUP_NAME,(char*)"prime256v1",0),OSSL_PARAM_construct_octet_string(OSSL_PKEY_PARAM_PUB_KEY,point,sizeof(point)),OSSL_PARAM_construct_end()}; std::unique_ptr<EVP_PKEY_CTX,UcePkeyCtxDeleter> ctx(EVP_PKEY_CTX_new_from_name(0,"EC",0)); EVP_PKEY* raw=0; if(!ctx||EVP_PKEY_fromdata_init(ctx.get())<=0||EVP_PKEY_fromdata(ctx.get(),&raw,EVP_PKEY_PUBLIC_KEY,p)<=0) return nullptr; std::unique_ptr<EVP_PKEY,UcePkeyDeleter> key(raw); std::unique_ptr<EVP_PKEY_CTX,UcePkeyCtxDeleter> check(EVP_PKEY_CTX_new(key.get(),0)); return check&&EVP_PKEY_public_check(check.get())>0?std::move(key):nullptr;
+}
+static bool uce_es256_cose(String encoded,String& x,String& y)
+{
+	String raw; UceCbor cose; size_t p=0,nodes=0; return uce_base64url_decode(encoded,raw,UCE_CBOR_MAX_BASE64URL)&&raw.size()<=UCE_CBOR_MAX_BYTES&&uce_cbor_read(raw,p,cose,0,nodes)&&p==raw.size()&&uce_cbor_es256(cose,x,y)&&uce_es256_public_key(x,y);
+}
+
+static DValue uce_es256_jwk(String x, String y, String d = "")
+{
+	DValue jwk;
+	jwk["kty"] = "EC";
+	jwk["crv"] = "P-256";
+	jwk["x"] = uce_base64url_encode((const unsigned char*)x.data(), x.size());
+	jwk["y"] = uce_base64url_encode((const unsigned char*)y.data(), y.size());
+	if(d != "") jwk["d"] = uce_base64url_encode((const unsigned char*)d.data(), d.size());
+	return(jwk);
+}
+
+static String uce_es256_thumbprint(const DValue& public_jwk)
+{
+	const DValue* x = public_jwk.key("x");
+	const DValue* y = public_jwk.key("y");
+	if(!x || !y)
+		return("");
+	String canonical = "{\"crv\":\"P-256\",\"kty\":\"EC\",\"x\":\"" + x->to_string() + "\",\"y\":\"" + y->to_string() + "\"}";
+	String digest = sha256_native(canonical);
+	return(uce_base64url_encode((const unsigned char*)digest.data(), digest.size()));
+}
+}
+
+static DValue uce_es256_key_create()
+{
+	std::unique_ptr<EVP_PKEY_CTX, UcePkeyCtxDeleter> ctx(EVP_PKEY_CTX_new_from_name(0, "EC", 0));
+	EVP_PKEY* raw = 0;
+	OSSL_PARAM params[] = { OSSL_PARAM_construct_utf8_string(OSSL_PKEY_PARAM_GROUP_NAME, (char*)"prime256v1", 0), OSSL_PARAM_construct_end() };
+	if(!ctx || EVP_PKEY_keygen_init(ctx.get()) <= 0 || EVP_PKEY_CTX_set_params(ctx.get(), params) <= 0 || EVP_PKEY_generate(ctx.get(), &raw) <= 0)
+		return(DValue());
+	std::unique_ptr<EVP_PKEY, UcePkeyDeleter> key(raw);
+	String x(UCE_ES256_COORDINATE_BYTES, 0), y(UCE_ES256_COORDINATE_BYTES, 0), d(UCE_ES256_COORDINATE_BYTES, 0);
+	if(!uce_es256_key_coordinates(key.get(), x, y, d))
+		return(DValue());
+	DValue result;
+	result["public_jwk"] = uce_es256_jwk(x, y);
+	String kid = uce_es256_thumbprint(result["public_jwk"]);
+	result["public_jwk"]["kid"] = kid;
+	result["private_jwk"] = uce_es256_jwk(x, y, d);
+	result["private_jwk"]["kid"] = kid;
+	result["kid"] = kid;
+	result["thumbprint"] = kid;
+	return(result);
+}
+
+static String uce_es256_jwt(DValue private_jwk, DValue protected_header, DValue claims)
+{
+	if(!uce_es256_json_map(protected_header) || !uce_es256_json_map(claims))
+		return("");
+	std::unique_ptr<EVP_PKEY, UcePkeyDeleter> key = uce_es256_key_from_jwk(private_jwk);
+	if(!key)
+		return("");
+	protected_header["alg"] = "ES256";
+	String header_json = json_encode(protected_header);
+	String claims_json = json_encode(claims);
+	if(header_json.size() > UCE_ES256_JSON_MAX || claims_json.size() > UCE_ES256_JSON_MAX)
+		return("");
+	String signing_input = uce_base64url_encode((const unsigned char*)header_json.data(), header_json.size()) + "." + uce_base64url_encode((const unsigned char*)claims_json.data(), claims_json.size());
+	std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> ctx(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+	size_t der_size = 0;
+	if(!ctx || EVP_DigestSignInit(ctx.get(), 0, EVP_sha256(), 0, key.get()) <= 0 || EVP_DigestSign(ctx.get(), 0, &der_size, (const unsigned char*)signing_input.data(), signing_input.size()) <= 0 || der_size == 0 || der_size > 256)
+		return("");
+	String der(der_size, 0);
+	if(EVP_DigestSign(ctx.get(), (unsigned char*)der.data(), &der_size, (const unsigned char*)signing_input.data(), signing_input.size()) <= 0)
+		return("");
+	const unsigned char* cursor = (const unsigned char*)der.data();
+	std::unique_ptr<ECDSA_SIG, UceEcdsaSigDeleter> signature(d2i_ECDSA_SIG(0, &cursor, der_size));
+	const BIGNUM *r = 0, *s = 0;
+	if(!signature || cursor != (const unsigned char*)der.data() + der_size)
+		return("");
+	ECDSA_SIG_get0(signature.get(), &r, &s);
+	String jose(UCE_ES256_SIGNATURE_BYTES, 0);
+	if(!r || !s || BN_bn2binpad(r, (unsigned char*)jose.data(), UCE_ES256_COORDINATE_BYTES) != UCE_ES256_COORDINATE_BYTES || BN_bn2binpad(s, (unsigned char*)jose.data() + UCE_ES256_COORDINATE_BYTES, UCE_ES256_COORDINATE_BYTES) != UCE_ES256_COORDINATE_BYTES)
+		return("");
+	return(signing_input + "." + uce_base64url_encode((const unsigned char*)jose.data(), jose.size()));
+}
+
+DValue crypto_operation_native(DValue request)
+{
+	DValue result;
+	result["ok"].set_bool(false);
+	if(!crypto_operation_request_valid(request))
+	{
+		result["error"] = "invalid_request";
+		return(result);
+	}
+	String operation, algorithm;
+	if(!uce_es256_jwk_string(request, "operation", operation) || !uce_es256_jwk_string(request, "algorithm", algorithm))
+	{
+		result["error"] = "invalid_request";
+		return(result);
+	}
+	if(algorithm != "ES256")
+	{
+		result["error"] = "unsupported_algorithm";
+		return(result);
+	}
+	if(operation == "key_generate")
+	{
+		DValue key = uce_es256_key_create();
+		if(key["private_jwk"]["d"].to_string() == "")
+		{
+			result["error"] = "operation_failed";
+			return(result);
+		}
+		key["ok"].set_bool(true);
+		key["operation"] = operation;
+		key["algorithm"] = algorithm;
+		return(key);
+	}
+	if(operation == "cbor_decode")
+	{
+		String encoded, raw; UceCbor value; size_t p=0,nodes=0;
+		if(!uce_es256_jwk_string(request,"cbor_base64url",encoded) || !uce_base64url_decode(encoded,raw,UCE_CBOR_MAX_BASE64URL) || raw.size()>UCE_CBOR_MAX_BYTES || !uce_cbor_read(raw,p,value,0,nodes) || p!=raw.size()) { result["error"]="invalid_cbor"; return result; }
+		result["ok"].set_bool(true); result["operation"]=operation; result["value"]=uce_cbor_value(value); return result;
+	}
+	if(operation == "cose_es256_parse")
+	{
+		String encoded,x,y; if(!uce_es256_jwk_string(request,"cose_key_base64url",encoded)||!uce_es256_cose(encoded,x,y)) { result["error"]="invalid_cose_key"; return result; }
+		result["ok"].set_bool(true); result["operation"]=operation; result["algorithm"]=algorithm; result["x_base64url"]=uce_base64url_encode((const unsigned char*)x.data(),x.size()); result["y_base64url"]=uce_base64url_encode((const unsigned char*)y.data(),y.size()); return result;
+	}
+	if(operation == "es256_verify")
+	{
+		String encoded,message64,signature64,x,y,message,der; if(!uce_es256_jwk_string(request,"cose_key_base64url",encoded)||!uce_es256_jwk_string(request,"message_base64url",message64)||!uce_es256_jwk_string(request,"signature_der_base64url",signature64)||!uce_es256_cose(encoded,x,y)||!uce_base64url_decode(message64,message,UCE_CBOR_MAX_BASE64URL)||!uce_base64url_decode(signature64,der,UCE_ES256_DER_BASE64URL_MAX)||message.size()>UCE_CBOR_MAX_BYTES||der.empty()||der.size()>UCE_ES256_DER_MAX_BYTES) { result["error"]="invalid_key_or_payload"; return result; }
+		const unsigned char* cursor=(const unsigned char*)der.data(); std::unique_ptr<ECDSA_SIG,UceEcdsaSigDeleter> signature(d2i_ECDSA_SIG(0,&cursor,der.size())); int canonical=signature?i2d_ECDSA_SIG(signature.get(),0):0; String reencoded(canonical>0?(size_t)canonical:0,0); unsigned char* dest=(unsigned char*)reencoded.data(); if(!signature||cursor!=(const unsigned char*)der.data()+der.size()||canonical<=0||i2d_ECDSA_SIG(signature.get(),&dest)!=canonical||reencoded!=der) { result["error"]="invalid_signature"; return result; }
+		std::unique_ptr<EVP_PKEY,UcePkeyDeleter> key=uce_es256_public_key(x,y); std::unique_ptr<EVP_MD_CTX,decltype(&EVP_MD_CTX_free)> ctx(EVP_MD_CTX_new(),EVP_MD_CTX_free); if(!key||!ctx||EVP_DigestVerifyInit(ctx.get(),0,EVP_sha256(),0,key.get())<=0) { result["error"]="operation_failed"; return result; } int verified=EVP_DigestVerify(ctx.get(),(const unsigned char*)der.data(),der.size(),(const unsigned char*)message.data(),message.size()); if(verified<0) { result["error"]="operation_failed"; return result; } result["ok"].set_bool(true); result["operation"]=operation; result["algorithm"]=algorithm; result["valid"].set_bool(verified==1); return result;
+	}
+	if(operation == "jwt_sign")
+	{
+		String jwt = uce_es256_jwt(request["private_jwk"], request["protected_header"], request["claims"]);
+		if(jwt == "")
+		{
+			result["error"] = "invalid_key_or_payload";
+			return(result);
+		}
+		result["ok"].set_bool(true);
+		result["operation"] = operation;
+		result["algorithm"] = algorithm;
+		result["jwt"] = jwt;
+		return(result);
+	}
+	result["error"] = "unsupported_operation";
+	return(result);
+}
+
 #endif

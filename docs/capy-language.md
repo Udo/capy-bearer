@@ -2,6 +2,8 @@
 
 Capy is a statically compiled language that emits Bearer-compatible WebAssembly side modules directly. It does not transpile through C or C++. Capy and C++ units communicate only through Bearer’s unit/component/hostcall membrane.
 
+> Engine note: Bearer native/Wasm carries the bounded UCE-compatible `crypto_operation` CBOR/COSE ES256 primitive, but it has no Capy compiler/stdlib binding. It is intentionally not a Capy capability yet; the parity manifest remains unchanged until that separate surface exists.
+
 ## Declaration grammar
 
 Capy declarations are expression-based. A function declaration consists of:
@@ -71,7 +73,7 @@ var pair := (10, 20)
 
 ## Strings
 
-Strings support byte-preserving concatenation with `+`, byte equality with `==`/`!=`, `length(value)` for strings, markup, and arrays, and C++-compatible `substr(string, start, length)`. Negative substring starts count from the end; a negative length excludes bytes from the end. `find(value, needle)` returns a byte offset or `-1`; `contains(value, needle)` returns whether that offset exists and treats an empty needle as present; `replace(value, from, to)` replaces all non-overlapping matches; `lower(value)` and `upper(value)` use Bearer's established byte-oriented case conversion. String-producing operations return ARC-managed strings. `split(value, delimiter)` returns an owned copied DValue list and preserves empty fields; an empty delimiter returns the original value as one item. `join(list[, delimiter])` accepts a DValue list containing only strings, defaults to a newline delimiter, and returns an owned string. Bearer normalizes a DValue map with exactly contiguous canonical numeric keys into list shape, so such a value is accepted as the equivalent list. This list membrane avoids exposing C++ `StringList` layouts. `first(strings...)` uses Capy's deterministic left-to-right argument evaluation (native C++ call-argument order is intentionally not reproduced) and returns an owned copy of the original first value whose byte-oriented Bearer `trim` result is non-empty; it preserves the selected value's surrounding whitespace and returns an owned empty string when none qualifies.
+Strings support byte-preserving concatenation with `+`, byte equality with `==`/`!=`, `length(value)` for strings, markup, and arrays, and C++-compatible `substr(string, start)` / `substr(string, start, length)` with `s32` and `s64` bounds. Negative substring starts count from the end; a negative length excludes bytes from the end. `strpos(value, needle[, offset])` returns an `s64` byte offset or `-1` and accepts negative offsets; `find(value, needle)` returns a byte offset or `-1`; `contains(value, needle)` returns whether that offset exists and treats an empty needle as present; `replace(value, from, to)` replaces all non-overlapping matches; `lower(value)` and `upper(value)` use Bearer's established byte-oriented case conversion. String-producing operations return ARC-managed strings. `split(value, delimiter)` returns an owned copied DValue list and preserves empty fields; an empty delimiter returns the original value as one item. `join(list[, delimiter])` accepts a DValue list containing only strings, defaults to a newline delimiter, and returns an owned string. Bearer normalizes a DValue map with exactly contiguous canonical numeric keys into list shape, so such a value is accepted as the equivalent list. This list membrane avoids exposing C++ `StringList` layouts. `first(strings...)` uses Capy's deterministic left-to-right argument evaluation (native C++ call-argument order is intentionally not reproduced) and returns an owned copy of the original first value whose byte-oriented Bearer `trim` result is non-empty; it preserves the selected value's surrounding whitespace and returns an owned empty string when none qualifies.
 
 ## Markup values
 
@@ -183,6 +185,12 @@ Capy values never expose their object layout to C++. Dynamic cross-language valu
 
 `regex_match(pattern, subject[, flags])`, `regex_search(pattern, subject[, flags])`, `regex_search_all(pattern, subject[, flags])`, `regex_replace(pattern, replacement, subject[, flags])`, and `regex_split(pattern, subject[, flags])` use Bearer's existing host-side PCRE2 implementation. Search and split return copied owned DValues; replace returns an owned string. Supported flags and match-tree shapes are identical to the documented `.uce` APIs. Invalid patterns, flags, and substitutions trap at the Capy call site, and staged results are cleared on request reset.
 
+## Standard-library boundary
+
+Bearer loads public APIs from `capy://stdlib.capy` on demand, including request/response, WebSocket, component/unit, regex/codec, file/time, session/CSRF/redirect, string, and DValue convenience APIs. Public standard-library function names are reserved: user declarations using one fail clearly. `__bearer_*` names are compiler intrinsics and user source may neither declare nor call them. Selection follows lexical local shadowing, selects typed function-value overloads, and closes library dependencies to a fixed point; only the selected combined declarations are validated. Virtual stdlib frames are suppressed from runtime trap output so the user call site remains primary.
+
+The exact retained language primitives are `dval` construction, `dval_has`, `dval_string`, `dval_s32`, `dval_f64`, `dval_bool`, DValue indexing, `length`, `trusted_markup`, `clone`, `print`, `trap`, and `arc_live`. All other Bearer-facing public convenience names are ordinary stdlib declarations. Their implementations may call private typed `__bearer_*` ABI intrinsics; private names are not language APIs.
+
 ## Databases
 
 `sqlite_connect(path)` returns an exact workspace-local `u64` capability handle. `sqlite_query(handle, sql[, params])` returns copied row DValues and accepts an optional string-valued DValue parameter map; `sqlite_error`, `sqlite_insert_id`, `sqlite_affected_rows`, and `sqlite_disconnect` preserve Bearer's SQLite policy. Handles cannot cross workspaces, and stale or explicitly closed handles trap at the Capy call site. Query results and errors are staged once; SQLite connections remain host-owned and are reclaimed at workspace teardown.
@@ -193,7 +201,7 @@ File descriptors remain exact `u64` Wasm values and never pass through floating-
 
 ## Structured DValues
 
-`dval(...)` accepts strings, `s32`, `f64`, `bool`, nested map literals, list literals, and existing DValues:
+`dval(...)` accepts strings, `s32`, `u64`, `f64`, `bool`, nested map literals, list literals, and existing DValues:
 
 ```capy
 var profile := dval({
@@ -215,7 +223,11 @@ for key, value = profile["tags"] {
 }
 ```
 
-Maps iterate in lexical key order and lists in numeric order. Every key/value crossing into Capy is copied into an ARC-managed object; no borrowed C++ tree pointer is exposed. `array_merge(left, right)` applies Bearer's copied DValue merge policy: string keys from the right overwrite, list-shaped numeric keys append and reindex, a non-map left yields the right value, and a non-map right leaves a map left unchanged. The C++-specific `StringMap` overload is not exposed. As with every BRRB membrane, reference nodes cross as copied dereferenced values; native alias/reference identity is not preserved.
+Maps iterate in lexical key order and lists in numeric order. Every key/value crossing into Capy is copied into an ARC-managed object; no borrowed C++ tree pointer is exposed. `StringMap` values cross as ordinary copied string-key/string-value DValues, including `parse_uri(uri)`, which returns `{parts: {...}, query: {...}}` with the documented native URI parsing semantics. `array_merge(left, right)` applies Bearer's copied DValue merge policy: string keys from the right overwrite, list-shaped numeric keys append and reindex, a non-map left yields the right value, and a non-map right leaves a map left unchanged. Reference nodes cross as copied dereferenced values; native alias/reference identity is not preserved.
+
+DValue value APIs use explicit value semantics: `dval_set`/`dval_assign`, `dval_push`, `dval_remove`, `dval_clear`, `dval_set_array`, and `dval_set_bool` return the replacement copied `dval`, so callers reassign (`value = dval_push(value, child)`). This intentionally differs from C++ in-place mutation because Capy cannot expose a host-tree alias. `dval_pop` likewise returns the post-pop value; the removed-child identity result and `is_reference`, `reference_target`, `deref`, and `set_reference` are unsupported by design.
+
+`dval_key`, `dval_keys`, and `dval_values` return copied DValues (a missing `dval_key` is an empty DValue). `dval_map(value, mapper)` and `dval_filter(value, predicate)` invoke ordinary Capy function values on copied children: maps retain keys, lists are reindexed, and scalar input is processed once into a list. The former StringList operations (`map`, `filter`, `unique`, `sort`, `some`, `every`, `string_list_find`, `keys`, and `each`) operate on that same list-shaped `dval`; they introduce no StringList layout or host import. `dval_to_s64` and `dval_to_u64` preserve native Wasm 64-bit results and fallbacks across the BRRB boundary; their conversion, fallback, and clamping behavior is Bearer's `DValue` behavior.
 
 A declaration named `EXPORT_name` with signature `(dval) dval` publishes the ordinary Bearer custom export `name`:
 

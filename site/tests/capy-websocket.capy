@@ -1,15 +1,16 @@
 function WS {
     var connection := ws_connection_id()
     var scope := ws_scope()
-    if length(connection) > 0 && length(scope) >= 0 {
+    var ids := ws_connections(scope)
+    if length(connection) > 0 && ws_connection_count(scope) > 0u64 && dval_string(ids[0]) == connection {
         if ws_opcode() == 1 && !ws_is_binary() {
-            ws_send("echo:" + ws_message(), false)
+            ws_send("echo:" + ws_message(), false, scope)
             ws_send_to(connection, "direct:" + ws_message(), false)
-            ws_close(connection)
+            ws_close()
         } else {
             if ws_opcode() == 2 && ws_is_binary() {
-                ws_send(ws_message(), true)
-                ws_close(connection)
+                ws_send(ws_message(), true, scope)
+                ws_close()
             }
         }
     }

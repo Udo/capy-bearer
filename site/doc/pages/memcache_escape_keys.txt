@@ -1,5 +1,5 @@
 :sig
-StringList memcache_escape_keys(StringList keys)
+DValue memcache_escape_keys(DValue keys)
 
 :params
 keys : list of application keys
@@ -13,7 +13,7 @@ return value : escaped keys
 Applies `memcache_escape_key()` to each key in a list.
 
 :example
-StringList keys;
+DValue keys;
 keys.push_back("a b");
 keys.push_back("c\td");
 print(join(memcache_escape_keys(keys), ", "), "\n");

@@ -296,9 +296,9 @@ bool ws_is_binary()
 	return(context->resources.websocket_is_binary);
 }
 
-StringList ws_connections(String scope)
+DValue ws_connections(String scope)
 {
-	return(server.websocket_connection_ids(normalize_ws_scope(scope)));
+	return(dvalue_from_strings(server.websocket_connection_ids(normalize_ws_scope(scope))));
 }
 
 u64 ws_connection_count(String scope)
@@ -327,7 +327,7 @@ bool ws_close(String connection_id)
 
 bool cli_path_is_safe(String command)
 {
-	for(auto& segment : split(command, "/"))
+	for(auto& segment : split_strings(command, "/"))
 	{
 		if(segment == "..")
 			return(false);
@@ -685,7 +685,7 @@ int handle_complete(FastCGIRequest& request) {
 				request.resources.websocket_is_binary = request.params["BEARER_WS_BINARY"] == "1";
 				bool msg_ok = false;
 				request.in = base64_decode(request.params["BEARER_WS_MESSAGE"], msg_ok);
-				for(auto& id : split(request.params["BEARER_WS_CONNECTIONS"], "\n"))
+				for(auto& id : split_strings(request.params["BEARER_WS_CONNECTIONS"], "\n"))
 					if(id != "")
 						request.resources.websocket_scope_connection_ids.push_back(id);
 				bool decoded = false;
@@ -832,7 +832,7 @@ StringMap custom_server_config_decode(String content)
 		return(json_decode(content).to_stringmap());
 
 	// Compatibility for early newline/key=value config files from development.
-	for(auto line : split(content, "\n"))
+	for(auto line : split_strings(content, "\n"))
 	{
 		line = trim(line);
 		if(line == "")
@@ -860,11 +860,12 @@ bool custom_server_is_numeric_port(String value)
 u64 custom_server_registry_count()
 {
 	u64 count = 0;
-	for(auto file_name : ls(server_state.config["BIN_DIRECTORY"]))
-	{
+	DValue files = ls(server_state.config["BIN_DIRECTORY"]);
+	files.each([&](const DValue& file, String) {
+		String file_name = file.to_string();
 		if(str_starts_with(file_name, "server-") && str_ends_with(file_name, ".cfg"))
 			count++;
-	}
+	});
 	return(count);
 }
 
@@ -1059,7 +1060,7 @@ int ws_broker_ws_message(FastCGIRequest& request, const String& message, u8 opco
 	params["BEARER_WS_SCOPE"] = request.resources.websocket_scope;
 	params["BEARER_WS_OPCODE"] = std::to_string((int)opcode);
 	params["BEARER_WS_BINARY"] = request.resources.websocket_is_binary ? "1" : "0";
-	params["BEARER_WS_CONNECTIONS"] = join(ws_broker.websocket_connection_ids(request.resources.websocket_scope), "\n");
+	params["BEARER_WS_CONNECTIONS"] = join_strings(ws_broker.websocket_connection_ids(request.resources.websocket_scope), "\n");
 	if(request.resources.websocket_connection_state)
 		params["BEARER_WS_STATE"] = base64_encode(brb_encode(*request.resources.websocket_connection_state));
 
@@ -1261,7 +1262,7 @@ bool server_stop(String key)
 	return(custom_server_wait_for_stop(task_key));
 }
 
-bool proactive_compile_queue_has(StringList& queue, String file_name)
+bool proactive_compile_queue_has(std::vector<String>& queue, String file_name)
 {
 	return(std::find(queue.begin(), queue.end(), file_name) != queue.end());
 }
@@ -1292,7 +1293,7 @@ bool proactive_compile_worker_owns(String file_name, u64 worker, u64 jobs)
 	return(hash % jobs == worker);
 }
 
-void proactive_compile_queue_push(StringList& queue, String file_name)
+void proactive_compile_queue_push(std::vector<String>& queue, String file_name)
 {
 	if(file_name == "" || proactive_compile_queue_has(queue, file_name))
 		return;
@@ -1335,7 +1336,7 @@ bool proactive_compile_unit(Request& context, String file_name, bool& source_mis
 void run_proactive_compiler(u64 worker, u64 jobs)
 {
 	Request background_context;
-	StringList compile_queue;
+	std::vector<String> compile_queue;
 	background_context.server = &server_state;
 	set_active_request(background_context);
 	if(!to_bool(server_state.config["PROACTIVE_COMPILE_ENABLED"], true))
@@ -1366,10 +1367,10 @@ void run_proactive_compiler(u64 worker, u64 jobs)
 
 	try
 	{
-		auto known_units = compiler_list_known_units(&background_context);
-		auto site_units = compiler_scan_site_units(&background_context);
+		auto known_units = strings_from_dvalue(compiler_list_known_units(&background_context));
+		auto site_units = strings_from_dvalue(compiler_scan_site_units(&background_context));
 		known_units.insert(known_units.end(), site_units.begin(), site_units.end());
-		compiler_set_known_units(&background_context, known_units);
+		compiler_set_known_units(&background_context, dvalue_from_strings(known_units));
 	}
 	catch(const std::exception& e)
 	{
@@ -1387,7 +1388,7 @@ void run_proactive_compiler(u64 worker, u64 jobs)
 		{
 			if(compile_queue.size() == 0 && time_precise() >= next_scan_at)
 			{
-				auto tracked_units = compiler_list_known_units(&background_context);
+				auto tracked_units = strings_from_dvalue(compiler_list_known_units(&background_context));
 				bool source_generation_changed = false;
 
 				for(auto& file_name : tracked_units)
@@ -1484,7 +1485,7 @@ void run_priority_compiler()
 	setpriority(PRIO_PROCESS, 0, 5);
 	while(!termination_signal_received)
 	{
-		auto units = compiler_take_priority_units(&background_context);
+		auto units = strings_from_dvalue(compiler_take_priority_units(&background_context));
 		if(units.empty())
 		{
 			usleep(100000);
@@ -1701,7 +1702,7 @@ struct PrecompileWorkerResult
 	u64 failed = 0;
 };
 
-PrecompileWorkerResult precompile_unit_range(Request& background_context, const StringList& files, u64 worker, u64 jobs)
+PrecompileWorkerResult precompile_unit_range(Request& background_context, const std::vector<String>& files, u64 worker, u64 jobs)
 {
 	PrecompileWorkerResult result;
 	for(u64 i = worker; i < files.size(); i += jobs)
@@ -1768,8 +1769,8 @@ int precompile_unit_generation()
 	mkdir(compiler_unit_bin_directory(&background_context));
 
 	set_active_request(background_context);
-	auto files = compiler_scan_site_units(&background_context);
-	compiler_set_known_units(&background_context, files);
+	auto files = strings_from_dvalue(compiler_scan_site_units(&background_context));
+	compiler_set_known_units(&background_context, dvalue_from_strings(files));
 	const char* jobs_env = getenv("BEARER_PRECOMPILE_JOBS");
 	String jobs_text = trim(jobs_env && jobs_env[0] != '\0' ? String(jobs_env) : server_state.config["PRECOMPILE_JOBS"]);
 	u64 jobs = std::min<u64>(bounded_compile_jobs(jobs_text), files.size() == 0 ? 1 : files.size());
@@ -1835,7 +1836,7 @@ int precompile_unit_generation()
 		if(total.assigned != files.size())
 			worker_error = true;
 	}
-	auto final_files = compiler_scan_site_units(&background_context);
+	auto final_files = strings_from_dvalue(compiler_scan_site_units(&background_context));
 	bool source_generation_changed = final_files != files;
 	if(!source_generation_changed)
 	{
@@ -1851,7 +1852,7 @@ int precompile_unit_generation()
 	}
 	if(source_generation_changed)
 	{
-		compiler_set_known_units(&background_context, final_files);
+		compiler_set_known_units(&background_context, dvalue_from_strings(final_files));
 		compiler_mark_source_generation(&background_context);
 		printf("(!) source generation changed during precompile; candidate generation rejected\n");
 	}

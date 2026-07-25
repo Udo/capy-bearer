@@ -50,43 +50,30 @@ fi
 
 entry_wasm="$artifact_dir/entry.uce.wasm"
 named_wasm="$artifact_dir/named.uce.wasm"
-python3 - "$entry_wasm" "$named_wasm" "$absolute_source_dir" <<'PY'
-import sys
-from pathlib import Path
-
-from scripts.check_unit_wasm import collect
-
-cases = [
-    (Path(sys.argv[1]), {"__wasm_call_ctors", "__bearer_set_current_request", "__bearer_cli", "visibility_shared"}, b"bearer-private-unused-marker-8f61d2"),
-    (Path(sys.argv[2]), {"__wasm_call_ctors", "__bearer_set_current_request", "__bearer_component_NAMED", "named_shared"}, b"bearer-named-unused-marker-4ae973"),
-]
-source_dir = Path(sys.argv[3])
-for path, allowed, unused_marker in cases:
-    data = path.read_bytes()
-    customs, imports, exports = collect(path)
-    names = {name for name, _ in exports}
-    unexpected = names - allowed
-    missing = allowed - names
-    if unexpected or missing:
-        raise SystemExit(f"{path}: unexpected exports={sorted(unexpected)} missing={sorted(missing)} all={sorted(names)}")
-    if unused_marker in data:
-        raise SystemExit(f"{path}: retained unused private code marker")
-    if len(imports) >= 40:
-        raise SystemExit(f"{path}: retained {len(imports)} imports (expected fewer than 40)")
-    if path.stat().st_size >= 1024 * 1024:
-        raise SystemExit(f"{path}: artifact is {path.stat().st_size} bytes (expected under 1 MiB)")
-    source_map = Path(str(path) + ".source-map")
-    if not source_map.is_file() or source_map.stat().st_size >= 256 * 1024:
-        raise SystemExit(f"{path}: missing or oversized source map")
-    module = customs["bearer.module"][-1].decode()
-    lines = source_map.read_text().splitlines()
-    if not lines or lines[0] != f"BEARER_SOURCE_MAP_V1\t{module}":
-        raise SystemExit(f"{path}: source map does not match wasm module identity")
-    expected_source = str(source_dir / path.name.removesuffix(".wasm"))
-    if not any(line.startswith("F\t") and line.endswith("\t" + expected_source) for line in lines):
-        raise SystemExit(f"{path}: source map does not identify {expected_source}")
-    if not any(line.startswith("L\t") for line in lines):
-        raise SystemExit(f"{path}: source map has no address rows")
-PY
+for wasm in "$entry_wasm" "$named_wasm"; do
+	wasm-objdump -x "$wasm" >"$wasm.objdump"
+	case "$wasm" in
+		"$entry_wasm") expected='__wasm_call_ctors __bearer_set_current_request __bearer_cli visibility_shared'; marker='bearer-private-unused-marker-8f61d2' ;;
+		*) expected='__wasm_call_ctors __bearer_set_current_request __bearer_component_NAMED named_shared'; marker='bearer-named-unused-marker-4ae973' ;;
+	esac
+	grep -aFq "$marker" "$wasm" && { echo "$wasm retained unused private code marker" >&2; exit 1; }
+	# Export surface must be exactly the expected set (no missing, no unexpected).
+	actual_names=$(awk '/^Export\[/{f=1;next} f&&/^ - /{if(match($0,/"[^"]*"$/)) print substr($0,RSTART+1,RLENGTH-2); next} f{exit}' "$wasm.objdump" | sort -u)
+	expected_names=$(tr ' ' '\n' <<<"$expected" | sort -u)
+	[[ "$actual_names" == "$expected_names" ]] || { echo "$wasm export surface mismatch: got [$actual_names] want [$expected_names]" >&2; exit 1; }
+	# Import count and artifact size stay bounded.
+	imports=$(awk '/^Import\[/{f=1;next} f&&/^ - /{n++; next} f{exit} END{print n+0}' "$wasm.objdump")
+	[[ $imports -lt 40 ]] || { echo "$wasm retained $imports imports (expected fewer than 40)" >&2; exit 1; }
+	[[ $(stat -c%s "$wasm") -lt 1048576 ]]
+	# Source map matches the module identity and identifies the unit source.
+	map="$wasm.source-map"
+	[[ -s "$map" && $(stat -c%s "$map") -lt 262144 ]]
+	map_header=$(head -1 "$map")
+	[[ "$map_header" == BEARER_SOURCE_MAP_V1$'\t'* ]] || { echo "$map: bad header" >&2; exit 1; }
+	grep -aFq "${map_header#*$'\t'}" "$wasm" || { echo "$map: module identity not in wasm" >&2; exit 1; }
+	grep -q '^L' "$map"
+	grep '^F' "$map" | grep -q "$(realpath "$source_dir")/$(basename "${wasm%.wasm}")$"
+	rm -f "$wasm.objdump"
+done
 
 echo "unit export surface passed"

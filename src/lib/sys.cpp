@@ -64,6 +64,7 @@ int bearer_host_crypto_equal(const char* a, size_t a_len, const char* b, size_t 
 size_t bearer_host_password_hash(const char* password, size_t password_len, char* out, size_t cap);
 int bearer_host_password_verify(const char* password, size_t password_len, const char* encoded, size_t encoded_len);
 int bearer_host_password_needs_rehash(const char* encoded, size_t encoded_len);
+size_t bearer_host_crypto_operation(const char* in, size_t in_len, char* out, size_t cap);
 size_t bearer_host_http_request(const char* in, size_t in_len, char* out, size_t cap);
 uint64_t bearer_host_http_request_async(const char* in, size_t in_len);
 size_t bearer_host_shell_exec_dv(const char* in, size_t in_len, char* out, size_t cap);
@@ -284,6 +285,11 @@ String password_hash(String password)
 }
 bool password_verify(String password, String encoded) { return(bearer_host_password_verify(password.data(), password.size(), encoded.data(), encoded.size()) != 0); }
 bool password_needs_rehash(String encoded) { return(bearer_host_password_needs_rehash(encoded.data(), encoded.size()) != 0); }
+DValue crypto_operation(DValue request)
+{
+	DValue bad; bad["ok"].set_bool(false); bad["error"]="invalid_request"; if(!crypto_operation_request_valid(request)) return bad;
+	String encoded=brb_encode(request); size_t required=bearer_host_crypto_operation(encoded.data(),encoded.size(),0,0); if(!required||required>64*1024) return DValue(); String out(required,0); size_t got=bearer_host_crypto_operation(encoded.data(),encoded.size(),&out[0],required); return got<=required?wasm_decode_dvalue_result(String(out.data(),got)):DValue();
+}
 String base64_decode(String raw) { return(wasm_string_hostcall_1(bearer_host_base64_decode, raw)); }
 String random_bytes(u64 n)
 {
@@ -304,6 +310,7 @@ u64 http_request_async(DValue req)
 	String encoded = brb_encode(req);
 	return((u64)bearer_host_http_request_async(encoded.data(), encoded.size()));
 }
+
 
 DValue shell_exec(DValue spec)
 {
@@ -377,18 +384,16 @@ void file_unlink(String file_name)
 	bearer_host_file_unlink(file_name.data(), file_name.size(), current.data(), current.size());
 }
 String expand_path(String path, String relative_to_path) { return(path_join(relative_to_path, path)); }
-StringList ls(String dir)
+DValue ls(String dir)
 {
 	String current = wasm_current_unit_file();
 	size_t required = bearer_host_file_list(dir.data(), dir.size(), current.data(), current.size(), 0, 0);
 	if(required == 0)
-		return(StringList());
+		return(dvalue_from_strings({}));
 	String listing(required, 0);
 	size_t got = bearer_host_file_list(dir.data(), dir.size(), current.data(), current.size(), &listing[0], required);
 	listing.resize(got <= required ? got : 0);
-	if(listing == "")
-		return(StringList());
-	return(split(listing, "\n"));
+	return(dvalue_from_strings(listing == "" ? std::vector<String>() : split_strings(listing, "\n")));
 }
 DValue request_perf()
 {
@@ -506,7 +511,7 @@ String ws_connection_id() { return(context ? context->resources.websocket_connec
 String ws_scope() { return(context ? context->resources.websocket_scope : ""); }
 u8 ws_opcode() { return(context ? context->resources.websocket_opcode : 0); }
 bool ws_is_binary() { return(context && context->resources.websocket_is_binary); }
-StringList ws_connections(String scope) { (void)scope; return(context ? context->resources.websocket_scope_connection_ids : StringList()); }
+DValue ws_connections(String scope) { (void)scope; return(dvalue_from_strings(context ? context->resources.websocket_scope_connection_ids : std::vector<String>())); }
 u64 ws_connection_count(String scope) { return(ws_connections(scope).size()); }
 // The wasm workspace owns no connections; ws_send/ws_close record dispatch
 // commands (same shape as the native websocket_exec capture) that the host
@@ -587,12 +592,12 @@ String memcache_escape_key(String key)
 	}
 	return(result);
 }
-StringList memcache_escape_keys(StringList keys)
+DValue memcache_escape_keys(DValue keys)
 {
-	StringList result;
-	for(auto s : keys)
-		result.push_back(memcache_escape_key(s));
-	return(result);
+	auto values = strings_from_dvalue(keys);
+	for(auto& value : values)
+		value = memcache_escape_key(value);
+	return(dvalue_from_strings(values));
 }
 u64 memcache_connect(String host, u16 port)
 {
@@ -633,7 +638,7 @@ String memcache_get(u64 connection, String key, String default_value)
 	if(res.rfind("VALUE ", 0) != 0 || header_pos == String::npos)
 		return(default_value);
 	String header = res.substr(0, header_pos);
-	StringList parts = split(header, " ");
+	std::vector<String> parts = split_strings(header, " ");
 	if(parts.size() < 4)
 		return(default_value);
 	u64 length = int_val(parts[3]);
@@ -642,7 +647,7 @@ String memcache_get(u64 connection, String key, String default_value)
 		return(default_value);
 	return(res.substr(data_pos, length));
 }
-StringMap memcache_get_multiple(u64 connection, StringList keys)
+StringMap memcache_get_multiple(u64 connection, DValue keys)
 {
 	StringMap result;
 	String res = memcache_command(connection, String("get ") + join(memcache_escape_keys(keys), " "));
@@ -651,7 +656,7 @@ StringMap memcache_get_multiple(u64 connection, StringList keys)
 		size_t header_pos = res.find("\r\n");
 		if(header_pos == String::npos)
 			break;
-		StringList parts = split(res.substr(0, header_pos), " ");
+		std::vector<String> parts = split_strings(res.substr(0, header_pos), " ");
 		if(parts.size() < 4)
 			break;
 		String key = parts[1];
@@ -750,12 +755,14 @@ String base64_decode(String raw) { bool ok=false; return(::base64_decode(raw, ok
 String random_bytes(u64 n) { if(n > 1024*1024) n = 1024*1024; String out(n, 0); int fd=open("/dev/urandom", O_RDONLY); if(fd<0) return(""); size_t off=0; while(off<n) { ssize_t got=read(fd, &out[off], n-off); if(got<0 && errno==EINTR) continue; if(got<=0) break; off += (size_t)got; } close(fd); out.resize(off); return(out); }
 bool crypto_equal(String a, String b) { return(crypto_equal_native(a, b)); }
 String password_hash(String password) { return(password_hash_native(password)); }
+DValue crypto_operation(DValue request) { return(crypto_operation_native(request)); }
 bool password_verify(String password, String encoded) { return(password_verify_native(password, encoded)); }
 bool password_needs_rehash(String encoded) { return(password_needs_rehash_native(encoded)); }
 
-// Single definitions for the native split build (declared extern in sys.h).
+// Single definitions for the native split_strings build (declared extern in sys.h).
 pid_t parent_pid = 0;
 pid_t my_pid = 0;
+bool task_child_process = false;
 
 namespace {
 
@@ -965,9 +972,9 @@ String basename(String fn)
 String dirname(String fn)
 {
 	String result;
-	auto seg = split(fn, "/");
+	auto seg = split_strings(fn, "/");
 	seg.pop_back();
-	result = join(seg, "/");
+	result = join_strings(seg, "/");
 	//printf("dirname(%s) %s seg#%i\n", fn.c_str(), result.c_str(), seg.size());
 	return(result);
 }
@@ -1155,8 +1162,8 @@ String expand_path(String path, String relative_to_path)
 	if(relative_to_path == "")
 		relative_to_path = cwd_get();
 
-	auto base_path = split(relative_to_path, "/");
-	auto rel_path = split(path, "/");
+	auto base_path = split_strings(relative_to_path, "/");
+	auto rel_path = split_strings(path, "/");
 
 	for(auto& s : rel_path)
 	{
@@ -1174,7 +1181,7 @@ String expand_path(String path, String relative_to_path)
 		}
 	}
 
-	return(join(base_path, "/"));
+	return(join_strings(base_path, "/"));
 }
 
 f64 time_precise()
@@ -1303,14 +1310,12 @@ String memcache_escape_key(String key)
 	return(result);
 }
 
-StringList memcache_escape_keys(StringList keys)
+DValue memcache_escape_keys(DValue keys)
 {
-	StringList result;
-	for(auto s : keys)
-	{
-		result.push_back(memcache_escape_key(s));
-	}
-	return(result);
+	auto values = strings_from_dvalue(keys);
+	for(auto& value : values)
+		value = memcache_escape_key(value);
+	return(dvalue_from_strings(values));
 }
 
 u64 memcache_connect(String host, u16 port)
@@ -1356,7 +1361,7 @@ String memcache_get(u64 connection, String key, String default_value)
 	return(default_value);
 }
 
-StringMap memcache_get_multiple(u64 connection, StringList keys)
+StringMap memcache_get_multiple(u64 connection, DValue keys)
 {
 	StringMap result;
 	// to do: escape key String
@@ -1660,7 +1665,7 @@ struct TaskStatus {
 TaskStatus task_status_parse(String status_file)
 {
 	TaskStatus status;
-	auto lines = split(trim(status_file), "\n");
+	auto lines = split_strings(trim(status_file), "\n");
 	if(lines.size() > 0)
 		status.pid = (pid_t)int_val(trim(lines[0]));
 	if(lines.size() > 1)
@@ -1687,7 +1692,7 @@ String task_process_start_ticks(pid_t pid)
 	if(command_end == String::npos)
 		return("");
 	String after_command = stat.substr(command_end + 2);
-	auto fields = split_space(after_command);
+	auto fields = split_space_strings(after_command);
 	if(fields.size() <= 19)
 		return("");
 	return(fields[19]);
@@ -1787,6 +1792,7 @@ pid_t task(String key, std::function<void()> exec_after_spawn, u64 timeout)
 	{
 		close_locked_file(lock_fd);
 		my_pid = getpid();
+		task_child_process = true;
 		// The FastCGI worker handles termination to drain accepted requests.
 		// Generic task children do not run that drain loop, so inheriting those
 		// handlers would turn task_kill(SIGTERM) into a no-op.
@@ -1874,12 +1880,12 @@ void on_child_exit(int sig)
 	}
 }
 
-StringList ls(String dir)
+DValue ls(String dir)
 {
-	StringList entries;
+	std::vector<String> entries;
 	std::error_code ec;
 	if(!std::filesystem::is_directory(dir, ec))
-		return(entries);
+		return(dvalue_from_strings(entries));
 	for(auto const& entry : std::filesystem::directory_iterator(dir, ec))
 	{
 		if(ec)
@@ -1887,7 +1893,7 @@ StringList ls(String dir)
 		entries.push_back(entry.path().filename().string());
 	}
 	std::sort(entries.begin(), entries.end());
-	return(entries);
+	return(dvalue_from_strings(entries));
 }
 
 StringMap make_server_settings()

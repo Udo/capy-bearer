@@ -1,5 +1,5 @@
 :sig
-DValue DValue::filter(StringList keys) const
+DValue DValue::filter(DValue keys) const
 DValue DValue::filter(std::function<bool (const DValue& item, String key)> f) const
 
 :params

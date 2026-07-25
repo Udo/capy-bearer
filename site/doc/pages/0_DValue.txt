@@ -80,7 +80,7 @@ Common mutating helpers include:
 - `.remove(key)`
 - `.clear()`
 
-Use `.set_array()` when you want list-style behavior with `push()` and `pop()`.
+Use `.set_array()` when you want list-style behavior with `push()` and `pop()`. List-shaped DValues are also the unified ordered-string container: `split*()`, `regex_split()`, `ls()`, `units_list()`, and `ws_connections()` return them; `join()`, `filter()`, `map()`, `keys()`, `each()`, `unique()`, `sort()`, `some()`, `every()`, and `find()` consume their string children. `StringList` remains only as a source-compatible alias.
 
 ## Inspection Helpers
 

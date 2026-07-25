@@ -58,7 +58,9 @@ mount --bind "$settings" /etc/bearer/settings.cfg
 mkdir -p "$root/compiler/src/wasm" "$root/compiler/scripts"
 cp -a src/lib "$root/compiler/src/lib"
 cp -a src/wasm/abi.h "$root/compiler/src/wasm/abi.h"
-cp -a scripts/compile_wasm_unit scripts/build_unit_source_map.py scripts/check_unit_wasm.py "$root/compiler/scripts/"
+cp -a scripts/compile_wasm_unit "$root/compiler/scripts/"
+mkdir -p "$root/compiler/bin"
+cp -a bin/capyc "$root/compiler/bin/"
 chmod -R a+rX "$root/compiler"
 
 cat >"$root/compile" <<SHIM

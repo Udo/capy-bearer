@@ -72,7 +72,7 @@ DValue site_tests_manifest(String manifest_path = "manifest.txt")
 		line = trim(line);
 		if(line == "" || line[0] == '#')
 			continue;
-		StringList parts = split(line, "|");
+		DValue parts = split(line, "|");
 		if(parts.size() < 7)
 			continue;
 		String file = trim(parts[0]);

@@ -25,6 +25,7 @@ extern "C" size_t bearer_host_mysql(const char* in, size_t in_len, char* out, si
 extern "C" size_t bearer_host_zip(const char* in, size_t in_len, char* out, size_t cap);
 extern "C" size_t bearer_host_units(const char* in, size_t in_len, char* out, size_t cap);
 extern "C" size_t bearer_host_regex_capy(const char* in, size_t in_len, char* out, size_t cap);
+extern "C" size_t bearer_host_capy_backtrace(s32 max_frames, s32 skip_frames, const char* stack, size_t depth, char* out, size_t cap);
 
 static DValue wasm_sized_hostcall(DValue request, size_t (*hostcall)(const char*, size_t, char*, size_t))
 {
@@ -46,6 +47,13 @@ static DValue wasm_zip_call(DValue request)
 {
 	DValue response = wasm_sized_hostcall(request, bearer_host_zip);
 	return(response);
+}
+
+static bool wasm_zip_apply(DValue request, DValue& response)
+{
+	response = wasm_zip_call(request);
+	DValue* error = response.key("error");
+	return(!error || error->to_string() == "");
 }
 
 DValue zip_list(String zip_file_name)
@@ -121,16 +129,13 @@ DValue unit_info(String path)
 	return(result ? *result : DValue());
 }
 
-StringList units_list()
+DValue units_list()
 {
 	DValue request;
 	request["op"] = "list";
 	DValue response = wasm_units_call(request);
-	StringList result;
-	DValue* items = response.key("result");
-	if(items)
-		items->each([&](const DValue& value, String) { result.push_back(value.to_string()); });
-	return(result);
+	DValue* result = response.key("result");
+	return(result ? *result : DValue());
 }
 
 bool unit_compile(String path)
@@ -149,11 +154,14 @@ static String wasm_file_temp_result;
 static String wasm_unit_info_result;
 static String wasm_units_list_result;
 static String wasm_codec_result;
+static String wasm_crypto_result;
 static String wasm_regex_result;
 static String wasm_string_list_result;
 static String wasm_dval_merge_result;
 static String wasm_sqlite_result;
 static std::vector<SQLite*> wasm_capy_sqlite_handles;
+static String wasm_mysql_result;
+static std::vector<MySQL*> wasm_capy_mysql_handles;
 static size_t bearer_copy_bytes(const String& value, char* out, size_t cap);
 static size_t bearer_copy_staged(String& staged, char* out, size_t cap);
 static bool bearer_decode_brrb_span(const char* value, size_t value_len, DValue& decoded);
@@ -177,7 +185,7 @@ bool MySQL::connect(String host, String username, String password, String databa
 	request["password"] = password;
 	request["database"] = database;
 	DValue response = wasm_mysql_call(request);
-	u64 handle = response["handle"].to_u64();
+	u64 handle = to_u64(response["handle"].to_string(), 0);
 	connection = (void*)(uintptr_t)handle;
 	_preload_next_error_code = (u32)response["error_code"].to_u64();
 	statement_info = response["statement_info"].to_string();
@@ -190,7 +198,7 @@ void MySQL::disconnect()
 	{
 		DValue request;
 		request["op"] = "disconnect";
-		request["handle"] = (f64)(uintptr_t)connection;
+		request["handle"] = std::to_string((u64)(uintptr_t)connection);
 		wasm_mysql_call(request);
 		connection = 0;
 	}
@@ -246,8 +254,23 @@ String MySQL::parse_query_parameters(String query, StringMap map)
 		}
 		else if(mode == 1)
 		{
-			if(isalnum(c) || c == '_')
+			if(isalnum((unsigned char)c) || c == '_')
 				identifier.append(1, c);
+			else if(c == '!' && query[i + 1] != '=')
+			{
+				String value = map[identifier];
+				bool valid = identifier != "" && value != "";
+				for(char digit : value)
+					if(!isdigit((unsigned char)digit)) valid = false;
+				if(!valid)
+				{
+					parameter_error = true;
+					statement_info = "mysql unsigned parameter :" + identifier + "! must contain only decimal digits";
+					return("");
+				}
+				result.append(value);
+				mode = 0;
+			}
 			else
 			{
 				result.append(escape(map[identifier]));
@@ -321,7 +344,7 @@ DValue MySQL::query(String q)
 	}
 	DValue request;
 	request["op"] = "query";
-	request["handle"] = (f64)(uintptr_t)connection;
+	request["handle"] = std::to_string((u64)(uintptr_t)connection);
 	request["query"] = q;
 	DValue response = wasm_mysql_call(request);
 	insert_id = response["insert_id"].to_u64();
@@ -332,7 +355,17 @@ DValue MySQL::query(String q)
 	return(result ? *result : DValue());
 }
 
-DValue MySQL::query(String q, StringMap params) { return(query(parse_query_parameters(q, params))); }
+DValue MySQL::query(String q, StringMap params)
+{
+	parameter_error = false;
+	String parsed = parse_query_parameters(q, params);
+	if(parameter_error)
+	{
+		_preload_next_error_code = 2000;
+		return(DValue());
+	}
+	return(query(parsed));
+}
 DValue MySQL::get_pending_result() { return(DValue()); }
 
 // sqlite runs host-side (the host links libsqlite and owns the connections in
@@ -366,7 +399,7 @@ bool SQLite::connect(String path)
 	request["op"] = "connect";
 	request["path"] = path;
 	DValue response = wasm_sqlite_call(request);
-	u64 handle = response["handle"].to_u64();
+	u64 handle = to_u64(response["handle"].to_string(), 0);
 	connection = (void*)(uintptr_t)handle;
 	error_code = (s32)response["error_code"].to_s64();
 	statement_info = response["statement_info"].to_string();
@@ -379,7 +412,7 @@ void SQLite::disconnect()
 	{
 		DValue request;
 		request["op"] = "disconnect";
-		request["handle"] = (f64)(uintptr_t)connection;
+		request["handle"] = std::to_string((u64)(uintptr_t)connection);
 		wasm_sqlite_call(request);
 		connection = 0;
 	}
@@ -401,7 +434,7 @@ DValue SQLite::query(String q, const StringMap& params)
 	}
 	DValue request;
 	request["op"] = "query";
-	request["handle"] = (f64)(uintptr_t)connection;
+	request["handle"] = std::to_string((u64)(uintptr_t)connection);
 	request["query"] = q;
 	for(auto& entry : params)
 		request["params"][entry.first] = entry.second;
@@ -435,6 +468,113 @@ u64 sqlite_insert_id(SQLite* db) { return(db ? db->insert_id : 0); }
 u32 sqlite_affected_rows(SQLite* db) { return(db ? db->affected_rows : 0); }
 void cleanup_sqlite_connections() { }
 void cleanup_mysql_connections() { }
+
+static MySQL* bearer_mysql_handle(u64 handle)
+{
+	if(handle == 0 || handle > wasm_capy_mysql_handles.size())
+		return(0);
+	return(wasm_capy_mysql_handles[(size_t)handle - 1]);
+}
+
+extern "C" u64 bearer_mysql_connect(const char* host, size_t host_len, const char* username, size_t username_len,
+	const char* password, size_t password_len, const char* database, size_t database_len)
+{
+	MySQL* db = mysql_connect(String(host ? host : "", host ? host_len : 0), String(username ? username : "", username ? username_len : 0),
+		String(password ? password : "", password ? password_len : 0), String(database ? database : "", database ? database_len : 0));
+	if(!db)
+		return(0);
+	wasm_capy_mysql_handles.push_back(db);
+	return((u64)wasm_capy_mysql_handles.size());
+}
+
+extern "C" s32 bearer_mysql_connected(u64 handle)
+{
+	MySQL* db = bearer_mysql_handle(handle);
+	return(db ? (mysql_connected(db) ? 1 : 0) : -1);
+}
+
+extern "C" s32 bearer_mysql_disconnect(u64 handle)
+{
+	MySQL* db = bearer_mysql_handle(handle);
+	if(!db)
+		return(0);
+	mysql_disconnect(db);
+	wasm_capy_mysql_handles[(size_t)handle - 1] = 0;
+	return(1);
+}
+
+extern "C" size_t bearer_mysql_error(u64 handle, char* out, size_t cap)
+{
+	if(!out)
+	{
+		wasm_mysql_result.clear();
+		MySQL* db = bearer_mysql_handle(handle);
+		if(!db)
+			return(std::numeric_limits<size_t>::max());
+		wasm_mysql_result = mysql_error(db);
+		return(wasm_mysql_result.size());
+	}
+	return(bearer_copy_staged(wasm_mysql_result, out, cap));
+}
+
+extern "C" size_t bearer_mysql_escape(const char* raw, size_t raw_len, const char* quote, size_t quote_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		wasm_mysql_result = mysql_escape(String(raw ? raw : "", raw ? raw_len : 0), quote && quote_len ? quote[0] : 0);
+		return(wasm_mysql_result.size());
+	}
+	return(bearer_copy_staged(wasm_mysql_result, out, cap));
+}
+
+extern "C" size_t bearer_mysql_query(u64 handle, const char* query, size_t query_len, const char* params, size_t params_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		wasm_mysql_result.clear();
+		MySQL* db = bearer_mysql_handle(handle);
+		if(!db)
+			return(std::numeric_limits<size_t>::max());
+		StringMap parameter_map;
+		if(params_len)
+		{
+			DValue decoded;
+			if(!bearer_decode_brrb_span(params, params_len, decoded) || !decoded.is_array())
+				return(std::numeric_limits<size_t>::max());
+			bool valid = true;
+			decoded.each([&](const DValue& value, String key) {
+				if(value.deref().type != 'S')
+					valid = false;
+				else
+					parameter_map[key] = value.to_string();
+			});
+			if(!valid)
+				return(std::numeric_limits<size_t>::max());
+		}
+		DValue result = params_len ? mysql_query(db, String(query ? query : "", query ? query_len : 0), parameter_map)
+			: mysql_query(db, String(query ? query : "", query ? query_len : 0));
+		wasm_mysql_result = brb_encode(result);
+		if(wasm_mysql_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
+		{
+			wasm_mysql_result.clear();
+			return(std::numeric_limits<size_t>::max());
+		}
+		return(wasm_mysql_result.size());
+	}
+	return(bearer_copy_staged(wasm_mysql_result, out, cap));
+}
+
+extern "C" u64 bearer_mysql_insert_id(u64 handle)
+{
+	MySQL* db = bearer_mysql_handle(handle);
+	return(db ? mysql_insert_id(db) : std::numeric_limits<u64>::max());
+}
+
+extern "C" u64 bearer_mysql_affected_rows(u64 handle)
+{
+	MySQL* db = bearer_mysql_handle(handle);
+	return(db ? mysql_affected_rows(db) : std::numeric_limits<u64>::max());
+}
 
 static SQLite* bearer_sqlite_handle(u64 handle)
 {
@@ -997,10 +1137,16 @@ void bearer_wasm_core_reset_request()
 	wasm_unit_info_result.clear();
 	wasm_units_list_result.clear();
 	wasm_codec_result.clear();
+	wasm_crypto_result.clear();
 	wasm_regex_result.clear();
 	wasm_string_list_result.clear();
 	wasm_dval_merge_result.clear();
 	wasm_sqlite_result.clear();
+	wasm_mysql_result.clear();
+	for(MySQL* db : wasm_capy_mysql_handles)
+		if(db)
+			mysql_disconnect(db);
+	wasm_capy_mysql_handles.clear();
 	for(SQLite* db : wasm_capy_sqlite_handles)
 		if(db)
 			sqlite_disconnect(db);
@@ -1203,7 +1349,7 @@ size_t bearer_regex(s32 operation, const char* pattern, size_t pattern_len, cons
 {
 	if(!out)
 	{
-		static const char* operations[] = {"search", "search_all", "replace", "split"};
+		static const char* operations[] = {"search", "search_all", "replace", "split_strings"};
 		DValue response;
 		if(operation < 0 || operation > 3 || !bearer_regex_call(operations[operation], pattern, pattern_len, subject, subject_len,
 			replacement, replacement_len, flags, flags_len, response))
@@ -1272,6 +1418,72 @@ size_t bearer_codec(s32 operation, const char* input, size_t input_len, char* ou
 	return(bearer_copy_staged(wasm_codec_result, out, cap));
 }
 
+size_t bearer_crypto_string(s32 operation, const char* a, size_t a_len, const char* b, size_t b_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		String left(a ? a : "", a ? a_len : 0), right(b ? b : "", b ? b_len : 0);
+		switch(operation)
+		{
+			case 0: wasm_crypto_result = sha256(left); break;
+			case 1: wasm_crypto_result = sha256_hex(left); break;
+			case 2: wasm_crypto_result = hmac_sha256(left, right); break;
+			case 3: wasm_crypto_result = hmac_sha256_hex(left, right); break;
+			case 4: wasm_crypto_result = gen_sha1(left, false); break;
+			case 5: wasm_crypto_result = gen_sha1(left, true); break;
+			case 6: wasm_crypto_result = password_hash(left); break;
+			default: return(0);
+		}
+		return(wasm_crypto_result.size());
+	}
+	return(bearer_copy_staged(wasm_crypto_result, out, cap));
+}
+
+s32 bearer_crypto_bool(s32 operation, const char* a, size_t a_len, const char* b, size_t b_len)
+{
+	String left(a ? a : "", a ? a_len : 0), right(b ? b : "", b ? b_len : 0);
+	if(operation == 0) return(crypto_equal(left, right));
+	if(operation == 1) return(password_verify(left, right));
+	if(operation == 2) return(password_needs_rehash(left));
+	return(0);
+}
+
+size_t bearer_random_bytes(u64 count, char* out, size_t cap)
+{
+	if(!out)
+	{
+		wasm_crypto_result = random_bytes(count);
+		return(wasm_crypto_result.size());
+	}
+	return(bearer_copy_staged(wasm_crypto_result, out, cap));
+}
+
+size_t bearer_capy_backtrace(s32 max_frames, s32 skip_frames, const char* stack, size_t depth, char* out, size_t cap)
+{
+	return(bearer_host_capy_backtrace(max_frames, skip_frames, stack, depth, out, cap));
+}
+
+u64 bearer_noise_u64(s32 operation, u64 a, u64 b, u64 index, u64 seed)
+{
+	if(operation == 0) return(gen_noise64(a, b));
+	if(operation == 1) return(gen_int(a, b, index, seed));
+	if(operation == 2) return(draw_int(a, b));
+	return(0);
+}
+
+f64 bearer_noise_f64(s32 operation, f64 from, f64 to, u64 index, u64 seed, f64 precision)
+{
+	if(operation == 0) return(gen_noise01(index, seed));
+	if(operation == 1) return(gen_float(from, to, index, seed, precision));
+	if(operation == 2) return(draw_float(from, to, precision));
+	return(0);
+}
+
+u64 bearer_noise32(u64 index, u64 seed)
+{
+	return(gen_noise32((u32)index, (u32)seed));
+}
+
 static size_t bearer_copy_staged(String& staged, char* out, size_t cap)
 {
 	if(cap < staged.size())
@@ -1299,12 +1511,8 @@ size_t bearer_units_list_brrb(char* out, size_t cap)
 	{
 		DValue result;
 		result.set_array();
-		for(const String& path : units_list())
-		{
-			DValue value;
-			value.set(path);
-			result.push(value);
-		}
+		DValue units = units_list();
+		units.each([&](const DValue& unit, String) { result.push(unit); });
 		wasm_units_list_result = brb_encode(result);
 		return(wasm_units_list_result.size());
 	}
@@ -1319,6 +1527,26 @@ s32 bearer_unit_compile(const char* path, size_t path_len)
 u64 bearer_file_open(const char* path, size_t path_len, const char* mode, size_t mode_len)
 {
 	return(file_open(String(path ? path : "", path ? path_len : 0), String(mode ? mode : "", mode ? mode_len : 0)));
+}
+
+size_t bearer_file_pread(u64 handle, u64 offset, u64 length, char* out, size_t cap)
+{
+	if(!out)
+	{
+		wasm_file_read_result = file_pread(handle, offset, length);
+		if(wasm_file_read_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
+		{
+			wasm_file_read_result.clear();
+			return(std::numeric_limits<size_t>::max());
+		}
+		return(wasm_file_read_result.size());
+	}
+	return(bearer_copy_staged(wasm_file_read_result, out, cap));
+}
+
+u64 bearer_file_pwrite(u64 handle, u64 offset, const char* data, size_t data_len)
+{
+	return(file_pwrite(handle, offset, String(data ? data : "", data ? data_len : 0)));
 }
 
 size_t bearer_file_read(u64 handle, u64 length, char* out, size_t cap)
@@ -1610,56 +1838,14 @@ s32 bearer_string_nonblank(const char* value, size_t value_len)
 	return(trim(String(value ? value : "", value ? value_len : 0)).empty() ? 0 : 1);
 }
 
-size_t bearer_string_list(s32 operation, const char* input, size_t input_len, const char* argument, size_t argument_len, char* out, size_t cap)
-{
-	if(!out)
-	{
-		wasm_string_list_result.clear();
-		String argument_value(argument ? argument : "", argument ? argument_len : 0);
-		if(operation == 0)
-		{
-			DValue result;
-			for(auto& part : split(String(input ? input : "", input ? input_len : 0), argument_value))
-			{
-				DValue value;
-				value = part;
-				result.push(value);
-			}
-			wasm_string_list_result = brb_encode(result);
-		}
-		else if(operation == 1)
-		{
-			DValue decoded;
-			String error;
-			if(!brb_decode(String(input ? input : "", input ? input_len : 0), decoded, &error) || !decoded.is_list() || !decoded.deref()._list_mode)
-				return(std::numeric_limits<size_t>::max());
-			StringList values;
-			bool valid = true;
-			decoded.each([&](const DValue& item, String) {
-				if(item.deref().type != 'S')
-					valid = false;
-				else
-					values.push_back(item.to_string());
-			});
-			if(!valid)
-				return(std::numeric_limits<size_t>::max());
-			wasm_string_list_result = join(values, argument_value);
-		}
-		else
-			return(std::numeric_limits<size_t>::max());
-		if(wasm_string_list_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
-		{
-			wasm_string_list_result.clear();
-			return(std::numeric_limits<size_t>::max());
-		}
-		return(wasm_string_list_result.size());
-	}
-	return(bearer_copy_staged(wasm_string_list_result, out, cap));
-}
-
-size_t bearer_string_substr(const char* value, size_t value_len, s32 start, s32 length, char* out, size_t cap)
+size_t bearer_string_substr(const char* value, size_t value_len, s64 start, s64 length, char* out, size_t cap)
 {
 	return(bearer_copy_bytes(substr(String(value ? value : "", value ? value_len : 0), start, length), out, cap));
+}
+
+s64 bearer_string_strpos(const char* haystack, size_t haystack_len, const char* needle, size_t needle_len, s64 offset)
+{
+	return(strpos(String(haystack ? haystack : "", haystack ? haystack_len : 0), String(needle ? needle : "", needle ? needle_len : 0), offset));
 }
 
 s32 bearer_session_start(const char* name, size_t name_len)
@@ -1733,6 +1919,12 @@ s32 bearer_ws_is_binary()
 s32 bearer_ws_send(const char* message, size_t message_len, s32 binary)
 {
 	return(ws_send(String(message ? message : "", message ? message_len : 0), binary != 0));
+}
+
+s32 bearer_ws_send_scope(const char* message, size_t message_len, s32 binary, const char* scope, size_t scope_len)
+{
+	return(ws_send(String(message ? message : "", message ? message_len : 0), binary != 0,
+		String(scope ? scope : "", scope ? scope_len : 0)));
 }
 
 s32 bearer_ws_send_to(const char* connection_id, size_t connection_id_len, const char* message, size_t message_len, s32 binary)
@@ -1861,6 +2053,13 @@ size_t bearer_dv_s32_to_brrb(s32 value, char* out, size_t cap)
 	return(bearer_copy_bytes(brb_encode(encoded), out, cap));
 }
 
+size_t bearer_dv_u64_to_brrb(u64 value, char* out, size_t cap)
+{
+	DValue encoded;
+	encoded.set(std::to_string(value));
+	return(bearer_copy_bytes(brb_encode(encoded), out, cap));
+}
+
 size_t bearer_dv_f64_to_brrb(f64 value, char* out, size_t cap)
 {
 	DValue encoded;
@@ -1905,6 +2104,266 @@ size_t bearer_dv_merge_brrb(const char* left, size_t left_len, const char* right
 		if(!bearer_decode_brrb_span(left, left_len, left_value) || !bearer_decode_brrb_span(right, right_len, right_value))
 			return(std::numeric_limits<size_t>::max());
 		wasm_dval_merge_result = brb_encode(array_merge(left_value, right_value));
+		if(wasm_dval_merge_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
+		{
+			wasm_dval_merge_result.clear();
+			return(std::numeric_limits<size_t>::max());
+		}
+		return(wasm_dval_merge_result.size());
+	}
+	return(bearer_copy_staged(wasm_dval_merge_result, out, cap));
+}
+
+// Applies one copied DValue operation.  Capy values have no host identity, so
+// mutators return the resulting copy for reassignment rather than a pointer.
+size_t bearer_dv_apply_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
+	const char* argument, size_t argument_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		wasm_dval_merge_result.clear();
+		DValue result, supplied;
+		if(!bearer_decode_brrb_span(value, value_len, result) || !bearer_decode_brrb_span(argument, argument_len, supplied))
+			return(std::numeric_limits<size_t>::max());
+		String text(key ? key : "", key ? key_len : 0);
+		switch(operation)
+		{
+			case 0: result.set(supplied); break;
+			case 1: result.push(supplied); break;
+			case 2: result.pop(); break;
+			case 3: result.remove(text); break;
+			case 4: result.clear(); break;
+			case 5: result = result.get_by_path(text); break;
+			case 6: result.get_or_create(text); break;
+			case 7: result.set_array(); break;
+			case 8: result.set_bool(supplied.to_bool()); break;
+			case 9: if(text.size() != 1) return(std::numeric_limits<size_t>::max()); result.set_type(text[0]); break;
+			case 10: result.set(result.get_type_name()); break;
+			case 11: result.set_bool(result.is_array()); break;
+			case 12: result.set_bool(result.is_list()); break;
+			case 13: { const DValue* child = result.key(text); result = child ? *child : DValue(); break; }
+			case 14: { result = result.keys(); break; }
+			case 15: result = result.values(); break;
+			case 16: result.set(result.to_json(text.empty() ? '"' : text[0])); break;
+			case 17: result.set(result.to_stringmap()); break;
+			case 18: result[text] = supplied; break;
+			case 19: result.set(result.to_string(supplied.to_string())); break;
+			case 20: result.set(result.to_f64(supplied.to_f64())); break;
+			case 21: result.set_bool(result.to_bool(supplied.to_bool())); break;
+			// Core utility adapters use copied BRRB values so the native helpers remain
+			// the only implementation of parsing, routing, and diagnostic policy.
+			case 22: result.set(ascii_safe_name(result.to_string())); break;
+			case 23: result.set(safe_name(result.to_string())); break;
+			case 24: result.set(trim(result.to_string())); break;
+			case 25: result.set(float_val(result.to_string())); break;
+			case 26: result.set(std::to_string(int_val(result.to_string(), (u32)supplied.to_s64(10)))); break;
+			case 27: result.set_bool(to_bool(result.to_string(), supplied.to_bool())); break;
+			case 28: result.set_bool(str_starts_with(result.to_string(), text)); break;
+			case 29: result.set_bool(str_ends_with(result.to_string(), text)); break;
+			case 30: result.set(encode_query(result.to_stringmap())); break;
+			case 31: {
+				StringMap parsed = parse_query(result.to_string()); result.set_type('M');
+				for(const auto& entry : parsed) result[entry.first] = entry.second;
+				break;
+			}
+			case 152: {
+				URI uri = parse_uri(result.to_string());
+				result.set_type('M');
+				result["parts"].set_type('M');
+				for(const auto& entry : uri.parts) result["parts"][entry.first] = entry.second;
+				result["query"].set_type('M');
+				for(const auto& entry : uri.query) result["query"][entry.first] = entry.second;
+				break;
+			}
+			case 32: result.set(route_path_normalize(result.to_string())); break;
+			case 33: result.set_bool(route_path_is_safe(result.to_string())); break;
+			case 34: result.set(route_path_sanitize(result.to_string(), text)); break;
+			case 35: result.set(runtime_safe_key(result.to_string(), text)); break;
+			case 36: result.set(signal_name((s32)result.to_s64())); break;
+			case 37: {
+				std::vector<String> parts = split_space_strings(result.to_string()); result.set_array();
+				for(const String& part : parts) { DValue child; child = part; result.push(child); }
+				break;
+			}
+			case 38: {
+				std::vector<String> parts = split_utf8_strings(result.to_string(), supplied.to_bool()); result.set_array();
+				for(const String& part : parts) { DValue child; child = part; result.push(child); }
+				break;
+			}
+			case 39: {
+				StringMap headers = split_http_headers(result.to_string()); result.set_type('M');
+				for(const auto& entry : headers) result[entry.first] = entry.second;
+				break;
+			}
+			case 40: {
+				if(!result.is_list()) return(std::numeric_limits<size_t>::max());
+				std::vector<String> parts; bool valid = true;
+				result.each([&](const DValue& item, String) { if(item.deref().type != 'S') valid = false; else parts.push_back(item.to_string()); });
+				if(!valid) return(std::numeric_limits<size_t>::max());
+				std::sort(parts.begin(), parts.end()); result.set_array(); for(const String& part : parts) { DValue child; child = part; result.push(child); }
+				break;
+			}
+			case 41: result.set(backtrace_capture((u32)result.to_s64(32), (u32)supplied.to_s64())); break;
+			case 42: { s64 usec = result.to_s64(); if(usec < 0) return(std::numeric_limits<size_t>::max()); result.set((f64)usleep((u32)usec)); break; }
+			case 43: result.set(var_dump(result, text, supplied.to_string("\n"))); break;
+			// Codec/text adapters retain native parsers and serializers as authority.
+			case 44: result = brb_decode(result.to_string()); break;
+			case 45: result.set(brb_encode(result)); break;
+			case 46: result = xml_decode(result.to_string()); break;
+			case 47: result.set(xml_encode(result, text.empty() ? "root" : text)); break;
+			case 48: result = yaml_decode(result.to_string()); break;
+			case 49: result.set(yaml_encode(result)); break;
+			case 50: result.set(markdown_to_html(result.to_string(), supplied)); break;
+			case 51: result = markdown_to_ast(result.to_string(), supplied); break;
+			case 52: { u32 index = (u32)supplied.to_u64(); json_consume_space(result.to_string(), index); result.set((f64)index); break; }
+			case 53: result.set(json_encode(result)); break;
+			case 54: result.set(json_encode(result.to_string())); break;
+			case 55: result.set(html_escape(result.to_string())); break;
+			case 56: result.set(gen_sha1(result.to_string(), supplied.to_bool())); break;
+			case 57: result.set(sha256(result.to_string())); break;
+			case 58: result.set(sha256_hex(result.to_string())); break;
+			case 59: result.set(hmac_sha256(result.to_string(), supplied.to_string())); break;
+			case 60: result.set(hmac_sha256_hex(result.to_string(), supplied.to_string())); break;
+			case 61: result.set_bool(crypto_equal(result.to_string(), supplied.to_string())); break;
+			case 62: result.set(password_hash(result.to_string())); break;
+			case 63: result.set_bool(password_verify(result.to_string(), supplied.to_string())); break;
+			case 64: result.set_bool(password_needs_rehash(result.to_string())); break;
+			case 65: {
+				std::vector<String> parts = regex_split_strings(result.to_string(), text, supplied.to_string());
+				result.set_array();
+				for(const String& part : parts) { DValue child; child.set(part); result.push(child); }
+				break;
+			}
+			case 66: {
+				std::vector<String> parts = split_strings(result.to_string(), text);
+				result.set_array();
+				for(const String& part : parts) { DValue child; child.set(part); result.push(child); }
+				break;
+			}
+			// Filesystem operations cross this copied-value adapter so the Wasm core
+			// remains the sole guest boundary and sys.cpp/worker retain path policy.
+			case 67: result.set(basename(result.to_string())); break;
+			case 68: result.set(dirname(result.to_string())); break;
+			case 69: result.set(path_join(result.to_string(), text)); break;
+			case 70: result.set(path_real(result.to_string())); break;
+			case 71: result.set_bool(path_is_within(result.to_string(), text)); break;
+			case 72: result.set(expand_path(result.to_string(), text)); break;
+			case 73: result.set(file_get_contents(result.to_string())); break;
+			case 74: result.set_bool(file_put_contents(result.to_string(), supplied.to_string())); break;
+			case 75: result.set_bool(file_append(result.to_string(), supplied.to_string())); break;
+			case 76: result.set_bool(file_copy(result.to_string(), text)); break;
+			case 77: result.set_bool(file_rename(result.to_string(), text)); break;
+			case 78: result = file_stat(result.to_string()); break;
+			case 79: result.set(std::to_string(file_mtime(result.to_string()))); break;
+			case 80: result.set_bool(file_exists(result.to_string())); break;
+			case 81: result.set_bool(file_truncate(result.to_string(), supplied.to_u64())); break;
+			case 82: result.set_bool(file_chmod(result.to_string(), (u32)supplied.to_u64())); break;
+			case 83: result.set_bool(file_symlink(result.to_string(), text)); break;
+			case 84: result = ls(result.to_string()); break;
+			case 85: result.set_bool(mkdir(result.to_string())); break;
+			case 86: result = dir_list(result.to_string()); break;
+			case 87: result.set_bool(dir_remove(result.to_string(), supplied.to_bool())); break;
+			case 88: result.set(cwd_get()); break;
+			case 89: cwd_set(result.to_string()); result.clear(); break;
+			// Request operations deliberately execute against the workspace Request;
+			// Capy only receives copied results and never duplicates request policy.
+			case 90: ob_start(); result.clear(); break;
+			case 91: ob_close(); result.clear(); break;
+			case 92: result.set(ob_get()); break;
+			case 93: result.set(ob_get_close()); break;
+			case 94: if(result.to_s64() < 100 || result.to_s64() > 999) return(std::numeric_limits<size_t>::max()); context->set_status((s32)result.to_s64(), text); result.clear(); break;
+			case 95: redirect(result.to_string(), (s32)supplied.to_s64(302)); result.clear(); break;
+			case 96: result.set(session_start(result.to_string())); break;
+			case 97:
+				if(text == "set") context->session[result.to_string()] = supplied.to_string();
+				else if(text == "remove") context->session.erase(result.to_string());
+				else return(std::numeric_limits<size_t>::max());
+				result.clear(); break;
+			case 98: session_destroy(result.to_string()); result.clear(); break;
+			case 99: result.set(session_id_create()); break;
+			case 100: result.set(csrf_token(result.to_string(), text)); break;
+			case 101: result.set_bool(csrf_valid(result.to_string(), text, supplied.to_string())); break;
+			case 102: csrf_rotate(result.to_string(), text); result.clear(); break;
+			case 103: result.set(csrf_field(result.to_string(), text, supplied.to_string())); break;
+			case 104: result = cli_input(*context); break;
+			case 105: result.set(cli_arg(*context, result.to_string(), text)); break;
+			case 106: result.set(request_base_url(*context)); break;
+			case 107: result.set(request_script_url(*context)); break;
+			case 108: result.set(request_query_path(*context, text)); break;
+			case 109: result = request_query_route(*context, text); break;
+			case 110: result = request_route_from_raw_path(result.to_string(), text); break;
+			case 111: result = request_perf(); break;
+			case 112: set_cookie(result.to_string(), supplied.to_string()); result.clear(); break;
+			// Cache and process APIs retain sys.cpp as the semantic authority; only
+			// copied values cross from Capy at this boundary.
+			case 113: result.set(std::to_string(memcache_connect(result.to_string(), (u16)supplied.to_u64(11211)))); break;
+			case 114: result.set(memcache_command(result.to_u64(), text)); break;
+			case 115: result.set_bool(memcache_set(result.to_u64(), text, supplied["value"].to_string(), supplied["expires"].to_u64(60 * 60))); break;
+			case 116: result.set_bool(memcache_delete(result.to_u64(), text)); break;
+			case 117: result.set(memcache_get(result.to_u64(), text, supplied.to_string())); break;
+			case 118: result = memcache_get_multiple(result.to_u64(), supplied); break;
+			case 119: result.set(memcache_escape_key(result.to_string())); break;
+			case 120: result = memcache_escape_keys(result); break;
+			case 121: result.set(shell_escape(result.to_string())); break;
+			case 122: result.set(shell_exec(result.to_string())); break;
+			case 123: result.set(std::to_string(shell_spawn(result))); break;
+			case 124: result = job_status(to_u64(result.to_string(), 0)); break;
+			case 125: result = job_result(to_u64(result.to_string(), 0)); break;
+			case 126: result = job_await(to_u64(result.to_string(), 0), supplied.to_u64()); break;
+			case 127: result.set_bool(job_cancel(to_u64(result.to_string(), 0))); break;
+			case 128: result.set(process_start_directory()); break;
+			case 129: result.set((f64)server_start_http(result.to_string(), text, supplied["file"].to_string(), supplied["function"].to_string())); break;
+			case 130: result.set_bool(server_stop(result.to_string())); break;
+			case 131: result.set((f64)task_pid(result.to_string())); break;
+			case 132: result.set((f64)task_kill((pid_t)result.to_s64(), (s32)supplied.to_s64())); break;
+			// Network handles are stringified before BRRB so exact u64 values never
+			// transit f64. The worker owns and closes the underlying descriptors.
+			case 133: { s64 port = supplied.to_s64(); if(port < 0 || port > 65535) return(std::numeric_limits<size_t>::max()); result.set(std::to_string(socket_connect(result.to_string(), (u16)port))); break; }
+			case 134: socket_close(to_u64(result.to_string(), 0)); result.clear(); break;
+			case 135: result.set_bool(socket_write(to_u64(result.to_string(), 0), text)); break;
+			case 136: { s64 max_length = supplied["max_length"].to_s64(); s64 timeout = supplied["timeout"].to_s64(); if(max_length < 0 || timeout < 0) return(std::numeric_limits<size_t>::max()); result.set(socket_read(to_u64(result.to_string(), 0), (u32)max_length, (u32)timeout)); break; }
+			case 137: result = http_request(result); break;
+			case 138: result.set(std::to_string(http_request_async(result))); break;
+			case 139: result.set(std::to_string(time_parse(result.to_string()))); break;
+			case 140: result.set(time_format_local(result.to_string(), to_u64(supplied.to_string(), 0))); break;
+			case 141: result.set(time_format_utc(result.to_string(), to_u64(supplied.to_string(), 0))); break;
+			case 142: result.set(time_format_relative(to_u64(result.to_string(), 0), text, to_u64(supplied["medium_seconds"].to_string(), 0), supplied["medium_recent"].to_string(), to_u64(supplied["not_recent_seconds"].to_string(), 0), supplied["not_recent"].to_string())); break;
+			case 143: result = ws_connections(result.to_string()); break;
+			case 144: result.set(std::to_string(ws_connection_count(result.to_string()))); break;
+			case 145: {
+				if(text.size() != 1) return(std::numeric_limits<size_t>::max());
+				StringMap values = split_kv(result.to_string(), text[0], supplied["trim"].to_bool(true), supplied["uppercase"].to_bool());
+				result.set_type('M');
+				for(const auto& value : values) result[value.first] = value.second;
+				break;
+			}
+			case 146: {
+				DValue request, response; request["op"] = "gz_compress"; request["src"] = result.to_string();
+				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set(response["result"].to_string()); break;
+			}
+			case 147: {
+				DValue request, response; request["op"] = "gz_uncompress"; request["src"] = result.to_string();
+				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set(response["result"].to_string()); break;
+			}
+			case 148: {
+				DValue request, response; request["op"] = "list"; request["path"] = result.to_string();
+				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); DValue* listed = response.key("result"); result = listed ? *listed : DValue(); break;
+			}
+			case 149: {
+				DValue request, response; request["op"] = "read"; request["path"] = result.to_string(); request["entry"] = text;
+				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set(response["result"].to_string()); break;
+			}
+			case 150: {
+				DValue request, response; request["op"] = "create"; request["path"] = result.to_string(); request["entries"] = supplied;
+				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set_bool(response["ok"].to_bool()); break;
+			}
+			case 151: {
+				DValue request, response; request["op"] = "extract"; request["path"] = result.to_string(); request["destination"] = text;
+				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set_bool(response["ok"].to_bool()); break;
+			}
+			default: return(std::numeric_limits<size_t>::max());
+		}
+		wasm_dval_merge_result = brb_encode(result);
 		if(wasm_dval_merge_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
 		{
 			wasm_dval_merge_result.clear();
@@ -1994,6 +2453,27 @@ s32 bearer_dv_s32_brrb(const char* value, size_t value_len, s32* out)
 		return(0);
 	*out = (s32)number;
 	return(1);
+}
+
+s64 bearer_dv_s64_brrb(const char* value, size_t value_len, s64 fallback)
+{
+	DValue decoded;
+	return(bearer_decode_brrb_span(value, value_len, decoded) ? decoded.to_s64(fallback) : fallback);
+}
+
+u64 bearer_dv_u64_brrb(const char* value, size_t value_len, u64 fallback)
+{
+	DValue decoded;
+	if(!bearer_decode_brrb_span(value, value_len, decoded))
+		return(fallback);
+	const DValue& scalar = decoded.deref();
+	// Wide Capy values are decimal strings and need exact parsing; ordinary
+	// numeric/bool DValues may use their native scalar conversion.
+	if(scalar.type == 'S')
+		return(to_u64(scalar.to_string(), fallback));
+	if(scalar.type == 'F' || scalar.type == 'B')
+		return(scalar.to_u64(fallback));
+	return(fallback);
 }
 
 s32 bearer_dv_f64_brrb(const char* value, size_t value_len, f64* out)

@@ -59,14 +59,14 @@ RENDER(Request& context)
 	context.params["QUERY_STRING"] = saved_query_string;
 	check("route path sanitizers", route_path_normalize("/workspace/projects/") == "workspace/projects" && route_path_is_safe("workspace/projects") && !route_path_is_safe("../demo") && !route_path_is_safe("workspace/../demo") && !route_path_is_safe("workspace/file.uce") && route_path_sanitize("../demo") == "" && route_path_sanitize("") == "index", route_path_sanitize("/workspace/projects/"));
 
-	StringList route_parts = {"dashboard", "index", "dashboard", "themes"};
+	DValue route_parts = {"dashboard", "index", "dashboard", "themes"};
 	auto unique_routes = route_parts.unique();
 	auto sorted_routes = unique_routes.sort();
 	auto upper_routes = sorted_routes.map([](String item) { return(to_upper(item)); });
 	auto dashboard_routes = route_parts.filter([](String item) { return(item == "dashboard"); });
 	String route_each = "";
 	route_parts.each([&](String item) { route_each += item + ","; });
-	check("StringList map/filter/keys/each/unique/sort/find/some/every", unique_routes.size() == 3 && sorted_routes[0] == "dashboard" && upper_routes[2] == "THEMES" && dashboard_routes.size() == 2 && join(route_parts.keys(), ",") == "0,1,2,3" && route_each == "dashboard,index,dashboard,themes," && route_parts.find([](String item) { return(str_starts_with(item, "them")); }, "missing") == "themes" && route_parts.some([](String item) { return(item == "index"); }) && unique_routes.every([](String item) { return(item != ""); }), join(upper_routes, ","));
+	check("DValue map/filter/keys/each/unique/sort/find/some/every", unique_routes.size() == 3 && sorted_routes[0] == "dashboard" && upper_routes[2] == "THEMES" && dashboard_routes.size() == 2 && join(route_parts.keys(), ",") == "0,1,2,3" && route_each == "dashboard,index,dashboard,themes," && route_parts.find([](String item) { return(str_starts_with(item, "them")); }, "missing") == "themes" && route_parts.some([](String item) { return(item == "index"); }) && unique_routes.every([](String item) { return(item != ""); }), join(upper_routes, ","));
 
 	DValue nav;
 	DValue nav_home;

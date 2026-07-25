@@ -95,6 +95,11 @@ collect_missing_workers() {
 	fi
 }
 
+# Warm-up: cold per-worker compiles would otherwise consume most of the 10s
+# resolution-cache window and make the cached assertions below racy. Let those
+# first timestamps expire, then re-collect warm so the timed sequence fits.
+collect_workers GET a
+sleep 10.2
 collect_workers GET a
 ln -sfn b.uce "$source_dir/chosen.uce"
 collect_workers GET a

@@ -62,7 +62,13 @@ if [[ "$action" == "run" ]]; then
 	if [[ "$include_kill" == "1" ]]; then
 		groups+=(wasm-kill)
 	fi
-	for group in "${groups[@]}"; do
+	for group in demo http site security task-lifetime pool-isolation starter tcp; do
+		echo "== BEARER CLI group: $group =="
+		curl -sS --max-time "$curl_timeout" --fail-with-body --unix-socket "$socket_path" "${base_url}&group=${group}"
+	done
+	# Doc gates run sequentially: concurrent cold doc-example compiles trap inside
+	# cli_run_doc_pages_gate (see docs/work: parallel-cold-compile race, 2026-07-24).
+	for group in doc-gate-{1..30}; do
 		echo "== BEARER CLI group: $group =="
 		curl -sS --max-time "$curl_timeout" --fail-with-body --unix-socket "$socket_path" "${base_url}&group=${group}"
 	done

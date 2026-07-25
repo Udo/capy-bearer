@@ -1,14 +1,43 @@
 # http_request
 
-Performs a bounded outbound HTTP(S) request using the runtime `curl` binary. Request fields: `method`, `url`, `headers`, `body`, `timeout_ms`, `follow_redirects`.
+Performs an outbound HTTP(S) request using the runtime `curl` binary. Existing request fields remain backward-compatible: `method`, `url`, `headers`, `body`, `timeout_ms`, and `follow_redirects`.
 
-Returns `{ status, headers, body, error }`. `headers` is a name/value map. A missing `curl` binary returns a clear `error` string.
+An absent `security` map, or a map containing none of these recognized keys, keeps the legacy request behavior. If a `security` map contains any recognized key, it selects hardening and **every** recognized field below must be explicitly boolean `true`; missing, partial, non-true, or `false` fields fail closed with `invalid_request`.
+
+- `https_only` rejects non-HTTPS URLs, IP-literal hosts, and URL userinfo.
+- `public_dns_only` validates **every** DNS answer against the public IPv4 policy. IPv6 answers currently fail closed.
+- `pin_dns` pins curl to one validated answer with `--resolve`, retaining the URL hostname for TLS/SNI.
+- `isolated_curl` uses absolute `/usr/bin/curl`, `--disable` as argv[1], cleared environment, no proxy/config/netrc/HSTS/Alt-Svc inheritance, no redirects, a three-second connect bound, and a ten-second total bound.
+- `no_redirects` makes redirect following and `follow_redirects=true` invalid composition.
+
+Hardened requests bound body input/output to 64 KiB and response headers to 8 KiB. Async hardened requests keep curl and its descendants in the job worker process group, so cancelling that job kills that group only. Methods are limited to `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`; header names/values are validated and caller-controlled `Host`, framing, connection, and expectation headers are rejected. Sensitive request bodies go to curl stdin, never argv. Errors are typed non-secret values such as `invalid_request`, `unsafe_dns`, `timeout`, `response_too_large`, `redirect_not_allowed`, `http_status`, and `network_failure`.
+
+Returns `{ status, headers, body, error }`.
 
 :see
 >socket
 
 :example
 DValue req; req["method"] = "GET"; req["url"] = "http://127.0.0.1/doc/index.uce";
-req["headers"]["Host"] = "bearer.openfu.com"; req["timeout_ms"] = (f64)2000;
+req["headers"]["Host"] = "uce.openfu.com"; req["timeout_ms"] = (f64)2000;
 DValue resp = http_request(req);
 print("HTTP ", resp["status"].to_u64(), ", ", resp["body"].to_string().length(), " bytes returned\n");
+
+:example
+// GitHub token exchange: client_secret stays in stdin body, not argv.
+String client_id="example-client", client_secret="example-secret", code="example-code";
+DValue token; token["method"]="POST"; token["url"]="https://github.com/login/oauth/access_token";
+token["headers"]["Accept"]="application/json"; token["headers"]["Content-Type"]="application/x-www-form-urlencoded";
+token["body"]="client_id="+uri_encode(client_id)+"&client_secret="+uri_encode(client_secret)+"&code="+uri_encode(code);
+for(String key:{"https_only","public_dns_only","pin_dns","isolated_curl","no_redirects"}) token["security"][key].set_bool(true);
+DValue token_response=http_request(token);
+print("hardened token exchange composed; status=", token_response["status"].to_u64(), " error=", token_response["error"].to_string(), "\n");
+
+:example
+// ATProto metadata discovery uses the same generic policy; no provider operation name.
+String issuer_host="example.com";
+DValue meta; meta["method"]="GET"; meta["url"]="https://"+issuer_host+"/.well-known/oauth-authorization-server";
+meta["headers"]["Accept"]="application/json";
+for(String key:{"https_only","public_dns_only","pin_dns","isolated_curl","no_redirects"}) meta["security"][key].set_bool(true);
+DValue metadata=http_request(meta);
+print("hardened metadata discovery composed; error=", metadata["error"].to_string(), "\n");

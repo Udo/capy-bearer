@@ -8877,10 +8877,10 @@ SQLITE_API int sqlite3_stmt_status(sqlite3_stmt*, int op,int resetFlg);
 ** [[SQLITE_STMTSTATUS_FILTER HIT]]
 ** <dt>SQLITE_STMTSTATUS_FILTER_HIT<br>
 ** SQLITE_STMTSTATUS_FILTER_MISS</dt>
-** <dd>^SQLITE_STMTSTATUS_FILTER_HIT is the number of times that a join
+** <dd>^SQLITE_STMTSTATUS_FILTER_HIT is the number of times that a join_strings
 ** step was bypassed because a Bloom filter returned not-found.  The
 ** corresponding SQLITE_STMTSTATUS_FILTER_MISS value is the number of
-** times that the Bloom filter returned a find, and thus the join step
+** times that the Bloom filter returned a find, and thus the join_strings step
 ** had to be processed as normal.
 **
 ** [[SQLITE_STMTSTATUS_MEMUSED]] <dt>SQLITE_STMTSTATUS_MEMUSED</dt>

@@ -245,7 +245,7 @@ RENDER(Request& context)
 	String password_encoded = password_hash("correct horse battery staple");
 	check("password_hash() / password_verify() / password_needs_rehash()", contains(password_encoded, "$bearer$scrypt$65536$8$1$") && password_verify("correct horse battery staple", password_encoded) && !password_verify("wrong password", password_encoded) && !password_needs_rehash(password_encoded) && password_needs_rehash("malformed") && !password_verify("correct horse battery staple", "$bearer$scrypt$999999999$8$1$00$00"), password_encoded);
 
-	StringList escaped_keys = memcache_escape_keys({"a b", "line\nkey"});
+	DValue escaped_keys = memcache_escape_keys({"a b", "line\nkey"});
 	check("memcache_escape_key() / memcache_escape_keys()", memcache_escape_key("a b") == "a_b" && escaped_keys.size() == 2 && !contains(escaped_keys[1], "\n"), join(escaped_keys, ","));
 	check("signal_name() / runtime_safe_key() / backtrace helpers", signal_name(SIGSEGV) == "SIGSEGV" && runtime_safe_key(" task one ") == gen_sha1("task one") && runtime_safe_key("  ") == "" && backtrace_capture() == "" && backtrace_get_frames(0, 0) == "", signal_name(SIGSEGV) + " / " + runtime_safe_key(" task one "));
 

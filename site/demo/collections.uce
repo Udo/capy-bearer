@@ -5,10 +5,10 @@ RENDER(Request& context)
 	DValue p;
 	p.set(context.params);
 
-	StringList routes = {"index", "dashboard", "themes", "dashboard", "workspace/projects"};
-	StringList unique_routes = routes.unique();
-	StringList sorted_routes = unique_routes.sort();
-	StringList labels = sorted_routes.map([](String route) { return(to_upper(replace(route, "/", " / "))); });
+	DValue routes = {"index", "dashboard", "themes", "dashboard", "workspace/projects"};
+	DValue unique_routes = routes.unique();
+	DValue sorted_routes = unique_routes.sort();
+	DValue labels = sorted_routes.map([](String route) { return(to_upper(replace(route, "/", " / "))); });
 
 	DValue cards;
 	DValue card;
@@ -28,7 +28,7 @@ RENDER(Request& context)
 		<h1><a href="index.uce">BEARER Test Suite</a><a class="docs-link" href="../doc/index.uce?p=map">Collection Docs &rarr;</a></h1>
 		<h2>Collection Helpers</h2>
 		<p>Small data-shaping helpers are useful for route lists, nav records, cards, and other render-adjacent structures.</p>
-		<div class="system-info"><h3>StringList route labels</h3><pre><?= join(labels, "\n") ?></pre></div>
+		<div class="system-info"><h3>DValue route labels</h3><pre><?= join(labels, "\n") ?></pre></div>
 		<div class="system-info"><h3>DValue app card titles</h3><pre><?= json_encode(titles) ?></pre></div>
 		<div class="system-info"><h3>All card values</h3><pre><?= json_encode(cards.values()) ?></pre></div>
 		<details>

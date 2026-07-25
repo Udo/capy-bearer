@@ -51,6 +51,7 @@ bool crypto_equal(String a, String b);
 String password_hash(String password);
 bool password_verify(String password, String encoded);
 bool password_needs_rehash(String encoded);
+DValue crypto_operation(DValue request);
 String shell_escape(String raw);
 String basename(String fn);
 String dirname(String fn);
@@ -93,7 +94,7 @@ String process_start_directory();
 u64 file_mtime(String file_name);
 void file_unlink(String file_name);
 String expand_path(String path, String relative_to_path = "");
-StringList ls(String dir);
+DValue ls(String dir);
 f64 time_precise();
 u64 time();
 String time_format_local(String format = "", u64 timestamp = 0);
@@ -115,7 +116,7 @@ String ws_connection_id();
 String ws_scope();
 u8 ws_opcode();
 bool ws_is_binary();
-StringList ws_connections(String scope = "");
+DValue ws_connections(String scope = "");
 u64 ws_connection_count(String scope = "");
 bool ws_send(String message, bool binary = false, String scope = "");
 bool ws_send_to(String connection_id, String message, bool binary = false);
@@ -126,22 +127,24 @@ String backtrace_capture(u32 max_frames = 32, u32 skip_frames = 0);
 String signal_name(s32 sig);
 
 String memcache_escape_key(String key);
-StringList memcache_escape_keys(StringList keys);
+DValue memcache_escape_keys(DValue keys);
 u64 memcache_connect(String host = "127.0.0.1", u16 port = 11211);
 String memcache_command(u64 connection, String command);
 bool memcache_set(u64 connection, String key, String value, u64 expires_in = 60*60);
 bool memcache_delete(u64 connection, String key);
 String memcache_get(u64 connection, String key, String default_value = "");
-StringMap memcache_get_multiple(u64 connection, StringList keys);
+StringMap memcache_get_multiple(u64 connection, DValue keys);
 
-// Defined once in sys.cpp for the native split build (core/wasm/main); the wasm
+// Defined once in sys.cpp for the native split_strings build (core/wasm/main); the wasm
 // core/unit builds keep the in-place definition (single TU / loader-resolved).
 #if defined(__BEARER_WASM_CORE__) || defined(__BEARER_WASM_UNIT__)
 pid_t parent_pid = 0;
 pid_t my_pid = 0;
+bool task_child_process = false;
 #else
 extern pid_t parent_pid;
 extern pid_t my_pid;
+extern bool task_child_process;
 #endif
 
 void on_segfault(int sig);

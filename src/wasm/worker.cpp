@@ -42,6 +42,7 @@
 #include <string>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netdb.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/file.h>
@@ -58,6 +59,8 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <poll.h>
+#include "hardened_http_internal.h"
+#include "capy_backtrace.h"
 
 struct WasmDylinkInfo
 {
@@ -391,8 +394,6 @@ static u64 wasm_socket_connect_bounded(const String& host, u16 port, u64 timeout
 	}
 	if(fd <= 0)
 		return(0);
-	if(context)
-		context->resources.sockets.push_back(fd);
 	return((u64)fd);
 }
 
@@ -632,8 +633,17 @@ static bool bearer_header_name_safe(String name)
 	return(true);
 }
 
+static DValue bearer_hardened_http_request_value(const DValue& req, u64 timeout_ms, bool keep_worker_process_group=false)
+{
+	HardenedHttpHooks hooks;
+	hooks.resolve=[](String host) { std::vector<String> answers; addrinfo hints{}; hints.ai_socktype=SOCK_STREAM; hints.ai_family=AF_UNSPEC; addrinfo* result=0; if(getaddrinfo(host.c_str(), "443", &hints, &result)!=0) return answers; for(addrinfo* p=result;p;p=p->ai_next) { char text[INET6_ADDRSTRLEN]; if(p->ai_family==AF_INET && inet_ntop(AF_INET,&((sockaddr_in*)p->ai_addr)->sin_addr,text,sizeof(text))) answers.push_back(text); else if(p->ai_family==AF_INET6 && inet_ntop(AF_INET6,&((sockaddr_in6*)p->ai_addr)->sin6_addr,text,sizeof(text))) answers.push_back(text); else answers.push_back(""); } freeaddrinfo(result); return answers; };
+	hooks.execute=[keep_worker_process_group](std::vector<String> argv, String input, std::vector<String>, u64 deadline, size_t limit) { return hardened_http_exec_argv_capture(argv,input,deadline,limit,true,!keep_worker_process_group); };
+	return hardened_http_request_internal(req,timeout_ms,hooks);
+}
+
 static DValue bearer_http_request_value(const DValue& req)
 {
+	const DValue* security=req.key("security"); if(hardened_http_security_requested(security)) { u64 requested=req.key("timeout_ms")?req.key("timeout_ms")->to_u64(5000):5000; return(bearer_hardened_http_request_value(req,std::max<u64>(1,requested))); }
 	DValue r; r["status"]=(f64)0; r["headers"].set_array(); r["body"]=""; r["error"]="";
 	const DValue* method_value = req.key("method");
 	const DValue* url_value = req.key("url");
@@ -661,7 +671,7 @@ static DValue bearer_http_request_value(const DValue& req)
 	String sep="\r\n\r\n"; size_t hp=out.rfind(sep); size_t sep_len=4; if(hp==String::npos) { sep="\n\n"; hp=out.rfind(sep); sep_len=2; }
 	String hdrs = hp==String::npos ? String("") : out.substr(0,hp); r["body"] = hp==String::npos ? out : out.substr(hp+sep_len);
 	DValue headers;
-	for(String line: split(replace(hdrs,"\r",""), "\n")) { size_t c=line.find(':'); if(c!=String::npos) headers[trim(line.substr(0,c))] = trim(line.substr(c+1)); }
+	for(String line: split_strings(replace(hdrs,"\r",""), "\n")) { size_t c=line.find(':'); if(c!=String::npos) headers[trim(line.substr(0,c))] = trim(line.substr(c+1)); }
 	r["headers"] = headers;
 	if(pr["exit_code"].to_s64() != 0 && r["error"].to_string()=="") r["error"] = trim(pr["stderr"].to_string());
 	return(r);
@@ -670,9 +680,11 @@ static DValue bearer_http_request_value(const DValue& req)
 static u64 bearer_http_spawn_spec(const DValue& req)
 {
 	bearer_job_reap(); u64 id=bearer_job_new("http"); if(!id) return(0);
+	int ready[2]; if(pipe(ready)) { DValue r; r["error"]="pipe failed"; bearer_job_finish(id,r,"failed"); return(id); }
 	pid_t pid=fork();
-	if(pid==0) { setsid(); bearer_write_text(bearer_job_path(id)+"/worker_pid", std::to_string((long long)getpid())); bearer_write_text(bearer_job_path(id)+"/state", "running"); DValue result=bearer_http_request_value(req); bearer_job_finish(id,result,result["error"].to_string()==""?"done":"failed"); _exit(0); }
-	if(pid<0) { DValue r; r["error"]="fork failed"; bearer_job_finish(id,r,"failed"); return(id); }
+	if(pid==0) { close(ready[0]); if(setsid()<0) _exit(127); char ok='1'; if(write(ready[1],&ok,1)!=1) _exit(127); close(ready[1]); bearer_write_text(bearer_job_path(id)+"/worker_pid", std::to_string((long long)getpid())); bearer_write_text(bearer_job_path(id)+"/state", "running"); const DValue* security=req.key("security"); bool hardened=hardened_http_security_requested(security); DValue result=hardened ? bearer_hardened_http_request_value(req,req.key("timeout_ms")?std::max<u64>(1,req.key("timeout_ms")->to_u64(5000)):5000,true) : bearer_http_request_value(req); bearer_job_finish(id,result,result["error"].to_string()==""?"done":"failed"); _exit(0); }
+	close(ready[1]); char ok=0; ssize_t started; do { started=read(ready[0],&ok,1); } while(started<0&&errno==EINTR); close(ready[0]);
+	if(pid<0 || started!=1 || ok!='1') { DValue r; r["error"]="async worker start failed"; bearer_job_finish(id,r,"failed"); return(id); }
 	bearer_write_text(bearer_job_path(id)+"/worker_pid", std::to_string((long long)pid)); bearer_write_text(bearer_job_path(id)+"/state", "running"); return(id);
 }
 
@@ -1008,7 +1020,7 @@ static bool wasm_source_map_load(const String& path, WasmSourceMap& map)
 	map.module_name = line.substr(prefix.size());
 	while(std::getline(input, line))
 	{
-		auto fields = split(line, "\t");
+		auto fields = split_strings(line, "\t");
 		if(fields.size() == 3 && fields[0] == "F")
 			map.files[(u32)strtoul(fields[1].c_str(), 0, 10)] = fields[2];
 		else if(fields.size() == 5 && fields[0] == "L")
@@ -1760,8 +1772,8 @@ static String wasm_host_regex_execute(const String& encoded)
 			response["tree"] = regex_search_all(pattern, subject, flags);
 		else if(op == "replace")
 			response["text"] = regex_replace(pattern, request["replacement"].to_string(), subject, flags);
-		else if(op == "split")
-			for(auto& part : regex_split(pattern, subject, flags))
+		else if(op == "split_strings")
+			for(auto& part : regex_split_strings(pattern, subject, flags))
 			{
 				DValue value;
 				value = part;
@@ -1782,6 +1794,9 @@ struct WasmWorkspace : public WasmRequestProfile
 		bool writable = false;
 	};
 	std::vector<FileHandle> file_handles;
+	// Socket handles are 1-based workspace slots, never OS descriptors exposed
+	// to guest code. They are closed with the workspace on success or trap.
+	std::vector<int> socket_handles;
 	String capy_regex_result;
 
 	struct RequestPerfSnapshot
@@ -1956,6 +1971,8 @@ struct WasmWorkspace : public WasmRequestProfile
 				h.fd = -1;
 			}
 		}
+		for(int& fd : socket_handles)
+			if(fd >= 0) { close(fd); fd = -1; }
 #ifdef BEARER_WASM_HOST_CONNECTORS
 		for(auto* db : sqlite_handles)
 			if(db)
@@ -2295,6 +2312,7 @@ struct WasmWorkspace : public WasmRequestProfile
 		std::shared_ptr<WasmUnitModule> mod;
 		std::optional<wasmtime::Instance> instance;
 		u32 memory_base = 0;
+		u32 table_base = 0;
 	};
 	std::vector<LoadedUnit> units;
 	std::map<String, size_t> units_by_source;
@@ -2384,13 +2402,15 @@ struct WasmWorkspace : public WasmRequestProfile
 				loaded_map = maps.emplace(map_path, std::move(source_map)).first;
 			}
 			String location = wasm_source_map_lookup(loaded_map->second, frames[index].offset);
-			if(location == "")
+			// stdlib wrappers are compiler-owned plumbing; their call-site marker maps
+			// failures to user source, and exposing the virtual frame obscures it.
+			if(location == "" || location.rfind("capy://stdlib.capy:", 0) == 0)
 				continue;
 			String label = frames[index].function == "" ? "wasm function" : frames[index].function;
 			locations.push_back("#" + std::to_string(index) + " " + label + " at " + location);
 		}
 		if(!locations.empty())
-			result += "\nsource locations:\n  " + join(locations, "\n  ");
+			result += "\nsource locations:\n  " + join_strings(locations, "\n  ");
 		return(result);
 	}
 
@@ -2728,6 +2748,7 @@ struct WasmWorkspace : public WasmRequestProfile
 		unit.mod = mod;
 		unit.instance.emplace(created.ok());
 		unit.memory_base = memory_base;
+		unit.table_base = table_base;
 		units.push_back(std::move(unit));
 		size_t unit_index = units.size() - 1;
 		units_by_source[source_path] = unit_index;
@@ -2763,6 +2784,14 @@ struct WasmWorkspace : public WasmRequestProfile
 		if(auto set_request = unit_func(unit_index, "__bearer_set_current_request"))
 		{
 			auto result = call_guest(*set_request, { wasmtime::Val(request_ptr) });
+			if(!result)
+				return(trap_text(result.err()));
+		}
+		// A unit is materialized once per workspace. Run its INIT hook after its
+		// request pointer is bound and before any entry/component dispatch.
+		if(auto init = unit_func(unit_index, handler_export_symbol("init")))
+		{
+			auto result = call_guest(*init, { wasmtime::Val(request_ptr) });
 			if(!result)
 				return(trap_text(result.err()));
 		}
@@ -3554,6 +3583,39 @@ struct WasmWorkspace : public WasmRequestProfile
 				results[0] = Val((int32_t)value.size());
 				return(std::monostate());
 			}));
+		if(mod == "env" && name == "bearer_host_capy_backtrace")
+			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				constexpr u32 trace_slots = 256, trace_slot_bytes = 8;
+				const s32 max_frames = args[0].i32(), skip_frames = args[1].i32();
+				const u32 stack = (u32)args[2].i32(), depth = (u32)args[3].i32();
+				String output;
+				if(max_frames > 0 && depth && stack <= std::numeric_limits<u32>::max() - trace_slots * trace_slot_bytes)
+				{
+					const u32 skip = skip_frames > 0 ? (u32)skip_frames : 0;
+					const u32 count = std::min<u32>(depth, trace_slots);
+					const u32 limit = std::min<u32>((u32)max_frames, count > skip ? count - skip : 0);
+					for(u32 index = 0; index < limit; ++index)
+					{
+						const u32 slot = (depth - 1 - skip - index) % trace_slots;
+						String entry;
+						if(self->hostcall_read(stack + slot * trace_slot_bytes, trace_slot_bytes, entry) != "" || entry.size() != trace_slot_bytes)
+							continue;
+						const u32 record = capy_backtrace::load_u32_le(entry, 0), record_size = capy_backtrace::load_u32_le(entry, 4);
+						String frame, metadata;
+						if(record_size < capy_backtrace::metadata_header_bytes || record_size > capy_backtrace::max_metadata_record_bytes || record > std::numeric_limits<u32>::max() - record_size ||
+							self->hostcall_read(record, record_size, metadata) != "" || !capy_backtrace::format_record(metadata, frame))
+							frame = "<invalid frame metadata>";
+						output += "#" + std::to_string(index) + " " + frame + "\n";
+					}
+				}
+				if(!output.empty())
+					output.pop_back();
+				const u32 out = (u32)args[4].i32(), cap = (u32)args[5].i32();
+				if(out && cap >= output.size())
+					self->hostcall_write(out, output);
+				results[0] = Val((int32_t)output.size());
+				return(std::monostate());
+			}));
 		if(mod == "env" && name == "bearer_host_random")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				u32 len = (u32)args[1].i32();
@@ -3589,6 +3651,13 @@ struct WasmWorkspace : public WasmRequestProfile
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String password,encoded; self->hostcall_read(args[0].i32(), args[1].i32(), password); self->hostcall_read(args[2].i32(), args[3].i32(), encoded); bool valid=password_verify_native(password,encoded); results[0]=Val((int32_t)(valid?1:0)); return(std::monostate()); }));
 		if(mod == "env" && name == "bearer_host_password_needs_rehash")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String encoded; self->hostcall_read(args[0].i32(), args[1].i32(), encoded); results[0]=Val((int32_t)(password_needs_rehash_native(encoded)?1:0)); return(std::monostate()); }));
+		if(mod == "env" && name == "bearer_host_crypto_operation")
+			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				String encoded,out,error; DValue request,response; int32_t input_size=args[1].i32(); u32 cap=(u32)args[3].i32(); int32_t buf=args[2].i32();
+				if(input_size>0&&input_size<=64*1024&&self->hostcall_read(args[0].i32(),input_size,encoded)==""&&brb_decode(encoded,request,&error)) { String stage_key="crypto_operation:"+encoded; if(!self->hostcall_staged(stage_key,out)) { response=crypto_operation_native(request); out=brb_encode(response); if(buf==0) self->hostcall_stage(stage_key,out); } }
+				else { response["ok"].set_bool(false); response["error"]="invalid_request"; out=brb_encode(response); }
+				if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate());
+			}));
 		if(mod == "env" && name == "bearer_host_log")
 			return(add([self](Caller, Span<const Val> args, Span<Val>) -> Result<std::monostate, Trap> {
 				String text;
@@ -3798,7 +3867,7 @@ struct WasmWorkspace : public WasmRequestProfile
 					}
 					// match the native ls -1 convention: bare names, sorted
 					std::sort(names.begin(), names.end());
-					listing = join(names, "\n");
+					listing = join_strings(names, "\n");
 				}
 				u32 cap = (u32)args[5].i32();
 				int32_t buf = args[4].i32();
@@ -4107,7 +4176,7 @@ struct WasmWorkspace : public WasmRequestProfile
 								response["result"] = unit_info(request["path"].to_string());
 							else if(op == "list")
 							{
-								StringList paths = units_list();
+								std::vector<String> paths = strings_from_dvalue(units_list());
 								for(auto& path : paths)
 								{
 									DValue item;
@@ -4184,7 +4253,7 @@ struct WasmWorkspace : public WasmRequestProfile
 								self->sqlite_handles.push_back(db);
 								handle = self->sqlite_handles.size();
 							}
-							response["handle"] = (f64)handle;
+							response["handle"] = std::to_string(handle);
 							response["error_code"] = (f64)db->error_code;
 							response["statement_info"] = db->error();
 							if(handle == 0)
@@ -4192,7 +4261,7 @@ struct WasmWorkspace : public WasmRequestProfile
 						}
 						else
 						{
-							u64 handle = request["handle"].to_u64();
+							u64 handle = to_u64(request["handle"].to_string(), 0);
 							SQLite* db = (handle >= 1 && handle <= self->sqlite_handles.size())
 								? self->sqlite_handles[(size_t)handle - 1] : 0;
 							if(op == "query" && db)
@@ -4250,9 +4319,12 @@ struct WasmWorkspace : public WasmRequestProfile
 				}
 				else
 				{
-					u64 socket_fd = (u64)args[0].i64();
-					wasm_socket_write_bounded(socket_fd, command + "\r\n", self->bounded_hostcall_timeout_ms(1000));
-					out = wasm_socket_read_bounded(socket_fd, 1024 * 128, self->bounded_hostcall_timeout_ms(1000));
+					u64 handle = (u64)args[0].i64();
+					int socket_fd = handle >= 1 && handle <= self->socket_handles.size() ? self->socket_handles[(size_t)handle - 1] : -1;
+					if(socket_fd >= 0) {
+						wasm_socket_write_bounded((u64)socket_fd, command + "\r\n", self->bounded_hostcall_timeout_ms(1000));
+						out = wasm_socket_read_bounded((u64)socket_fd, 1024 * 128, self->bounded_hostcall_timeout_ms(1000));
+					}
 					if(buf == 0)
 					{
 						self->staged_memcache_key = key;
@@ -4321,7 +4393,7 @@ struct WasmWorkspace : public WasmRequestProfile
 								else if(connection_source == "worker") self->mysql_connection_reuse_count++;
 								else if(connection_source == "request") self->mysql_request_pool_hit_count++;
 							}
-							response["handle"] = (f64)handle;
+							response["handle"] = std::to_string(handle);
 							response["error_code"] = (f64)db->_preload_next_error_code;
 							response["statement_info"] = db->error();
 							if(handle == 0 && db)
@@ -4334,7 +4406,7 @@ struct WasmWorkspace : public WasmRequestProfile
 						}
 						else
 						{
-							u64 handle = request["handle"].to_u64();
+							u64 handle = to_u64(request["handle"].to_string(), 0);
 							MySQL* db = (handle >= 1 && handle <= self->mysql_handles.size())
 								? self->mysql_handles[(size_t)handle - 1] : 0;
 							if(op == "query" && db)
@@ -4391,24 +4463,27 @@ struct WasmWorkspace : public WasmRequestProfile
 				String host;
 				self->hostcall_read(args[0].i32(), args[1].i32(), host);
 				u64 fd = wasm_socket_connect_bounded(host, (u16)args[2].i32(), self->bounded_hostcall_timeout_ms(self->worker.cfg.invocation_timeout_ms));
-				results[0] = Val((int64_t)fd);
+				if(fd) { self->socket_handles.push_back((int)fd); results[0] = Val((int64_t)self->socket_handles.size()); }
+				else results[0] = Val((int64_t)0);
 				return(std::monostate());
 			}));
 		if(mod == "env" && name == "bearer_host_socket_close")
-			return(add([](Caller, Span<const Val> args, Span<Val>) -> Result<std::monostate, Trap> {
-				::socket_close((u64)args[0].i64());
+			return(add([self](Caller, Span<const Val> args, Span<Val>) -> Result<std::monostate, Trap> {
+				u64 handle = (u64)args[0].i64();
+				if(handle >= 1 && handle <= self->socket_handles.size()) { int& fd = self->socket_handles[(size_t)handle - 1]; if(fd >= 0) { close(fd); fd = -1; } }
 				return(std::monostate());
 			}));
 		if(mod == "env" && name == "bearer_host_socket_write")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
-				String data;
-				self->hostcall_read(args[1].i32(), args[2].i32(), data);
-				results[0] = Val(wasm_socket_write_bounded((u64)args[0].i64(), data, self->bounded_hostcall_timeout_ms(self->worker.cfg.invocation_timeout_ms)) ? (int32_t)1 : (int32_t)0);
+				String data; self->hostcall_read(args[1].i32(), args[2].i32(), data);
+				u64 handle = (u64)args[0].i64(); int fd = handle >= 1 && handle <= self->socket_handles.size() ? self->socket_handles[(size_t)handle - 1] : -1;
+				results[0] = Val(fd >= 0 && wasm_socket_write_bounded((u64)fd, data, self->bounded_hostcall_timeout_ms(self->worker.cfg.invocation_timeout_ms)) ? (int32_t)1 : (int32_t)0);
 				return(std::monostate());
 			}));
 		if(mod == "env" && name == "bearer_host_socket_read")
 			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
-				u64 sockfd = (u64)args[0].i64();
+				u64 handle = (u64)args[0].i64();
+				u64 sockfd = handle >= 1 && handle <= self->socket_handles.size() ? (u64)self->socket_handles[(size_t)handle - 1] : 0;
 				u32 max_length = (u32)args[1].i32();
 				u32 requested_timeout = (u32)args[2].i32();
 				u64 requested_ms = requested_timeout == 0 ? self->invocation_remaining_ms() : (u64)requested_timeout * 1000;

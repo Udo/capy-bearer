@@ -1,0 +1,18 @@
+function exercise {
+    {
+        var digest := sha256("abc")
+        var encoded := password_hash("correct horse")
+        var random := random_bytes(16u64)
+        var noise32 := gen_noise32(1u64, 2u64)
+        var noise64 := gen_noise64(1u64, 2u64)
+        var noise01 := gen_noise01(1u64, 2u64)
+        var integer := gen_int(7u64, 7u64, 10u64)
+        var floating := gen_float(1.0, 0.0, 1u64)
+        var drawn_int := draw_int(1u64, 10u64)
+        var drawn_float := draw_float(0.0, 1.0)
+        print(gen_sha1("abc"), "|", length(gen_sha1("abc", true)), "|", length(digest), "|", sha256_hex("abc"), "|", length(hmac_sha256("key", "message")), "|", hmac_sha256_hex("key", "message"), "|", crypto_equal(digest, sha256("abc")), crypto_equal(digest, "bad"), "|", length(random), "|", password_verify("correct horse", encoded), password_verify("wrong", encoded), password_needs_rehash(encoded), "|", noise32, "|", noise64, "|", noise01 >= 0.0, "|", integer, "|", floating >= 0.0, "|", drawn_int >= 1u64, "|", drawn_float >= 0.0, "|", arc_live())
+    }
+    print("|", arc_live())
+}
+function CLI { exercise() }
+function RENDER { exercise() }

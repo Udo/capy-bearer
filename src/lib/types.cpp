@@ -16,7 +16,7 @@
 
 #include "types.h"
 
-// Single definition of context for the native split build (the wasm core/unit
+// Single definition of context for the native split_strings build (the wasm core/unit
 // builds keep the in-place definition from types.h — see the guard there).
 #if !defined(__BEARER_WASM_CORE__) && !defined(__BEARER_WASM_UNIT__)
 Request* context = 0;

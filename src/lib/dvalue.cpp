@@ -4,6 +4,7 @@
 #include <limits>
 #include <cstring>
 #include <iomanip>
+#include <algorithm>
 
 namespace {
 
@@ -144,6 +145,28 @@ u64 dv_clamp_to_u64_range(long double value)
 
 }
 
+DValue::DValue(std::initializer_list<String> values)
+{
+	set_array();
+	for(const auto& value : values)
+	{
+		DValue item;
+		item.set(value);
+		push(item);
+	}
+}
+
+
+const String& DValue::StringIterator::operator*() const
+{
+	static const String empty;
+	const DValue* child = value->key(std::to_string(position));
+	return(child && child->deref().type == 'S' ? child->deref()._String : empty);
+}
+
+DValue::StringIterator DValue::begin() const { return(StringIterator(this, 0)); }
+DValue::StringIterator DValue::end() const { return(StringIterator(this, size())); }
+
 void DValue::each(std::function <void (const DValue& t, String key)> f) const
 {
 	const DValue& target = deref();
@@ -174,13 +197,18 @@ void DValue::each(std::function <void (const DValue& t, String key)> f) const
 	}
 }
 
-StringList DValue::keys() const
+DValue DValue::keys() const
 {
-	StringList result;
+	DValue result;
+	result.set_array();
 	each([&](const DValue& item, String key) {
 		(void)item;
 		if(key != "")
-			result.push_back(key);
+		{
+			DValue value;
+			value.set(key);
+			result.push(value);
+		}
 	});
 	return(result);
 }
@@ -196,16 +224,16 @@ DValue DValue::values() const
 	return(result);
 }
 
-DValue DValue::filter(StringList keys) const
+DValue DValue::filter(DValue keys) const
 {
 	DValue result;
 	const DValue& target = deref();
-	for(auto key : keys)
-	{
-		const DValue* item = target.key(key);
+	keys.each([&](const DValue& key, String) {
+		String name = key.to_string();
+		const DValue* item = target.key(name);
 		if(item)
-			result[key] = *item;
-	}
+			result[name] = *item;
+	});
 	return(result);
 }
 
@@ -241,6 +269,16 @@ DValue DValue::map(std::function<DValue (const DValue&, String)> f) const
 	});
 	return(result);
 }
+
+DValue DValue::filter(std::function<bool (String)> f) const { return(filter([&](const DValue& item, String) { return(f(item.to_string())); })); }
+DValue DValue::map(std::function<String (String)> f) const { return(map([&](const DValue& item, String) { DValue out; out.set(f(item.to_string())); return(out); })); }
+DValue DValue::unique() const { DValue result; result.set_array(); each([&](const DValue& item, String) { String value = item.to_string(); if(!result.some([&](String prior) { return(prior == value); })) { DValue out; out.set(value); result.push(out); } }); return(result); }
+DValue DValue::sort() const { std::vector<String> values; each([&](const DValue& item, String) { values.push_back(item.to_string()); }); std::sort(values.begin(), values.end()); DValue result; result.set_array(); for(const auto& value : values) { DValue out; out.set(value); result.push(out); } return(result); }
+bool DValue::some(std::function<bool (String)> f) const { bool found = false; each([&](const DValue& item, String) { if(!found && f(item.to_string())) found = true; }); return(found); }
+bool DValue::every(std::function<bool (String)> f) const { bool all = true; each([&](const DValue& item, String) { if(all && !f(item.to_string())) all = false; }); return(all); }
+String DValue::find(std::function<bool (String)> f, String fallback) const { String found = fallback; bool matched = false; each([&](const DValue& item, String) { String value = item.to_string(); if(!matched && f(value)) { found = value; matched = true; } }); return(found); }
+void DValue::each(std::function<void (String)> f) const { each([&](const DValue& item, String) { f(item.to_string()); }); }
+size_t DValue::size() const { const DValue& target = deref(); return(target.type == 'M' ? target._map.size() : 0); }
 
 bool DValue::is_array() const
 {
@@ -815,11 +853,52 @@ DValue& DValue::operator [] (String s) {
 	return(*get_or_create(s));
 }
 
+const DValue& DValue::operator [] (u64 index) const
+{
+	const DValue* value = key(std::to_string(index));
+	return(value ? *value : *this);
+}
+
 void DValue::operator = (String v) { set(v); }
 void DValue::operator = (f64 v) { set(v); }
 void DValue::operator = (void* v) { set(v); }
 void DValue::operator = (DValue v) { set(std::move(v)); }
 void DValue::operator = (StringMap v) { set(v); }
+
+void DValue::push_back(String value)
+{
+	DValue child;
+	child.set(value);
+	push(child);
+}
+
+String DValue::front(String fallback) const
+{
+	const DValue& target = deref();
+	auto it = target._map.find("0");
+	return(it == target._map.end() ? fallback : it->second.to_string(fallback));
+}
+
+void DValue::pop_back()
+{
+	DValue* target = reference_target();
+	if(target)
+	{
+		target->pop_back();
+		return;
+	}
+	if(!_map.empty())
+		_map.erase(std::to_string(_map.size() - 1));
+}
+
+String DValue::back(String fallback) const
+{
+	const DValue& target = deref();
+	if(target._map.empty())
+		return(fallback);
+	auto it = target._map.find(std::to_string(target._map.size() - 1));
+	return(it == target._map.end() ? fallback : it->second.to_string(fallback));
+}
 
 void DValue::push(const DValue& child)
 {

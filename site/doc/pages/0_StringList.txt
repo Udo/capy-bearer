@@ -1,27 +1,17 @@
 :sig
-struct StringList — ordered list of String values
-
-:params
-return value : use methods such as `filter()`, `map()`, `keys()`, `each()`, `unique()`, `sort()`, `some()`, `every()`, and `find()` to derive or inspect lists
+DValue list (legacy `StringList` spelling)
 
 :content
-`StringList` is an ordered container of `String` values. It inherits normal `std::vector<String>` behavior and adds list helpers for filtering, mapping, indexes, iteration, deduplication, sorting, and predicate checks.
+Removed as a distinct container. `StringList` is now the source-compatible alias for a list-shaped `DValue`; it has no separate storage, ABI, or Capy representation.
+
+Use `DValue` for all new code. List-shaped values preserve ordered string iteration, indexing, `push_back()`, `filter()`, `map()`, `keys()`, `each()`, `unique()`, `sort()`, `some()`, `every()`, and `find()`.
 
 :example
-StringList labels = split("a,b,a", ",").unique().map([](String item) { return(to_upper(item)); });
+DValue labels = split("a,b,a", ",").unique().map([](String item) { return(to_upper(item)); });
 print(join(labels, ","), "\n");
 
 :see
 >types
-0_String
+0_DValue
 split
 join
-2_StringList_filter
-2_StringList_map
-2_StringList_keys
-2_StringList_each
-2_StringList_unique
-2_StringList_sort
-2_StringList_some
-2_StringList_every
-2_StringList_find

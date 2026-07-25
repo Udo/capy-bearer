@@ -26,7 +26,7 @@ if [[ "$SRC_FN" == *.capy ]]; then
 	trap 'rm -f "$WASM_TMP" "$MAP_TMP"' EXIT
 	[[ -x bin/capyc ]] || { echo "native Capy compiler bin/capyc is missing" >&2; exit 1; }
 	bin/capyc "$SRC_FN" --bearer-unit --abi-version "$ABI_VERSION" -o "$WASM_TMP" --source-map "$MAP_TMP"
-	python3 scripts/check_unit_wasm.py "$WASM_TMP" --abi-version "$ABI_VERSION"
+	bin/capyc --check-unit "$WASM_TMP" "$ABI_VERSION"
 	mv "$MAP_TMP" "$DEST_DIR/$WASM_FN.source-map"
 	mv "$WASM_TMP" "$DEST_DIR/$WASM_FN"
 	exit 0
@@ -117,18 +117,14 @@ fi
 	--export-if-defined=__bearer_once \
 	--export-if-defined=__bearer_init
 
-python3 scripts/build_unit_source_map.py \
-	--dwarfdump "$SDK/bin/llvm-dwarfdump" \
-	--wasm "$WASM_TMP" \
-	--module "$(basename "$WASM_TMP")" \
-	--output "$MAP_TMP"
+bin/capyc --build-source-map "$SDK/bin/llvm-dwarfdump" "$WASM_TMP" "$(basename "$WASM_TMP")" "$MAP_TMP"
 
 "$SDK/bin/llvm-objcopy" --strip-debug \
 	--add-section=bearer.abi="$ABI_TMP" \
 	--add-section=bearer.module="$MODULE_TMP" \
 	"$WASM_TMP"
 
-python3 scripts/check_unit_wasm.py "$WASM_TMP" --abi-version "$ABI_VERSION" --llvm-nm "$SDK/bin/llvm-nm"
+bin/capyc --check-unit "$WASM_TMP" "$ABI_VERSION" --llvm-nm "$SDK/bin/llvm-nm"
 mv "$MAP_TMP" "$DEST_DIR/$WASM_FN.source-map"
 mv "$WASM_TMP" "$DEST_DIR/$WASM_FN"
 

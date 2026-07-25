@@ -1,0 +1,28 @@
+function exercise {
+    {
+    ob_start()
+    print("outer")
+    ob_start()
+    print("inner")
+    var inner := ob_get()
+    var captured := ob_get_close()
+    print("+", captured)
+    ob_start()
+    print("discard")
+    ob_close()
+    var outer := ob_get_close()
+    var route := request_route_from_raw_path("workspace/projects", "index")
+    var query_route := request_query_route("fallback")
+    var rejected := request_route_from_raw_path("../unsafe", "index")
+    var input := cli_input()
+    var perf := request_perf()
+    print(cli_arg("name", "fallback"), "|", dval_string(input["name"]), "|", inner, "|", outer, "|", request_query_path("fallback"), "|", dval_string(route["page"]), dval_bool(route["valid"]), dval_string(rejected["l_path"]) == "", !dval_bool(rejected["valid"]), "|", length(request_script_url()) > 0, length(request_base_url()) > 0, dval_get_type_name(perf) != "invalid", "|", length(session_id_create()) == 64)
+    }
+    print("|", arc_live())
+}
+
+function CLI { exercise() }
+function RENDER {
+    if request_get("status") == "yes" { response_status(202, "Capy Accepted") }
+    exercise()
+}

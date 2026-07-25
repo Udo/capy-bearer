@@ -1,0 +1,32 @@
+function coreutil_output() string {
+    {
+        var items := split("beta,alpha,beta", ",")
+        var mapped := map(items, function(value : string) string { return to_upper(value) })
+        var kept := filter(items, function(value : string) bool { return value != "beta" })
+        var unique_items := unique(items)
+        var parsed := parse_query("b=two&a=one&flag&b=last")
+        var uri := parse_uri("https://example.test:8443/docs?a=one&b=two#here")
+        var headers := split_http_headers("GET /docs?a=1 HTTP/1.1\r\nHost: example.test\r\n")
+        var utf8 := split_utf8("Aé")
+        var sorted := sort(items)
+        var dump := var_dump(dval({"name": "Ada"}))
+        each(items, function(value : string) string { print(value == "alpha"); return "" })
+        print(join(mapped, ","), "|", join(kept, ","), "|", join(unique_items, ","), "|",
+            every(items, function(value : string) bool { return value != "" }),
+            some(items, function(value : string) bool { return value == "alpha" }), "|",
+            string_list_find(items, function(value : string) bool { return value == "alpha" }, "missing"), "|",
+            join(keys(items), ","), "|", to_lower("BEARER"), ":", to_upper("bearer"), "|",
+            ascii_safe_name("Café file-1"), ":", safe_name("Café file-1"), ":", trim("  core  "), "|",
+            float_val(" 3.5x"), ":", int_val("ff", 16), ":", to_bool("YES"), to_bool("unknown", true), "|",
+            to_f64(" 1.5 "), ":", to_s64("-9"), ":", to_u64("42"), "|",
+            str_starts_with("docs/index", "docs"), str_ends_with("docs/index", "index"), "|",
+            encode_query(parsed), ":", dval_string(parsed["b"]), dval_string(parsed["flag"]), ":", dval_string(uri["parts"]["host"]), ":", dval_string(uri["parts"]["path"]), ":", dval_string(uri["query"]["b"]), "|",
+            route_path_normalize(" /docs/index/ "), ":", route_path_is_safe("docs/index"), ":", route_path_sanitize("../secret", "index"), "|",
+            join(split_space("one  two\tthree"), ","), ":", join(utf8, ","), ":", dval_string(headers["HTTP_HOST"]), "|",
+            join(sorted, ","), ":", contains(dump, "name: Ada"), ":", signal_name(11), ":", usleep(0), ":", contains(backtrace_capture(), ""), ":", length(runtime_safe_key(" core task ")), "|")
+    }
+    print(arc_live())
+    return ""
+}
+function CLI { var ignored := coreutil_output() }
+function RENDER { var ignored := coreutil_output() }

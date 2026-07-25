@@ -1,0 +1,42 @@
+function CLI {
+    {
+        var root := file_temp("/tmp/capy-files2-")
+        file_unlink(root)
+        var made := mkdir(root)
+        var source := path_join(root, "a.txt")
+        var copied := path_join(root, "copy.txt")
+        var renamed := path_join(root, "b.txt")
+        var link := path_join(root, "link.txt")
+        var put := file_put_contents(source, "ab")
+        var appended := file_append(source, "c", "")
+        var copied_ok := file_copy(source, copied)
+        var renamed_ok := file_rename(copied, renamed)
+        var truncated := file_truncate(renamed, 2u64)
+        var chmodded := file_chmod(source, 384)
+        var linked := file_symlink(source, link)
+        var st := file_stat(source)
+        var st_exists := dval_key(st, "exists")
+        var st_is_file := dval_key(st, "is_file")
+        var st_size := dval_key(st, "size")
+        var listed := join(sort(ls(root)), ",")
+        var found := false
+        for key, item = dir_list(root) {
+            if dval_string(dval_key(item, "name")) == "b.txt" { found = true }
+        }
+        var nonrecursive := dir_remove(root)
+        var real := path_real(source)
+        var within := path_is_within(source, root)
+        var expanded := expand_path("a.txt", root)
+        var source_contents := file_get_contents(source)
+        var renamed_contents := file_get_contents(renamed)
+        var link_contents := file_get_contents(link)
+        var has_mtime := file_mtime(source) > 0u64
+        var old_cwd := cwd_get()
+        cwd_set(root)
+        var cwd_changed := cwd_get() == root
+        cwd_set(old_cwd)
+        var removed := dir_remove(root, true)
+        print(basename(source), "|", dirname(source) == root, "|", made, put, appended, copied_ok, renamed_ok, truncated, chmodded, linked, "|", source_contents, "|", renamed_contents, "|", link_contents, "|", dval_bool(st_exists), dval_bool(st_is_file), dval_to_u64(st_size), "|", has_mtime, "|", listed, "|", found, nonrecursive, within, expanded == source, real == source, cwd_changed, removed)
+    }
+    print("|", !file_exists("/definitely-not-a-capy-files2-file"), "|", file_get_contents("/definitely-not-a-capy-files2-file") == "", "|", !file_put_contents("/definitely-not-a-capy-files2-file", "x"), "|", !mkdir("/definitely-not-a-capy-files2-dir"))
+}

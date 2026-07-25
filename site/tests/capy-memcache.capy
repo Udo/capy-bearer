@@ -1,0 +1,25 @@
+function CLI {
+    {
+    var escaped := memcache_escape_keys(dval(["a b", "line\nkey"]))
+    var unreachable := memcache_connect("127.0.0.1", 1)
+    var live := memcache_connect()
+    var result := "skip"
+    if live != 0u64 {
+        var prefix := "capy-parity-memcache"
+        var stored := memcache_set(live, prefix + "-one", "v1", 60u64)
+        var second := memcache_set(live, prefix + "-two", "v2")
+        var raw := memcache_command(live, "get " + prefix + "-one")
+        var value := memcache_get(live, prefix + "-one", "missing")
+        var values := memcache_get_multiple(live, dval([prefix + "-one", prefix + "-two"]))
+        var first_value := values[prefix + "-one"]
+        var second_value := values[prefix + "-two"]
+        var deleted := memcache_delete(live, prefix + "-one") && memcache_delete(live, prefix + "-two")
+        if stored && second && contains(raw, "VALUE") && value == "v1" && dval_string(first_value) == "v1" && dval_string(second_value) == "v2" && deleted { result = "live" }
+        else { result = "failed" }
+    }
+    var unreachable_status := "up"
+    if unreachable == 0u64 { unreachable_status = "down" }
+    print(memcache_escape_key("a b"), "|", dval_string(escaped[1]), "|", unreachable_status, "|", result, "|")
+    }
+    print(arc_live())
+}

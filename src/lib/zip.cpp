@@ -36,7 +36,7 @@ bool zip_entry_name_safe(String name)
 			return(false);
 	}
 
-	auto parts = split(replace(name, "\\", "/"), "/");
+	auto parts = split_strings(replace(name, "\\", "/"), "/");
 	for(auto part : parts)
 	{
 		if(part == "..")

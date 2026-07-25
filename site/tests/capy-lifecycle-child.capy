@@ -1,0 +1,3 @@
+function INIT { print("child-init;") }
+function ONCE { print("child-once;") }
+function COMPONENT { print("child-component;") }

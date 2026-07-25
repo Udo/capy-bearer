@@ -17,15 +17,15 @@ RENDER(Request& context)
 	}
 
 	// Collect results into two buckets: title matches first, then content-only matches
-	StringList title_ft;
-	StringList title_name;
-	StringList title_badge;
-	StringList title_snippet;
+	DValue title_ft;
+	DValue title_name;
+	DValue title_badge;
+	DValue title_snippet;
 
-	StringList body_ft;
-	StringList body_name;
-	StringList body_badge;
-	StringList body_snippet;
+	DValue body_ft;
+	DValue body_name;
+	DValue body_badge;
+	DValue body_snippet;
 
 	for(auto file_name : ls("pages/"))
 	{

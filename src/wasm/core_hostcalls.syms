@@ -13,6 +13,7 @@ bearer_host_crypto_equal
 bearer_host_password_hash
 bearer_host_password_verify
 bearer_host_password_needs_rehash
+bearer_host_crypto_operation
 bearer_host_task_spawn
 bearer_host_task_pid
 bearer_host_task_kill
@@ -69,6 +70,7 @@ bearer_host_cwd_get
 bearer_host_cwd_set
 bearer_host_process_start_directory
 bearer_host_last_trap_trace
+bearer_host_capy_backtrace
 bearer_host_regex
 bearer_host_regex_capy
 bearer_host_sqlite

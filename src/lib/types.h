@@ -53,126 +53,6 @@ inline String operator+(String lhs, f32 rhs) {
 
 typedef std::map<String, String> StringMap;
 
-struct StringList : std::vector<String> {
-	using std::vector<String>::vector;
-	using std::vector<String>::operator=;
-
-	StringList() = default;
-	StringList(const StringList&) = default;
-	StringList(StringList&&) = default;
-	StringList& operator=(const StringList&) = default;
-	StringList& operator=(StringList&&) = default;
-	StringList(const std::vector<String>& source) : std::vector<String>(source) {}
-	StringList(std::vector<String>&& source) : std::vector<String>(std::move(source)) {}
-	StringList& operator=(const std::vector<String>& source) { std::vector<String>::operator=(source); return(*this); }
-	StringList& operator=(std::vector<String>&& source) { std::vector<String>::operator=(std::move(source)); return(*this); }
-
-	template<typename F>
-	StringList filter(F f) const
-	{
-		StringList result;
-		for(const auto& item : *this)
-		{
-			if(f(item))
-				result.push_back(item);
-		}
-		return(result);
-	}
-
-	template<typename F>
-	StringList map(F f) const
-	{
-		StringList result;
-		for(const auto& item : *this)
-			result.push_back(f(item));
-		return(result);
-	}
-
-	StringList unique() const
-	{
-		StringList result;
-		for(const auto& item : *this)
-		{
-			bool seen = false;
-			for(const auto& existing : result)
-			{
-				if(existing == item)
-				{
-					seen = true;
-					break;
-				}
-			}
-			if(!seen)
-				result.push_back(item);
-		}
-		return(result);
-	}
-
-	StringList sort() const
-	{
-		StringList result = *this;
-		for(size_t i = 1; i < result.size(); i++)
-		{
-			String value = result[i];
-			size_t j = i;
-			while(j > 0 && value < result[j - 1])
-			{
-				result[j] = result[j - 1];
-				j--;
-			}
-			result[j] = value;
-		}
-		return(result);
-	}
-
-	template<typename F>
-	bool some(F f) const
-	{
-		for(const auto& item : *this)
-		{
-			if(f(item))
-				return(true);
-		}
-		return(false);
-	}
-
-	template<typename F>
-	bool every(F f) const
-	{
-		for(const auto& item : *this)
-		{
-			if(!f(item))
-				return(false);
-		}
-		return(true);
-	}
-
-	template<typename F>
-	String find(F f, String fallback = "") const
-	{
-		for(const auto& item : *this)
-		{
-			if(f(item))
-				return(item);
-		}
-		return(fallback);
-	}
-
-	StringList keys() const
-	{
-		StringList result;
-		for(size_t i = 0; i < size(); i++)
-			result.push_back(std::to_string(i));
-		return(result);
-	}
-
-	template<typename F>
-	void each(F f) const
-	{
-		for(const auto& item : *this)
-			f(item);
-	}
-};
 
 typedef std::ostringstream ByteStream;
 
@@ -193,7 +73,7 @@ struct SharedUnit {
 	String meta_file_name;
 	String compile_output_file_name;
 	String setup_file_name;
-	StringList api_declarations;
+	std::vector<String> api_declarations;
 
 	String src_path;
 	String bin_path;
@@ -258,6 +138,15 @@ String nibble(String div, String& haystack);
 
 #include "dvalue.h"
 
+// .uce compatibility spelling: StringList is now the general DValue list.
+using StringList = DValue;
+inline String operator+(const DValue& lhs, String rhs) { return(lhs.to_string() + rhs); }
+inline String operator+(String lhs, const DValue& rhs) { return(lhs + rhs.to_string()); }
+inline bool operator == (const DValue& lhs, const String& rhs) { return(lhs.to_string() == rhs); }
+inline bool operator == (const String& lhs, const DValue& rhs) { return(lhs == rhs.to_string()); }
+inline bool operator != (const DValue& lhs, const String& rhs) { return(!(lhs == rhs)); }
+inline bool operator != (const String& lhs, const DValue& rhs) { return(!(lhs == rhs)); }
+
 struct Request {
 
 	ServerState* server = 0;
@@ -281,7 +170,7 @@ struct Request {
 
 	String response_code = "HTTP/1.1 200 OK";
 	StringMap header;
-	StringList set_cookies;
+	std::vector<String> set_cookies;
 
 	u64 random_seed = 0;
 	u64 random_index = 0;
@@ -342,7 +231,7 @@ struct Request {
 		String websocket_connection_id = "";
 		String websocket_scope = "";
 		DValue* websocket_connection_state = 0;
-		StringList websocket_scope_connection_ids;
+		std::vector<String> websocket_scope_connection_ids;
 		DValue websocket_connection_state_before;
 		DValue websocket_dispatch_commands;
 		bool websocket_dispatch_capture = false;
@@ -366,7 +255,7 @@ struct Request {
 
 typedef Request FastCGIRequest;
 
-// Native runtime is split across objects (core/wasm/main), so context is
+// Native runtime is split_strings across objects (core/wasm/main), so context is
 // declared here and defined once in types.cpp. The wasm core is a single TU and
 // wasm units resolve context through the loader's GOT, so both keep the
 // in-place definition (unchanged ABI).

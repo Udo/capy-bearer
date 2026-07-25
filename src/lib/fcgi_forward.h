@@ -151,7 +151,7 @@ inline FcgiForwardResult fcgi_forward_request(const String& socket_path,
 	String header_block = sep == String::npos ? String() : stdout_data.substr(0, sep);
 	result.body = sep == String::npos ? stdout_data : stdout_data.substr(sep + sep_len);
 
-	for(String line : split(header_block, "\n"))
+	for(String line : split_strings(header_block, "\n"))
 	{
 		line = trim(line);
 		if(line == "")

@@ -1,0 +1,7 @@
+function INIT { print("entry-init;") }
+function ONCE { print("entry-once;") }
+function RENDER {
+    component_render("/tests/capy-lifecycle-child.capy")
+    component_render("/tests/capy-lifecycle-child.capy")
+    print("render")
+}

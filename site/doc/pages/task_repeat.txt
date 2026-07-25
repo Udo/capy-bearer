@@ -21,7 +21,7 @@ Starts a repeating background worker process.
 
 If a process with the same `key` is already running anywhere in the runtime instance, `task_repeat()` does not start a second worker and instead returns the PID of the existing one. Coordination is through the same shared task state used by `task()`.
 
-`timeout` bounds the lifetime of the repeating worker. The default is ten minutes. Pass `0` only for workers that have another shutdown path.
+`timeout` bounds the lifetime of the repeating worker. The default is ten minutes. Pass `0` only for workers that have another shutdown path. In Wasm, each individual callback invocation remains bounded by the runtime invocation timeout even when the repeating process lifetime is unbounded.
 
 :example
 task_repeat("doc-demo-repeat", 60.0, []() { usleep(10000); });

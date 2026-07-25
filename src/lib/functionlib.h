@@ -22,19 +22,26 @@ bool regex_match(String pattern, String subject, String flags = "");
 DValue regex_search(String pattern, String subject, String flags = "");
 DValue regex_search_all(String pattern, String subject, String flags = "");
 String regex_replace(String pattern, String replacement, String subject, String flags = "");
-StringList regex_split(String pattern, String subject, String flags = "");
+std::vector<String> regex_split_strings(String pattern, String subject, String flags = "");
+DValue regex_split(String pattern, String subject, String flags = "");
 
 String trim(String raw);
-StringList split_space(String str);
-StringList split(String str, String delim);
-StringList split_utf8(String s, bool compound_characters = false);
+std::vector<String> split_space_strings(String str);
+std::vector<String> split_strings(String str, String delim);
+std::vector<String> split_utf8_strings(String s, bool compound_characters = false);
+DValue split_space(String str);
+DValue split(String str, String delim);
+DValue split_utf8(String s, bool compound_characters = false);
 StringMap split_kv(String s, char separator = '=', bool trim_whitespace = true, bool uppercase_keys = false);
 StringMap split_http_headers(String s);
-String join(StringList l, String delim = "\n");
+String join_strings(std::vector<String> l, String delim = "\n");
+std::vector<String> strings_from_dvalue(const DValue& value);
+DValue dvalue_from_strings(const std::vector<String>& values);
+String join(DValue l, String delim = "\n");
 String nibble(String& haystack, String delim);
 void json_consume_space(String s, u32& i);
 
-inline String to_string(StringList l) {
+inline String to_string(std::vector<String> l) {
 	String result;
 	u32 i = 0;
 	for(auto& s : l)
@@ -94,6 +101,18 @@ inline auto map(std::vector<T> items, F f)
 	return(new_items);
 }
 
+// Free-function list helpers forward to the unified DValue list API.
+template<typename F>
+inline DValue map(DValue items, F f) { return(items.map(std::function<String (String)>(f))); }
+template<typename F>
+inline DValue filter(DValue items, F f) { return(items.filter(std::function<bool (String)>(f))); }
+inline DValue unique(DValue items) { return(items.unique()); }
+inline DValue sort(DValue items) { return(items.sort()); }
+template<typename F>
+inline bool every(DValue items, F f) { return(items.every(std::function<bool (String)>(f))); }
+template<typename F>
+inline bool some(DValue items, F f) { return(items.some(std::function<bool (String)>(f))); }
+
 template <typename ...Args>
 inline String first(Args... args)
 {
@@ -117,7 +136,7 @@ String yaml_encode(DValue t);
 DValue yaml_decode(String s);
 
 String var_dump(StringMap map, String prefix = "", String postfix = "\n");
-String var_dump(StringList slist, String prefix = "", String postfix = "\n");
+String var_dump(std::vector<String> slist, String prefix = "", String postfix = "\n");
 StringMap array_merge(StringMap a, StringMap b);
 DValue array_merge(DValue a, DValue b);
 

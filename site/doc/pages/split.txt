@@ -1,5 +1,5 @@
 :sig
-StringList split(String str, String delim)
+DValue split(String str, String delim)
 
 :params
 str : string to be split
@@ -12,7 +12,7 @@ return value : a list of strings
 :content
 Splits `str` into multiple strings using `delim` as the separator.
 
-Every exact occurrence of `delim` creates a new entry in the returned `StringList`.
+Every exact occurrence of `delim` creates a new entry in the returned list-shaped `DValue`.
 
 
 :example

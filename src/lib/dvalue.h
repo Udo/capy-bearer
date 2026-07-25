@@ -9,8 +9,21 @@ String json_escape(String s, char quote_char = '"');
 // manual parsing at each call site.
 struct DValue {
 	DValue() = default;
+	DValue(String value) { set(value); }
+	DValue(std::initializer_list<String> values);
 	DValue(const DValue&) = default;
 	DValue(DValue&&) = default;
+
+	// Preserves existing .uce range-for ABI after StringList became DValue.
+	class StringIterator {
+		const DValue* value;
+		size_t position;
+	public:
+		StringIterator(const DValue* value, size_t position) : value(value), position(position) {}
+		const String& operator*() const;
+		StringIterator& operator++() { ++position; return(*this); }
+		bool operator != (const StringIterator& other) const { return(position != other.position); }
+	};
 
 	char type = 'S';
 
@@ -25,12 +38,28 @@ struct DValue {
 	// Read accessors are const and never create or modify nodes. The to_*
 	// conversions take an optional default that is returned when the value is
 	// missing (empty) or cannot be converted to the requested type.
+	StringIterator begin() const;
+	StringIterator end() const;
 	void each(std::function <void (const DValue& t, String key)> f) const;
-	StringList keys() const;
+	DValue keys() const;
 	DValue values() const;
-	DValue filter(StringList keys) const;
+	DValue filter(DValue keys) const;
 	DValue filter(std::function<bool (const DValue&, String)> f) const;
 	DValue map(std::function<DValue (const DValue&, String)> f) const;
+	// String-list operations live on the general list value; callers that need
+	// strings explicitly convert children with to_string().
+	DValue filter(std::function<bool (String)> f) const;
+	DValue map(std::function<String (String)> f) const;
+	DValue unique() const;
+	DValue sort() const;
+	bool some(std::function<bool (String)> f) const;
+	bool every(std::function<bool (String)> f) const;
+	String find(std::function<bool (String)> f, String fallback = "") const;
+	void each(std::function<void (String)> f) const;
+	size_t size() const;
+	void pop_back();
+	String front(String fallback = "") const;
+	String back(String fallback = "") const;
 	bool is_array() const;
 	bool is_list() const;
 	String to_string(String default_value = "") const;
@@ -62,6 +91,9 @@ struct DValue {
 	const DValue* key(String s) const;
 	DValue* get_or_create(String s);
 	DValue& operator [] (String s);
+	DValue& operator [] (u64 index) { return((*this)[std::to_string(index)]); }
+	const DValue& operator [] (u64 index) const;
+	operator String() const { return(to_string()); }
 	void operator = (String v);
 	void operator = (f64 v);
 	void operator = (void* v);
@@ -69,6 +101,7 @@ struct DValue {
 	void operator = (StringMap v);
 
 	void push(const DValue& child);
+	void push_back(String value);
 	DValue pop();
 	void remove(String s);
 	void clear();

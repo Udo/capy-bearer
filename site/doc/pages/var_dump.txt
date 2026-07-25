@@ -1,6 +1,5 @@
 :sig
 String var_dump(StringMap t, String prefix = "", String postfix = "\n")
-String var_dump(StringList t, String prefix = "", String postfix = "\n")
 String var_dump(DValue t, String prefix = "", String postfix = "\n")
 
 :params

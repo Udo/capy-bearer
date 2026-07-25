@@ -20,6 +20,7 @@ struct MySQL {
 	u32 row_count = 0;
 	u64 insert_id = 0;
 	String statement_info = ""; //
+	bool parameter_error = false;
 	bool request_cleanup_delete = false;
 	bool request_pooled = false;
 	bool worker_persistent = false;

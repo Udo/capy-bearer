@@ -14,7 +14,7 @@ String data_format_bytes(String raw, bool disk = false)
 {
 	if(trim(raw) == "")
 		return("--");
-	StringList units;
+	DValue units;
 	units.push_back("B");
 	units.push_back("KB");
 	units.push_back("MB");

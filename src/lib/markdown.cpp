@@ -223,9 +223,9 @@ DValue markdown_parse_attrs(String raw, String& argument_out)
 	return(attrs);
 }
 
-StringList markdown_sorted_keys(DValue tree)
+std::vector<String> markdown_sorted_keys(DValue tree)
 {
-	StringList keys;
+	std::vector<String> keys;
 	if(tree.type != 'M')
 		return(keys);
 	for(auto& it : tree._map)
@@ -242,9 +242,9 @@ StringList markdown_sorted_keys(DValue tree)
 	return(keys);
 }
 
-StringList markdown_split_pipe_row(String raw)
+std::vector<String> markdown_split_pipe_row(String raw)
 {
-	StringList result;
+	std::vector<String> result;
 	String cell = "";
 	bool escaped = false;
 	for(auto c : raw)
@@ -278,10 +278,10 @@ StringList markdown_split_pipe_row(String raw)
 	return(result);
 }
 
-bool markdown_parse_table_separator(String raw, StringList& alignments)
+bool markdown_parse_table_separator(String raw, std::vector<String>& alignments)
 {
 	alignments.clear();
-	StringList cells = markdown_split_pipe_row(raw);
+	std::vector<String> cells = markdown_split_pipe_row(raw);
 	if(cells.size() == 0)
 		return(false);
 	for(auto cell : cells)
@@ -453,7 +453,7 @@ bool markdown_parse_directive_open(String raw, String& name, String& argument, D
 	if(trimmed.rfind(":::", 0) != 0 || trimmed == ":::")
 		return(false);
 	String payload = trim(trimmed.substr(3));
-	StringList parts = split_space(payload);
+	std::vector<String> parts = split_space_strings(payload);
 	if(parts.size() == 0)
 		return(false);
 	name = parts[0];
@@ -706,11 +706,11 @@ DValue markdown_parse_inline(String raw, DValue options)
 	return(children);
 }
 
-DValue markdown_parse_blocks(StringList lines, DValue options);
+DValue markdown_parse_blocks(std::vector<String> lines, DValue options);
 
-DValue markdown_parse_paragraph(StringList& lines, s64& idx, s64 base_indent, DValue& options)
+DValue markdown_parse_paragraph(std::vector<String>& lines, s64& idx, s64 base_indent, DValue& options)
 {
-	StringList paragraph_lines;
+	std::vector<String> paragraph_lines;
 	while(idx < (s64)lines.size())
 	{
 		if(markdown_is_blank(lines[idx]))
@@ -742,7 +742,7 @@ DValue markdown_parse_paragraph(StringList& lines, s64& idx, s64 base_indent, DV
 			if(markdown_gfm_enabled(options) && idx + 1 < (s64)lines.size() && current.find("|") != String::npos &&
 				markdown_count_indent(lines[idx + 1]) >= base_indent)
 			{
-				StringList alignments;
+				std::vector<String> alignments;
 				if(markdown_parse_table_separator(lines[idx + 1].substr(base_indent), alignments))
 					break;
 			}
@@ -752,13 +752,13 @@ DValue markdown_parse_paragraph(StringList& lines, s64& idx, s64 base_indent, DV
 	}
 
 	DValue node = markdown_make_node("paragraph");
-	String text = join(paragraph_lines, "\n");
+	String text = join_strings(paragraph_lines, "\n");
 	node["text"] = text;
 	node["children"] = markdown_parse_inline(text, options);
 	return(node);
 }
 
-DValue markdown_parse_list(StringList& lines, s64& idx, s64 base_indent, DValue& options)
+DValue markdown_parse_list(std::vector<String>& lines, s64& idx, s64 base_indent, DValue& options)
 {
 	bool ordered = false;
 	s64 marker_length = 0;
@@ -799,7 +799,7 @@ DValue markdown_parse_list(StringList& lines, s64& idx, s64 base_indent, DValue&
 			}
 		}
 
-		StringList child_lines;
+		std::vector<String> child_lines;
 		child_lines.push_back(item_content);
 		idx += 1;
 
@@ -838,9 +838,9 @@ DValue markdown_parse_list(StringList& lines, s64& idx, s64 base_indent, DValue&
 	return(node);
 }
 
-DValue markdown_parse_blockquote(StringList& lines, s64& idx, s64 base_indent, DValue& options)
+DValue markdown_parse_blockquote(std::vector<String>& lines, s64& idx, s64 base_indent, DValue& options)
 {
-	StringList quote_lines;
+	std::vector<String> quote_lines;
 	while(idx < (s64)lines.size())
 	{
 		if(markdown_is_blank(lines[idx]))
@@ -869,7 +869,7 @@ DValue markdown_parse_blockquote(StringList& lines, s64& idx, s64 base_indent, D
 	return(node);
 }
 
-DValue markdown_parse_code_block(StringList& lines, s64& idx, s64 base_indent)
+DValue markdown_parse_code_block(std::vector<String>& lines, s64& idx, s64 base_indent)
 {
 	char fence_char = '\0';
 	s64 fence_length = 0;
@@ -880,7 +880,7 @@ DValue markdown_parse_code_block(StringList& lines, s64& idx, s64 base_indent)
 	String meta = trim(info);
 	idx += 1;
 
-	StringList body;
+	std::vector<String> body;
 	while(idx < (s64)lines.size())
 	{
 		String current = lines[idx];
@@ -901,21 +901,21 @@ DValue markdown_parse_code_block(StringList& lines, s64& idx, s64 base_indent)
 	}
 
 	DValue node = markdown_make_node("code_block");
-	node["text"] = join(body, "\n");
+	node["text"] = join_strings(body, "\n");
 	node["lang"] = lang;
 	node["meta"] = meta;
 	return(node);
 }
 
-DValue markdown_parse_table(StringList& lines, s64& idx, s64 base_indent, DValue& options)
+DValue markdown_parse_table(std::vector<String>& lines, s64& idx, s64 base_indent, DValue& options)
 {
 	DValue node = markdown_make_node("table");
 	String header_line = lines[idx].substr(base_indent);
 	String separator_line = lines[idx + 1].substr(base_indent);
-	StringList alignments;
+	std::vector<String> alignments;
 	markdown_parse_table_separator(separator_line, alignments);
 
-	StringList header_cells = markdown_split_pipe_row(header_line);
+	std::vector<String> header_cells = markdown_split_pipe_row(header_line);
 	for(auto cell_text : header_cells)
 	{
 		DValue cell = markdown_make_node("table_cell");
@@ -941,7 +941,7 @@ DValue markdown_parse_table(StringList& lines, s64& idx, s64 base_indent, DValue
 		String raw = lines[idx].substr(base_indent);
 		if(raw.find("|") == String::npos)
 			break;
-		StringList cells = markdown_split_pipe_row(raw);
+		std::vector<String> cells = markdown_split_pipe_row(raw);
 		if(cells.size() == 0)
 			break;
 		DValue row;
@@ -959,14 +959,14 @@ DValue markdown_parse_table(StringList& lines, s64& idx, s64 base_indent, DValue
 	return(node);
 }
 
-DValue markdown_parse_directive(StringList& lines, s64& idx, s64 base_indent, DValue& options)
+DValue markdown_parse_directive(std::vector<String>& lines, s64& idx, s64 base_indent, DValue& options)
 {
 	String name = "";
 	String argument = "";
 	DValue attrs;
 	markdown_parse_directive_open(lines[idx].substr(base_indent), name, argument, attrs);
 
-	StringList body_lines;
+	std::vector<String> body_lines;
 	s64 depth = 1;
 	idx += 1;
 	while(idx < (s64)lines.size())
@@ -1004,15 +1004,15 @@ DValue markdown_parse_directive(StringList& lines, s64& idx, s64 base_indent, DV
 	node["name"] = name;
 	node["argument"] = argument;
 	node["attrs"] = attrs;
-	node["body_source"] = join(body_lines, "\n");
+	node["body_source"] = join_strings(body_lines, "\n");
 	DValue child_doc = markdown_parse_blocks(body_lines, options);
 	node["children"] = markdown_get_value(child_doc, "children");
 	return(node);
 }
 
-DValue markdown_parse_raw_html_block(StringList& lines, s64& idx, s64 base_indent)
+DValue markdown_parse_raw_html_block(std::vector<String>& lines, s64& idx, s64 base_indent)
 {
-	StringList html_lines;
+	std::vector<String> html_lines;
 	while(idx < (s64)lines.size())
 	{
 		if(markdown_is_blank(lines[idx]))
@@ -1026,14 +1026,14 @@ DValue markdown_parse_raw_html_block(StringList& lines, s64& idx, s64 base_inden
 		idx += 1;
 	}
 	DValue node = markdown_make_node("raw_html");
-	node["html"] = join(html_lines, "\n");
+	node["html"] = join_strings(html_lines, "\n");
 	return(node);
 }
 
-DValue markdown_parse_blocks(StringList lines, DValue options)
+DValue markdown_parse_blocks(std::vector<String> lines, DValue options)
 {
 	DValue document = markdown_make_node("document");
-	document["source"] = join(lines, "\n");
+	document["source"] = join_strings(lines, "\n");
 	s64 idx = 0;
 
 	while(idx < (s64)lines.size())
@@ -1126,7 +1126,7 @@ DValue markdown_parse_blocks(StringList lines, DValue options)
 		if(markdown_gfm_enabled(options) && idx + 1 < (s64)lines.size() && raw.find("|") != String::npos &&
 			markdown_count_indent(lines[idx + 1]) >= base_indent)
 		{
-			StringList alignments;
+			std::vector<String> alignments;
 			if(markdown_parse_table_separator(lines[idx + 1].substr(base_indent), alignments))
 			{
 				DValue node = markdown_parse_table(lines, idx, base_indent, options);
@@ -1314,8 +1314,8 @@ String markdown_render_node(DValue node, DValue& options)
 	else if(type == "table")
 	{
 		String header_html = "";
-		StringList align_keys = markdown_sorted_keys(markdown_get_value(node, "align"));
-		StringList header_keys = markdown_sorted_keys(markdown_get_value(node, "header"));
+		std::vector<String> align_keys = markdown_sorted_keys(markdown_get_value(node, "align"));
+		std::vector<String> header_keys = markdown_sorted_keys(markdown_get_value(node, "header"));
 		for(s64 i = 0; i < (s64)header_keys.size(); i++)
 		{
 			String align = (i < (s64)align_keys.size()) ? node["align"]._map[align_keys[i]].to_string() : "";
@@ -1328,7 +1328,7 @@ String markdown_render_node(DValue node, DValue& options)
 		{
 			DValue row = node["rows"]._map[row_key];
 			String row_html = "";
-			StringList row_keys = markdown_sorted_keys(row);
+			std::vector<String> row_keys = markdown_sorted_keys(row);
 			for(s64 i = 0; i < (s64)row_keys.size(); i++)
 			{
 				String align = (i < (s64)align_keys.size()) ? node["align"]._map[align_keys[i]].to_string() : "";
@@ -1366,7 +1366,7 @@ DValue markdown_to_ast(String src)
 DValue markdown_to_ast(String src, DValue options)
 {
 	src = markdown_strip_newlines(src);
-	return(markdown_parse_blocks(split(src, "\n"), options));
+	return(markdown_parse_blocks(split_strings(src, "\n"), options));
 }
 
 String markdown_to_html(String src)

@@ -1,5 +1,5 @@
 :sig
-StringList split_space(String str)
+DValue split_space(String str)
 
 :params
 str : string to be split

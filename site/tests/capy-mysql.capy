@@ -1,0 +1,12 @@
+function CLI {
+    {
+        var db := mysql_connect("localhost", "root", "", "mysql")
+        var rows := mysql_query(db, "SELECT 7 AS value")
+        print(db != 0u64, mysql_connected(db), "|", mysql_escape("a'b"), "|", dval_f64(rows[0]["value"]), "|", mysql_error(db) == "", "|", mysql_insert_id(db), ":", mysql_affected_rows(db))
+        mysql_disconnect(db)
+        var unavailable := mysql_connect("localhost", "root", "", "__capy_missing_database__")
+        print("|", unavailable != 0u64, !mysql_connected(unavailable), mysql_error(unavailable) != "")
+        mysql_disconnect(unavailable)
+    }
+    print("|", arc_live())
+}

@@ -1,5 +1,5 @@
 :sig
-String join(StringList l, String delim = "\n")
+String join(DValue l, String delim = "\n")
 
 :params
 l : list of strings to be joined
@@ -16,5 +16,5 @@ The delimiter is inserted between items. If `delim` is omitted, the default sepa
 
 
 :example
-StringList parts = split("a,b,c", ",");
+DValue parts = split("a,b,c", ",");
 print(join(parts, "-"), "\n");

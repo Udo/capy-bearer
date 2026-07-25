@@ -1,8 +1,10 @@
 #include "compiler.h"
+#include "../src/wasm/capy_backtrace.h"
 
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string_view>
 
 int main()
@@ -48,6 +50,110 @@ int main()
 	assert(capy::wasm::validate_bearer_unit(returning.wasm, {.bearer_abi_version = "11"}).valid);
 	const auto boundary = capy::compile_bearer_unit("function CLI { print(-2147483648, 2147483647) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(boundary.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto ordinary_sqlite = capy::compile_bearer_unit("function CLI { var db := sqlite_connect(\":memory:\"); print(sqlite_error(db)); sqlite_disconnect(db) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(ordinary_sqlite.wasm, {.bearer_abi_version = "11"}).valid);
+	const std::string sqlite_bytes(ordinary_sqlite.wasm.begin(), ordinary_sqlite.wasm.end());
+	assert(sqlite_bytes.find("bearer_sqlite_connect") != std::string::npos);
+	assert(sqlite_bytes.find("bearer_sqlite_error") != std::string::npos);
+	assert(ordinary_sqlite.source_map.find("F\t2\tcapy://stdlib.capy\n") != std::string::npos);
+	bool sqlite_stdlib_marker = false;
+	std::istringstream sqlite_map(ordinary_sqlite.source_map);
+	for (std::string row; std::getline(sqlite_map, row);)
+	{
+		std::istringstream fields(row);
+		std::string kind, address;
+		unsigned source_id = 0;
+		if (std::getline(fields, kind, '\t') && kind == "L" && std::getline(fields, address, '\t') && (fields >> source_id) && source_id == 2)
+			sqlite_stdlib_marker = true;
+	}
+	assert(sqlite_stdlib_marker);
+	const auto no_stdlib_demand = capy::compile_bearer_unit("function CLI { print(1) }\n", options);
+	const std::string no_stdlib_bytes(no_stdlib_demand.wasm.begin(), no_stdlib_demand.wasm.end());
+	assert(no_stdlib_bytes.find("bearer_sqlite_") == std::string::npos && no_stdlib_bytes.find("bearer_mysql_") == std::string::npos && no_stdlib_bytes.find("bearer_capy_backtrace") == std::string::npos);
+	const auto ordinary_backtrace = capy::compile_bearer_unit(
+		"function outer() string { inner() }\nfunction inner() string { var capture := function() string { backtrace_get_frames(2, 1) }; capture() }\nfunction CLI { print(outer(), backtrace_get_frames()) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(ordinary_backtrace.wasm, {.bearer_abi_version = "11"}).valid);
+	const std::string backtrace_bytes(ordinary_backtrace.wasm.begin(), ordinary_backtrace.wasm.end());
+	assert(backtrace_bytes.find("bearer_capy_backtrace") != std::string::npos);
+	assert(backtrace_bytes.find("void*") == std::string::npos);
+	assert(ordinary_backtrace.source_map.find("F\t2\tcapy://stdlib.capy\n") != std::string::npos);
+	capy::CompileOptions control_path_options = options;
+	control_path_options.source_path = "tab\tline\n\033.capy";
+	const auto control_path_backtrace = capy::compile_bearer_unit("function CLI { print(backtrace_get_frames()) }\n", control_path_options);
+	const std::string control_path_bytes(control_path_backtrace.wasm.begin(), control_path_backtrace.wasm.end());
+	const std::string control_record = std::string("\003\0\0\0\017\0\0\0\001\0\0\0\001\0\0\0CLI", 19) + control_path_options.source_path;
+	assert(control_path_bytes.find(control_record) != std::string::npos);
+	std::string control_frame;
+	assert(capy_backtrace::format_record(control_record, control_frame));
+	assert(control_frame == "CLI at tab\\x09line\\x0A\\x1B.capy:1:1");
+	std::string oversized_frame;
+	const std::string oversized_path(5000, 'p');
+	std::string oversized_record("\003\0\0\0", 4);
+	oversized_record.append("\210\023\0\0", 4);
+	oversized_record.append("\001\0\0\0\001\0\0\0CLI", 11);
+	oversized_record += oversized_path;
+	assert(capy_backtrace::format_record(oversized_record, oversized_frame));
+	assert(oversized_frame.find("...[truncated]") != std::string::npos);
+	capy::CompileOptions long_path_options = options;
+	long_path_options.source_path = std::string(5000, 'p') + ".capy";
+	const auto long_path_backtrace = capy::compile_bearer_unit("function CLI { print(backtrace_get_frames()) }\n", long_path_options);
+	assert(capy::wasm::validate_bearer_unit(long_path_backtrace.wasm, {.bearer_abi_version = "11"}).valid);
+	assert(std::string(long_path_backtrace.wasm.begin(), long_path_backtrace.wasm.end()).find(long_path_options.source_path) != std::string::npos);
+	const auto ordinary_boundary = capy::compile_bearer_unit(
+		"function CLI { print(request_body(), ws_message(), component_resolve(\"card\"), regex_replace(\"x\", \"y\", \"x\"), base64_encode(\"x\"), file_temp(\"x\"), time()) }\n",
+		options);
+	assert(ordinary_boundary.source_map.find("F\t2\tcapy://stdlib.capy\n") != std::string::npos);
+	const std::string boundary_bytes(ordinary_boundary.wasm.begin(), ordinary_boundary.wasm.end());
+	for (const auto& import : {"bearer_request_body", "bearer_ws_message", "bearer_component_resolve", "bearer_regex", "bearer_codec", "bearer_file_temp", "bearer_time"})
+		assert(boundary_bytes.find(import) != std::string::npos);
+	const auto narrow_boundary = capy::compile_bearer_unit("function CLI { print(request_body()) }\n", options);
+	const std::string narrow_bytes(narrow_boundary.wasm.begin(), narrow_boundary.wasm.end());
+	assert(narrow_bytes.find("bearer_request_body") != std::string::npos);
+	for (const auto& absent : {"bearer_request_value", "bearer_ws_", "bearer_component_", "bearer_regex", "bearer_codec", "bearer_file_", "bearer_time"})
+		assert(narrow_bytes.find(absent) == std::string::npos);
+	std::ifstream compiler_source("src/capy/compiler.cpp");
+	const std::string compiler_text((std::istreambuf_iterator<char>(compiler_source)), {});
+	assert(compiler_source && compiler_text.find("bearer_string" "_list") == std::string::npos && compiler_text.find("__legacy" "_") == std::string::npos);
+	for (const auto& public_name : {"array_merge", "dval_set", "dval_assign", "dval_push", "dval_pop", "dval_remove", "dval_clear", "dval_get_by_path", "dval_get_or_create",
+			 "dval_set_array", "dval_set_bool", "dval_set_type", "dval_get_type_name", "dval_key", "dval_keys", "dval_values", "dval_to_json", "dval_to_stringmap", "dval_put",
+			 "dval_to_s64", "dval_to_u64", "request_param", "request_get", "request_post", "request_cookie", "request_session", "request_body", "response_header", "request_context",
+			 "session_start", "session_set", "session_remove", "session_destroy", "session_id_create", "response_cookie", "redirect", "csrf_token", "csrf_valid", "csrf_rotate", "csrf_field",
+			 "ws_message", "ws_connection_id", "ws_scope", "ws_opcode", "ws_is_binary", "ws_send", "ws_send_to", "ws_close", "component", "component_capture", "component_render",
+			 "component_exists", "component_resolve", "unit_render", "unit_call", "unit_info", "units_list", "unit_compile", "regex_match", "regex_search", "regex_search_all", "regex_replace",
+			 "regex_split", "base64_encode", "base64_decode", "uri_encode", "uri_decode", "json_encode", "json_decode", "html_escape", "strpos", "file_open", "file_read", "file_write",
+			 "file_seek", "file_tell", "file_fsync", "file_close", "file_temp", "file_unlink", "time", "time_precise"})
+		assert(compiler_text.find("named->value == \"" + std::string(public_name) + "\"") == std::string::npos);
+	const auto ordinary_mysql = capy::compile_bearer_unit("function CLI { print(mysql_escape(\"Ada\")) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(ordinary_mysql.wasm, {.bearer_abi_version = "11"}).valid);
+	const std::string mysql_bytes(ordinary_mysql.wasm.begin(), ordinary_mysql.wasm.end());
+	assert(mysql_bytes.find("bearer_mysql_escape") != std::string::npos);
+	const std::string function_value_source = "function CLI { var escape : function(raw : string) string = mysql_escape; print(escape(\"Ada\")) }\n";
+	const auto function_value = capy::compile_bearer_unit(function_value_source, options);
+	assert(capy::wasm::validate_bearer_unit(function_value.wasm, {.bearer_abi_version = "11"}).valid);
+	assert(std::string(function_value.wasm.begin(), function_value.wasm.end()).find("bearer_mysql_escape") != std::string::npos);
+	const auto parsed_function_value = capy::parse(function_value_source, options.source_path);
+	const auto parsed_result = capy::compile_bearer_unit(parsed_function_value, options.source_path, options.module_name, options.abi_version);
+	assert(function_value.wasm == parsed_result.wasm && function_value.source_map == parsed_result.source_map);
+	const auto shadowed_stdlib = capy::compile_bearer_unit(
+		"function CLI { var sqlite_connect : function(path : string) u64 = function(path : string) u64 { 1u64 }; print(sqlite_connect(\"x\")) }\n", options);
+	assert(std::string(shadowed_stdlib.wasm.begin(), shadowed_stdlib.wasm.end()).find("bearer_sqlite_") == std::string::npos);
+	for (const auto& [source, expected] : {
+			 std::pair{"function __bearer_sqlite_connect(path : string) u64 { 0u64 }\nfunction CLI {}\n", "reserved for the Capy standard library"},
+			 std::pair{"function CLI { __bearer_sqlite_connect(\":memory:\") }\n", "reserved for the Capy standard library"},
+			 std::pair{"function sqlite_connect(path : string) u64 { 0u64 }\nfunction CLI {}\n", "reserved by the Capy standard library"},
+			 std::pair{"function duplicate(value : any) value::type { value }\nfunction duplicate(value : any) value::type { value }\nfunction CLI {}\n", "duplicate overload duplicate(any)"},
+		 })
+	{
+		try
+		{
+			capy::compile_bearer_unit(source, options);
+			assert(false);
+		}
+		catch (const capy::Error& error)
+		{
+			assert(error.message.find(expected) != std::string::npos);
+		}
+	}
 	const auto wide =
 		capy::compile_bearer_unit("function next(value : u64) u64 { value + 1u64 }\nfunction half(value : f64) f64 { value / 2.0 }\n"
 								  "function CLI { var fn : function(value : u64) u64 = next; print(fn(4u64), half(3.0), -1 as u64, 9.0 as s32) }\n",
@@ -89,9 +195,9 @@ int main()
 			 std::pair{"function CLI { var values := [1u64, 2u64] }\n", "not yet supported in array layouts"},
 			 std::pair{"function CLI { var values := (1s64, 2) }\n", "s64, u64, and f64 are not yet supported in tuple layouts"},
 			 std::pair{"struct Wide { value : f64 }\nfunction CLI {}\n", "not yet supported in struct layouts"},
-			 std::pair{"function CLI { print(first(\"ok\", 1)) }\n", "expected string, found s32"},
-			 std::pair{"function CLI { array_merge(dval({\"x\": \"y\"}), \"bad\") }\n", "expected dval, found string"},
-			 std::pair{"function CLI { array_merge(dval({\"x\": \"y\"})) }\n", "array_merge expects two dvals"},
+			 std::pair{"function CLI { print(first(\"ok\", 1)) }\n", "no overload first(string, s32)"},
+			 std::pair{"function CLI { array_merge(dval({\"x\": \"y\"}), \"bad\") }\n", "no overload array_merge(dval, string)"},
+			 std::pair{"function CLI { array_merge(dval({\"x\": \"y\"})) }\n", "no overload array_merge(dval)"},
 			 std::pair{"function CLI { var value := 1u64; var closure := function() u64 { value } }\n", "not yet supported in captured closure layouts"},
 		 })
 	{

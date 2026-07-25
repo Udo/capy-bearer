@@ -110,7 +110,7 @@ struct FastCGIServer {
 	void dispatch_websocket_message(Connection& connection, RequestID request_id, String payload, u8 opcode);
 	bool websocket_send_to(String connection_id, String message, bool binary = false);
 	u64 websocket_broadcast(String scope, String message, bool binary = false);
-	StringList websocket_connection_ids(String scope = "");
+	std::vector<String> websocket_connection_ids(String scope = "");
 	bool websocket_close(String connection_id, u16 status_code = 1000, String reason = "");
 	static void request_write_fgci(Connection&, RequestID, FastCGIRequest&);
 	static void write_fgci(Connection&);

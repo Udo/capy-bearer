@@ -20,10 +20,14 @@ expect_equal() {
 	fi
 }
 
-python3 scripts/test_capy_compiler.py >/dev/null
 native_compiler_id=$(sha256sum src/capy/*.cpp src/capy/*.h src/lib/compiler.cpp | sha256sum | awk '{print $1}')
 grep -aFq "$native_compiler_id" bin/bearer_fastcgi.linux.bin || {
 	echo "Bearer binary does not contain the current native Capy compiler identity" >&2
+	exit 1
+}
+stdlib_digest=$(sha256sum src/capy/stdlib.capy | awk '{print $1}')
+grep -aFq "$stdlib_digest" bin/bearer_fastcgi.linux.bin || {
+	echo "Bearer binary does not contain the current embedded Capy standard library" >&2
 	exit 1
 }
 
@@ -40,6 +44,33 @@ operator_output=$(scripts/bearer-cli /tests/capy-operators.capy)
 	echo "Capy logical/unary/inferred-declaration output mismatch: $operator_output" >&2
 	exit 1
 }
+backtrace_output=$(scripts/bearer-cli /tests/capy-backtrace.capy)
+expected_backtrace=$'#0 __lambda_0 at /Code/capy-bearer/site/tests/capy-backtrace.capy:5:20\n#1 inner at /Code/capy-bearer/site/tests/capy-backtrace.capy:4:1\n#2 outer at /Code/capy-bearer/site/tests/capy-backtrace.capy:1:1\n#3 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1\n==\n#0 inner at /Code/capy-bearer/site/tests/capy-backtrace.capy:4:1\n#1 outer at /Code/capy-bearer/site/tests/capy-backtrace.capy:1:1\n--\n|0\n++\n#0 explicit_return_trace at /Code/capy-bearer/site/tests/capy-backtrace.capy:14:1\n#1 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1\n~~\n#0 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1\n@@\n|#0 bounds at /Code/capy-bearer/site/tests/capy-backtrace.capy:17:1\n#1 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1||#0 bounds at /Code/capy-bearer/site/tests/capy-backtrace.capy:17:1\n#1 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1'
+expect_equal "Capy source-mapped guest backtrace" "$expected_backtrace" "$backtrace_output"
+(
+	backtrace_test_dir=$(mktemp -d "$site_directory/tests/capy-backtrace-test.XXXXXX")
+	trap 'rm -rf -- "$backtrace_test_dir"' EXIT
+	backtrace_test_name=${backtrace_test_dir##*/}
+	{
+		printf 'function tail() string { backtrace_get_frames(2147483647, 0) }\n'
+		for ((frame = 0; frame < 300; ++frame)); do
+			if ((frame == 299)); then
+				printf 'function ring_%d() string { tail() }\n' "$frame"
+			else
+				printf 'function ring_%d() string { ring_%d() }\n' "$frame" "$((frame + 1))"
+			fi
+		done
+		printf 'function CLI { print(ring_0()) }\n'
+	} > "$backtrace_test_dir/ring.capy"
+	ring_output=$(scripts/bearer-cli "/tests/$backtrace_test_name/ring.capy")
+	mapfile -t ring_frames <<< "$ring_output"
+	[[ ${#ring_frames[@]} -eq 256 && ${#ring_output} -gt 4096 ]] || {
+		echo "Capy backtrace ring/two-pass output bounds mismatch" >&2
+		exit 1
+	}
+	expect_equal "Capy backtrace ring newest frame" "#0 tail at $site_directory/tests/$backtrace_test_name/ring.capy:1:1" "${ring_frames[0]}"
+	expect_equal "Capy backtrace ring oldest retained frame" "#255 ring_45 at $site_directory/tests/$backtrace_test_name/ring.capy:47:1" "${ring_frames[255]}"
+)
 dval_return_output=$(scripts/bearer-cli /tests/capy-dval-return.capy)
 [[ "$dval_return_output" == "3|0|42|1|0|000|0|9|1|0" ]] || {
 	echo "Capy dval-loop early-return ARC mismatch: $dval_return_output" >&2
@@ -56,14 +87,38 @@ wide_trap_status=$?
 set -e
 [[ $wide_trap_status -ne 0 && "$wide_trap_output" == *"integer overflow"* && "$wide_trap_output" == *"capy-wide-conversion-trap.capy:2:16"* ]]
 expect_equal "wide scalar recovery" "$wide_output" "$(scripts/bearer-cli /tests/capy-wide-scalars.capy)"
-rm -f /tmp/capy-files-phase-*
+rm -f /tmp/capy-files-phase-* /tmp/capy-files2-*
 file_output=$(scripts/bearer-cli /tests/capy-files.capy)
 [[ "$file_output" == "1|5|0|capy!|5|1|2|0|1|1" ]] || {
 	echo "Capy file handle/ARC mismatch: $file_output" >&2
 	exit 1
 }
+filesystem_output=$(scripts/bearer-cli /tests/capy-files2.capy)
+[[ "$filesystem_output" == "a.txt|1|11111111|abc|ab|abc|113|1|a.txt,b.txt,link.txt|1011111|1|1|1|1" ]] || {
+	echo "Capy filesystem stdlib/policy mismatch: $filesystem_output" >&2
+	exit 1
+}
+expect_equal "filesystem recovery" "$filesystem_output" "$(scripts/bearer-cli /tests/capy-files2.capy)"
+expect_equal "file/archive/split_kv adapters" "3|heXYZ|Ada:admin|archive data|12111|9|0|1" "$(scripts/bearer-cli /tests/capy-final-parity.capy)"
+set +e
+archive_trap_output=$(scripts/bearer-cli /tests/capy-archive-trap.capy 2>&1)
+archive_trap_status=$?
+set -e
+[[ $archive_trap_status -ne 0 && "$archive_trap_output" == *"capy-archive-trap.capy:1:22"* && "$archive_trap_output" != *"capy://stdlib.capy"* ]]
+expect_equal "archive recovery" "3|heXYZ|Ada:admin|archive data|12111|9|0|1" "$(scripts/bearer-cli /tests/capy-final-parity.capy)"
+expect_equal "live MySQL stdlib adapters" "11|'a\\'b'|7|1|0:0|111|0" "$(scripts/bearer-cli /tests/capy-mysql.capy)"
+expect_equal "memcache stdlib adapters" "a_b|line_key|down|live|0" "$(scripts/bearer-cli /tests/capy-memcache.capy)"
+expect_equal "job/process stdlib adapters" "shell|spawned|done|done|done|cancel|cancelled|no-task|cwd|server|-1|0" "$(scripts/bearer-cli /tests/capy-jobs.capy)"
 expect_equal "unit administration" "1|1|1|2|0" "$(scripts/bearer-cli /tests/capy-unit-admin.capy)"
 expect_equal "DValue array merge" "rightyesnewright|abcd|valueitem|right|value|z|oddkeep|map|unicode|9|0" "$(scripts/bearer-cli /tests/capy-dval-merge.capy)"
+expect_equal "DValue value API" '10Ada42tail|1one|Bearer0|1array"A"|f1y|10Adanameengineer|2310|-4242-918446744073709551615|0' "$(scripts/bearer-cli /tests/capy-dval-api.capy)"
+set +e
+dval_api_trap_output=$(scripts/bearer-cli /tests/capy-dval-api-trap.capy 2>&1)
+dval_api_trap_status=$?
+set -e
+[[ $dval_api_trap_status -ne 0 && "$dval_api_trap_output" == *"capy-dval-api-trap.capy:2:5" ]]
+expect_equal "DValue value API recovery" '10Ada42tail|1one|Bearer0|1array"A"|f1y|10Adanameengineer|2310|-4242-918446744073709551615|0' "$(scripts/bearer-cli /tests/capy-dval-api.capy)"
+expect_equal "nested closure string DValue ARC" "BETA|ALPHA|0" "$(scripts/bearer-cli /tests/capy-map-arc.capy)"
 sqlite_output=$(scripts/bearer-cli /tests/capy-sqlite.capy)
 expect_equal "SQLite lifecycle/query" "11|1Ada|1|1|0" "$sqlite_output"
 expect_equal "SQLite failed-connect diagnostic" "1|0" "$(scripts/bearer-cli /tests/capy-sqlite-failed.capy)"
@@ -77,7 +132,7 @@ for sqlite_case in \
 	sqlite_trap_output=$(scripts/bearer-cli "/tests/$sqlite_fixture.capy" 2>&1)
 	sqlite_trap_status=$?
 	set -e
-	[[ $sqlite_trap_status -ne 0 && "$sqlite_trap_output" == *"$sqlite_fixture.capy:$sqlite_location"* ]]
+	[[ $sqlite_trap_status -ne 0 && "$sqlite_trap_output" == *"$sqlite_fixture.capy:$sqlite_location"* && "$sqlite_trap_output" != *"capy://stdlib.capy"* ]]
 done
 expect_equal "SQLite recovery" "$sqlite_output" "$(scripts/bearer-cli /tests/capy-sqlite.capy)"
 codec_output=$(scripts/bearer-cli /tests/capy-codecs.capy)
@@ -91,6 +146,20 @@ codec_trap_status=$?
 set -e
 [[ $codec_trap_status -ne 0 && "$codec_trap_output" == *"capy-dval-f64-trap.capy:2:11"* ]]
 expect_equal "codec recovery" "$codec_output" "$(scripts/bearer-cli /tests/capy-codecs.capy)"
+expect_equal "codec/text stdlib adapters" 'Ada|Ada|6|Ada|10|document|<p><strong>bold</strong></p>|3|"x"|{"name": "Ada"}|&lt;&amp;&gt;&quot;|8|0' "$(scripts/bearer-cli /tests/capy-codecs-text.capy)"
+set +e
+codec_text_trap_output=$(scripts/bearer-cli /tests/capy-codecs-text-trap.capy 2>&1)
+codec_text_trap_status=$?
+set -e
+[[ $codec_text_trap_status -ne 0 && "$codec_text_trap_output" == *"capy-codecs-text-trap.capy:1:16"* ]] || {
+	echo "Capy malformed XML did not trap at the call site: $codec_text_trap_output" >&2
+	exit 1
+}
+crypto_output=$(scripts/bearer-cli /tests/capy-crypto-random.capy)
+[[ "$crypto_output" =~ ^A9993E364706816ABA3E25717850C26C9CD0D89D\|20\|32\|ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\|32\|6e9ef29b75fffc5b7abae527d58fdadb2fe42e7219011976917343065f58ed4a\|10\|16\|100\|1198951227\|9546680768582587775\|1\|7\|1\|1\|1\|[0-9]+\|0$ ]] || {
+	echo "Capy crypto/random adapter mismatch: $crypto_output" >&2
+	exit 1
+}
 regex_output=$(scripts/bearer-cli /tests/capy-regex.capy)
 [[ "$regex_output" == "1|Capy|4|Capy|3TWO|0|<one> <TWO>|a::b|1110|0|2|:a:b:|0" ]] || {
 	echo "Capy regex/ARC mismatch: $regex_output" >&2
@@ -109,9 +178,9 @@ for regex_case in \
 	[[ $regex_trap_status -ne 0 && "$regex_trap_output" == *"$regex_error"* && "$regex_trap_output" == *"$regex_trap.capy:2:11"* ]]
 done
 expect_equal "regex recovery" "$regex_output" "$(scripts/bearer-cli /tests/capy-regex.capy)"
-if compgen -G '/tmp/capy-files-phase-*' >/dev/null; then
-	echo "Capy file_temp sizing created an unreturned file" >&2
-	rm -f /tmp/capy-files-phase-*
+if compgen -G '/tmp/capy-files-phase-*' >/dev/null || compgen -G '/tmp/capy-files2-*' >/dev/null; then
+	echo "Capy filesystem fixture left temporary files" >&2
+	rm -f /tmp/capy-files-phase-* /tmp/capy-files2-*
 	exit 1
 fi
 expect_equal "concat-only demand surface" "ab|0" "$(scripts/bearer-cli /tests/capy-string-concat-only.capy)"
@@ -129,8 +198,17 @@ for string_list_trap in capy-string-list-trap capy-string-list-scalar-trap; do
 	[[ $string_list_trap_status -ne 0 && "$string_list_trap_output" == *"$string_list_trap.capy:2:11"* ]]
 done
 expect_equal "split/join recovery" "$string_list_output" "$(scripts/bearer-cli /tests/capy-string-lists.capy)"
+expect_equal "core utility value adapters" "010BETA,ALPHA,BETA|alpha|beta,alpha|11|alpha|0,1,2|bearer:BEARER|Caffile1:Caffile1:core|3.5:255:11|1.5:-9:42|11|a=one&b=last&flag=:last:example.test:docs:two|docs/index:1:|one,two,three:A,é:example.test|alpha,beta,beta:1:SIGSEGV:0:1:40|0" "$(scripts/bearer-cli /tests/capy-coreutil.capy)"
+set +e
+coreutil_trap_output=$(scripts/bearer-cli /tests/capy-coreutil-trap.capy 2>&1)
+coreutil_trap_status=$?
+set -e
+[[ $coreutil_trap_status -ne 0 && "$coreutil_trap_output" == *"capy-coreutil-trap.capy:1:16"* ]] || {
+	echo "Capy negative usleep did not trap at call site: $coreutil_trap_output" >&2
+	exit 1
+}
 string_output=$(scripts/bearer-cli /tests/capy-strings.capy)
-[[ "$string_output" == "Capy Bearer|11|11|Bearer|Bearer|Capy|5:-1|Capy Runtime|capy bearer|CAPY BEARER|3|101|3|0" ]] || {
+[[ "$string_output" == "Capy Bearer|11|11|Bearer|Bearer|Capy:Bearer|5:5:-1|5:-1|Capy Runtime|capy bearer|CAPY BEARER|3|101|3|0" ]] || {
 	echo "Capy string operations/ARC mismatch: $string_output" >&2
 	exit 1
 }
@@ -221,6 +299,16 @@ rm -f "$status_http_body"
 	echo "Capy request workspace did not recover after response trap" >&2
 	exit 1
 }
+expect_equal "request/response stdlib CLI" "Ada|Ada|inner|outer+inner|fallback|workspace111|111|1|0" "$(scripts/bearer-cli /tests/capy-request-parity.capy name=Ada)"
+request_parity_headers=$(mktemp)
+request_parity_output=$(curl -fsS --max-time 30 -D "$request_parity_headers" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-request-parity.capy?workspace/projects&name=Grace&status=yes')
+[[ "$request_parity_output" == "Grace|Grace|inner|outer+inner|workspace/projects|workspace111|111|1|0" ]]
+grep -Eq '^HTTP/1\.[01] 202 Capy Accepted' "$request_parity_headers"
+rm -f "$request_parity_headers"
+session_replacement_headers=$(mktemp)
+[[ "$(curl -fsS --max-time 30 -D "$session_replacement_headers" -b 'capy-session=not-a-session' -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-session.capy?action=read')" == "missing||1" ]]
+grep -Eiq '^Set-Cookie: capy-session=[0-9a-f]{64}.*HttpOnly.*SameSite=Lax' "$session_replacement_headers"
+rm -f "$session_replacement_headers"
 session_jar=$(mktemp)
 session_headers=$(mktemp)
 [[ "$(curl -fsS --max-time 30 -D "$session_headers" -c "$session_jar" -b "$session_jar" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-session.capy?action=set&value=Ada')" == "set" ]]
@@ -248,8 +336,13 @@ csrf_rotated=$(curl -fsS --max-time 30 -c "$csrf_jar" -b "$csrf_jar" -H 'Host: b
 [[ "$csrf_rotated" =~ ^[0-9a-f]{64}$ && "$csrf_rotated" != "$csrf_token" ]]
 [[ "$(curl -fsS --max-time 30 -c "$csrf_jar" -b "$csrf_jar" -H 'Host: bearer.openfu.com' "http://127.0.0.1/tests/capy-csrf.capy?action=valid&submitted=$csrf_token")" == "0" ]]
 [[ "$(curl -fsS --max-time 30 -c "$csrf_jar" -b "$csrf_jar" -H 'Host: bearer.openfu.com' "http://127.0.0.1/tests/capy-csrf.capy?action=valid&submitted=$csrf_rotated")" == "1" ]]
+[[ "$(curl -fsS --max-time 30 -c "$csrf_jar" -b "$csrf_jar" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-csrf.capy?action=field')" == "<input type=\"hidden\" name=\"submitted\" value=\"$csrf_rotated\">" ]]
 rm -f "$csrf_jar"
-python3 scripts/test_capy_websocket.py >/dev/null
+websocket_test=$(mktemp)
+trap 'rm -f "$websocket_test"' RETURN
+clang++ -std=c++20 -Wall -Wextra -Werror -pedantic scripts/test_capy_websocket.cpp -o "$websocket_test"
+"$websocket_test"
+rm -f "$websocket_test"
 expect_equal "SERVE_HTTP caller" "serve-ok" "$(scripts/bearer-cli /tests/capy-serve-http-caller.uce)"
 rich_dval_output=$(scripts/bearer-cli /tests/capy-dval-rich.capy)
 [[ "$rich_dval_output" == "cpp|Ada|9|custom-once;capy|capy|Ada|42|1|logic|10|3|active;age;name;tags;|0=math;1=logic;|2;|3|0|00|2|0" ]] || {
@@ -339,7 +432,7 @@ render_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.
 
 cache="$(scripts/unit_cache_directory "$bin_directory")$site_directory/tests/capy-phase1.capy"
 [[ -s "$cache.wasm" && -s "$cache.cwasm" && -s "$cache.wasm.source-map" && -s "$cache.meta.txt" ]]
-python3 scripts/check_unit_wasm.py "$cache.wasm" --abi-version "$(awk '/BEARER_WASM_CORE_ABI_VERSION/ {print $3; exit}' src/wasm/abi.h)"
+bin/capyc --check-unit "$cache.wasm" "$(awk '/BEARER_WASM_CORE_ABI_VERSION/ {print $3; exit}' src/wasm/abi.h)"
 wasm-objdump -x "$cache.wasm" >"$cache.objdump"
 grep -q 'env.bearer_print_bytes' "$cache.objdump"
 grep -q '__bearer_cli' "$cache.objdump"
@@ -377,5 +470,12 @@ set -e
 printf '%s\n' 'function CLI { print("capy-recovered") }' >"$source_dir/entry.capy"
 expect_equal "source-map trap recovery" "capy-recovered" "$(scripts/bearer-cli "/$fixture/entry.capy")"
 [[ -s "$artifact_dir/entry.capy.wasm" ]]
+
+expect_equal "network socket/hardened HTTP adapters" "1|1|1|200|1:1:200|invalid_request|5" "$(scripts/bearer-cli /tests/capy-network-parity.capy)"
+expect_equal "time adapters" "5|0|1970|1|1|0" "$(scripts/bearer-cli /tests/capy-time-parity.capy)"
+lifecycle_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-lifecycle-parity.capy)
+expect_equal "INIT/ONCE lifecycle" "entry-init;entry-once;child-init;child-once;child-component;child-component;render" "$lifecycle_output"
+component_parity_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-component-parity.capy)
+expect_equal "component/unit convenience APIs" "Capy|1|Capy|1|unit|1" "$component_parity_output"
 
 echo "Capy phase 1 parser/direct-Wasm/CLI smoke passed"

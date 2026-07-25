@@ -291,11 +291,16 @@ static bool mysql_has_unquoted_positional_placeholder(String query)
 
 DValue MySQL::query(String q, StringMap params)
 {
-	// Positional ? placeholders survive named substitution (values are always
-	// quoted by escape()), so the check in query(String) covers this path too.
-	return(query(
-		parse_query_parameters(q, params).c_str()
-	));
+	// Positional ? placeholders survive named substitution (ordinary values
+	// are quoted by escape()), so the check in query(String) covers this path.
+	parameter_error = false;
+	String parsed = parse_query_parameters(q, params);
+	if(parameter_error)
+	{
+		_preload_next_error_code = CR_UNKNOWN_ERROR;
+		return(DValue());
+	}
+	return(query(parsed));
 }
 
 String MySQL::parse_query_parameters(String query, StringMap map)
@@ -329,9 +334,24 @@ String MySQL::parse_query_parameters(String query, StringMap map)
 		}
 		else if(mode == 1) // identifier mode
 		{
-			if(isalnum(c) || c == '_')
+			if(isalnum((unsigned char)c) || c == '_')
 			{
 				identifier.append(1, c);
+			}
+			else if(c == '!' && query[i + 1] != '=')
+			{
+				String value = map[identifier];
+				bool valid = identifier != "" && value != "";
+				for(char digit : value)
+					if(!isdigit((unsigned char)digit)) valid = false;
+				if(!valid)
+				{
+					parameter_error = true;
+					statement_info = "mysql unsigned parameter :" + identifier + "! must contain only decimal digits";
+					return("");
+				}
+				result.append(value);
+				mode = 0;
 			}
 			else
 			{

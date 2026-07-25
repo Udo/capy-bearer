@@ -9,7 +9,7 @@ struct CliHttpResponse
 u64 cli_tests_passed = 0;
 u64 cli_tests_failed = 0;
 u64 cli_tests_skipped = 0;
-StringList cli_tests_failures;
+DValue cli_tests_failures;
 
 bool cli_contains(String haystack, String needle)
 {
@@ -58,7 +58,7 @@ CliHttpResponse cli_http_request(String host, u16 port, String path, String extr
 	u64 line_end = res.raw.find("\r\n");
 	if(line_end != String::npos)
 	{
-		StringList parts = split(res.raw.substr(0, line_end), " ");
+		DValue parts = split(res.raw.substr(0, line_end), " ");
 		if(parts.size() >= 2)
 			res.status = int_val(parts[1]);
 	}
@@ -107,7 +107,7 @@ void cli_test_skip(String name, String summary)
 	print("[SKIP] ", name, " - ", summary, "\n");
 }
 
-bool cli_expect_http_once(CliHttpResponse& res, String path, u64 expected_status, String marker, StringList error_markers, String& summary)
+bool cli_expect_http_once(CliHttpResponse& res, String path, u64 expected_status, String marker, DValue error_markers, String& summary)
 {
 	bool ok = res.status == expected_status;
 	summary = "HTTP " + std::to_string(res.status) + " for " + path;
@@ -128,7 +128,7 @@ bool cli_expect_http_once(CliHttpResponse& res, String path, u64 expected_status
 	return(ok);
 }
 
-bool cli_expect_http(String name, String path, u64 expected_status, String marker, StringList error_markers = {})
+bool cli_expect_http(String name, String path, u64 expected_status, String marker, DValue error_markers = {})
 {
 	CliHttpResponse res = cli_frontend(path);
 	String summary;
@@ -143,9 +143,9 @@ bool cli_expect_http(String name, String path, u64 expected_status, String marke
 	return(ok);
 }
 
-StringList cli_demo_error_markers()
+DValue cli_demo_error_markers()
 {
-	StringList markers;
+	DValue markers;
 	markers.push_back(String("bearer compile ") + "error");
 	markers.push_back(String("fatal signal during ") + "request");
 	markers.push_back(String("uncaught exception during ") + "request");
@@ -155,9 +155,9 @@ StringList cli_demo_error_markers()
 
 void cli_run_demo_smoke()
 {
-	StringList files = split("call_file.uce\ncall_file_funcs.uce\ncollections.uce\ncomponents.uce\ncookie.uce\ndvalue.uce\nempty.uce\nerror-reporting.uce\nfile_append.uce\nfileio.uce\nheader.uce\nhello.uce\nindex.uce\njson.uce\nmarkdown.uce\nmemcached.uce\nmysql.uce\nonce-init.uce\nparse_time.uce\npost-multipart.uce\npost.uce\npreprocessor-comments.uce\nrandom.uce\nregex.uce\nscript.uce\nsession.uce\nsharedunit.uce\nshell.uce\nsqlite.uce\nstr_replace.uce\nstring.uce\ntask-status.uce\ntask.uce\ntask_repeat.uce\nunit-browser.uce\nunit-info.uce\nuri.uce\nutf8.uce\nwebsockets.ws.uce\nworking-dir.uce\nxml.uce\nyaml.uce\nzip.uce", "\n");
+	DValue files = split("call_file.uce\ncall_file_funcs.uce\ncollections.uce\ncomponents.uce\ncookie.uce\ndvalue.uce\nempty.uce\nerror-reporting.uce\nfile_append.uce\nfileio.uce\nheader.uce\nhello.uce\nindex.uce\njson.uce\nmarkdown.uce\nmemcached.uce\nmysql.uce\nonce-init.uce\nparse_time.uce\npost-multipart.uce\npost.uce\npreprocessor-comments.uce\nrandom.uce\nregex.uce\nscript.uce\nsession.uce\nsharedunit.uce\nshell.uce\nsqlite.uce\nstr_replace.uce\nstring.uce\ntask-status.uce\ntask.uce\ntask_repeat.uce\nunit-browser.uce\nunit-info.uce\nuri.uce\nutf8.uce\nwebsockets.ws.uce\nworking-dir.uce\nxml.uce\nyaml.uce\nzip.uce", "\n");
 	for(String file : files)
-		cli_expect_http("bearer_demo_smoke:demo page " + file, "/demo/" + file, 200, "", file == "unit-browser.uce" ? StringList() : cli_demo_error_markers());
+		cli_expect_http("bearer_demo_smoke:demo page " + file, "/demo/" + file, 200, "", file == "unit-browser.uce" ? DValue() : cli_demo_error_markers());
 }
 
 bool cli_doc_source_has_example(String source)
@@ -173,7 +173,7 @@ bool cli_doc_source_has_example(String source)
 bool cli_doc_example_is_placeholder(String source)
 {
 	bool in_example = false;
-	StringList body;
+	DValue body;
 	for(String line : split(source, "\n"))
 	{
 		String t = trim(line);
@@ -199,7 +199,7 @@ bool cli_doc_example_is_placeholder(String source)
 
 void cli_run_doc_pages_gate(u64 shard = 0, u64 shard_count = 1)
 {
-	StringList error_markers;
+	DValue error_markers;
 	error_markers.push_back("doc example error");
 	error_markers.push_back(String("bearer compile ") + "error");
 	error_markers.push_back(String("wasm runtime error during ") + "request");
@@ -295,7 +295,7 @@ void cli_run_site_suite(bool skip_local_service_pages = false)
 		line = trim(line);
 		if(line == "" || line[0] == '#')
 			continue;
-		StringList parts = split(line, "|");
+		DValue parts = split(line, "|");
 		if(parts.size() < 7 || trim(parts[5]) != "1")
 			continue;
 		String file = trim(parts[0]);
@@ -378,7 +378,7 @@ void cli_run_security_smoke()
 
 void cli_run_starter_parity()
 {
-	StringList markers = {
+	DValue markers = {
 		"landing\t\tHome | BEARER Starter",
 		"dashboard\t?dashboard\tDashboard | BEARER Starter",
 		"gauges\t?gauges\tGauges | BEARER Starter",
@@ -388,7 +388,7 @@ void cli_run_starter_parity()
 	};
 	for(String row : markers)
 	{
-		StringList parts = split(row, "\t");
+		DValue parts = split(row, "\t");
 		String name = parts[0];
 		String query = parts[1];
 		String title = parts[2];
@@ -416,7 +416,7 @@ void cli_run_pool_isolation()
 	{
 		String token = "request-" + std::to_string(i);
 		CliHttpResponse res = cli_frontend("/tests/pool-isolation.uce?token=" + token);
-		StringList parts = split(trim(res.body), "|");
+		DValue parts = split(trim(res.body), "|");
 		bool current = res.status == 200 && parts.size() == 3 &&
 			parts[0] == "fresh" && parts[1] == token && int_val(parts[2]) > 0;
 		if(!current && detail == "")
@@ -445,7 +445,7 @@ void cli_run_tcp_smoke()
 	if(fd8080 != 0)
 		socket_close(fd8080);
 	CliHttpResponse direct = cli_direct_http("/tests/pool-isolation.uce?token=raw-http-framing");
-	StringList direct_parts = split(trim(direct.body), "|");
+	DValue direct_parts = split(trim(direct.body), "|");
 	bool one_response = direct.status == 200 && direct_parts.size() == 3 && direct_parts[0] == "fresh" && direct_parts[1] == "raw-http-framing" && direct.body.find("HTTP/1.1 ") == String::npos;
 	cli_test_case("bearer_tcp_smoke:raw HTTP dynamic response is framed once", one_response,
 		one_response ? "single status/header block and exact dynamic body" : "status=" + std::to_string(direct.status) + " body=" + cli_truncate(direct.body));
@@ -457,7 +457,7 @@ void cli_run_wasm_kill(bool include_kill)
 		return;
 	for(String row : { "wasm kill trap|/tests/wasm-kill/oob.uce|unreachable", "wasm kill loop|/tests/wasm-kill/loop.uce|interrupt", "wasm kill recurse|/tests/wasm-kill/recurse.uce|wasm_kill_recurse" })
 	{
-		StringList parts = split(row, "|");
+		DValue parts = split(row, "|");
 		CliHttpResponse res = cli_frontend(parts[1]);
 		CliHttpResponse health = cli_frontend("/demo/hello.uce");
 		bool ok = res.status == 500 && cli_contains(res.body, "wasm runtime error during request") && cli_contains(res.body, parts[2]) && health.status == 200 && cli_contains(health.body, "hello world");

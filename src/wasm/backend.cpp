@@ -127,7 +127,7 @@ static String wasm_backend_ensure_started(Request* context)
 	// BEARER_HOSTCALL_BLOCKLIST: comma-separated bearer_host_* names (with or without
 	// the "bearer_host_" prefix) the sysadmin disables; each blocked call traps into
 	// the error page (see make_host_import). Parsed once here, per worker process.
-	for(String entry : split(cfg["BEARER_HOSTCALL_BLOCKLIST"], ","))
+	for(String entry : split_strings(cfg["BEARER_HOSTCALL_BLOCKLIST"], ","))
 	{
 		entry = trim(entry);
 		if(entry.rfind("bearer_host_", 0) == 0)
@@ -423,7 +423,7 @@ String wasm_backend_serve(Request& request, const String& entry_unit, const Stri
 }
 
 // Stop the ticker before the worker process exits (best-effort; forked workers
-// are usually killed, but a clean ager-out path should join the thread).
+// are usually killed, but a clean ager-out path should join_strings the thread).
 void wasm_backend_shutdown()
 {
 	if(g_wasm_epoch_ticker)

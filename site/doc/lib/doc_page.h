@@ -3,10 +3,10 @@
 struct DocPage {
 	String title;
 	String content;
-	StringList sig_lines;
-	StringList param_lines;
-	StringList example_blocks;
-	StringList see_lines;
+	DValue sig_lines;
+	DValue param_lines;
+	DValue example_blocks;
+	DValue see_lines;
 };
 
 enum class DocPageKind
@@ -105,7 +105,7 @@ String doc_index_label(String page)
 	return(label);
 }
 
-void doc_flush_section(DocPage& result, String page, String section, StringList& section_lines, StringList& content_lines)
+void doc_flush_section(DocPage& result, String page, String section, DValue& section_lines, DValue& content_lines)
 {
 	if(section == "")
 		return;
@@ -150,10 +150,10 @@ void doc_flush_section(DocPage& result, String page, String section, StringList&
 DocPage load_doc_page(String page)
 {
 	DocPage result;
-	StringList lines = split(file_get_contents("pages/" + page + ".txt"), "\n");
+	DValue lines = split(file_get_contents("pages/" + page + ".txt"), "\n");
 	String current_section = "";
-	StringList current_lines;
-	StringList content_lines;
+	DValue current_lines;
+	DValue content_lines;
 
 	for(auto line : lines)
 	{

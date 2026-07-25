@@ -232,7 +232,7 @@ StringMap parse_query(String q, String* first_keyless_path)
 	StringMap result;
 	if(first_keyless_path)
 		*first_keyless_path = "";
-	for(String part : split(q, "&"))
+	for(String part : split_strings(q, "&"))
 	{
 		if(part == "")
 			continue;
@@ -280,7 +280,7 @@ bool route_path_normalized_is_safe(String path)
 {
 	if(path == "")
 		return(true);
-	for(String part : split(path, "/"))
+	for(String part : split_strings(path, "/"))
 	{
 		if(part == "" || part == "." || part == "..")
 			return(false);
@@ -458,7 +458,7 @@ void parse_multipart_content_disposition(
 	String& field_name,
 	String& file_name)
 {
-	auto parts = split(raw, ";");
+	auto parts = split_strings(raw, ";");
 	if(parts.size() == 0)
 		return;
 
@@ -519,7 +519,7 @@ StringMap parse_multipart(String q, String boundary, std::vector<UploadedFile>& 
 		String disposition_type;
 		String field_name;
 		String file_name;
-		for(auto header_line : split(header_block, "\r\n"))
+		for(auto header_line : split_strings(header_block, "\r\n"))
 		{
 			String header_name = to_lower(trim(nibble(header_line, ":")));
 			String header_value = trim(header_line);

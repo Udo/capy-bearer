@@ -1,0 +1,1 @@
+function CLI { print(gz_uncompress("not gzip data")) }

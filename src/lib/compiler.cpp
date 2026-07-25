@@ -107,7 +107,7 @@ struct UnitSourceSignatureEntry
 	u64 size = 0;
 	bool readable = false;
 	String content_hash;
-	StringList loaded_paths;
+	std::vector<String> loaded_paths;
 };
 
 const u64 BEARER_UNIT_SOURCE_SIGNATURE_CACHE_MAX = 4096;
@@ -153,7 +153,7 @@ StringMap compiler_parse_unit_metadata(String content)
 	if(content == "")
 		return(metadata);
 
-	auto lines = split(content, "\n");
+	auto lines = split_strings(content, "\n");
 	for(auto& raw_line : lines)
 	{
 		auto line = trim(raw_line);
@@ -170,9 +170,9 @@ StringMap compiler_parse_unit_metadata(String content)
 	return(metadata);
 }
 
-StringList compiler_unit_load_paths(String file_name, String content)
+std::vector<String> compiler_unit_load_paths(String file_name, String content)
 {
-	StringList paths;
+	std::vector<String> paths;
 	u64 line_start = 0;
 	while(line_start < content.length())
 	{
@@ -758,9 +758,9 @@ bool compiler_is_known_unit_file(String file_name)
 	);
 }
 
-StringList compiler_normalize_unit_list(Request* context, StringList files)
+std::vector<String> compiler_normalize_unit_list(Request* context, std::vector<String> files)
 {
-	StringList normalized;
+	std::vector<String> normalized;
 	for(auto& file_name : files)
 	{
 		auto normalized_name = compiler_normalize_unit_path(context, trim(file_name));
@@ -772,15 +772,15 @@ StringList compiler_normalize_unit_list(Request* context, StringList files)
 	return(normalized);
 }
 
-StringList compiler_read_known_units_unlocked(Request* context)
+std::vector<String> compiler_read_known_units_unlocked(Request* context)
 {
 	auto content = trim(file_get_contents(compiler_registry_file_name(context)));
 	if(content == "")
-		return(StringList());
-	return(compiler_normalize_unit_list(context, split(content, "\n")));
+		return(std::vector<String>());
+	return(compiler_normalize_unit_list(context, split_strings(content, "\n")));
 }
 
-void compiler_write_known_units_unlocked(Request* context, StringList files)
+void compiler_write_known_units_unlocked(Request* context, std::vector<String> files)
 {
 	files = compiler_normalize_unit_list(context, files);
 	if(files.size() == 0)
@@ -788,7 +788,7 @@ void compiler_write_known_units_unlocked(Request* context, StringList files)
 		file_put_contents(compiler_registry_file_name(context), "");
 		return;
 	}
-	file_put_contents(compiler_registry_file_name(context), join(files, "\n") + "\n");
+	file_put_contents(compiler_registry_file_name(context), join_strings(files, "\n") + "\n");
 }
 
 template <typename TCallback>
@@ -1042,9 +1042,9 @@ String compiler_status_from_filesystem(const SharedUnitFilesystemState& state, S
 	return("compiled");
 }
 
-StringList compiler_unit_exports(SharedUnit* su)
+std::vector<String> compiler_unit_exports(SharedUnit* su)
 {
-	StringList exports;
+	std::vector<String> exports;
 	if(su && su->api_declarations.size() > 0)
 		exports = su->api_declarations;
 	for(auto it = exports.begin(); it != exports.end();)
@@ -1074,7 +1074,7 @@ void compiler_tree_push_string(DValue& tree, String value)
 	tree.push(item);
 }
 
-void compiler_tree_push_strings(DValue& tree, StringList values)
+void compiler_tree_push_strings(DValue& tree, std::vector<String> values)
 {
 	tree.set_array();
 	for(auto& value : values)
@@ -1185,7 +1185,7 @@ String compiler_source_excerpt(String file_name, s64 line_number, u64 radius = 3
 {
 	if(file_name == "" || line_number <= 0 || !file_exists(file_name))
 		return("");
-	auto lines = split(file_get_contents(file_name), "\n");
+	auto lines = split_strings(file_get_contents(file_name), "\n");
 	if(lines.size() == 0)
 		return("");
 	s64 start = line_number - (s64)radius;
@@ -1332,7 +1332,7 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 		if(deadline && (deadline->timed_out || deadline->operational_failure))
 			break;
 		if(!file_put_contents(stage_artifacts ? staged_pre_name : su->pre_path + "/" + su->pre_file_name, generated_source) ||
-			!file_put_contents(stage_artifacts ? staged_api_name : su->api_file_name, join(su->api_declarations, "\n")))
+			!file_put_contents(stage_artifacts ? staged_api_name : su->api_file_name, join_strings(su->api_declarations, "\n")))
 		{
 			su->compiler_messages = "could not write generated bounded compile inputs";
 			break;
@@ -1555,7 +1555,7 @@ SharedUnit* compiler_get_shared_unit_internal(Request* context, String file_name
 	if(fdlock == -2 && file_exists(su->wasm_name))
 	{
 		auto state = inspect_shared_unit_filesystem(context, su);
-		su->api_declarations = split(file_get_contents(su->api_file_name), "\n");
+		su->api_declarations = split_strings(file_get_contents(su->api_file_name), "\n");
 		su->last_compiled = state.compiled_time;
 		su->compile_status = "rebuilding";
 		compiler_record_observed_filesystem_state(su, state);
@@ -1607,7 +1607,7 @@ SharedUnit* compiler_get_shared_unit_internal(Request* context, String file_name
 	}
 	else
 	{
-		su->api_declarations = split(file_get_contents(su->api_file_name), "\n");
+		su->api_declarations = split_strings(file_get_contents(su->api_file_name), "\n");
 		su->last_compiled = state.compiled_time;
 		su->compile_status = compiler_status_from_filesystem(state, su);
 		su->compile_error_status = "";
@@ -1803,18 +1803,18 @@ void compiler_prioritize_unit(Request* context, String file_name)
 	compiler_close_lock_file(fd);
 }
 
-StringList compiler_take_priority_units(Request* context)
+DValue compiler_take_priority_units(Request* context)
 {
-	StringList result;
+	std::vector<String> result;
 	if(!context || !context->server)
-		return(result);
+		return(dvalue_from_strings(result));
 	String queue_file = compiler_priority_file_name(context);
 	int fd = compiler_open_lock_file(queue_file + ".lock", "proactive-priority");
 	if(fd < 0)
-		return(result);
+		return(dvalue_from_strings(result));
 	if(file_exists(queue_file))
 	{
-		for(auto file_name : split(file_get_contents(queue_file), "\n"))
+		for(auto file_name : split_strings(file_get_contents(queue_file), "\n"))
 		{
 			file_name = trim(file_name);
 			if(file_name != "" && std::find(result.begin(), result.end(), file_name) == result.end())
@@ -1823,7 +1823,7 @@ StringList compiler_take_priority_units(Request* context)
 		file_put_contents(queue_file, "");
 	}
 	compiler_close_lock_file(fd);
-	return(result);
+	return(dvalue_from_strings(result));
 }
 
 void unit_render(String file_name)
@@ -1923,12 +1923,12 @@ String compiler_site_directory(Request* context)
 	return(compiler_normalize_unit_path(context, site_directory));
 }
 
-StringList compiler_scan_site_units(Request* context)
+DValue compiler_scan_site_units(Request* context)
 {
-	StringList files;
+	std::vector<String> files;
 	auto site_directory = compiler_site_directory(context);
 	if(site_directory == "" || !file_exists(site_directory))
-		return(files);
+		return(dvalue_from_strings(files));
 
 	std::error_code walk_error;
 	auto options = std::filesystem::directory_options::skip_permission_denied;
@@ -1949,17 +1949,17 @@ StringList compiler_scan_site_units(Request* context)
 		if(compiler_is_known_unit_file(path))
 			files.push_back(path);
 	}
-	return(compiler_normalize_unit_list(context, files));
+	return(dvalue_from_strings(compiler_normalize_unit_list(context, files)));
 }
 
-StringList compiler_list_known_units(Request* context)
+DValue compiler_list_known_units(Request* context)
 {
-	return(compiler_with_registry_lock(context, [&]() { return(compiler_read_known_units_unlocked(context)); }));
+	return(dvalue_from_strings(compiler_with_registry_lock(context, [&]() { return(compiler_read_known_units_unlocked(context)); })));
 }
 
-void compiler_set_known_units(Request* context, StringList files)
+void compiler_set_known_units(Request* context, DValue values)
 {
-	files = compiler_normalize_unit_list(context, files);
+	auto files = compiler_normalize_unit_list(context, strings_from_dvalue(values));
 	compiler_with_registry_lock(context, [&]() {
 		compiler_write_known_units_unlocked(context, files);
 		return(0);
@@ -2045,7 +2045,7 @@ DValue unit_info(String path)
 		su = it->second;
 	else
 	{
-		auto known_units = compiler_list_known_units(context);
+		auto known_units = strings_from_dvalue(compiler_list_known_units(context));
 		if(std::find(known_units.begin(), known_units.end(), resolved_path) == known_units.end() && !file_exists(resolved_path))
 			return(info);
 	}
@@ -2063,7 +2063,7 @@ DValue unit_info(String path)
 	auto exports_text = compiler_unit_exports_text(su);
 	auto exports = compiler_unit_exports(su);
 	if(exports.size() == 0 && exports_text != "")
-		exports = split(exports_text, "\n");
+		exports = split_strings(exports_text, "\n");
 
 	info["path"] = resolved_path;
 	info["file_name"] = su->file_name;
@@ -2135,14 +2135,14 @@ DValue unit_info(String path)
 	return(info);
 }
 
-StringList units_list()
+DValue units_list()
 {
 	if(!context)
-		return(StringList());
-	auto known_units = compiler_list_known_units(context);
+		return(dvalue_from_strings({}));
+	auto known_units = strings_from_dvalue(compiler_list_known_units(context));
 	for(auto& it : context->server->units)
 		known_units.push_back(it.first);
-	return(compiler_normalize_unit_list(context, known_units));
+	return(dvalue_from_strings(compiler_normalize_unit_list(context, known_units)));
 }
 
 bool unit_compile(String path)

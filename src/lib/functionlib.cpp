@@ -20,15 +20,11 @@ String var_dump(StringMap map, String prefix, String postfix)
 	return(result);
 }
 
-String var_dump(StringList slist, String prefix, String postfix)
+String var_dump(std::vector<String> slist, String prefix, String postfix)
 {
-	String result = "";
-
-	for (auto& s : slist)
-	{
-		result.append(prefix + s + postfix);
-	}
-
+	String result;
+	for(const auto& value : slist)
+		result.append(prefix + value + postfix);
 	return(result);
 }
 
@@ -471,17 +467,17 @@ String regex_replace(String pattern, String replacement, String subject, String 
 	return(output);
 }
 
-StringList regex_split(String pattern, String subject, String flags)
+std::vector<String> regex_split_strings(String pattern, String subject, String flags)
 {
-	RegexCode regex(pattern, flags, "regex_split");
+	RegexCode regex(pattern, flags, "regex_split_strings");
 	RegexMatchData match_data(regex.code);
-	StringList result;
+	std::vector<String> result;
 
 	size_t offset = 0;
 	size_t last_end = 0;
 	while(offset <= subject.length())
 	{
-		int rc = regex_match_at(regex, match_data, subject, offset, 0, "regex_split");
+		int rc = regex_match_at(regex, match_data, subject, offset, 0, "regex_split_strings");
 		if(rc == PCRE2_ERROR_NOMATCH)
 			break;
 
@@ -556,10 +552,10 @@ String regex_replace(String pattern, String replacement, String subject, String 
 	return(wasm_regex_call("replace", pattern, subject, flags, replacement)["text"].to_string());
 }
 
-StringList regex_split(String pattern, String subject, String flags)
+std::vector<String> regex_split_strings(String pattern, String subject, String flags)
 {
-	DValue response = wasm_regex_call("split", pattern, subject, flags);
-	StringList result;
+	DValue response = wasm_regex_call("split_strings", pattern, subject, flags);
+	std::vector<String> result;
 	DValue* list = response.key("list");
 	if(list)
 		list->each([&](const DValue& part, String) {
@@ -586,9 +582,9 @@ String trim(String raw)
 	return(raw.substr(start_pos, 1 + end_pos - start_pos));
 }
 
-StringList split_space(String str)
+std::vector<String> split_space_strings(String str)
 {
-	StringList result;
+	std::vector<String> result;
 	String current_token = "";
 	for(auto c : str)
 	{
@@ -610,9 +606,9 @@ StringList split_space(String str)
 	return(result);
 }
 
-StringList split(String str, String delim)
+std::vector<String> split_strings(String str, String delim)
 {
-	StringList result;
+	std::vector<String> result;
 	if(delim == "")
 	{
 		result.push_back(str);
@@ -635,7 +631,7 @@ StringMap split_kv(String s, char separator, bool trim_whitespace, bool uppercas
 	StringMap result;
 	String k;
 	String v;
-	for(auto s : split(s, "\n"))
+	for(auto s : split_strings(s, "\n"))
 	{
 		u8 mode = 0;
 		k = "";
@@ -670,7 +666,7 @@ StringMap split_kv(String s, char separator, bool trim_whitespace, bool uppercas
 StringMap split_http_headers(String s)
 {
 	StringMap result;
-	StringList lines = split(s, "\n");
+	std::vector<String> lines = split_strings(s, "\n");
 	if(lines.size() == 0)
 		return(result);
 
@@ -722,7 +718,7 @@ StringMap split_http_headers(String s)
 	return(result);
 }
 
-String join(StringList l, String delim)
+String join_strings(std::vector<String> l, String delim)
 {
 	String result;
 	u32 i = 0;
@@ -788,9 +784,9 @@ DValue array_merge(DValue a, DValue b)
 	return(result);
 }
 
-StringList split_utf8(String s, bool compound_characters)
+std::vector<String> split_utf8_strings(String s, bool compound_characters)
 {
-	StringList result;
+	std::vector<String> result;
 	auto len = s.size();
 	String codepoint = "";
 	for(s64 i = 0; i < len; i++)
@@ -821,7 +817,7 @@ StringList split_utf8(String s, bool compound_characters)
 	}
 	if(compound_characters)
 	{
-		StringList compound_result;
+		std::vector<String> compound_result;
 		bool join_next = false;
 		bool last_was_regional = false;
 		for(auto& s : result)
@@ -2496,6 +2492,43 @@ DValue json_decode(String s)
 {
 	u32 i = 0;
 	return(json_decode_value(s, i));
+}
+
+std::vector<String> strings_from_dvalue(const DValue& value)
+{
+	std::vector<String> result;
+	value.each([&](const DValue& item, String) { result.push_back(item.to_string()); });
+	return(result);
+}
+
+DValue dvalue_from_strings(const std::vector<String>& values)
+{
+	DValue result;
+	result.set_array();
+	for(const auto& value : values)
+	{
+		DValue item;
+		item.set(value);
+		result.push(item);
+	}
+	return(result);
+}
+
+DValue regex_split(String pattern, String subject, String flags) { return(dvalue_from_strings(regex_split_strings(pattern, subject, flags))); }
+DValue split_space(String value) { return(dvalue_from_strings(split_space_strings(value))); }
+DValue split(String value, String delimiter) { return(dvalue_from_strings(split_strings(value, delimiter))); }
+DValue split_utf8(String value, bool compound) { return(dvalue_from_strings(split_utf8_strings(value, compound))); }
+String join(DValue values, String delimiter)
+{
+	String result;
+	bool first = true;
+	values.each([&](const DValue& item, String) {
+		if(!first)
+			result += delimiter;
+		result += item.to_string();
+		first = false;
+	});
+	return(result);
 }
 
 void ob_start()

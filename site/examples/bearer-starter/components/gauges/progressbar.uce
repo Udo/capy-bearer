@@ -20,7 +20,7 @@ COMPONENT(Request& context)
 	DValue scale = context.props["scale"];
 	DValue markers = context.props["markers"];
 
-	StringList default_palette;
+	DValue default_palette;
 	default_palette.push_back("var(--success, #10b981)");
 	default_palette.push_back("var(--primary, #60a5fa)");
 	default_palette.push_back("var(--accent, #22d3ee)");

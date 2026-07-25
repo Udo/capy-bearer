@@ -37,18 +37,18 @@ bool compiler_request_can_serve_stale_artifact(Request* context);
 bool compiler_preserve_last_known_good(Request* context, String file_name);
 bool compiler_unit_can_serve_stale_artifact(Request* context, String file_name);
 void compiler_prioritize_unit(Request* context, String file_name);
-StringList compiler_take_priority_units(Request* context);
+DValue compiler_take_priority_units(Request* context);
 String compiler_source_generation(Request* context);
 void compiler_mark_source_generation(Request* context);
 String compiler_site_directory(Request* context);
-StringList compiler_scan_site_units(Request* context);
-StringList compiler_list_known_units(Request* context);
-void compiler_set_known_units(Request* context, StringList files);
+DValue compiler_scan_site_units(Request* context);
+DValue compiler_list_known_units(Request* context);
+void compiler_set_known_units(Request* context, DValue files);
 void compiler_track_known_unit(Request* context, String file_name);
 void compiler_untrack_known_unit(Request* context, String file_name);
 bool compiler_unit_needs_recompile(Request* context, String file_name, bool* source_missing = 0, bool allow_recent_source_stat = false, bool path_is_normalized = false, bool retry_current_failure = false);
 DValue unit_info(String path = "");
-StringList units_list();
+DValue units_list();
 bool unit_compile(String path = "");
 
 #ifndef __BEARER_WASM_UNIT__

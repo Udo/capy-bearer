@@ -23,7 +23,7 @@ bool compiler_code_state_is_neutral(const CompilerCodeState& state)
 
 String compiler_cpp_raw_string_delimiter(const String& content)
 {
-	StringList candidates = {
+	std::vector<String> candidates = {
 		"",
 		"BEARER",
 		"BEARER_LITERAL",
@@ -350,7 +350,7 @@ String compiler_fragment_capture_prelude(String slot)
 
 String compiler_rewrite_fragment_attributes(String content)
 {
-	StringList lines = split(content, "\n");
+	std::vector<String> lines = split_strings(content, "\n");
 	String result;
 	for(u32 i = 0; i < lines.size(); i++)
 	{

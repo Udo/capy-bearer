@@ -1,0 +1,24 @@
+function CLI {
+    {
+        var path := file_temp("/tmp/capy-final-parity-")
+        var handle := file_open(path, "r+")
+        file_write(handle, "hello")
+        var pwrite := file_pwrite(handle, 2u64, "XYZ")
+        var pread := file_pread(handle, 0u64, 5u64)
+        var kv := split_kv(" name = Ada\nrole=admin", "=", true, true)
+        var packed := gz_compress("archive data")
+        var unpacked := gz_uncompress(packed)
+        var archive := path + ".zip"
+        var destination := path + ".out"
+        var created := zip_create(archive, dval({"hello.txt": "Hello ZIP", "nested/value.txt": "42"}))
+        var listed := zip_list(archive)
+        var extracted := zip_extract(archive, destination)
+        var content := zip_read(archive, "hello.txt")
+        print(pwrite, "|", pread, "|", dval_string(kv["NAME"]), ":", dval_string(kv["ROLE"]), "|", unpacked, "|", created, dval_s32(listed["count"]), extracted, content == "Hello ZIP", file_get_contents(destination + "/nested/value.txt") == "42", "|", arc_live())
+        file_close(handle)
+        file_unlink(path)
+        file_unlink(archive)
+        dir_remove(destination, true)
+    }
+    print("|", arc_live(), "|", length(file_pread(0u64, 0u64, 1u64)) == 0)
+}

@@ -3,11 +3,15 @@ function RENDER {
     if action == "token" {
         print(csrf_token("capy-csrf", "token"))
     } else {
+        if action == "field" {
+            print(csrf_field("capy-csrf", "token", "submitted"))
+        } else {
         if action == "valid" {
             print(csrf_valid(request_get("submitted"), "capy-csrf", "token"))
         } else {
             csrf_rotate("capy-csrf", "token")
             print(csrf_token("capy-csrf", "token"))
+        }
         }
     }
 }

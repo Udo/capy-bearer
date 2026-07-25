@@ -16,6 +16,8 @@ Executes a MySQL query and returns the resulting data, if any.
 
 `params` provides the query parameter values used by the statement. Use named `:name` placeholders only; positional `?` placeholders are rejected.
 
+Ordinary placeholders are escaped and quoted as SQL string values. For grammar positions that require an unquoted non-negative integer, such as `LIMIT` and `OFFSET`, append `!` to the placeholder (`:limit!`). Unsigned placeholders fail before query execution unless their value is a non-empty sequence of decimal digits. They never accept signs, whitespace, expressions, identifiers, or other SQL fragments.
+
 The result is returned as a `DValue`, which makes it easy to iterate through rows and read fields with the usual `DValue` accessors.
 
 After an insert, update, or delete, use `mysql_affected_rows()` to inspect how many rows changed.
@@ -24,7 +26,8 @@ After an insert, update, or delete, use `mysql_affected_rows()` to inspect how m
 MySQL* db = mysql_connect();
 if(db != 0)
 {
-    DValue rows = mysql_query(db, "select 'ada@example.test' as email, 1 + 1 as total");
+    StringMap params; params["limit"] = "1";
+    DValue rows = mysql_query(db, "select 'ada@example.test' as email, 1 + 1 as total limit :limit!", params);
     String email = "none"; String total = "?";
     rows.each([&](DValue r, String key) { email = r["email"].to_string(); total = r["total"].to_string(); });
     print(email, " / total=", total, "\n");

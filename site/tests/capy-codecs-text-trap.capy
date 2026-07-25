@@ -1,0 +1,1 @@
+function CLI { xml_decode("<root>") }

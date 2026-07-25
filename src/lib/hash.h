@@ -27,6 +27,8 @@ bool crypto_equal_native(String a, String b);
 String password_hash_native(String password);
 bool password_verify_native(String password, String encoded);
 bool password_needs_rehash_native(String encoded);
+bool crypto_operation_request_valid(DValue request);
+DValue crypto_operation_native(DValue request);
 String sha256(String data);
 String sha256_hex(String data);
 String hmac_sha256(String key, String data);
