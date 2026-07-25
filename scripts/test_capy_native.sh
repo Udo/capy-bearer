@@ -18,6 +18,18 @@ else
 	echo "Reusing $BUILD_DIR/capyc"
 fi
 "$BUILD_DIR/capyc" --check-stdlib src/capy/stdlib.capy src/capy/stdlib.embedded.h
+python3 - <<'PY'
+from pathlib import Path
+import re
+core = Path("src/wasm/core.cpp").read_text()
+start = core.index("size_t bearer_dv_apply_brrb(")
+end = core.index("// Copied BRRB transport", start)
+assert all(int(operation) <= 21 for operation in re.findall(r"case (\d+):", core[start:end]))
+stdlib = Path("src/capy/stdlib.capy").read_text()
+assert not re.search(r"__bearer_dv_apply_brrb\((?:2[2-9]|[3-9]\d|1\d\d)", stdlib)
+assert "function request_apply" not in stdlib
+assert "case 152:" not in core[start:end]
+PY
 scripts/test_hardened_http_native.sh
 scripts/test_crypto_operation_native.sh
 scripts/test_capy_exact_handle_native.sh
@@ -86,7 +98,7 @@ done
 wasm-validate "$BUILD_DIR/final-parity.wasm"
 wasm-objdump -x "$BUILD_DIR/final-parity.wasm" >"$BUILD_DIR/final-parity.objdump"
 for import in file_pread file_pwrite; do grep -q "env.bearer_$import" "$BUILD_DIR/final-parity.objdump"; done
-grep -q 'env.bearer_dv_apply_brrb' "$BUILD_DIR/final-parity.objdump"
+grep -q 'env.bearer_text_parsing_brrb' "$BUILD_DIR/final-parity.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-strings.capy.wasm" >"$BUILD_DIR/strings.objdump"
 grep -q 'env.bearer_string_substr' "$BUILD_DIR/strings.objdump"
 grep -q 'env.bearer_string_strpos' "$BUILD_DIR/strings.objdump"
@@ -96,9 +108,14 @@ grep -q 'env.bearer_dv_f64_to_brrb' "$BUILD_DIR/codecs.objdump"
 grep -q 'env.bearer_dv_f64_brrb' "$BUILD_DIR/codecs.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-regex.capy.wasm" >"$BUILD_DIR/regex.objdump"
 grep -q 'env.bearer_regex_match' "$BUILD_DIR/regex.objdump"
-grep -q 'env.bearer_regex' "$BUILD_DIR/regex.objdump"
+grep -q 'env.bearer_regex_dval' "$BUILD_DIR/regex.objdump"
+grep -q 'env.bearer_regex_text' "$BUILD_DIR/regex.objdump"
+wasm-objdump -x "$BUILD_DIR/site_tests_capy-coreutil.capy.wasm" >"$BUILD_DIR/coreutil.objdump"
+for import in text_parsing_brrb route_path_brrb runtime_diagnostics_brrb; do
+	grep -q "env.bearer_$import" "$BUILD_DIR/coreutil.objdump"
+done
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-string-lists.capy.wasm" >"$BUILD_DIR/string-lists.objdump"
-grep -q 'env.bearer_dv_apply_brrb' "$BUILD_DIR/string-lists.objdump"
+grep -q 'env.bearer_text_parsing_brrb' "$BUILD_DIR/string-lists.objdump"
 grep -q 'env.bearer_string_nonblank' "$BUILD_DIR/string-lists.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-first-empty.capy.wasm" >"$BUILD_DIR/first-empty.objdump"
 ! grep -q 'env.bearer_string_nonblank' "$BUILD_DIR/first-empty.objdump"
@@ -116,7 +133,7 @@ done
 wasm-validate "$BUILD_DIR/request-parity.wasm"
 "$BUILD_DIR/capyc" --check-unit "$BUILD_DIR/request-parity.wasm" "$ABI_VERSION"
 wasm-objdump -x "$BUILD_DIR/request-parity.wasm" >"$BUILD_DIR/request-parity.objdump"
-grep -q 'env.bearer_dv_apply_brrb' "$BUILD_DIR/request-parity.objdump"
+grep -q 'env.bearer_request_workspace_brrb' "$BUILD_DIR/request-parity.objdump"
 ! grep -q 'env.bearer_request_context_brrb\|env.bearer_redirect\|env.bearer_session_start' "$BUILD_DIR/request-parity.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-request-context.capy.wasm" >"$BUILD_DIR/request-context.objdump"
 grep -q 'env.bearer_request_context_brrb' "$BUILD_DIR/request-context.objdump"

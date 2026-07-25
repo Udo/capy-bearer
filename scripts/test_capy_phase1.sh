@@ -134,7 +134,15 @@ for sqlite_case in \
 	set -e
 	[[ $sqlite_trap_status -ne 0 && "$sqlite_trap_output" == *"$sqlite_fixture.capy:$sqlite_location"* && "$sqlite_trap_output" != *"capy://stdlib.capy"* ]]
 done
-expect_equal "SQLite recovery" "$sqlite_output" "$(scripts/bearer-cli /tests/capy-sqlite.capy)"
+set +e
+sized_host_trap_output=$(scripts/bearer-cli /tests/capy-sqlite-sized-host-trap.capy 2>&1)
+sized_host_trap_status=$?
+set -e
+[[ $sized_host_trap_status -ne 0 && "$sized_host_trap_output" == *"capy-sqlite-sized-host-trap.capy:4:5" && "$sized_host_trap_output" != *"capy://stdlib.capy" ]] || {
+	echo "Capy generic sized-host failure did not trap at the owned-input callsite: $sized_host_trap_output" >&2
+	exit 1
+}
+expect_equal "generic sized-host failure recovery/ARC" "$sqlite_output" "$(scripts/bearer-cli /tests/capy-sqlite.capy)"
 codec_output=$(scripts/bearer-cli /tests/capy-codecs.capy)
 [[ "$codec_output" == "<Ada>|1.51|Q2FweSE=|Capy!|0|a%20b%26|a b&|&lt;&amp;&gt;&quot;&#39;|{}|3|0" ]] || {
 	echo "Capy codec/JSON/ARC mismatch: $codec_output" >&2

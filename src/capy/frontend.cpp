@@ -674,6 +674,17 @@ Expr* Parser::prefix()
 	}
 	if (current.kind == TokenKind::identifier)
 	{
+		if (current.text == "host" && token().text == "function")
+		{
+			take();
+			return function(current.location, true);
+		}
+		if (current.text == "trace")
+		{
+			if (!match("host") || !match("function"))
+				fail(current.location, "trace modifier applies only to host function declarations");
+			return function(current.location, true, true);
+		}
 		if (current.text == "function")
 			return token().kind == TokenKind::identifier ? function(current.location) : function_expression(current.location);
 		if (current.text == "struct")
@@ -831,12 +842,14 @@ Expr* Parser::function_expression(Location location)
 	lambda->body = block(require("{").location);
 	return lambda;
 }
-Expr* Parser::function(Location location)
+Expr* Parser::function(Location location, bool host, bool trace_host)
 {
 	Token name = require_identifier("function name");
 	std::vector<Expr*> header;
 	while (token().text != "{")
 	{
+		if (host && (token().kind == TokenKind::newline || token().kind == TokenKind::eof || token().text == ";"))
+			break;
 		if (token().kind == TokenKind::newline || token().kind == TokenKind::eof)
 			fail(token().location, "expected function code block");
 		header.push_back(token().text == "(" ? parenthesized(take().location) : expression());
@@ -844,8 +857,18 @@ Expr* Parser::function(Location location)
 			fail(header.back()->location, "function declaration has more than parameter and return expressions");
 	}
 	Function* result = program_.make<Function>(location, name.text);
-	Location body_location = require("{").location;
-	result->body = block(body_location);
+	if (host)
+	{
+		if (token().text == "{")
+			fail(token().location, "host declarations are bodyless");
+		result->host = true;
+		result->trace_host = trace_host;
+	}
+	else
+	{
+		Location body_location = require("{").location;
+		result->body = block(body_location);
+	}
 	Expr* parameter_expression;
 	if (header.size() == 1 && !is_parameter_expression(header[0]))
 	{

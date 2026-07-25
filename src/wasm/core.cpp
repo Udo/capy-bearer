@@ -1344,14 +1344,14 @@ s32 bearer_regex_match(const char* pattern, size_t pattern_len, const char* subj
 	return(response["bool"].to_bool() ? 1 : 0);
 }
 
-size_t bearer_regex(s32 operation, const char* pattern, size_t pattern_len, const char* subject, size_t subject_len,
+size_t bearer_regex_dval(s32 operation, const char* pattern, size_t pattern_len, const char* subject, size_t subject_len,
 	const char* replacement, size_t replacement_len, const char* flags, size_t flags_len, char* out, size_t cap)
 {
 	if(!out)
 	{
 		static const char* operations[] = {"search", "search_all", "replace", "split_strings"};
 		DValue response;
-		if(operation < 0 || operation > 3 || !bearer_regex_call(operations[operation], pattern, pattern_len, subject, subject_len,
+		if(operation < 0 || operation > 3 || operation == 2 || !bearer_regex_call(operations[operation], pattern, pattern_len, subject, subject_len,
 			replacement, replacement_len, flags, flags_len, response))
 			return(std::numeric_limits<size_t>::max());
 		if(operation == 0 || operation == 1)
@@ -1359,8 +1359,6 @@ size_t bearer_regex(s32 operation, const char* pattern, size_t pattern_len, cons
 			DValue* tree = response.key("tree");
 			wasm_regex_result = brb_encode(tree ? *tree : DValue());
 		}
-		else if(operation == 2)
-			wasm_regex_result = response["text"].to_string();
 		else
 		{
 			DValue* list = response.key("list");
@@ -1376,7 +1374,27 @@ size_t bearer_regex(s32 operation, const char* pattern, size_t pattern_len, cons
 	return(bearer_copy_staged(wasm_regex_result, out, cap));
 }
 
-size_t bearer_codec(s32 operation, const char* input, size_t input_len, char* out, size_t cap)
+size_t bearer_regex_text(s32 operation, const char* pattern, size_t pattern_len, const char* subject, size_t subject_len,
+	const char* replacement, size_t replacement_len, const char* flags, size_t flags_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		DValue response;
+		if(operation != 2 || !bearer_regex_call("replace", pattern, pattern_len, subject, subject_len,
+			replacement, replacement_len, flags, flags_len, response))
+			return(std::numeric_limits<size_t>::max());
+		wasm_regex_result = response["text"].to_string();
+		if(wasm_regex_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
+		{
+			wasm_regex_result.clear();
+			return(std::numeric_limits<size_t>::max());
+		}
+		return(wasm_regex_result.size());
+	}
+	return(bearer_copy_staged(wasm_regex_result, out, cap));
+}
+
+size_t bearer_codec_text(s32 operation, const char* input, size_t input_len, char* out, size_t cap)
 {
 	if(!out)
 	{
@@ -1393,21 +1411,26 @@ size_t bearer_codec(s32 operation, const char* input, size_t input_len, char* ou
 			wasm_codec_result = uri_encode(value);
 		else if(operation == 3)
 			wasm_codec_result = uri_decode(value);
-		else if(operation == 4)
-			wasm_codec_result = html_escape(value);
-		else if(operation == 5)
-		{
-			DValue decoded;
-			String error;
-			if(!brb_decode(value, decoded, &error))
-				wasm_codec_result.clear();
-			else
-				wasm_codec_result = json_encode(decoded);
-		}
-		else if(operation == 6)
-			wasm_codec_result = brb_encode(json_decode(value));
 		else
 			wasm_codec_result.clear();
+		if(wasm_codec_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
+		{
+			wasm_codec_result.clear();
+			return(std::numeric_limits<size_t>::max());
+		}
+		return(wasm_codec_result.size());
+	}
+	return(bearer_copy_staged(wasm_codec_result, out, cap));
+}
+
+size_t bearer_codec_dval(s32 operation, const char* input, size_t input_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		if(operation != 4)
+			return(std::numeric_limits<size_t>::max());
+		String value(input ? input : "", input ? input_len : 0);
+		wasm_codec_result = brb_encode(json_decode(value));
 		if(wasm_codec_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
 		{
 			wasm_codec_result.clear();
@@ -2114,265 +2137,480 @@ size_t bearer_dv_merge_brrb(const char* left, size_t left_len, const char* right
 	return(bearer_copy_staged(wasm_dval_merge_result, out, cap));
 }
 
-// Applies one copied DValue operation.  Capy values have no host identity, so
-// mutators return the resulting copy for reassignment rather than a pointer.
+static bool bearer_dv_apply_brrb_decode(const char* value, size_t value_len, const char* key, size_t key_len,
+	const char* argument, size_t argument_len, DValue& result, DValue& supplied, String& text)
+{
+	wasm_dval_merge_result.clear();
+	if(!bearer_decode_brrb_span(value, value_len, result) || !bearer_decode_brrb_span(argument, argument_len, supplied))
+		return(false);
+	text = String(key ? key : "", key ? key_len : 0);
+	return(true);
+}
+
+static size_t bearer_dv_apply_brrb_finish(const DValue& result)
+{
+	wasm_dval_merge_result = brb_encode(result);
+	if(wasm_dval_merge_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
+	{
+		wasm_dval_merge_result.clear();
+		return(std::numeric_limits<size_t>::max());
+	}
+	return(wasm_dval_merge_result.size());
+}
+
+static size_t bearer_dv_apply_brrb_copy(char* out, size_t cap)
+{
+	return(bearer_copy_staged(wasm_dval_merge_result, out, cap));
+}
+
+// Copied BRRB transport for one cohesive host capability.
 size_t bearer_dv_apply_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
-	if(!out)
+	if(out)
+		return(bearer_dv_apply_brrb_copy(out, cap));
+	DValue result, supplied;
+	String text;
+	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+		return(std::numeric_limits<size_t>::max());
+	switch(operation)
 	{
-		wasm_dval_merge_result.clear();
-		DValue result, supplied;
-		if(!bearer_decode_brrb_span(value, value_len, result) || !bearer_decode_brrb_span(argument, argument_len, supplied))
-			return(std::numeric_limits<size_t>::max());
-		String text(key ? key : "", key ? key_len : 0);
-		switch(operation)
-		{
-			case 0: result.set(supplied); break;
-			case 1: result.push(supplied); break;
-			case 2: result.pop(); break;
-			case 3: result.remove(text); break;
-			case 4: result.clear(); break;
-			case 5: result = result.get_by_path(text); break;
-			case 6: result.get_or_create(text); break;
-			case 7: result.set_array(); break;
-			case 8: result.set_bool(supplied.to_bool()); break;
-			case 9: if(text.size() != 1) return(std::numeric_limits<size_t>::max()); result.set_type(text[0]); break;
-			case 10: result.set(result.get_type_name()); break;
-			case 11: result.set_bool(result.is_array()); break;
-			case 12: result.set_bool(result.is_list()); break;
-			case 13: { const DValue* child = result.key(text); result = child ? *child : DValue(); break; }
-			case 14: { result = result.keys(); break; }
-			case 15: result = result.values(); break;
-			case 16: result.set(result.to_json(text.empty() ? '"' : text[0])); break;
-			case 17: result.set(result.to_stringmap()); break;
-			case 18: result[text] = supplied; break;
-			case 19: result.set(result.to_string(supplied.to_string())); break;
-			case 20: result.set(result.to_f64(supplied.to_f64())); break;
-			case 21: result.set_bool(result.to_bool(supplied.to_bool())); break;
+		case 0: result.set(supplied); break;
+		case 1: result.push(supplied); break;
+		case 2: result.pop(); break;
+		case 3: result.remove(text); break;
+		case 4: result.clear(); break;
+		case 5: result = result.get_by_path(text); break;
+		case 6: result.get_or_create(text); break;
+		case 7: result.set_array(); break;
+		case 8: result.set_bool(supplied.to_bool()); break;
+		case 9: if(text.size() != 1) return(std::numeric_limits<size_t>::max()); result.set_type(text[0]); break;
+		case 10: result.set(result.get_type_name()); break;
+		case 11: result.set_bool(result.is_array()); break;
+		case 12: result.set_bool(result.is_list()); break;
+		case 13: { const DValue* child = result.key(text); result = child ? *child : DValue(); break; }
+		case 14: { result = result.keys(); break; }
+		case 15: result = result.values(); break;
+		case 16: result.set(result.to_json(text.empty() ? '"' : text[0])); break;
+		case 17: result.set(result.to_stringmap()); break;
+		case 18: result[text] = supplied; break;
+		case 19: result.set(result.to_string(supplied.to_string())); break;
+		case 20: result.set(result.to_f64(supplied.to_f64())); break;
+		case 21: result.set_bool(result.to_bool(supplied.to_bool())); break;
 			// Core utility adapters use copied BRRB values so the native helpers remain
 			// the only implementation of parsing, routing, and diagnostic policy.
-			case 22: result.set(ascii_safe_name(result.to_string())); break;
-			case 23: result.set(safe_name(result.to_string())); break;
-			case 24: result.set(trim(result.to_string())); break;
-			case 25: result.set(float_val(result.to_string())); break;
-			case 26: result.set(std::to_string(int_val(result.to_string(), (u32)supplied.to_s64(10)))); break;
-			case 27: result.set_bool(to_bool(result.to_string(), supplied.to_bool())); break;
-			case 28: result.set_bool(str_starts_with(result.to_string(), text)); break;
-			case 29: result.set_bool(str_ends_with(result.to_string(), text)); break;
-			case 30: result.set(encode_query(result.to_stringmap())); break;
-			case 31: {
-				StringMap parsed = parse_query(result.to_string()); result.set_type('M');
-				for(const auto& entry : parsed) result[entry.first] = entry.second;
-				break;
+		default: return(std::numeric_limits<size_t>::max());
+	}
+	return(bearer_dv_apply_brrb_finish(result));
+}
+
+// Copied BRRB transport for one cohesive host capability.
+size_t bearer_text_parsing_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
+	const char* argument, size_t argument_len, char* out, size_t cap)
+{
+	if(out)
+		return(bearer_dv_apply_brrb_copy(out, cap));
+	DValue result, supplied;
+	String text;
+	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+		return(std::numeric_limits<size_t>::max());
+	enum Operation { ascii_safe_name_op, safe_name_op, trim_op, float_val_op, int_val_op, to_bool_op,
+		starts_with_op, ends_with_op, encode_query_op, parse_query_op, split_op, split_space_op,
+		split_utf8_op, split_http_headers_op, split_kv_op, sort_op };
+	switch(operation)
+	{
+		case ascii_safe_name_op: result.set(ascii_safe_name(result.to_string())); break;
+		case safe_name_op: result.set(safe_name(result.to_string())); break;
+		case trim_op: result.set(trim(result.to_string())); break;
+		case float_val_op: result.set(float_val(result.to_string())); break;
+		case int_val_op: result.set(std::to_string(int_val(result.to_string(), (u32)supplied.to_s64(10)))); break;
+		case to_bool_op: result.set_bool(to_bool(result.to_string(), supplied.to_bool())); break;
+		case starts_with_op: result.set_bool(str_starts_with(result.to_string(), text)); break;
+		case ends_with_op: result.set_bool(str_ends_with(result.to_string(), text)); break;
+		case encode_query_op: result.set(encode_query(result.to_stringmap())); break;
+		case parse_query_op: {
+			StringMap parsed = parse_query(result.to_string()); result.set_type('M');
+			for(const auto& entry : parsed) result[entry.first] = entry.second;
+			break;
+		}
+		case split_op: {
+			std::vector<String> parts = split_strings(result.to_string(), text);
+			result.set_array();
+			for(const String& part : parts) { DValue child; child.set(part); result.push(child); }
+			break;
+		}
+		case split_space_op: {
+			std::vector<String> parts = split_space_strings(result.to_string()); result.set_array();
+			for(const String& part : parts) { DValue child; child = part; result.push(child); }
+			break;
+		}
+		case split_utf8_op: {
+			std::vector<String> parts = split_utf8_strings(result.to_string(), supplied.to_bool()); result.set_array();
+			for(const String& part : parts) { DValue child; child = part; result.push(child); }
+			break;
+		}
+		case split_http_headers_op: {
+			StringMap headers = split_http_headers(result.to_string()); result.set_type('M');
+			for(const auto& entry : headers) result[entry.first] = entry.second;
+			break;
+		}
+		case split_kv_op: {
+			if(text.size() != 1) return(std::numeric_limits<size_t>::max());
+			StringMap values = split_kv(result.to_string(), text[0], supplied["trim"].to_bool(true), supplied["uppercase"].to_bool());
+			result.set_type('M');
+			for(const auto& value : values) result[value.first] = value.second;
+			break;
+		}
+		case sort_op: {
+			if(!result.is_list()) return(std::numeric_limits<size_t>::max());
+			std::vector<String> parts; bool valid = true;
+			result.each([&](const DValue& item, String) { if(item.deref().type != 'S') valid = false; else parts.push_back(item.to_string()); });
+			if(!valid) return(std::numeric_limits<size_t>::max());
+			std::sort(parts.begin(), parts.end()); result.set_array(); for(const String& part : parts) { DValue child; child = part; result.push(child); }
+			break;
+		}
+		default: return(std::numeric_limits<size_t>::max());
+	}
+	return(bearer_dv_apply_brrb_finish(result));
+}
+
+// Copied BRRB transport for URI and route/path normalization.
+size_t bearer_route_path_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
+	const char* argument, size_t argument_len, char* out, size_t cap)
+{
+	if(out)
+		return(bearer_dv_apply_brrb_copy(out, cap));
+	DValue result, supplied;
+	String text;
+	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+		return(std::numeric_limits<size_t>::max());
+	enum Operation { parse_uri_op, normalize_op, is_safe_op, sanitize_op, safe_key_op };
+	switch(operation)
+	{
+		case parse_uri_op: {
+			URI uri = parse_uri(result.to_string());
+			result.set_type('M'); result["parts"].set_type('M'); result["query"].set_type('M');
+			for(const auto& entry : uri.parts) result["parts"][entry.first] = entry.second;
+			for(const auto& entry : uri.query) result["query"][entry.first] = entry.second;
+			break;
+		}
+		case normalize_op: result.set(route_path_normalize(result.to_string())); break;
+		case is_safe_op: result.set_bool(route_path_is_safe(result.to_string())); break;
+		case sanitize_op: result.set(route_path_sanitize(result.to_string(), text)); break;
+		case safe_key_op: result.set(runtime_safe_key(result.to_string(), text)); break;
+		default: return(std::numeric_limits<size_t>::max());
+	}
+	return(bearer_dv_apply_brrb_finish(result));
+}
+
+// Copied BRRB transport for runtime diagnostics.
+size_t bearer_runtime_diagnostics_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
+	const char* argument, size_t argument_len, char* out, size_t cap)
+{
+	if(out)
+		return(bearer_dv_apply_brrb_copy(out, cap));
+	DValue result, supplied;
+	String text;
+	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+		return(std::numeric_limits<size_t>::max());
+	enum Operation { signal_name_op, backtrace_capture_op, usleep_op, var_dump_op };
+	switch(operation)
+	{
+		case signal_name_op: result.set(signal_name((s32)result.to_s64())); break;
+		case backtrace_capture_op: result.set(backtrace_capture((u32)result.to_s64(32), (u32)supplied.to_s64())); break;
+		case usleep_op: { s64 usec = result.to_s64(); if(usec < 0) return(std::numeric_limits<size_t>::max()); result.set((f64)usleep((u32)usec)); break; }
+		case var_dump_op: result.set(var_dump(result, text, supplied.to_string("\n"))); break;
+		default: return(std::numeric_limits<size_t>::max());
+	}
+	return(bearer_dv_apply_brrb_finish(result));
+}
+
+// Copied BRRB transport for one cohesive host capability.
+size_t bearer_codec_archive_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
+	const char* argument, size_t argument_len, char* out, size_t cap)
+{
+	if(out)
+		return(bearer_dv_apply_brrb_copy(out, cap));
+	DValue result, supplied;
+	String text;
+	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+		return(std::numeric_limits<size_t>::max());
+	switch(operation)
+	{
+		case 0: result = brb_decode(result.to_string()); break;
+		case 1: result.set(brb_encode(result)); break;
+		case 2: result = xml_decode(result.to_string()); break;
+		case 3: result.set(xml_encode(result, text.empty() ? "root" : text)); break;
+		case 4: result = yaml_decode(result.to_string()); break;
+		case 5: result.set(yaml_encode(result)); break;
+		case 6: result.set(markdown_to_html(result.to_string(), supplied)); break;
+		case 7: result = markdown_to_ast(result.to_string(), supplied); break;
+		case 8: { u32 index = (u32)supplied.to_u64(); json_consume_space(result.to_string(), index); result.set((f64)index); break; }
+		case 9: result.set(json_encode(result)); break;
+		case 10: result.set(json_encode(result.to_string())); break;
+		case 11: result.set(html_escape(result.to_string())); break;
+		case 12: {
+				DValue request, response; request["op"] = "gz_compress"; request["src"] = result.to_string();
+				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set(response["result"].to_string()); break;
 			}
-			case 152: {
-				URI uri = parse_uri(result.to_string());
-				result.set_type('M');
-				result["parts"].set_type('M');
-				for(const auto& entry : uri.parts) result["parts"][entry.first] = entry.second;
-				result["query"].set_type('M');
-				for(const auto& entry : uri.query) result["query"][entry.first] = entry.second;
-				break;
+		case 13: {
+				DValue request, response; request["op"] = "gz_uncompress"; request["src"] = result.to_string();
+				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set(response["result"].to_string()); break;
 			}
-			case 32: result.set(route_path_normalize(result.to_string())); break;
-			case 33: result.set_bool(route_path_is_safe(result.to_string())); break;
-			case 34: result.set(route_path_sanitize(result.to_string(), text)); break;
-			case 35: result.set(runtime_safe_key(result.to_string(), text)); break;
-			case 36: result.set(signal_name((s32)result.to_s64())); break;
-			case 37: {
-				std::vector<String> parts = split_space_strings(result.to_string()); result.set_array();
-				for(const String& part : parts) { DValue child; child = part; result.push(child); }
-				break;
+		case 14: {
+				DValue request, response; request["op"] = "list"; request["path"] = result.to_string();
+				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); DValue* listed = response.key("result"); result = listed ? *listed : DValue(); break;
 			}
-			case 38: {
-				std::vector<String> parts = split_utf8_strings(result.to_string(), supplied.to_bool()); result.set_array();
-				for(const String& part : parts) { DValue child; child = part; result.push(child); }
-				break;
+		case 15: {
+				DValue request, response; request["op"] = "read"; request["path"] = result.to_string(); request["entry"] = text;
+				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set(response["result"].to_string()); break;
 			}
-			case 39: {
-				StringMap headers = split_http_headers(result.to_string()); result.set_type('M');
-				for(const auto& entry : headers) result[entry.first] = entry.second;
-				break;
+		case 16: {
+				DValue request, response; request["op"] = "create"; request["path"] = result.to_string(); request["entries"] = supplied;
+				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set_bool(response["ok"].to_bool()); break;
 			}
-			case 40: {
-				if(!result.is_list()) return(std::numeric_limits<size_t>::max());
-				std::vector<String> parts; bool valid = true;
-				result.each([&](const DValue& item, String) { if(item.deref().type != 'S') valid = false; else parts.push_back(item.to_string()); });
-				if(!valid) return(std::numeric_limits<size_t>::max());
-				std::sort(parts.begin(), parts.end()); result.set_array(); for(const String& part : parts) { DValue child; child = part; result.push(child); }
-				break;
+		case 17: {
+				DValue request, response; request["op"] = "extract"; request["path"] = result.to_string(); request["destination"] = text;
+				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set_bool(response["ok"].to_bool()); break;
 			}
-			case 41: result.set(backtrace_capture((u32)result.to_s64(32), (u32)supplied.to_s64())); break;
-			case 42: { s64 usec = result.to_s64(); if(usec < 0) return(std::numeric_limits<size_t>::max()); result.set((f64)usleep((u32)usec)); break; }
-			case 43: result.set(var_dump(result, text, supplied.to_string("\n"))); break;
-			// Codec/text adapters retain native parsers and serializers as authority.
-			case 44: result = brb_decode(result.to_string()); break;
-			case 45: result.set(brb_encode(result)); break;
-			case 46: result = xml_decode(result.to_string()); break;
-			case 47: result.set(xml_encode(result, text.empty() ? "root" : text)); break;
-			case 48: result = yaml_decode(result.to_string()); break;
-			case 49: result.set(yaml_encode(result)); break;
-			case 50: result.set(markdown_to_html(result.to_string(), supplied)); break;
-			case 51: result = markdown_to_ast(result.to_string(), supplied); break;
-			case 52: { u32 index = (u32)supplied.to_u64(); json_consume_space(result.to_string(), index); result.set((f64)index); break; }
-			case 53: result.set(json_encode(result)); break;
-			case 54: result.set(json_encode(result.to_string())); break;
-			case 55: result.set(html_escape(result.to_string())); break;
-			case 56: result.set(gen_sha1(result.to_string(), supplied.to_bool())); break;
-			case 57: result.set(sha256(result.to_string())); break;
-			case 58: result.set(sha256_hex(result.to_string())); break;
-			case 59: result.set(hmac_sha256(result.to_string(), supplied.to_string())); break;
-			case 60: result.set(hmac_sha256_hex(result.to_string(), supplied.to_string())); break;
-			case 61: result.set_bool(crypto_equal(result.to_string(), supplied.to_string())); break;
-			case 62: result.set(password_hash(result.to_string())); break;
-			case 63: result.set_bool(password_verify(result.to_string(), supplied.to_string())); break;
-			case 64: result.set_bool(password_needs_rehash(result.to_string())); break;
-			case 65: {
-				std::vector<String> parts = regex_split_strings(result.to_string(), text, supplied.to_string());
-				result.set_array();
-				for(const String& part : parts) { DValue child; child.set(part); result.push(child); }
-				break;
-			}
-			case 66: {
-				std::vector<String> parts = split_strings(result.to_string(), text);
-				result.set_array();
-				for(const String& part : parts) { DValue child; child.set(part); result.push(child); }
-				break;
-			}
-			// Filesystem operations cross this copied-value adapter so the Wasm core
-			// remains the sole guest boundary and sys.cpp/worker retain path policy.
-			case 67: result.set(basename(result.to_string())); break;
-			case 68: result.set(dirname(result.to_string())); break;
-			case 69: result.set(path_join(result.to_string(), text)); break;
-			case 70: result.set(path_real(result.to_string())); break;
-			case 71: result.set_bool(path_is_within(result.to_string(), text)); break;
-			case 72: result.set(expand_path(result.to_string(), text)); break;
-			case 73: result.set(file_get_contents(result.to_string())); break;
-			case 74: result.set_bool(file_put_contents(result.to_string(), supplied.to_string())); break;
-			case 75: result.set_bool(file_append(result.to_string(), supplied.to_string())); break;
-			case 76: result.set_bool(file_copy(result.to_string(), text)); break;
-			case 77: result.set_bool(file_rename(result.to_string(), text)); break;
-			case 78: result = file_stat(result.to_string()); break;
-			case 79: result.set(std::to_string(file_mtime(result.to_string()))); break;
-			case 80: result.set_bool(file_exists(result.to_string())); break;
-			case 81: result.set_bool(file_truncate(result.to_string(), supplied.to_u64())); break;
-			case 82: result.set_bool(file_chmod(result.to_string(), (u32)supplied.to_u64())); break;
-			case 83: result.set_bool(file_symlink(result.to_string(), text)); break;
-			case 84: result = ls(result.to_string()); break;
-			case 85: result.set_bool(mkdir(result.to_string())); break;
-			case 86: result = dir_list(result.to_string()); break;
-			case 87: result.set_bool(dir_remove(result.to_string(), supplied.to_bool())); break;
-			case 88: result.set(cwd_get()); break;
-			case 89: cwd_set(result.to_string()); result.clear(); break;
+		default: return(std::numeric_limits<size_t>::max());
+	}
+	return(bearer_dv_apply_brrb_finish(result));
+}
+
+// Copied BRRB transport for one cohesive host capability.
+size_t bearer_crypto_password_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
+	const char* argument, size_t argument_len, char* out, size_t cap)
+{
+	if(out)
+		return(bearer_dv_apply_brrb_copy(out, cap));
+	DValue result, supplied;
+	String text;
+	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+		return(std::numeric_limits<size_t>::max());
+	switch(operation)
+	{
+		case 0: result.set(gen_sha1(result.to_string(), supplied.to_bool())); break;
+		case 1: result.set(sha256(result.to_string())); break;
+		case 2: result.set(sha256_hex(result.to_string())); break;
+		case 3: result.set(hmac_sha256(result.to_string(), supplied.to_string())); break;
+		case 4: result.set(hmac_sha256_hex(result.to_string(), supplied.to_string())); break;
+		case 5: result.set_bool(crypto_equal(result.to_string(), supplied.to_string())); break;
+		case 6: result.set(password_hash(result.to_string())); break;
+		case 7: result.set_bool(password_verify(result.to_string(), supplied.to_string())); break;
+		case 8: result.set_bool(password_needs_rehash(result.to_string())); break;
+		default: return(std::numeric_limits<size_t>::max());
+	}
+	return(bearer_dv_apply_brrb_finish(result));
+}
+
+// Copied BRRB transport for one cohesive host capability.
+size_t bearer_filesystem_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
+	const char* argument, size_t argument_len, char* out, size_t cap)
+{
+	if(out)
+		return(bearer_dv_apply_brrb_copy(out, cap));
+	DValue result, supplied;
+	String text;
+	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+		return(std::numeric_limits<size_t>::max());
+	switch(operation)
+	{
+		case 0: result.set(basename(result.to_string())); break;
+		case 1: result.set(dirname(result.to_string())); break;
+		case 2: result.set(path_join(result.to_string(), text)); break;
+		case 3: result.set(path_real(result.to_string())); break;
+		case 4: result.set_bool(path_is_within(result.to_string(), text)); break;
+		case 5: result.set(expand_path(result.to_string(), text)); break;
+		case 6: result.set(file_get_contents(result.to_string())); break;
+		case 7: result.set_bool(file_put_contents(result.to_string(), supplied.to_string())); break;
+		case 8: result.set_bool(file_append(result.to_string(), supplied.to_string())); break;
+		case 9: result.set_bool(file_copy(result.to_string(), text)); break;
+		case 10: result.set_bool(file_rename(result.to_string(), text)); break;
+		case 11: result = file_stat(result.to_string()); break;
+		case 12: result.set(std::to_string(file_mtime(result.to_string()))); break;
+		case 13: result.set_bool(file_exists(result.to_string())); break;
+		case 14: result.set_bool(file_truncate(result.to_string(), supplied.to_u64())); break;
+		case 15: result.set_bool(file_chmod(result.to_string(), (u32)supplied.to_u64())); break;
+		case 16: result.set_bool(file_symlink(result.to_string(), text)); break;
+		case 17: result = ls(result.to_string()); break;
+		case 18: result.set_bool(mkdir(result.to_string())); break;
+		case 19: result = dir_list(result.to_string()); break;
+		case 20: result.set_bool(dir_remove(result.to_string(), supplied.to_bool())); break;
+		case 21: result.set(cwd_get()); break;
+		case 22: cwd_set(result.to_string()); result.clear(); break;
 			// Request operations deliberately execute against the workspace Request;
 			// Capy only receives copied results and never duplicates request policy.
-			case 90: ob_start(); result.clear(); break;
-			case 91: ob_close(); result.clear(); break;
-			case 92: result.set(ob_get()); break;
-			case 93: result.set(ob_get_close()); break;
-			case 94: if(result.to_s64() < 100 || result.to_s64() > 999) return(std::numeric_limits<size_t>::max()); context->set_status((s32)result.to_s64(), text); result.clear(); break;
-			case 95: redirect(result.to_string(), (s32)supplied.to_s64(302)); result.clear(); break;
-			case 96: result.set(session_start(result.to_string())); break;
-			case 97:
+		default: return(std::numeric_limits<size_t>::max());
+	}
+	return(bearer_dv_apply_brrb_finish(result));
+}
+
+// Copied BRRB transport for one cohesive host capability.
+size_t bearer_request_workspace_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
+	const char* argument, size_t argument_len, char* out, size_t cap)
+{
+	if(out)
+		return(bearer_dv_apply_brrb_copy(out, cap));
+	DValue result, supplied;
+	String text;
+	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+		return(std::numeric_limits<size_t>::max());
+	switch(operation)
+	{
+		case 0: ob_start(); result.clear(); break;
+		case 1: ob_close(); result.clear(); break;
+		case 2: result.set(ob_get()); break;
+		case 3: result.set(ob_get_close()); break;
+		case 4: if(result.to_s64() < 100 || result.to_s64() > 999) return(std::numeric_limits<size_t>::max()); context->set_status((s32)result.to_s64(), text); result.clear(); break;
+		case 5: redirect(result.to_string(), (s32)supplied.to_s64(302)); result.clear(); break;
+		case 6: result.set(session_start(result.to_string())); break;
+		case 7:
 				if(text == "set") context->session[result.to_string()] = supplied.to_string();
 				else if(text == "remove") context->session.erase(result.to_string());
 				else return(std::numeric_limits<size_t>::max());
 				result.clear(); break;
-			case 98: session_destroy(result.to_string()); result.clear(); break;
-			case 99: result.set(session_id_create()); break;
-			case 100: result.set(csrf_token(result.to_string(), text)); break;
-			case 101: result.set_bool(csrf_valid(result.to_string(), text, supplied.to_string())); break;
-			case 102: csrf_rotate(result.to_string(), text); result.clear(); break;
-			case 103: result.set(csrf_field(result.to_string(), text, supplied.to_string())); break;
-			case 104: result = cli_input(*context); break;
-			case 105: result.set(cli_arg(*context, result.to_string(), text)); break;
-			case 106: result.set(request_base_url(*context)); break;
-			case 107: result.set(request_script_url(*context)); break;
-			case 108: result.set(request_query_path(*context, text)); break;
-			case 109: result = request_query_route(*context, text); break;
-			case 110: result = request_route_from_raw_path(result.to_string(), text); break;
-			case 111: result = request_perf(); break;
-			case 112: set_cookie(result.to_string(), supplied.to_string()); result.clear(); break;
+		case 8: session_destroy(result.to_string()); result.clear(); break;
+		case 9: result.set(session_id_create()); break;
+		case 10: result.set(csrf_token(result.to_string(), text)); break;
+		case 11: result.set_bool(csrf_valid(result.to_string(), text, supplied.to_string())); break;
+		case 12: csrf_rotate(result.to_string(), text); result.clear(); break;
+		case 13: result.set(csrf_field(result.to_string(), text, supplied.to_string())); break;
+		case 14: result = cli_input(*context); break;
+		case 15: result.set(cli_arg(*context, result.to_string(), text)); break;
+		case 16: result.set(request_base_url(*context)); break;
+		case 17: result.set(request_script_url(*context)); break;
+		case 18: result.set(request_query_path(*context, text)); break;
+		case 19: result = request_query_route(*context, text); break;
+		case 20: result = request_route_from_raw_path(result.to_string(), text); break;
+		case 21: result = request_perf(); break;
+		case 22: set_cookie(result.to_string(), supplied.to_string()); result.clear(); break;
 			// Cache and process APIs retain sys.cpp as the semantic authority; only
 			// copied values cross from Capy at this boundary.
-			case 113: result.set(std::to_string(memcache_connect(result.to_string(), (u16)supplied.to_u64(11211)))); break;
-			case 114: result.set(memcache_command(result.to_u64(), text)); break;
-			case 115: result.set_bool(memcache_set(result.to_u64(), text, supplied["value"].to_string(), supplied["expires"].to_u64(60 * 60))); break;
-			case 116: result.set_bool(memcache_delete(result.to_u64(), text)); break;
-			case 117: result.set(memcache_get(result.to_u64(), text, supplied.to_string())); break;
-			case 118: result = memcache_get_multiple(result.to_u64(), supplied); break;
-			case 119: result.set(memcache_escape_key(result.to_string())); break;
-			case 120: result = memcache_escape_keys(result); break;
-			case 121: result.set(shell_escape(result.to_string())); break;
-			case 122: result.set(shell_exec(result.to_string())); break;
-			case 123: result.set(std::to_string(shell_spawn(result))); break;
-			case 124: result = job_status(to_u64(result.to_string(), 0)); break;
-			case 125: result = job_result(to_u64(result.to_string(), 0)); break;
-			case 126: result = job_await(to_u64(result.to_string(), 0), supplied.to_u64()); break;
-			case 127: result.set_bool(job_cancel(to_u64(result.to_string(), 0))); break;
-			case 128: result.set(process_start_directory()); break;
-			case 129: result.set((f64)server_start_http(result.to_string(), text, supplied["file"].to_string(), supplied["function"].to_string())); break;
-			case 130: result.set_bool(server_stop(result.to_string())); break;
-			case 131: result.set((f64)task_pid(result.to_string())); break;
-			case 132: result.set((f64)task_kill((pid_t)result.to_s64(), (s32)supplied.to_s64())); break;
+		default: return(std::numeric_limits<size_t>::max());
+	}
+	return(bearer_dv_apply_brrb_finish(result));
+}
+
+// Copied BRRB transport for one cohesive host capability.
+size_t bearer_cache_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
+	const char* argument, size_t argument_len, char* out, size_t cap)
+{
+	if(out)
+		return(bearer_dv_apply_brrb_copy(out, cap));
+	DValue result, supplied;
+	String text;
+	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+		return(std::numeric_limits<size_t>::max());
+	switch(operation)
+	{
+		case 0: result.set(std::to_string(memcache_connect(result.to_string(), (u16)supplied.to_u64(11211)))); break;
+		case 1: result.set(memcache_command(result.to_u64(), text)); break;
+		case 2: result.set_bool(memcache_set(result.to_u64(), text, supplied["value"].to_string(), supplied["expires"].to_u64(60 * 60))); break;
+		case 3: result.set_bool(memcache_delete(result.to_u64(), text)); break;
+		case 4: result.set(memcache_get(result.to_u64(), text, supplied.to_string())); break;
+		case 5: result = memcache_get_multiple(result.to_u64(), supplied); break;
+		case 6: result.set(memcache_escape_key(result.to_string())); break;
+		case 7: result = memcache_escape_keys(result); break;
+		default: return(std::numeric_limits<size_t>::max());
+	}
+	return(bearer_dv_apply_brrb_finish(result));
+}
+
+// Copied BRRB transport for one cohesive host capability.
+size_t bearer_process_jobs_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
+	const char* argument, size_t argument_len, char* out, size_t cap)
+{
+	if(out)
+		return(bearer_dv_apply_brrb_copy(out, cap));
+	DValue result, supplied;
+	String text;
+	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+		return(std::numeric_limits<size_t>::max());
+	switch(operation)
+	{
+		case 0: result.set(shell_escape(result.to_string())); break;
+		case 1: result.set(shell_exec(result.to_string())); break;
+		case 2: result.set(std::to_string(shell_spawn(result))); break;
+		case 3: result = job_status(to_u64(result.to_string(), 0)); break;
+		case 4: result = job_result(to_u64(result.to_string(), 0)); break;
+		case 5: result = job_await(to_u64(result.to_string(), 0), supplied.to_u64()); break;
+		case 6: result.set_bool(job_cancel(to_u64(result.to_string(), 0))); break;
+		case 7: result.set(process_start_directory()); break;
+		case 8: result.set((f64)server_start_http(result.to_string(), text, supplied["file"].to_string(), supplied["function"].to_string())); break;
+		case 9: result.set_bool(server_stop(result.to_string())); break;
+		case 10: result.set((f64)task_pid(result.to_string())); break;
+		case 11: result.set((f64)task_kill((pid_t)result.to_s64(), (s32)supplied.to_s64())); break;
 			// Network handles are stringified before BRRB so exact u64 values never
 			// transit f64. The worker owns and closes the underlying descriptors.
-			case 133: { s64 port = supplied.to_s64(); if(port < 0 || port > 65535) return(std::numeric_limits<size_t>::max()); result.set(std::to_string(socket_connect(result.to_string(), (u16)port))); break; }
-			case 134: socket_close(to_u64(result.to_string(), 0)); result.clear(); break;
-			case 135: result.set_bool(socket_write(to_u64(result.to_string(), 0), text)); break;
-			case 136: { s64 max_length = supplied["max_length"].to_s64(); s64 timeout = supplied["timeout"].to_s64(); if(max_length < 0 || timeout < 0) return(std::numeric_limits<size_t>::max()); result.set(socket_read(to_u64(result.to_string(), 0), (u32)max_length, (u32)timeout)); break; }
-			case 137: result = http_request(result); break;
-			case 138: result.set(std::to_string(http_request_async(result))); break;
-			case 139: result.set(std::to_string(time_parse(result.to_string()))); break;
-			case 140: result.set(time_format_local(result.to_string(), to_u64(supplied.to_string(), 0))); break;
-			case 141: result.set(time_format_utc(result.to_string(), to_u64(supplied.to_string(), 0))); break;
-			case 142: result.set(time_format_relative(to_u64(result.to_string(), 0), text, to_u64(supplied["medium_seconds"].to_string(), 0), supplied["medium_recent"].to_string(), to_u64(supplied["not_recent_seconds"].to_string(), 0), supplied["not_recent"].to_string())); break;
-			case 143: result = ws_connections(result.to_string()); break;
-			case 144: result.set(std::to_string(ws_connection_count(result.to_string()))); break;
-			case 145: {
-				if(text.size() != 1) return(std::numeric_limits<size_t>::max());
-				StringMap values = split_kv(result.to_string(), text[0], supplied["trim"].to_bool(true), supplied["uppercase"].to_bool());
-				result.set_type('M');
-				for(const auto& value : values) result[value.first] = value.second;
-				break;
-			}
-			case 146: {
-				DValue request, response; request["op"] = "gz_compress"; request["src"] = result.to_string();
-				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set(response["result"].to_string()); break;
-			}
-			case 147: {
-				DValue request, response; request["op"] = "gz_uncompress"; request["src"] = result.to_string();
-				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set(response["result"].to_string()); break;
-			}
-			case 148: {
-				DValue request, response; request["op"] = "list"; request["path"] = result.to_string();
-				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); DValue* listed = response.key("result"); result = listed ? *listed : DValue(); break;
-			}
-			case 149: {
-				DValue request, response; request["op"] = "read"; request["path"] = result.to_string(); request["entry"] = text;
-				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set(response["result"].to_string()); break;
-			}
-			case 150: {
-				DValue request, response; request["op"] = "create"; request["path"] = result.to_string(); request["entries"] = supplied;
-				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set_bool(response["ok"].to_bool()); break;
-			}
-			case 151: {
-				DValue request, response; request["op"] = "extract"; request["path"] = result.to_string(); request["destination"] = text;
-				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set_bool(response["ok"].to_bool()); break;
-			}
-			default: return(std::numeric_limits<size_t>::max());
-		}
-		wasm_dval_merge_result = brb_encode(result);
-		if(wasm_dval_merge_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
-		{
-			wasm_dval_merge_result.clear();
-			return(std::numeric_limits<size_t>::max());
-		}
-		return(wasm_dval_merge_result.size());
+		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_copy_staged(wasm_dval_merge_result, out, cap));
+	return(bearer_dv_apply_brrb_finish(result));
 }
+
+// Copied BRRB transport for one cohesive host capability.
+size_t bearer_network_http_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
+	const char* argument, size_t argument_len, char* out, size_t cap)
+{
+	if(out)
+		return(bearer_dv_apply_brrb_copy(out, cap));
+	DValue result, supplied;
+	String text;
+	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+		return(std::numeric_limits<size_t>::max());
+	switch(operation)
+	{
+		case 0: { s64 port = supplied.to_s64(); if(port < 0 || port > 65535) return(std::numeric_limits<size_t>::max()); result.set(std::to_string(socket_connect(result.to_string(), (u16)port))); break; }
+		case 1: socket_close(to_u64(result.to_string(), 0)); result.clear(); break;
+		case 2: result.set_bool(socket_write(to_u64(result.to_string(), 0), text)); break;
+		case 3: { s64 max_length = supplied["max_length"].to_s64(); s64 timeout = supplied["timeout"].to_s64(); if(max_length < 0 || timeout < 0) return(std::numeric_limits<size_t>::max()); result.set(socket_read(to_u64(result.to_string(), 0), (u32)max_length, (u32)timeout)); break; }
+		case 4: result = http_request(result); break;
+		case 5: result.set(std::to_string(http_request_async(result))); break;
+		default: return(std::numeric_limits<size_t>::max());
+	}
+	return(bearer_dv_apply_brrb_finish(result));
+}
+
+// Copied BRRB transport for one cohesive host capability.
+size_t bearer_time_format_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
+	const char* argument, size_t argument_len, char* out, size_t cap)
+{
+	if(out)
+		return(bearer_dv_apply_brrb_copy(out, cap));
+	DValue result, supplied;
+	String text;
+	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+		return(std::numeric_limits<size_t>::max());
+	switch(operation)
+	{
+		case 0: result.set(std::to_string(time_parse(result.to_string()))); break;
+		case 1: result.set(time_format_local(result.to_string(), to_u64(supplied.to_string(), 0))); break;
+		case 2: result.set(time_format_utc(result.to_string(), to_u64(supplied.to_string(), 0))); break;
+		case 3: result.set(time_format_relative(to_u64(result.to_string(), 0), text, to_u64(supplied["medium_seconds"].to_string(), 0), supplied["medium_recent"].to_string(), to_u64(supplied["not_recent_seconds"].to_string(), 0), supplied["not_recent"].to_string())); break;
+		default: return(std::numeric_limits<size_t>::max());
+	}
+	return(bearer_dv_apply_brrb_finish(result));
+}
+
+// Copied BRRB transport for one cohesive host capability.
+size_t bearer_websocket_registry_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
+	const char* argument, size_t argument_len, char* out, size_t cap)
+{
+	if(out)
+		return(bearer_dv_apply_brrb_copy(out, cap));
+	DValue result, supplied;
+	String text;
+	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+		return(std::numeric_limits<size_t>::max());
+	switch(operation)
+	{
+		case 0: result = ws_connections(result.to_string()); break;
+		case 1: result.set(std::to_string(ws_connection_count(result.to_string()))); break;
+		default: return(std::numeric_limits<size_t>::max());
+	}
+	return(bearer_dv_apply_brrb_finish(result));
+}
+
 
 s32 bearer_dv_get_brrb(const char* value, size_t value_len, s32 index_mode,
 	const char* key, size_t key_len, s32 index, char* out, size_t cap)

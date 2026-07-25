@@ -25,6 +25,11 @@ static void expect_error(const std::string& source, const std::string& text, con
 int main(int argc, char** argv)
 {
 	{
+		Program p = parse("trace host function __bearer_trace(value : s32) string\n", "host.capy");
+		auto* f = static_cast<Function*>(p.items[0]);
+		assert(f->host && f->trace_host && !f->body);
+	}
+	{
 		Program p = parse("function pair value : s32 (s32, string) { return (value, \"x\") }\n", "test.capy");
 		auto* f = static_cast<Function*>(p.items[0]);
 		assert(f->parameters.size() == 1 && type_name(*f->parameters[0].type_expr) == "s32" && type_name(*f->return_type) == "(s32,string)");
@@ -121,6 +126,7 @@ int main(int argc, char** argv)
 		}
 	}
 	expect_error("function bad(s32) s32 { return 1 }\n", "name:type annotations");
+	expect_error("trace function bad() string {}\n", "trace modifier applies only to host function declarations");
 	expect_error("function bad(value : any, value : any) value::type { value }\n", "function parameter 'value' is already declared");
 	try
 	{

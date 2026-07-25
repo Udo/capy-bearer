@@ -55,6 +55,7 @@ int main()
 	const std::string sqlite_bytes(ordinary_sqlite.wasm.begin(), ordinary_sqlite.wasm.end());
 	assert(sqlite_bytes.find("bearer_sqlite_connect") != std::string::npos);
 	assert(sqlite_bytes.find("bearer_sqlite_error") != std::string::npos);
+	assert(sqlite_bytes.find("bearer_capy_backtrace") == std::string::npos);
 	assert(ordinary_sqlite.source_map.find("F\t2\tcapy://stdlib.capy\n") != std::string::npos);
 	bool sqlite_stdlib_marker = false;
 	std::istringstream sqlite_map(ordinary_sqlite.source_map);
@@ -70,6 +71,10 @@ int main()
 	const auto no_stdlib_demand = capy::compile_bearer_unit("function CLI { print(1) }\n", options);
 	const std::string no_stdlib_bytes(no_stdlib_demand.wasm.begin(), no_stdlib_demand.wasm.end());
 	assert(no_stdlib_bytes.find("bearer_sqlite_") == std::string::npos && no_stdlib_bytes.find("bearer_mysql_") == std::string::npos && no_stdlib_bytes.find("bearer_capy_backtrace") == std::string::npos);
+	const auto f64_print = capy::compile_bearer_unit("function emit(value : f64) { print(value) }\nfunction CLI { emit(1.5) }\n", options);
+	const std::string f64_print_bytes(f64_print.wasm.begin(), f64_print.wasm.end());
+	assert(f64_print_bytes.find("bearer_print_f64") != std::string::npos);
+	assert(f64_print_bytes.find("bearer_print_s64") == std::string::npos && f64_print_bytes.find("bearer_print_u64") == std::string::npos);
 	const auto ordinary_backtrace = capy::compile_bearer_unit(
 		"function outer() string { inner() }\nfunction inner() string { var capture := function() string { backtrace_get_frames(2, 1) }; capture() }\nfunction CLI { print(outer(), backtrace_get_frames()) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(ordinary_backtrace.wasm, {.bearer_abi_version = "11"}).valid);
@@ -114,6 +119,12 @@ int main()
 	std::ifstream compiler_source("src/capy/compiler.cpp");
 	const std::string compiler_text((std::istreambuf_iterator<char>(compiler_source)), {});
 	assert(compiler_source && compiler_text.find("bearer_string" "_list") == std::string::npos && compiler_text.find("__legacy" "_") == std::string::npos);
+	assert(compiler_text.find("named->value == \"__bearer_") == std::string::npos);
+	assert(compiler_text.find("named->value == \"__bearer_mysql") == std::string::npos);
+	assert(compiler_text.find("named->value == \"__bearer_sqlite") == std::string::npos);
+	assert(compiler_text.find("named->value == \"__bearer_regex") == std::string::npos);
+	assert(compiler_text.find("named->value == \"__bearer_unit_call") == std::string::npos);
+	assert(compiler_text.find("named->value == \"__bearer_codec") == std::string::npos);
 	for (const auto& public_name : {"array_merge", "dval_set", "dval_assign", "dval_push", "dval_pop", "dval_remove", "dval_clear", "dval_get_by_path", "dval_get_or_create",
 			 "dval_set_array", "dval_set_bool", "dval_set_type", "dval_get_type_name", "dval_key", "dval_keys", "dval_values", "dval_to_json", "dval_to_stringmap", "dval_put",
 			 "dval_to_s64", "dval_to_u64", "request_param", "request_get", "request_post", "request_cookie", "request_session", "request_body", "response_header", "request_context",
@@ -127,6 +138,12 @@ int main()
 	assert(capy::wasm::validate_bearer_unit(ordinary_mysql.wasm, {.bearer_abi_version = "11"}).valid);
 	const std::string mysql_bytes(ordinary_mysql.wasm.begin(), ordinary_mysql.wasm.end());
 	assert(mysql_bytes.find("bearer_mysql_escape") != std::string::npos);
+	const auto typed_sized_hosts = capy::compile_bearer_unit(
+		"function CLI { var params := dval({:}); mysql_query(0u64, \"select 1\", params); sqlite_query(0u64, \"select 1\", params); regex_search(\"x\", \"x\"); regex_replace(\"x\", \"y\", \"x\"); unit_call(\"/x\", \"CLI\", params); json_decode(\"{}\"); base64_encode(\"x\") }\n", options);
+	assert(capy::wasm::validate_bearer_unit(typed_sized_hosts.wasm, {.bearer_abi_version = "11"}).valid);
+	const std::string typed_sized_host_bytes(typed_sized_hosts.wasm.begin(), typed_sized_hosts.wasm.end());
+	for (const auto& import : {"bearer_mysql_query", "bearer_sqlite_query", "bearer_regex_dval", "bearer_regex_text", "bearer_unit_call_brrb", "bearer_codec_dval", "bearer_codec_text"})
+		assert(typed_sized_host_bytes.find(import) != std::string::npos);
 	const std::string function_value_source = "function CLI { var escape : function(raw : string) string = mysql_escape; print(escape(\"Ada\")) }\n";
 	const auto function_value = capy::compile_bearer_unit(function_value_source, options);
 	assert(capy::wasm::validate_bearer_unit(function_value.wasm, {.bearer_abi_version = "11"}).valid);
@@ -138,6 +155,8 @@ int main()
 		"function CLI { var sqlite_connect : function(path : string) u64 = function(path : string) u64 { 1u64 }; print(sqlite_connect(\"x\")) }\n", options);
 	assert(std::string(shadowed_stdlib.wasm.begin(), shadowed_stdlib.wasm.end()).find("bearer_sqlite_") == std::string::npos);
 	for (const auto& [source, expected] : {
+			 std::pair{"host function __bearer_trace() string\nfunction CLI {}\n", "host declarations are available only in the embedded Capy standard library"},
+			 std::pair{"trace host function __bearer_trace() string\nfunction CLI {}\n", "host declarations are available only in the embedded Capy standard library"},
 			 std::pair{"function __bearer_sqlite_connect(path : string) u64 { 0u64 }\nfunction CLI {}\n", "reserved for the Capy standard library"},
 			 std::pair{"function CLI { __bearer_sqlite_connect(\":memory:\") }\n", "reserved for the Capy standard library"},
 			 std::pair{"function sqlite_connect(path : string) u64 { 0u64 }\nfunction CLI {}\n", "reserved by the Capy standard library"},

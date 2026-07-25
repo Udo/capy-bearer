@@ -1,0 +1,5 @@
+function CLI {
+    var db := sqlite_connect(":memory:")
+    sqlite_disconnect(db)
+    sqlite_query(db, clone("select ") + "1", dval({"owned": clone("value")}))
+}

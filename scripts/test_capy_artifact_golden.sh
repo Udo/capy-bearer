@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 capyc=${CAPYC:-bin/capyc}
 output_dir=/tmp/capy-artifact-golden
 expected=scripts/capy_artifact_golden.sha256
-mapfile -t fixtures < <(git ls-files 'site/tests/*.capy' | sort)
+mapfile -t fixtures < <({ git ls-files 'site/tests/*.capy'; printf '%s\n' site/tests/capy-sqlite-sized-host-trap.capy; } | sort -u)
 rm -rf "$output_dir"
 mkdir -p "$output_dir"
 cleanup() { rm -rf "$output_dir"; }

@@ -264,7 +264,8 @@ struct Function : Expr
 	std::string name;
 	std::vector<Parameter> parameters;
 	Expr* return_type;
-	Block* body;
+	Block* body = nullptr;
+	bool host = false, trace_host = false;
 	Function(Location l, std::string n);
 };
 struct Struct : Expr
@@ -327,7 +328,7 @@ struct Parser
 	Expr* finish_call(Expr*);
 	Block* block(Location);
 	Expr* function_expression(Location);
-	Expr* function(Location);
+	Expr* function(Location, bool host = false, bool trace_host = false);
 	bool is_parameter_expression(Expr*) const;
 	std::vector<Parameter> parameters(Expr*);
 	Expr* structure(Location);
