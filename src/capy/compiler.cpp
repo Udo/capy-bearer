@@ -204,7 +204,6 @@ struct FunctionLowerer
 	std::pair<Bytes, std::string> dval_value(Expr* value);
 	std::pair<Bytes, std::string> dval_lookup(Expr* value, Expr* key, bool require_present);
 	std::pair<Bytes, std::string> dval_scalar(Call* call, const std::string& result);
-	std::pair<Bytes, std::string> dval_wide_scalar(Call* call, const std::string& result);
 	std::pair<Bytes, unsigned> allocate_blob(const std::string& type, unsigned type_id, unsigned length, const Location& location);
 	Bytes format_wide_scalar(Bytes code, const std::string& type, const Location& location);
 	Bytes block(Block* block, bool new_scope = true);
@@ -268,49 +267,6 @@ struct Module
 		data_.insert(data_.end(), text.begin(), text.end());
 		return offset;
 	}
-	void need_print_bytes()
-	{
-		print_bytes_ = true;
-	}
-	void need_print_s32()
-	{
-		print_s32_ = true;
-	}
-	void need_print_s64()
-	{
-		print_s64_ = true;
-	}
-	void need_print_u64()
-	{
-		print_u64_ = true;
-	}
-	void need_print_f64()
-	{
-		print_f64_ = true;
-	}
-	void need_alloc()
-	{
-		alloc_ = true;
-	}
-	void need_unit_render()
-	{
-		unit_render_ = true;
-	}
-	void need_component_render()
-	{
-		component_render_ = true;
-	}
-	void need_dval()
-	{
-		dval_ = true;
-		alloc_ = true;
-	}
-	void need_unit_call()
-	{
-		unit_call_ = true;
-		dval_ = true;
-		alloc_ = true;
-	}
 	unsigned import_index(const std::string& name) const
 	{
 		auto found = imports_.find(name);
@@ -358,6 +314,11 @@ struct Module
 		const unsigned id = next_aggregate_type_++;
 		tuples_[type] = id;
 		return id;
+	}
+	const Constant* constant(const std::string& name) const
+	{
+		auto found = constants_.find(name);
+		return found == constants_.end() ? nullptr : found->second;
 	}
 	std::pair<std::string, unsigned> reference_function(const std::string& name, const Location& location)
 	{
@@ -494,20 +455,13 @@ struct Module
 	std::map<std::string, unsigned> imports_;
 	std::set<std::string> runtime_imports_;
 	std::unordered_map<std::string, HostDeclaration> hosts_;
+	std::unordered_map<std::string, Constant*> constants_;
 	std::set<std::string> used_hosts_;
 	std::map<std::string, unsigned> host_types_;
 	std::map<std::string, unsigned> helpers_;
 	Bytes data_;
-	bool print_bytes_ = false, print_s32_ = false, print_s64_ = false, print_u64_ = false, print_f64_ = false, alloc_ = false;
-	bool unit_render_ = false, component_render_ = false, component_render_props_ = false, component_capture_ = false, component_capture_props_ = false;
-	bool dval_ = false, dval_merge_ = false, dval_apply_ = false, dval_s64_ = false, dval_u64_ = false, dval_u64_encode_ = false, unit_call_ = false, unit_info_ = false, units_list_ = false, unit_compile_ = false, trace_host_ = false, use_trace_global_ = false;
+	bool dval_ = false, trace_host_ = false, use_trace_global_ = false;
 	unsigned trace_stack_offset_ = 0;
-	bool request_context_ambient_ = false, request_context_explicit_ = false;
-	bool response_status_ = false, response_header_ = false, time_ = false, time_precise_ = false;
-	bool random_bytes_ = false, noise32_ = false, noise_u64_ = false, noise_f64_ = false;
-	bool string_substr_ = false, string_first_ = false, redirect_ = false;
-	std::set<std::string> request_mutators_, request_value_ops_, csrf_ops_, ws_ops_, string_ops_, component_ops_, file_ops_, sqlite_ops_, mysql_ops_,
-		codec_ops_, regex_ops_;
 	std::vector<std::pair<std::string, Definition*>> custom_exports_;
 	bool use_retain_ = false, use_release_ = false, use_clone_ = false, use_arc_global_ = false;
 	std::vector<Location> markers_;
@@ -713,7 +667,7 @@ std::vector<std::pair<std::string, std::string>> FunctionLowerer::lambda_capture
 		}
 		else if (auto name = dynamic_cast<Name*>(value))
 		{
-			if (name->value == "true" || name->value == "false")
+			if (name->value == "true" || name->value == "false" || module_.constant(name->value))
 				return;
 			if (std::any_of(scopes.rbegin(), scopes.rend(), [&](const auto& scope) { return scope.contains(name->value); }))
 				return;
@@ -883,6 +837,8 @@ std::string FunctionLowerer::infer(Expr* value)
 		for (auto scope = scopes_.rbegin(); scope != scopes_.rend(); ++scope)
 			if (auto found = scope->find(name->value); found != scope->end())
 				return found->second.second;
+		if (const Constant* constant = module_.constant(name->value))
+			return module_.value_type(constant->annotation);
 		return module_.reference_function(name->value, name->location).first;
 	}
 	if (auto tuple = dynamic_cast<TupleExpr*>(value))
@@ -1528,44 +1484,6 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_scalar(Call* call, const std
 	return {code, result};
 }
 
-std::pair<Bytes, std::string> FunctionLowerer::dval_wide_scalar(Call* call, const std::string& result)
-{
-	if (call->arguments.size() != 2)
-		throw Error(call->location, "DValue conversion expects a dval and fallback");
-	auto [source_code, source_type] = expression(call->arguments[0]);
-	auto [fallback_code, fallback_type] = expression(call->arguments[1]);
-	if (source_type != "dval" || fallback_type != result)
-		throw Error(call->location, "DValue conversion arguments must be dval and " + result);
-	const unsigned source = add_local("", "dval", call->location), fallback = add_local("", result, call->location);
-	Bytes code = std::move(source_code);
-	code.push_back(0x21);
-	wasm::append_uleb(code, source);
-	append(code, fallback_code);
-	code.push_back(0x21);
-	wasm::append_uleb(code, fallback);
-	code.push_back(0x20);
-	wasm::append_uleb(code, source);
-	code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-	wasm::append_uleb(code, source);
-	code.insert(code.end(), {0x28, 0x02, 0x10, 0x20});
-	wasm::append_uleb(code, fallback);
-	code.push_back(0x10);
-	wasm::append_uleb(code, module_.import_index(result == "s64" ? "bearer_dv_s64_brrb" : "bearer_dv_u64_brrb"));
-	if (expression_is_owned(call->arguments[0]))
-	{
-		code.push_back(0x21);
-		const unsigned converted = add_local("", result, call->location);
-		wasm::append_uleb(code, converted);
-		code.push_back(0x20);
-		wasm::append_uleb(code, source);
-		code.push_back(0x10);
-		wasm::append_uleb(code, module_.release_index());
-		code.push_back(0x20);
-		wasm::append_uleb(code, converted);
-	}
-	return {code, result};
-}
-
 std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 {
 	if (!dynamic_cast<MapLiteral*>(value) && !dynamic_cast<ArrayLiteral*>(value))
@@ -1794,7 +1712,6 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			code.push_back(0x6a);
 			return {code, type};
 		}
-		module_.need_alloc();
 		const unsigned pointer = add_local("", type, value->location), size = 20 + 4 * static_cast<unsigned>(captures.size());
 		Bytes code{0x41};
 		wasm::append_sleb32(code, static_cast<std::int32_t>(size));
@@ -1862,7 +1779,6 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			type += (i ? "," : "") + fields[i];
 		type += ">";
 		const unsigned pointer = add_local("", type, value->location);
-		module_.need_alloc();
 		Bytes code{0x41};
 		wasm::append_sleb32(code, static_cast<std::int32_t>(16 + 4 * fields.size()));
 		code.push_back(0x10);
@@ -1931,7 +1847,6 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 		}
 		if (wide_scalar(element_type))
 			throw Error(value->location, "s64, u64, and f64 are not yet supported in array layouts");
-		module_.need_alloc();
 		const unsigned pointer = add_local("", "array<" + element_type + ">", value->location);
 		Bytes code{0x41};
 		wasm::append_sleb32(code, static_cast<std::int32_t>(20 + 4 * items.size()));
@@ -2322,6 +2237,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 				wasm::append_uleb(code, found->second.first);
 				return {code, found->second.second};
 			}
+		if (const Constant* constant = module_.constant(name->value))
+			return expression(constant->value);
 		auto [type, slot] = module_.reference_function(name->value, name->location);
 		const unsigned offset = module_.add_static_closure(slot);
 		Bytes code{0x23, 0x00, 0x41};
@@ -2848,7 +2765,6 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 				throw Error(value->location, "struct " + named->value + " constructor field count does not match declaration");
 			const std::string type = "struct:" + named->value;
 			const unsigned pointer = add_local("", type, value->location);
-			module_.need_alloc();
 			Bytes code{0x41};
 			wasm::append_sleb32(code, static_cast<std::int32_t>(16 + 4 * aggregate.fields.size()));
 			code.push_back(0x10);
@@ -2976,7 +2892,6 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			{
 				if (auto text = dynamic_cast<String*>(argument))
 				{
-					module_.need_print_bytes();
 					unsigned offset = module_.add_data(text->value);
 					code.insert(code.end(), {0x23, 0x00, 0x41});
 					wasm::append_sleb32(code, static_cast<std::int32_t>(offset));
@@ -2991,7 +2906,6 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 					auto [part, type] = expression(argument);
 					if (type == "string" || type == "markup")
 					{
-						module_.need_print_bytes();
 						const unsigned temporary = add_local("", type, argument->location);
 						append(code, part);
 						code.push_back(0x21);
@@ -3020,21 +2934,16 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 						const char* import = "bearer_print_s32";
 						if (type == "s64")
 						{
-							module_.need_print_s64();
 							import = "bearer_print_s64";
 						}
 						else if (type == "u64")
 						{
-							module_.need_print_u64();
 							import = "bearer_print_u64";
 						}
 						else if (type == "f64")
 						{
-							module_.need_print_f64();
 							import = "bearer_print_f64";
 						}
-						else
-							module_.need_print_s32();
 						code.push_back(0x10);
 						wasm::append_uleb(code, module_.import_index(import));
 					}
@@ -3119,7 +3028,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20}); wasm::append_uleb(code, length);
 			code.push_back(0x10); wasm::append_uleb(code, module_.import_index(host->symbol));
 			code.push_back(0x20); wasm::append_uleb(code, length);
-			code.insert(code.end(), {0x47, 0x04, 0x40}); append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b});
+			code.insert(code.end(), {0x47, 0x04, 0x40}); release_inputs(); append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b});
 			const unsigned result = add_local("", host->result, value->location);
 			code.push_back(0x20); wasm::append_uleb(code, pointer);
 			code.push_back(0x21); wasm::append_uleb(code, result);
@@ -3849,12 +3758,22 @@ Bytes Module::custom_export_body(const Definition& target) const
 
 void Module::collect()
 {
+	for (Expr* item : items_)
+		if (auto constant = dynamic_cast<Constant*>(item))
+		{
+			if (constant->name == "true" || constant->name == "false" || !constants_.emplace(constant->name, constant).second)
+				throw Error(constant->location, "constant '" + constant->name + "' is already declared");
+			if (value_type(constant->annotation) != "s32" || !dynamic_cast<Integer*>(constant->value))
+				throw Error(constant->location, "constants currently require an s32 literal value");
+		}
 	// Reserve nominal IDs first so member types can refer to declarations in either order.
 	for (Expr* item : items_)
 	{
 		check_cancelled();
 		if (auto structure = dynamic_cast<Struct*>(item))
 		{
+			if (constants_.contains(structure->name))
+				throw Error(structure->location, "struct name conflicts with constant");
 			if (structs_.contains(structure->name))
 				throw Error(structure->location, "struct '" + structure->name + "' is already declared");
 			structs_[structure->name] = {next_aggregate_type_++, {}};
@@ -3891,12 +3810,14 @@ void Module::collect()
 		auto function = dynamic_cast<Function*>(item);
 		if (!function)
 		{
-			if (dynamic_cast<Struct*>(item))
+			if (dynamic_cast<Struct*>(item) || dynamic_cast<Constant*>(item))
 				continue;
 			throw Error(item->location, "top-level executable expressions are not implemented by the native backend");
 		}
 		if (has_struct(function->name))
 			throw Error(function->location, "function name conflicts with struct constructor");
+		if (constants_.contains(function->name))
+			throw Error(function->location, "function name conflicts with constant");
 		if (function->host)
 		{
 			std::vector<std::string> parameters;
@@ -4031,6 +3952,8 @@ Module::Capabilities Module::discover_capabilities()
 		{
 			if (name->value == "true" || name->value == "false")
 				return "bool";
+			if (const Constant* constant = this->constant(name->value))
+				return this->value_type(constant->annotation);
 			if (auto found = scan_value_names.find(name->value); found != scan_value_names.end())
 				return found->second;
 		}
@@ -4873,7 +4796,13 @@ void validate_user_source(const Program& program, const std::set<std::string>& p
 		else if (auto returned = dynamic_cast<Return*>(expression)) reject_reserved_calls(returned->value);
 		else if (auto conditional = dynamic_cast<If*>(expression)) { reject_reserved_calls(conditional->condition); reject_reserved_calls(conditional->then_body); reject_reserved_calls(conditional->else_body); }
 		else if (auto loop = dynamic_cast<While*>(expression)) { reject_reserved_calls(loop->condition); reject_reserved_calls(loop->body); }
-		else if (auto loop = dynamic_cast<For*>(expression)) { reject_reserved_calls(loop->iterable); reject_reserved_calls(loop->body); }
+		else if (auto loop = dynamic_cast<For*>(expression))
+		{
+			for (const std::string& name : loop->names)
+				if (name.rfind("__bearer_", 0) == 0)
+					throw Error(loop->location, "__bearer_* names are reserved for the Capy standard library");
+			reject_reserved_calls(loop->iterable); reject_reserved_calls(loop->body);
+		}
 		else if (auto index = dynamic_cast<Index*>(expression)) { reject_reserved_calls(index->value); reject_reserved_calls(index->index); }
 		else if (auto member = dynamic_cast<Member*>(expression)) reject_reserved_calls(member->value);
 		else if (auto cast = dynamic_cast<Cast*>(expression)) reject_reserved_calls(cast->value);
@@ -4882,7 +4811,13 @@ void validate_user_source(const Program& program, const std::set<std::string>& p
 		else if (auto map = dynamic_cast<MapLiteral*>(expression)) for (const auto& [key, item] : map->entries) reject_reserved_calls(item);
 		else if (auto markup = dynamic_cast<Markup*>(expression)) for (Expr* item : markup->parts) reject_reserved_calls(item);
 		else if (auto field = dynamic_cast<MarkupField*>(expression)) reject_reserved_calls(field->value);
-		else if (auto lambda = dynamic_cast<Lambda*>(expression)) reject_reserved_calls(lambda->body);
+		else if (auto lambda = dynamic_cast<Lambda*>(expression))
+		{
+			for (const auto& parameter : lambda->parameters)
+				if (parameter.name.rfind("__bearer_", 0) == 0)
+					throw Error(lambda->location, "__bearer_* names are reserved for the Capy standard library");
+			reject_reserved_calls(lambda->body);
+		}
 	};
 	for (Expr* item : program.items)
 	{
@@ -4898,6 +4833,13 @@ void validate_user_source(const Program& program, const std::set<std::string>& p
 		}
 		else if (auto structure = dynamic_cast<Struct*>(item); structure && structure->name.rfind("__bearer_", 0) == 0)
 			throw Error(structure->location, "__bearer_* names are reserved for the Capy standard library");
+		else if (auto constant = dynamic_cast<Constant*>(item))
+		{
+			if (constant->name.rfind("__bearer_", 0) == 0)
+				throw Error(constant->location, "__bearer_* names are reserved for the Capy standard library");
+			if (public_names.contains(constant->name))
+				throw Error(constant->location, "'" + constant->name + "' is reserved by the Capy standard library");
+		}
 	}
 }
 
@@ -4934,6 +4876,8 @@ std::vector<Expr*> selected_stdlib(const Program& unit, const Program& library)
 	std::vector<Expr*> result;
 	for (Expr* item : library.items)
 		if (auto function = dynamic_cast<Function*>(item); function && (function->host || selected.contains(function)))
+			result.push_back(item);
+		else if (dynamic_cast<Constant*>(item))
 			result.push_back(item);
 	return result;
 }

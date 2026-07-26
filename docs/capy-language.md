@@ -32,6 +32,15 @@ A parenthesized header expression occupies one declaration slot, so `function pa
 
 Function overload identity is the function name plus normalized parameter type patterns. Return types never distinguish overloads and expected result types never select an overload.
 
+## Compile-time constants
+
+A top-level `const name : s32 = literal` substitutes its typed `s32` literal at every use. It emits no Wasm function, global, data, or import. Constants cannot duplicate or conflict with a top-level function/struct name; ordinary local bindings still shadow them. This intentionally small feature currently accepts only `s32` literals, not constexpr expressions or non-scalar constants.
+
+```capy
+const retries : s32 = 3
+function CLI { print(retries) }
+```
+
 ## Locals and operators
 
 `var name := value` is the ordinary inferred local declaration. The expression form `name := value` also introduces an inferred local in the current lexical scope and produces its value; redeclaration in that scope is an error. `name = value` assigns an existing local.

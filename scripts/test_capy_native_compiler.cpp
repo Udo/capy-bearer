@@ -48,6 +48,27 @@ int main()
 	const auto returning = capy::compile_bearer_unit(
 		"function choose(value : bool) s32 { if value { return 1 } else { return 2 } }\nfunction CLI { print(choose(true)) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(returning.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto constants = capy::compile_bearer_unit("const answer : s32 = 42\nfunction CLI { print(answer) }\n", options);
+	const auto constants_repeat = capy::compile_bearer_unit("const answer : s32 = 42\nfunction CLI { print(answer) }\n", options);
+	const auto constant_baseline = capy::compile_bearer_unit("function CLI { print(42) }\n", options);
+	assert(constants.wasm == constants_repeat.wasm && constants.source_map == constants_repeat.source_map);
+	assert(constants.wasm == constant_baseline.wasm);
+	const auto shadowed_constant = capy::compile_bearer_unit("const answer : s32 = 42\nfunction CLI { var answer : s32 = 7; print(answer) }\n", options);
+	assert(shadowed_constant.wasm == capy::compile_bearer_unit("function CLI { var answer : s32 = 7; print(answer) }\n", options).wasm);
+	try { capy::compile_bearer_unit("const x : s32 = 1\nconst x : s32 = 2\nfunction CLI { print(x) }\n", options); assert(false); }
+	catch (const capy::Error& error) { assert(error.message.find("already declared") != std::string::npos); }
+	try { capy::compile_bearer_unit("const x : s32 = 1\nfunction x() s32 { 1 }\nfunction CLI { print(x) }\n", options); assert(false); }
+	catch (const capy::Error& error) { assert(error.message.find("conflicts with constant") != std::string::npos); }
+	try { capy::compile_bearer_unit("function x() s32 { 1 }\nconst x : s32 = 1\nfunction CLI {}\n", options); assert(false); }
+	catch (const capy::Error& error) { assert(error.message.find("conflicts with constant") != std::string::npos); }
+	try { capy::compile_bearer_unit("struct x {}\nconst x : s32 = 1\nfunction CLI {}\n", options); assert(false); }
+	catch (const capy::Error& error) { assert(error.message.find("conflicts with constant") != std::string::npos); }
+	try { capy::compile_bearer_unit("const answer : s32 = 42\nfunction CLI { answer() }\n", options); assert(false); }
+	catch (const capy::Error& error) { assert(error.location.line == 2 && error.message.find("no overload answer()") != std::string::npos); }
+	try { capy::compile_bearer_unit("const x : string = \"x\"\nfunction CLI { print(x) }\n", options); assert(false); }
+	catch (const capy::Error& error) { assert(error.message.find("s32 literal") != std::string::npos); }
+	try { capy::compile_bearer_unit("const __bearer_x : s32 = 1\nfunction CLI { print(1) }\n", options); assert(false); }
+	catch (const capy::Error& error) { assert(error.message.find("reserved") != std::string::npos); }
 	const auto boundary = capy::compile_bearer_unit("function CLI { print(-2147483648, 2147483647) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(boundary.wasm, {.bearer_abi_version = "11"}).valid);
 	const auto ordinary_sqlite = capy::compile_bearer_unit("function CLI { var db := sqlite_connect(\":memory:\"); print(sqlite_error(db)); sqlite_disconnect(db) }\n", options);
@@ -144,6 +165,12 @@ int main()
 	const std::string typed_sized_host_bytes(typed_sized_hosts.wasm.begin(), typed_sized_hosts.wasm.end());
 	for (const auto& import : {"bearer_mysql_query", "bearer_sqlite_query", "bearer_regex_dval", "bearer_regex_text", "bearer_unit_call_brrb", "bearer_codec_dval", "bearer_codec_text"})
 		assert(typed_sized_host_bytes.find(import) != std::string::npos);
+	const auto owned_sized_host = capy::compile_bearer_unit(
+		"function CLI { sqlite_query(0u64, clone(\"select 1\"), dval({\"owned\": clone(\"value\")})) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(owned_sized_host.wasm, {.bearer_abi_version = "11"}).valid);
+	const std::string sizing_release = "release_inputs(); append(code, module_.marker(value->location));";
+	const std::size_t first_sizing_release = compiler_text.find(sizing_release);
+	assert(first_sizing_release != std::string::npos && compiler_text.find(sizing_release, first_sizing_release + 1) != std::string::npos);
 	const std::string function_value_source = "function CLI { var escape : function(raw : string) string = mysql_escape; print(escape(\"Ada\")) }\n";
 	const auto function_value = capy::compile_bearer_unit(function_value_source, options);
 	assert(capy::wasm::validate_bearer_unit(function_value.wasm, {.bearer_abi_version = "11"}).valid);
@@ -160,6 +187,8 @@ int main()
 			 std::pair{"function __bearer_sqlite_connect(path : string) u64 { 0u64 }\nfunction CLI {}\n", "reserved for the Capy standard library"},
 			 std::pair{"function CLI { __bearer_sqlite_connect(\":memory:\") }\n", "reserved for the Capy standard library"},
 			 std::pair{"function sqlite_connect(path : string) u64 { 0u64 }\nfunction CLI {}\n", "reserved by the Capy standard library"},
+			 std::pair{"function CLI { var callback : function(__bearer_value : s32) s32 = function(__bearer_value : s32) s32 { __bearer_value } }\n", "__bearer_* names are reserved for the Capy standard library"},
+			 std::pair{"function CLI { for __bearer_key, value = dval({:}) { value } }\n", "__bearer_* names are reserved for the Capy standard library"},
 			 std::pair{"function duplicate(value : any) value::type { value }\nfunction duplicate(value : any) value::type { value }\nfunction CLI {}\n", "duplicate overload duplicate(any)"},
 		 })
 	{

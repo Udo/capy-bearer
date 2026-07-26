@@ -25,6 +25,11 @@ static void expect_error(const std::string& source, const std::string& text, con
 int main(int argc, char** argv)
 {
 	{
+		Program p = parse("const answer : s32 = 42\n", "constant.capy");
+		auto* constant = static_cast<Constant*>(p.items[0]);
+		assert(constant->name == "answer" && type_name(*constant->annotation) == "s32" && static_cast<Integer*>(constant->value)->value == 42);
+	}
+	{
 		Program p = parse("trace host function __bearer_trace(value : s32) string\n", "host.capy");
 		auto* f = static_cast<Function*>(p.items[0]);
 		assert(f->host && f->trace_host && !f->body);
@@ -43,6 +48,11 @@ int main(int argc, char** argv)
 		Program p = parse("var callback : function(value : s32) s32 = function(value : s32) s32 { return value + 1 }\n", "test.capy");
 		auto* v = static_cast<Variable*>(p.items[0]);
 		assert(v->annotation->kind == ExprKind::FunctionType && v->value->kind == ExprKind::Lambda && type_name(*v->annotation) == "function(s32) s32");
+	}
+	{
+		Program p = parse("var callback : function(__bearer_value : s32) s32 = function(__bearer_value : s32) s32 { __bearer_value }\nfor __bearer_key, value = dval({:}) { value }\n", "private-binders.capy");
+		assert(static_cast<Lambda*>(static_cast<Variable*>(p.items[0])->value)->parameters[0].name == "__bearer_value");
+		assert(static_cast<For*>(p.items[1])->names[0] == "__bearer_key");
 	}
 	{
 		Program p = parse("function CLI { print(\";\", \",\", \"}\") }\n", "test.capy");
@@ -125,6 +135,7 @@ int main(int argc, char** argv)
 			assert(e.message.find("return type does not distinguish overloads") != std::string::npos);
 		}
 	}
+	expect_error("function CLI { const answer : s32 = 42 }\n", "const declarations are top-level only");
 	expect_error("function bad(s32) s32 { return 1 }\n", "name:type annotations");
 	expect_error("trace function bad() string {}\n", "trace modifier applies only to host function declarations");
 	expect_error("function bad(value : any, value : any) value::type { value }\n", "function parameter 'value' is already declared");

@@ -105,7 +105,8 @@ enum struct ExprKind
 	Struct,
 	For,
 	If,
-	While
+	While,
+	Constant
 };
 struct Expr
 {
@@ -274,6 +275,12 @@ struct Struct : Expr
 	std::vector<Expr*> members;
 	Struct(Location l, std::string n);
 };
+struct Constant : Expr
+{
+	std::string name;
+	Expr *annotation, *value;
+	Constant(Location l, std::string n, Expr* a, Expr* v);
+};
 struct For : Expr
 {
 	std::vector<std::string> names;
@@ -332,6 +339,7 @@ struct Parser
 	bool is_parameter_expression(Expr*) const;
 	std::vector<Parameter> parameters(Expr*);
 	Expr* structure(Location);
+	Expr* constant(Location);
 	Expr* variable(Location);
 	Expr* return_expr(Location);
 	Expr* for_expr(Location);

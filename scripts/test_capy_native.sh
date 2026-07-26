@@ -21,14 +21,12 @@ fi
 python3 - <<'PY'
 from pathlib import Path
 import re
-core = Path("src/wasm/core.cpp").read_text()
-start = core.index("size_t bearer_dv_apply_brrb(")
-end = core.index("// Copied BRRB transport", start)
-assert all(int(operation) <= 21 for operation in re.findall(r"case (\d+):", core[start:end]))
 stdlib = Path("src/capy/stdlib.capy").read_text()
-assert not re.search(r"__bearer_dv_apply_brrb\((?:2[2-9]|[3-9]\d|1\d\d)", stdlib)
-assert "function request_apply" not in stdlib
-assert "case 152:" not in core[start:end]
+core = Path("src/wasm/core.cpp").read_text()
+for host in re.findall(r"host function (__bearer_\w+)\(operation : s32", stdlib):
+    assert not re.search(re.escape(host) + r"\(\s*\d", stdlib), host
+assert not re.search(r"\bcase\s+\d+\s*:\s*|(?:\boperation\s*[=!<>]=?\s*\d|\d\s*[=!<>]=?\s*\boperation)", core)
+assert "function request_apply" not in stdlib and not re.search(r"\bglobal\s*>\s*21\b", core)
 PY
 scripts/test_hardened_http_native.sh
 scripts/test_crypto_operation_native.sh

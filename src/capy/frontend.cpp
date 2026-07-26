@@ -503,6 +503,7 @@ FunctionType::FunctionType(Location l) : Expr(ExprKind::FunctionType, std::move(
 Lambda::Lambda(Location l) : Expr(ExprKind::Lambda, std::move(l)), return_type(nullptr), body(nullptr) {}
 Function::Function(Location l, std::string n) : Expr(ExprKind::Function, std::move(l)), name(std::move(n)), return_type(nullptr), body(nullptr) {}
 Struct::Struct(Location l, std::string n) : Expr(ExprKind::Struct, std::move(l)), name(std::move(n)) {}
+Constant::Constant(Location l, std::string n, Expr* a, Expr* v) : Expr(ExprKind::Constant, std::move(l)), name(std::move(n)), annotation(a), value(v) {}
 For::For(Location l) : Expr(ExprKind::For, std::move(l)), iterable(nullptr), body(nullptr) {}
 If::If(Location l) : Expr(ExprKind::If, std::move(l)), condition(nullptr), then_body(nullptr), else_body(nullptr) {}
 While::While(Location l) : Expr(ExprKind::While, std::move(l)), condition(nullptr), body(nullptr) {}
@@ -689,6 +690,8 @@ Expr* Parser::prefix()
 			return token().kind == TokenKind::identifier ? function(current.location) : function_expression(current.location);
 		if (current.text == "struct")
 			return structure(current.location);
+		if (current.text == "const")
+			return constant(current.location);
 		if (current.text == "var")
 			return variable(current.location);
 		if (current.text == "return")
@@ -813,6 +816,8 @@ Block* Parser::block(Location location)
 	skip_separators();
 	while (!match("}"))
 	{
+		if (token().text == "const")
+			fail(token().location, "const declarations are top-level only");
 		if (token().kind == TokenKind::eof)
 			fail(location, "unterminated code block");
 		result->items.push_back(expression());
@@ -915,6 +920,15 @@ Expr* Parser::structure(Location location)
 	Struct* result = program_.make<Struct>(location, name.text);
 	result->members = block(location)->items;
 	return result;
+}
+Expr* Parser::constant(Location location)
+{
+	Token name = require_identifier("constant name");
+	require(":");
+	Expr* annotation = expression(11);
+	require("=");
+	Expr* value = expression();
+	return program_.make<Constant>(location, name.text, annotation, value);
 }
 Expr* Parser::variable(Location location)
 {

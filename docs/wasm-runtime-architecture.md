@@ -93,8 +93,7 @@ the boundary).
   the dynamic tree into its fresh `Request`. The response (body, headers,
   status, and any `meta` such as `ws_commands`) comes back as BRRB.
 
-See [`docs/wasm-phase1-dvalue-abi.md`](wasm-phase1-dvalue-abi.md) for the wire
-format details.
+The wire format details are documented with the BRRB implementation.
 
 Decoder robustness note: BRRB input is untrusted across the wasm membrane. The
 BRRB decoder must reject malformed magic/version/varint/length/trailing-data

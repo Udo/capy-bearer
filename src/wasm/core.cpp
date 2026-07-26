@@ -1349,12 +1349,14 @@ size_t bearer_regex_dval(s32 operation, const char* pattern, size_t pattern_len,
 {
 	if(!out)
 	{
+		enum class RegexOperation { regex_regex_search = 0, regex_regex_search_all = 1, regex_regex_replace = 2, regex_regex_split = 3 };
 		static const char* operations[] = {"search", "search_all", "replace", "split_strings"};
 		DValue response;
-		if(operation < 0 || operation > 3 || operation == 2 || !bearer_regex_call(operations[operation], pattern, pattern_len, subject, subject_len,
-			replacement, replacement_len, flags, flags_len, response))
+		const RegexOperation selected = static_cast<RegexOperation>(operation);
+		if((selected != RegexOperation::regex_regex_search && selected != RegexOperation::regex_regex_search_all && selected != RegexOperation::regex_regex_split) ||
+			!bearer_regex_call(operations[operation], pattern, pattern_len, subject, subject_len, replacement, replacement_len, flags, flags_len, response))
 			return(std::numeric_limits<size_t>::max());
-		if(operation == 0 || operation == 1)
+		if(selected == RegexOperation::regex_regex_search || selected == RegexOperation::regex_regex_search_all)
 		{
 			DValue* tree = response.key("tree");
 			wasm_regex_result = brb_encode(tree ? *tree : DValue());
@@ -1379,8 +1381,9 @@ size_t bearer_regex_text(s32 operation, const char* pattern, size_t pattern_len,
 {
 	if(!out)
 	{
+		enum class RegexOperation { regex_regex_search = 0, regex_regex_search_all = 1, regex_regex_replace = 2, regex_regex_split = 3 };
 		DValue response;
-		if(operation != 2 || !bearer_regex_call("replace", pattern, pattern_len, subject, subject_len,
+		if(static_cast<RegexOperation>(operation) != RegexOperation::regex_regex_replace || !bearer_regex_call("replace", pattern, pattern_len, subject, subject_len,
 			replacement, replacement_len, flags, flags_len, response))
 			return(std::numeric_limits<size_t>::max());
 		wasm_regex_result = response["text"].to_string();
@@ -1398,21 +1401,18 @@ size_t bearer_codec_text(s32 operation, const char* input, size_t input_len, cha
 {
 	if(!out)
 	{
+		enum class CodecOperation { codec_base64_encode = 0, codec_base64_decode = 1, codec_uri_encode = 2, codec_uri_decode = 3, codec_json_decode = 4 };
 		String value(input ? input : "", input ? input_len : 0);
-		if(operation == 0)
-			wasm_codec_result = base64_encode(value);
-		else if(operation == 1)
+		switch(static_cast<CodecOperation>(operation))
 		{
-			bool ok = false;
-			wasm_codec_result = base64_decode(value, ok);
-			if(!ok) wasm_codec_result.clear();
+			case CodecOperation::codec_base64_encode: wasm_codec_result = base64_encode(value); break;
+			case CodecOperation::codec_base64_decode: {
+				bool ok = false; wasm_codec_result = base64_decode(value, ok); if(!ok) wasm_codec_result.clear(); break;
+			}
+			case CodecOperation::codec_uri_encode: wasm_codec_result = uri_encode(value); break;
+			case CodecOperation::codec_uri_decode: wasm_codec_result = uri_decode(value); break;
+			default: wasm_codec_result.clear(); break;
 		}
-		else if(operation == 2)
-			wasm_codec_result = uri_encode(value);
-		else if(operation == 3)
-			wasm_codec_result = uri_decode(value);
-		else
-			wasm_codec_result.clear();
 		if(wasm_codec_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
 		{
 			wasm_codec_result.clear();
@@ -1425,9 +1425,10 @@ size_t bearer_codec_text(s32 operation, const char* input, size_t input_len, cha
 
 size_t bearer_codec_dval(s32 operation, const char* input, size_t input_len, char* out, size_t cap)
 {
+	enum class CodecOperation { codec_base64_encode = 0, codec_base64_decode = 1, codec_uri_encode = 2, codec_uri_decode = 3, codec_json_decode = 4 };
 	if(!out)
 	{
-		if(operation != 4)
+		if(static_cast<CodecOperation>(operation) != CodecOperation::codec_json_decode)
 			return(std::numeric_limits<size_t>::max());
 		String value(input ? input : "", input ? input_len : 0);
 		wasm_codec_result = brb_encode(json_decode(value));
@@ -1443,18 +1444,19 @@ size_t bearer_codec_dval(s32 operation, const char* input, size_t input_len, cha
 
 size_t bearer_crypto_string(s32 operation, const char* a, size_t a_len, const char* b, size_t b_len, char* out, size_t cap)
 {
+	enum class CryptoStringOperation { sha256 = 0, sha256_hex = 1, hmac_sha256 = 2, hmac_sha256_hex = 3, sha1_hex = 4, sha1_binary = 5, password_hash = 6 };
 	if(!out)
 	{
 		String left(a ? a : "", a ? a_len : 0), right(b ? b : "", b ? b_len : 0);
-		switch(operation)
+		switch(static_cast<CryptoStringOperation>(operation))
 		{
-			case 0: wasm_crypto_result = sha256(left); break;
-			case 1: wasm_crypto_result = sha256_hex(left); break;
-			case 2: wasm_crypto_result = hmac_sha256(left, right); break;
-			case 3: wasm_crypto_result = hmac_sha256_hex(left, right); break;
-			case 4: wasm_crypto_result = gen_sha1(left, false); break;
-			case 5: wasm_crypto_result = gen_sha1(left, true); break;
-			case 6: wasm_crypto_result = password_hash(left); break;
+			case CryptoStringOperation::sha256: wasm_crypto_result = sha256(left); break;
+			case CryptoStringOperation::sha256_hex: wasm_crypto_result = sha256_hex(left); break;
+			case CryptoStringOperation::hmac_sha256: wasm_crypto_result = hmac_sha256(left, right); break;
+			case CryptoStringOperation::hmac_sha256_hex: wasm_crypto_result = hmac_sha256_hex(left, right); break;
+			case CryptoStringOperation::sha1_hex: wasm_crypto_result = gen_sha1(left, false); break;
+			case CryptoStringOperation::sha1_binary: wasm_crypto_result = gen_sha1(left, true); break;
+			case CryptoStringOperation::password_hash: wasm_crypto_result = password_hash(left); break;
 			default: return(0);
 		}
 		return(wasm_crypto_result.size());
@@ -1464,10 +1466,11 @@ size_t bearer_crypto_string(s32 operation, const char* a, size_t a_len, const ch
 
 s32 bearer_crypto_bool(s32 operation, const char* a, size_t a_len, const char* b, size_t b_len)
 {
+	enum class CryptoBoolOperation { equal = 0, password_verify = 1, password_needs_rehash = 2 };
 	String left(a ? a : "", a ? a_len : 0), right(b ? b : "", b ? b_len : 0);
-	if(operation == 0) return(crypto_equal(left, right));
-	if(operation == 1) return(password_verify(left, right));
-	if(operation == 2) return(password_needs_rehash(left));
+	if(static_cast<CryptoBoolOperation>(operation) == CryptoBoolOperation::equal) return(crypto_equal(left, right));
+	if(static_cast<CryptoBoolOperation>(operation) == CryptoBoolOperation::password_verify) return(password_verify(left, right));
+	if(static_cast<CryptoBoolOperation>(operation) == CryptoBoolOperation::password_needs_rehash) return(password_needs_rehash(left));
 	return(0);
 }
 
@@ -1488,17 +1491,19 @@ size_t bearer_capy_backtrace(s32 max_frames, s32 skip_frames, const char* stack,
 
 u64 bearer_noise_u64(s32 operation, u64 a, u64 b, u64 index, u64 seed)
 {
-	if(operation == 0) return(gen_noise64(a, b));
-	if(operation == 1) return(gen_int(a, b, index, seed));
-	if(operation == 2) return(draw_int(a, b));
+	enum class NoiseU64Operation { noise_gen_noise64 = 0, noise_gen_int = 1, noise_draw_int = 2 };
+	if(static_cast<NoiseU64Operation>(operation) == NoiseU64Operation::noise_gen_noise64) return(gen_noise64(a, b));
+	if(static_cast<NoiseU64Operation>(operation) == NoiseU64Operation::noise_gen_int) return(gen_int(a, b, index, seed));
+	if(static_cast<NoiseU64Operation>(operation) == NoiseU64Operation::noise_draw_int) return(draw_int(a, b));
 	return(0);
 }
 
 f64 bearer_noise_f64(s32 operation, f64 from, f64 to, u64 index, u64 seed, f64 precision)
 {
-	if(operation == 0) return(gen_noise01(index, seed));
-	if(operation == 1) return(gen_float(from, to, index, seed, precision));
-	if(operation == 2) return(draw_float(from, to, precision));
+	enum class NoiseF64Operation { noise_gen_noise01 = 0, noise_gen_float = 1, noise_draw_float = 2 };
+	if(static_cast<NoiseF64Operation>(operation) == NoiseF64Operation::noise_gen_noise01) return(gen_noise01(index, seed));
+	if(static_cast<NoiseF64Operation>(operation) == NoiseF64Operation::noise_gen_float) return(gen_float(from, to, index, seed, precision));
+	if(static_cast<NoiseF64Operation>(operation) == NoiseF64Operation::noise_draw_float) return(draw_float(from, to, precision));
 	return(0);
 }
 
@@ -2137,7 +2142,7 @@ size_t bearer_dv_merge_brrb(const char* left, size_t left_len, const char* right
 	return(bearer_copy_staged(wasm_dval_merge_result, out, cap));
 }
 
-static bool bearer_dv_apply_brrb_decode(const char* value, size_t value_len, const char* key, size_t key_len,
+static bool bearer_brrb_call_decode(const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, DValue& result, DValue& supplied, String& text)
 {
 	wasm_dval_merge_result.clear();
@@ -2147,7 +2152,7 @@ static bool bearer_dv_apply_brrb_decode(const char* value, size_t value_len, con
 	return(true);
 }
 
-static size_t bearer_dv_apply_brrb_finish(const DValue& result)
+static size_t bearer_brrb_call_finish(const DValue& result)
 {
 	wasm_dval_merge_result = brb_encode(result);
 	if(wasm_dval_merge_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
@@ -2158,110 +2163,107 @@ static size_t bearer_dv_apply_brrb_finish(const DValue& result)
 	return(wasm_dval_merge_result.size());
 }
 
-static size_t bearer_dv_apply_brrb_copy(char* out, size_t cap)
+static size_t bearer_brrb_call_copy(char* out, size_t cap)
 {
 	return(bearer_copy_staged(wasm_dval_merge_result, out, cap));
 }
 
-// Copied BRRB transport for one cohesive host capability.
 size_t bearer_dv_apply_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
 	if(out)
-		return(bearer_dv_apply_brrb_copy(out, cap));
+		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	switch(operation)
+	enum class DValueOperation { dval_dval_set = 0, dval_dval_push = 1, dval_dval_pop = 2, dval_dval_remove = 3, dval_dval_clear = 4, dval_dval_get_by_path = 5, dval_dval_get_or_create = 6, dval_dval_set_array = 7, dval_dval_set_bool = 8, dval_dval_set_type = 9, dval_dval_get_type_name = 10, dval_dval_is_array = 11, dval_dval_is_list = 12, dval_dval_key = 13, dval_dval_keys = 14, dval_dval_values = 15, dval_dval_to_json = 16, dval_dval_to_stringmap = 17, dval_dval_put = 18, dval_dval_to_string = 19, dval_dval_to_f64 = 20, dval_dval_to_bool = 21 };
+	switch(static_cast<DValueOperation>(operation))
 	{
-		case 0: result.set(supplied); break;
-		case 1: result.push(supplied); break;
-		case 2: result.pop(); break;
-		case 3: result.remove(text); break;
-		case 4: result.clear(); break;
-		case 5: result = result.get_by_path(text); break;
-		case 6: result.get_or_create(text); break;
-		case 7: result.set_array(); break;
-		case 8: result.set_bool(supplied.to_bool()); break;
-		case 9: if(text.size() != 1) return(std::numeric_limits<size_t>::max()); result.set_type(text[0]); break;
-		case 10: result.set(result.get_type_name()); break;
-		case 11: result.set_bool(result.is_array()); break;
-		case 12: result.set_bool(result.is_list()); break;
-		case 13: { const DValue* child = result.key(text); result = child ? *child : DValue(); break; }
-		case 14: { result = result.keys(); break; }
-		case 15: result = result.values(); break;
-		case 16: result.set(result.to_json(text.empty() ? '"' : text[0])); break;
-		case 17: result.set(result.to_stringmap()); break;
-		case 18: result[text] = supplied; break;
-		case 19: result.set(result.to_string(supplied.to_string())); break;
-		case 20: result.set(result.to_f64(supplied.to_f64())); break;
-		case 21: result.set_bool(result.to_bool(supplied.to_bool())); break;
+		case DValueOperation::dval_dval_set: result.set(supplied); break;
+		case DValueOperation::dval_dval_push: result.push(supplied); break;
+		case DValueOperation::dval_dval_pop: result.pop(); break;
+		case DValueOperation::dval_dval_remove: result.remove(text); break;
+		case DValueOperation::dval_dval_clear: result.clear(); break;
+		case DValueOperation::dval_dval_get_by_path: result = result.get_by_path(text); break;
+		case DValueOperation::dval_dval_get_or_create: result.get_or_create(text); break;
+		case DValueOperation::dval_dval_set_array: result.set_array(); break;
+		case DValueOperation::dval_dval_set_bool: result.set_bool(supplied.to_bool()); break;
+		case DValueOperation::dval_dval_set_type: if(text.size() != 1) return(std::numeric_limits<size_t>::max()); result.set_type(text[0]); break;
+		case DValueOperation::dval_dval_get_type_name: result.set(result.get_type_name()); break;
+		case DValueOperation::dval_dval_is_array: result.set_bool(result.is_array()); break;
+		case DValueOperation::dval_dval_is_list: result.set_bool(result.is_list()); break;
+		case DValueOperation::dval_dval_key: { const DValue* child = result.key(text); result = child ? *child : DValue(); break; }
+		case DValueOperation::dval_dval_keys: { result = result.keys(); break; }
+		case DValueOperation::dval_dval_values: result = result.values(); break;
+		case DValueOperation::dval_dval_to_json: result.set(result.to_json(text.empty() ? '"' : text[0])); break;
+		case DValueOperation::dval_dval_to_stringmap: result.set(result.to_stringmap()); break;
+		case DValueOperation::dval_dval_put: result[text] = supplied; break;
+		case DValueOperation::dval_dval_to_string: result.set(result.to_string(supplied.to_string())); break;
+		case DValueOperation::dval_dval_to_f64: result.set(result.to_f64(supplied.to_f64())); break;
+		case DValueOperation::dval_dval_to_bool: result.set_bool(result.to_bool(supplied.to_bool())); break;
 			// Core utility adapters use copied BRRB values so the native helpers remain
 			// the only implementation of parsing, routing, and diagnostic policy.
 		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_dv_apply_brrb_finish(result));
+	return(bearer_brrb_call_finish(result));
 }
 
-// Copied BRRB transport for one cohesive host capability.
 size_t bearer_text_parsing_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
 	if(out)
-		return(bearer_dv_apply_brrb_copy(out, cap));
+		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum Operation { ascii_safe_name_op, safe_name_op, trim_op, float_val_op, int_val_op, to_bool_op,
-		starts_with_op, ends_with_op, encode_query_op, parse_query_op, split_op, split_space_op,
-		split_utf8_op, split_http_headers_op, split_kv_op, sort_op };
-	switch(operation)
+	enum class TextOperation { text_ascii_safe_name = 0, text_safe_name = 1, text_trim = 2, text_float_val = 3, text_int_val = 4, text_to_bool = 5, text_str_starts_with = 6, text_str_ends_with = 7, text_encode_query = 8, text_parse_query = 9, text_split = 10, text_split_space = 11, text_split_utf8 = 12, text_split_http_headers = 13, text_split_kv = 14, text_sort = 15 };
+	switch(static_cast<TextOperation>(operation))
 	{
-		case ascii_safe_name_op: result.set(ascii_safe_name(result.to_string())); break;
-		case safe_name_op: result.set(safe_name(result.to_string())); break;
-		case trim_op: result.set(trim(result.to_string())); break;
-		case float_val_op: result.set(float_val(result.to_string())); break;
-		case int_val_op: result.set(std::to_string(int_val(result.to_string(), (u32)supplied.to_s64(10)))); break;
-		case to_bool_op: result.set_bool(to_bool(result.to_string(), supplied.to_bool())); break;
-		case starts_with_op: result.set_bool(str_starts_with(result.to_string(), text)); break;
-		case ends_with_op: result.set_bool(str_ends_with(result.to_string(), text)); break;
-		case encode_query_op: result.set(encode_query(result.to_stringmap())); break;
-		case parse_query_op: {
+		case TextOperation::text_ascii_safe_name: result.set(ascii_safe_name(result.to_string())); break;
+		case TextOperation::text_safe_name: result.set(safe_name(result.to_string())); break;
+		case TextOperation::text_trim: result.set(trim(result.to_string())); break;
+		case TextOperation::text_float_val: result.set(float_val(result.to_string())); break;
+		case TextOperation::text_int_val: result.set(std::to_string(int_val(result.to_string(), (u32)supplied.to_s64(10)))); break;
+		case TextOperation::text_to_bool: result.set_bool(to_bool(result.to_string(), supplied.to_bool())); break;
+		case TextOperation::text_str_starts_with: result.set_bool(str_starts_with(result.to_string(), text)); break;
+		case TextOperation::text_str_ends_with: result.set_bool(str_ends_with(result.to_string(), text)); break;
+		case TextOperation::text_encode_query: result.set(encode_query(result.to_stringmap())); break;
+		case TextOperation::text_parse_query: {
 			StringMap parsed = parse_query(result.to_string()); result.set_type('M');
 			for(const auto& entry : parsed) result[entry.first] = entry.second;
 			break;
 		}
-		case split_op: {
+		case TextOperation::text_split: {
 			std::vector<String> parts = split_strings(result.to_string(), text);
 			result.set_array();
 			for(const String& part : parts) { DValue child; child.set(part); result.push(child); }
 			break;
 		}
-		case split_space_op: {
+		case TextOperation::text_split_space: {
 			std::vector<String> parts = split_space_strings(result.to_string()); result.set_array();
 			for(const String& part : parts) { DValue child; child = part; result.push(child); }
 			break;
 		}
-		case split_utf8_op: {
+		case TextOperation::text_split_utf8: {
 			std::vector<String> parts = split_utf8_strings(result.to_string(), supplied.to_bool()); result.set_array();
 			for(const String& part : parts) { DValue child; child = part; result.push(child); }
 			break;
 		}
-		case split_http_headers_op: {
+		case TextOperation::text_split_http_headers: {
 			StringMap headers = split_http_headers(result.to_string()); result.set_type('M');
 			for(const auto& entry : headers) result[entry.first] = entry.second;
 			break;
 		}
-		case split_kv_op: {
+		case TextOperation::text_split_kv: {
 			if(text.size() != 1) return(std::numeric_limits<size_t>::max());
 			StringMap values = split_kv(result.to_string(), text[0], supplied["trim"].to_bool(true), supplied["uppercase"].to_bool());
 			result.set_type('M');
 			for(const auto& value : values) result[value.first] = value.second;
 			break;
 		}
-		case sort_op: {
+		case TextOperation::text_sort: {
 			if(!result.is_list()) return(std::numeric_limits<size_t>::max());
 			std::vector<String> parts; bool valid = true;
 			result.each([&](const DValue& item, String) { if(item.deref().type != 'S') valid = false; else parts.push_back(item.to_string()); });
@@ -2271,7 +2273,7 @@ size_t bearer_text_parsing_brrb(s32 operation, const char* value, size_t value_l
 		}
 		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_dv_apply_brrb_finish(result));
+	return(bearer_brrb_call_finish(result));
 }
 
 // Copied BRRB transport for URI and route/path normalization.
@@ -2279,28 +2281,28 @@ size_t bearer_route_path_brrb(s32 operation, const char* value, size_t value_len
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
 	if(out)
-		return(bearer_dv_apply_brrb_copy(out, cap));
+		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum Operation { parse_uri_op, normalize_op, is_safe_op, sanitize_op, safe_key_op };
-	switch(operation)
+	enum class RouteOperation { route_parse_uri = 0, route_route_path_normalize = 1, route_route_path_is_safe = 2, route_route_path_sanitize = 3, route_runtime_safe_key = 4 };
+	switch(static_cast<RouteOperation>(operation))
 	{
-		case parse_uri_op: {
+		case RouteOperation::route_parse_uri: {
 			URI uri = parse_uri(result.to_string());
 			result.set_type('M'); result["parts"].set_type('M'); result["query"].set_type('M');
 			for(const auto& entry : uri.parts) result["parts"][entry.first] = entry.second;
 			for(const auto& entry : uri.query) result["query"][entry.first] = entry.second;
 			break;
 		}
-		case normalize_op: result.set(route_path_normalize(result.to_string())); break;
-		case is_safe_op: result.set_bool(route_path_is_safe(result.to_string())); break;
-		case sanitize_op: result.set(route_path_sanitize(result.to_string(), text)); break;
-		case safe_key_op: result.set(runtime_safe_key(result.to_string(), text)); break;
+		case RouteOperation::route_route_path_normalize: result.set(route_path_normalize(result.to_string())); break;
+		case RouteOperation::route_route_path_is_safe: result.set_bool(route_path_is_safe(result.to_string())); break;
+		case RouteOperation::route_route_path_sanitize: result.set(route_path_sanitize(result.to_string(), text)); break;
+		case RouteOperation::route_runtime_safe_key: result.set(runtime_safe_key(result.to_string(), text)); break;
 		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_dv_apply_brrb_finish(result));
+	return(bearer_brrb_call_finish(result));
 }
 
 // Copied BRRB transport for runtime diagnostics.
@@ -2308,307 +2310,307 @@ size_t bearer_runtime_diagnostics_brrb(s32 operation, const char* value, size_t 
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
 	if(out)
-		return(bearer_dv_apply_brrb_copy(out, cap));
+		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum Operation { signal_name_op, backtrace_capture_op, usleep_op, var_dump_op };
-	switch(operation)
+	enum class DiagnosticOperation { diagnostic_signal_name = 0, diagnostic_backtrace_capture = 1, diagnostic_usleep = 2, diagnostic_var_dump = 3 };
+	switch(static_cast<DiagnosticOperation>(operation))
 	{
-		case signal_name_op: result.set(signal_name((s32)result.to_s64())); break;
-		case backtrace_capture_op: result.set(backtrace_capture((u32)result.to_s64(32), (u32)supplied.to_s64())); break;
-		case usleep_op: { s64 usec = result.to_s64(); if(usec < 0) return(std::numeric_limits<size_t>::max()); result.set((f64)usleep((u32)usec)); break; }
-		case var_dump_op: result.set(var_dump(result, text, supplied.to_string("\n"))); break;
+		case DiagnosticOperation::diagnostic_signal_name: result.set(signal_name((s32)result.to_s64())); break;
+		case DiagnosticOperation::diagnostic_backtrace_capture: result.set(backtrace_capture((u32)result.to_s64(32), (u32)supplied.to_s64())); break;
+		case DiagnosticOperation::diagnostic_usleep: { s64 usec = result.to_s64(); if(usec < 0) return(std::numeric_limits<size_t>::max()); result.set((f64)usleep((u32)usec)); break; }
+		case DiagnosticOperation::diagnostic_var_dump: result.set(var_dump(result, text, supplied.to_string("\n"))); break;
 		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_dv_apply_brrb_finish(result));
+	return(bearer_brrb_call_finish(result));
 }
 
-// Copied BRRB transport for one cohesive host capability.
 size_t bearer_codec_archive_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
 	if(out)
-		return(bearer_dv_apply_brrb_copy(out, cap));
+		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	switch(operation)
+	enum class ArchiveOperation { archive_brb_decode = 0, archive_brb_encode = 1, archive_xml_decode = 2, archive_xml_encode = 3, archive_yaml_decode = 4, archive_yaml_encode = 5, archive_markdown_to_html = 6, archive_markdown_to_ast = 7, archive_json_consume_space = 8, archive_json_encode = 9, archive_json_encode_10 = 10, archive_html_escape = 11, archive_gz_compress = 12, archive_gz_uncompress = 13, archive_zip_list = 14, archive_zip_read = 15, archive_zip_create = 16, archive_zip_extract = 17 };
+	switch(static_cast<ArchiveOperation>(operation))
 	{
-		case 0: result = brb_decode(result.to_string()); break;
-		case 1: result.set(brb_encode(result)); break;
-		case 2: result = xml_decode(result.to_string()); break;
-		case 3: result.set(xml_encode(result, text.empty() ? "root" : text)); break;
-		case 4: result = yaml_decode(result.to_string()); break;
-		case 5: result.set(yaml_encode(result)); break;
-		case 6: result.set(markdown_to_html(result.to_string(), supplied)); break;
-		case 7: result = markdown_to_ast(result.to_string(), supplied); break;
-		case 8: { u32 index = (u32)supplied.to_u64(); json_consume_space(result.to_string(), index); result.set((f64)index); break; }
-		case 9: result.set(json_encode(result)); break;
-		case 10: result.set(json_encode(result.to_string())); break;
-		case 11: result.set(html_escape(result.to_string())); break;
-		case 12: {
+		case ArchiveOperation::archive_brb_decode: result = brb_decode(result.to_string()); break;
+		case ArchiveOperation::archive_brb_encode: result.set(brb_encode(result)); break;
+		case ArchiveOperation::archive_xml_decode: result = xml_decode(result.to_string()); break;
+		case ArchiveOperation::archive_xml_encode: result.set(xml_encode(result, text.empty() ? "root" : text)); break;
+		case ArchiveOperation::archive_yaml_decode: result = yaml_decode(result.to_string()); break;
+		case ArchiveOperation::archive_yaml_encode: result.set(yaml_encode(result)); break;
+		case ArchiveOperation::archive_markdown_to_html: result.set(markdown_to_html(result.to_string(), supplied)); break;
+		case ArchiveOperation::archive_markdown_to_ast: result = markdown_to_ast(result.to_string(), supplied); break;
+		case ArchiveOperation::archive_json_consume_space: { u32 index = (u32)supplied.to_u64(); json_consume_space(result.to_string(), index); result.set((f64)index); break; }
+		case ArchiveOperation::archive_json_encode: result.set(json_encode(result)); break;
+		case ArchiveOperation::archive_json_encode_10: result.set(json_encode(result.to_string())); break;
+		case ArchiveOperation::archive_html_escape: result.set(html_escape(result.to_string())); break;
+		case ArchiveOperation::archive_gz_compress: {
 				DValue request, response; request["op"] = "gz_compress"; request["src"] = result.to_string();
 				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set(response["result"].to_string()); break;
 			}
-		case 13: {
+		case ArchiveOperation::archive_gz_uncompress: {
 				DValue request, response; request["op"] = "gz_uncompress"; request["src"] = result.to_string();
 				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set(response["result"].to_string()); break;
 			}
-		case 14: {
+		case ArchiveOperation::archive_zip_list: {
 				DValue request, response; request["op"] = "list"; request["path"] = result.to_string();
 				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); DValue* listed = response.key("result"); result = listed ? *listed : DValue(); break;
 			}
-		case 15: {
+		case ArchiveOperation::archive_zip_read: {
 				DValue request, response; request["op"] = "read"; request["path"] = result.to_string(); request["entry"] = text;
 				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set(response["result"].to_string()); break;
 			}
-		case 16: {
+		case ArchiveOperation::archive_zip_create: {
 				DValue request, response; request["op"] = "create"; request["path"] = result.to_string(); request["entries"] = supplied;
 				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set_bool(response["ok"].to_bool()); break;
 			}
-		case 17: {
+		case ArchiveOperation::archive_zip_extract: {
 				DValue request, response; request["op"] = "extract"; request["path"] = result.to_string(); request["destination"] = text;
 				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set_bool(response["ok"].to_bool()); break;
 			}
 		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_dv_apply_brrb_finish(result));
+	return(bearer_brrb_call_finish(result));
 }
 
-// Copied BRRB transport for one cohesive host capability.
 size_t bearer_crypto_password_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
 	if(out)
-		return(bearer_dv_apply_brrb_copy(out, cap));
+		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	switch(operation)
+	enum class CryptoOperation { crypto_gen_sha1 = 0, crypto_sha256 = 1, crypto_sha256_hex = 2, crypto_hmac_sha256 = 3, crypto_hmac_sha256_hex = 4, crypto_crypto_equal = 5, crypto_password_hash = 6, crypto_password_verify = 7, crypto_password_needs_rehash = 8 };
+	switch(static_cast<CryptoOperation>(operation))
 	{
-		case 0: result.set(gen_sha1(result.to_string(), supplied.to_bool())); break;
-		case 1: result.set(sha256(result.to_string())); break;
-		case 2: result.set(sha256_hex(result.to_string())); break;
-		case 3: result.set(hmac_sha256(result.to_string(), supplied.to_string())); break;
-		case 4: result.set(hmac_sha256_hex(result.to_string(), supplied.to_string())); break;
-		case 5: result.set_bool(crypto_equal(result.to_string(), supplied.to_string())); break;
-		case 6: result.set(password_hash(result.to_string())); break;
-		case 7: result.set_bool(password_verify(result.to_string(), supplied.to_string())); break;
-		case 8: result.set_bool(password_needs_rehash(result.to_string())); break;
+		case CryptoOperation::crypto_gen_sha1: result.set(gen_sha1(result.to_string(), supplied.to_bool())); break;
+		case CryptoOperation::crypto_sha256: result.set(sha256(result.to_string())); break;
+		case CryptoOperation::crypto_sha256_hex: result.set(sha256_hex(result.to_string())); break;
+		case CryptoOperation::crypto_hmac_sha256: result.set(hmac_sha256(result.to_string(), supplied.to_string())); break;
+		case CryptoOperation::crypto_hmac_sha256_hex: result.set(hmac_sha256_hex(result.to_string(), supplied.to_string())); break;
+		case CryptoOperation::crypto_crypto_equal: result.set_bool(crypto_equal(result.to_string(), supplied.to_string())); break;
+		case CryptoOperation::crypto_password_hash: result.set(password_hash(result.to_string())); break;
+		case CryptoOperation::crypto_password_verify: result.set_bool(password_verify(result.to_string(), supplied.to_string())); break;
+		case CryptoOperation::crypto_password_needs_rehash: result.set_bool(password_needs_rehash(result.to_string())); break;
 		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_dv_apply_brrb_finish(result));
+	return(bearer_brrb_call_finish(result));
 }
 
-// Copied BRRB transport for one cohesive host capability.
 size_t bearer_filesystem_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
 	if(out)
-		return(bearer_dv_apply_brrb_copy(out, cap));
+		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	switch(operation)
+	enum class FilesystemOperation { filesystem_basename = 0, filesystem_dirname = 1, filesystem_path_join = 2, filesystem_path_real = 3, filesystem_path_is_within = 4, filesystem_expand_path = 5, filesystem_file_get_contents = 6, filesystem_file_put_contents = 7, filesystem_file_append = 8, filesystem_file_copy = 9, filesystem_file_rename = 10, filesystem_file_stat = 11, filesystem_file_mtime = 12, filesystem_file_exists = 13, filesystem_file_truncate = 14, filesystem_file_chmod = 15, filesystem_file_symlink = 16, filesystem_ls = 17, filesystem_mkdir = 18, filesystem_dir_list = 19, filesystem_dir_remove = 20, filesystem_cwd_get = 21, filesystem_cwd_set = 22 };
+	switch(static_cast<FilesystemOperation>(operation))
 	{
-		case 0: result.set(basename(result.to_string())); break;
-		case 1: result.set(dirname(result.to_string())); break;
-		case 2: result.set(path_join(result.to_string(), text)); break;
-		case 3: result.set(path_real(result.to_string())); break;
-		case 4: result.set_bool(path_is_within(result.to_string(), text)); break;
-		case 5: result.set(expand_path(result.to_string(), text)); break;
-		case 6: result.set(file_get_contents(result.to_string())); break;
-		case 7: result.set_bool(file_put_contents(result.to_string(), supplied.to_string())); break;
-		case 8: result.set_bool(file_append(result.to_string(), supplied.to_string())); break;
-		case 9: result.set_bool(file_copy(result.to_string(), text)); break;
-		case 10: result.set_bool(file_rename(result.to_string(), text)); break;
-		case 11: result = file_stat(result.to_string()); break;
-		case 12: result.set(std::to_string(file_mtime(result.to_string()))); break;
-		case 13: result.set_bool(file_exists(result.to_string())); break;
-		case 14: result.set_bool(file_truncate(result.to_string(), supplied.to_u64())); break;
-		case 15: result.set_bool(file_chmod(result.to_string(), (u32)supplied.to_u64())); break;
-		case 16: result.set_bool(file_symlink(result.to_string(), text)); break;
-		case 17: result = ls(result.to_string()); break;
-		case 18: result.set_bool(mkdir(result.to_string())); break;
-		case 19: result = dir_list(result.to_string()); break;
-		case 20: result.set_bool(dir_remove(result.to_string(), supplied.to_bool())); break;
-		case 21: result.set(cwd_get()); break;
-		case 22: cwd_set(result.to_string()); result.clear(); break;
+		case FilesystemOperation::filesystem_basename: result.set(basename(result.to_string())); break;
+		case FilesystemOperation::filesystem_dirname: result.set(dirname(result.to_string())); break;
+		case FilesystemOperation::filesystem_path_join: result.set(path_join(result.to_string(), text)); break;
+		case FilesystemOperation::filesystem_path_real: result.set(path_real(result.to_string())); break;
+		case FilesystemOperation::filesystem_path_is_within: result.set_bool(path_is_within(result.to_string(), text)); break;
+		case FilesystemOperation::filesystem_expand_path: result.set(expand_path(result.to_string(), text)); break;
+		case FilesystemOperation::filesystem_file_get_contents: result.set(file_get_contents(result.to_string())); break;
+		case FilesystemOperation::filesystem_file_put_contents: result.set_bool(file_put_contents(result.to_string(), supplied.to_string())); break;
+		case FilesystemOperation::filesystem_file_append: result.set_bool(file_append(result.to_string(), supplied.to_string())); break;
+		case FilesystemOperation::filesystem_file_copy: result.set_bool(file_copy(result.to_string(), text)); break;
+		case FilesystemOperation::filesystem_file_rename: result.set_bool(file_rename(result.to_string(), text)); break;
+		case FilesystemOperation::filesystem_file_stat: result = file_stat(result.to_string()); break;
+		case FilesystemOperation::filesystem_file_mtime: result.set(std::to_string(file_mtime(result.to_string()))); break;
+		case FilesystemOperation::filesystem_file_exists: result.set_bool(file_exists(result.to_string())); break;
+		case FilesystemOperation::filesystem_file_truncate: result.set_bool(file_truncate(result.to_string(), supplied.to_u64())); break;
+		case FilesystemOperation::filesystem_file_chmod: result.set_bool(file_chmod(result.to_string(), (u32)supplied.to_u64())); break;
+		case FilesystemOperation::filesystem_file_symlink: result.set_bool(file_symlink(result.to_string(), text)); break;
+		case FilesystemOperation::filesystem_ls: result = ls(result.to_string()); break;
+		case FilesystemOperation::filesystem_mkdir: result.set_bool(mkdir(result.to_string())); break;
+		case FilesystemOperation::filesystem_dir_list: result = dir_list(result.to_string()); break;
+		case FilesystemOperation::filesystem_dir_remove: result.set_bool(dir_remove(result.to_string(), supplied.to_bool())); break;
+		case FilesystemOperation::filesystem_cwd_get: result.set(cwd_get()); break;
+		case FilesystemOperation::filesystem_cwd_set: cwd_set(result.to_string()); result.clear(); break;
 			// Request operations deliberately execute against the workspace Request;
 			// Capy only receives copied results and never duplicates request policy.
 		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_dv_apply_brrb_finish(result));
+	return(bearer_brrb_call_finish(result));
 }
 
-// Copied BRRB transport for one cohesive host capability.
 size_t bearer_request_workspace_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
 	if(out)
-		return(bearer_dv_apply_brrb_copy(out, cap));
+		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	switch(operation)
+	enum class RequestOperation { request_ob_start = 0, request_ob_close = 1, request_ob_get = 2, request_ob_get_close = 3, request_response_status = 4, request_redirect = 5, request_session_start = 6, request_session_set = 7, request_session_destroy = 8, request_session_id_create = 9, request_csrf_token = 10, request_csrf_valid = 11, request_csrf_rotate = 12, request_csrf_field = 13, request_cli_input = 14, request_cli_arg = 15, request_request_base_url = 16, request_request_script_url = 17, request_request_query_path = 18, request_request_query_route = 19, request_request_route_from_raw_path = 20, request_request_perf = 21, request_response_cookie = 22 };
+	switch(static_cast<RequestOperation>(operation))
 	{
-		case 0: ob_start(); result.clear(); break;
-		case 1: ob_close(); result.clear(); break;
-		case 2: result.set(ob_get()); break;
-		case 3: result.set(ob_get_close()); break;
-		case 4: if(result.to_s64() < 100 || result.to_s64() > 999) return(std::numeric_limits<size_t>::max()); context->set_status((s32)result.to_s64(), text); result.clear(); break;
-		case 5: redirect(result.to_string(), (s32)supplied.to_s64(302)); result.clear(); break;
-		case 6: result.set(session_start(result.to_string())); break;
-		case 7:
+		case RequestOperation::request_ob_start: ob_start(); result.clear(); break;
+		case RequestOperation::request_ob_close: ob_close(); result.clear(); break;
+		case RequestOperation::request_ob_get: result.set(ob_get()); break;
+		case RequestOperation::request_ob_get_close: result.set(ob_get_close()); break;
+		case RequestOperation::request_response_status: if(result.to_s64() < 100 || result.to_s64() > 999) return(std::numeric_limits<size_t>::max()); context->set_status((s32)result.to_s64(), text); result.clear(); break;
+		case RequestOperation::request_redirect: redirect(result.to_string(), (s32)supplied.to_s64(302)); result.clear(); break;
+		case RequestOperation::request_session_start: result.set(session_start(result.to_string())); break;
+		case RequestOperation::request_session_set:
 				if(text == "set") context->session[result.to_string()] = supplied.to_string();
 				else if(text == "remove") context->session.erase(result.to_string());
 				else return(std::numeric_limits<size_t>::max());
 				result.clear(); break;
-		case 8: session_destroy(result.to_string()); result.clear(); break;
-		case 9: result.set(session_id_create()); break;
-		case 10: result.set(csrf_token(result.to_string(), text)); break;
-		case 11: result.set_bool(csrf_valid(result.to_string(), text, supplied.to_string())); break;
-		case 12: csrf_rotate(result.to_string(), text); result.clear(); break;
-		case 13: result.set(csrf_field(result.to_string(), text, supplied.to_string())); break;
-		case 14: result = cli_input(*context); break;
-		case 15: result.set(cli_arg(*context, result.to_string(), text)); break;
-		case 16: result.set(request_base_url(*context)); break;
-		case 17: result.set(request_script_url(*context)); break;
-		case 18: result.set(request_query_path(*context, text)); break;
-		case 19: result = request_query_route(*context, text); break;
-		case 20: result = request_route_from_raw_path(result.to_string(), text); break;
-		case 21: result = request_perf(); break;
-		case 22: set_cookie(result.to_string(), supplied.to_string()); result.clear(); break;
+		case RequestOperation::request_session_destroy: session_destroy(result.to_string()); result.clear(); break;
+		case RequestOperation::request_session_id_create: result.set(session_id_create()); break;
+		case RequestOperation::request_csrf_token: result.set(csrf_token(result.to_string(), text)); break;
+		case RequestOperation::request_csrf_valid: result.set_bool(csrf_valid(result.to_string(), text, supplied.to_string())); break;
+		case RequestOperation::request_csrf_rotate: csrf_rotate(result.to_string(), text); result.clear(); break;
+		case RequestOperation::request_csrf_field: result.set(csrf_field(result.to_string(), text, supplied.to_string())); break;
+		case RequestOperation::request_cli_input: result = cli_input(*context); break;
+		case RequestOperation::request_cli_arg: result.set(cli_arg(*context, result.to_string(), text)); break;
+		case RequestOperation::request_request_base_url: result.set(request_base_url(*context)); break;
+		case RequestOperation::request_request_script_url: result.set(request_script_url(*context)); break;
+		case RequestOperation::request_request_query_path: result.set(request_query_path(*context, text)); break;
+		case RequestOperation::request_request_query_route: result = request_query_route(*context, text); break;
+		case RequestOperation::request_request_route_from_raw_path: result = request_route_from_raw_path(result.to_string(), text); break;
+		case RequestOperation::request_request_perf: result = request_perf(); break;
+		case RequestOperation::request_response_cookie: set_cookie(result.to_string(), supplied.to_string()); result.clear(); break;
 			// Cache and process APIs retain sys.cpp as the semantic authority; only
 			// copied values cross from Capy at this boundary.
 		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_dv_apply_brrb_finish(result));
+	return(bearer_brrb_call_finish(result));
 }
 
-// Copied BRRB transport for one cohesive host capability.
 size_t bearer_cache_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
 	if(out)
-		return(bearer_dv_apply_brrb_copy(out, cap));
+		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	switch(operation)
+	enum class CacheOperation { cache_memcache_connect = 0, cache_memcache_command = 1, cache_memcache_set = 2, cache_memcache_delete = 3, cache_memcache_get = 4, cache_memcache_get_multiple = 5, cache_memcache_escape_key = 6, cache_memcache_escape_keys = 7 };
+	switch(static_cast<CacheOperation>(operation))
 	{
-		case 0: result.set(std::to_string(memcache_connect(result.to_string(), (u16)supplied.to_u64(11211)))); break;
-		case 1: result.set(memcache_command(result.to_u64(), text)); break;
-		case 2: result.set_bool(memcache_set(result.to_u64(), text, supplied["value"].to_string(), supplied["expires"].to_u64(60 * 60))); break;
-		case 3: result.set_bool(memcache_delete(result.to_u64(), text)); break;
-		case 4: result.set(memcache_get(result.to_u64(), text, supplied.to_string())); break;
-		case 5: result = memcache_get_multiple(result.to_u64(), supplied); break;
-		case 6: result.set(memcache_escape_key(result.to_string())); break;
-		case 7: result = memcache_escape_keys(result); break;
+		case CacheOperation::cache_memcache_connect: result.set(std::to_string(memcache_connect(result.to_string(), (u16)supplied.to_u64(11211)))); break;
+		case CacheOperation::cache_memcache_command: result.set(memcache_command(result.to_u64(), text)); break;
+		case CacheOperation::cache_memcache_set: result.set_bool(memcache_set(result.to_u64(), text, supplied["value"].to_string(), supplied["expires"].to_u64(60 * 60))); break;
+		case CacheOperation::cache_memcache_delete: result.set_bool(memcache_delete(result.to_u64(), text)); break;
+		case CacheOperation::cache_memcache_get: result.set(memcache_get(result.to_u64(), text, supplied.to_string())); break;
+		case CacheOperation::cache_memcache_get_multiple: result = memcache_get_multiple(result.to_u64(), supplied); break;
+		case CacheOperation::cache_memcache_escape_key: result.set(memcache_escape_key(result.to_string())); break;
+		case CacheOperation::cache_memcache_escape_keys: result = memcache_escape_keys(result); break;
 		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_dv_apply_brrb_finish(result));
+	return(bearer_brrb_call_finish(result));
 }
 
-// Copied BRRB transport for one cohesive host capability.
 size_t bearer_process_jobs_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
 	if(out)
-		return(bearer_dv_apply_brrb_copy(out, cap));
+		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	switch(operation)
+	enum class ProcessOperation { process_shell_escape = 0, process_shell_exec = 1, process_shell_spawn = 2, process_job_status = 3, process_job_result = 4, process_job_await = 5, process_job_cancel = 6, process_process_start_directory = 7, process_server_start_http = 8, process_server_stop = 9, process_task_pid = 10, process_task_kill = 11 };
+	switch(static_cast<ProcessOperation>(operation))
 	{
-		case 0: result.set(shell_escape(result.to_string())); break;
-		case 1: result.set(shell_exec(result.to_string())); break;
-		case 2: result.set(std::to_string(shell_spawn(result))); break;
-		case 3: result = job_status(to_u64(result.to_string(), 0)); break;
-		case 4: result = job_result(to_u64(result.to_string(), 0)); break;
-		case 5: result = job_await(to_u64(result.to_string(), 0), supplied.to_u64()); break;
-		case 6: result.set_bool(job_cancel(to_u64(result.to_string(), 0))); break;
-		case 7: result.set(process_start_directory()); break;
-		case 8: result.set((f64)server_start_http(result.to_string(), text, supplied["file"].to_string(), supplied["function"].to_string())); break;
-		case 9: result.set_bool(server_stop(result.to_string())); break;
-		case 10: result.set((f64)task_pid(result.to_string())); break;
-		case 11: result.set((f64)task_kill((pid_t)result.to_s64(), (s32)supplied.to_s64())); break;
+		case ProcessOperation::process_shell_escape: result.set(shell_escape(result.to_string())); break;
+		case ProcessOperation::process_shell_exec: result.set(shell_exec(result.to_string())); break;
+		case ProcessOperation::process_shell_spawn: result.set(std::to_string(shell_spawn(result))); break;
+		case ProcessOperation::process_job_status: result = job_status(to_u64(result.to_string(), 0)); break;
+		case ProcessOperation::process_job_result: result = job_result(to_u64(result.to_string(), 0)); break;
+		case ProcessOperation::process_job_await: result = job_await(to_u64(result.to_string(), 0), supplied.to_u64()); break;
+		case ProcessOperation::process_job_cancel: result.set_bool(job_cancel(to_u64(result.to_string(), 0))); break;
+		case ProcessOperation::process_process_start_directory: result.set(process_start_directory()); break;
+		case ProcessOperation::process_server_start_http: result.set((f64)server_start_http(result.to_string(), text, supplied["file"].to_string(), supplied["function"].to_string())); break;
+		case ProcessOperation::process_server_stop: result.set_bool(server_stop(result.to_string())); break;
+		case ProcessOperation::process_task_pid: result.set((f64)task_pid(result.to_string())); break;
+		case ProcessOperation::process_task_kill: result.set((f64)task_kill((pid_t)result.to_s64(), (s32)supplied.to_s64())); break;
 			// Network handles are stringified before BRRB so exact u64 values never
 			// transit f64. The worker owns and closes the underlying descriptors.
 		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_dv_apply_brrb_finish(result));
+	return(bearer_brrb_call_finish(result));
 }
 
-// Copied BRRB transport for one cohesive host capability.
 size_t bearer_network_http_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
 	if(out)
-		return(bearer_dv_apply_brrb_copy(out, cap));
+		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	switch(operation)
+	enum class NetworkOperation { network_socket_connect = 0, network_socket_close = 1, network_socket_write = 2, network_socket_read = 3, network_http_request = 4, network_http_request_async = 5 };
+	switch(static_cast<NetworkOperation>(operation))
 	{
-		case 0: { s64 port = supplied.to_s64(); if(port < 0 || port > 65535) return(std::numeric_limits<size_t>::max()); result.set(std::to_string(socket_connect(result.to_string(), (u16)port))); break; }
-		case 1: socket_close(to_u64(result.to_string(), 0)); result.clear(); break;
-		case 2: result.set_bool(socket_write(to_u64(result.to_string(), 0), text)); break;
-		case 3: { s64 max_length = supplied["max_length"].to_s64(); s64 timeout = supplied["timeout"].to_s64(); if(max_length < 0 || timeout < 0) return(std::numeric_limits<size_t>::max()); result.set(socket_read(to_u64(result.to_string(), 0), (u32)max_length, (u32)timeout)); break; }
-		case 4: result = http_request(result); break;
-		case 5: result.set(std::to_string(http_request_async(result))); break;
+		case NetworkOperation::network_socket_connect: { s64 port = supplied.to_s64(); if(port < 0 || port > 65535) return(std::numeric_limits<size_t>::max()); result.set(std::to_string(socket_connect(result.to_string(), (u16)port))); break; }
+		case NetworkOperation::network_socket_close: socket_close(to_u64(result.to_string(), 0)); result.clear(); break;
+		case NetworkOperation::network_socket_write: result.set_bool(socket_write(to_u64(result.to_string(), 0), text)); break;
+		case NetworkOperation::network_socket_read: { s64 max_length = supplied["max_length"].to_s64(); s64 timeout = supplied["timeout"].to_s64(); if(max_length < 0 || timeout < 0) return(std::numeric_limits<size_t>::max()); result.set(socket_read(to_u64(result.to_string(), 0), (u32)max_length, (u32)timeout)); break; }
+		case NetworkOperation::network_http_request: result = http_request(result); break;
+		case NetworkOperation::network_http_request_async: result.set(std::to_string(http_request_async(result))); break;
 		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_dv_apply_brrb_finish(result));
+	return(bearer_brrb_call_finish(result));
 }
 
-// Copied BRRB transport for one cohesive host capability.
 size_t bearer_time_format_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
 	if(out)
-		return(bearer_dv_apply_brrb_copy(out, cap));
+		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	switch(operation)
+	enum class TimeOperation { time_time_parse = 0, time_time_format_local = 1, time_time_format_utc = 2, time_time_format_relative = 3 };
+	switch(static_cast<TimeOperation>(operation))
 	{
-		case 0: result.set(std::to_string(time_parse(result.to_string()))); break;
-		case 1: result.set(time_format_local(result.to_string(), to_u64(supplied.to_string(), 0))); break;
-		case 2: result.set(time_format_utc(result.to_string(), to_u64(supplied.to_string(), 0))); break;
-		case 3: result.set(time_format_relative(to_u64(result.to_string(), 0), text, to_u64(supplied["medium_seconds"].to_string(), 0), supplied["medium_recent"].to_string(), to_u64(supplied["not_recent_seconds"].to_string(), 0), supplied["not_recent"].to_string())); break;
+		case TimeOperation::time_time_parse: result.set(std::to_string(time_parse(result.to_string()))); break;
+		case TimeOperation::time_time_format_local: result.set(time_format_local(result.to_string(), to_u64(supplied.to_string(), 0))); break;
+		case TimeOperation::time_time_format_utc: result.set(time_format_utc(result.to_string(), to_u64(supplied.to_string(), 0))); break;
+		case TimeOperation::time_time_format_relative: result.set(time_format_relative(to_u64(result.to_string(), 0), text, to_u64(supplied["medium_seconds"].to_string(), 0), supplied["medium_recent"].to_string(), to_u64(supplied["not_recent_seconds"].to_string(), 0), supplied["not_recent"].to_string())); break;
 		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_dv_apply_brrb_finish(result));
+	return(bearer_brrb_call_finish(result));
 }
 
-// Copied BRRB transport for one cohesive host capability.
 size_t bearer_websocket_registry_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
 	if(out)
-		return(bearer_dv_apply_brrb_copy(out, cap));
+		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_dv_apply_brrb_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	switch(operation)
+	enum class WebsocketOperation { websocket_ws_connections = 0, websocket_ws_connection_count = 1 };
+	switch(static_cast<WebsocketOperation>(operation))
 	{
-		case 0: result = ws_connections(result.to_string()); break;
-		case 1: result.set(std::to_string(ws_connection_count(result.to_string()))); break;
+		case WebsocketOperation::websocket_ws_connections: result = ws_connections(result.to_string()); break;
+		case WebsocketOperation::websocket_ws_connection_count: result.set(std::to_string(ws_connection_count(result.to_string()))); break;
 		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_dv_apply_brrb_finish(result));
+	return(bearer_brrb_call_finish(result));
 }
 
 
