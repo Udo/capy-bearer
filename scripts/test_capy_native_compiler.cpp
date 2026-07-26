@@ -37,6 +37,8 @@ int main()
 		const auto compiled = capy::compile_bearer_unit(source, options);
 		assert(capy::wasm::validate_bearer_unit(compiled.wasm, {.bearer_abi_version = "11"}).valid);
 	}
+	try { capy::compile_bearer_unit("function CLI { if var wrong : bool = 1 {} }\n", options); assert(false); }
+	catch (const capy::Error& error) { assert(error.message.find("expected bool, found s32") != std::string::npos); }
 
 	constexpr std::string_view generic_source = "function identity(value : any) value::type { value }\n"
 												"function choose(value : any) value::type { value }\n"

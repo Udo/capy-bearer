@@ -10,6 +10,7 @@
 #include <fstream>
 #include <limits>
 #include <map>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <unordered_map>
@@ -184,6 +185,7 @@ struct FunctionLowerer
 	unsigned local_count_ = 0;
 	std::vector<std::string> local_types_;
 	bool implicit_result_ = false;
+	std::optional<std::size_t> repeated_condition_scope_;
 	struct Loop
 	{
 		unsigned break_depth, continue_depth, ownership_boundary;
@@ -192,7 +194,7 @@ struct FunctionLowerer
 	std::vector<Loop> loops_;
 	unsigned control_depth_ = 0;
 
-	std::pair<Bytes, std::string> expression(Expr* value);
+	std::pair<Bytes, std::string> expression(Expr* value, bool value_required = true);
 	std::string infer(Expr* value);
 	std::vector<std::pair<std::string, std::string>> lambda_captures(Lambda* value) const;
 	std::tuple<std::string, unsigned, unsigned, Definition*, std::vector<std::pair<std::string, std::string>>> register_lambda(Lambda* value);
@@ -854,6 +856,14 @@ std::string FunctionLowerer::infer(Expr* value)
 			type += (i ? "," : "") + field;
 		}
 		return type + ">";
+	}
+	if (auto variable = dynamic_cast<Variable*>(value))
+	{
+		const std::string actual = infer(variable->value);
+		const std::string declared = variable->annotation ? module_.value_type(variable->annotation) : actual;
+		if (declared != actual)
+			throw Error(value->location, "expected " + declared + ", found " + actual);
+		return declared;
 	}
 	if (dynamic_cast<MapLiteral*>(value))
 		throw Error(value->location, "map literals must be wrapped in dval(...)");
@@ -1664,7 +1674,7 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 	return {code, "dval"};
 }
 
-std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
+std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool value_required)
 {
 	module_.check_cancelled();
 	if (auto integer = dynamic_cast<Integer*>(value))
@@ -2253,11 +2263,32 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 		if (declared != type)
 			throw Error(value->location, "expected " + declared + ", found " + type);
 		unsigned slot = add_local(variable->name, declared, value->location);
-		code.push_back(0x21);
-		wasm::append_uleb(code, slot);
-		if (managed_type(declared))
+		const bool managed = managed_type(declared);
+		const bool replace = managed && repeated_condition_scope_ && owned_scopes_.size() == *repeated_condition_scope_;
+		if (replace)
 		{
+			const unsigned replacement = add_local("", declared, value->location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, replacement);
 			if (!expression_is_owned(variable->value))
+			{
+				code.push_back(0x20);
+				wasm::append_uleb(code, replacement);
+				code.push_back(0x10);
+				wasm::append_uleb(code, module_.retain_index());
+			}
+			code.push_back(0x20);
+			wasm::append_uleb(code, slot);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.release_index());
+			code.push_back(0x20);
+			wasm::append_uleb(code, replacement);
+		}
+		code.push_back(value_required ? 0x22 : 0x21);
+		wasm::append_uleb(code, slot);
+		if (managed)
+		{
+			if (!replace && !expression_is_owned(variable->value))
 			{
 				code.push_back(0x20);
 				wasm::append_uleb(code, slot);
@@ -2266,7 +2297,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 			}
 			owned_scopes_.back().push_back({slot, declared});
 		}
-		return {code, "void"};
+		return {code, value_required ? declared : "void"};
 	}
 	if (auto binary = dynamic_cast<Binary*>(value))
 	{
@@ -3144,7 +3175,10 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value)
 	}
 	if (auto loop = dynamic_cast<While*>(value))
 	{
+		const auto previous_condition_scope = repeated_condition_scope_;
+		repeated_condition_scope_ = owned_scopes_.size();
 		auto [condition, type] = expression(loop->condition);
+		repeated_condition_scope_ = previous_condition_scope;
 		if (!is_scalar(type))
 			throw Error(loop->condition->location, "while condition must be scalar");
 		const unsigned base = control_depth_, boundary = static_cast<unsigned>(owned_scopes_.size());
@@ -3393,9 +3427,12 @@ Bytes FunctionLowerer::block(Block* block_value, bool new_scope)
 	for (std::size_t i = 0; i < block_value->items.size(); ++i)
 	{
 		Expr* item = block_value->items[i];
-		auto [part, type] = expression(item);
+		const auto variable = dynamic_cast<Variable*>(item);
+		const bool declaration_result = variable && !new_scope && i + 1 == block_value->items.size() && definition_.result != "void" &&
+			infer(variable) == definition_.result;
+		auto [part, type] = expression(item, declaration_result || !variable);
 		append(code, part);
-		const bool implicit_result = !new_scope && i + 1 == block_value->items.size() && type == definition_.result && type != "void";
+		const bool implicit_result = declaration_result || (!variable && !new_scope && i + 1 == block_value->items.size() && type == definition_.result && type != "void");
 		if (implicit_result)
 		{
 			implicit_result_ = true;
@@ -3959,6 +3996,8 @@ Module::Capabilities Module::discover_capabilities()
 		}
 		if (auto cast = dynamic_cast<Cast*>(e))
 			return type_of_expression(cast->target_type);
+		if (auto variable = dynamic_cast<Variable*>(e))
+			return variable->annotation ? type_of_expression(variable->annotation) : scan_value_type(variable->value);
 		if (auto binary = dynamic_cast<Binary*>(e))
 		{
 			const bool comparison = binary->operator_ == "==" || binary->operator_ == "!=" || binary->operator_ == "<" || binary->operator_ == ">" ||

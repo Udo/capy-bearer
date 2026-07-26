@@ -1,0 +1,82 @@
+function once() bool {
+    print("once;")
+    return true
+}
+
+function consume(value : string) bool {
+    print(value, ";")
+    return true
+}
+
+function managed() s32 {
+    if (var equal := clone("equal")) == "equal" {
+        print("equal;")
+    }
+    if consume(var passed := clone("passed")) {
+        print("call;")
+    }
+    if true && (var right := clone("right")) == "right" {
+        print("and;")
+    }
+    if false || (var alternate := clone("alternate")) == "alternate" {
+        print("or;")
+    }
+    print(arc_live(), ";")
+    return arc_live()
+}
+
+function while_values() s32 {
+    var count := 0
+    while (var owned := clone("owned")) == "owned" {
+        count = count + 1
+        if count == 3 { break }
+    }
+    var source := clone("borrowed")
+    while (var borrowed := source) == "borrowed" {
+        count = count + 1
+        if count == 6 { break }
+    }
+    while var scalar := count < 7 {
+        count = count + 1
+    }
+    while count < 10 && (var nested := clone("nested")) == "nested" {
+        count = count + 1
+    }
+    return arc_live()
+}
+
+function returned() string {
+    return var result := clone("returned")
+}
+
+function implicit_returned() string {
+    var result := clone("implicit")
+}
+
+function CLI {
+    if var declared := true {
+        print("var;", declared, ";")
+    }
+    if var typed : bool = true {
+        print("typed;", typed, ";")
+    }
+    if inferred := true {
+        print("inferred;", inferred, ";")
+    }
+    var assigned := false
+    if assigned = true {
+        print("assigned;", assigned, ";")
+    }
+    if var once_value := once() {
+        print("once-value;", once_value, ";")
+    }
+    if var false_value := false {
+        print("bad;")
+    } else {
+        print("false;")
+    }
+    if false_value == false {
+        print("visible;")
+    }
+    print(managed(), ";", arc_live(), ";", while_values(), ";", arc_live(), ";", returned(), ";", implicit_returned(), ";", arc_live())
+}

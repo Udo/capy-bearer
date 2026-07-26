@@ -44,6 +44,31 @@ operator_output=$(scripts/bearer-cli /tests/capy-operators.capy)
 	echo "Capy logical/unary/inferred-declaration output mismatch: $operator_output" >&2
 	exit 1
 }
+variable_expression_output=$(scripts/bearer-cli /tests/capy-variable-expressions.capy)
+[[ "$variable_expression_output" == "var;1;typed;1;inferred;1;assigned;1;once;once-value;1;false;visible;equal;passed;call;and;or;2;2;0;2;0;returned;implicit;0" ]] || {
+	echo "Capy value-producing declaration output/ARC mismatch: $variable_expression_output" >&2
+	exit 1
+}
+(
+	variable_trap_dir=$(mktemp -d "$site_directory/tests/capy-variable-trap.XXXXXX")
+	trap 'rm -rf -- "$variable_trap_dir"' EXIT
+	variable_trap_name=${variable_trap_dir##*/}
+	cat >"$variable_trap_dir/entry.capy" <<'EOF'
+function CLI {
+    var owned := clone("owned")
+    while var value := [1][1] {}
+}
+EOF
+	set +e
+	variable_trap_output=$(scripts/bearer-cli "/tests/$variable_trap_name/entry.capy" 2>&1)
+	variable_trap_status=$?
+	set -e
+	[[ $variable_trap_status -ne 0 && "$variable_trap_output" == *"entry.capy:3:27"* ]] || {
+		echo "Capy declaration initializer trap/source mapping mismatch: $variable_trap_output" >&2
+		exit 1
+	}
+	expect_equal "declaration initializer trap recovery" "$variable_expression_output" "$(scripts/bearer-cli /tests/capy-variable-expressions.capy)"
+)
 backtrace_output=$(scripts/bearer-cli /tests/capy-backtrace.capy)
 expected_backtrace=$'#0 __lambda_0 at /Code/capy-bearer/site/tests/capy-backtrace.capy:5:20\n#1 inner at /Code/capy-bearer/site/tests/capy-backtrace.capy:4:1\n#2 outer at /Code/capy-bearer/site/tests/capy-backtrace.capy:1:1\n#3 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1\n==\n#0 inner at /Code/capy-bearer/site/tests/capy-backtrace.capy:4:1\n#1 outer at /Code/capy-bearer/site/tests/capy-backtrace.capy:1:1\n--\n|0\n++\n#0 explicit_return_trace at /Code/capy-bearer/site/tests/capy-backtrace.capy:14:1\n#1 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1\n~~\n#0 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1\n@@\n|#0 bounds at /Code/capy-bearer/site/tests/capy-backtrace.capy:17:1\n#1 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1||#0 bounds at /Code/capy-bearer/site/tests/capy-backtrace.capy:17:1\n#1 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1'
 expect_equal "Capy source-mapped guest backtrace" "$expected_backtrace" "$backtrace_output"
