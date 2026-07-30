@@ -11,7 +11,12 @@ return value : one of String, f64, bool, array, pointer, reference, or unknown
 Returns a human-readable name for the dereferenced value's type tag.
 
 
-:example
+:example capy render
+var scalar := dval("text")
+var map_value := dval({"k": "v"})
+print(dval_get_type_name(scalar), " / ", dval_get_type_name(map_value), "\n")
+
+:example cpp render
 DValue s; s.set("text");
 DValue m; m["k"] = "v";
 print(s.get_type_name(), " / ", m.get_type_name(), "\n");

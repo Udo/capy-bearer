@@ -18,7 +18,12 @@ return value : filtered copy
 
 `filter(f)` calls the predicate for each item from `each()`. Kept children from list-shaped input are pushed into a new list and re-indexed from zero; kept children from map-shaped input keep their original keys. Scalar input is passed to the predicate once and, if accepted, is pushed into a list.
 
-:example
+:example capy render
+var user := dval({"name": "Ada", "email": "ada@example.test"})
+var public_user := dval_filter(user, function(item : dval, key : string) bool { return key == "name" })
+print(dval_to_string(public_user["name"]), "\n")
+
+:example cpp render
 DValue user;
 user["name"] = "Ada";
 user["email"] = "ada@example.test";

@@ -28,6 +28,10 @@ Current runtime behavior:
 - JSON strings become native `String` `DValue` values.
 - JSON numbers currently deserialize as string-valued `DValue` nodes, so typed conversions such as `to_f64()` and `to_u64()` are the normal way to read numeric content.
 
-:example
+:example capy render
+var data := json_decode("{\"name\": \"Ada\", \"tags\": [\"x\", \"y\"]}")
+print(dval_string(data["name"]), " has 2 tags\n")
+
+:example cpp render
 DValue data = json_decode("{\"name\": \"Ada\", \"tags\": [\"x\", \"y\"]}");
 print(data["name"].to_string(), " has ", data["tags"].keys().size(), " tags\n");

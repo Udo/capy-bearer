@@ -20,7 +20,16 @@ BEARER creates the destination directory and any needed child directories when t
 
 For safety, every member name is normalized and checked before extraction. Absolute paths, drive-qualified paths, empty names, and `..` path segments are rejected so archives cannot write outside the destination directory.
 
-:example
+:example capy render
+var archive := "/tmp/capy-doc-zipext.zip"
+var destination := "/tmp/capy-doc-zipext-out"
+zip_create(archive, dval({"note.txt": "extracted content"}))
+zip_extract(archive, destination)
+print(file_get_contents(destination + "/note.txt"), "\n")
+dir_remove(destination, true)
+file_unlink(archive)
+
+:example cpp render
 DValue entries;
 entries["note.txt"] = "extracted content";
 zip_create("/tmp/doc-zipext.zip", entries);

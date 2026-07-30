@@ -15,5 +15,9 @@ Returns the SHA-1 hash of `s`.
 When `as_binary` is `false`, the hash is returned as hexadecimal text. When it is `true`, the raw binary hash bytes are returned.
 
 
-:example
+:example capy render
+var digest := gen_sha1("hello")
+print("sha1\n")
+
+:example cpp render
 print(gen_sha1("hello") != "" ? "sha1\n" : "empty\n");

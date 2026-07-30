@@ -28,5 +28,8 @@ Because BEARER usually loads units on demand during a request, `INIT()` still re
 ## Example
 
 
-:example
+:example capy render
+print("INIT is a unit directive; place it at top level in a .uce unit.\n")
+
+:example cpp render
 print("INIT is a unit directive; place it at top level in a .uce unit.\n");

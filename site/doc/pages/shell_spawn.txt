@@ -8,7 +8,13 @@ Use `job_status()`, `job_await()`, `job_result()`, or `job_cancel()` with the re
 :see
 >sys
 
-:example
+:example capy render
+var spec := dval({"cmd": "printf 'spawned in the background'", "timeout_ms": 1000})
+var job := shell_spawn(spec)
+var done := job_await(job, 3000)
+print(dval_to_string(dval_get_by_path(done, "result/stdout")), "\n")
+
+:example cpp render
 DValue spec; spec["cmd"] = "printf 'spawned in the background'"; spec["timeout_ms"] = (f64)1000;
 u64 job = shell_spawn(spec);
 DValue done = job_await(job, 3000);

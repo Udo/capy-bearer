@@ -73,7 +73,6 @@ RENDER(Request& context)
 			<? render_card("websockets.ws.uce", "WebSockets", "Live WebSocket chat"); ?>
 			<? render_card("unit-browser.uce", "Unit Browser", "units_list(), unit_info(), unit_compile()"); ?>
 			<? if(allow_server_demos) { render_card("task.uce", "Task", "Background task execution"); } ?>
-			<? if(allow_server_demos) { render_card("task_repeat.uce", "Task Repeat", "Recurring task scheduling"); } ?>
 		</div>
 		<? if(!allow_server_demos) { ?>
 		<div class="system-info">

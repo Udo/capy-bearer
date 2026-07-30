@@ -37,7 +37,12 @@ SERVE_HTTP:admin(Request* req)
 
 The custom server dispatcher uses the same nonblocking HTTP listener machinery as the built-in HTTP/WebSocket path, and hands request/response data through the normal `Request` object. Handler code may block in the first implementation; future worker dispatch can be added without changing this API.
 
-:example
+:example capy render
+var pid := server_start_http("doc-demo-server", "/tmp/bearer/custom-servers/doc-demo.sock", "examples/sample_unit.uce", "RENDER")
+if pid > 0 { print("custom HTTP server started\n") } else { print("start failed\n") }
+server_stop("doc-demo-server")
+
+:example cpp render
 pid_t pid = server_start_http("doc-demo-server", "/tmp/bearer/custom-servers/doc-demo.sock", "examples/sample_unit.uce", "RENDER");
 print(pid > 0 ? "custom HTTP server started" : "start failed", "\n");
 server_stop("doc-demo-server");

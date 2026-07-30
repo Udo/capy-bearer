@@ -12,5 +12,8 @@ return value : memcache-safe key string
 :content
 Normalizes whitespace in a memcache key to underscores before it is placed into a text protocol command.
 
-:example
+:example capy render
+print(memcache_escape_key("a key with spaces"), "\n")
+
+:example cpp render
 print(memcache_escape_key("a key with spaces"), "\n");

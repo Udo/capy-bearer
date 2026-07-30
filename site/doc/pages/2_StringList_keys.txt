@@ -7,3 +7,12 @@ Removed as a separate StringList API. `DValue::keys()` returns a list-shaped DVa
 :see
 0_DValue
 2_DValue_keys
+
+:example capy render
+var items := split("one,two", ",")
+print(join(keys(items), ","), "\n")
+:example cpp render
+DValue items; DValue one; one = "one"; DValue two; two = "two";
+items.push(one); items.push(two);
+DValue item_keys = items.keys();
+print(item_keys[0].to_string(), ",", item_keys[1].to_string(), "\n");

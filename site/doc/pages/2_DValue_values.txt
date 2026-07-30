@@ -13,7 +13,12 @@ return value : a list-shaped DValue containing each iterated child value
 :content
 Copies the values produced by `each()` into a new list-shaped `DValue`.
 
-:example
+:example capy render
+var user := dval({"name": "Ada", "role": "admin"})
+var values := dval_values(user)
+if dval_is_list(values) { print("list\n") } else { print("map\n") }
+
+:example cpp render
 DValue user;
 user["name"] = "Ada";
 user["role"] = "admin";

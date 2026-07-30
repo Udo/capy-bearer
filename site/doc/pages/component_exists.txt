@@ -17,5 +17,9 @@ If `name` contains a colon, only the file portion is used for existence checks.
 
 This is useful when a page wants to render an optional component if it is present without hard-failing when it is missing.
 
-:example
+:example capy render
+if component_exists("examples/sample_unit") { print("exists") } else { print("not found") }
+print(" / ")
+if component_exists("no_such_component") { print("exists\n") } else { print("not found\n") }
+:example cpp render
 print(component_exists("examples/sample_unit") ? "exists" : "not found", " / ", component_exists("no_such_component") ? "exists" : "not found", "\n");

@@ -21,6 +21,10 @@ Fields:
 
 This supports front-controller apps that use URLs such as `/?dashboard` or `/?workspace/projects` while still allowing ordinary named query parameters alongside the route. The returned `l_path` is already sanitized for composing under an application-controlled route root.
 
-:example
+:example capy render
+var route := request_query_route("index")
+if dval_is_array(route) { print("route\n") } else { print("empty\n") }
+
+:example cpp render
 DValue route = request_query_route(context, "index");
 print(route.is_array() ? "route\n" : "empty\n");

@@ -23,7 +23,11 @@ When passed a `String`, `json_encode()` returns a quoted and escaped JSON string
 When passed a `DValue`, scalar values are serialized directly and nested map values are emitted as JSON objects.
 
 
-:example
+:example capy render
+var value := dval({name: "Ada"})
+print(json_encode(value), "\n")
+
+:example cpp render
 DValue value;
 value["name"] = "Ada";
 print(json_encode(value), "\n");

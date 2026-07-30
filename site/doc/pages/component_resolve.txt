@@ -17,5 +17,7 @@ If `name` contains a colon, only the file portion is used for resolution.
 
 This is primarily a debugging helper so you can see which concrete file a shorthand component name maps to.
 
-:example
+:example capy render
+print("resolved path: ", component_resolve("examples/sample_unit"), "\n")
+:example cpp render
 print("resolved path: ", component_resolve("examples/sample_unit"), "\n");

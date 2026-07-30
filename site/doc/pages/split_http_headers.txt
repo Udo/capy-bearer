@@ -21,6 +21,10 @@ Example:
 
 Most page code should read `context.params` instead. Use this helper when parsing raw HTTP text in tests or protocol helpers.
 
-:example
+:example capy render
+var headers := split_http_headers("Host: example.test\r\nUser-Agent: bearer\r\n")
+print(dval_string(headers["HTTP_HOST"]), "\n")
+
+:example cpp render
 StringMap headers = split_http_headers("Host: example.test\r\nUser-Agent: bearer\r\n");
-print(headers["Host"], "\n");
+print(headers["HTTP_HOST"], "\n");

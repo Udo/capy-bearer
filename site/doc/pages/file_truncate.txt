@@ -9,7 +9,12 @@ return value : true on success
 :content
 Truncates (or extends) a file to exactly `size` bytes. Shrinking discards trailing bytes; growing pads with zero bytes.
 
-:example
+:example capy render
+file_put_contents("/tmp/doc-truncate.txt", "hello world")
+file_truncate("/tmp/doc-truncate.txt", 5u64)
+print(file_get_contents("/tmp/doc-truncate.txt"), "\n")
+
+:example cpp render
 file_put_contents("/tmp/doc-truncate.txt", "hello world");
 file_truncate("/tmp/doc-truncate.txt", 5);
 print(file_get_contents("/tmp/doc-truncate.txt"), "\n");

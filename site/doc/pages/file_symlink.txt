@@ -9,7 +9,13 @@ return value : true on success
 :content
 Creates a symbolic link at `linkpath` pointing to `target`. Reading through the link reads the target; use `path_real()` to resolve a link to its canonical destination.
 
-:example
+:example capy render
+file_put_contents("/tmp/doc-symlink-target.txt", "data")
+file_unlink("/tmp/doc-symlink-link.txt")
+file_symlink("/tmp/doc-symlink-target.txt", "/tmp/doc-symlink-link.txt")
+print(file_get_contents("/tmp/doc-symlink-link.txt"), "\n")
+
+:example cpp render
 file_put_contents("/tmp/doc-symlink-target.txt", "data");
 file_unlink("/tmp/doc-symlink-link.txt");
 file_symlink("/tmp/doc-symlink-target.txt", "/tmp/doc-symlink-link.txt");

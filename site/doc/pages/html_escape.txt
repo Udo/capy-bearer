@@ -19,5 +19,8 @@ Returns a version of the input string where special HTML characters are replaced
 - `>` becomes `&gt;`
 - `"` becomes `&quot;`
 
-:example
+:example capy render
+print(html_escape("<b>Tom & Jerry</b>"), "\n")
+
+:example cpp render
 print(html_escape("<b>Tom & Jerry</b>"), "\n");

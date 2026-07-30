@@ -14,5 +14,8 @@ Returns an upper-case version of `s`.
 This function is not yet Unicode-aware.
 
 
-:example
+:example capy render
+print(to_upper("bearer"), "\n")
+
+:example cpp render
 print(to_upper("bearer"), "\n");

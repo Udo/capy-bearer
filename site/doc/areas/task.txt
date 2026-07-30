@@ -1,6 +1,6 @@
-Task API
+Background tasks
 
 task
-task_repeat
-task_pid
-task_kill
+task_status
+task_await
+task_cancel

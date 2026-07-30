@@ -13,7 +13,14 @@ sqlite_affected_rows
 :content
 Returns SQLite's last inserted rowid for the connection after an insert statement.
 
-:example
+:example capy render
+var db := sqlite_connect(":memory:")
+sqlite_query(db, "create table t(id integer primary key autoincrement, v text)")
+sqlite_query(db, "insert into t(v) values('x')")
+print("new row id: ", sqlite_insert_id(db), "\n")
+sqlite_disconnect(db)
+
+:example cpp render
 SQLite* db = sqlite_connect("/tmp/doc-sqlite-insertid.db");
 sqlite_query(db, "drop table if exists t");
 sqlite_query(db, "create table t(id integer primary key autoincrement, v text)");

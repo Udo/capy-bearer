@@ -33,3 +33,9 @@ The example uses query-string routing in the same style as the PHP starter, but 
 Direct requests to `/examples/bearer-starter/index.uce` still work, but self-links are canonicalized back to `/examples/bearer-starter/`.
 
 The demo account pages use a small file-backed user store under `/tmp/bearer-starter-data/` with session-based login state.
+
+
+## Optional Datastar Assets
+
+This starter vendors Datastar v1.0.2 as `js/datastar.js` for future server-rendered interactive islands. It is not loaded by the default page shell. `lib/datastar.uce` and `lib/datastar.capy` contain small Datastar SSE formatting helpers, and `views/datastar-example.uce` is an unlinked opt-in example route.
+

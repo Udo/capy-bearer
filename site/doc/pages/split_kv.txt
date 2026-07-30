@@ -23,6 +23,10 @@ Example:
 
 This is useful for small config files, metadata blocks, and tests that need predictable key/value parsing.
 
-:example
+:example capy render
+var values := split_kv("name=Ada\nrole=admin")
+print(dval_string(values["name"]), "\n")
+
+:example cpp render
 StringMap values = split_kv("name=Ada\nrole=admin");
 print(values["name"], "\n");

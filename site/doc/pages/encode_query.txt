@@ -12,7 +12,10 @@ return value : a string with the encoded parameters
 Encodes a `StringMap` of URL parameters into a single query-string `String`.
 
 
-:example
+:example capy render
+var query := dval({"name": "Ada Lovelace"})
+print(encode_query(query), "\n")
+:example cpp render
 StringMap q;
 q["name"] = "Ada Lovelace";
 print(encode_query(q), "\n");

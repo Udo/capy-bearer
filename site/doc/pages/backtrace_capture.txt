@@ -19,6 +19,10 @@ This helper is for diagnostics. It is used by runtime error reporting paths and 
 Example:
 
 
-:example
+:example capy render
+var captured := backtrace_capture()
+if captured == "" { print("(empty in the wasm sandbox; populated by the native crash handler)\n") }
+else { print(captured, "\n") }
+:example cpp render
 String trace = backtrace_capture();
 print(trace == "" ? "(empty in the wasm sandbox; populated by the native crash handler)" : trace, "\n");

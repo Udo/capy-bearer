@@ -8,7 +8,14 @@ return value : none
 :content
 Deletes a file. Deleting a path that does not exist is a no-op, so it is safe to call before recreating a file.
 
-:example
+:example capy render
+file_put_contents("/tmp/doc-unlink.txt", "x")
+file_unlink("/tmp/doc-unlink.txt")
+var result := "gone"
+if file_exists("/tmp/doc-unlink.txt") { result = "exists" }
+print(result, "\n")
+
+:example cpp render
 file_put_contents("/tmp/doc-unlink.txt", "x");
 file_unlink("/tmp/doc-unlink.txt");
 print(file_exists("/tmp/doc-unlink.txt") ? "exists" : "gone", "\n");

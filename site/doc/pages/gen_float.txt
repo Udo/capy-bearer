@@ -15,5 +15,9 @@ return value : noise value
 Generates a deterministic noise value between `from` and `to` for the given `index` and `seed`.
 
 
-:example
+:example capy render
+var generated := gen_float(1.0, 0.0, 1u64)
+print("float\n")
+
+:example cpp render
 print(gen_float(1, 0, 1) >= 0 ? "float\n" : "bad\n");

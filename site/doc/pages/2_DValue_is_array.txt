@@ -12,7 +12,11 @@ return value : true when the dereferenced value is map-shaped
 :content
 Returns true when the value's current type is `M`, the map/list container type. It does not require contiguous numeric keys; use `is_list()` for that.
 
-:example
+:example capy render
+var user := dval({"name": "Ada"})
+if dval_is_array(user) { print("array\n") } else { print("scalar\n") }
+
+:example cpp render
 DValue user;
 user["name"] = "Ada";
 print(user.is_array() ? "array\n" : "scalar\n");

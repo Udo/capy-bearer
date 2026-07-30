@@ -6,3 +6,10 @@ Removed as a separate StringList API. List-shaped `DValue::find()` returns the f
 
 :see
 0_DValue
+
+:example capy render
+var items := split("one,two", ",")
+print(string_list_find(items, function(value : string) bool { return value == "two" }, "missing"), "\n")
+:example cpp render
+StringList items = split("one,two", ",");
+print(items.find([](String value) { return value == "two"; }, "missing"), "\n");

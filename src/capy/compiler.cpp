@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <bit>
+#include <cctype>
 #include <cstdint>
 #include <deque>
 #include <filesystem>
@@ -287,15 +288,30 @@ std::vector<std::string> aggregate_elements(const std::string& type)
 	return {};
 }
 
-bool is_handler(const std::string& name, std::string& exported)
+bool task_suffix_is_valid(std::string_view suffix)
+{
+	if (suffix.empty() || !(std::isalpha(static_cast<unsigned char>(suffix.front())) || suffix.front() == '_'))
+		return false;
+	return std::all_of(suffix.begin(), suffix.end(), [](unsigned char c) { return std::isalnum(c) || c == '_'; });
+}
+
+bool is_handler(const std::string& name, std::string& exported, bool& invalid_task_name)
 {
 	static const std::map<std::string, std::string> names = {
 		{"RENDER", "__bearer_render"}, {"COMPONENT", "__bearer_component"},	  {"CLI", "__bearer_cli"}, {"WS", "__bearer_websocket"}, {"ONCE", "__bearer_once"},
-		{"INIT", "__bearer_init"},	   {"SERVE_HTTP", "__bearer_serve_http"},
+		{"INIT", "__bearer_init"},	   {"SERVE_HTTP", "__bearer_serve_http"}, {"TASK", "__bearer_task"},
 	};
 	if (auto it = names.find(name); it != names.end())
 	{
 		exported = it->second;
+		return true;
+	}
+	if (name.rfind("TASK_", 0) == 0)
+	{
+		const std::string_view suffix(name.data() + 5, name.size() - 5);
+		invalid_task_name = !task_suffix_is_valid(suffix);
+		if (!invalid_task_name)
+			exported = "__bearer_task_" + std::string(suffix);
 		return true;
 	}
 	for (const auto& prefix : {std::pair<std::string_view, std::string_view>{"RENDER_", "__bearer_render_"},
@@ -4134,6 +4150,8 @@ void Module::collect()
 	std::set<std::string> handlers;
 	auto add_custom_export = [&](const std::string& name, Definition& definition, const Location& location)
 	{
+		if (handlers.contains(name))
+			throw Error(location, "custom DValue export collides with Bearer handler export '" + name + "'");
 		for (const auto& existing : custom_exports_)
 			if (existing.first == name)
 				throw Error(location, "custom DValue export '" + name + "' is already declared");
@@ -4174,7 +4192,10 @@ void Module::collect()
 			continue;
 		}
 		std::string exported;
-		bool handler = is_handler(function->name, exported);
+		bool invalid_task_name = false;
+		bool handler = is_handler(function->name, exported, invalid_task_name);
+		if (invalid_task_name)
+			throw Error(function->location, "TASK handler suffix must match [A-Za-z_][A-Za-z0-9_]*");
 		std::vector<std::string> parameters;
 		bool generic = false;
 		for (const auto& parameter : function->parameters)
@@ -4187,10 +4208,17 @@ void Module::collect()
 		}
 		if (handler && generic)
 			throw Error(function->location, "Bearer handlers cannot use any parameters");
-		if (handler && (function->parameters.size() > 1 || (!parameters.empty() && parameters != std::vector<std::string>{"request"})))
+		const bool task_handler = function->name == "TASK" || function->name.rfind("TASK_", 0) == 0;
+		if (task_handler && parameters != std::vector<std::string>{"request"})
+			throw Error(function->location, "TASK handler requires exactly one request parameter");
+		if (handler && !task_handler && (function->parameters.size() > 1 || (!parameters.empty() && parameters != std::vector<std::string>{"request"})))
 			throw Error(function->location, "Bearer handler accepts zero parameters or one request parameter");
+		if (handler && function->return_type && value_type(function->return_type, true) != "void")
+			throw Error(function->location, "Bearer handlers must return void");
 		if (handler && !handlers.insert(exported).second)
 			throw Error(function->location, "Bearer handler is already declared; handlers cannot be overloaded");
+		if (handler && std::any_of(custom_exports_.begin(), custom_exports_.end(), [&](const auto& existing) { return existing.first == exported; }))
+			throw Error(function->location, "Bearer handler export collides with custom DValue export '" + exported + "'");
 		if (generic)
 		{
 			int dependent = -1;

@@ -1,4 +1,6 @@
 #include "lib/bearer_lib.cpp"
+#include "lib/task_queue.cpp"
+#include "lib/task_workers.h"
 // The wasm backend is its own object (src/wasm/wasm_module.cpp → wasm.o); the
 // main object only needs its declarations, so editing the wasm runtime no
 // longer recompiles the whole native TU.
@@ -10,6 +12,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/syscall.h>
 #include <sys/wait.h>
 
 ServerState server_state;
@@ -19,6 +22,15 @@ ServerState server_state;
 FastCGIServer server;
 std::vector<pid_t> proactive_compiler_pids;
 pid_t priority_compiler_pid = 0;
+
+struct TaskWorkerProcess {
+	pid_t pid = 0;
+	String lease_id;
+	int startup_fd = -1;
+	int pid_fd = -1;
+	bool ready = false;
+};
+std::vector<TaskWorkerProcess> task_worker_processes;
 
 // The central WS broker process: owns the WS port + every connection, forwards
 // renders to the worker pool over bearer.sock, and applies ws_* commands flushed
@@ -43,6 +55,7 @@ static void* request_fault_frames[64];
 static volatile sig_atomic_t request_fault_frame_count = 0;
 
 void close_inherited_server_sockets();
+void custom_server_http_dispatcher_loop(String key);
 u64 request_seed_from_time(f64 time_value);
 
 using WasmInvocationClock = std::chrono::steady_clock;
@@ -805,11 +818,6 @@ String custom_server_config_file(String key)
 	return(path_join(server_state.config["BIN_DIRECTORY"], "server-" + custom_server_safe_key(key) + ".cfg"));
 }
 
-String custom_server_task_key(String key)
-{
-	return("server:" + custom_server_safe_key(key));
-}
-
 String custom_server_config_encode(String key, String type, String bind, String file_name, String function_name)
 {
 	DValue config;
@@ -869,16 +877,52 @@ u64 custom_server_registry_count()
 	return(count);
 }
 
-bool custom_server_wait_for_stop(String task_key, f64 timeout_seconds = 2.0)
+String custom_server_pid_file(const String& key)
+{
+	return(path_join(server_state.config["BIN_DIRECTORY"], "custom-server-" + custom_server_safe_key(key) + ".pid"));
+}
+
+pid_t custom_server_pid(const String& key)
+{
+	String file = custom_server_pid_file(key);
+	pid_t pid = (pid_t)to_u64(trim(file_get_contents(file)), 0);
+	if(pid > 0 && kill(pid, 0) == 0)
+		return(pid);
+	file_unlink(file);
+	return(0);
+}
+
+bool custom_server_wait_for_stop(const String& key, f64 timeout_seconds = 2.0)
 {
 	f64 deadline = time_precise() + timeout_seconds;
 	while(time_precise() < deadline)
 	{
-		if(task_pid(task_key) == 0)
+		if(custom_server_pid(key) == 0)
 			return(true);
 		usleep(50000);
 	}
-	return(task_pid(task_key) == 0);
+	return(custom_server_pid(key) == 0);
+}
+
+pid_t spawn_custom_server(const String& key)
+{
+	pid_t pid = fork();
+	if(pid < 0)
+		return(0);
+	if(pid == 0)
+	{
+		prctl(PR_SET_PDEATHSIG, SIGHUP);
+		signal(SIGTERM, SIG_DFL);
+		signal(SIGHUP, SIG_DFL);
+		custom_server_http_dispatcher_loop(key);
+		_exit(0);
+	}
+	if(!file_put_contents(custom_server_pid_file(key), std::to_string(pid)))
+	{
+		kill(pid, SIGTERM);
+		return(0);
+	}
+	return(pid);
 }
 
 int custom_server_bind_http(FastCGIServer& dispatcher, String bind)
@@ -1145,7 +1189,7 @@ void run_ws_broker()
 
 bool ws_broker_alive()
 {
-	return(ws_broker_pid > 0 && task_kill(ws_broker_pid, 0) == 0);
+	return(ws_broker_pid > 0 && kill(ws_broker_pid, 0) == 0);
 }
 
 void ensure_ws_broker()
@@ -1227,24 +1271,24 @@ pid_t server_start_http(String key, String socket_fn_or_port, String call_bearer
 	if(file_exists(config_file))
 		previous_config = custom_server_config_decode(file_get_contents(config_file));
 	String new_config = custom_server_config_encode(key, "http", socket_fn_or_port, call_bearer_filename, call_function);
-	String task_key = custom_server_task_key(key);
 	u64 max_servers = to_u64(server_state.config["CUSTOM_SERVER_MAX_SERVERS"], 16);
 	if(!file_exists(config_file) && max_servers > 0 && custom_server_registry_count() >= max_servers)
 		throw std::runtime_error("server_start_http(): custom server quota exceeded");
-	pid_t existing_pid = task_pid(task_key);
+	pid_t existing_pid = custom_server_pid(key);
 	if(existing_pid != 0 && previous_config["bind"] != "" && previous_config["bind"] != socket_fn_or_port)
 	{
-		task_kill(existing_pid, SIGTERM);
-		custom_server_wait_for_stop(task_key);
+		kill(existing_pid, SIGTERM);
+		custom_server_wait_for_stop(key);
 		existing_pid = 0;
 	}
 	if(!file_put_contents(config_file, new_config))
 		throw std::runtime_error("server_start_http(): could not write server config");
 	if(existing_pid != 0)
 		return(existing_pid);
-	return(task(task_key, [key]() {
-		custom_server_http_dispatcher_loop(key);
-	}, 0));
+	pid_t started = spawn_custom_server(key);
+	if(started == 0)
+		throw std::runtime_error("server_start_http(): could not spawn dispatcher");
+	return(started);
 }
 
 bool server_stop(String key)
@@ -1252,14 +1296,13 @@ bool server_stop(String key)
 	key = trim(key);
 	if(key == "")
 		return(false);
-	String task_key = custom_server_task_key(key);
-	pid_t pid = task_pid(task_key);
+	pid_t pid = custom_server_pid(key);
 	file_unlink(custom_server_config_file(key));
 	if(pid == 0)
 		return(true);
-	if(task_kill(pid, SIGTERM) != 0)
+	if(kill(pid, SIGTERM) != 0)
 		return(false);
-	return(custom_server_wait_for_stop(task_key));
+	return(custom_server_wait_for_stop(key));
 }
 
 bool proactive_compile_queue_has(std::vector<String>& queue, String file_name)
@@ -1503,7 +1546,7 @@ void run_priority_compiler()
 
 bool proactive_compiler_alive(pid_t pid)
 {
-	return(pid > 0 && task_kill(pid, 0) == 0);
+	return(pid > 0 && kill(pid, 0) == 0);
 }
 
 pid_t spawn_compiler(const char* label, void (*runner)())
@@ -1556,9 +1599,434 @@ void ensure_proactive_compiler()
 	for(u64 worker = 0; worker < jobs; worker++)
 		if(!proactive_compiler_alive(proactive_compiler_pids[worker]))
 			proactive_compiler_pids[worker] = spawn_proactive_compiler(worker, jobs);
-	if(priority_compiler_pid <= 0 || task_kill(priority_compiler_pid, 0) != 0)
+	if(priority_compiler_pid <= 0 || kill(priority_compiler_pid, 0) != 0)
 		priority_compiler_pid = spawn_compiler("priority compiler", run_priority_compiler);
 }
+
+namespace {
+u64 task_config_u64(const char* key, u64 maximum)
+{
+	u64 value = to_u64(server_state.config[key], 0);
+	return(value > 0 && value <= maximum ? value : 0);
+}
+
+String task_directory()
+{
+	return(server_state.config["TASK_DIRECTORY"]);
+}
+
+task_queue::Limits task_limits()
+{
+	task_queue::Limits limits;
+	limits.capacity = task_config_u64("TASK_QUEUE_CAPACITY", 100000);
+	limits.payload_max = task_config_u64("TASK_PAYLOAD_MAX_BYTES", 16 * 1024 * 1024);
+	limits.retention_seconds = task_config_u64("TASK_STATUS_RETENTION_SECONDS", 365ull * 24 * 60 * 60);
+	limits.scan_max = limits.capacity;
+	limits.status_max = 64 * 1024;
+	limits.await_max_ms = 24ull * 60 * 60 * 1000;
+	return(limits);
+}
+
+bool task_handler_valid(const String& handler)
+{
+	if(handler == "TASK") return(true);
+	if(handler.size() < 6 || handler.rfind("TASK:", 0) != 0) return(false);
+	if(!(isalpha((unsigned char)handler[5]) || handler[5] == '_')) return(false);
+	for(size_t i = 5; i < handler.size(); ++i)
+		if(!(isalnum((unsigned char)handler[i]) || handler[i] == '_')) return(false);
+	return(true);
+}
+
+bool task_selector_resolve(const String& selector, String& unit, String& handler)
+{
+	auto mark = selector.rfind('#');
+	if(mark == String::npos || !task_handler_valid(selector.substr(mark + 1))) return(false);
+	Request policy;
+	policy.server = &server_state;
+	unit = compiler_normalize_unit_path(&policy, selector.substr(0, mark));
+	handler = selector.substr(mark + 1);
+	String root = path_real(path_join(server_state.config["COMPILER_SYS_PATH"], server_state.config["SITE_DIRECTORY"]));
+	return(unit != "" && root != "" && compiler_is_known_unit_file(unit) && path_is_within(unit, root));
+}
+
+bool task_target_resolve(const String& target, String& unit, String& handler)
+{
+	String file = target;
+	handler = "TASK";
+	auto mark = target.rfind(':');
+	if(mark != String::npos)
+	{
+		String name = target.substr(mark + 1);
+		if(!task_handler_valid("TASK:" + name)) return(false);
+		file = target.substr(0, mark);
+		handler = "TASK:" + name;
+	}
+	if(file == "" || file.find('#') != String::npos) return(false);
+	return(task_selector_resolve(file + "#" + handler, unit, handler));
+}
+
+String task_selector_handler(const String& handler)
+{
+	return(handler == "TASK" ? String("task") : "task:" + handler.substr(5));
+}
+
+String task_failure_code(const String& error, bool missing)
+{
+	if(missing) return("missing_handler");
+	if(error.find("BEARER_INVOCATION_TIMEOUT") != String::npos) return("execution_timeout");
+	if(error.find("compile") != String::npos || error.find("artifact") != String::npos) return("compile_failed");
+	return("handler_trap");
+}
+
+void run_task_worker(String lease_id, int startup_fd)
+{
+	my_pid = getpid();
+	prctl(PR_SET_PDEATHSIG, SIGHUP);
+	close_inherited_server_sockets();
+	// A supervised cancellation terminates this process; do not inherit the
+	// parent drain handler and accidentally continue the claimed invocation.
+	signal(SIGTERM, SIG_DFL);
+	signal(SIGINT, SIG_DFL);
+	signal(SIGHUP, SIG_DFL);
+	Request startup;
+	startup.server = &server_state;
+	String start_error = wasm_backend_start(startup);
+	if(start_error != "")
+	{
+		fprintf(stderr, "(!) task worker wasm initialization failed: %s\n", start_error.c_str());
+		close(startup_fd);
+		_exit(1);
+	}
+	char ready = '1';
+	if(write(startup_fd, &ready, 1) != 1)
+		_exit(1);
+	close(startup_fd);
+	const u64 poll_ms = task_config_u64("TASK_POLL_MS", 1000);
+	while(true)
+	{
+		auto claimed = task_queue::claim(task_directory(), task_limits(), lease_id);
+		if(claimed.code == "empty")
+		{
+			usleep((useconds_t)(poll_ms * 1000));
+			continue;
+		}
+		if(!claimed.ok())
+		{
+			fprintf(stderr, "(!) task worker claim failed: %s\n", claimed.code.c_str());
+			usleep((useconds_t)(poll_ms * 1000));
+			continue;
+		}
+		String unit, handler;
+		if(!task_selector_resolve(claimed.task.target, unit, handler))
+		{
+			task_queue::fail(task_directory(), task_limits(), claimed.task.id, lease_id, "invalid_target");
+			continue;
+		}
+		Request request;
+		request.server = &server_state;
+		request.props = claimed.task.props;
+		request.random_seed = request_seed_from_time(time_precise());
+		request.ob_start();
+		Request* previous = set_active_request(request);
+		const u64 execution_timeout_ms = task_config_u64("TASK_EXECUTION_TIMEOUT_MS", 86400000);
+		const auto execution_deadline = WasmInvocationClock::now() + std::chrono::milliseconds(execution_timeout_ms);
+		bool timed_out = false;
+		String error;
+		if(!wasm_backend_should_handle(request, unit))
+		{
+			u64 remaining_ms = wasm_invocation_remaining_ms(execution_deadline);
+			if(remaining_ms == 0)
+				timed_out = true;
+			else
+				get_shared_unit_bounded(&request, unit, remaining_ms, &timed_out);
+		}
+		if(timed_out || !wasm_backend_should_handle(request, unit))
+			error = timed_out ? "BEARER_INVOCATION_TIMEOUT" : "compile failed or wasm artifact unavailable";
+		else
+		{
+			u64 remaining_ms = wasm_invocation_remaining_ms(execution_deadline);
+			error = remaining_ms == 0 ? "BEARER_INVOCATION_TIMEOUT" : wasm_backend_serve(request, unit, task_selector_handler(handler), remaining_ms);
+		}
+		bool missing = error == "" && request.flags.status == 404;
+		if(error == "" && !missing)
+			task_queue::succeed(task_directory(), task_limits(), claimed.task.id, lease_id);
+		else
+		{
+			fprintf(stderr, "(!) task %s failed: %s\n", claimed.task.id.c_str(), error.c_str());
+			task_queue::fail(task_directory(), task_limits(), claimed.task.id, lease_id, task_failure_code(error, missing));
+		}
+		cleanup_mysql_connections();
+		cleanup_sqlite_connections();
+		restore_active_request(previous);
+	}
+}
+
+bool task_pool_healthy = false;
+std::chrono::steady_clock::time_point task_retry_not_before;
+
+String task_admission_health_file()
+{
+	return(path_join(task_directory(), "admission_healthy"));
+}
+
+void set_task_pool_healthy(bool healthy)
+{
+	task_pool_healthy = healthy;
+	if(healthy)
+	{
+		if(!file_put_contents(task_admission_health_file(), "ready"))
+			task_pool_healthy = false;
+	}
+	else
+		file_unlink(task_admission_health_file());
+}
+
+bool task_admission_healthy()
+{
+	return(file_get_contents(task_admission_health_file()) == "ready");
+}
+String task_retry_error;
+u64 task_retry_failures = 0;
+
+bool task_worker_alive(pid_t pid)
+{
+	if(pid <= 0)
+		return(false);
+	int status = 0;
+	pid_t reaped = waitpid(pid, &status, WNOHANG);
+	return(reaped == 0 && kill(pid, 0) == 0);
+}
+
+void task_retry_later(const String& error)
+{
+	set_task_pool_healthy(false);
+	task_retry_failures = std::min<u64>(task_retry_failures + 1, 6);
+	u64 delay_seconds = 1ull << task_retry_failures;
+	task_retry_not_before = std::chrono::steady_clock::now() + std::chrono::seconds(delay_seconds);
+	if(task_retry_error != error)
+	{
+		fprintf(stderr, "(!) task worker supervision unhealthy: %s; retrying in %llu seconds\n", error.c_str(), (unsigned long long)delay_seconds);
+		task_retry_error = error;
+	}
+}
+
+void task_retry_clear()
+{
+	task_retry_failures = 0;
+	task_retry_error.clear();
+	task_retry_not_before = {};
+}
+
+bool task_worker_count(u64& count)
+{
+	String configured = server_state.config["TASK_WORKERS"];
+	if(configured.empty())
+		return(false);
+	count = 0;
+	for(char c : configured)
+	{
+		if(c < '0' || c > '9' || count > 6)
+			return(false);
+		count = count * 10 + (u64)(c - '0');
+	}
+	return(count > 0 && count <= 64);
+}
+
+String task_lease_id()
+{
+	String bytes = random_bytes(32);
+	if(bytes.size() != 32)
+		return("");
+	static const char hex[] = "0123456789abcdef";
+	String encoded;
+	for(unsigned char byte : bytes) { encoded += hex[byte >> 4]; encoded += hex[byte & 15]; }
+	return(encoded);
+}
+
+bool recover_task_lease(const String& lease_id, const char* stage)
+{
+	auto recovered = task_queue::recover_worker(task_directory(), task_limits(), lease_id);
+	if(recovered.ok())
+		return(true);
+	task_retry_later(String(stage) + ": " + recovered.code);
+	return(false);
+}
+
+bool task_worker_ready(TaskWorkerProcess& worker)
+{
+	if(worker.ready)
+		return(true);
+	if(worker.startup_fd < 0)
+		return(false);
+	char ready = 0;
+	ssize_t read_count = read(worker.startup_fd, &ready, 1);
+	if(read_count == 1 && ready == '1')
+	{
+		close(worker.startup_fd);
+		worker.startup_fd = -1;
+		worker.ready = true;
+		return(true);
+	}
+	if(read_count == 0 || (read_count < 0 && errno != EAGAIN && errno != EINTR))
+	{
+		close(worker.startup_fd);
+		worker.startup_fd = -1;
+	}
+	return(false);
+}
+
+void supervise_task_cancellations()
+{
+	task_queue::Limits limits = task_limits();
+	auto requests = task_queue::cancellation_requests(task_directory(), limits, std::min<u64>(limits.scan_max, 64));
+	if(!requests.ok())
+	{
+		task_retry_later("cancellation lease read: " + requests.code);
+		return;
+	}
+	requests.status["requests"].each([&](const DValue& requested_lease, String) {
+		for(auto& worker : task_worker_processes)
+			if(worker.ready && worker.lease_id == requested_lease.to_string() && task_worker_alive(worker.pid))
+			{
+				// pidfd pins this signal to the child we forked, even after PID reuse.
+				if(worker.pid_fd >= 0 && syscall(SYS_pidfd_send_signal, worker.pid_fd, SIGTERM, nullptr, 0) == 0)
+					set_task_pool_healthy(false);
+			}
+	});
+}
+
+void ensure_task_workers()
+{
+	static bool recovered_orphans = false;
+	static bool supervision_started = false;
+	static u64 configured_workers = 0;
+	if(!supervision_started)
+	{
+		set_task_pool_healthy(false);
+		supervision_started = true;
+	}
+	u64 wanted = 0;
+	if(!task_worker_count(wanted))
+	{
+		task_retry_later("invalid TASK_WORKERS (must be a decimal value from 1 through 64)");
+		return;
+	}
+	if(configured_workers == 0)
+		configured_workers = wanted;
+	else if(wanted != configured_workers)
+	{
+		task_retry_later("TASK_WORKERS changes require restart");
+		return;
+	}
+	if(std::chrono::steady_clock::now() < task_retry_not_before)
+		return;
+	if(!recovered_orphans)
+	{
+		if(!recover_task_lease("", "startup orphan recovery"))
+			return;
+		recovered_orphans = true;
+	}
+	for(auto& worker : task_worker_processes)
+	{
+		if(task_worker_alive(worker.pid))
+			continue;
+		set_task_pool_healthy(false);
+		if(worker.pid > 0 && !worker.ready)
+			task_retry_later("task worker wasm initialization failed");
+		if(worker.startup_fd >= 0)
+			close(worker.startup_fd);
+		if(worker.pid_fd >= 0)
+			close(worker.pid_fd);
+		worker.startup_fd = -1;
+		worker.pid_fd = -1;
+		worker.pid = 0;
+		worker.ready = false;
+		if(worker.lease_id != "" && !recover_task_lease(worker.lease_id, "dead worker lease recovery"))
+			return;
+		worker.lease_id.clear();
+	}
+	if(task_retry_not_before > std::chrono::steady_clock::now())
+		return;
+	while(task_worker_processes.size() < configured_workers)
+		task_worker_processes.push_back({});
+	for(auto& worker : task_worker_processes)
+	{
+		if(worker.pid > 0)
+			continue;
+		worker.lease_id = task_lease_id();
+		int startup_pipe[2];
+		if(worker.lease_id == "" || pipe2(startup_pipe, O_CLOEXEC | O_NONBLOCK) != 0)
+		{
+			task_retry_later("could not create task worker startup channel");
+			worker.lease_id.clear();
+			return;
+		}
+		pid_t pid = fork();
+		if(pid < 0)
+		{
+			close(startup_pipe[0]);
+			close(startup_pipe[1]);
+			perror("fork task worker");
+			task_retry_later("fork task worker failed");
+			worker.lease_id.clear();
+			return;
+		}
+		if(pid == 0)
+		{
+			close(startup_pipe[0]);
+			run_task_worker(worker.lease_id, startup_pipe[1]);
+			_exit(0);
+		}
+		close(startup_pipe[1]);
+		worker.pid_fd = (int)syscall(SYS_pidfd_open, pid, 0);
+		if(worker.pid_fd < 0)
+		{
+			close(startup_pipe[0]);
+			kill(pid, SIGTERM);
+			waitpid(pid, nullptr, 0);
+			task_retry_later("could not pin task worker PID");
+			worker.lease_id.clear();
+			return;
+		}
+		worker.pid = pid;
+		worker.startup_fd = startup_pipe[0];
+		printf("(P) task worker spawned: PID %i\n", pid);
+	}
+	bool all_ready = true;
+	for(auto& worker : task_worker_processes)
+		all_ready = task_worker_ready(worker) && all_ready;
+	if(!all_ready)
+		return;
+	task_retry_clear();
+	set_task_pool_healthy(true);
+	if(!task_pool_healthy)
+	{
+		task_retry_later("could not publish task admission health");
+		return;
+	}
+	supervise_task_cancellations();
+	if(task_pool_healthy)
+		task_queue::reap(task_directory(), task_limits());
+}
+} // namespace
+
+namespace task_workers {
+task_queue::Result submit(const String& target, const DValue& props)
+{
+	String unit, handler;
+	if(!task_target_resolve(target, unit, handler)) { task_queue::Result result; result.code = "invalid_target"; return(result); }
+	if(!task_admission_healthy()) { task_queue::Result result; result.code = "worker_unavailable"; return(result); }
+	return(task_queue::submit(task_directory(), task_limits(), unit + "#" + handler, props));
+}
+task_queue::Result status(const String& id) { return(task_queue::status(task_directory(), task_limits(), id)); }
+task_queue::Result await(const String& id, u64 timeout_ms) { return(task_queue::await(task_directory(), task_limits(), id, timeout_ms, task_config_u64("TASK_POLL_MS", 1000))); }
+task_queue::Result cancel(const String& id)
+{
+	// Request workers only persist cancellation. Their inherited process table
+	// is intentionally never used to signal a PID.
+	return(task_queue::cancel(task_directory(), task_limits(), id));
+}
+} // namespace task_workers
 
 void listen_for_connections()
 {
@@ -1906,13 +2374,14 @@ int main(int argc, char** argv)
 	init_base_process();
 	ensure_proactive_compiler();
 	ensure_ws_broker();
+	ensure_task_workers();
 
 	while(!termination_signal_received)
 	{
 		for(auto& pid : proactive_compiler_pids)
 			if(!proactive_compiler_alive(pid))
 				pid = 0;
-		if(priority_compiler_pid > 0 && task_kill(priority_compiler_pid, 0) != 0)
+		if(priority_compiler_pid > 0 && kill(priority_compiler_pid, 0) != 0)
 			priority_compiler_pid = 0;
 		if(!termination_signal_received)
 			ensure_proactive_compiler();
@@ -1924,6 +2393,8 @@ int main(int argc, char** argv)
 			ws_broker_pid = 0;
 		if(!termination_signal_received)
 			ensure_ws_broker();
+		if(!termination_signal_received)
+			ensure_task_workers();
 
 		while(workers.size() < int_val(server_state.config["WORKER_COUNT"]))
 		{
@@ -1936,6 +2407,8 @@ int main(int argc, char** argv)
 	printf("(P) draining %zu workers before shutdown\n", workers.size());
 	for(auto& worker : workers)
 		kill(worker.first, SIGTERM);
+	for(const auto& worker : task_worker_processes)
+		if(worker.pid > 0) kill(worker.pid, SIGTERM);
 	for(auto pid : proactive_compiler_pids)
 		if(pid > 0)
 			kill(pid, SIGTERM);
@@ -1945,10 +2418,12 @@ int main(int argc, char** argv)
 		kill(ws_broker_pid, SIGTERM);
 	f64 drain_deadline = time_precise() + (f64)to_u64(server_state.config["WORKER_DRAIN_TIMEOUT_SECONDS"], 10);
 	auto background_children_alive = [&]() {
-		bool alive = priority_compiler_pid > 0 && task_kill(priority_compiler_pid, 0) == 0;
-		alive = alive || (ws_broker_pid > 0 && task_kill(ws_broker_pid, 0) == 0);
+		bool alive = priority_compiler_pid > 0 && kill(priority_compiler_pid, 0) == 0;
+		alive = alive || (ws_broker_pid > 0 && kill(ws_broker_pid, 0) == 0);
 		for(auto pid : proactive_compiler_pids)
 			alive = alive || proactive_compiler_alive(pid);
+		for(const auto& worker : task_worker_processes)
+			alive = alive || task_worker_alive(worker.pid);
 		return(alive);
 	};
 	while((!workers.empty() || background_children_alive()) && time_precise() < drain_deadline)
@@ -1958,12 +2433,14 @@ int main(int argc, char** argv)
 	}
 	for(auto& worker : workers)
 		kill(worker.first, SIGKILL);
+	for(const auto& worker : task_worker_processes)
+		if(task_worker_alive(worker.pid)) kill(worker.pid, SIGKILL);
 	for(auto pid : proactive_compiler_pids)
 		if(proactive_compiler_alive(pid))
 			kill(pid, SIGKILL);
-	if(priority_compiler_pid > 0 && task_kill(priority_compiler_pid, 0) == 0)
+	if(priority_compiler_pid > 0 && kill(priority_compiler_pid, 0) == 0)
 		kill(priority_compiler_pid, SIGKILL);
-	if(ws_broker_pid > 0 && task_kill(ws_broker_pid, 0) == 0)
+	if(ws_broker_pid > 0 && kill(ws_broker_pid, 0) == 0)
 		kill(ws_broker_pid, SIGKILL);
 	server.shutdown();
 

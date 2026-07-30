@@ -18,6 +18,9 @@ PUBLIC_APIS = [
     ("http_request", True, "public"), ("http_request_async", True, "public"),
     ("shell_exec", True, "public"), ("shell_escape", True, "public"), ("shell_spawn", True, "public"),
     ("job_status", True, "public"), ("job_result", True, "public"), ("job_await", True, "public"), ("job_cancel", True, "public"),
+    # The frozen historical task pages describe the removed callback/PID API;
+    # current task coverage is runtime fixtures until their replacement lands.
+    ("task", False, "public"), ("task_status", False, "public"), ("task_await", False, "public"), ("task_cancel", False, "public"),
     ("basename", True, "public"), ("dirname", True, "public"), ("path_join", True, "public"),
     ("path_real", True, "public"), ("path_is_within", True, "public"),
     ("file_get_contents", True, "public"),
@@ -57,8 +60,9 @@ REMOVED_APIS = ["concat"]
 
 def all_test_text() -> str:
     parts = []
-    for path in TEST_DIR.glob("*.uce"):
-        parts.append(path.read_text(errors="ignore"))
+    for pattern in ("*.uce", "*.capy"):
+        for path in TEST_DIR.glob(pattern):
+            parts.append(path.read_text(errors="ignore"))
     return "\n".join(parts)
 
 

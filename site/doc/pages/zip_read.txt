@@ -20,7 +20,13 @@ Reads one file member from a ZIP archive and returns its uncompressed bytes as a
 
 Use `zip_list()` when you need to discover entry names before reading them.
 
-:example
+:example capy render
+var archive := "/tmp/capy-doc-zipread.zip"
+zip_create(archive, dval({"greeting.txt": "hello world"}))
+print(zip_read(archive, "greeting.txt"), "\n")
+file_unlink(archive)
+
+:example cpp render
 DValue entries;
 entries["greeting.txt"] = "hello world";
 zip_create("/tmp/doc-zipread.zip", entries);

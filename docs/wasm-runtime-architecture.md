@@ -195,9 +195,10 @@ On termination the parent asks render workers to close their listeners, finish
 accepted connections within the bounded worker drain interval, and only then
 exits. This prevents an accepted FastCGI request from being reset at handoff;
 the socket unit queues later connections for the replacement workers.
-The graceful signal handler belongs to the parent and render workers. Generic
-`task()` children restore default termination signals after fork so
-`task_kill()` and `server_stop()` retain their immediate stop contract.
+The graceful signal handler belongs to the parent and render workers. Dedicated
+task workers restore default termination signals so running-task cancellation
+can terminate one worker and supervision can restore pool capacity. Custom HTTP
+servers retain separate private process supervision.
 
 Epoch interruption measures uninterrupted guest CPU segments. A separate
 absolute workspace invocation deadline starts before app-owned entry-unit
@@ -208,8 +209,8 @@ that deadline before and after every native call and re-arms the store with the
 smaller of the remaining absolute budget and the CPU-segment budget. A cheap
 hostcall loop therefore cannot renew an invocation indefinitely. Blocking host
 helpers retain operation-specific limits and cap them to the remaining
-invocation budget where the underlying operation is cancellable. Forked task
-callbacks receive a fresh invocation deadline capped by the task lifetime.
+invocation budget where the underlying operation is cancellable. Named task handlers receive a fresh invocation deadline capped by the configured
+task execution limit.
 Synchronous compiler locks, transitive `#load` compilation, and compiler child
 processes consume that same deadline. Compiler children run in a dedicated
 process group; timeout kills the group, retains the previous generation, and
@@ -372,9 +373,9 @@ then checked again before execution. The second check belongs only to that
 state-changing branch; repeating it immediately after a successful warm check
 adds no freshness guarantee.
 
-The internal request envelope carries application `context.call` as BRRB2,
-each request `StringMap` as a flat BRRB2 map, scalar session/input metadata as
-bounded byte segments, and optional WebSocket state as BRRB2. The guest
+The internal request envelope carries application `context.call` and
+`context.props` as BRRB2, each request `StringMap` as a flat BRRB2 map, scalar
+session/input metadata as bounded byte segments, and optional WebSocket state as BRRB2. The guest
 validates the complete envelope before moving those values into a fresh
 `Request`; transport-only params, cookies, session data, and entry metadata no
 longer become duplicate `context.call` children. The historical by-value
@@ -385,17 +386,20 @@ and context transfer into bytes, host encode, guest allocation/write,
 guest decode/application, and free. The byte profile separately reports the
 worker-cached server-configuration portion.
 
-### Task callbacks and workspace lifetime
+### Named task workers
 
-`task()` and `task_repeat()` are fork-backed. The `bearer_host_task_spawn` hostcall
-captures the current `WasmWorkspace*`, but `src/lib/sys.cpp::task()` invokes the
-captured callback only in the forked child, before the hostcall stack unwinds in
-that child. The parent request may return and destroy its workspace; the child
-is forked from the parent and keeps a private request-context copy of the per-request workspace. This means a delayed task callback can run after the spawning request
-returns without dereferencing the parent's destroyed workspace. It is still a
-callback into the inherited child workspace, not a fresh normal request
-workspace; avoid adding host resources to `WasmWorkspace` that are invalid across
-`fork()` unless task callback handling is changed to birth a fresh workspace.
+`task(target, props)` publishes a bounded BRRB envelope to the durable native task
+queue and returns an opaque ID without compiling, loading, forking, or executing
+the target in the caller. The supervised pool size is configured by
+`TASK_WORKERS` and defaults to one. Each worker claims one task, selects the
+requested `TASK` or `TASK:NAME` export, and invokes it through the ordinary unit
+loader with a fresh `Request`. Only decoded `context.props` crosses from the
+caller; request, session, connection, resource, and workspace identity do not.
+Compilation failures, absent handlers, traps, timeouts, cancellation, and worker
+loss become bounded task statuses. A worker loss is terminal `worker_lost`; the
+task primitive never retries implicitly because the runtime cannot infer whether
+external effects committed before the process failed. A supervisor may decide to
+submit a new invocation with application-specific backoff.
 
 ---
 

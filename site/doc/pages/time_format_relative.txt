@@ -31,5 +31,8 @@ Default behavior examples:
 
 
 
-:example
+:example capy render
+print(time_format_relative(0u64), "\n")
+
+:example cpp render
 print(time_format_relative(0, 0), "\n");

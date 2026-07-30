@@ -26,7 +26,13 @@ An entry may also provide `file` instead of `content`; BEARER reads that source 
 
 Entry names are normalized to forward slashes and rejected when they are absolute paths, drive-qualified paths, empty names, or contain `..` path segments.
 
-:example
+:example capy render
+var archive := "/tmp/capy-doc-zip.zip"
+zip_create(archive, dval({"readme.txt": "hello from BEARER", "license.txt": "MIT license"}))
+print("readme.txt in archive: ", zip_read(archive, "readme.txt"), "\n")
+file_unlink(archive)
+
+:example cpp render
 DValue entries;
 entries["readme.txt"] = "hello from BEARER";
 entries["license.txt"] = "MIT license";

@@ -13,6 +13,9 @@ return value : true if the target connection exists and the message was queued
 :content
 Queues a WebSocket message for one specific connected client.
 
-:example
+:example capy render
+if ws_send_to("example-connection-id", "direct message", false) { print("message queued\n") } else { print("no such connection\n") }
+
+:example cpp render
 bool sent = ws_send_to("example-connection-id", "direct message");
 print(sent ? "message queued" : "no such connection", "\n");

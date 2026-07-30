@@ -9,7 +9,15 @@ return value : number of bytes written
 :content
 Writes `data` at the handle's current offset and advances the offset. The handle must come from `file_open()` with a writable mode (`"w"`, `"a"`, or `"r+"`). Binary-safe: `data` may contain NUL and other non-text bytes.
 
-:example
+:example capy render
+var handle := file_open("/tmp/doc-write.txt", "w")
+var count := file_write(handle, "hello world")
+var count_text := "0"
+if count == 11u64 { count_text = "11" }
+file_close(handle)
+print(count_text, " bytes -> ", file_get_contents("/tmp/doc-write.txt"), "\n")
+
+:example cpp render
 u64 h = file_open("/tmp/doc-write.txt", "w");
 u64 n = file_write(h, "hello world");
 file_close(h);

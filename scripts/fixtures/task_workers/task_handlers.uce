@@ -1,0 +1,6 @@
+TASK(Request& context) {
+  file_put_contents("/tmp/bearer-task-worker-fixture", context.props["value"].to_string());
+}
+TASK:TRAP(Request& context) {
+  abort();
+}

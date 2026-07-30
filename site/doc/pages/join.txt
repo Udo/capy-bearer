@@ -15,6 +15,10 @@ Joins all strings in `l` into a single `String`.
 The delimiter is inserted between items. If `delim` is omitted, the default separator is a newline character.
 
 
-:example
+:example capy render
+var parts := split("a,b,c", ",")
+print(join(parts, "-"), "\n")
+
+:example cpp render
 DValue parts = split("a,b,c", ",");
 print(join(parts, "-"), "\n");

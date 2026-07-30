@@ -11,5 +11,8 @@ return value : current Unix timestamp
 Returns the current Unix timestamp as a 64-bit float with millisecond accuracy or better.
 
 
-:example
+:example capy render
+if time_precise() > 0.0 { print("timer\n") } else { print("no timer\n") }
+
+:example cpp render
 print(time_precise() > 0 ? "timer\n" : "no timer\n");

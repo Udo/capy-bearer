@@ -225,8 +225,10 @@ const __bearer_process_job_cancel : s32 = 6
 const __bearer_process_process_start_directory : s32 = 7
 const __bearer_process_server_start_http : s32 = 8
 const __bearer_process_server_stop : s32 = 9
-const __bearer_process_task_pid : s32 = 10
-const __bearer_process_task_kill : s32 = 11
+const __bearer_process_task_submit : s32 = 10
+const __bearer_process_task_status : s32 = 11
+const __bearer_process_task_await : s32 = 12
+const __bearer_process_task_cancel : s32 = 13
 const __bearer_network_socket_connect : s32 = 0
 const __bearer_network_socket_close : s32 = 1
 const __bearer_network_socket_write : s32 = 2
@@ -615,9 +617,10 @@ function process_start_directory() string { dval_string(__bearer_process_jobs_br
 function server_start_http(key : string, bind : string, file : string) s32 { server_start_http(key, bind, file, "") }
 function server_start_http(key : string, bind : string, file : string, callback : string) s32 { dval_s32(__bearer_process_jobs_brrb(__bearer_process_server_start_http, dval(key), bind, dval({"file": file, "function": callback}))) }
 function server_stop(key : string) bool { dval_bool(__bearer_process_jobs_brrb(__bearer_process_server_stop, dval(key), "", dval(""))) }
-function task_pid(key : string) s32 { dval_s32(__bearer_process_jobs_brrb(__bearer_process_task_pid, dval(key), "", dval(""))) }
-function task_kill(pid : s32) s32 { task_kill(pid, 0) }
-function task_kill(pid : s32, signal : s32) s32 { dval_s32(__bearer_process_jobs_brrb(__bearer_process_task_kill, dval(pid), "", dval(signal))) }
+function task(target : string, props : dval) string { dval_string(__bearer_process_jobs_brrb(__bearer_process_task_submit, dval(target), "", props)) }
+function task_status(id : string) dval { __bearer_process_jobs_brrb(__bearer_process_task_status, dval(id), "", dval("")) }
+function task_await(id : string, timeout_ms : u64) dval { __bearer_process_jobs_brrb(__bearer_process_task_await, dval(id), "", dval(timeout_ms)) }
+function task_cancel(id : string) dval { __bearer_process_jobs_brrb(__bearer_process_task_cancel, dval(id), "", dval("")) }
 
 // Network resources remain request-owned by the workspace. Handles are encoded
 // as decimal DValues at the BRRB boundary, then parsed exactly as u64 values.

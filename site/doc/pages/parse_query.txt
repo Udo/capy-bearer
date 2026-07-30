@@ -28,6 +28,10 @@ Examples:
 This is useful when you need to work with URL parameter data outside the normal request parsing flow.
 
 
-:example
+:example capy render
+var query := parse_query("name=Ada&role=admin")
+print(dval_string(query["name"]), "\n")
+
+:example cpp render
 StringMap q = parse_query("name=Ada&role=admin");
 print(q["name"], "\n");

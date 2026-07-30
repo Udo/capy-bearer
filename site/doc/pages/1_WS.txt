@@ -40,5 +40,8 @@ The current message metadata is available as:
 
 Helper wrappers such as `ws_message()`, `ws_connection_id()`, `ws_scope()`, `ws_connection_count()`, `ws_opcode()`, and `ws_is_binary()` are still available when that reads better for the handler.
 
-:example
+:example capy render
+print("WS is a unit directive; place it at top level in a .uce unit.\n")
+
+:example cpp render
 print("WS is a unit directive; place it at top level in a .uce unit.\n");

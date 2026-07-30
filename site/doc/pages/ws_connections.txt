@@ -13,6 +13,11 @@ Returns the currently connected WebSocket client IDs for the given scope.
 
 If `scope` is omitted, the current page scope is used.
 
-:example
+:example capy render
+var count := 0
+for id = ws_connections() { count = count + 1 }
+print("active connections in this scope: ", count, "\n")
+
+:example cpp render
 DValue ids = ws_connections();
 print("active connections in this scope: ", ids.size(), "\n");

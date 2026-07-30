@@ -13,7 +13,11 @@ return value : child keys for map/list values; empty for scalars
 :content
 Returns the keys produced by `each()`. Scalar values have no child key, so the result is empty. List-shaped values return their numeric keys as strings.
 
-:example
+:example capy render
+var user := dval({"name": "Ada", "role": "admin"})
+print(join(sort(dval_keys(user)), ","), "\n")
+
+:example cpp render
 DValue user;
 user["name"] = "Ada";
 user["role"] = "admin";

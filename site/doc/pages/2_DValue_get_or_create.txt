@@ -14,7 +14,12 @@ return value : pointer to the child node
 Ensures the value is map-shaped and returns the named child. If the key does not exist, an empty child is created. Creating a non-numeric key on a list-shaped value clears list mode.
 
 
-:example
+:example capy render
+var config := dval_get_or_create(dval({:}), "host")
+config = dval_put(config, "host", dval("localhost"))
+if dval_has(config, "host") { print(dval_to_string(config["host"]), "\n") } else { print("missing\n") }
+
+:example cpp render
 DValue config;
 config.get_or_create("host")->set("localhost");
 print(config.has("host") ? config["host"].to_string() : "missing", "\n");

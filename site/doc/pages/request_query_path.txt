@@ -19,5 +19,8 @@ When no keyless route is supplied, the result is `default_path`. When unsafe rou
 
 The runtime-populated `context.params["ROUTE_PATH"]` uses the same sanitizer.
 
-:example
+:example capy render
+if request_query_path("index") != "" { print("path\n") } else { print("empty\n") }
+
+:example cpp render
 print(request_query_path(context, "index") != "" ? "path\n" : "empty\n");

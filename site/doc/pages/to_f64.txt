@@ -18,5 +18,8 @@ Parses a trimmed string as a floating-point number.
 
 Unlike `float_val()`, the whole trimmed string must be consumed by the parser. Empty strings and partially parsed values such as `"3.5ms"` return the fallback.
 
-:example
+:example capy render
+print(to_f64("3.5"), "\n")
+
+:example cpp render
 print(to_f64("3.5"), "\n");

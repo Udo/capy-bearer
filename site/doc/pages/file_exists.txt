@@ -8,7 +8,15 @@ return value : true if a regular file exists at `path`
 :content
 Reports whether a regular file exists. Use it to guard reads or to confirm a write or delete took effect. It is file-oriented and returns false for directories — use `file_stat()` and check `is_dir` to test for a directory.
 
-:example
+:example capy render
+file_put_contents("/tmp/doc-exists.txt", "x")
+var first_status := "missing"
+if file_exists("/tmp/doc-exists.txt") { first_status = "exists" }
+var second_status := "missing"
+if file_exists("/tmp/doc-not-here-xyz.txt") { second_status = "exists" }
+print(first_status, " / ", second_status, "\n")
+
+:example cpp render
 file_put_contents("/tmp/doc-exists.txt", "x");
 print(file_exists("/tmp/doc-exists.txt") ? "exists" : "missing", " / ");
 print(file_exists("/tmp/doc-not-here-xyz.txt") ? "exists" : "missing", "\n");

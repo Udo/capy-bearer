@@ -15,7 +15,14 @@ Reads data from a socket connection.
 
 `max_length` limits how much data is read, and `timeout` controls how long the operation is allowed to wait.
 
-:example
+:example capy render
+var fd := socket_connect("127.0.0.1", 80)
+socket_write(fd, "GET / HTTP/1.0\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+var chunk := socket_read(fd, 1024, 2)
+socket_close(fd)
+if str_starts_with(chunk, "HTTP/") { print("read an HTTP response from the server\n") } else { print("no data\n") }
+
+:example cpp render
 u64 fd = socket_connect("127.0.0.1", 80);
 socket_write(fd, "GET / HTTP/1.0\r\nHost: localhost\r\nConnection: close\r\n\r\n");
 String chunk = socket_read(fd, 1024, 2);

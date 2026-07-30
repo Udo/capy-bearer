@@ -9,7 +9,9 @@ return value : the expanded path
 :content
 Expands a path: a relative `path` is resolved against `relative_to_path` (or the current unit's directory when that is empty), producing a normalized path you can hand to the file APIs.
 
-:example
+:example capy render
+print(expand_path("sub/page.uce", "/var/www/site"), "\n")
+:example cpp render
 print(expand_path("sub/page.uce", "/var/www/site"), "\n");
 
 :see

@@ -1,102 +1,43 @@
 #include "testlib.h"
 
+TASK(Request& context)
+{
+	DValue nested = context.props["nested"];
+	file_put_contents("/tmp/bearer-site-task-worker.txt", nested["value"].to_string());
+}
+
 RENDER(Request& context)
 {
 	if(!test_demo_request_allowed(context))
 	{
-		site_tests_restricted(context, "Tasks", "spawn and inspect background worker processes");
+		site_tests_restricted(context, "Tasks", "enqueue and inspect named task workers");
 		return;
 	}
-
-	u64 passed = 0;
-	u64 failed = 0;
-	u64 skipped = 0;
-
-	auto check = [&](String name, bool ok, String detail)
-	{
-		site_tests_case(name, ok ? "pass" : "fail", detail);
-		if(ok)
-			passed++;
-		else
-			failed++;
-	};
-
-	String mode = first(context.get["mode"], "run");
-	if(mode == "late")
-	{
-		String late_file = "/tmp/bearer-site-tests-late-task.txt";
-		file_unlink(late_file);
-		pid_t late_pid = task("site-tests-late-callback", [late_file]() {
-			sleep(2);
-			DValue perf = request_perf();
-			file_put_contents(late_file, "late callback ran pid=" + std::to_string((u64)perf["worker_pid"].to_s64()) + " type=" + perf["worker_pid"].get_type_name());
-		}, 10);
-		site_tests_page_start("Tasks", "Schedules a delayed task callback and returns before the callback runs.");
-		check("late task scheduled", late_pid != 0, "started=" + std::to_string(late_pid));
-		site_tests_summary(passed, failed, skipped, "The CLI runner verifies this callback after the spawning request has returned.");
-		site_tests_page_end();
-		return;
-	}
-	pid_t repeat_existing = task_pid("site-tests-repeat");
-	if(mode == "stop" && repeat_existing != 0)
-		task_kill(repeat_existing, 15);
-
-	pid_t short_pid = 0;
-	pid_t repeat_pid = 0;
-	if(mode != "stop")
-	{
-		short_pid = task("site-tests-short", []() {
-			sleep(5);
-		});
-
-		repeat_pid = task_repeat("site-tests-repeat", 1.0, []() {
-			file_put_contents("/tmp/bearer-site-tests-repeat.txt", time_format_utc("%Y-%m-%d %H:%M:%S"));
-		}, 4);
-	}
-
-	pid_t timeout_pid = 0;
-	pid_t unsafe_key_pid = 0;
-	if(mode != "stop")
-	{
-		timeout_pid = task("site-tests-timeout", []() {
-			sleep(5);
-		}, 1);
-		unsafe_key_pid = task("site-tests/../unsafe key", []() {
-			sleep(5);
-		});
-		sleep(2);
-	}
-
-	pid_t seen_short_pid = task_pid("site-tests-short");
-	pid_t seen_repeat_pid = task_pid("site-tests-repeat");
-	pid_t seen_timeout_pid = task_pid("site-tests-timeout");
-	pid_t seen_unsafe_key_pid = task_pid("site-tests/../unsafe key");
-	int short_alive = seen_short_pid == 0 ? -1 : task_kill(seen_short_pid, 0);
-	int repeat_alive = seen_repeat_pid == 0 ? -1 : task_kill(seen_repeat_pid, 0);
-
-	site_tests_page_start("Tasks", "Local-only checks for one-shot and repeating background task helpers.");
-
-	if(mode == "stop")
-	{
-		site_tests_case("repeat worker stop request", "skip", "stop mode requested; no new tasks were started on this request");
-		skipped++;
-	}
-	else
-	{
-		check("task()", short_pid != 0 && seen_short_pid != 0, "started=" + std::to_string(short_pid) + " seen=" + std::to_string(seen_short_pid));
-		check("task_pid() + task_kill(pid, 0)", short_alive == 0, "kill(0) result=" + std::to_string(short_alive));
-		check("task_repeat()", repeat_pid != 0 && seen_repeat_pid != 0, "started=" + std::to_string(repeat_pid) + " seen=" + std::to_string(seen_repeat_pid));
-		check("repeat worker liveness", repeat_alive == 0, "kill(0) result=" + std::to_string(repeat_alive));
-		check("task() timeout", timeout_pid != 0 && seen_timeout_pid == 0, "started=" + std::to_string(timeout_pid) + " seen_after_timeout=" + std::to_string(seen_timeout_pid));
-		check("task key normalization", unsafe_key_pid != 0 && seen_unsafe_key_pid != 0, "started=" + std::to_string(unsafe_key_pid) + " seen=" + std::to_string(seen_unsafe_key_pid));
-		check("task_kill() rejects negative pid", task_kill(-1, 0) == -1, "kill(-1, 0) rejected");
-	}
-
-	?><div class="tests-section">
-		<a class="button" href="?">Run Task Checks</a>
-		<a class="button" href="?mode=stop">Stop Repeat Worker</a>
-	</div><?
-
-	site_tests_summary(passed, failed, skipped, "The repeat worker writes its heartbeat to /tmp/bearer-site-tests-repeat.txt and is bounded by a short timeout.");
+	u64 passed = 0, failed = 0, skipped = 0;
+	auto check = [&](String name, bool ok, String detail) { site_tests_case(name, ok ? "pass" : "fail", detail); if(ok) passed++; else failed++; };
+	for(String path : {"/tmp/bearer-site-task-worker.txt", "/tmp/bearer-task-cpp.txt", "/tmp/bearer-task-cpp-named.txt", "/tmp/bearer-task-capy.txt", "/tmp/bearer-task-capy-named.txt"})
+		file_unlink(path);
+	DValue props;
+	props["nested"]["value"] = "copied-props";
+	String self_id = task("/tests/tasks.uce", props);
+	String cpp_id = task("/tests/task-handlers.uce", props);
+	String cpp_named_id = task("/tests/task-handlers.uce:CPP", props);
+	String capy_id = task("/tests/task-handlers.capy", props);
+	String capy_named_id = task("/tests/task-handlers.capy:CAPY", props);
+	DValue self_done = task_await(self_id, 10000);
+	DValue cpp_done = task_await(cpp_id, 10000);
+	DValue cpp_named_done = task_await(cpp_named_id, 10000);
+	DValue capy_done = task_await(capy_id, 10000);
+	DValue capy_named_done = task_await(capy_named_id, 10000);
+	String cancel_id = task("/tests/task-handlers.capy", props);
+	DValue cancelled = task_cancel(cancel_id);
+	DValue cancel_done = task_await(cancel_id, 10000);
+	site_tests_page_start("Tasks", "Named task admission carries only copied props and exposes opaque IDs.");
+	check("exact opaque task ID", self_id.size() == 64, "id=" + self_id);
+	check("C++ caller to current C++ TASK", self_done["state"].to_string() == "succeeded" && file_get_contents("/tmp/bearer-site-task-worker.txt") == "copied-props", "state=" + self_done["state"].to_string());
+	check("C++ caller to C++ default/named TASK", cpp_done["state"].to_string() == "succeeded" && cpp_named_done["state"].to_string() == "succeeded" && file_get_contents("/tmp/bearer-task-cpp.txt") == "copied-props" && file_get_contents("/tmp/bearer-task-cpp-named.txt") == "copied-props", "default=" + cpp_done["state"].to_string() + " named=" + cpp_named_done["state"].to_string());
+	check("C++ caller to Capy default/named TASK", capy_done["state"].to_string() == "succeeded" && capy_named_done["state"].to_string() == "succeeded" && file_get_contents("/tmp/bearer-task-capy.txt") == "copied-props" && file_get_contents("/tmp/bearer-task-capy-named.txt") == "copied-props", "default=" + capy_done["state"].to_string() + " named=" + capy_named_done["state"].to_string());
+	check("queued/running cancellation", cancelled["id"].to_string() == cancel_id && (cancel_done["state"].to_string() == "canceled" || cancel_done["state"].to_string() == "succeeded"), "state=" + cancel_done["state"].to_string());
+	site_tests_summary(passed, failed, skipped, "The dedicated pool executes TASK handlers with context.props only.");
 	site_tests_page_end();
 }

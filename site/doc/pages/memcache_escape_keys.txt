@@ -12,7 +12,11 @@ return value : escaped keys
 :content
 Applies `memcache_escape_key()` to each key in a list.
 
-:example
+:example capy render
+var keys := dval(["a b", "c\td"])
+print(join(memcache_escape_keys(keys), ", "), "\n")
+
+:example cpp render
 DValue keys;
 keys.push_back("a b");
 keys.push_back("c\td");

@@ -21,5 +21,8 @@ If `start_pos` is negative, counting starts from the end of the string.
 If `length` is negative, the returned range stops that many bytes before the end of the string.
 
 
-:example
+:example capy render
+print(substr("documentation", 0, 3), "\n")
+
+:example cpp render
 print(substr("documentation", 0, 3), "\n");

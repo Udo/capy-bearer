@@ -17,7 +17,13 @@ Iterates a `DValue` without modifying it. References are dereferenced before ite
 
 For map-shaped values, the callback receives each child and its key. List-shaped maps iterate in numeric index order (`0`, `1`, `2`, ...); ordinary maps iterate in `std::map` string-key order. Scalar values invoke the callback once with the current value and an empty key.
 
-:example
+:example capy render
+var user := dval({"name": "Ada", "role": "admin"})
+var keys := dval([])
+for key, item = user { keys = dval_push(keys, dval(key)) }
+print(join(sort(keys), ","), "\n")
+
+:example cpp render
 DValue user;
 user["name"] = "Ada";
 user["role"] = "admin";

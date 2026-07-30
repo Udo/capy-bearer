@@ -5,7 +5,13 @@ Starts the same request shape as `http_request()`, including its opt-in `securit
 :see
 >socket
 
-:example
+:example capy render
+var request := dval({"method": "GET", "url": "http://127.0.0.1/doc/index.uce", "headers": {"Host": "bearer.openfu.com"}, "timeout_ms": 2000})
+var job := http_request_async(request)
+var done := job_await(dval(job), 3000)
+print("async HTTP ", dval_s32(dval_get_by_path(done, "result/status")), "\n")
+
+:example cpp render
 DValue req; req["method"] = "GET"; req["url"] = "http://127.0.0.1/doc/index.uce";
 req["headers"]["Host"] = "bearer.openfu.com"; req["timeout_ms"] = (f64)2000;
 u64 job = http_request_async(req);

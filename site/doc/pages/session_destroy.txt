@@ -13,7 +13,12 @@ Deletes the cookie specified by `session_name`, removes the matching server-side
 This also empties `context.session_id`, `context.session_name`, and `context.session`.
 
 
-:example
+:example capy render
+var id := session_start("bearer-doc-example-destroy")
+session_destroy("bearer-doc-example-destroy")
+if id != "" { print("destroyed\n") } else { print("empty\n") }
+
+:example cpp render
 String id = session_start("bearer-doc-example-destroy");
 session_destroy("bearer-doc-example-destroy");
 print(id != "" ? "destroyed\n" : "empty\n");

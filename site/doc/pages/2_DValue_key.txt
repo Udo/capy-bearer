@@ -15,7 +15,11 @@ return value : pointer to existing child, or 0
 Looks up one child without creating it. The non-const overload forwards through references; both overloads return `0` for scalars or missing keys.
 
 
-:example
+:example capy render
+var user := dval({"email": "ada@example.test"})
+print(dval_to_string(dval_key(user, "email"), "none"), " / ", dval_to_string(dval_key(user, "phone"), "absent"), "\n")
+
+:example cpp render
 DValue user;
 user["email"] = "ada@example.test";
 const DValue* found = user.key("email");

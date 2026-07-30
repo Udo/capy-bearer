@@ -32,6 +32,10 @@ Return shape:
 
 Zero-length matches are handled safely; the scanner advances after each zero-length match to avoid infinite loops.
 
-:example
+:example capy render
+var matches := regex_search_all("[a-z]+", "bearer docs")
+if dval_is_list(matches) { print("matches\n") } else { print("none\n") }
+
+:example cpp render
 DValue matches = regex_search_all("[a-z]+", "bearer docs");
 print(matches.is_list() ? "matches\n" : "none\n");

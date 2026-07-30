@@ -112,7 +112,11 @@ For non-map values, `each()` still invokes the callback once:
 ## Examples
 
 
-:example
+:example capy render
+var user := dval({"name": "Ada", "active": true})
+print(dval_to_string(user["name"]), "\n")
+
+:example cpp render
 DValue user;
 user["name"] = "Ada";
 user["active"] = true;

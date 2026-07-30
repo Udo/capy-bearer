@@ -13,7 +13,11 @@ return value : converted value or the fallback
 :content
 Converts strings, f64, bool, pointer, and single-value maps to a signed integer. Invalid or empty strings return the default. Values outside the signed range are clamped.
 
-:example
+:example capy render
+var value := dval("-42")
+print(dval_to_s64(value), "\n")
+
+:example cpp render
 DValue value;
 value = "-42";
 print(value.to_s64(), "\n");

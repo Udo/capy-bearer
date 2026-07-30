@@ -9,7 +9,11 @@ return value : true if the byte strings are equal
 :content
 Compares two byte strings in constant time, so the comparison takes the same time whether they differ in the first byte or the last. Always use it to check secrets such as HMACs, tokens, and password hashes — `==` can leak how much of a secret matched via timing.
 
-:example
+:example capy render
+var expected := hmac_sha256_hex("key", "payload")
+if crypto_equal(expected, hmac_sha256_hex("key", "payload")) { print("valid / ") } else { print("invalid / ") }
+if crypto_equal(expected, "tampered") { print("valid\n") } else { print("invalid\n") }
+:example cpp render
 String expected = hmac_sha256_hex("key", "payload");
 print(crypto_equal(expected, hmac_sha256_hex("key", "payload")) ? "valid" : "invalid", " / ");
 print(crypto_equal(expected, "tampered") ? "valid" : "invalid", "\n");

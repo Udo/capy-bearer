@@ -8,7 +8,9 @@ return value : the final path component
 :content
 Returns the last component of a path — the file or directory name without its leading directories.
 
-:example
+:example capy render
+print(basename("/var/www/site/index.uce"), "\n")
+:example cpp render
 print(basename("/var/www/site/index.uce"), "\n");
 
 :see

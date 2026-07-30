@@ -17,7 +17,11 @@ page_runtime_error : BEARER page rendered (status 500) after a recovered fault o
 0_DValue
 2_Request_set_status
 
+:capy-status cpp-specific
+
 :content
+Error-page configuration is a Bearer C++ runtime surface; Capy has no independent configuration equivalent.
+
 Three optional keys in `/etc/bearer/settings.cfg` route error conditions to developer-defined BEARER pages. Each key names a `.uce` file, either absolute or relative to the server's working directory. When a key is unset, or the named file does not exist, or the error page itself fails, the runtime's built-in plain-text behavior stands.
 
 All three pages receive the error context in `context.call["error"]`:

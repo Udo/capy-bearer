@@ -15,5 +15,7 @@ Works like `generate_float()`, but uses `context.random_index` for the index val
 After each call, `context.random_index` is increased by one. At the start of every request, `context.random_seed` is automatically populated with a new seed value.
 
 
-:example
+:example capy render
+if draw_float(1.0, 0.0, 1.0) >= 0.0 { print("float\n") } else { print("bad\n") }
+:example cpp render
 print(draw_float(1, 0, 1) >= 0 ? "float\n" : "bad\n");

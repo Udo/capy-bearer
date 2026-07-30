@@ -14,6 +14,10 @@ Stops a custom server listener by key and removes its registry config.
 
 `server_stop()` currently targets custom servers started through `server_start_http()`. The same key model is intended to extend to future `server_start_tcp()` and `server_start_udp()` helpers.
 
-:example
+:example capy render
+server_start_http("doc-demo-stop", "/tmp/bearer/custom-servers/doc-stop.sock", "examples/sample_unit.uce", "RENDER")
+if server_stop("doc-demo-stop") { print("server stopped\n") } else { print("no such server\n") }
+
+:example cpp render
 server_start_http("doc-demo-stop", "/tmp/bearer/custom-servers/doc-stop.sock", "examples/sample_unit.uce", "RENDER");
 print(server_stop("doc-demo-stop") ? "server stopped" : "no such server", "\n");

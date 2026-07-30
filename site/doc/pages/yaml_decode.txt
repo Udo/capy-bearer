@@ -40,6 +40,10 @@ Numeric-looking values are stored as strings, matching `json_decode()`'s current
 
 Malformed input raises a request-visible `yaml_decode(): ...` runtime error.
 
-:example
+:example capy render
+var value := yaml_decode("name: Ada\n")
+print(dval_string(value["name"]), "\n")
+
+:example cpp render
 DValue value = yaml_decode("name: Ada\n");
 print(value["name"].to_string(), "\n");

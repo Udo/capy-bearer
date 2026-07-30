@@ -1,87 +1,17 @@
-
 #include "demo_guard.h"
 
 RENDER(Request& context)
 {
 	if(!test_demo_request_allowed(context))
 	{
-		test_demo_render_restricted_html(context, "Tasks", "spawn and inspect background tasks");
+		test_demo_render_restricted_html(context, "Tasks", "enqueue named background tasks");
 		return;
 	}
-	DValue t;
-
-	String task_name = first(context.get["task-name"], "example-task");
-
-	<>
-		<link rel="stylesheet" href='style.css'></link>
-		<h1>
-			<a href="index.uce">BEARER Test</a>:
-			Tasks
-		</h1>
-
-		<script>
-
-		function load(target, url) {
-			var r = new XMLHttpRequest();
-			r.open("GET", url, true);
-			r.onreadystatechange = function () {
-				if (r.readyState != 4 || r.status != 200) return;
-				target.innerHTML = r.responseText;
-			};
-			r.send();
-		}
-		</script>
-
-		<form action="?">
-			Task name
-			<input type="text" name="task-name" value="<?= task_name ?>"/>
-			<input type="submit" name="cmd" value="Get Info"/>
-			<input type="submit" name="cmd" value="Execute"/>
-		</form>
-
-		<script>
-
-		/*setInterval(() => {
-
-			load(document.getElementById('task-status'), 'task-status.uce?task-name=<?= uri_encode(task_name) ?>');
-
-		}, 200);*/
-
-		</script>
-
-		Task Status
-
-		<pre id="task-status" style="white-space: pre-wrap"><?
-
-			print("Task Name: ", task_name, "\n");
-			print("Task ID: ", task_pid(task_name), "\n");
-			print("Task Running: ", task_pid(task_name) == 0 ? "no" : "yes", "\n");
-
-
-		?></pre>
-
-		<?
-		if(context.get["cmd"] == "Execute")
-		{
-			?>
-			Task Start
-
-			<pre style="white-space: pre-wrap"><?
-
-				print("New Task ID: ", task(task_name, []() {
-
-					sleep(10);
-
-				}), "\n");
-
-				print("Task run time: 10 seconds");
-
-			?></pre><?
-		}
-		?>
-
-		Params
-		<pre><?= var_dump(context.get) ?></pre>
-	</>
-
+	String id = context.get["id"];
+	if(context.get["cmd"] == "Execute")
+	{
+		DValue props; props["nested"]["value"] = "demo";
+		id = task("/tests/task-handlers.uce", props);
+	}
+	<><h1>Tasks</h1><form action="?"><input type="submit" name="cmd" value="Execute"/></form><pre><? print("Task ID: ", id, "\n"); if(id.size() == 64) print(var_dump(task_status(id))); ?></pre></>;
 }

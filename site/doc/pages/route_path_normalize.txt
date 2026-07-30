@@ -14,5 +14,8 @@ Trims whitespace and removes leading/trailing `/` from a route path without deci
 
 For route data that may be used to compose file paths, prefer `route_path_sanitize()` or runtime-populated `context.params["ROUTE_PATH"]`.
 
-:example
+:example capy render
+print(route_path_normalize("/docs/index/"), "\n")
+
+:example cpp render
 print(route_path_normalize("/docs/index/"), "\n");

@@ -14,5 +14,8 @@ Returns the first non-empty string from the provided arguments.
 Leading and trailing whitespace are ignored when checking emptiness, so a string containing only whitespace counts as empty.
 
 
-:example
+:example capy render
+print(first("", "fallback", "other"), "\n")
+
+:example cpp render
 print(first("", "fallback", "other"), "\n");

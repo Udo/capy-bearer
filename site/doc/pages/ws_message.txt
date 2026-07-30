@@ -14,6 +14,9 @@ For text frames this is the decoded text payload. For binary frames this `String
 
 Use `ws_is_binary()` or `ws_opcode()` to choose how to parse the payload.
 
-:example
+:example capy render
+print("payload length in this non-WS context: ", length(ws_message()), "\n")
+
+:example cpp render
 // Inside a WS message handler ws_message() returns the current frame payload.
 print("payload length in this non-WS context: ", ws_message().length(), "\n");

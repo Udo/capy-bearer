@@ -14,5 +14,8 @@ Splits `str` on runs of whitespace.
 Multiple adjacent whitespace characters are treated as a single separator, so repeated spaces, tabs, or line breaks do not create empty entries.
 
 
-:example
+:example capy render
+print(join(split_space("one  two\tthree"), ","), "\n")
+
+:example cpp render
 print(join(split_space("one  two\tthree"), ","), "\n");

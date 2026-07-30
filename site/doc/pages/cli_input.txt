@@ -24,6 +24,11 @@ If the JSON body is a scalar or array instead of an object, the decoded value is
 Convenience script usage:
 
 
-:example
+:example capy render
+var input := cli_input()
+var count := 0
+for key, value = input { count = count + 1 }
+print("parsed ", count, " CLI arguments\n")
+:example cpp render
 DValue input = cli_input(context);
 print("parsed ", input.keys().size(), " CLI arguments\n");

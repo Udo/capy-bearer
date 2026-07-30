@@ -23,6 +23,10 @@ Example:
 
 Use `parse_uri()` when you need to inspect a full URL. Use `parse_query()` when you only have the query string.
 
-:example
+:example capy render
+var uri := parse_uri("https://example.test/docs?name=Ada")
+print(dval_string(uri["parts"]["path"]), " ", dval_string(uri["query"]["name"]), "\n")
+
+:example cpp render
 URI uri = parse_uri("https://example.test/docs?name=Ada");
 print(uri.parts["path"], " ", uri.query["name"], "\n");

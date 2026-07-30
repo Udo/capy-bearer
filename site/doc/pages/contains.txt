@@ -15,5 +15,7 @@ Returns whether `haystack` contains `needle`.
 An empty `needle` always returns `true`.
 
 
-:example
+:example capy render
+if contains("bearer docs", "docs") { print("yes\n") } else { print("no\n") }
+:example cpp render
 print(contains("bearer docs", "docs") ? "yes\n" : "no\n");

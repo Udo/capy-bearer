@@ -16,5 +16,8 @@ A safe route path contains only non-empty segments made from ASCII letters, digi
 
 Most request code should use runtime-populated `context.params["ROUTE_PATH"]` or `request_query_route()` instead of calling this directly.
 
-:example
+:example capy render
+if route_path_is_safe("docs/index") { print("safe\n") } else { print("unsafe\n") }
+
+:example cpp render
 print(route_path_is_safe("docs/index") ? "safe\n" : "unsafe\n");

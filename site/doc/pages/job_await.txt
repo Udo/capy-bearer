@@ -6,7 +6,15 @@ Waits up to `timeout_ms` for a job to finish, then returns status/result data. T
 :see
 >sys
 
-:example
+:example capy render
+var spec := dval({"cmd": "printf hello-from-job", "timeout_ms": 1000})
+var job := shell_spawn(spec)
+var waited := job_await(job, 3000)
+var done := "false"
+if dval_to_bool(waited["done"]) { done = "true" }
+print("done=", done, " stdout=", dval_to_string(dval_get_by_path(waited, "result/stdout")), "\n")
+
+:example cpp render
 DValue spec; spec["cmd"] = "printf hello-from-job"; spec["timeout_ms"] = (f64)1000;
 u64 job = shell_spawn(spec);
 DValue waited = job_await(job, 3000);

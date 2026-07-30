@@ -10,7 +10,16 @@ return value : number of bytes written
 :content
 Writes `data` at an absolute `offset` without moving the handle's current offset. The handle must be opened with a writable mode (`"r+"` for in-place edits).
 
-:example
+:example capy render
+var handle := file_open("/tmp/doc-pwrite.txt", "w")
+file_write(handle, "hello world")
+file_close(handle)
+var editor := file_open("/tmp/doc-pwrite.txt", "r+")
+file_pwrite(editor, 6u64, "earth")
+file_close(editor)
+print(file_get_contents("/tmp/doc-pwrite.txt"), "\n")
+
+:example cpp render
 u64 h = file_open("/tmp/doc-pwrite.txt", "w");
 file_write(h, "hello world");
 file_close(h);

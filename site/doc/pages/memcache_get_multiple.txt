@@ -14,7 +14,16 @@ Retrieves multiple entries in one call.
 
 The result is returned as a `StringMap` keyed by the requested Memcache keys.
 
-:example
+:example capy render
+var conn := memcache_connect()
+if conn != 0u64 {
+    memcache_set(conn, "doc_k1", "v1")
+    memcache_set(conn, "doc_k2", "v2")
+    var values := memcache_get_multiple(conn, dval(["doc_k1", "doc_k2"]))
+    print(dval_string(values["doc_k1"]), " / ", dval_string(values["doc_k2"]), "\n")
+} else { print("(requires a reachable memcached server)\n") }
+
+:example cpp render
 u64 conn = memcache_connect();
 if(conn != 0)
 {

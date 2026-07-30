@@ -13,7 +13,11 @@ return value : none
 Stores an internal reference to another `DValue`. Most unit code should not need to create references directly; normal reads and writes generally follow existing references automatically.
 
 
-:example
+:capy-status unsupported
+
+Capy uses copied values and exposes no reference-parameter ABI, so it cannot create a DValue reference.
+
+:example cpp render
 DValue target;
 target.set("original");
 DValue ref;

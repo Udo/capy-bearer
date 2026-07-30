@@ -1,0 +1,35 @@
+function CLI {
+    file_unlink("/tmp/bearer-task-slow-finished.txt")
+    file_unlink("/tmp/bearer-task-capy.txt")
+
+    var slow := task("/tests/task-handlers.capy:SLOW", dval(""))
+    var slow_status := task_status(slow)
+    var polls := 0
+    while dval_to_string(slow_status["state"]) == "queued" && polls < 300 {
+        usleep(10000)
+        slow_status = task_status(slow)
+        polls = polls + 1
+    }
+    task_cancel(slow)
+    var canceled := task_await(slow, 10000u64)
+    usleep(2000000)
+
+    var trapped := task("/tests/task-handlers.capy:TRAP", dval(""))
+    var trap_status := task_await(trapped, 10000u64)
+
+    var missing := task("/tests/task-handlers.capy:MISSING", dval(""))
+    var missing_status := task_await(missing, 10000u64)
+
+    var recovered := task("/tests/task-handlers.capy", dval({"nested": {"value": "recovered"}}))
+    var recovered_status := task_await(recovered, 10000u64)
+
+    var slow_result := "stopped"
+    if file_exists("/tmp/bearer-task-slow-finished.txt") { slow_result = "finished" }
+    print(
+        dval_to_string(canceled["state"]), "|",
+        slow_result, "|",
+        dval_to_string(trap_status["state"]), ":", dval_to_string(trap_status["failure_code"]), "|",
+        dval_to_string(missing_status["state"]), ":", dval_to_string(missing_status["failure_code"]), "|",
+        dval_to_string(recovered_status["state"]), ":", file_get_contents("/tmp/bearer-task-capy.txt")
+    )
+}

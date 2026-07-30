@@ -9,7 +9,13 @@ return value : true on success
 :content
 Sets a path's permission bits, like the shell `chmod`. Pass the mode as an octal literal such as `0600`.
 
-:example
+:example capy render
+file_put_contents("/tmp/doc-chmod.txt", "secret")
+var result := "failed"
+if file_chmod("/tmp/doc-chmod.txt", 384) { result = "mode set" }
+print(result, "\n")
+
+:example cpp render
 file_put_contents("/tmp/doc-chmod.txt", "secret");
 print(file_chmod("/tmp/doc-chmod.txt", 0600) ? "mode set" : "failed", "\n");
 

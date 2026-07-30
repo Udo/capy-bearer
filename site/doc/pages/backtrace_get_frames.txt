@@ -17,5 +17,9 @@ Formats a captured native backtrace frame array.
 
 Most page code should use `backtrace_capture()` instead. Use this helper when you already have raw frame pointers from lower-level diagnostic code.
 
-:example
+:example capy cli
+var frames := backtrace_get_frames()
+if frames == "" { print("(no frames available in the wasm sandbox)\n") }
+else { print("frames captured\n") }
+:example cpp cli
 print(backtrace_get_frames(0, 0) == "" ? "(no frames available in the wasm sandbox)" : "frames captured", "\n");

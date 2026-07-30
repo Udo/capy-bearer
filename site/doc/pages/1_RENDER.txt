@@ -40,5 +40,8 @@ In that case:
 - `WS(Request& context)` handles later WebSocket messages
 - `COMPONENT()` remains available only through the component helpers
 
-:example
+:example capy render
+print("RENDER is a unit directive; place it at top level in a .uce unit.\n")
+
+:example cpp render
 print("RENDER is a unit directive; place it at top level in a .uce unit.\n");

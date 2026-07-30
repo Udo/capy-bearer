@@ -19,6 +19,10 @@ Because it is backed by `std::string`, it is binary-safe and may also contain ra
 
 For UTF-8-aware splitting, use helpers such as `split_utf8()` instead of assuming one byte equals one character.
 
-:example
+:example capy render
+var name := "Ada"
+print(to_upper(name), "\n")
+
+:example cpp render
 String name = "Ada";
 print(to_upper(name), "\n");

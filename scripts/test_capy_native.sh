@@ -48,6 +48,7 @@ clang++ "${COMMON[@]}" src/capy/frontend.cpp src/capy/wasm.cpp src/capy/compiler
 	scripts/test_capy_native_compiler.cpp -o "$BUILD_DIR/compiler"
 "$BUILD_DIR/compiler"
 wasm-validate /tmp/capy-native.wasm
+scripts/test_task_compiler_signatures.sh
 
 ! grep -Eq 'python3[[:space:]]+scripts/capy_(compiler|frontend|backend)\.py' scripts/compile_wasm_unit
 "$BUILD_DIR/capyc" site/tests/capy-phase1.capy \

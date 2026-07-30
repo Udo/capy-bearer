@@ -2,11 +2,14 @@
 
 #include "compiler.h"
 
+#include <set>
+
 namespace {
 
 const char* BEARER_NAMED_RENDER_SYMBOL = "__bearer_render";
 const char* BEARER_NAMED_COMPONENT_SYMBOL = "__bearer_component";
 const char* BEARER_NAMED_SERVE_HTTP_SYMBOL = "__bearer_serve_http";
+const char* BEARER_NAMED_TASK_SYMBOL = "__bearer_task";
 
 struct CompilerCodeState
 {
@@ -430,7 +433,17 @@ String compiler_rewrite_fragment_attributes(String content)
 	return(result);
 }
 
-bool compiler_rewrite_named_entrypoint_line(String& line, String macro_prefix, String symbol_prefix)
+bool compiler_task_suffix_is_valid(const String& suffix)
+{
+	if(suffix == "" || !(isalpha((unsigned char)suffix[0]) || suffix[0] == '_'))
+		return(false);
+	for(char c : suffix)
+		if(!(isalnum((unsigned char)c) || c == '_'))
+			return(false);
+	return(true);
+}
+
+bool compiler_rewrite_named_entrypoint_line(String& line, String macro_prefix, String symbol_prefix, std::set<String>* task_exports = 0)
 {
 	u32 indent_length = 0;
 	while(indent_length < line.length() && isspace(line[indent_length]))
@@ -446,12 +459,47 @@ bool compiler_rewrite_named_entrypoint_line(String& line, String macro_prefix, S
 	if(open_paren_pos == String::npos)
 		return(false);
 
-	String render_name = trim(signature.substr(0, open_paren_pos));
-	String render_signature = signature.substr(open_paren_pos);
-	if(render_name == "")
-		return(false);
+	String name = trim(signature.substr(0, open_paren_pos));
+	String handler_signature = signature.substr(open_paren_pos);
+	if(name == "")
+	{
+		if(!task_exports)
+			return(false);
+		line = indent + "#error invalid TASK handler name";
+		return(true);
+	}
+	if(task_exports && !compiler_task_suffix_is_valid(name))
+	{
+		line = indent + "#error invalid TASK handler name";
+		return(true);
+	}
 
-	line = indent + "EXPORT void " + symbol_prefix + "_" + safe_name(render_name) + render_signature;
+	String exported = symbol_prefix + "_" + (task_exports ? name : safe_name(name));
+	if(task_exports && !task_exports->insert(exported).second)
+	{
+		line = indent + "#error duplicate TASK handler export";
+		return(true);
+	}
+	if(!task_exports)
+	{
+		line = indent + "EXPORT void " + exported + handler_signature;
+		return(true);
+	}
+	u32 depth = 0;
+	u32 close_paren_pos = String::npos;
+	for(u32 i = open_paren_pos; i < signature.length(); i++)
+	{
+		if(signature[i] == '(')
+			depth += 1;
+		else if(signature[i] == ')' && --depth == 0)
+		{
+			close_paren_pos = i;
+			break;
+		}
+	}
+	if(close_paren_pos == String::npos)
+		return(false);
+	line = indent + "BEARER_NAMED_TASK(" + exported + ", " + signature.substr(0, close_paren_pos + 1) + ")" + signature.substr(close_paren_pos + 1);
 	return(true);
 }
 
@@ -459,6 +507,7 @@ String compiler_rewrite_named_render_syntax(String content)
 {
 	String result = "";
 	String current_line = "";
+	std::set<String> task_exports;
 
 	auto flush_line = [&]() {
 		if(current_line.length() == 0)
@@ -474,7 +523,8 @@ String compiler_rewrite_named_render_syntax(String content)
 
 		compiler_rewrite_named_entrypoint_line(line, "RENDER:", BEARER_NAMED_RENDER_SYMBOL) ||
 		compiler_rewrite_named_entrypoint_line(line, "COMPONENT:", BEARER_NAMED_COMPONENT_SYMBOL) ||
-		compiler_rewrite_named_entrypoint_line(line, "SERVE_HTTP:", BEARER_NAMED_SERVE_HTTP_SYMBOL);
+		compiler_rewrite_named_entrypoint_line(line, "SERVE_HTTP:", BEARER_NAMED_SERVE_HTTP_SYMBOL) ||
+		compiler_rewrite_named_entrypoint_line(line, "TASK:", BEARER_NAMED_TASK_SYMBOL, &task_exports);
 
 		result += line + line_break;
 		current_line = "";

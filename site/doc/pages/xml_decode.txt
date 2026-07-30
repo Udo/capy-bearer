@@ -42,6 +42,10 @@ Whitespace-only text between child elements is ignored. Mixed non-empty text is 
 
 Malformed XML raises a request-visible runtime error.
 
-:example
+:example capy render
+var node := xml_decode("<root><name>Ada</name></root>")
+if dval_is_array(node) { print("xml\n") } else { print("empty\n") }
+
+:example cpp render
 DValue node = xml_decode("<root><name>Ada</name></root>");
 print(node.is_array() ? "xml\n" : "empty\n");

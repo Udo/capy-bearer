@@ -26,5 +26,8 @@ Use this instead of manually checking app routes before composing file paths.
 
 `request_query_path()`, `request_query_route()`, and the runtime-populated `ROUTE_PATH` params already use this sanitizer.
 
-:example
+:example capy render
+print(route_path_sanitize("../secret", "index"), "\n")
+
+:example cpp render
 print(route_path_sanitize("../secret", "index"), "\n");

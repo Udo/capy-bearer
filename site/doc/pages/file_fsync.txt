@@ -8,7 +8,15 @@ return value : true if the flush succeeded
 :content
 Flushes a handle's buffered writes to disk, so the data survives a crash or power loss. Call it before `file_close()` when durability matters (e.g. after writing a checkpoint).
 
-:example
+:example capy render
+var handle := file_open("/tmp/doc-fsync.txt", "w")
+file_write(handle, "durable")
+var result := "fsync failed"
+if file_fsync(handle) { result = "flushed to disk" }
+print(result, "\n")
+file_close(handle)
+
+:example cpp render
 u64 h = file_open("/tmp/doc-fsync.txt", "w");
 file_write(h, "durable");
 print(file_fsync(h) ? "flushed to disk" : "fsync failed", "\n");

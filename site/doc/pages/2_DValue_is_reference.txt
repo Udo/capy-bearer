@@ -13,7 +13,11 @@ return value : true when this node itself is a reference node
 Reports whether the current node's direct type tag is the internal reference tag. Most read methods dereference automatically; this helper is mainly useful when handling reference-aware runtime state.
 
 
-:example
+:capy-status unsupported
+
+Capy values have no reference identity: boundary crossings dereference copied values, so this predicate has no equivalent.
+
+:example cpp render
 DValue target; target.set("x");
 DValue ref; ref.set_reference(&target);
 DValue plain; plain.set("y");

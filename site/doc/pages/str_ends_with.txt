@@ -13,5 +13,8 @@ return value : `true` when `haystack` ends with `needle`, otherwise `false`
 Checks whether `haystack` ends with `needle`.
 
 
-:example
+:example capy render
+if str_ends_with("index.uce", ".uce") { print("yes\n") } else { print("no\n") }
+
+:example cpp render
 print(str_ends_with("index.uce", ".uce") ? "yes\n" : "no\n");

@@ -29,6 +29,10 @@ Workspace birth is subdivided into `birth_policy_us`, `birth_import_us`, `birth_
 
 Wasm FastCGI workers retain up to `MYSQL_PERSISTENT_POOL_SIZE` credential-keyed MySQL connections (default `8`; set `0` to disable). BEARER calls the client library's connection-reset operation before another request receives a cached connection, clearing transactions, temporary tables, session variables, and selected databases while avoiding a new authentication handshake. Same-request leases continue to share state until request cleanup.
 
-:example
+:example capy render
+var perf := request_perf()
+if dval_get_type_name(perf) != "invalid" { print("captured a timing snapshot\n") } else { print("no data\n") }
+
+:example cpp render
 DValue perf = request_perf();
 print(perf.get_type_name() != "invalid" ? "captured a timing snapshot" : "no data", "\n");

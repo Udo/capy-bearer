@@ -13,5 +13,8 @@ Appends data to the current request output stream.
 Use `print()` when you want to emit response content directly from BEARER code.
 
 
-:example
+:example capy render
+print("hello docs\n")
+
+:example cpp render
 print("hello docs\n");

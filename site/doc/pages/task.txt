@@ -1,27 +1,31 @@
 :sig
-pid_t task(String key, std::function<void()> exec_func, u64 timeout = 60*10)
+String task(String target, DValue props)
 
 :params
-key : string uniquely identifying the task across the whole runtime instance
-exec_func : function to execute
-timeout : maximum run time in seconds; `0` disables the timeout
-return value : the process ID of the started (or still running) task, or `0` when the task could not be started
+target : unit path with an optional `:NAME` task handler
+props : copied structured input available as `context.props`
+return value : opaque task ID
 
 :see
 >task
-task_pid
-task_kill
-task_repeat
+task_status
+task_await
+task_cancel
 
 :content
-Starts `exec_func` in a new process and returns that process ID.
+Enqueues a named Bearer task and returns immediately with an opaque ID. `worker.capy` invokes its default `TASK` handler; `worker.capy:refresh` invokes `TASK:refresh`. The configured dedicated task workers process the bounded durable queue independently of request workers.
 
-If a process with the same `key` is already running anywhere in the runtime instance, `task()` does not start a second copy. Instead it returns the PID of the already-running task. Coordination is through a shared task status file under `BIN_DIRECTORY`, so the key applies across workers, not just the current worker process.
+Each invocation receives a fresh ordinary `Request`. The copied DValue is available only as `context.props`; request, session, connection, resource, and caller memory state are not inherited. Queue admission never compiles the target or forks a process. Missing handlers, compilation errors, traps, timeouts, cancellation, and worker loss become isolated task status outcomes.
 
-Task keys may contain ordinary user-facing text. BEARER hashes the key before using it as an internal lock/status filename so slashes and other path-like characters cannot escape the task state directory.
+Capy handlers use `function TASK(request : request)` or `function TASK_NAME(request : request)`. C++ handlers use `TASK(Request& context)` or `TASK:NAME(Request& context)`.
 
-`timeout` is enforced in the child process with an alarm. The default is ten minutes. Pass `0` only for tasks that have their own shutdown path.
+:example capy render
+var id := task("/doc/examples/task_worker.capy:STORE", dval({"message": "hello"}))
+var result := "failed"
+if length(id) == 64 { result = "queued" }
+print(result, "\n")
 
-:example
-task("doc-demo-task", []() { usleep(100000); });
-print(task_pid("doc-demo-task") > 0 ? "background task is running" : "no task", "\n");
+:example cpp render
+DValue props; props["message"] = "hello";
+String id = task("/doc/examples/task_worker.capy:STORE", props);
+print(id.size() == 64 ? "queued\n" : "failed\n");

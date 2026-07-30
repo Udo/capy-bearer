@@ -15,7 +15,11 @@ filter
 2_DValue_filter
 2_DValue_map
 
+:capy-status cpp-specific
+
 :content
+This page describes the C++/Bearer template workflow; Capy uses typed `function RENDER` units rather than this preprocessor model.
+
 BEARER is server-first C++ with a small template preprocessor. It does not try to be React, but several concepts map cleanly.
 
 ## Concept Map
@@ -63,6 +67,6 @@ When a unit fails to compile, BEARER reports the source path, generated C++ path
 - No JSX-like component tags are required for this workflow.
 - Component children/slot syntax is not part of BEARER yet; use explicit props and component calls for now.
 
-:example
+:example cpp render
 // Components are BEARER's reusable, props-driven building blocks (like React components).
 print(component("examples/sample_unit"), "\n");

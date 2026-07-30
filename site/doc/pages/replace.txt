@@ -16,5 +16,8 @@ Replaces every occurrence of `search` in `s` with `replace_with`.
 The returned string contains the fully replaced result.
 
 
-:example
+:example capy render
+print(replace("hello docs", "docs", "BEARER"), "\n")
+
+:example cpp render
 print(replace("hello docs", "docs", "BEARER"), "\n");

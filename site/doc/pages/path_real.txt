@@ -8,7 +8,13 @@ return value : the canonical absolute path, or "" if it cannot be resolved
 :content
 Resolves a path to its canonical absolute form, following symlinks and collapsing `.` and `..` segments. The path must exist. Combine with `path_is_within()` to validate that user-supplied paths stay inside an allowed root.
 
-:example
+:example capy render
+var path := "/tmp/doc-real.txt"
+file_put_contents(path, "x")
+print(path_real(path), "\n")
+file_unlink(path)
+
+:example cpp render
 file_put_contents("/tmp/doc-real.txt", "x");
 print(path_real("/tmp/../tmp/./doc-real.txt"), "\n");
 

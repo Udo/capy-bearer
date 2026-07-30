@@ -19,7 +19,12 @@ The result is binary data. Store it in a file, send it with an appropriate conte
 
 BEARER writes a standard gzip wrapper around a deflate stream, including CRC32 and uncompressed-size footer fields.
 
-:example
+:example capy render
+var original := "hello hello hello hello hello"
+var packed := gz_compress(original)
+print("restores to: ", gz_uncompress(packed), "\n")
+
+:example cpp render
 String original = "hello hello hello hello hello";
 String packed = gz_compress(original);
-print(original.length(), " bytes -> ", packed.length(), " bytes; restores to: ", gz_uncompress(packed), "\n");
+print("restores to: ", gz_uncompress(packed), "\n");

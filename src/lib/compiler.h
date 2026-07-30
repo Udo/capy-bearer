@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 #if defined(__BEARER_WASM_UNIT__)
 #define BEARER_UNIT_EXPORT __attribute__((visibility("default")))
 #else
@@ -13,6 +15,9 @@
 #define WS(X) extern "C" BEARER_UNIT_EXPORT void __bearer_websocket(X)
 #define CLI(X) extern "C" BEARER_UNIT_EXPORT void __bearer_cli(X)
 #define SERVE_HTTP(X) extern "C" BEARER_UNIT_EXPORT void __bearer_serve_http(X)
+#define BEARER_TASK_SIGNATURE_ASSERT(SYMBOL) static_assert(std::is_same_v<decltype(&SYMBOL), void (*)(Request&)>, "TASK must have exact signature void(Request&)")
+#define TASK(X) extern "C" BEARER_UNIT_EXPORT void __bearer_task(X); BEARER_TASK_SIGNATURE_ASSERT(__bearer_task); extern "C" BEARER_UNIT_EXPORT void __bearer_task(X)
+#define BEARER_NAMED_TASK(SYMBOL, X) extern "C" BEARER_UNIT_EXPORT void SYMBOL X; BEARER_TASK_SIGNATURE_ASSERT(SYMBOL); extern "C" BEARER_UNIT_EXPORT void SYMBOL X
 #define EXPORT extern "C" BEARER_UNIT_EXPORT
 
 String preprocess_shared_unit(Request* context, SharedUnit* su);

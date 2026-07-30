@@ -8,7 +8,15 @@ return value : the path of the newly created temp file, or "" on failure
 :content
 Creates a new, uniquely named empty file using `prefix` as the leading path and returns its full path. Use it for scratch files and the write-then-rename publish pattern.
 
-:example
+:example capy render
+var path := file_temp("/tmp/doc-temp-")
+file_put_contents(path, "scratch")
+var result := path
+if str_starts_with(path, "/tmp/doc-temp-") { result = "created a temp file" }
+print(result, "\n")
+file_unlink(path)
+
+:example cpp render
 String path = file_temp("/tmp/doc-temp-");
 file_put_contents(path, "scratch");
 print(str_starts_with(path, "/tmp/doc-temp-") ? "created a temp file" : path, "\n");

@@ -8,7 +8,13 @@ return value : the current absolute byte offset
 :content
 Returns a handle's current read/write offset, as moved by `file_read()`, `file_write()`, and `file_seek()`.
 
-:example
+:example capy render
+var handle := file_open("/tmp/doc-tell.txt", "w")
+file_write(handle, "hello")
+print("offset is ", file_tell(handle), "\n")
+file_close(handle)
+
+:example cpp render
 u64 h = file_open("/tmp/doc-tell.txt", "w");
 file_write(h, "hello");
 print("offset is ", file_tell(h), "\n");

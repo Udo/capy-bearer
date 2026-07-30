@@ -22,7 +22,15 @@ The result is returned as a `DValue`, which makes it easy to iterate through row
 
 After an insert, update, or delete, use `mysql_affected_rows()` to inspect how many rows changed.
 
-:example
+:example capy cli
+var db := mysql_connect("localhost", "root", "", "")
+if db != 0u64 {
+    var rows := mysql_query(db, "select 'ada@example.test' as email, 1 + 1 as total limit :limit!", dval({limit: "1"}))
+    print(dval_string(rows[0]["email"]), " / total=", dval_string(rows[0]["total"]), "\n")
+    mysql_disconnect(db)
+} else { print("(requires a reachable MySQL server)\n") }
+
+:example cpp cli
 MySQL* db = mysql_connect();
 if(db != 0)
 {

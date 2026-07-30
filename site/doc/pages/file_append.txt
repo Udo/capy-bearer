@@ -9,7 +9,12 @@ return value : none
 :content
 Appends one or more values to a file, creating it if needed. Each call takes an exclusive lock for the append, so concurrent appends are serialized and readers wait for them; you never manage locks yourself.
 
-:example
+:example capy render
+file_unlink("/tmp/doc-append.txt")
+file_append("/tmp/doc-append.txt", "a", "b", "c")
+print(file_get_contents("/tmp/doc-append.txt"), "\n")
+
+:example cpp render
 file_unlink("/tmp/doc-append.txt");
 file_append("/tmp/doc-append.txt", "a", "b", "c");
 print(file_get_contents("/tmp/doc-append.txt"), "\n");

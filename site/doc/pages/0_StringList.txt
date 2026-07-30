@@ -6,7 +6,11 @@ Removed as a distinct container. `StringList` is now the source-compatible alias
 
 Use `DValue` for all new code. List-shaped values preserve ordered string iteration, indexing, `push_back()`, `filter()`, `map()`, `keys()`, `each()`, `unique()`, `sort()`, `some()`, `every()`, and `find()`.
 
-:example
+:example capy render
+var labels := map(unique(split("a,b,a", ",")), function(item : string) string { return to_upper(item) })
+print(join(labels, ","), "\n")
+
+:example cpp render
 DValue labels = split("a,b,a", ",").unique().map([](String item) { return(to_upper(item)); });
 print(join(labels, ","), "\n");
 

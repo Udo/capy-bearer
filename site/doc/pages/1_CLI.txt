@@ -44,5 +44,8 @@ Use `cli_input(context)` to merge query parameters, form parameters, and JSON PO
 
 `ONCE(Request& context)` runs before `CLI()` in the same way it runs before render and component entrypoints. `INIT(Request& context)` runs when the unit is loaded into a worker.
 
-:example
+:example capy render
+print("CLI is a unit directive; place it at top level in a .uce unit.\n")
+
+:example cpp render
 print("CLI is a unit directive; place it at top level in a .uce unit.\n");

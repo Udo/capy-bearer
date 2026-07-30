@@ -140,19 +140,17 @@ StringMap memcache_get_multiple(u64 connection, DValue keys);
 #if defined(__BEARER_WASM_CORE__) || defined(__BEARER_WASM_UNIT__)
 pid_t parent_pid = 0;
 pid_t my_pid = 0;
-bool task_child_process = false;
 #else
 extern pid_t parent_pid;
 extern pid_t my_pid;
-extern bool task_child_process;
 #endif
 
 void on_segfault(int sig);
-int task_kill(pid_t pid, s32 sig = 0);
 
 String runtime_safe_key(String key, String label = "runtime key");
-pid_t task(String key, std::function<void()> exec_after_spawn, u64 timeout = 60*10);
-pid_t task_repeat(String key, f64 interval, std::function<void()> exec_after_spawn, u64 timeout = 60*10);
-pid_t task_pid(String key);
+String task(String target, DValue props);
+DValue task_status(String id);
+DValue task_await(String id, u64 timeout_ms);
+DValue task_cancel(String id);
 pid_t server_start_http(String key, String socket_fn_or_port, String call_bearer_filename, String call_function = "");
 bool server_stop(String key);

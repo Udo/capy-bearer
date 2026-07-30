@@ -14,9 +14,7 @@ bearer_host_password_hash
 bearer_host_password_verify
 bearer_host_password_needs_rehash
 bearer_host_crypto_operation
-bearer_host_task_spawn
-bearer_host_task_pid
-bearer_host_task_kill
+bearer_host_task
 bearer_host_sleep_us
 bearer_host_socket_connect
 bearer_host_socket_close

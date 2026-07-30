@@ -13,6 +13,11 @@ return value : route metadata DValue
 :content
 Normalizes and validates a raw route path. The returned DValue includes route fields used by request context population, including sanitized path and validity metadata.
 
-:example
+:example capy render
+var route := request_route_from_raw_path("blog/2024/hello-world")
+print("page=", dval_string(route["page"]), " valid=")
+if dval_bool(route["valid"]) { print("yes\n") } else { print("no\n") }
+
+:example cpp render
 DValue route = request_route_from_raw_path("blog/2024/hello-world");
 print("page=", route["page"].to_string(), " valid=", route["valid"].to_bool() ? "yes" : "no", "\n");

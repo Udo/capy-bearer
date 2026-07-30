@@ -24,6 +24,7 @@
 //  - bearer.abi stamp must match the core ABI version; fail loudly, never guess
 
 #include <wasmtime.hh>
+#include "../lib/task_workers.h"
 #ifdef BEARER_WASM_HOST_CONNECTORS
 #include "../3rdparty/sqlite/sqlite3.h"
 #endif
@@ -1821,8 +1822,8 @@ static void wasm_request_envelope_append(String& envelope, const String& value)
 static String wasm_encode_request_envelope(const Request& request, const String& entry_unit, const String& handler)
 {
 	String envelope = "BRRQ";
-	envelope.push_back(1);
-	envelope.push_back(12);
+	envelope.push_back(2);
+	envelope.push_back(13);
 	wasm_request_envelope_append(envelope, brb_encode(request.call));
 	wasm_request_envelope_append(envelope, brb_encode_flat_string_map(request.params));
 	wasm_request_envelope_append(envelope, brb_encode_flat_string_map(request.get));
@@ -1852,6 +1853,7 @@ static String wasm_encode_request_envelope(const Request& request, const String&
 		websocket = brb_encode(ws);
 	}
 	wasm_request_envelope_append(envelope, websocket);
+	wasm_request_envelope_append(envelope, brb_encode(request.props));
 	return(envelope);
 }
 
@@ -2094,6 +2096,7 @@ struct WasmWorkspace : public WasmRequestProfile
 	// to fetch). For side-effecting ops (sqlite) re-executing on the fetch is
 	// wrong, so the result is staged on the first call (keyed on the exact
 	// input bytes) and replayed on the second without re-running the op.
+	String current_entry_unit;
 	String staged_hostcall_input;
 	String staged_hostcall_result;
 	String staged_socket_read_key;
@@ -2402,6 +2405,7 @@ struct WasmWorkspace : public WasmRequestProfile
 
 	String apply_context(const Request& request, const String& entry_unit, const String& handler)
 	{
+		current_entry_unit = entry_unit;
 		auto phase_start = std::chrono::steady_clock::now();
 		auto phase_us = [&]() -> u64 {
 			auto now = std::chrono::steady_clock::now();
@@ -3543,18 +3547,6 @@ struct WasmWorkspace : public WasmRequestProfile
 		record_link();
 		record_probe();
 		return(slot);
-	}
-
-	String run_task_callback(u64 callback_id, u64 timeout_cap_ms)
-	{
-		InvocationScope invocation(*this, timeout_cap_ms, true);
-		auto runner = core_func("bearer_wasm_task_run");
-		if(!runner)
-			return("core does not export bearer_wasm_task_run");
-		auto result = call_guest(*runner, { wasmtime::Val((int64_t)callback_id) });
-		if(!result)
-			return(trap_text(result.err()));
-		return("");
 	}
 
 	// ---- host imports for the core -----------------------------------------
@@ -4821,53 +4813,74 @@ struct WasmWorkspace : public WasmRequestProfile
 				results[0] = Val(::server_stop(key) ? (int32_t)1 : (int32_t)0);
 				return(std::monostate());
 			}));
-		if(mod == "env" && name == "bearer_host_task_spawn")
+		if(mod == "env" && name == "bearer_host_task")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
-				String key;
-				self->hostcall_read(args[0].i32(), args[1].i32(), key);
-				u64 callback_id = (u64)args[2].i64();
-				f64 interval = args[3].f64();
-				u64 timeout = (u64)args[4].i64();
-				bool repeat = args[5].i32() != 0;
-				// task()/task_repeat() fork and invoke this lambda only in the child
-				// before the hostcall stack unwinds, so `self` points to the child's
-				// copy of this per-request workspace. The parent request can return and
-				// destroy its workspace without invalidating the child copy.
-				u64 task_timeout_ms = timeout > UINT64_MAX / 1000 ? UINT64_MAX : timeout * 1000;
-				auto run_callback = [self, callback_id, task_timeout_ms]() {
-					String error = self->run_task_callback(callback_id, task_timeout_ms);
-					if(error != "")
-						fprintf(stderr, "[wasm task] callback failed: %s\n", error.c_str());
-				};
-				pid_t pid = 0;
-				try
+				String encoded, out;
+				int32_t input_size = args[1].i32();
+				u32 cap = (u32)args[3].i32();
+				int32_t buf = args[2].i32();
+				if(input_size <= 0 || input_size > 16 * 1024 * 1024 || self->hostcall_read(args[0].i32(), input_size, encoded) != "")
 				{
-					if(!repeat || (interval > 0 && std::isfinite(interval)))
-						pid = repeat
-							? ::task_repeat(key, interval, run_callback, timeout)
-							: ::task(key, run_callback, timeout);
+					DValue response; response["error"] = "invalid_input"; out = brb_encode(response);
+					if(buf != 0 && cap >= out.size()) self->hostcall_write(buf, out);
+					results[0] = Val((int32_t)out.size()); return(std::monostate());
 				}
-				catch(const std::exception& e)
+				String stage_key = "task:" + encoded;
+				bool replay = self->staged_hostcall_input == stage_key;
+				if(replay)
+					out = self->staged_hostcall_result;
+				else
 				{
-					fprintf(stderr, "[wasm task] spawn failed for key '%s': %s\n", key.c_str(), e.what());
+					DValue request, response;
+					String error;
+					if(!brb_decode(encoded, request, &error) || request.type != 'M')
+						response["error"] = "invalid_input";
+					else
+					{
+						String operation = request["op"].to_string();
+						task_queue::Result result;
+						if(operation == "submit")
+						{
+							String target = request["target"].to_string(), name;
+							auto separator = target.rfind(':');
+							if(separator != String::npos)
+							{
+								name = target.substr(separator);
+								target = target.substr(0, separator);
+							}
+							String current = self->current_entry_unit;
+							if(target == "") target = current;
+							String resolved = self->resolve_source_path(target, current);
+							result = resolved == "" ? task_queue::Result{} : task_workers::submit(resolved + name, request["props"]);
+							if(resolved == "") result.code = "invalid_target";
+						}
+						else if(operation == "status") result = task_workers::status(request["id"].to_string());
+						else if(operation == "await") result = task_workers::await(request["id"].to_string(), request["timeout_ms"].to_u64());
+						else if(operation == "cancel") result = task_workers::cancel(request["id"].to_string());
+						else response["error"] = "invalid_operation";
+						if(operation == "submit" || operation == "status" || operation == "await" || operation == "cancel")
+							if(result.ok()) { if(operation == "submit") response["id"] = result.task.id; else response = result.status; }
+							else
+							{
+								fprintf(stderr, "[wasm task] %s failed: %s\n", operation.c_str(), result.code.c_str());
+								response["error"] = result.code;
+							}
+					}
+					out = brb_encode(response);
+					if(buf == 0) self->hostcall_stage(stage_key, out);
 				}
-				catch(...)
+				if(buf != 0 && cap >= out.size())
 				{
-					fprintf(stderr, "[wasm task] spawn failed for key '%s'\n", key.c_str());
+					self->hostcall_write(buf, out);
+					if(replay)
+					{
+						self->staged_hostcall_input = "";
+						self->staged_hostcall_result = "";
+					}
 				}
-				results[0] = Val((int32_t)pid);
-				return(std::monostate());
-			}));
-		if(mod == "env" && name == "bearer_host_task_pid")
-			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
-				String key;
-				self->hostcall_read(args[0].i32(), args[1].i32(), key);
-				results[0] = Val((int32_t)::task_pid(key));
-				return(std::monostate());
-			}));
-		if(mod == "env" && name == "bearer_host_task_kill")
-			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
-				results[0] = Val((int32_t)::task_kill((pid_t)args[0].i32(), args[1].i32()));
+				else if(buf != 0 && !replay)
+					self->hostcall_stage(stage_key, out);
+				results[0] = Val((int32_t)out.size());
 				return(std::monostate());
 			}));
 		if(mod == "env" && name == "bearer_host_sleep_us")

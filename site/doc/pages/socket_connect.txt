@@ -14,7 +14,12 @@ Opens a socket connection to the given `host` and `port`.
 
 The returned socket handle is then used with `socket_read()`, `socket_write()`, and `socket_close()`. Currently this helper accepts IPv4 dotted-quad addresses in socket calls and does not perform hostname resolution.
 
-:example
+:example capy render
+var fd := socket_connect("127.0.0.1", 80)
+if fd != 0u64 { print("connected to the local server\n") } else { print("connect failed\n") }
+socket_close(fd)
+
+:example cpp render
 u64 fd = socket_connect("127.0.0.1", 80);
 print(fd != 0 ? "connected to the local server" : "connect failed", "\n");
 socket_close(fd);

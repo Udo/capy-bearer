@@ -13,7 +13,11 @@ return value : converted value or the fallback
 :content
 Returns the stored string, converts f64/bool/pointer values to text, and returns the default for empty strings, maps, unresolved references, or unknown types. Bool text is `(true)` or `(false)`.
 
-:example
+:example capy render
+var value := dval(true)
+print(dval_to_string(value), "\n")
+
+:example cpp render
 DValue value;
-value = true;
+value.set_bool(true);
 print(value.to_string(), "\n");

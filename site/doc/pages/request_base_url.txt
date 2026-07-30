@@ -10,5 +10,8 @@ request_query_route
 Returns the canonical directory base URL for the current script. This is useful for front-controller apps that generate links to sibling assets or query-routed pages.
 
 
-:example
+:example capy render
+if request_base_url() != "" { print("base url\n") } else { print("empty\n") }
+
+:example cpp render
 print(request_base_url(context) != "" ? "base url\n" : "empty\n");

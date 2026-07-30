@@ -7,7 +7,14 @@ return value : the current buffer's contents
 :content
 Returns the current output buffer's contents and discards the buffer, switching back to the previous one on the stack. This is the usual way to capture rendered output for post-processing.
 
-:example
+:example capy render
+ob_start()
+print("hello ")
+print("world")
+var html := ob_get_close()
+print("captured ", length(html), " chars: ", html, "\n")
+
+:example cpp render
 ob_start();
 print("hello ");
 print("world");

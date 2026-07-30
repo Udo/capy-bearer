@@ -14,6 +14,11 @@ This is the same default scope used by `ws_send()`, `ws_connections()`, and `ws_
 
 In the current runtime implementation this scope is the page's internal endpoint identifier, typically the absolute `SCRIPT_FILENAME` of the `.uce` file that accepted the WebSocket upgrade.
 
-:example
+:example capy render
+var scope := ws_scope()
+if scope == "" { scope = "(no WS scope in this context)" }
+print(scope, "\n")
+
+:example cpp render
 String scope = ws_scope();
 print(scope == "" ? "(no WS scope in this context)" : scope, "\n");

@@ -339,5 +339,8 @@ Notable fields:
 Or use runtime-populated params directly:
 
 
-:example
+:example capy render
+print("request available\n")
+
+:example cpp render
 print(context.params["REQUEST_URI"] != "" ? "request available\n" : "request available\n");

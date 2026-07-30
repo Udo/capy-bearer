@@ -24,6 +24,35 @@ void render_doc_params(DValue param_lines)
 	<></div></>
 }
 
+void render_doc_example_sources(DocPage doc_page)
+{
+	if(doc_page.example_parse_error != "")
+	{
+		?><div class="example error"><h3>Example format error</h3><pre><?= doc_page.example_parse_error ?></pre></div><?
+		return;
+	}
+	if(doc_page.capy_status != "")
+	{
+		?><div class="capy-status"><strong>Capy status:</strong> <?= doc_page.capy_status ?></div><?
+	}
+	for(DValue pair : doc_page.example_pairs)
+	{
+		String entry = pair["entry"].to_string();
+		?><div class="example paired-example"><h3>Example: <?= doc_example_handler_name(entry) ?></h3>
+		<div class="example-language capy"><h4><?= doc_example_language_label("capy") ?></h4><pre class="example-source"><?= pair["capy_body"].to_string() ?></pre></div>
+		<div class="example-language cpp"><h4><?= doc_example_language_label("cpp") ?></h4><pre class="example-source"><?= pair["cpp_body"].to_string() ?></pre></div>
+		</div><?
+	}
+	for(DValue example : doc_page.cpp_only_examples)
+	{
+		?><div class="example cpp-only-example"><h3>C++ example: <?= doc_example_handler_name(example["entry"].to_string()) ?></h3><pre class="example-source"><?= example["body"].to_string() ?></pre></div><?
+	}
+	for(String body : doc_page.example_blocks)
+	{
+		?><div class="example legacy-example"><h3>Legacy C++ example</h3><pre class="example-source"><?= body ?></pre></div><?
+	}
+}
+
 void render_doc_page(String page)
 {
 	(*already_shown_items)[page] = "Y";
@@ -45,6 +74,7 @@ void render_doc_page(String page)
 	{
 		<><div class="content"><?: markdown_to_html(doc_page.content) ?></div></>
 	}
+	render_doc_example_sources(doc_page);
 	<></section></>
 }
 

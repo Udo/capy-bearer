@@ -12,5 +12,8 @@ return value : worker process start directory
 :content
 Returns the directory captured when the native process started. It remains stable even if `cwd_set()` changes the current working directory.
 
-:example
+:example capy render
+if process_start_directory() != "" { print("have a start directory\n") } else { print("none\n") }
+
+:example cpp render
 print(process_start_directory() != "" ? "have a start directory" : "none", "\n");

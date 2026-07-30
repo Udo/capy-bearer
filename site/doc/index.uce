@@ -45,19 +45,37 @@ void render_doc_params(DValue param_lines)
 	?></div></>
 }
 
-String doc_example_path(Request& context, String page, u64 idx)
+// The shared DocPage parser validates typed pairs before artifact creation.
+bool doc_example_safe_member(String value)
 {
-	String bin_dir = context.params["BEARER_BIN_DIRECTORY"];
-	if(bin_dir == "")
-		return("");
-	String dir = path_join(bin_dir, "doc-examples");
-	mkdir(dir);
-	return(path_join(dir, page + "_" + std::to_string(idx + 1) + ".uce"));
+	if(value == "")
+		return(false);
+	for(char c : value)
+		if(!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-'))
+			return(false);
+	return(true);
 }
 
-String doc_example_unit_source(String body)
+String doc_example_path(Request& context, String page, u64 idx, String language)
 {
-	return("RENDER(Request& context)\n{\n" + body + "\n}\n");
+	String bin_dir = context.params["BEARER_BIN_DIRECTORY"];
+	String member = ascii_safe_name(page);
+	if(bin_dir == "" || !doc_example_safe_member(member) || (language != "capy" && language != "cpp"))
+		return("");
+	String root = path_join(bin_dir, "doc-examples");
+	if(!file_exists(root) && !mkdir(root))
+		return("");
+	if(!path_is_within(root, bin_dir))
+		return("");
+	return(path_join(root, member + "_" + std::to_string(idx + 1) + "." + (language == "capy" ? "capy" : "uce")));
+}
+
+String doc_example_unit_source(String language, String entry, String body)
+{
+	String handler = doc_example_handler_name(entry);
+	if(language == "capy")
+		return("function " + handler + " {\n" + body + "\n}\n");
+	return(handler + "(Request& context)\n{\n" + body + "\n}\n");
 }
 
 bool doc_write_if_changed(String path, String content)
@@ -67,39 +85,108 @@ bool doc_write_if_changed(String path, String content)
 	return(file_put_contents(path, content));
 }
 
-String doc_render_example_output(Request& context, String page, u64 idx, String body)
+DValue doc_compile_example(Request& context, String page, u64 idx, String language, String entry, String body)
 {
-	String path = doc_example_path(context, page, idx);
+	DValue result;
+	String path = doc_example_path(context, page, idx, language);
 	if(path == "")
-		return("DOC EXAMPLE ERROR: BEARER_BIN_DIRECTORY is not available");
-	String unit_source = doc_example_unit_source(body);
-	if(!doc_write_if_changed(path, unit_source))
-		return("DOC EXAMPLE ERROR: could not write " + path);
+	{
+		result["error"] = "DOC EXAMPLE ERROR: invalid example artifact path";
+		return(result);
+	}
+	if(!doc_write_if_changed(path, doc_example_unit_source(language, entry, body)))
+	{
+		result["error"] = "DOC EXAMPLE ERROR: could not write " + path;
+		return(result);
+	}
 	if(!unit_compile(path))
-		return("DOC EXAMPLE ERROR: unit_compile failed for " + path);
-
-	ob_start();
-	unit_render(path);
-	String out = ob_get_close();
-	if(out == "")
-		return("DOC EXAMPLE ERROR: example produced no output");
-	return(out);
+	{
+		result["error"] = "DOC EXAMPLE ERROR: unit_compile failed for " + path;
+		return(result);
+	}
+	result["path"] = path;
+	return(result);
 }
 
-void render_doc_examples(Request& context, String page, DValue example_blocks)
+DValue doc_render_example(Request& context, String page, u64 idx, String language, String entry, String body)
 {
-	for(u64 idx = 0; idx < example_blocks.size(); idx++)
+	DValue result = doc_compile_example(context, page, idx, language, entry, body);
+	if(result["error"].to_string() != "" || entry != "render")
+		return(result);
+	ob_start();
+	unit_render(result["path"].to_string());
+	result["output"] = ob_get_close();
+	return(result);
+}
+
+void render_doc_example_result(String language, String entry, String body, DValue result)
+{
+	?><div class="example-language <?= language ?>">
+		<h4><?= doc_example_language_label(language) ?></h4>
+		<pre class="example-source"><?= body ?></pre><?
+	if(result["error"].to_string() != "")
 	{
-		String body = example_blocks[idx];
-		String output = doc_render_example_output(context, page, idx, body);
-		?><div class="doc-section example">
-		<h3>Example</h3>
-		<pre class="example-source"><?= body ?></pre>
-		<div class="example-output">
-			<div class="example-output-label">Output</div>
-			<pre><?= output ?></pre>
-		</div>
-		</div><?
+		?><div class="example-output error"><div class="example-output-label">Error</div><pre><?= result["error"].to_string() ?></pre></div><?
+	}
+	else if(entry == "render")
+	{
+		?><div class="example-output"><div class="example-output-label">Output</div><pre><?= result["output"].to_string() ?></pre></div><?
+	}
+	else
+	{
+		?><div class="example-compile-only">Compile-only: <?= doc_example_handler_name(entry) ?> is not executed by documentation rendering.</div><?
+	}
+	?></div><?
+}
+
+void render_doc_examples(Request& context, String page, DocPage doc_page)
+{
+	if(doc_page.example_parse_error != "")
+	{
+		?><div class="doc-section example error"><h3>Example format error</h3><pre><?= doc_page.example_parse_error ?></pre></div><?
+		return;
+	}
+	if(doc_page.capy_status != "")
+	{
+		?><div class="doc-section capy-status"><strong>Capy status:</strong> <?= doc_page.capy_status == "unsupported" ? "unsupported" : "C++-specific" ?></div><?
+	}
+	for(u64 idx = 0; idx < doc_page.example_pairs.size(); idx++)
+	{
+		DValue pair = doc_page.example_pairs[idx];
+		String entry = pair["entry"].to_string();
+		String capy_body = pair["capy_body"].to_string();
+		String cpp_body = pair["cpp_body"].to_string();
+		DValue capy = doc_render_example(context, page, idx, "capy", entry, capy_body);
+		DValue cpp = doc_render_example(context, page, idx, "cpp", entry, cpp_body);
+		bool equal = entry != "render" || (capy["error"].to_string() == "" && cpp["error"].to_string() == "" && capy["output"].to_string() == cpp["output"].to_string());
+		?><div class="doc-section example paired-example">
+			<h3>Example: <?= doc_example_handler_name(entry) ?></h3><?
+			render_doc_example_result("capy", entry, capy_body, capy);
+			render_doc_example_result("cpp", entry, cpp_body, cpp);
+			if(entry == "render" && !equal)
+			{
+				?><div class="example-output error"><div class="example-output-label">Parity error</div><pre>DOC EXAMPLE ERROR: Capy and C++ render output differs</pre></div><?
+			}
+		?></div><?
+	}
+	for(u64 idx = 0; idx < doc_page.cpp_only_examples.size(); idx++)
+	{
+		DValue example = doc_page.cpp_only_examples[idx];
+		String entry = example["entry"].to_string();
+		String body = example["body"].to_string();
+		u64 artifact_idx = doc_page.example_pairs.size() + idx;
+		DValue cpp = doc_render_example(context, page, artifact_idx, "cpp", entry, body);
+		?><div class="doc-section example cpp-only-example"><h3>C++ example: <?= doc_example_handler_name(entry) ?></h3><?
+			render_doc_example_result("cpp", entry, body, cpp);
+		?></div><?
+	}
+	for(u64 idx = 0; idx < doc_page.example_blocks.size(); idx++)
+	{
+		u64 artifact_idx = doc_page.example_pairs.size() + doc_page.cpp_only_examples.size() + idx;
+		DValue cpp = doc_render_example(context, page, artifact_idx, "cpp", "render", doc_page.example_blocks[idx]);
+		?><div class="doc-section example legacy-example"><h3>Legacy C++ example</h3><?
+		render_doc_example_result("cpp", "render", doc_page.example_blocks[idx], cpp);
+		?></div><?
 	}
 }
 
@@ -283,7 +370,7 @@ RENDER(Request& context)
 				?><div class="doc-section content"><?: markdown_to_html(doc_page.content) ?></div><?
 			}
 
-			render_doc_examples(context, page, doc_page.example_blocks);
+			render_doc_examples(context, page, doc_page);
 
 			?></article><?
 

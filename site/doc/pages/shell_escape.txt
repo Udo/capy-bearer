@@ -13,5 +13,8 @@ Escapes a parameter so it can be used more safely with `shell_exec()`.
 
 This is the helper to reach for when building shell command lines from dynamic input.
 
-:example
+:example capy render
+print(shell_escape("rm -rf /; echo pwned"), "\n")
+
+:example cpp render
 print(shell_escape("rm -rf /; echo pwned"), "\n");

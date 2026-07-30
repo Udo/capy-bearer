@@ -13,7 +13,11 @@ return value : converted value or the fallback
 :content
 Converts strings, f64, bool, pointer, and single-value maps to an unsigned integer. Invalid or empty strings return the default. Negative values clamp to zero and oversized values clamp to `u64` max.
 
-:example
+:example capy render
+var value := dval("42")
+print(dval_to_u64(value), "\n")
+
+:example cpp render
 DValue value;
 value = "42";
 print(value.to_u64(), "\n");

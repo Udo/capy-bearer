@@ -6,3 +6,10 @@ Removed as a separate StringList API. List-shaped `DValue::unique()` returns fir
 
 :see
 0_DValue
+
+:example capy render
+var items := split("one,two,one", ",")
+print(join(unique(items), ","), "\n")
+:example cpp render
+StringList items = split("one,two,one", ",");
+print(join(items.unique(), ","), "\n");

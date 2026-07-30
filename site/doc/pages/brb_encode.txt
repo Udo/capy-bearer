@@ -12,7 +12,11 @@ Serializes a `DValue` to BRRB1, BEARER's binary DValue wire format for the WASM 
 BRRB1 is length-prefixed and binary-safe. It preserves nested maps, list-shaped maps, empty lists, and scalar bytes, including embedded NUL bytes. Use JSON/YAML/XML serializers for human-facing formats; use BRRB1 when BEARER code needs the native DValue protocol.
 
 
-:example
+:example capy render
+var original := dval({"msg": "hello"})
+var packed := brb_encode(original)
+print("encoded ", length(packed), " bytes; round-trips to: ", dval_string(brb_decode(packed)["msg"]), "\n")
+:example cpp render
 DValue original;
 original["msg"] = "hello";
 String packed = brb_encode(original);

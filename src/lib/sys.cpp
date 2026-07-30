@@ -40,9 +40,7 @@ size_t bearer_host_file_temp(const char* prefix, size_t prefix_len, const char* 
 int bearer_host_file_chmod(const char* path, size_t path_len, const char* current, size_t current_len, uint32_t mode);
 int bearer_host_file_symlink(const char* target, size_t target_len, const char* linkpath, size_t linkpath_len, const char* current, size_t current_len);
 int bearer_host_file_fsync(uint64_t handle);
-int bearer_host_task_spawn(const char* key, size_t key_len, uint64_t callback_id, double interval, uint64_t timeout, int repeat);
-int bearer_host_task_pid(const char* key, size_t key_len);
-int bearer_host_task_kill(int pid, int sig);
+size_t bearer_host_task(const char* in, size_t in_len, char* out, size_t cap);
 unsigned int bearer_host_sleep_us(uint64_t usec);
 uint64_t bearer_host_socket_connect(const char* host, size_t host_len, int port);
 void bearer_host_socket_close(uint64_t sockfd);
@@ -673,42 +671,42 @@ StringMap memcache_get_multiple(u64 connection, DValue keys)
 }
 void on_segfault(int sig) { (void)sig; }
 
-static u64 wasm_next_task_callback_id = 1;
-static std::map<u64, std::function<void()>> wasm_task_callbacks;
-
-extern "C" int bearer_wasm_task_run(uint64_t callback_id)
-{
-	auto it = wasm_task_callbacks.find(callback_id);
-	if(it == wasm_task_callbacks.end())
-		return(1);
-	it->second();
-	return(0);
-}
-
-int task_kill(pid_t pid, s32 sig) { return(bearer_host_task_kill(pid, (int)sig)); }
 String runtime_safe_key(String key, String label)
 {
 	(void)label;
 	key = trim(key);
-	if(key == "")
-		return("");
-	return(gen_sha1(key));
+	return(key == "" ? "" : gen_sha1(key));
 }
-pid_t task(String key, std::function<void()> exec_after_spawn, u64 timeout)
+
+static DValue wasm_task_call(String operation, String target_or_id, DValue props, u64 timeout_ms)
 {
-	u64 id = wasm_next_task_callback_id++;
-	wasm_task_callbacks[id] = exec_after_spawn;
-	return((pid_t)bearer_host_task_spawn(key.data(), key.size(), id, 0.0, timeout, 0));
+	DValue request;
+	request["op"] = operation;
+	request[operation == "submit" ? "target" : "id"] = target_or_id;
+	request["props"] = props;
+	request["timeout_ms"] = std::to_string(timeout_ms);
+	String encoded = brb_encode(request);
+	size_t need = bearer_host_task(encoded.data(), encoded.size(), 0, 0);
+	if(need == 0 || need > 16 * 1024 * 1024)
+		__builtin_trap();
+	String response(need, 0);
+	size_t got = bearer_host_task(encoded.data(), encoded.size(), response.data(), response.size());
+	DValue decoded;
+	if(got == 0 || got > response.size() || !brb_decode(String(response.data(), got), decoded, 0))
+		__builtin_trap();
+	return(decoded);
 }
-pid_t task_repeat(String key, f64 interval, std::function<void()> exec_after_spawn, u64 timeout)
+
+String task(String target, DValue props)
 {
-	if(!(interval > 0) || !std::isfinite(interval))
-		return(0);
-	u64 id = wasm_next_task_callback_id++;
-	wasm_task_callbacks[id] = exec_after_spawn;
-	return((pid_t)bearer_host_task_spawn(key.data(), key.size(), id, interval, timeout, 1));
+	DValue response = wasm_task_call("submit", target, props, 0);
+	if(response["error"].to_string() != "")
+		__builtin_trap();
+	return(response["id"].to_string());
 }
-pid_t task_pid(String key) { return((pid_t)bearer_host_task_pid(key.data(), key.size())); }
+DValue task_status(String id) { return(wasm_task_call("status", id, DValue(), 0)); }
+DValue task_await(String id, u64 timeout_ms) { return(wasm_task_call("await", id, DValue(), timeout_ms)); }
+DValue task_cancel(String id) { return(wasm_task_call("cancel", id, DValue(), 0)); }
 extern "C" unsigned int sleep(unsigned int seconds) { return(bearer_host_sleep_us((uint64_t)seconds * 1000000ull)); }
 extern "C" s32 usleep(u32 usec) { bearer_host_sleep_us(usec); return(0); }
 pid_t server_start_http(String key, String socket_fn_or_port, String call_bearer_filename, String call_function)
@@ -732,6 +730,7 @@ StringMap default_config()
 }
 
 #else
+#include "task_workers.h"
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -762,7 +761,6 @@ bool password_needs_rehash(String encoded) { return(password_needs_rehash_native
 // Single definitions for the native split_strings build (declared extern in sys.h).
 pid_t parent_pid = 0;
 pid_t my_pid = 0;
-bool task_child_process = false;
 
 namespace {
 
@@ -1652,213 +1650,21 @@ String runtime_safe_key(String key, String label)
 	return(gen_sha1(key));
 }
 
-String task_file_prefix(String key)
+static DValue task_result_value(const task_queue::Result& result)
 {
-	return(path_join(context->server->config["BIN_DIRECTORY"], "task-" + runtime_safe_key(key, "task key")));
+	if(result.ok()) return(result.status);
+	DValue error; error["error"] = result.code; return(error);
 }
 
-struct TaskStatus {
-	pid_t pid = 0;
-	String process_start_ticks = "";
-};
-
-TaskStatus task_status_parse(String status_file)
+String task(String target, DValue props)
 {
-	TaskStatus status;
-	auto lines = split_strings(trim(status_file), "\n");
-	if(lines.size() > 0)
-		status.pid = (pid_t)int_val(trim(lines[0]));
-	if(lines.size() > 1)
-		status.process_start_ticks = trim(lines[1]);
-	return(status);
+	auto result = task_workers::submit(target, props);
+	if(!result.ok()) throw std::runtime_error("task: " + result.code);
+	return(result.task.id);
 }
-
-String task_process_start_ticks(pid_t pid)
-{
-	if(pid <= 0)
-		return("");
-	String stat_file_name = "/proc/" + std::to_string(pid) + "/stat";
-	int fd = open(stat_file_name.c_str(), O_RDONLY);
-	if(fd == -1)
-		return("");
-	char buffer[4096];
-	ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
-	close(fd);
-	if(bytes_read <= 0)
-		return("");
-	buffer[bytes_read] = '\0';
-	String stat = buffer;
-	size_t command_end = stat.rfind(") ");
-	if(command_end == String::npos)
-		return("");
-	String after_command = stat.substr(command_end + 2);
-	auto fields = split_space_strings(after_command);
-	if(fields.size() <= 19)
-		return("");
-	return(fields[19]);
-}
-
-String task_status_content(pid_t pid)
-{
-	return(std::to_string(pid) + "\n" + task_process_start_ticks(pid) + "\n");
-}
-
-bool task_status_is_alive(TaskStatus status)
-{
-	if(status.pid <= 0)
-		return(false);
-	if(kill(status.pid, 0) != 0)
-		return(false);
-	if(status.process_start_ticks == "")
-		return(true);
-	return(task_process_start_ticks(status.pid) == status.process_start_ticks);
-}
-
-void task_close_inherited_fds()
-{
-	long max_fd = sysconf(_SC_OPEN_MAX);
-	if(max_fd < 0 || max_fd > 65536)
-		max_fd = 4096;
-	for(int fd = 3; fd < max_fd; fd++)
-		close(fd);
-}
-
-int task_kill(pid_t pid, s32 sig)
-{
-	if(pid <= 0)
-	{
-		errno = EINVAL;
-		return(-1);
-	}
-	return(kill(pid, sig));
-}
-
-pid_t task_pid(String key)
-{
-	String status_file_name = task_file_prefix(key);
-	String lock_file_name = status_file_name + ".lock";
-	int lock_fd = open_locked_file(lock_file_name, O_RDWR | O_CREAT, LOCK_EX, 0644);
-	if(lock_fd == -1)
-	{
-		fprintf(stderr, "task_pid(): could not lock task key '%s'\n", key.c_str());
-		return(0);
-	}
-	String status_file = file_exists(status_file_name) ? file_get_contents(status_file_name) : "";
-	if(status_file != "")
-	{
-		TaskStatus status = task_status_parse(status_file);
-		if(task_status_is_alive(status))
-		{
-			close_locked_file(lock_fd);
-			return(status.pid);
-		}
-		file_unlink(status_file_name);
-	}
-	close_locked_file(lock_fd);
-	return(0);
-}
-
-pid_t task(String key, std::function<void()> exec_after_spawn, u64 timeout)
-{
-	String status_file_name = task_file_prefix(key);
-	String lock_file_name = status_file_name + ".lock";
-	int lock_fd = open_locked_file(lock_file_name, O_RDWR | O_CREAT, LOCK_EX, 0644);
-	if(lock_fd == -1)
-	{
-		fprintf(stderr, "task(): could not lock task key '%s'\n", key.c_str());
-		return(0);
-	}
-	String status_file = file_exists(status_file_name) ? file_get_contents(status_file_name) : "";
-	pid_t p = 0;
-	if(status_file != "")
-	{
-		TaskStatus status = task_status_parse(status_file);
-		if(task_status_is_alive(status))
-		{
-			printf("(P) worker process '%s' already running: PID %i\n", key.c_str(), status.pid);
-			close_locked_file(lock_fd);
-			return(status.pid);
-		}
-		file_unlink(status_file_name);
-	}
-	p = fork();
-	if(p < 0)
-	{
-		fprintf(stderr, "task(): fork failed for key '%s': %s\n", key.c_str(), strerror(errno));
-		close_locked_file(lock_fd);
-		return(0);
-	}
-	if(p == 0)
-	{
-		close_locked_file(lock_fd);
-		my_pid = getpid();
-		task_child_process = true;
-		// The FastCGI worker handles termination to drain accepted requests.
-		// Generic task children do not run that drain loop, so inheriting those
-		// handlers would turn task_kill(SIGTERM) into a no-op.
-		signal(SIGTERM, SIG_DFL);
-		signal(SIGINT, SIG_DFL);
-		signal(SIGHUP, SIG_DFL);
-		signal(SIGALRM, SIG_DFL);
-		if(timeout > 0)
-			alarm(timeout);
-
-		if(context->resources.client_socket > 0)
-		{
-			close(context->resources.client_socket);
-			context->resources.client_socket = 0;
-		}
-		task_close_inherited_fds();
-		exec_after_spawn();
-		int exit_lock_fd = open_locked_file(lock_file_name, O_RDWR | O_CREAT, LOCK_EX, 0644);
-		if(exit_lock_fd != -1)
-		{
-			file_unlink(status_file_name);
-			close_locked_file(exit_lock_fd);
-		}
-		else
-		{
-			fprintf(stderr, "task(): could not lock task key '%s' during child cleanup\n", key.c_str());
-		}
-		printf("(P) worker process '%s' terminated: PID %i\n", key.c_str(), my_pid);
-		exit(0);
-	}
-
-	if(!file_put_contents(status_file_name, task_status_content(p)))
-	{
-		fprintf(stderr, "task(): could not write status file for key '%s'; terminating child PID %i\n", key.c_str(), p);
-		kill(p, SIGTERM);
-		close_locked_file(lock_fd);
-		return(0);
-	}
-	close_locked_file(lock_fd);
-	printf("(P) worker process '%s' spawned: PID %i\n", key.c_str(), p);
-	return(p);
-}
-
-#include <unistd.h>
-pid_t task_repeat(String key, f64 interval, std::function<void()> exec_after_spawn, u64 timeout)
-{
-	if(interval <= 0)
-		throw std::runtime_error("task_repeat(): interval must be greater than zero");
-	auto repeater_function = [key, interval, exec_after_spawn, timeout]() {
-		f64 started_at = time_precise();
-		while (timeout == 0 || time_precise() - started_at < (f64)timeout)
-		{
-			exec_after_spawn();
-			f64 elapsed = time_precise() - started_at;
-			if(timeout > 0 && elapsed >= (f64)timeout)
-				break;
-			f64 sleep_seconds = interval;
-			if(timeout > 0 && elapsed + sleep_seconds > (f64)timeout)
-				sleep_seconds = (f64)timeout - elapsed;
-			printf("(P) worker process '%s' sleeping\n", key.c_str());
-			if(sleep_seconds > 0)
-				usleep((useconds_t)(sleep_seconds * 1000000.0));
-		}
-	};
-	return(task(key, repeater_function, timeout));
-}
+DValue task_status(String id) { return(task_result_value(task_workers::status(id))); }
+DValue task_await(String id, u64 timeout_ms) { return(task_result_value(task_workers::await(id, timeout_ms))); }
+DValue task_cancel(String id) { return(task_result_value(task_workers::cancel(id))); }
 
 void on_child_exit(int sig)
 {
@@ -1875,7 +1681,7 @@ void on_child_exit(int sig)
 		else
 		{
 			child_exit_status_publish(pid, status);
-			printf("(P) task child reaped (PID:%i)\n", pid);
+			printf("(P) untracked child reaped (PID:%i)\n", pid);
 		}
 	}
 }
@@ -1960,6 +1766,13 @@ StringMap make_server_settings()
 	cfg["HTTP_PORT"] = std::to_string(8080);
 	cfg["SESSION_TIME"] = std::to_string(60*60*24*30);
 	cfg["WORKER_COUNT"] = std::to_string(4);
+	cfg["TASK_DIRECTORY"] = "/var/lib/bearer/tasks";
+	cfg["TASK_WORKERS"] = "1";
+	cfg["TASK_QUEUE_CAPACITY"] = "1024";
+	cfg["TASK_PAYLOAD_MAX_BYTES"] = std::to_string(1024 * 1024);
+	cfg["TASK_EXECUTION_TIMEOUT_MS"] = "30000";
+	cfg["TASK_STATUS_RETENTION_SECONDS"] = "86400";
+	cfg["TASK_POLL_MS"] = "50";
 	cfg["MAX_MEMORY"] = std::to_string(1024*1024*16);
 
 	for(auto& it : split_kv(file_get_contents("/etc/bearer/settings.cfg")))

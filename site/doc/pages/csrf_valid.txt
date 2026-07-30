@@ -12,7 +12,11 @@ Starts the named session if needed and checks `submitted_token` against the stor
 
 Use this before mutating state from POST forms or other browser-submitted requests.
 
-:example
+:example capy render
+var token := csrf_token("bearer-doc-session")
+if csrf_valid(token, "bearer-doc-session") { print("valid\n") } else { print("invalid\n") }
+if csrf_valid("bad-token", "bearer-doc-session") { print("bad valid\n") } else { print("bad invalid\n") }
+:example cpp render
 String token = csrf_token("bearer-doc-session");
 print(csrf_valid(token, "bearer-doc-session") ? "valid\n" : "invalid\n");
 print(csrf_valid("bad-token", "bearer-doc-session") ? "bad valid\n" : "bad invalid\n");

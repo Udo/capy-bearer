@@ -6,6 +6,11 @@ struct DocPage {
 	DValue sig_lines;
 	DValue param_lines;
 	DValue example_blocks;
+	DValue example_pairs;
+	DValue cpp_only_examples;
+	String capy_status;
+	bool has_legacy_examples = false;
+	String example_parse_error;
 	DValue see_lines;
 };
 
@@ -105,6 +110,31 @@ String doc_index_label(String page)
 	return(label);
 }
 
+bool doc_example_entry_is_valid(String entry)
+{
+	return(entry == "render" || entry == "cli" || entry == "component" || entry == "init" || entry == "once" || entry == "ws");
+}
+
+String doc_example_language_label(String language)
+{
+	return(language == "capy" ? "Capy" : "C++ (.uce)");
+}
+
+String doc_example_handler_name(String entry)
+{
+	if(entry == "render")
+		return("RENDER");
+	if(entry == "cli")
+		return("CLI");
+	if(entry == "component")
+		return("COMPONENT");
+	if(entry == "init")
+		return("INIT");
+	if(entry == "once")
+		return("ONCE");
+	return("WS");
+}
+
 void doc_flush_section(DocPage& result, String page, String section, DValue& section_lines, DValue& content_lines)
 {
 	if(section == "")
@@ -147,6 +177,51 @@ void doc_flush_section(DocPage& result, String page, String section, DValue& sec
 	}
 }
 
+void doc_add_example(DocPage& result, String language, String entry, String body, String& pending_entry, String& pending_body)
+{
+	if(language == "legacy")
+	{
+		result.has_legacy_examples = true;
+		result.example_blocks.push_back(body);
+		return;
+	}
+	if(!doc_example_entry_is_valid(entry))
+	{
+		result.example_parse_error = "unknown example entry: " + entry;
+		return;
+	}
+	if(pending_entry == "")
+	{
+		if(language == "cpp" && result.capy_status != "")
+		{
+			DValue example;
+			example["entry"] = entry;
+			example["body"] = body;
+			result.cpp_only_examples[result.cpp_only_examples.size()] = example;
+		}
+		else if(language != "capy")
+			result.example_parse_error = "typed examples must start with capy, got " + language;
+		else
+		{
+			pending_entry = entry;
+			pending_body = body;
+		}
+		return;
+	}
+	if(language != "cpp" || entry != pending_entry)
+	{
+		result.example_parse_error = "expected contiguous :example cpp " + pending_entry;
+		return;
+	}
+	DValue pair;
+	pair["entry"] = pending_entry;
+	pair["capy_body"] = pending_body;
+	pair["cpp_body"] = body;
+	result.example_pairs[result.example_pairs.size()] = pair;
+	pending_entry = "";
+	pending_body = "";
+}
+
 DocPage load_doc_page(String page)
 {
 	DocPage result;
@@ -154,16 +229,69 @@ DocPage load_doc_page(String page)
 	String current_section = "";
 	DValue current_lines;
 	DValue content_lines;
+	String pending_entry;
+	String pending_body;
+	String example_language;
+	String example_entry;
+	bool in_typed_example = false;
 
 	for(auto line : lines)
 	{
 		if(line != "" && line.substr(0, 1) == ":")
 		{
-			doc_flush_section(result, page, current_section, current_lines, content_lines);
+			if(current_section == "example")
+			{
+				String example_body = join(current_lines, "\n");
+				if(trim(example_body) == "")
+					result.example_parse_error = "empty example block";
+				else
+					doc_add_example(result, example_language, example_entry, example_body, pending_entry, pending_body);
+			}
+			else
+				doc_flush_section(result, page, current_section, current_lines, content_lines);
 			current_lines.clear();
 
 			String section = trim(line.substr(1));
-			if(section == "title" || section == "sig" || section == "params" || section == "content" || section == "example" || section == "see")
+			if(section == "example" || section.substr(0, 8) == "example ")
+			{
+				current_section = "example";
+				example_language = "";
+				example_entry = "";
+				if(section == "example")
+				{
+					example_language = "legacy";
+					example_entry = "render";
+				}
+				else
+				{
+					String header = trim(section.substr(8));
+					String language = trim(nibble(header, " "));
+					String entry = trim(header);
+					if((language == "capy" || language == "cpp") && entry != "" && entry.find(" ") == String::npos)
+					{
+						example_language = language;
+						example_entry = entry;
+						in_typed_example = true;
+					}
+					else
+						result.example_parse_error = "invalid example header: " + section;
+				}
+				continue;
+			}
+
+			if(in_typed_example && pending_entry != "")
+				result.example_parse_error = "expected contiguous :example cpp " + pending_entry;
+			if(section.substr(0, 12) == "capy-status ")
+			{
+				String status = trim(section.substr(12));
+				if(status == "unsupported" || status == "cpp-specific")
+					result.capy_status = status;
+				else
+					result.example_parse_error = "unknown Capy status: " + status;
+				current_section = "";
+				continue;
+			}
+			if(section == "title" || section == "sig" || section == "params" || section == "content" || section == "see")
 			{
 				current_section = section;
 				continue;
@@ -184,7 +312,18 @@ DocPage load_doc_page(String page)
 		current_lines.push_back(line);
 	}
 
-	doc_flush_section(result, page, current_section, current_lines, content_lines);
+	if(current_section == "example")
+	{
+		String example_body = join(current_lines, "\n");
+		if(trim(example_body) == "")
+			result.example_parse_error = "empty example block";
+		else
+			doc_add_example(result, example_language, example_entry, example_body, pending_entry, pending_body);
+	}
+	else
+		doc_flush_section(result, page, current_section, current_lines, content_lines);
+	if(pending_entry != "")
+		result.example_parse_error = "expected contiguous :example cpp " + pending_entry;
 	result.content = join(content_lines, "\n");
 	result.title = trim(result.title);
 	return(result);

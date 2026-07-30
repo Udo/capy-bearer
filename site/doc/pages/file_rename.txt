@@ -9,7 +9,14 @@ return value : true on success
 :content
 Renames or moves a file. After a successful rename the source path no longer exists. Use it for atomic publish patterns: write a temp file, then rename it into place.
 
-:example
+:example capy render
+file_put_contents("/tmp/doc-rename-a.txt", "moved")
+file_rename("/tmp/doc-rename-a.txt", "/tmp/doc-rename-b.txt")
+var source_status := "gone"
+if file_exists("/tmp/doc-rename-a.txt") { source_status = "exists" }
+print(file_get_contents("/tmp/doc-rename-b.txt"), " / source ", source_status, "\n")
+
+:example cpp render
 file_put_contents("/tmp/doc-rename-a.txt", "moved");
 file_rename("/tmp/doc-rename-a.txt", "/tmp/doc-rename-b.txt");
 print(file_get_contents("/tmp/doc-rename-b.txt"), " / source ", file_exists("/tmp/doc-rename-a.txt") ? "exists" : "gone", "\n");

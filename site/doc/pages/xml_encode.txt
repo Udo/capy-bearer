@@ -44,7 +44,11 @@ Notes:
 - Empty elements serialize as self-closing tags.
 - Map child order follows `DValue` map iteration order.
 
-:example
+:example capy render
+var value := dval({"name": "Ada"})
+if xml_encode(value) != "" { print("xml\n") } else { print("empty\n") }
+
+:example cpp render
 DValue value;
 value["name"] = "Ada";
 print(xml_encode(value) != "" ? "xml\n" : "empty\n");

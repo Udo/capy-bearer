@@ -12,5 +12,8 @@ return value : string with leading and trailing whitespace characters removed
 Returns `raw` with leading and trailing whitespace removed.
 
 
-:example
+:example capy render
+print(trim("  docs  "), "\n")
+
+:example cpp render
 print(trim("  docs  "), "\n");

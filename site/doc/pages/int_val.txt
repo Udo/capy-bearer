@@ -16,5 +16,12 @@ Extracts an integer value from `s`.
 
 The `base` argument controls which number system is used while parsing. If no usable number can be identified, the function returns `0`.
 
-:example
+:example capy render
+var decimal := "0"
+if int_val("42") == 42u64 { decimal = "42" }
+var hexadecimal := "0"
+if int_val("ff", 16) == 255u64 { hexadecimal = "255" }
+print(decimal, " / ", hexadecimal, "\n")
+
+:example cpp render
 print(int_val("42"), " / ", int_val("ff", 16), "\n");

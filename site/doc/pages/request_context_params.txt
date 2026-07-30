@@ -29,5 +29,9 @@ BEARER populates several convenience request parameters before invoking page, co
 
 These are useful for front-controller apps that use URLs like `/?dashboard` or `/?workspace/projects` while still accepting ordinary named query parameters.
 
-:example
+:example capy render
+var snapshot := request_context()
+if dval_to_string(dval_get_by_path(snapshot, "params/SCRIPT_URL")) != "" { print("has script url\n") } else { print("request params available\n") }
+
+:example cpp render
 print(context.params["SCRIPT_URL"] != "" ? "has script url\n" : "request params available\n");

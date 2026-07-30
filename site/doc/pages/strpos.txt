@@ -18,5 +18,8 @@ This is the closest BEARER equivalent to PHP `strpos()`, but it returns `-1` ins
 If `needle` is an empty string, `strpos()` returns the normalized start offset.
 
 
-:example
+:example capy render
+print(strpos("bearer docs", "docs"), "\n")
+
+:example cpp render
 print(strpos("bearer docs", "docs"), "\n");

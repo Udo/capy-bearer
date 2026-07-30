@@ -13,5 +13,8 @@ Executes a Linux shell command and returns the generated output.
 
 When command text includes user-controlled input, escape that input first with `shell_escape()`.
 
-:example
+:example capy render
+print(shell_exec("echo hello from the shell"))
+
+:example cpp render
 print(shell_exec("echo hello from the shell"));

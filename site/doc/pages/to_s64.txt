@@ -18,5 +18,8 @@ Parses a trimmed string as a base-10 signed integer.
 
 The whole trimmed string must be consumed by the parser. Empty strings and partially parsed values such as `"-12px"` return the fallback.
 
-:example
+:example capy render
+print(to_s64("-7"), "\n")
+
+:example cpp render
 print(to_s64("-7"), "\n");

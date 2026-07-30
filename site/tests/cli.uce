@@ -20,18 +20,6 @@ CLI(Request& context)
 		print(cli_arg(context, "missing", "fallback"), "\n");
 		return;
 	}
-	if(action == "task_repeat_unbounded")
-	{
-		String marker = "/tmp/uce-task-repeat-unbounded.txt";
-		file_unlink(marker);
-		pid_t pid = task_repeat("uce-task-repeat-unbounded", 0.05, [marker]() { file_put_contents(marker, "ran"); }, 0);
-		usleep(200000);
-		bool ran = file_get_contents(marker) == "ran";
-		if(pid > 0) task_kill(pid, 15);
-		file_unlink(marker);
-		print(pid > 0 && ran ? "task repeat unbounded ok\n" : "task repeat unbounded failed\n");
-		return;
-	}
 	if(action == "mysql_unsigned_params")
 	{
 		MySQL db;

@@ -16,7 +16,12 @@ Stores `value` under `key` on the Memcache server.
 
 `expires_in` controls the expiration timeout and defaults to one hour.
 
-:example
+:example capy render
+var conn := memcache_connect()
+if conn != 0u64 { if memcache_set(conn, "doc_set_key", "value") { print("stored\n") } else { print("store failed\n") } }
+else { print("(requires a reachable memcached server)\n") }
+
+:example cpp render
 u64 conn = memcache_connect();
 if(conn != 0) print(memcache_set(conn, "doc_set_key", "value") ? "stored" : "store failed", "\n");
 else print("(requires a reachable memcached server)\n");

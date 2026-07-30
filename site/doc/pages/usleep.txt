@@ -19,6 +19,10 @@ Example:
 
 For whole-second waits, use `sleep()`.
 
-:example
+:example capy render
+usleep(1000)
+print("slept\n")
+
+:example cpp render
 usleep(1000);
 print("slept\n");

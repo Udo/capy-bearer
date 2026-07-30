@@ -13,7 +13,13 @@ Closes an SQLite connection and deletes the BEARER connection wrapper.
 
 BEARER also cleans up SQLite connections that remain open at request end, but explicit disconnects keep resource lifetime local and clear.
 
-:example
+:example capy render
+var db := sqlite_connect(":memory:")
+sqlite_query(db, "create table t(id integer)")
+sqlite_disconnect(db)
+print("connection closed\n")
+
+:example cpp render
 SQLite* db = sqlite_connect("/tmp/doc-sqlite-disc.db");
 sqlite_query(db, "create table if not exists t(id integer)");
 sqlite_disconnect(db);

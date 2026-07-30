@@ -7,3 +7,11 @@ Removed as a separate StringList API. List-shaped `DValue::map()` returns mapped
 :see
 0_DValue
 2_DValue_map
+
+:example capy render
+var items := split("one,two", ",")
+var upper := map(items, function(value : string) string { return to_upper(value) })
+print(join(upper, ","), "\n")
+:example cpp render
+StringList items = split("one,two", ",");
+print(join(items.map([](String value) { return to_upper(value); }), ","), "\n");

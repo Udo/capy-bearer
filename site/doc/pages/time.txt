@@ -11,5 +11,8 @@ return value : second-accurate current Unix timestamp
 Returns the current Unix timestamp as a 64-bit integer with second precision.
 
 
-:example
+:example capy render
+if time() > 0u64 { print("timestamp\n") } else { print("no timestamp\n") }
+
+:example cpp render
 print(time() > 0 ? "timestamp\n" : "no timestamp\n");

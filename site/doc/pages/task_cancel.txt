@@ -1,0 +1,28 @@
+:sig
+DValue task_cancel(String id)
+
+:params
+id : opaque ID returned by `task()`
+return value : status after the cancellation request
+
+:see
+>task
+task
+task_status
+task_await
+
+:content
+Requests cancellation and returns the resulting current status, making races visible. A queued task becomes `canceled` atomically. Canceling a running task interrupts its dedicated worker and supervision restores pool capacity; if the handler already completed, its terminal success remains authoritative.
+
+:example capy render
+var id := task("/doc/examples/task_worker.capy:STORE", dval({"message": "cancel"}))
+var status := task_cancel(id)
+var result := "missing"
+if dval_to_string(status["id"]) == id { result = "requested" }
+print(result, "\n")
+
+:example cpp render
+DValue props; props["message"] = "cancel";
+String id = task("/doc/examples/task_worker.capy:STORE", props);
+DValue status = task_cancel(id);
+print(status["id"].to_string() == id ? "requested\n" : "missing\n");

@@ -1,0 +1,28 @@
+:sig
+DValue task_status(String id)
+
+:params
+id : opaque ID returned by `task()`
+return value : bounded task status map
+
+:see
+>task
+task
+task_await
+task_cancel
+
+:content
+Returns the current durable status for a task. States are `queued`, `running`, `succeeded`, `failed`, `canceled`, and `missing`. The map contains bounded machine-readable fields such as `id`, `state`, `attempt`, and `failure_code`; it never exposes a worker PID.
+
+:example capy render
+var id := task("/doc/examples/task_worker.capy:STORE", dval({"message": "status"}))
+var status := task_status(id)
+var result := "missing"
+if dval_to_string(status["id"]) == id { result = "known" }
+print(result, "\n")
+
+:example cpp render
+DValue props; props["message"] = "status";
+String id = task("/doc/examples/task_worker.capy:STORE", props);
+DValue status = task_status(id);
+print(status["id"].to_string() == id ? "known\n" : "missing\n");

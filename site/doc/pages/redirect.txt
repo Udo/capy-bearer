@@ -16,5 +16,10 @@ Sets the `Location` response header and updates the current HTTP status code.
 Use this helper instead of manually assigning `context.header["Location"]` and `context.set_status(...)` when you want to redirect the current response.
 
 
-:example
+:example capy cli
+redirect("/next")
+print("redirect(\"/next\") sends an HTTP redirect.\n")
+
+:example cpp cli
+redirect("/next");
 print("redirect(\"/next\") sends an HTTP redirect.\n");

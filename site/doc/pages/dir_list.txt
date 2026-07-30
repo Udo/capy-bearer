@@ -8,7 +8,16 @@ return value : a list of entry maps, each with name, type, size, mtime
 :content
 Lists a directory's entries as a `DValue` list. Each entry is a map with `name`, `type` ("file", "dir", "symlink", or "other"), `size`, and `mtime`. Iterate with `.each()` and read fields with `item.key("name")->to_string()`.
 
-:example
+:example capy render
+var root := file_temp("/tmp/capy-doc-dirlist-")
+file_unlink(root)
+mkdir(root)
+file_put_contents(path_join(root, "note.txt"), "hi")
+var found := false
+for key, item = dir_list(root) { if dval_string(item["name"]) == "note.txt" { found = true } }
+dir_remove(root, true)
+if found { print("note.txt listed: yes\n") } else { print("note.txt listed: no\n") }
+:example cpp render
 mkdir("/tmp/doc-dirlist");
 file_put_contents("/tmp/doc-dirlist/note.txt", "hi");
 DValue entries = dir_list("/tmp/doc-dirlist");

@@ -20,6 +20,10 @@ If `path` is relative, it is resolved by the same host unit resolver used for un
 
 Because unit metadata lives in worker process memory, request and timing counters reflect the current runtime process, not an aggregate across every worker process.
 
-:example
+:example capy render
+var info := unit_info("examples/sample_unit.uce")
+if dval_is_array(info) { print("unit_info() returns metadata for the unit\n") } else { print("empty metadata for the unit\n") }
+
+:example cpp render
 DValue info = unit_info("examples/sample_unit.uce");
 print("unit_info() returns ", info.get_type_name(), " metadata for the unit\n");

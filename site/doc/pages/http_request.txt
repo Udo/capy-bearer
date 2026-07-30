@@ -17,13 +17,28 @@ Returns `{ status, headers, body, error }`.
 :see
 >socket
 
-:example
+:example capy render
+var request := dval({"method": "GET", "url": "http://127.0.0.1/doc/index.uce", "headers": {"Host": "uce.openfu.com"}, "timeout_ms": 2000})
+var response := http_request(request)
+print("HTTP ", dval_s32(response["status"]), ", ", length(dval_to_string(response["body"])), " bytes returned\n")
+
+:example cpp render
 DValue req; req["method"] = "GET"; req["url"] = "http://127.0.0.1/doc/index.uce";
 req["headers"]["Host"] = "uce.openfu.com"; req["timeout_ms"] = (f64)2000;
 DValue resp = http_request(req);
 print("HTTP ", resp["status"].to_u64(), ", ", resp["body"].to_string().length(), " bytes returned\n");
 
-:example
+
+:example capy render
+// GitHub token exchange: client_secret stays in stdin body, not argv.
+var client_id := "example-client"
+var client_secret := "example-secret"
+var code := "example-code"
+var token := dval({"method": "POST", "url": "https://github.com/login/oauth/access_token", "headers": {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}, "body": "client_id=" + uri_encode(client_id) + "&client_secret=" + uri_encode(client_secret) + "&code=" + uri_encode(code), "security": {"https_only": true, "public_dns_only": true, "pin_dns": true, "isolated_curl": true, "no_redirects": true}})
+var token_response := http_request(token)
+print("hardened token exchange composed; status=", dval_s32(token_response["status"]), " error=", dval_to_string(token_response["error"]), "\n")
+
+:example cpp render
 // GitHub token exchange: client_secret stays in stdin body, not argv.
 String client_id="example-client", client_secret="example-secret", code="example-code";
 DValue token; token["method"]="POST"; token["url"]="https://github.com/login/oauth/access_token";
@@ -33,7 +48,15 @@ for(String key:{"https_only","public_dns_only","pin_dns","isolated_curl","no_red
 DValue token_response=http_request(token);
 print("hardened token exchange composed; status=", token_response["status"].to_u64(), " error=", token_response["error"].to_string(), "\n");
 
-:example
+
+:example capy render
+// ATProto metadata discovery uses the same generic policy; no provider operation name.
+var issuer_host := "example.com"
+var metadata_request := dval({"method": "GET", "url": "https://" + issuer_host + "/.well-known/oauth-authorization-server", "headers": {"Accept": "application/json"}, "security": {"https_only": true, "public_dns_only": true, "pin_dns": true, "isolated_curl": true, "no_redirects": true}})
+var metadata := http_request(metadata_request)
+print("hardened metadata discovery composed; error=", dval_to_string(metadata["error"]), "\n")
+
+:example cpp render
 // ATProto metadata discovery uses the same generic policy; no provider operation name.
 String issuer_host="example.com";
 DValue meta; meta["method"]="GET"; meta["url"]="https://"+issuer_host+"/.well-known/oauth-authorization-server";

@@ -15,5 +15,8 @@ Splits `str` into multiple strings using `delim` as the separator.
 Every exact occurrence of `delim` creates a new entry in the returned list-shaped `DValue`.
 
 
-:example
+:example capy render
+print(join(split("a,b,c", ","), "|"), "\n")
+
+:example cpp render
 print(join(split("a,b,c", ","), "|"), "\n");

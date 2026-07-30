@@ -18,7 +18,12 @@ This connection handle is then used with helpers such as `mysql_query()`, `mysql
 
 MySQL handles are request-scoped framework resources. Repeated `mysql_connect()` calls with the same host, credentials, and database reuse one server connection within the current request. Database identity is part of both request-local and worker-persistent pool keys. Each call creates a lease and `mysql_disconnect()` releases that lease. At request cleanup BEARER returns the server connection to the current worker's persistent pool, then resets it before cross-request reuse. The pool holds up to `MYSQL_PERSISTENT_POOL_SIZE` connections per worker (default 8); set the size to 0 to disable cross-request reuse. Never store a `MySQL*` in globals, sessions, or other state that can outlive the current request.
 
-:example
+:example capy render
+var db := mysql_connect("localhost", "root", "", "")
+if mysql_connected(db) { print("connected to MySQL\n") } else { print("no MySQL server reachable with these credentials\n") }
+if db != 0u64 { mysql_disconnect(db) }
+
+:example cpp render
 MySQL* db = mysql_connect();
 print(mysql_connected(db) ? "connected to MySQL" : "no MySQL server reachable with these credentials", "\n");
 if(db != 0) mysql_disconnect(db);

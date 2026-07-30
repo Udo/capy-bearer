@@ -12,7 +12,13 @@ return value : removed child, or an empty DValue when no child exists
 Ensures the value is map-shaped, removes the last entry according to `std::map` reverse key order, and returns it. For list-mode values, the next array index is reset to the new size.
 
 
-:example
+:example capy render
+var list := dval_push(dval_push(dval([]), dval("first")), dval("last"))
+var popped := list[1]
+list = dval_pop(list)
+if dval_has(list, "0") { print("popped ", dval_to_string(popped), ", remaining 1\n") } else { print("popped ", dval_to_string(popped), ", remaining 0\n") }
+
+:example cpp render
 DValue list;
 list.set_array();
 DValue a; a.set("first"); list.push(a);

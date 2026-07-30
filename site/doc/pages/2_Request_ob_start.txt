@@ -13,7 +13,13 @@ ob_get_close
 Starts a new output buffer for the request and makes it the active `context.ob`. Most unit code should prefer the higher-level output-buffer helpers (`ob_start()`, `ob_get()`, `ob_get_close()`, `ob_close()`) rather than calling the method directly.
 
 
-:example
+:example capy render
+ob_start()
+print("fragment")
+var captured := ob_get_close()
+print("captured: ", captured, "\n")
+
+:example cpp render
 context.ob_start();
 print("fragment");
 String captured = ob_get_close();

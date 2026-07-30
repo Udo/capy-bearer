@@ -13,7 +13,11 @@ Decodes BRRB1 bytes produced by `brb_encode()` back into a `DValue`.
 The one-argument form returns an empty `DValue` on invalid input. The three-argument form reports whether decoding succeeded and can return a human-readable error string.
 
 
-:example
+:example capy render
+var original := dval({"n": "7"})
+var restored := brb_decode(brb_encode(original))
+print(dval_string(restored["n"]), "\n")
+:example cpp render
 DValue original; original["n"] = "7";
 DValue restored = brb_decode(brb_encode(original));
 print(restored["n"].to_string(), "\n");

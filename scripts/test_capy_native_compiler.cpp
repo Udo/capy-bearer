@@ -137,6 +137,35 @@ int main()
 	assert(validated.valid);
 	assert(validated.bearer_module == "native-test.wasm");
 	assert(result.source_map.starts_with("BEARER_SOURCE_MAP_V1\tnative-test.wasm\n"));
+	const auto tasks = capy::compile_bearer_unit(
+		"function TASK(request : request) {}\nfunction TASK_NAME(request : request) {}\n", options);
+	const auto tasks_repeat = capy::compile_bearer_unit(
+		"function TASK(request : request) {}\nfunction TASK_NAME(request : request) {}\n", options);
+	assert(tasks.wasm == tasks_repeat.wasm && tasks.source_map == tasks_repeat.source_map);
+	const auto task_validation = capy::wasm::validate_bearer_unit(tasks.wasm, {.bearer_abi_version = "11"});
+	assert(task_validation.valid && task_validation.exports.size() == 2);
+	assert(task_validation.exports[0].name == "__bearer_task" && task_validation.exports[0].kind == 0);
+	assert(task_validation.exports[1].name == "__bearer_task_NAME" && task_validation.exports[1].kind == 0);
+	for (const auto& imported : task_validation.imports)
+		assert(imported.module != "env" || imported.name.rfind("bearer_", 0) != 0);
+	assert(std::string(tasks.wasm.begin(), tasks.wasm.end()).find("bearer_request") == std::string::npos);
+	for (const auto& [source, expected] : {
+			 std::pair{"function TASK() {}\n", "exactly one request parameter"},
+			 std::pair{"function TASK(request : request, extra : request) {}\n", "exactly one request parameter"},
+			 std::pair{"function TASK(value : s32) {}\n", "exactly one request parameter"},
+			 std::pair{"function TASK(request : request) s32 { 1 }\n", "must return void"},
+			 std::pair{"function TASK_NAME() {}\n", "exactly one request parameter"},
+			 std::pair{"function TASK_NAME(request : request, extra : request) {}\n", "exactly one request parameter"},
+			 std::pair{"function TASK_NAME(value : s32) {}\n", "exactly one request parameter"},
+			 std::pair{"function TASK_NAME(request : request) s32 { 1 }\n", "must return void"},
+			 std::pair{"function TASK_NAME(request : request) {}\nfunction TASK_NAME(request : request) {}\n", "duplicate"},
+			 std::pair{"function TASK_(request : request) {}\n", "suffix must match"},
+			 std::pair{"function EXPORT___bearer_task(value : dval) dval { value }\nfunction TASK(request : request) {}\n", "collides with custom DValue export"},
+		 })
+	{
+		try { capy::compile_bearer_unit(source, options); assert(false); }
+		catch (const capy::Error& error) { assert(error.message.find(expected) != std::string::npos); }
+	}
 	std::ofstream output("/tmp/capy-native.wasm", std::ios::binary);
 	output.write(reinterpret_cast<const char*>(result.wasm.data()), result.wasm.size());
 

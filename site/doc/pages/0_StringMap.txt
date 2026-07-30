@@ -28,7 +28,11 @@ Because it uses `std::map`, `map["key"]` will create an empty entry when that ke
 
 Helpers such as `parse_query()` and `encode_query()` convert between query strings and `StringMap` values.
 
-:example
+:example capy render
+var params := dval({"page": "docs"})
+print(dval_to_string(params["page"]), "\n")
+
+:example cpp render
 StringMap params;
 params["page"] = "docs";
 print(params["page"], "\n");

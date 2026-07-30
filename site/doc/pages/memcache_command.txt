@@ -14,7 +14,12 @@ Executes a raw command on an open Memcache connection and returns the server res
 
 This is the low-level escape hatch for Memcache operations that are not covered by the dedicated helpers.
 
-:example
+:example capy render
+var conn := memcache_connect()
+if conn != 0u64 { if memcache_command(conn, "stats") != "" { print("stats command returned data\n") } else { print("no data\n") } }
+else { print("(requires a reachable memcached server)\n") }
+
+:example cpp render
 u64 conn = memcache_connect();
 if(conn != 0) print(memcache_command(conn, "stats") != "" ? "stats command returned data" : "no data", "\n");
 else print("(requires a reachable memcached server)\n");

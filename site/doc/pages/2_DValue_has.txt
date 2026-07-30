@@ -14,7 +14,12 @@ return value : true when the dereferenced value is map-shaped and contains the k
 :content
 Checks for a child key without creating it. Returns false for scalars and missing keys.
 
-:example
+:example capy render
+var user := dval({"name": "Ada"})
+if dval_has(user, "name") { print("has name") } else { print("no name") }
+if dval_has(user, "age") { print(" / has age\n") } else { print(" / no age\n") }
+
+:example cpp render
 DValue u;
 u["name"] = "Ada";
 print(u.has("name") ? "has name" : "no name", " / ", u.has("age") ? "has age" : "no age", "\n");

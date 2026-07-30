@@ -59,5 +59,7 @@ Because `<?= ... ?>` escapes HTML, use `<?: ... ?>` when inserting the returned 
 - `ONCE(Request& context)` runs once per request before the first component or render entrypoint from that file.
 - `component()` then calls either `COMPONENT(Request& context)` or the selected `COMPONENT:NAME(Request& context)` handler.
 
-:example
+:example capy render
+print(component("examples/sample_unit"), "\n")
+:example cpp render
 print(component("examples/sample_unit"), "\n");

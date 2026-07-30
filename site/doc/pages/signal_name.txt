@@ -18,5 +18,8 @@ Example:
 
 This is mostly useful in diagnostics and error reporting code.
 
-:example
+:example capy render
+print(signal_name(11), " / ", signal_name(6), "\n")
+
+:example cpp render
 print(signal_name(SIGSEGV), " / ", signal_name(SIGABRT), "\n");

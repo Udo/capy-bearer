@@ -1,0 +1,5 @@
+function CLI {
+    task("/tests/task-handlers.capy:SLOW", dval(""))
+    task("/tests/task-handlers.capy:SLOW", dval(""))
+    print("must-not-run")
+}

@@ -22,5 +22,8 @@ Padding and case flags may follow `%`:
 
 
 
-:example
+:example capy render
+print(time_format_utc("%Y-%m-%d", 0u64), "\n")
+
+:example cpp render
 print(time_format_utc("%Y-%m-%d", 0), "\n");

@@ -7,3 +7,12 @@ Removed as a separate StringList API. List-shaped `DValue::each()` invokes the c
 :see
 0_DValue
 2_DValue_each
+
+:example capy render
+var items := split("one,two", ",")
+each(items, function(value : string) string { print(value); return "" })
+print("\n")
+:example cpp render
+StringList items = split("one,two", ",");
+items.each([](String value) { print(value); });
+print("\n");

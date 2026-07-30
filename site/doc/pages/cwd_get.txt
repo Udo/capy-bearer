@@ -10,5 +10,7 @@ return value : the current working directory
 :content
 Returns the current working directory.
 
-:example
+:example capy render
+if cwd_get() != "" { print("have a working directory\n") } else { print("none\n") }
+:example cpp render
 print(cwd_get() != "" ? "have a working directory" : "none", "\n");

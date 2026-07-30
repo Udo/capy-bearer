@@ -1038,20 +1038,20 @@ struct WasmRequestEnvelopeSegment
 };
 
 static bool wasm_decode_request_envelope(const char* encoded, size_t encoded_size,
-	WasmRequestEnvelopeSegment (&segments)[12], String& error)
+	WasmRequestEnvelopeSegment (&segments)[13], String& error)
 {
 	if(encoded_size < 6 || memcmp(encoded, "BRRQ", 4) != 0)
 	{
 		error = "missing BEARER request-envelope header";
 		return(false);
 	}
-	if((u8)encoded[4] != 1 || (u8)encoded[5] != 12)
+	if((u8)encoded[4] != 2 || (u8)encoded[5] != 13)
 	{
 		error = "unsupported BEARER request-envelope version or segment count";
 		return(false);
 	}
 	size_t offset = 6;
-	for(u32 i = 0; i < 12; i++)
+	for(u32 i = 0; i < 13; i++)
 	{
 		u64 segment_size = 0;
 		if(!brb_read_varint(encoded, encoded_size, offset, segment_size) || segment_size > encoded_size - offset)
@@ -1185,7 +1185,8 @@ int bearer_wasm_apply_context(const char* config_buf, size_t config_len, const c
 	StringMap decoded_session;
 	DValue decoded_call;
 	DValue decoded_ws;
-	WasmRequestEnvelopeSegment segments[12];
+	DValue decoded_props;
+	WasmRequestEnvelopeSegment segments[13];
 	String error;
 	if(!brb_decode_flat_string_map(config_buf, config_len, decoded_config, &error))
 	{
@@ -1224,8 +1225,14 @@ int bearer_wasm_apply_context(const char* config_buf, size_t config_len, const c
 		bearer_host_log(3, error.data(), error.size());
 		return(4);
 	}
+	if(!decode_tree(12, decoded_props, "request props"))
+	{
+		bearer_host_log(3, error.data(), error.size());
+		return(5);
+	}
 	wasm_server.config = std::move(decoded_config);
 	wasm_request.call = std::move(decoded_call);
+	wasm_request.props = std::move(decoded_props);
 	wasm_request.params = std::move(decoded_params);
 	wasm_request.get = std::move(decoded_get);
 	wasm_request.post = std::move(decoded_post);
@@ -2546,7 +2553,7 @@ size_t bearer_process_jobs_brrb(s32 operation, const char* value, size_t value_l
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class ProcessOperation { process_shell_escape = 0, process_shell_exec = 1, process_shell_spawn = 2, process_job_status = 3, process_job_result = 4, process_job_await = 5, process_job_cancel = 6, process_process_start_directory = 7, process_server_start_http = 8, process_server_stop = 9, process_task_pid = 10, process_task_kill = 11 };
+	enum class ProcessOperation { process_shell_escape = 0, process_shell_exec = 1, process_shell_spawn = 2, process_job_status = 3, process_job_result = 4, process_job_await = 5, process_job_cancel = 6, process_process_start_directory = 7, process_server_start_http = 8, process_server_stop = 9, process_task_submit = 10, process_task_status = 11, process_task_await = 12, process_task_cancel = 13 };
 	switch(static_cast<ProcessOperation>(operation))
 	{
 		case ProcessOperation::process_shell_escape: result.set(shell_escape(result.to_string())); break;
@@ -2559,8 +2566,10 @@ size_t bearer_process_jobs_brrb(s32 operation, const char* value, size_t value_l
 		case ProcessOperation::process_process_start_directory: result.set(process_start_directory()); break;
 		case ProcessOperation::process_server_start_http: result.set((f64)server_start_http(result.to_string(), text, supplied["file"].to_string(), supplied["function"].to_string())); break;
 		case ProcessOperation::process_server_stop: result.set_bool(server_stop(result.to_string())); break;
-		case ProcessOperation::process_task_pid: result.set((f64)task_pid(result.to_string())); break;
-		case ProcessOperation::process_task_kill: result.set((f64)task_kill((pid_t)result.to_s64(), (s32)supplied.to_s64())); break;
+		case ProcessOperation::process_task_submit: result.set(task(result.to_string(), supplied)); break;
+		case ProcessOperation::process_task_status: result = task_status(result.to_string()); break;
+		case ProcessOperation::process_task_await: result = task_await(result.to_string(), supplied.to_u64()); break;
+		case ProcessOperation::process_task_cancel: result = task_cancel(result.to_string()); break;
 			// Network handles are stringified before BRRB so exact u64 values never
 			// transit f64. The worker owns and closes the underlying descriptors.
 		default: return(std::numeric_limits<size_t>::max());

@@ -13,5 +13,8 @@ Returns the number of currently connected WebSocket clients for the given scope.
 
 If `scope` is omitted, the current page scope is used.
 
-:example
+:example capy render
+print("connection count in this scope: ", ws_connection_count(), "\n")
+
+:example cpp render
 print("connection count in this scope: ", ws_connection_count(), "\n");

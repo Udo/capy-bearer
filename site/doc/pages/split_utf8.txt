@@ -23,6 +23,10 @@ If `compound_characters` is `true`, `split_utf8()` also applies a small amount o
 This is useful when simple byte-wise or ASCII splitting would break Unicode text incorrectly.
 
 
-:example
+:example capy render
+var chars := split_utf8("Hi")
+print(join(chars, ","), "\n")
+
+:example cpp render
 DValue chars = split_utf8("Hi");
 print(join(chars, ","), "\n");

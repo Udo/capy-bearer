@@ -478,6 +478,41 @@ pre code {
 	margin-bottom: 14px;
 }
 
+.paired-example {
+	display: grid;
+	gap: 16px;
+}
+
+.example-language {
+	border-left: 3px solid var(--border-strong);
+	padding-left: 14px;
+}
+
+.example-language.capy {
+	border-left-color: var(--accent);
+}
+
+.example-language h4 {
+	font-family: var(--font-mono);
+	font-size: 0.8rem;
+	letter-spacing: 0.04em;
+	margin: 0 0 8px;
+}
+
+.example-compile-only {
+	color: var(--text-dim);
+	font-size: 0.875rem;
+}
+
+.example-output.error,
+.example.error {
+	border-color: #df6b6b;
+}
+
+.legacy-example {
+	border-left: 3px solid var(--text-muted);
+}
+
 .example-output {
 	border: 1px solid var(--border);
 	border-left: 3px solid var(--accent);

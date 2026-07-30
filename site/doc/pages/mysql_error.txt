@@ -13,7 +13,15 @@ Returns the last error message associated with the given MySQL connection.
 
 If there is no current error, the result is an empty string.
 
-:example
+:example capy render
+var db := mysql_connect("localhost", "root", "", "")
+if db != 0u64 {
+    mysql_query(db, "select * from no_such_table_xyz")
+    if mysql_error(db) != "" { print("error reported\n") } else { print("no error\n") }
+    mysql_disconnect(db)
+} else { print("(requires a reachable MySQL server)\n") }
+
+:example cpp render
 MySQL* db = mysql_connect();
 if(db != 0)
 {

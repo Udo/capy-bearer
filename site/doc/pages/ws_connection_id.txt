@@ -12,6 +12,11 @@ Returns the runtime-generated connection ID of the client whose message is curre
 
 This ID can be passed to `ws_send_to()` or `ws_close()` to target a single connected client.
 
-:example
+:example capy render
+var id := ws_connection_id()
+if id == "" { id = "(empty outside a WS handler)" }
+print(id, "\n")
+
+:example cpp render
 String id = ws_connection_id();
 print(id == "" ? "(empty outside a WS handler)" : id, "\n");

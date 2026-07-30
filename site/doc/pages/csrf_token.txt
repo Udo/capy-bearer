@@ -11,12 +11,13 @@ Starts the named session if needed and returns a stable per-session CSRF token f
 
 Tokens are generated from cryptographic randomness and stored in `context.session` under an internal key. Use a different `token_name` when independent forms should have independent tokens.
 
-:example
+:example capy render
+var token := csrf_token("bearer-doc-session")
+if length(token) > 0 { print("token ready\n") }
+else { print("token missing\n") }
+:example cpp render
 String token = csrf_token("bearer-doc-session");
-?><form method="post">
-	<input type="hidden" name="csrf_token" value="<?= token ?>">
-	<button type="submit">Save</button>
-</form><?
+print(token.size() > 0 ? "token ready\n" : "token missing\n");
 
 :see
 >http

@@ -22,7 +22,10 @@ For `DValue`, string keys from `b` overwrite keys from `a`. Numeric keys are app
 
 This helper is the closest BEARER equivalent to PHP `array_merge()` for common request, config, and JSON-shaped data.
 
-:example
+:example capy render
+var merged := array_merge(dval({"name": "Ada"}), dval({"role": "admin"}))
+print(dval_string(merged["name"]), " ", dval_string(merged["role"]), "\n")
+:example cpp render
 StringMap left;
 left["name"] = "Ada";
 StringMap right;

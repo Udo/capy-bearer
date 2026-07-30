@@ -14,7 +14,13 @@ Returns the latest SQLite connector status or error message.
 
 Successful calls usually set the message to `ok` or `connected`. Failed prepare, bind, step, pragma, or open operations include connector context plus SQLite's own error text.
 
-:example
+:example capy render
+var db := sqlite_connect(":memory:")
+sqlite_query(db, "select * from no_such_table")
+if sqlite_error(db) != "" { print("error reported\n") } else { print("no error\n") }
+sqlite_disconnect(db)
+
+:example cpp render
 SQLite* db = sqlite_connect("/tmp/doc-sqlite-error.db");
 sqlite_query(db, "select * from no_such_table");
 print(sqlite_error(db) != "" ? "error reported" : "no error", "\n");

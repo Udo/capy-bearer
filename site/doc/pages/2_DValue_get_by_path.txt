@@ -15,7 +15,11 @@ return value : resolved child copy, or an empty DValue when traversal fails
 :content
 Traverses nested map/list children without creating missing nodes. Empty path segments are ignored. If any segment is missing or an intermediate value is not map-shaped, the method returns an empty `DValue`.
 
-:example
+:example capy render
+var cfg := dval({"site": {"title": "BEARER"}})
+print(dval_to_string(dval_get_by_path(cfg, "site/title")), "\n")
+
+:example cpp render
 DValue cfg;
 cfg["site"]["title"] = "BEARER";
 print(cfg.get_by_path("site/title").to_string(), "\n");

@@ -10,7 +10,15 @@ return value : up to `len` bytes read at `offset`
 :content
 Reads `len` bytes from an absolute `offset` without moving the handle's current offset. Useful for random access reads that interleave with sequential ones.
 
-:example
+:example capy render
+var writer := file_open("/tmp/doc-pread.txt", "w")
+file_write(writer, "hello world")
+file_close(writer)
+var reader := file_open("/tmp/doc-pread.txt", "r")
+print(file_pread(reader, 6u64, 5u64), "\n")
+file_close(reader)
+
+:example cpp render
 u64 w = file_open("/tmp/doc-pread.txt", "w");
 file_write(w, "hello world");
 file_close(w);

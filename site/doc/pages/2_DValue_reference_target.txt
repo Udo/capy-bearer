@@ -14,7 +14,11 @@ return value : resolved target pointer, or 0 when this node is not a usable refe
 If this node is an internal reference, follows reference links up to the runtime safety limit and returns the final non-reference target. Returns `0` for non-references, null/self references, or chains that still resolve to a reference.
 
 
-:example
+:capy-status unsupported
+
+Capy exposes no host DValue pointer or alias ABI, so a reference target cannot be observed.
+
+:example cpp render
 DValue target;
 target.set("data");
 DValue ref;

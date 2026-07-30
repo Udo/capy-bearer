@@ -13,7 +13,15 @@ Returns the last automatically assigned row ID used by the current MySQL connect
 
 This is typically used after an `INSERT` into a table with an `AUTO_INCREMENT` primary key.
 
-:example
+:example capy render
+var db := mysql_connect("localhost", "root", "", "")
+if db != 0u64 {
+    mysql_query(db, "select last_insert_id() as id")
+    print("mysql_insert_id() returns the last AUTO_INCREMENT id for this connection (currently ", mysql_insert_id(db), ")\n")
+    mysql_disconnect(db)
+} else { print("(requires a reachable MySQL server)\n") }
+
+:example cpp render
 MySQL* db = mysql_connect();
 if(db != 0)
 {

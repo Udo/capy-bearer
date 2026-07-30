@@ -13,7 +13,11 @@ return value : referenced target when resolvable, otherwise this value
 Returns the value after following internal reference links. Most public accessors call this for you, so direct use is rare in unit code.
 
 
-:example
+:capy-status unsupported
+
+Capy uses copied `dval` values and exposes no host pointer or alias ABI, so dereferencing has no equivalent.
+
+:example cpp render
 DValue target;
 target.set("value");
 DValue ref;

@@ -26,6 +26,9 @@ Use `component_render()` when you want to write component output directly from C
 ## Example
 
 
-:example
+:example capy render
+component_render("examples/sample_unit")
+print("\n")
+:example cpp render
 component_render("examples/sample_unit");
 print("\n");

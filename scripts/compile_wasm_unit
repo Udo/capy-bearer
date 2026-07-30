@@ -90,7 +90,7 @@ unit_abi_version=$ABI_VERSION
 toolchain=$TOOLCHAIN_ID
 source=$SRC_FN
 EOF
-printf '%s' "$(basename "$WASM_TMP")" > "$MODULE_TMP"
+printf '%s' "$(basename "$WASM_FN")" > "$MODULE_TMP"
 
 build_pch_if_needed
 PCH_FLAGS=()
@@ -102,6 +102,11 @@ fi
 	-I"$SRC_DIR" -I"$ROOT/src/lib" \
 	"${PCH_FLAGS[@]}" \
 	-c "$DEST_DIR/$PP_FN" -o "$OBJ_FN"
+
+TASK_EXPORT_FLAGS=(--export-if-defined=__bearer_task)
+while IFS= read -r symbol; do
+	TASK_EXPORT_FLAGS+=("--export-if-defined=$symbol")
+done < <("$SDK/bin/llvm-nm" --defined-only "$OBJ_FN" | awk '$NF ~ /^__bearer_task_[A-Za-z_][A-Za-z0-9_]*$/ { print $NF }')
 
 "$SDK/bin/wasm-ld" -shared --experimental-pic \
 	--gc-sections \
@@ -115,11 +120,12 @@ fi
 	--export-if-defined=__bearer_cli \
 	--export-if-defined=__bearer_serve_http \
 	--export-if-defined=__bearer_once \
-	--export-if-defined=__bearer_init
+	--export-if-defined=__bearer_init \
+	"${TASK_EXPORT_FLAGS[@]}"
 
-bin/capyc --build-source-map "$SDK/bin/llvm-dwarfdump" "$WASM_TMP" "$(basename "$WASM_TMP")" "$MAP_TMP"
+bin/capyc --build-source-map "$SDK/bin/llvm-dwarfdump" "$WASM_TMP" "$(basename "$WASM_FN")" "$MAP_TMP"
 
-"$SDK/bin/llvm-objcopy" --strip-debug \
+"$SDK/bin/llvm-objcopy" --strip-debug --remove-section=name \
 	--add-section=bearer.abi="$ABI_TMP" \
 	--add-section=bearer.module="$MODULE_TMP" \
 	"$WASM_TMP"

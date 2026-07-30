@@ -8,7 +8,9 @@ return value : an ASCII-only sanitized name
 :content
 Like `safe_name()`, but also restricts the result to ASCII, transliterating or dropping non-ASCII characters. Use it when the consumer (a legacy filesystem, header, or protocol) requires plain ASCII.
 
-:example
+:example capy render
+print(ascii_safe_name("Cafe Munchen 2024"), "\n")
+:example cpp render
 print(ascii_safe_name("Cafe Munchen 2024"), "\n");
 
 :see

@@ -13,7 +13,11 @@ return value : converted value or the fallback
 :content
 Converts strings, numbers, bools, pointers, and maps to bool. Text such as `true`, `yes`, `on`, `1`, `false`, `no`, `off`, `0`, and `null` is recognized; non-empty unparseable strings are truthy; empty strings use the default. Multi-child maps are true when non-empty.
 
-:example
+:example capy render
+var value := dval("true")
+if dval_to_bool(value) { print("true\n") } else { print("false\n") }
+
+:example cpp render
 DValue value;
 value = "true";
 print(value.to_bool() ? "true\n" : "false\n");

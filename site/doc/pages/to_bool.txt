@@ -17,5 +17,8 @@ Parses a trimmed, case-insensitive boolean string.
 
 Truthy tokens are `"1"`, `"true"`, `"yes"`, and `"on"`. Falsey tokens are `"0"`, `"false"`, `"no"`, and `"off"`. Empty or unrecognized strings return the fallback.
 
-:example
+:example capy render
+if to_bool("yes") { print("true\n") } else { print("false\n") }
+
+:example cpp render
 print(to_bool("yes") ? "true\n" : "false\n");

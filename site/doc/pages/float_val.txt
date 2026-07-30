@@ -15,5 +15,9 @@ Extracts a floating point number from a `String`.
 
 If no usable number can be identified, the result is `0`.
 
-:example
-print(float_val("3.14") + 1.0, "\n");
+:example capy render
+if float_val("3.14") + 1.0 > 4.13 { print("parsed\n") }
+else { print("not parsed\n") }
+
+:example cpp render
+print(float_val("3.14") + 1.0 > 4.13 ? "parsed\n" : "not parsed\n");

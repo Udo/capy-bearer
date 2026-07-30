@@ -11,7 +11,11 @@ unit_call
 0_Request
 1_COMPONENT
 
+:capy-status cpp-specific
+
 :content
+Capy uses its own typed compiler and has no C++ preprocessor equivalent.
+
 BEARER runs a small custom source-to-source preprocessor before Clang sees a `.uce` or `.ws.uce` file.
 
 The template rewriting implementation lives in `src/lib/compiler-parser.cpp`, with orchestration in `src/lib/compiler.cpp`. It does not try to parse all of C++. Instead, it performs a narrow character-wise rewrite that understands literal output, inline code islands, `#load`, and `EXPORT` harvesting, then writes a generated `.cpp` file and compiles that file into a WebAssembly side module.
@@ -118,7 +122,7 @@ The page template can then render `context.call["fragments"]["head"]` inside `<h
 - Runtime request failures include the request/script path, generated C++ path, a hint about inspecting template delimiters and recent component/unit calls, and a native trace when available.
 - If a `#load` include looks wrong, check the current file's directory, the configured `BIN_DIRECTORY`, and whether the loaded page already produced its own generated `.cpp`.
 
-:example
+:example cpp render
 // The preprocessor lets you mix C++ logic with output. Code generates markup:
 StringList items = split("apples,pears,plums", ",");
 String html = "";

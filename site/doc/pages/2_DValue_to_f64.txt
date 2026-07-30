@@ -13,7 +13,11 @@ return value : converted value or the fallback
 :content
 Converts strings, f64, bool, pointer, and single-value maps to a finite double. Invalid or empty strings return the default.
 
-:example
+:example capy render
+var value := dval("12.5")
+print(dval_to_f64(value), "\n")
+
+:example cpp render
 DValue value;
 value = "12.5";
 print(value.to_f64(), "\n");

@@ -2,16 +2,27 @@
 Doc pages are text files in site/doc/pages/*.txt using colon-prefixed sections.
 
 :params
-:sig : one or more real C++ signatures, exactly as declared
-:params : `name : description` rows plus `return value : description`
-:content : usage-first prose in 2-5 tight sentences
-:example : runnable BEARER code whose real output is captured by the renderer
-:see : an area reference (`>area`) followed by closest sibling page slugs
+- `:sig` — one or more real C++ signatures, exactly as declared
+- `:params` — `name : description` rows plus `return value : description`
+- `:content` — usage-first prose in 2-5 tight sentences
+- `:example capy render` — a Capy example, immediately followed by its C++ equivalent
+- `:example cpp render` — its equivalent C++ `.uce` example
+- `:see` — an area reference (`>area`) followed by closest sibling page slugs
+
+:capy-status cpp-specific
 
 :content
-Doc pages use a small structured text format so the index, detail view, search, and tests can all reason about the same source. Put usage first: describe what the API does and when to reach for it before lower-level implementation notes. Every page should include at least one deterministic `:example`; the renderer materializes each example as a temporary BEARER unit, compiles it, renders it, and shows both the source and captured output. Keep cross-membrane, lock, and PHP/JS equivalence notes short and trailing when they are useful.
+This renderer-format reference is C++-specific; Capy examples are documented by the paired-example grammar rather than a runtime API.
 
-:example
+Doc pages use one structured text format shared by the index, detail view, single-page view, search, and tests. A typed example is exactly two contiguous blocks: `:example capy ENTRY`, then `:example cpp ENTRY`, where ENTRY is one of `render`, `cli`, `component`, `init`, `once`, or `ws`; the entries must match. Unknown, reversed, or unpaired typed blocks are rejected. During the migration, bare `:example` remains a legacy C++ render block and is visible to the checker, but new examples must use typed pairs.
+
+Render pairs compile and execute through their actual Capy and C++ units, must produce exactly equal output, and show each language's source and output or error. Other entries compile their real handler but are explicitly compile-only: documentation never fakes a CLI, component, lifecycle, or WebSocket invocation. Keep examples self-contained and deterministic.
+
+:example capy render
+print("A doc page normally contains :sig, :params, :content, :example, and :see.\n")
+print("Examples must print deterministic output.\n")
+
+:example cpp render
 print("A doc page normally contains :sig, :params, :content, :example, and :see.\n");
 print("Examples must print deterministic output.\n");
 

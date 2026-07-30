@@ -12,7 +12,13 @@ Closes an existing socket connection.
 
 Use this when you are done with a socket opened through `socket_connect()`.
 
-:example
+:example capy render
+var fd := socket_connect("127.0.0.1", 80)
+if fd != 0u64 { print("opened a socket") } else { print("open failed") }
+print(", now closing it\n")
+socket_close(fd)
+
+:example cpp render
 u64 fd = socket_connect("127.0.0.1", 80);
 print(fd != 0 ? "opened a socket" : "open failed", ", now closing it\n");
 socket_close(fd);

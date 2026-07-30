@@ -15,6 +15,9 @@ Common values are:
 - `0x1` for text messages
 - `0x2` for binary messages
 
-:example
+:example capy render
+print("opcode: ", ws_opcode() as u64, " (0 outside a WS frame)\n")
+
+:example cpp render
 // ws_opcode() returns the WebSocket frame opcode (1 text, 2 binary, 8 close, ...).
 print("opcode: ", (u64)ws_opcode(), " (0 outside a WS frame)\n");

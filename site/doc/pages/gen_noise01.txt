@@ -13,5 +13,9 @@ return value : a noise value from 0 to 1
 Generates a deterministic noise value in the range from `0` to `1` for the given `index` and `seed`.
 
 
-:example
+:example capy render
+var generated := gen_noise01(1u64, 2u64)
+print("noise\n")
+
+:example cpp render
 print(gen_noise01(1, 2) >= 0 ? "noise\n" : "bad\n");

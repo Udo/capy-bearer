@@ -121,7 +121,7 @@ function RENDER {
 
 ## Handler lifecycle
 
-`CLI`, `RENDER`, `COMPONENT` (including named handlers), `WS`, and `SERVE_HTTP` execute through the same Bearer selection and request-workspace path as `.uce`. Runtime acceptance covers direct CLI/HTTP, nested components, RFC 6455 text/binary dispatch, and a C++-started HTTP service targeting a Capy `SERVE_HTTP` handler. `ONCE` and `INIT` exports exist, but their ordering/dedup and automatic INIT contract remain unresolved rather than receiving Capy-only behavior.
+`CLI`, `RENDER`, `COMPONENT` (including named handlers), `WS`, `SERVE_HTTP`, and `TASK` execute through the same Bearer selection and request-workspace path as `.uce`. A task handler declares `function TASK(request : request)` or `function TASK_NAME(request : request)` and reads the caller's sole copied DValue from `request_context(request)["props"]`. Dedicated task workers always create a fresh request and do not inherit caller request, session, connection, workspace, or resource state. Runtime acceptance covers direct CLI/HTTP, nested components, RFC 6455 text/binary dispatch, cross-language default/named tasks, and a C++-started HTTP service targeting a Capy `SERVE_HTTP` handler. `ONCE` and `INIT` exports exist, but their ordering/dedup and automatic INIT contract remain unresolved rather than receiving Capy-only behavior.
 
 ## WebSockets
 
@@ -137,6 +137,8 @@ RENDER    -> __bearer_render
 WS        -> __bearer_websocket
 ONCE      -> __bearer_once
 INIT      -> __bearer_init
+TASK      -> __bearer_task
+TASK_NAME -> __bearer_task_NAME
 ```
 
 The first direct-Wasm backend emits:

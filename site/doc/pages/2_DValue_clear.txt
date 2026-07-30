@@ -12,7 +12,12 @@ return value : none
 Clears the value into an empty map-shaped value and resets its array index. Unlike `set_array()`, this does not set list mode.
 
 
-:example
+:example capy render
+var user := dval({"a": "1", "b": "2"})
+user = dval_clear(user)
+if dval_has(user, "a") { print("after clear, has a: yes\n") } else { print("after clear, has a: no\n") }
+
+:example cpp render
 DValue u;
 u["a"] = "1"; u["b"] = "2";
 u.clear();

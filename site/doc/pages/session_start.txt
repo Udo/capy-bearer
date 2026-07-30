@@ -20,6 +20,10 @@ After `session_start()` completes, the following `context` fields are populated:
 - `context.session` contains the current session data. The session data is automatically saved after the request completes.
 
 
-:example
+:example capy render
+var id := session_start("bearer-doc-example")
+if id != "" { print("started\n") } else { print("empty\n") }
+
+:example cpp render
 String id = session_start("bearer-doc-example");
 print(id != "" ? "started\n" : "empty\n");

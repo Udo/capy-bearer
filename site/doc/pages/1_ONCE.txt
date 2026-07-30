@@ -28,5 +28,8 @@ When a request first enters a given file through `RENDER(Request& context)`, `CO
 ## Example
 
 
-:example
+:example capy render
+print("ONCE is a unit directive; place it at top level in a .uce unit.\n")
+
+:example cpp render
 print("ONCE is a unit directive; place it at top level in a .uce unit.\n");

@@ -30,5 +30,8 @@ For simple literal search-and-replace, use `replace()`. Use `regex_replace()` wh
 
 Invalid patterns, invalid flags, or invalid substitution syntax raise a request-visible runtime error.
 
-:example
+:example capy render
+print(regex_replace("docs", "manual", "bearer docs"), "\n")
+
+:example cpp render
 print(regex_replace("docs", "manual", "bearer docs"), "\n");

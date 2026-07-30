@@ -9,7 +9,14 @@ return value : true on success
 :content
 Removes a directory. By default it must be empty; pass `recursive = true` to delete the directory and all of its contents.
 
-:example
+:example capy render
+var root := file_temp("/tmp/capy-doc-rmdir-")
+file_unlink(root)
+mkdir(root)
+file_put_contents(path_join(root, "child.txt"), "x")
+dir_remove(root, true)
+if dval_bool(file_stat(root)["exists"]) { print("still there\n") } else { print("removed\n") }
+:example cpp render
 mkdir("/tmp/doc-rmdir");
 file_put_contents("/tmp/doc-rmdir/child.txt", "x");
 dir_remove("/tmp/doc-rmdir", true);

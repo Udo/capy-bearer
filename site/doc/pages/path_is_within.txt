@@ -9,7 +9,17 @@ return value : true if `path` is inside `root`
 :content
 Reports whether `path` lies inside `root`. It resolves both paths to their canonical form (like `path_real()`), so they must exist and `..` traversal is collapsed first. Use it to reject path-traversal attempts before opening user-supplied paths.
 
-:example
+:example capy render
+var root := file_temp("/tmp/doc-within-")
+file_unlink(root)
+mkdir(root)
+var path := path_join(root, "app.txt")
+file_put_contents(path, "x")
+if path_is_within(path, root) { print("inside / ") } else { print("outside / ") }
+if path_is_within(path_join(root, "../" + basename(root) + "/app.txt"), root) { print("inside\n") } else { print("outside\n") }
+dir_remove(root, true)
+
+:example cpp render
 mkdir("/tmp/doc-within");
 file_put_contents("/tmp/doc-within/app.txt", "x");
 print(path_is_within("/tmp/doc-within/app.txt", "/tmp/doc-within") ? "inside" : "outside", " / ");

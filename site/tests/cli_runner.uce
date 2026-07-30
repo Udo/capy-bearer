@@ -155,12 +155,20 @@ DValue cli_demo_error_markers()
 
 void cli_run_demo_smoke()
 {
-	DValue files = split("call_file.uce\ncall_file_funcs.uce\ncollections.uce\ncomponents.uce\ncookie.uce\ndvalue.uce\nempty.uce\nerror-reporting.uce\nfile_append.uce\nfileio.uce\nheader.uce\nhello.uce\nindex.uce\njson.uce\nmarkdown.uce\nmemcached.uce\nmysql.uce\nonce-init.uce\nparse_time.uce\npost-multipart.uce\npost.uce\npreprocessor-comments.uce\nrandom.uce\nregex.uce\nscript.uce\nsession.uce\nsharedunit.uce\nshell.uce\nsqlite.uce\nstr_replace.uce\nstring.uce\ntask-status.uce\ntask.uce\ntask_repeat.uce\nunit-browser.uce\nunit-info.uce\nuri.uce\nutf8.uce\nwebsockets.ws.uce\nworking-dir.uce\nxml.uce\nyaml.uce\nzip.uce", "\n");
+	DValue files = split("call_file.uce\ncall_file_funcs.uce\ncollections.uce\ncomponents.uce\ncookie.uce\ndvalue.uce\nempty.uce\nerror-reporting.uce\nfile_append.uce\nfileio.uce\nheader.uce\nhello.uce\nindex.uce\njson.uce\nmarkdown.uce\nmemcached.uce\nmysql.uce\nonce-init.uce\nparse_time.uce\npost-multipart.uce\npost.uce\npreprocessor-comments.uce\nrandom.uce\nregex.uce\nscript.uce\nsession.uce\nsharedunit.uce\nshell.uce\nsqlite.uce\nstr_replace.uce\nstring.uce\ntask.uce\nunit-browser.uce\nunit-info.uce\nuri.uce\nutf8.uce\nwebsockets.ws.uce\nworking-dir.uce\nxml.uce\nyaml.uce\nzip.uce", "\n");
 	for(String file : files)
 		cli_expect_http("bearer_demo_smoke:demo page " + file, "/demo/" + file, 200, "", file == "unit-browser.uce" ? DValue() : cli_demo_error_markers());
 }
 
 bool cli_doc_source_has_example(String source)
+{
+	for(String line : split(source, "\n"))
+		if(str_starts_with(trim(line), ":example"))
+			return(true);
+	return(false);
+}
+
+bool cli_doc_source_has_legacy_example(String source)
 {
 	for(String line : split(source, "\n"))
 		if(trim(line) == ":example")
@@ -201,6 +209,7 @@ void cli_run_doc_pages_gate(u64 shard = 0, u64 shard_count = 1)
 {
 	DValue error_markers;
 	error_markers.push_back("doc example error");
+	error_markers.push_back("example format error");
 	error_markers.push_back(String("bearer compile ") + "error");
 	error_markers.push_back(String("wasm runtime error during ") + "request");
 	error_markers.push_back(String("fatal signal during ") + "request");
@@ -217,6 +226,7 @@ void cli_run_doc_pages_gate(u64 shard = 0, u64 shard_count = 1)
 		if(page_index++ % shard_count != shard)
 			continue;
 		bool has_example = cli_doc_source_has_example(source);
+		bool has_legacy_examples = cli_doc_source_has_legacy_example(source);
 		String path = "/doc/index.uce?p=" + uri_encode(page);
 		CliHttpResponse res;
 		String summary;
@@ -247,6 +257,8 @@ void cli_run_doc_pages_gate(u64 shard = 0, u64 shard_count = 1)
 					ok = false;
 					summary += "; placeholder example (must exercise the API)";
 				}
+				if(has_legacy_examples)
+					summary += "; legacy C++ example retained during migration";
 			}
 			if(ok)
 				break;

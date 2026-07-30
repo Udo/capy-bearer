@@ -12,7 +12,13 @@ Starts the named session if needed and returns the standard hidden form input fo
 
 Use this in ordinary server-rendered POST forms when the submitted field name should match `token_name`, or pass `field_name` when several forms share the same submitted parameter name but need separate token namespaces. Validate the submitted value with `csrf_valid(context.post[field_name], session_name, token_name)` before mutating state.
 
-:example
+:example capy render
+print("<form method=\"post\">\n\t")
+print(csrf_field("bearer-doc-session"))
+print("\n\t")
+print(csrf_field("bearer-doc-session", "profile_form", "csrf_token"))
+print("\n\t<button type=\"submit\">Save</button>\n</form>")
+:example cpp render
 ?><form method="post">
 	<? print(csrf_field("bearer-doc-session")); ?>
 	<? print(csrf_field("bearer-doc-session", "profile_form", "csrf_token")); ?>

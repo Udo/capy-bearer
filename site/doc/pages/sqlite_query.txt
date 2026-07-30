@@ -25,7 +25,15 @@ Result rows are objects keyed by column name. SQLite integer, float, text, blob,
 
 For statements that do not return rows, inspect `sqlite_affected_rows()` or `sqlite_insert_id()` after the call.
 
-:example
+:example capy render
+var db := sqlite_connect(":memory:")
+sqlite_query(db, "create table users(id integer primary key, email text)")
+sqlite_query(db, "insert into users(email) values(:email)", dval({"email": "ada@example.test"}))
+var rows := sqlite_query(db, "select email from users")
+print(dval_string(rows[0]["email"]), "\n")
+sqlite_disconnect(db)
+
+:example cpp render
 SQLite* db = sqlite_connect("/tmp/doc-sqlite-query.db");
 sqlite_query(db, "drop table if exists users");
 sqlite_query(db, "create table users(id integer primary key, email text)");

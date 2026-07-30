@@ -13,7 +13,15 @@ mysql_insert_id
 :content
 Returns the number of rows changed by the most recent insert, update, or delete on the connection. A successful statement that returns rows, a rejected query, or a null connection returns `0` rather than retaining an earlier statement's count.
 
-:example
+:example capy render
+var db := mysql_connect("localhost", "root", "", "")
+if db != 0u64 {
+    mysql_query(db, "update users set active=1 where active=0")
+    print("rows updated: ", mysql_affected_rows(db), "\n")
+    mysql_disconnect(db)
+} else { print("(requires a reachable MySQL server)\n") }
+
+:example cpp render
 MySQL* db = mysql_connect();
 if(db != 0)
 {

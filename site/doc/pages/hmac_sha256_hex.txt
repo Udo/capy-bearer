@@ -9,7 +9,10 @@ return value : the HMAC-SHA256 as a 64-character lowercase hex string
 :content
 Computes an HMAC-SHA256 message authentication code and returns it as hex. Use it to sign tokens, cookies, and webhook payloads, then verify with `crypto_equal()` to avoid timing leaks.
 
-:example
+:example capy render
+print(hmac_sha256_hex("key", "The quick brown fox jumps over the lazy dog"), "\n")
+
+:example cpp render
 print(hmac_sha256_hex("key", "The quick brown fox jumps over the lazy dog"), "\n");
 
 :see

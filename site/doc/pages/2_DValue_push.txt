@@ -14,7 +14,11 @@ return value : none
 Appends a child under the next numeric key. Empty values become list-shaped. Existing contiguous lists continue at their size; non-list maps use the next unused numeric key and remain non-list.
 
 
-:example
+:example capy render
+var list := dval_push(dval_push(dval([]), dval("x")), dval("y"))
+if dval_has(list, "1") { print("count: 2\n") } else { print("count: 1\n") }
+
+:example cpp render
 DValue list;
 list.set_array();
 DValue a; a.set("x"); list.push(a);

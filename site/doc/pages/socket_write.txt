@@ -14,7 +14,13 @@ Writes `data` to the given socket.
 
 The function returns `true` when the write succeeds.
 
-:example
+:example capy render
+var fd := socket_connect("127.0.0.1", 80)
+var sent := socket_write(fd, "GET / HTTP/1.0\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+socket_close(fd)
+if sent { print("request sent\n") } else { print("send failed\n") }
+
+:example cpp render
 u64 fd = socket_connect("127.0.0.1", 80);
 bool sent = socket_write(fd, "GET / HTTP/1.0\r\nHost: localhost\r\nConnection: close\r\n\r\n");
 socket_close(fd);

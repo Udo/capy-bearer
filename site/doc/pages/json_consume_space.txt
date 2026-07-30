@@ -18,7 +18,12 @@ This helper is mainly useful when writing a parser that follows BEARER's JSON pa
 Example:
 
 
-:example
+:example capy render
+var index := json_consume_space("   value", 0)
+if index == 3 { print("advanced\n") }
+else { print("not advanced\n") }
+
+:example cpp render
 u32 i = 0;
 json_consume_space("   value", i);
-print(i, "\n");
+print(i == 3 ? "advanced\n" : "not advanced\n");

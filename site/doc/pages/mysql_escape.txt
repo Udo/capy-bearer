@@ -14,5 +14,8 @@ Escapes a string so it can be used safely as a value inside an SQL expression.
 
 If `quote_char` is provided, the escaped result is wrapped with that quote character. Pass `NULL` when you only want escaping without wrapping.
 
-:example
+:example capy render
+print(mysql_escape("O'Brien; DROP TABLE users", "'"), "\n")
+
+:example cpp render
 print(mysql_escape("O'Brien; DROP TABLE users", '\''), "\n");

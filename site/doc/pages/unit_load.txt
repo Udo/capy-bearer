@@ -16,4 +16,13 @@ In Capy, `unit_load()` resolves and compiles a readable unit through the normal 
 
 Call only declared DValue exports with `module.call(name[, input])`. `EXPORTS echo` declares an ordinary Capy function `function echo(input : dval) dval`; legacy `EXPORT_name` and C++ `EXPORT DValue* name(DValue*)` remain callable through the same capability path. Inputs and results are copied BRRB values, and the sized result protocol executes the target once.
 
-A Capy caller can write `var module := unit_load("examples/sample_unit.capy")` and then `module.call("echo", input)`.
+A Capy caller can write `var module := unit_load("examples/sample_unit.capy")` and then `module.call("echo", input)`. C++ does not expose Capy's request-local `module` value; use `unit_call()` for the equivalent verified load-and-call operation.
+
+:example capy cli
+var module := unit_load("examples/sample_unit.capy")
+var output := module.call("echo", dval("hello"))
+
+:example cpp cli
+DValue input; input = "hello";
+DValue* output = unit_call("examples/sample_unit.uce", "echo", &input);
+delete output;

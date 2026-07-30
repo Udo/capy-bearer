@@ -15,7 +15,10 @@ Queues a WebSocket message for every client connected to the given scope.
 
 If `scope` is omitted, the current page scope is used.
 
-:example
+:example capy render
+if ws_send("hello subscribers", false, "") { print("broadcast queued\n") } else { print("no active WS scope to broadcast to\n") }
+
+:example cpp render
 // Inside a WS handler this broadcasts to the current scope.
 bool sent = ws_send("hello subscribers");
 print(sent ? "broadcast queued" : "no active WS scope to broadcast to", "\n");

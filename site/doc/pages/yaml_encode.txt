@@ -33,7 +33,11 @@ Notes:
 - Empty strings are emitted as `""` so they are not confused with YAML null.
 - Decoded numeric-looking config values are strings unless the original `DValue` value was explicitly numeric.
 
-:example
+:example capy render
+var value := dval({"name": "Ada"})
+if yaml_encode(value) != "" { print("yaml\n") } else { print("empty\n") }
+
+:example cpp render
 DValue value;
 value["name"] = "Ada";
 print(yaml_encode(value) != "" ? "yaml\n" : "empty\n");

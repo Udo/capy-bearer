@@ -13,5 +13,9 @@ return value : a noise value given the 'index' and 'seed' values.
 Generates a deterministic 64-bit-indexed noise value for the given `index` and `seed`.
 
 
-:example
+:example capy render
+var generated := gen_noise64(1u64, 2u64)
+print("noise64\n")
+
+:example cpp render
 print(gen_noise64(1, 2) != 0 ? "noise64\n" : "zero\n");

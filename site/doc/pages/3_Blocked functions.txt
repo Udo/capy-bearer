@@ -1,7 +1,11 @@
 :title
 Blocked functions (hostcall blocklist)
 
+:capy-status cpp-specific
+
 :content
+This configuration surface is C++/Bearer-runtime-specific; Capy has no separate equivalent.
+
 BEARER units reach the operating system only through a fixed set of `bearer_host_*`
 membrane hostcalls (see the runtime architecture). A server operator can
 **disable individual hostcalls** so a deployment exposes only the capabilities it

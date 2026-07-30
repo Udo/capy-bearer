@@ -3,7 +3,7 @@
 #include <string_view>
 namespace capy::parity {
 struct Evidence { std::string_view name, path, marker; };
-inline constexpr std::array<Evidence, 256> supported{{
+inline constexpr std::array<Evidence, 258> supported{{
     {"1_INIT","site/tests/capy-lifecycle-parity.capy","function INIT"},
     {"1_ONCE","site/tests/capy-lifecycle-parity.capy","function ONCE"},
     {"1_CLI","site/tests/capy-strings.capy","function CLI"},
@@ -207,8 +207,10 @@ inline constexpr std::array<Evidence, 256> supported{{
     {"memcache_delete","site/tests/capy-memcache.capy","memcache_delete("},
     {"memcache_escape_key","site/tests/capy-memcache.capy","memcache_escape_key("},
     {"memcache_escape_keys","site/tests/capy-memcache.capy","memcache_escape_keys("},
-    {"task_kill","site/tests/capy-jobs.capy","task_kill("},
-    {"task_pid","site/tests/capy-jobs.capy","task_pid("},
+    {"task","site/tests/capy-jobs.capy","task("},
+    {"task_status","site/tests/capy-jobs.capy","task_status("},
+    {"task_await","site/tests/capy-jobs.capy","task_await("},
+    {"task_cancel","site/tests/capy-jobs.capy","task_cancel("},
     {"job_status","site/tests/capy-jobs.capy","job_status("},
     {"job_result","site/tests/capy-jobs.capy","job_result("},
     {"job_await","site/tests/capy-jobs.capy","job_await("},
@@ -263,14 +265,12 @@ inline constexpr std::array<Evidence, 256> supported{{
 }};
 inline constexpr std::array<Evidence, 0> partial{{}};
 inline constexpr std::array<std::string_view, 6> cpp_specific{{"3_Blocked functions","3_C++ Preprocessor","3_Coming from React","3_Documentation format","error_pages","load"}};
-inline constexpr std::array<Evidence, 7> unsupported_by_design{{
+inline constexpr std::array<Evidence, 5> unsupported_by_design{{
     {"2_DValue_is_reference","","Capy has value semantics; BRRB crossings dereference copies and retain no reference identity."},
     {"2_DValue_reference_target","","Capy has no host DValue pointer/alias ABI by design."},
     {"2_DValue_deref","","Capy has no host DValue pointer/alias ABI by design."},
     {"2_DValue_set_reference","","Capy has no host DValue pointer/alias ABI by design."},
     {"nibble","","The documented API mutates a caller String by reference; Capy strings are copied ARC values and expose no reference-parameter ABI."},
-    {"task","","Capy closures store a private per-module Wasm table slot plus guest environment; after the task child re-enters the module, the C++ callback registry cannot safely resolve that slot or invoke arbitrary closure signatures with ARC-safe ownership."},
-    {"task_repeat","","Same private Capy closure/table ABI limitation as task; exposing it without a stable child-reentry closure ABI would make repeat callbacks unsafe."},
 }};
 inline constexpr std::array<Evidence, 0> missing_notes{{}};
 }

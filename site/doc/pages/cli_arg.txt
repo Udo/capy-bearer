@@ -14,6 +14,9 @@ If the key is missing, or the resolved value is empty, `default_value` is return
 
 For commands that need multiple values or typed reads, prefer calling `cli_input(context)` once and reading the returned `DValue` directly.
 
-:example
+:example capy render
+var name := cli_arg("name", "world")
+print("hello ", name, "\n")
+:example cpp render
 String name = cli_arg(context, "name", "world");
 print("hello ", name, "\n");

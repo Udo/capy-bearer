@@ -23,5 +23,8 @@ Calling a missing unit or render handler is a server error and sets HTTP status 
 Examples:
 
 
-:example
+:example capy render
+unit_render("examples/sample_unit.uce")
+
+:example cpp render
 unit_render("examples/sample_unit.uce");

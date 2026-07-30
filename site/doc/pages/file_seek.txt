@@ -10,7 +10,16 @@ return value : the new absolute offset, or -1 on error
 :content
 Moves a handle's read/write offset for random access. Combine with `file_read()` / `file_write()` to jump around a file; `file_tell()` reports the current offset.
 
-:example
+:example capy render
+var writer := file_open("/tmp/doc-seek.txt", "w")
+file_write(writer, "hello world")
+file_close(writer)
+var reader := file_open("/tmp/doc-seek.txt", "r")
+file_seek(reader, 6s64, 0s64)
+print(file_read(reader, 5u64), "\n")
+file_close(reader)
+
+:example cpp render
 u64 w = file_open("/tmp/doc-seek.txt", "w");
 file_write(w, "hello world");
 file_close(w);

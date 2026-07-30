@@ -34,5 +34,8 @@ Behavior notes:
 - If the pattern does not match, the result contains the original subject as a single item.
 - Zero-length separators are handled safely to avoid infinite loops.
 
-:example
+:example capy render
+print(join(regex_split("\\s+", "bearer docs api"), ","), "\n")
+
+:example cpp render
 print(join(regex_split("\\s+", "bearer docs api"), ","), "\n");

@@ -12,7 +12,12 @@ Closes an existing connection to a MySQL server.
 
 Releases the lease returned by `mysql_connect()`. The request-local server connection remains available for another same-credential `mysql_connect()` call and is closed by BEARER during request cleanup, including after exceptions or fatal request recovery. A `MySQL*` is only valid inside the request that opened it; do not use it after release or cache it across requests.
 
-:example
+:example capy render
+var db := mysql_connect("localhost", "root", "", "")
+if db != 0u64 { mysql_disconnect(db); print("connection closed\n") }
+else { print("(requires a reachable MySQL server)\n") }
+
+:example cpp render
 MySQL* db = mysql_connect();
 if(db != 0) { mysql_disconnect(db); print("connection closed\n"); }
 else print("(requires a reachable MySQL server)\n");

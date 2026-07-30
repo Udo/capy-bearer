@@ -12,5 +12,8 @@ Returns whether the message currently being handled by `WS(Request& context)` ar
 
 If this returns `false`, the current message was delivered as a text frame.
 
-:example
+:example capy render
+if ws_is_binary() { print("binary frame\n") } else { print("text frame (default outside a WS handler)\n") }
+
+:example cpp render
 print(ws_is_binary() ? "binary frame" : "text frame (default outside a WS handler)", "\n");

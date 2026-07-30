@@ -7,7 +7,15 @@ h : handle returned by file_open()
 :content
 Closes a file handle and releases the lock that `file_open()` took. Always close handles you open: locks are scoped to the handle's lifetime, so a leaked handle holds its lock until the worker recycles.
 
-:example
+:example capy render
+var handle := file_open("/tmp/doc-close.txt", "w")
+file_write(handle, "done")
+file_close(handle)
+var result := "missing"
+if file_exists("/tmp/doc-close.txt") { result = "written and closed" }
+print(result, "\n")
+
+:example cpp render
 u64 h = file_open("/tmp/doc-close.txt", "w");
 file_write(h, "done");
 file_close(h);

@@ -13,7 +13,12 @@ return value : none
 Clears the value and makes it an empty list-shaped map. Subsequent `push()` calls append numeric keys starting at `0`.
 
 
-:example
+:example capy render
+var list := dval_push(dval_set_array(dval("")), dval("first"))
+if dval_is_list(list) { print("is_list=yes") } else { print("is_list=no") }
+if dval_has(list, "0") { print(" count=1\n") } else { print(" count=0\n") }
+
+:example cpp render
 DValue list;
 list.set_array();
 DValue item; item.set("first");

@@ -12,20 +12,37 @@ function CLI {
     var cancelling := shell_spawn(dval({"cmd": "sleep 5", "timeout_ms": 10000}))
     var cancelled := job_cancel(cancelling)
     var cancelled_status := job_await(cancelling, 5000)
-    var inactive_pid := task_pid("capy-jobs-no-such-task")
+    file_unlink("/tmp/bearer-task-cpp.txt")
+    file_unlink("/tmp/bearer-task-cpp-named.txt")
+    file_unlink("/tmp/bearer-task-capy.txt")
+    file_unlink("/tmp/bearer-task-capy-named.txt")
+    var task_props := dval({"nested": {"value": "capy-caller"}})
+    var cpp_task := task("/tests/task-handlers.uce", task_props)
+    var cpp_named_task := task("/tests/task-handlers.uce:CPP", task_props)
+    var capy_task := task("/tests/task-handlers.capy", task_props)
+    var capy_named_task := task("/tests/task-handlers.capy:CAPY", task_props)
+    var cpp_status := task_status(cpp_task)
+    var cpp_done := task_await(cpp_task, 10000u64)
+    var cpp_named_done := task_await(cpp_named_task, 10000u64)
+    var capy_done := task_await(capy_task, 10000u64)
+    var capy_named_done := task_await(capy_named_task, 10000u64)
+    var cancel_task := task("/tests/task-handlers.capy", task_props)
+    var task_cancelled := task_cancel(cancel_task)
+    var cancel_done := task_await(cancel_task, 10000u64)
     var server := server_start_http("capy-jobs-server", "29994", "servers/http.uce", "named")
     var stopped := server_stop("capy-jobs-server")
     var shell_status := "bad-shell"
     if shell == "a'b; echo injected" { shell_status = "shell" }
     var cancel_status := "no-cancel"
     if cancelled { cancel_status = "cancel" }
-    var task_status := "bad-task-pid"
-    if inactive_pid == 0 { task_status = "no-task" }
+    var task_status_value := "bad-task"
+    if dval_to_string(cpp_status["id"]) == cpp_task && dval_to_string(cpp_done["state"]) == "succeeded" && dval_to_string(cpp_named_done["state"]) == "succeeded" && dval_to_string(capy_done["state"]) == "succeeded" && dval_to_string(capy_named_done["state"]) == "succeeded" && file_get_contents("/tmp/bearer-task-cpp.txt") == "capy-caller" && file_get_contents("/tmp/bearer-task-cpp-named.txt") == "capy-caller" && file_get_contents("/tmp/bearer-task-capy.txt") == "capy-caller" && file_get_contents("/tmp/bearer-task-capy-named.txt") == "capy-caller" { task_status_value = "tasks" }
+    if dval_to_string(task_cancelled["id"]) != cancel_task || (dval_to_string(cancel_done["state"]) != "canceled" && dval_to_string(cancel_done["state"]) != "succeeded") { task_status_value = "bad-cancel" }
     var cwd_status := "no-cwd"
     if process_start_directory() != "" { cwd_status = "cwd" }
     var server_status := "no-server"
     if server > 0 && stopped { server_status = "server" }
-    print(shell_status, "|", dval_to_string(dval_get_by_path(done, "result/stdout"), "missing"), "|", dval_to_string(dval_get_by_path(status, "state"), "missing"), "|", dval_to_string(dval_get_by_path(stored, "state"), "missing"), "|", dval_to_string(dval_get_by_path(failed, "state"), "missing"), "|", cancel_status, "|", dval_to_string(dval_get_by_path(cancelled_status, "state"), "missing"), "|", task_status, "|", cwd_status, "|", server_status, "|", task_kill(-1, 0), "|")
+    print(shell_status, "|", dval_to_string(dval_get_by_path(done, "result/stdout"), "missing"), "|", dval_to_string(dval_get_by_path(status, "state"), "missing"), "|", dval_to_string(dval_get_by_path(stored, "state"), "missing"), "|", dval_to_string(dval_get_by_path(failed, "state"), "missing"), "|", cancel_status, "|", dval_to_string(dval_get_by_path(cancelled_status, "state"), "missing"), "|", task_status_value, "|", cwd_status, "|", server_status, "|")
     }
     print(arc_live())
 }

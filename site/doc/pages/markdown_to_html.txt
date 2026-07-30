@@ -82,5 +82,8 @@ The parser stores:
 That makes directive components a good fit for alerts, callouts, cards, embeds, and richer page-level Markdown extensions.
 
 
-:example
+:example capy render
+print(markdown_to_html("**bold**"), "\n")
+
+:example cpp render
 print(markdown_to_html("**bold**"), "\n");

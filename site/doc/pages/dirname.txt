@@ -8,7 +8,9 @@ return value : the directory portion of the path
 :content
 Returns everything in a path except the final component — i.e. the containing directory.
 
-:example
+:example capy render
+print(dirname("/var/www/site/index.uce"), "\n")
+:example cpp render
 print(dirname("/var/www/site/index.uce"), "\n");
 
 :see

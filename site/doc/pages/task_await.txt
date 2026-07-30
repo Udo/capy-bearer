@@ -1,0 +1,29 @@
+:sig
+DValue task_await(String id, u64 timeout_ms)
+
+:params
+id : opaque ID returned by `task()`
+timeout_ms : maximum time to wait
+return value : current status when terminal or when the wait bound expires
+
+:see
+>task
+task
+task_status
+task_cancel
+
+:content
+Waits up to `timeout_ms` for a task to become terminal and returns its bounded status. Waiting does not execute the task in the caller; dedicated task workers remain the only consumers. A nonterminal status after the bound is an ordinary timeout of the wait, not cancellation of the task.
+
+:example capy render
+var id := task("/doc/examples/task_worker.capy:STORE", dval({"message": "await"}))
+var status := task_await(id, 5000u64)
+var result := "not done"
+if dval_to_string(status["state"]) == "succeeded" { result = "done" }
+print(result, "\n")
+
+:example cpp render
+DValue props; props["message"] = "await";
+String id = task("/doc/examples/task_worker.capy:STORE", props);
+DValue status = task_await(id, 5000);
+print(status["state"].to_string() == "succeeded" ? "done\n" : "not done\n");

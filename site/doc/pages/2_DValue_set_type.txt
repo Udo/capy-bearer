@@ -16,7 +16,12 @@ Changes the node's internal type tag, forwarding through references when possibl
 Prefer the typed setters (`set`, `set_bool`, `set_array`) in normal unit code.
 
 
-:example
+:example capy render
+var value := dval_set_type(dval(""), "M")
+value = dval_push(value, dval("x"))
+print("type after set_array: ", dval_get_type_name(value), "\n")
+
+:example cpp render
 DValue v;
 v.set_array();
 DValue item; item.set("x"); v.push(item);

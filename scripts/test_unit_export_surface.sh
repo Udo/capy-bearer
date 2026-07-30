@@ -33,12 +33,14 @@ printf '%s\n' \
 	'String visibility_used() { return("private-used"); }' \
 	'String visibility_unused() { return("bearer-private-unused-marker-8f61d2"); }' \
 	'EXPORT String visibility_shared() { return("shared"); }' \
+	'TASK(Request& context) {}' \
 	'CLI(Request& context) { print(visibility_shared(), ":", visibility_used(), ":", component("named:NAMED", context)); }' \
 	>"$source_dir/entry.uce"
 printf '%s\n' \
 	'String named_used() { return("private-named-used"); }' \
 	'String named_unused() { return("bearer-named-unused-marker-4ae973"); }' \
 	'EXPORT String named_shared() { return("named-export"); }' \
+	'TASK:NAME(Request& context) {}' \
 	'COMPONENT:NAMED(Request& context) { print(named_shared(), ":", named_used()); }' \
 	>"$source_dir/named.uce"
 
@@ -53,8 +55,8 @@ named_wasm="$artifact_dir/named.uce.wasm"
 for wasm in "$entry_wasm" "$named_wasm"; do
 	wasm-objdump -x "$wasm" >"$wasm.objdump"
 	case "$wasm" in
-		"$entry_wasm") expected='__wasm_call_ctors __bearer_set_current_request __bearer_cli visibility_shared'; marker='bearer-private-unused-marker-8f61d2' ;;
-		*) expected='__wasm_call_ctors __bearer_set_current_request __bearer_component_NAMED named_shared'; marker='bearer-named-unused-marker-4ae973' ;;
+		"$entry_wasm") expected='__wasm_call_ctors __bearer_set_current_request __bearer_cli __bearer_task visibility_shared'; marker='bearer-private-unused-marker-8f61d2' ;;
+		*) expected='__wasm_call_ctors __bearer_set_current_request __bearer_component_NAMED __bearer_task_NAME named_shared'; marker='bearer-named-unused-marker-4ae973' ;;
 	esac
 	grep -aFq "$marker" "$wasm" && { echo "$wasm retained unused private code marker" >&2; exit 1; }
 	# Export surface must be exactly the expected set (no missing, no unexpected).

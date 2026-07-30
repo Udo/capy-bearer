@@ -71,6 +71,10 @@ Options:
 - `options["components"]` provides the component hook map later used by `markdown_to_html()`. The parser preserves directive data needed by those hooks.
 
 
-:example
+:example capy render
+var ast := markdown_to_ast("# Title")
+if dval_is_array(ast) { print("ast\n") } else { print("empty\n") }
+
+:example cpp render
 DValue ast = markdown_to_ast("# Title");
 print(ast.is_array() ? "ast\n" : "empty\n");

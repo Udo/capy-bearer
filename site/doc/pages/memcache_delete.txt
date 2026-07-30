@@ -14,7 +14,15 @@ Deletes the entry identified by `key`.
 
 The return value is `true` when the operation succeeds.
 
-:example
+:example capy render
+var conn := memcache_connect()
+if conn != 0u64 {
+    memcache_set(conn, "doc_del_key", "v")
+    memcache_delete(conn, "doc_del_key")
+    print(memcache_get(conn, "doc_del_key", "gone"), "\n")
+} else { print("(requires a reachable memcached server)\n") }
+
+:example cpp render
 u64 conn = memcache_connect();
 if(conn != 0)
 {

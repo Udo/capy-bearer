@@ -8,7 +8,16 @@ return value : a list-shaped DValue of entry names
 :content
 Returns the names of the entries in a list-shaped `DValue`. For names only this is simpler than `dir_list()`, which returns full metadata per entry.
 
-:example
+:example capy render
+var root := file_temp("/tmp/doc-ls-")
+file_unlink(root)
+mkdir(root)
+file_put_contents(path_join(root, "one.txt"), "1")
+file_put_contents(path_join(root, "two.txt"), "2")
+print(join(sort(ls(root)), ","), "\n")
+dir_remove(root, true)
+
+:example cpp render
 mkdir("/tmp/doc-ls");
 file_put_contents("/tmp/doc-ls/one.txt", "1");
 file_put_contents("/tmp/doc-ls/two.txt", "2");
