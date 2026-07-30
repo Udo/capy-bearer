@@ -306,7 +306,7 @@ bool is_handler(const std::string& name, std::string& exported, bool& invalid_ta
 		exported = it->second;
 		return true;
 	}
-	if (name.rfind("TASK_", 0) == 0)
+	if (name.rfind("TASK:", 0) == 0)
 	{
 		const std::string_view suffix(name.data() + 5, name.size() - 5);
 		invalid_task_name = !task_suffix_is_valid(suffix);
@@ -314,9 +314,9 @@ bool is_handler(const std::string& name, std::string& exported, bool& invalid_ta
 			exported = "__bearer_task_" + std::string(suffix);
 		return true;
 	}
-	for (const auto& prefix : {std::pair<std::string_view, std::string_view>{"RENDER_", "__bearer_render_"},
-							   {"COMPONENT_", "__bearer_component_"},
-							   {"SERVE_HTTP_", "__bearer_serve_http_"}})
+	for (const auto& prefix : {std::pair<std::string_view, std::string_view>{"RENDER:", "__bearer_render_"},
+							   {"COMPONENT:", "__bearer_component_"},
+							   {"SERVE_HTTP:", "__bearer_serve_http_"}})
 	{
 		if (name.rfind(prefix.first, 0) == 0 && name.size() > prefix.first.size())
 		{
@@ -4191,6 +4191,9 @@ void Module::collect()
 				throw Error(function->location, "host declaration is already declared");
 			continue;
 		}
+		for (std::string_view prefix : {"RENDER_", "COMPONENT_", "SERVE_HTTP_", "TASK_"})
+			if (function->name.rfind(prefix, 0) == 0)
+				throw Error(function->location, "named Bearer handlers use ':' before the name, for example function COMPONENT:NAME");
 		std::string exported;
 		bool invalid_task_name = false;
 		bool handler = is_handler(function->name, exported, invalid_task_name);
@@ -4208,7 +4211,7 @@ void Module::collect()
 		}
 		if (handler && generic)
 			throw Error(function->location, "Bearer handlers cannot use any parameters");
-		const bool task_handler = function->name == "TASK" || function->name.rfind("TASK_", 0) == 0;
+		const bool task_handler = function->name == "TASK" || function->name.rfind("TASK:", 0) == 0;
 		if (task_handler && parameters != std::vector<std::string>{"request"})
 			throw Error(function->location, "TASK handler requires exactly one request parameter");
 		if (handler && !task_handler && (function->parameters.size() > 1 || (!parameters.empty() && parameters != std::vector<std::string>{"request"})))

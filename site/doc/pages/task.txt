@@ -17,7 +17,7 @@ Enqueues a named Bearer task and returns immediately with an opaque ID. `worker.
 
 Each invocation receives a fresh ordinary `Request`. The copied DValue is available only as `context.props`; request, session, connection, resource, and caller memory state are not inherited. Queue admission never compiles the target or forks a process. Missing handlers, compilation errors, traps, timeouts, cancellation, and worker loss become isolated task status outcomes.
 
-Capy handlers use `function TASK(request : request)` or `function TASK_NAME(request : request)`. C++ handlers use `TASK(Request& context)` or `TASK:NAME(Request& context)`.
+Capy handlers use `function TASK(request : request)` or `function TASK:NAME(request : request)`. C++ handlers use `TASK(Request& context)` or `TASK:NAME(Request& context)`.
 
 :example capy render
 var id := task("/doc/examples/task_worker.capy:STORE", dval({"message": "hello"}))

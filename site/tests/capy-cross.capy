@@ -2,7 +2,7 @@ function COMPONENT {
     print("capy-component-ok")
 }
 
-function COMPONENT_CARD {
+function COMPONENT:CARD {
     print("capy-named-ok")
 }
 

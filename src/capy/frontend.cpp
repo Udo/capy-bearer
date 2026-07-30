@@ -855,6 +855,13 @@ Expr* Parser::function_expression(Location location)
 Expr* Parser::function(Location location, bool host, bool trace_host)
 {
 	Token name = require_identifier("function name");
+	if (!host && match(":"))
+	{
+		if (name.text != "RENDER" && name.text != "COMPONENT" && name.text != "SERVE_HTTP" && name.text != "TASK")
+			fail(name.location, "named handler syntax applies only to RENDER, COMPONENT, SERVE_HTTP, and TASK");
+		Token suffix = require_identifier("named handler suffix");
+		name.text += ":" + suffix.text;
+	}
 	std::vector<Expr*> header;
 	while (token().text != "{")
 	{
