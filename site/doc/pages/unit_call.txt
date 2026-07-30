@@ -18,7 +18,7 @@ unit_info
 :content
 Calls an exported function inside another BEARER file.
 
-Use `unit_call()` when you need structured data exchange between units rather than rendered HTML output.
+Use `unit_call()` when you need structured data exchange between units rather than rendered HTML output. In Capy, prefer `unit_load(path).call(name[, input])` when several calls share one request-local pinned target; both paths retain the legacy handler aliases below.
 
 The callee must expose an `EXPORT` function whose name matches `function_name`. Arguments are passed through `call_param`, and the return value is a `DValue*` owned by the callee.
 

@@ -576,13 +576,13 @@ String compiler_preprocess_shared_unit_char_wise(Request* context, SharedUnit* s
 			String trimmed_line = trim(current_line);
 			if(c == 10 && trimmed_line.length() > 7 && trimmed_line.substr(0, 6) == "EXPORT" && isspace(trimmed_line[6]))
 			{
-				current_line = "";
 				auto end_declaration_pos = content.find("{", i);
 				if(end_declaration_pos != std::string::npos)
 				{
 					parsed_content.append(1, '\n');
-					String declaration = trim(content.substr(i, end_declaration_pos - i));
-					su->api_declarations.push_back(declaration+";\n");
+					u64 declaration_start = i + 1 - current_line.length();
+					String declaration = trim(content.substr(declaration_start, end_declaration_pos - declaration_start));
+					su->api_declarations.push_back(trim(declaration.substr(6))+";\n");
 				}
 			}
 		}

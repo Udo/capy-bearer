@@ -393,6 +393,10 @@ assert_marker alternate dependency-marker-c
 alternate_wasm="$cache_dir/alternate.uce.wasm"
 parent_mtime=$(stat -c %Y "$parent_wasm")
 cp "$alternate_wasm" "$parent_wasm"
+cp "$cache_dir/alternate.uce.exports.txt" "$cache_dir/parent.uce.exports.txt"
+wasm_sha=$(sha256sum "$parent_wasm" | awk '{print $1}')
+exports_sha=$(sha256sum "$cache_dir/parent.uce.exports.txt" | awk '{print $1}')
+sed -i "s/^wasm_sha256=.*/wasm_sha256=$wasm_sha/; s/^exports_sha256=.*/exports_sha256=$exports_sha/" "$cache_dir/parent.uce.meta.txt"
 touch -d "@$parent_mtime" "$parent_wasm"
 rm -f "$cache_dir/parent.uce.cwasm"
 for _ in {1..16}; do assert_marker parent dependency-marker-c; done

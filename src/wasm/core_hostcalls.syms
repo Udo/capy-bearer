@@ -29,6 +29,14 @@ bearer_host_mysql
 bearer_host_zip
 bearer_host_units
 bearer_host_component_resolve
+bearer_host_unit_load
+bearer_host_module_enter
+bearer_host_module_leave
+bearer_host_module_resolve
+bearer_host_module_staged_size
+bearer_host_module_stage
+bearer_host_module_copy
+bearer_host_module_reset
 bearer_host_request_perf
 bearer_host_shell_exec
 bearer_host_http_request

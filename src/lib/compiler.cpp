@@ -328,16 +328,23 @@ String compiler_unit_build_token()
 	);
 }
 
-String compiler_unit_metadata_text(Request* context, SharedUnit* su, String input_signature = "")
+String compiler_unit_metadata_text(Request* context, SharedUnit* su, String input_signature = "",
+	String wasm_path = "", String exports_path = "")
 {
 	if(input_signature == "")
 		input_signature = compiler_unit_input_signature(context, su);
+	if(wasm_path == "")
+		wasm_path = su->wasm_name;
+	if(exports_path == "")
+		exports_path = su->api_file_name;
 	return(
-		"format=bearer-unit-metadata-v1\n"
+		"format=bearer-unit-metadata-v2\n"
 		"unit_abi_version=" + std::to_string(BEARER_UNIT_ABI_VERSION) + "\n"
 		"wasm_core_abi_version=" + std::to_string(BEARER_WASM_CORE_ABI_VERSION) + "\n"
 		"source_path=" + su->file_name + "\n"
 		"input_signature=" + input_signature + "\n"
+		"wasm_sha256=" + sha256_hex_native(file_get_contents(wasm_path)) + "\n"
+		"exports_sha256=" + sha256_hex_native(file_get_contents(exports_path)) + "\n"
 		"build_token=" + compiler_unit_build_token() + "\n"
 	);
 }
@@ -1332,7 +1339,7 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 		if(deadline && (deadline->timed_out || deadline->operational_failure))
 			break;
 		if(!file_put_contents(stage_artifacts ? staged_pre_name : su->pre_path + "/" + su->pre_file_name, generated_source) ||
-			!file_put_contents(stage_artifacts ? staged_api_name : su->api_file_name, join_strings(su->api_declarations, "\n")))
+			(!capy_source && !file_put_contents(stage_artifacts ? staged_api_name : su->api_file_name, join_strings(su->api_declarations, "\n"))))
 		{
 			su->compiler_messages = "could not write generated bounded compile inputs";
 			break;
@@ -1346,6 +1353,10 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 			{
 				capy::CompileOptions options;
 				options.source_path = su->file_name;
+				options.canonical_source_identity = su->file_name;
+				if(!context->server->capy_parsed_source_cache)
+					context->server->capy_parsed_source_cache = std::make_shared<capy::ParsedSourceCache>();
+				options.parsed_source_cache = context->server->capy_parsed_source_cache.get();
 				options.module_name = su->wasm_file_name;
 				options.abi_version = BEARER_WASM_CORE_ABI_VERSION;
 				options.cancelled = [deadline]() { return deadline && deadline->expire_if_needed(); };
@@ -1354,8 +1365,12 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 					{ .bearer_abi_version = std::to_string(BEARER_WASM_CORE_ABI_VERSION) });
 				if(!validation.valid)
 					throw std::runtime_error("native Capy compiler emitted invalid Wasm: " + validation.error);
+				su->api_declarations.clear();
+				for(const auto& name : result.custom_exports)
+					su->api_declarations.push_back("DValue* " + name + "(DValue*);");
 				String wasm_content((const char*)result.wasm.data(), result.wasm.size());
-				if(!file_put_contents(compiled_wasm_name, wasm_content) || !file_put_contents(compiled_map_name, result.source_map))
+				if(!file_put_contents(compiled_wasm_name, wasm_content) || !file_put_contents(compiled_map_name, result.source_map) ||
+					!file_put_contents(stage_artifacts ? staged_api_name : su->api_file_name, join_strings(su->api_declarations, "\n")))
 					throw std::runtime_error("could not write native Capy compiler artifacts");
 				su->compiler_messages = "";
 			}
@@ -1416,7 +1431,8 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 				else
 			{
 					if(!file_put_contents(staged_map_name, replace(source_map, staged_pre_name, compiler_generated_cpp_path(su))) ||
-						!file_put_contents(staged_meta_name, compiler_unit_metadata_text(context, su, compiled_input_signature)))
+						!file_put_contents(staged_meta_name, compiler_unit_metadata_text(context, su, compiled_input_signature,
+							staged_wasm_name, staged_api_name)))
 					{
 						su->compiler_messages = "could not stage bounded compile metadata";
 						publication_failed = true;
@@ -1504,7 +1520,8 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 		if(!deadline)
 		{
 			file_unlink(compiler_cached_wasm_path(su->wasm_name));
-			file_put_contents(su->meta_file_name, compiler_unit_metadata_text(context, su, compiled_input_signature));
+			file_put_contents(su->meta_file_name, compiler_unit_metadata_text(context, su, compiled_input_signature,
+				su->wasm_name, su->api_file_name));
 		}
 		file_unlink(su->compile_output_file_name);
 		file_unlink(su->wasm_check_file_name);

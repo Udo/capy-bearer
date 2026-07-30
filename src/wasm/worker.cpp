@@ -40,6 +40,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <sys/random.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -1401,6 +1402,109 @@ struct WasmWorker
 		return(cfg.cache_root + source_path + ".wasm");
 	}
 
+	String unit_exports_path(const String& source_path) const
+	{
+		return(cfg.cache_root + source_path + ".exports.txt");
+	}
+
+	String unit_metadata_path(const String& source_path) const
+	{
+		return(cfg.cache_root + source_path + ".meta.txt");
+	}
+
+	static bool parse_declared_dvalue_exports(const String& text, std::set<String>& exports, String& error)
+	{
+		exports.clear();
+		for(const auto& declaration : split_strings(text, "\n"))
+		{
+			String line = trim(declaration);
+			if(line.rfind("DValue* ", 0) != 0)
+				continue;
+			auto open = line.find('('), close = line.find(')', open == String::npos ? 0 : open + 1);
+			String name = open == String::npos ? String("") : trim(line.substr(8, open - 8));
+			String parameter = close == String::npos ? String("") : trim(line.substr(open + 1, close - open - 1));
+			String parameter_name = parameter.rfind("DValue* ", 0) == 0 ? trim(parameter.substr(8)) : String("");
+			if(close == String::npos ||
+				(parameter != "DValue*" && (parameter_name == "" || !std::all_of(parameter_name.begin(), parameter_name.end(), [](unsigned char c) { return isalnum(c) || c == '_'; }))) ||
+				trim(line.substr(close + 1)) != ";" || name == "" ||
+				!std::all_of(name.begin(), name.end(), [](unsigned char c) { return isalnum(c) || c == '_'; }))
+			{
+				error = "malformed unit export metadata";
+				return(false);
+			}
+			if(!exports.insert(name).second)
+			{
+				error = "duplicate unit export metadata";
+				return(false);
+			}
+		}
+		return(true);
+	}
+
+	bool verify_unit_generation(const WasmUnitModule& unit, std::set<String>& exports, String& error) const
+	{
+		const String exports_path = unit_exports_path(unit.source_path), metadata_path = unit_metadata_path(unit.source_path);
+		auto identity_matches = [](const struct stat& a, const struct stat& b) {
+			return(a.st_mtim.tv_sec == b.st_mtim.tv_sec && a.st_mtim.tv_nsec == b.st_mtim.tv_nsec &&
+				a.st_ctim.tv_sec == b.st_ctim.tv_sec && a.st_ctim.tv_nsec == b.st_ctim.tv_nsec && a.st_size == b.st_size);
+		};
+		for(int attempt = 0; attempt < 3; ++attempt)
+		{
+			struct stat wasm_before, exports_before, metadata_before_stat;
+			if(stat(unit.wasm_path.c_str(), &wasm_before) != 0 || !S_ISREG(wasm_before.st_mode) ||
+				stat(exports_path.c_str(), &exports_before) != 0 || !S_ISREG(exports_before.st_mode) ||
+				stat(metadata_path.c_str(), &metadata_before_stat) != 0 || !S_ISREG(metadata_before_stat.st_mode))
+			{
+				error = "missing unit artifact metadata";
+				return(false);
+			}
+			String metadata_before = file_get_contents(metadata_path);
+			String exports_text = file_get_contents(exports_path);
+			String wasm_bytes = file_get_contents(unit.wasm_path);
+			String metadata_after = file_get_contents(metadata_path);
+			struct stat wasm_after, exports_after, metadata_after_stat;
+			if(stat(unit.wasm_path.c_str(), &wasm_after) != 0 || stat(exports_path.c_str(), &exports_after) != 0 ||
+				stat(metadata_path.c_str(), &metadata_after_stat) != 0 || metadata_before == "" || wasm_bytes == "" ||
+				metadata_before != metadata_after || !identity_matches(exports_before, exports_after) ||
+				!identity_matches(metadata_before_stat, metadata_after_stat))
+				continue;
+			if(wasm_after.st_mtim.tv_sec != (time_t)(unit.modified_ns / 1000000000ull) ||
+				wasm_after.st_mtim.tv_nsec != (long)(unit.modified_ns % 1000000000ull) ||
+				wasm_after.st_ctim.tv_sec != (time_t)(unit.changed_ns / 1000000000ull) ||
+				wasm_after.st_ctim.tv_nsec != (long)(unit.changed_ns % 1000000000ull) || wasm_after.st_size != (off_t)unit.size ||
+				!identity_matches(wasm_before, wasm_after))
+			{
+				error = "unit artifact generation changed before capability verification; retry";
+				return(false);
+			}
+			StringMap fields;
+			for(const String& line : split_strings(metadata_before, "\n"))
+			{
+				if(line == "")
+					continue;
+				auto equal = line.find('=');
+				if(equal == String::npos || !fields.emplace(line.substr(0, equal), line.substr(equal + 1)).second)
+				{
+					error = "malformed unit metadata";
+					return(false);
+				}
+			}
+			auto numeric = [](const String& value) { return(value != "" && std::all_of(value.begin(), value.end(), [](unsigned char c) { return isdigit(c); })); };
+			if(fields.size() != 8 || fields["format"] != "bearer-unit-metadata-v2" || fields["source_path"] != unit.source_path ||
+				!numeric(fields["unit_abi_version"]) || !numeric(fields["wasm_core_abi_version"]) ||
+				fields["input_signature"] == "" || fields["build_token"] == "" ||
+				fields["wasm_sha256"].size() != 64 || fields["exports_sha256"].size() != 64 ||
+				sha256_hex_native(wasm_bytes) != fields["wasm_sha256"] || sha256_hex_native(exports_text) != fields["exports_sha256"])
+			{
+				error = "unit artifact metadata does not match Wasm and exports";
+				return(false);
+			}
+			return(parse_declared_dvalue_exports(exports_text, exports, error));
+		}
+		error = "unit artifact generation changed during capability verification; retry";
+		return(false);
+	}
+
 	std::shared_ptr<WasmUnitModule> unit_module(const String& source_path, String& error, WasmUnitModuleLoadProfile& profile,
 		bool deadline_active, std::chrono::steady_clock::time_point deadline)
 	{
@@ -1996,6 +2100,53 @@ struct WasmWorkspace : public WasmRequestProfile
 	String staged_socket_read_result;
 	String staged_memcache_key;
 	String staged_memcache_result;
+	struct ModuleCapability
+	{
+		size_t unit_index = 0;
+		String canonical_source;
+		std::set<String> declared_dvalue_exports;
+		std::map<String, u32> export_slots;
+	};
+	std::map<s32, ModuleCapability> module_capabilities;
+	std::map<size_t, s32> module_capability_by_unit;
+	struct ModuleCallStage
+	{
+		bool active = false;
+		s32 capability = 0;
+		String name;
+		String input;
+		String result;
+	} module_call_stage;
+	std::vector<String> module_context_stack;
+	bool module_capability_enter(s32 capability, String& error_out)
+	{
+		auto found = module_capabilities.find(capability);
+		if(capability <= 0 || found == module_capabilities.end())
+		{
+			error_out = "invalid, stale, or foreign module capability";
+			return(false);
+		}
+		module_context_stack.push_back(context ? context->resources.current_unit_file : String(""));
+		if(context)
+			context->resources.current_unit_file = found->second.canonical_source;
+		return(true);
+	}
+	void module_capability_leave()
+	{
+		if(module_context_stack.empty())
+			return;
+		if(context)
+			context->resources.current_unit_file = module_context_stack.back();
+		module_context_stack.pop_back();
+	}
+	void module_capability_reset()
+	{
+		while(!module_context_stack.empty())
+			module_capability_leave();
+		module_call_stage = ModuleCallStage();
+		module_capabilities.clear();
+		module_capability_by_unit.clear();
+	}
 	bool hostcall_staged(const String& input, String& out)
 	{
 		if(!staged_hostcall_input.empty() && input == staged_hostcall_input)
@@ -2011,6 +2162,98 @@ struct WasmWorkspace : public WasmRequestProfile
 	{
 		staged_hostcall_input = input;
 		staged_hostcall_result = out;
+	}
+
+	s32 module_capability_load(const String& target, const String& current, String& error_out)
+	{
+		String resolved, compile_error;
+		bool timed_out = false;
+		if(!component_resolve(target, "module", current, resolved, 0, &timed_out, &compile_error))
+		{
+			error_out = timed_out ? invocation_timeout_error() :
+				(compile_error != "" ? compile_error : "module load denied or unavailable");
+			return(0);
+		}
+		auto loaded = units_by_source.find(resolved);
+		if(loaded == units_by_source.end())
+		{
+			error_out = "module load did not retain a workspace artifact";
+			return(0);
+		}
+		if(auto existing = module_capability_by_unit.find(loaded->second); existing != module_capability_by_unit.end())
+			return(existing->second);
+		if(module_capabilities.size() >= units.size())
+		{
+			error_out = "module capability limit reached";
+			return(0);
+		}
+		const auto& unit = units[loaded->second];
+		std::set<String> exports;
+		if(!worker.verify_unit_generation(*unit.mod, exports, error_out))
+			return(0);
+		s32 capability = 0;
+		do
+		{
+			u32 token = 0;
+			ssize_t read = getrandom(&token, sizeof(token), 0);
+			if(read != (ssize_t)sizeof(token))
+			{
+				error_out = "cannot mint module capability";
+				return(0);
+			}
+			capability = (s32)(token & (u32)std::numeric_limits<s32>::max());
+		}
+		while(capability == 0 || module_capabilities.find(capability) != module_capabilities.end());
+		auto& minted = module_capabilities[capability];
+		minted.unit_index = loaded->second;
+		minted.canonical_source = unit.mod->source_path;
+		minted.declared_dvalue_exports = std::move(exports);
+		module_capability_by_unit[loaded->second] = capability;
+		return(capability);
+	}
+
+	std::optional<u32> module_capability_export(s32 capability, const String& name, String& error_out)
+	{
+		auto capability_it = module_capabilities.find(capability);
+		if(capability <= 0 || capability_it == module_capabilities.end())
+		{
+			error_out = "invalid, stale, or foreign module capability";
+			return(std::nullopt);
+		}
+		if(name == "" || name.rfind("__bearer_", 0) == 0)
+		{
+			error_out = "module calls require a declared export name";
+			return(std::nullopt);
+		}
+		auto cached = capability_it->second.export_slots.find(name);
+		if(cached != capability_it->second.export_slots.end())
+			return(cached->second);
+		const auto& unit = units[capability_it->second.unit_index];
+		if(!capability_it->second.declared_dvalue_exports.contains(name))
+		{
+			error_out = "module does not export " + name;
+			return(std::nullopt);
+		}
+		auto function = unit_func(capability_it->second.unit_index, name);
+		if(!function)
+		{
+			error_out = "module does not export " + name;
+			return(std::nullopt);
+		}
+		auto type = function->type(ctx());
+		auto params = type->params(), results = type->results();
+		if(params.size() != 1 || results.size() != 1 ||
+			!(params.begin()[0] == wasmtime::ValType::i32()) || !(results.begin()[0] == wasmtime::ValType::i32()))
+		{
+			error_out = unit.mod->source_path + ": declared export " + name + " must have Wasm ABI (i32)->i32";
+			return(std::nullopt);
+		}
+		u32 slot = 0;
+		error_out = place_funcref(*function, slot);
+		if(error_out != "")
+			return(std::nullopt);
+		capability_it->second.export_slots[name] = slot;
+		return(slot);
 	}
 
 	// resolve-kind values shared with the guest core (src/wasm/core.cpp)
@@ -2898,41 +3141,67 @@ struct WasmWorkspace : public WasmRequestProfile
 
 	String resolve_source_path(const String& file_name, const String& current_unit)
 	{
+		if(file_name == "" || file_name.find('\0') != String::npos)
+			return("");
+		char root_real[PATH_MAX];
+		if(!realpath(worker.cfg.site_root.c_str(), root_real))
+			return("");
+		const String source_root(root_real);
+		std::vector<String> source_roots{source_root};
+		char generated_real[PATH_MAX];
+		const String generated_root = dir_of(worker.cfg.cache_root) + "/doc-examples";
+		if(realpath(generated_root.c_str(), generated_real))
+			source_roots.push_back(String(generated_real));
+		auto allowed_source = [&](const String& path) {
+			for(const String& root : source_roots)
+				if(path == root || path.rfind(root + "/", 0) == 0)
+					return(true);
+			return(false);
+		};
 		std::vector<String> bases;
 		if(file_name.rfind("/", 0) == 0)
-			bases.push_back("");           // absolute target
-		if(entry_dir != "")
-			bases.push_back(entry_dir + "/");
-		if(current_unit != "")
 		{
-			String current_dir = dir_of(current_unit);
-			if(current_dir != "" && current_dir != entry_dir)
-				bases.push_back(current_dir + "/");
+			bases.push_back(""); // an actual canonical source path remains valid
+			bases.push_back(source_root); // web paths such as /tests/unit.capy
 		}
-		String site_base = worker.cfg.site_root + "/";
-		if(std::find(bases.begin(), bases.end(), site_base) == bases.end())
-			bases.push_back(site_base);
-		String normalized_file_name = normalize_component_path(file_name);
-
-		for(auto& base : bases)
+		else
 		{
-			std::vector<String> candidates;
-			candidates.push_back(base + file_name);
-			if(normalized_file_name != file_name)
-				candidates.push_back(base + normalized_file_name);
-			if(file_name.rfind("components/", 0) != 0 && base != "")
+			if(entry_dir != "") bases.push_back(entry_dir);
+			if(current_unit != "")
 			{
-				candidates.push_back(base + "components/" + file_name);
-				if(normalized_file_name != file_name)
-					candidates.push_back(base + "components/" + normalized_file_name);
+				String current_dir = dir_of(current_unit);
+				if(current_dir != "" && current_dir != entry_dir) bases.push_back(current_dir);
 			}
-			for(auto& candidate : candidates)
+			bases.push_back(source_root);
+		}
+		String normalized_file_name = normalize_component_path(file_name);
+		for(const auto& base : bases)
+		{
+			for(const auto& requested : { file_name, normalized_file_name })
 			{
-				if(!file_exists_host(candidate))
-					continue;
-				char resolved[PATH_MAX];
-				if(realpath(candidate.c_str(), resolved))
-					return(String(resolved));
+				String relative = requested.rfind("/", 0) == 0 && base == source_root ? requested.substr(1) : requested;
+				String candidate = base == "" ? relative : base + "/" + relative;
+				if(file_exists_host(candidate))
+				{
+					char resolved[PATH_MAX];
+					if(realpath(candidate.c_str(), resolved))
+					{
+						String canonical(resolved);
+						if(allowed_source(canonical))
+							return(canonical);
+					}
+				}
+				if(requested.rfind("components/", 0) != 0 && base != "")
+				{
+					String component_candidate = base + "/components/" + relative;
+					char resolved[PATH_MAX];
+					if(file_exists_host(component_candidate) && realpath(component_candidate.c_str(), resolved))
+					{
+						String canonical(resolved);
+						if(allowed_source(canonical))
+							return(canonical);
+					}
+				}
 			}
 		}
 		return("");
@@ -3236,6 +3505,12 @@ struct WasmWorkspace : public WasmRequestProfile
 			component_link_total_us += (u64)std::chrono::duration_cast<std::chrono::microseconds>(
 				std::chrono::steady_clock::now() - link_start).count();
 		};
+		if(handler == "module")
+		{
+			record_link();
+			record_probe();
+			return(1);
+		}
 		auto link_handler = [&](const String& requested_handler) -> int32_t {
 			String symbol = handler_export_symbol(requested_handler);
 			String slot_key = resolved + ":" + symbol;
@@ -4652,6 +4927,112 @@ struct WasmWorkspace : public WasmRequestProfile
 					return(std::monostate());
 				}
 				results[0] = Val((int32_t)self->capy_regex_result.size());
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_unit_load")
+			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				String target, current, error;
+				self->hostcall_read(args[0].i32(), args[1].i32(), target);
+				self->hostcall_read(args[2].i32(), args[3].i32(), current);
+				s32 capability = self->module_capability_load(target, current, error);
+				if(capability <= 0)
+					return(Trap("BEARER_MODULE_LOAD: " + std::string(error)));
+				results[0] = Val((int32_t)capability);
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_module_resolve")
+			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				String name, error;
+				self->hostcall_read(args[1].i32(), args[2].i32(), name);
+				auto slot = self->module_capability_export(args[0].i32(), name, error);
+				if(!slot)
+					return(Trap("BEARER_MODULE_CALL: " + std::string(error)));
+				results[0] = Val((int32_t)*slot);
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_module_staged_size")
+			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				String name, input, error;
+				self->hostcall_read(args[1].i32(), args[2].i32(), name);
+				self->hostcall_read(args[3].i32(), args[4].i32(), input);
+				if(!self->module_capability_export(args[0].i32(), name, error))
+					return(Trap("BEARER_MODULE_CALL: " + std::string(error)));
+				if(self->module_call_stage.active && (self->module_call_stage.capability != args[0].i32() ||
+					self->module_call_stage.name != name || self->module_call_stage.input != input))
+				{
+					self->module_call_stage = ModuleCallStage();
+					return(Trap("BEARER_MODULE_CALL: sized result request mismatch"));
+				}
+				DValue decoded;
+				if(!brb_decode(input, decoded, &error))
+					return(Trap("BEARER_MODULE_CALL: malformed BRRB input: " + std::string(error)));
+				if(!self->module_call_stage.active)
+				{
+					results[0] = Val((int32_t)-1);
+					return(std::monostate());
+				}
+				results[0] = Val((int32_t)self->module_call_stage.result.size());
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_module_stage")
+			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				String name, input, result, error;
+				self->hostcall_read(args[1].i32(), args[2].i32(), name);
+				self->hostcall_read(args[3].i32(), args[4].i32(), input);
+				self->hostcall_read(args[5].i32(), args[6].i32(), result);
+				if(!self->module_capability_export(args[0].i32(), name, error))
+					return(Trap("BEARER_MODULE_CALL: " + std::string(error)));
+				if(self->module_call_stage.active)
+				{
+					self->module_call_stage = ModuleCallStage();
+					return(Trap("BEARER_MODULE_CALL: result stage already active"));
+				}
+				self->module_call_stage.active = true;
+				self->module_call_stage.capability = args[0].i32();
+				self->module_call_stage.name = name;
+				self->module_call_stage.input = input;
+				self->module_call_stage.result = result;
+				results[0] = Val((int32_t)result.size());
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_module_copy")
+			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				String name, input, error;
+				self->hostcall_read(args[1].i32(), args[2].i32(), name);
+				self->hostcall_read(args[3].i32(), args[4].i32(), input);
+				if(!self->module_capability_export(args[0].i32(), name, error))
+					return(Trap("BEARER_MODULE_CALL: " + std::string(error)));
+				if(!self->module_call_stage.active || self->module_call_stage.capability != args[0].i32() ||
+					self->module_call_stage.name != name || self->module_call_stage.input != input)
+				{
+					self->module_call_stage = ModuleCallStage();
+					return(Trap("BEARER_MODULE_CALL: missing or mismatched sized result"));
+				}
+				if(args[6].i32() < 0 || (u32)args[6].i32() < self->module_call_stage.result.size())
+				{
+					self->module_call_stage = ModuleCallStage();
+					return(Trap("BEARER_MODULE_CALL: sized result buffer too small"));
+				}
+				self->hostcall_write(args[5].i32(), self->module_call_stage.result);
+				results[0] = Val((int32_t)self->module_call_stage.result.size());
+				self->module_call_stage = ModuleCallStage();
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_module_enter")
+			return(add([self](Caller, Span<const Val> args, Span<Val>) -> Result<std::monostate, Trap> {
+				String error;
+				if(!self->module_capability_enter(args[0].i32(), error))
+					return(Trap("BEARER_MODULE_CALL: " + std::string(error)));
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_module_leave")
+			return(add([self](Caller, Span<const Val>, Span<Val>) -> Result<std::monostate, Trap> {
+				self->module_capability_leave();
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_module_reset")
+			return(add([self](Caller, Span<const Val>, Span<Val>) -> Result<std::monostate, Trap> {
+				self->module_capability_reset();
 				return(std::monostate());
 			}));
 		if(mod == "env" && name == "bearer_host_component_resolve")

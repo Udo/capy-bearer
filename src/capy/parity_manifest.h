@@ -3,7 +3,7 @@
 #include <string_view>
 namespace capy::parity {
 struct Evidence { std::string_view name, path, marker; };
-inline constexpr std::array<Evidence, 255> supported{{
+inline constexpr std::array<Evidence, 256> supported{{
     {"1_INIT","site/tests/capy-lifecycle-parity.capy","function INIT"},
     {"1_ONCE","site/tests/capy-lifecycle-parity.capy","function ONCE"},
     {"1_CLI","site/tests/capy-strings.capy","function CLI"},
@@ -45,6 +45,7 @@ inline constexpr std::array<Evidence, 255> supported{{
     {"component","site/tests/capy-component-parity.capy","component("},
     {"component_render","site/tests/capy-component-parity.capy","component_render("},
     {"unit_call","site/tests/capy-component-parity.capy","unit_call("},
+    {"unit_load","site/tests/capy-module-caller.capy","unit_load("},
     {"units_list","site/tests/capy-component-parity.capy","units_list("},
     {"component_exists","site/tests/capy-component-props.capy","component_exists("},
     {"component_resolve","site/tests/capy-component-props.capy","component_resolve("},
@@ -262,7 +263,7 @@ inline constexpr std::array<Evidence, 255> supported{{
 }};
 inline constexpr std::array<Evidence, 0> partial{{}};
 inline constexpr std::array<std::string_view, 6> cpp_specific{{"3_Blocked functions","3_C++ Preprocessor","3_Coming from React","3_Documentation format","error_pages","load"}};
-inline constexpr std::array<Evidence, 8> unsupported_by_design{{
+inline constexpr std::array<Evidence, 7> unsupported_by_design{{
     {"2_DValue_is_reference","","Capy has value semantics; BRRB crossings dereference copies and retain no reference identity."},
     {"2_DValue_reference_target","","Capy has no host DValue pointer/alias ABI by design."},
     {"2_DValue_deref","","Capy has no host DValue pointer/alias ABI by design."},
@@ -270,7 +271,6 @@ inline constexpr std::array<Evidence, 8> unsupported_by_design{{
     {"nibble","","The documented API mutates a caller String by reference; Capy strings are copied ARC values and expose no reference-parameter ABI."},
     {"task","","Capy closures store a private per-module Wasm table slot plus guest environment; after the task child re-enters the module, the C++ callback registry cannot safely resolve that slot or invoke arbitrary closure signatures with ARC-safe ownership."},
     {"task_repeat","","Same private Capy closure/table ABI limitation as task; exposing it without a stable child-reentry closure ABI would make repeat callbacks unsafe."},
-    {"unit_load","","Native-only: its process-local SharedUnit* cannot cross the Wasm membrane or become a Capy value."},
 }};
 inline constexpr std::array<Evidence, 0> missing_notes{{}};
 }

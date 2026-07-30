@@ -103,6 +103,7 @@ enum struct ExprKind
 	Lambda,
 	Function,
 	Struct,
+	Exports,
 	For,
 	If,
 	While,
@@ -275,6 +276,11 @@ struct Struct : Expr
 	std::vector<Expr*> members;
 	Struct(Location l, std::string n);
 };
+struct Exports : Expr
+{
+	std::vector<std::string> names;
+	explicit Exports(Location l);
+};
 struct Constant : Expr
 {
 	std::string name;
@@ -339,6 +345,7 @@ struct Parser
 	bool is_parameter_expression(Expr*) const;
 	std::vector<Parameter> parameters(Expr*);
 	Expr* structure(Location);
+	Expr* exports(Location);
 	Expr* constant(Location);
 	Expr* variable(Location);
 	Expr* return_expr(Location);

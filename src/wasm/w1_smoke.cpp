@@ -34,6 +34,16 @@ static std::string wasm_name(const wasm_name_t* name)
 }
 
 static wasm_store_t* g_store_for_traps = nullptr;
+static int g_module_reset_count = 0;
+
+static wasm_trap_t* module_trap(const char* message)
+{
+	wasm_byte_vec_t bytes;
+	wasm_byte_vec_new(&bytes, strlen(message) + 1, message);
+	wasm_trap_t* trap = wasm_trap_new(g_store_for_traps, &bytes);
+	wasm_byte_vec_delete(&bytes);
+	return(trap);
+}
 
 static void set_i32(wasm_val_t* result, int32_t value)
 {
@@ -93,6 +103,27 @@ static wasm_trap_t* host_random(void*, const wasm_val_vec_t* args, wasm_val_vec_
 static wasm_trap_t* host_log(void*, const wasm_val_vec_t*, wasm_val_vec_t*)
 {
 	return(nullptr);
+}
+
+static wasm_trap_t* host_module_reset(void*, const wasm_val_vec_t*, wasm_val_vec_t*)
+{
+	g_module_reset_count++;
+	return(nullptr);
+}
+
+static wasm_trap_t* host_module_staged_size(void*, const wasm_val_vec_t* args, wasm_val_vec_t* results)
+{
+	if(args->data[0].of.i32 == 0)
+		return(module_trap("BEARER_MODULE_CALL: invalid, stale, or foreign module capability"));
+	if(args->data[3].of.i32 == 0 || args->data[4].of.i32 < 5)
+		return(module_trap("BEARER_MODULE_CALL: malformed BRRB input"));
+	set_i32(&results->data[0], -1);
+	return(nullptr);
+}
+
+static wasm_trap_t* host_module_resolve(void*, const wasm_val_vec_t*, wasm_val_vec_t*)
+{
+	return(module_trap("BEARER_MODULE_CALL: module does not export requested name"));
 }
 
 static wasm_trap_t* stub_callback(void* env, const wasm_val_vec_t*, wasm_val_vec_t*)
@@ -158,6 +189,25 @@ static int32_t call_i32(Instance& inst, const char* name, std::vector<int32_t> a
 	wasm_trap_t* trap = wasm_func_call(f, &args, wasm_func_result_arity(f) ? &results : &no_results);
 	report_trap(trap, name);
 	return(wasm_func_result_arity(f) ? result_buf[0].of.i32 : 0);
+}
+
+static void expect_i32_trap(Instance& inst, const char* name, std::vector<int32_t> argv, const char* expected)
+{
+	wasm_func_t* f = inst.func(name);
+	CHECK(f, "missing function %s", name);
+	std::vector<wasm_val_t> args_buf(argv.size());
+	for(size_t i = 0; i < argv.size(); ++i) args_buf[i] = WASM_I32_VAL(argv[i]);
+	wasm_val_t result = WASM_INIT_VAL;
+	wasm_val_vec_t args = { argv.size(), args_buf.data() };
+	wasm_val_vec_t results = { 1, &result };
+	wasm_trap_t* trap = wasm_func_call(f, &args, &results);
+	CHECK(trap, "%s unexpectedly succeeded", name);
+	wasm_message_t message;
+	wasm_trap_message(trap, &message);
+	std::string text(message.data, message.size);
+	wasm_byte_vec_delete(&message);
+	wasm_trap_delete(trap);
+	CHECK(text.find(expected) != std::string::npos, "%s trap mismatch: %s", name, text.c_str());
 }
 
 static void write_bytes(wasm_memory_t* memory, uint32_t ptr, const std::string& data)
@@ -232,6 +282,9 @@ int main(int argc, char** argv)
 		else if(mod == "env" && name == "bearer_host_env") fn = wasm_func_new_with_env(store, ft, host_env, nullptr, nullptr);
 		else if(mod == "env" && name == "bearer_host_random") fn = wasm_func_new_with_env(store, ft, host_random, nullptr, nullptr);
 		else if(mod == "env" && name == "bearer_host_log") fn = wasm_func_new_with_env(store, ft, host_log, nullptr, nullptr);
+		else if(mod == "env" && name == "bearer_host_module_reset") fn = wasm_func_new_with_env(store, ft, host_module_reset, nullptr, nullptr);
+		else if(mod == "env" && name == "bearer_host_module_staged_size") fn = wasm_func_new_with_env(store, ft, host_module_staged_size, nullptr, nullptr);
+		else if(mod == "env" && name == "bearer_host_module_resolve") fn = wasm_func_new_with_env(store, ft, host_module_resolve, nullptr, nullptr);
 		else if(mod == "env")
 		{
 			char* label = strdup((mod + "." + name).c_str());
@@ -259,7 +312,10 @@ int main(int argc, char** argv)
 
 	CHECK(call_i32(core, "bearer_wasm_core_init") == 0, "core init failed");
 	call_i32(core, "bearer_wasm_core_reset_request");
+	CHECK(g_module_reset_count == 1, "request reset did not clear module capability state");
 	CHECK(call_i32(core, "bearer_wasm_core_abi_version") == BEARER_WASM_CORE_ABI_VERSION, "unexpected ABI version");
+	CHECK(core.func("bearer_unit_load"), "core does not export bearer_unit_load");
+	CHECK(core.func("bearer_module_call_brrb"), "core does not export bearer_module_call_brrb");
 
 	wasm_memory_t* memory = core.memory();
 	int32_t root = call_i32(core, "bearer_dv_root");
@@ -297,6 +353,12 @@ int main(int argc, char** argv)
 	write_bytes(memory, bad_ptr, bad);
 	CHECK(call_i32(core, "bearer_dv_decode", { bad_ptr, (int32_t)bad.size() }) == 0, "bad BRRB2 decode unexpectedly succeeded");
 	CHECK(read_cstr(memory, call_i32(core, "bearer_dv_last_error")) != "", "bad BRRB2 decode did not set error");
+	std::string export_name = "missing";
+	int32_t export_name_ptr = call_i32(core, "bearer_alloc", { (int32_t)export_name.size() });
+	write_bytes(memory, export_name_ptr, export_name);
+	expect_i32_trap(core, "bearer_module_call_brrb", { 0, export_name_ptr, (int32_t)export_name.size(), bad_ptr, (int32_t)bad.size(), 0, 0 }, "invalid, stale, or foreign");
+	expect_i32_trap(core, "bearer_module_call_brrb", { 7, export_name_ptr, (int32_t)export_name.size(), bad_ptr, (int32_t)bad.size(), 0, 0 }, "malformed BRRB");
+	expect_i32_trap(core, "bearer_module_call_brrb", { 7, export_name_ptr, (int32_t)export_name.size(), encoded_ptr, encoded_len, 0, 0 }, "does not export");
 
 	CHECK(call_i32(core, "bearer_dv_merge_brrb", { bad_ptr, (int32_t)bad.size(), encoded_ptr, encoded_len, 0, 0 }) == -1,
 		"malformed merge input did not fail");
@@ -317,6 +379,7 @@ int main(int argc, char** argv)
 	merge_len = call_i32(core, "bearer_dv_merge_brrb", { encoded_ptr, encoded_len, encoded_ptr, encoded_len, 0, 0 });
 	CHECK(merge_len > 0, "merge staging failed before request reset check");
 	call_i32(core, "bearer_wasm_core_reset_request");
+	CHECK(g_module_reset_count == 2, "second request reset did not clear module capability state");
 	CHECK(call_i32(core, "bearer_dv_merge_brrb", { encoded_ptr, encoded_len, encoded_ptr, encoded_len, merge_ptr, merge_len }) == 0,
 		"request reset leaked staged merge bytes");
 	merge_len = call_i32(core, "bearer_dv_merge_brrb", { encoded_ptr, encoded_len, encoded_ptr, encoded_len, 0, 0 });

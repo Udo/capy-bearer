@@ -11,4 +11,6 @@ The compiler has no Bearer API-name lowering or host signature registry. It coll
 
 Focused live coverage invokes a stale SQLite sized-result host with a concatenated owned string and constructed DValue. It proves the trap is at the user callsite with no `capy://stdlib.capy` frame, and the next SQLite invocation returns `arc_live()==0`.
 
+`unit_load(path)` returns opaque `module`; `module.call(name[, input])` is an ordinary overloaded stdlib method lowered through the same typed host path. The module value is an i32 capability only at the membrane and cannot enter user aggregates, closures, conversions, or conditions. Calls carry copied BRRB DValues through a request-local two-pass stage so target execution occurs only during sizing. The native worker validates the selected artifact's staged `.exports.txt` declaration as exactly `DValue*(DValue*)` before it resolves a table slot; this admits normalized Capy `EXPORTS`, legacy `EXPORT_name`, and legacy C++ `EXPORT`, but never arbitrary Wasm exports.
+
 Regenerate the embedding with `capyc --embed-stdlib src/capy/stdlib.capy src/capy/stdlib.embedded.h`; regenerate `scripts/capy_artifact_golden.sha256` with `CAPYC=/tmp/capy-native-tests/capyc bash scripts/test_capy_artifact_golden.sh --write` after reviewing import/source-map deltas.

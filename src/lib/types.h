@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <list>
+#include <memory>
 #include <vector>
 #include <functional>
 #include <sstream>
@@ -55,6 +56,8 @@ typedef std::map<String, String> StringMap;
 
 
 typedef std::ostringstream ByteStream;
+
+namespace capy { struct ParsedSourceCache; }
 
 struct Request;
 struct DValue;
@@ -123,6 +126,8 @@ struct ServerState {
 
 	std::map<String, SharedUnit*> units;
 	StringMap config;
+	// Constructed lazily in the post-fork compiler path; never shared between workers.
+	std::shared_ptr<capy::ParsedSourceCache> capy_parsed_source_cache;
 	u32 request_count = 0;
 
 };

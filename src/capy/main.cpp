@@ -116,8 +116,11 @@ int main(int argc, char** argv)
 
 	try
 	{
+		capy::ParsedSourceCache parsed_source_cache;
 		capy::CompileOptions options;
 		options.source_path = std::filesystem::absolute(source).string();
+		options.canonical_source_identity = options.source_path;
+		options.parsed_source_cache = &parsed_source_cache;
 		options.module_name = std::filesystem::path(output).filename().string();
 		options.abi_version = abi_version;
 		const capy::CompileResult result = capy::compile_bearer_file(source, std::move(options));

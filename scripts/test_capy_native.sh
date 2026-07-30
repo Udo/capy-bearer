@@ -62,7 +62,7 @@ cmp "$BUILD_DIR/phase1.wasm.source-map" "$BUILD_DIR/repeat/phase1.wasm.source-ma
 scripts/compile_wasm_unit . "$BUILD_DIR" site/tests/capy-phase1.capy unused.cpp wrapper.wasm "$BUILD_DIR"
 wasm-validate "$BUILD_DIR/wrapper.wasm"
 
-for fixture in capy-arc capy-loop-control capy-phase3 capy-closures capy-markup capy-dval-rich capy-cross; do
+for fixture in capy-arc capy-loop-control capy-phase3 capy-closures capy-markup capy-dval-rich capy-cross capy-module-target capy-module-caller capy-methods; do
 	"$BUILD_DIR/capyc" "site/tests/$fixture.capy" \
 		-o "$BUILD_DIR/$fixture.wasm" --source-map "$BUILD_DIR/$fixture.wasm.source-map" --abi-version "$ABI_VERSION"
 	wasm-validate "$BUILD_DIR/$fixture.wasm"

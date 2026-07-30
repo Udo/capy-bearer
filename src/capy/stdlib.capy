@@ -75,6 +75,8 @@ host function __bearer_component_render_props_brrb(name : string, props : dval) 
 host function __bearer_component_exists(name : string) bool
 host function __bearer_component_resolve(name : string) string
 host function __bearer_unit_render_bytes(name : string) void
+host function __bearer_unit_load(path : string) module
+host function __bearer_module_call_brrb(handle : module, name : string, input : dval) dval
 host function __bearer_unit_call_brrb(file : string, function_name : string, props : dval) dval
 host function __bearer_unit_info_brrb(path : string) dval
 host function __bearer_units_list_brrb() dval
@@ -681,6 +683,9 @@ function component_render(name : string, props : dval) { __bearer_component_rend
 function component_exists(name : string) bool { __bearer_component_exists(name) }
 function component_resolve(name : string) string { __bearer_component_resolve(name) }
 function unit_render(name : string) { __bearer_unit_render_bytes(name) }
+function unit_load(path : string) module { __bearer_unit_load(path) }
+function call(handle : module, name : string) dval { call(handle, name, dval({:})) }
+function call(handle : module, name : string, input : dval) dval { __bearer_module_call_brrb(handle, name, input) }
 function unit_call(file_name : string, function_name : string, props : dval) dval { __bearer_unit_call_brrb(file_name, function_name, props) }
 function unit_info() dval { __bearer_unit_info_brrb("") }
 function unit_info(path : string) dval { __bearer_unit_info_brrb(path) }

@@ -52,7 +52,7 @@ PUBLIC_APIS = [
     ("mysql_affected_rows", True, "integration"),
 ]
 
-REMOVED_APIS = ["unit_load", "concat"]
+REMOVED_APIS = ["concat"]
 
 
 def all_test_text() -> str:
@@ -86,8 +86,6 @@ def main() -> int:
         page = DOC_DIR / f"{name}.txt"
         if name == "concat" and page.exists() and "Removed" not in page.read_text(errors="ignore")[:300]:
             errors.append("concat doc is not tombstoned")
-        if name == "unit_load" and page.exists() and "native-only" not in page.read_text(errors="ignore"):
-            errors.append("unit_load doc is not native-only/tombstoned")
     if errors:
         print("API coverage manifest FAILED")
         for error in errors:

@@ -725,6 +725,18 @@ extern "C" int32_t bearer_host_component_resolve(
 	const char* current_unit, size_t current_unit_len,
 	char* resolved_buf, size_t resolved_cap,
 	int32_t* once_slot_out);
+extern "C" s32 bearer_host_unit_load(const char* target, size_t target_len,
+	const char* current_unit, size_t current_unit_len);
+extern "C" void bearer_host_module_enter(s32 capability);
+extern "C" void bearer_host_module_leave();
+extern "C" s32 bearer_host_module_resolve(s32 capability, const char* name, size_t name_len);
+extern "C" s32 bearer_host_module_staged_size(s32 capability, const char* name, size_t name_len,
+	const char* input, size_t input_len);
+extern "C" s32 bearer_host_module_stage(s32 capability, const char* name, size_t name_len,
+	const char* input, size_t input_len, const char* result, size_t result_len);
+extern "C" s32 bearer_host_module_copy(s32 capability, const char* name, size_t name_len,
+	const char* input, size_t input_len, char* out, size_t cap);
+extern "C" void bearer_host_module_reset();
 
 // target → table slot, reset per request (workspaces die with the request,
 // but a single workspace can render the same component many times)
@@ -882,18 +894,23 @@ static void wasm_run_once(const String& resolved, Request& request)
 	request.resources.current_unit_file = previous_unit;
 }
 
-DValue* unit_call(String file_name, String function_name, DValue* call_param)
+static String wasm_unit_call_handler(const String& function_name)
 {
 	String macro = to_upper(trim(function_name));
-	String handler = "";
 	if(macro == "RENDER" || macro.rfind("RENDER:", 0) == 0)
-		handler = "render" + (macro.length() > 7 ? ":" + trim(function_name.substr(function_name.find(":") + 1)) : String(""));
-	else if(macro == "COMPONENT" || macro.rfind("COMPONENT:", 0) == 0)
-		handler = "component" + (macro.length() > 10 ? ":" + trim(function_name.substr(function_name.find(":") + 1)) : String(""));
-	else if(macro == "ONCE")
-		handler = "once";
-	else if(macro == "INIT")
-		handler = "init";
+		return("render" + (macro.length() > 7 ? ":" + trim(function_name.substr(function_name.find(":") + 1)) : String("")));
+	if(macro == "COMPONENT" || macro.rfind("COMPONENT:", 0) == 0)
+		return("component" + (macro.length() > 10 ? ":" + trim(function_name.substr(function_name.find(":") + 1)) : String("")));
+	if(macro == "ONCE")
+		return("once");
+	if(macro == "INIT")
+		return("init");
+	return("");
+}
+
+DValue* unit_call(String file_name, String function_name, DValue* call_param)
+{
+	String handler = wasm_unit_call_handler(function_name);
 
 	if(handler != "")
 	{
@@ -1130,6 +1147,7 @@ void bearer_wasm_core_reset_request()
 	wasm_component_slots.clear();
 	wasm_component_paths.clear();
 	wasm_component_errors.clear();
+	bearer_host_module_reset();
 	wasm_unit_call_encoded_result.clear();
 	wasm_component_capture_result.clear();
 	wasm_file_read_result.clear();
@@ -2761,10 +2779,55 @@ DValue* bearer_dv_brrb_to_ptr(const char* value, size_t value_len)
 	return(&wasm_unit_call_result);
 }
 
+s32 bearer_unit_load(const char* target, size_t target_len)
+{
+	String current = context ? context->resources.current_unit_file : "";
+	return(bearer_host_unit_load(target, target_len, current.data(), current.size()));
+}
+
+size_t bearer_module_call_brrb(s32 capability, const char* name, size_t name_len,
+	const char* input, size_t input_len, char* out, size_t cap)
+{
+	if(!out)
+	{
+		s32 staged = bearer_host_module_staged_size(capability, name, name_len, input, input_len);
+		if(staged >= 0)
+			return((size_t)staged);
+		DValue call_value;
+		String error;
+		if(!brb_decode(String(input ? input : "", input ? input_len : 0), call_value, &error))
+			return(std::numeric_limits<size_t>::max());
+		s32 slot = bearer_host_module_resolve(capability, name, name_len);
+		if(slot <= 0)
+			return(std::numeric_limits<size_t>::max());
+		WasmDValueCallHandler call = (WasmDValueCallHandler)(uintptr_t)slot;
+		bearer_host_module_enter(capability);
+		DValue* result = call(&call_value);
+		bearer_host_module_leave();
+		String encoded = brb_encode(result ? *result : DValue());
+		if(bearer_host_module_stage(capability, name, name_len, input, input_len,
+			encoded.data(), encoded.size()) < 0)
+			return(std::numeric_limits<size_t>::max());
+		return(encoded.size());
+	}
+	s32 copied = bearer_host_module_copy(capability, name, name_len, input, input_len, out, cap);
+	return(copied < 0 ? std::numeric_limits<size_t>::max() : (size_t)copied);
+}
+
 size_t bearer_unit_call_brrb(const char* target, size_t target_len,
 	const char* function_name, size_t function_len,
 	const char* input, size_t input_len, char* out, size_t cap)
 {
+	String name(function_name ? function_name : "", function_name ? function_len : 0);
+	if(wasm_unit_call_handler(name) == "")
+	{
+		String default_input;
+		if(!input_len)
+			default_input = brb_encode(DValue());
+		s32 capability = bearer_unit_load(target, target_len);
+		return(bearer_module_call_brrb(capability, name.data(), name.size(),
+			input_len ? input : default_input.data(), input_len ? input_len : default_input.size(), out, cap));
+	}
 	if(out == 0)
 	{
 		wasm_unit_call_encoded_result.clear();
@@ -2773,8 +2836,7 @@ size_t bearer_unit_call_brrb(const char* target, size_t target_len,
 		if(input_len && !brb_decode(String(input ? input : "", input ? input_len : 0), call_value, &error))
 			return(0);
 		DValue* result = unit_call(
-			String(target ? target : "", target ? target_len : 0),
-			String(function_name ? function_name : "", function_name ? function_len : 0),
+			String(target ? target : "", target ? target_len : 0), name,
 			input_len ? &call_value : 0);
 		wasm_unit_call_encoded_result = brb_encode(result ? *result : DValue());
 	}

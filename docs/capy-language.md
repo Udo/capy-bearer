@@ -147,7 +147,7 @@ The first direct-Wasm backend emits:
 - a matching `BEARER_SOURCE_MAP_V1` sidecar;
 - no WASI imports; dynamic values use Bearer’s workspace allocator.
 
-Compiler generation c31 uses core ABI w23. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
+Compiler generation c31 uses core ABI w24. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
 
 ## Automatic reference counting
 
@@ -200,6 +200,12 @@ Bearer loads public APIs from the embedded `capy://stdlib.capy` source on demand
 
 The compiler lowers embedded typed host declarations through one generic ABI path: scalars pass directly, strings/DValues are spans, and string/DValue results use the shared two-pass sized-result convention. The exact retained language primitives are `dval` construction, `dval_has`, `dval_string`, `dval_s32`, `dval_f64`, `dval_bool`, DValue indexing, `length`, `trusted_markup`, `clone`, `print`, `trap`, and `arc_live`. All other Bearer-facing public convenience names are ordinary stdlib declarations. Their implementations call private typed host declarations; private names are not language APIs.
 
+## Parsed-source cache
+
+`ParsedSourceCache` is an explicit process-local object supplied through `CompileOptions`; there is no compiler-global cache. A caller enables user-source reuse only by supplying a stable canonical identity. Cache acquisition is compiler-internal, so callers cannot obtain a shared AST with mutable `Expr*` nodes. Entries use structured raw-byte digest, canonical identity, diagnostic identity, parser/compiler identity, and ABI fields; exact source bytes are compared after a digest match. Diagnostic identities are deliberately part of the key, so location-bearing ASTs for different displayed paths never alias. The runtime coordinator owns one lazily created post-fork cache per `ServerState`; `capyc` owns one for its process; tests may create bounded instances directly.
+
+The implicit library is acquired through that same implementation path as pinned `capy://stdlib.capy`, rather than through a static parsed AST. User entries default to 128 entries, an 8 MiB conservative source-byte admission/charge budget, and a 1 MiB maximum source; the charge adds source bytes, key metadata, and parsed-node count, not exact AST heap accounting. The entry and source limits bound cached input/count. Pinned stdlib is excluded from user bounds and reported separately by cache statistics. LRU eviction releases metadata under the cache mutex and destroys displaced AST ownership after unlock. PID mismatch after fork replaces inherited state before taking its mutex. Parsing/lowering never runs under that mutex; duplicate concurrent misses are valid. Cancellation is polled while hashing and immediately before every successful cache return, parsing, and lowering. Only complete successful parses publish; parse errors and cancellations never enter the cache, while later type/lowering errors may reuse their successful parse. Recompilation still always validates/lowers/publishes artifacts; this cache skips parsing only.
+
 ## Databases
 
 `sqlite_connect(path)` returns an exact workspace-local `u64` capability handle. `sqlite_query(handle, sql[, params])` returns copied row DValues and accepts an optional string-valued DValue parameter map; `sqlite_error`, `sqlite_insert_id`, `sqlite_affected_rows`, and `sqlite_disconnect` preserve Bearer's SQLite policy. Handles cannot cross workspaces, and stale or explicitly closed handles trap at the Capy call site. Query results and errors are staged once; SQLite connections remain host-owned and are reclaimed at workspace teardown.
@@ -238,15 +244,19 @@ DValue value APIs use explicit value semantics: `dval_set`/`dval_assign`, `dval_
 
 `dval_key`, `dval_keys`, and `dval_values` return copied DValues (a missing `dval_key` is an empty DValue). `dval_map(value, mapper)` and `dval_filter(value, predicate)` invoke ordinary Capy function values on copied children: maps retain keys, lists are reindexed, and scalar input is processed once into a list. The former StringList operations (`map`, `filter`, `unique`, `sort`, `some`, `every`, `string_list_find`, `keys`, and `each`) operate on that same list-shaped `dval`; they introduce no StringList layout or host import. `dval_to_s64` and `dval_to_u64` preserve native Wasm 64-bit results and fallbacks across the BRRB boundary; their conversion, fallback, and clamping behavior is Bearer's `DValue` behavior.
 
-A declaration named `EXPORT_name` with signature `(dval) dval` publishes the ordinary Bearer custom export `name`:
+`EXPORTS` declares ordinary local `(dval) dval` functions as module-callable exports:
 
 ```capy
-function EXPORT_echo(input : dval) dval {
-    dval({"echo": input})
-}
+EXPORTS echo
+function echo(input : dval) dval { dval({"echo": input}) }
+
+var module := unit_load("child.capy")
+var result := module.call("echo", dval({"message": "hello"}))
 ```
 
-The generated wrapper converts the opaque core DValue pointer to copied BRRB2, invokes the Capy function once, converts the result back into a core-owned DValue, and releases its Capy temporaries. Existing C++ `EXPORT DValue*(DValue*)` symbols and `unit_call` semantics remain unchanged. Structured Capy→C++, C++→Capy, and Capy→Capy calls all use the same copied membrane and execute-once staging.
+`unit_load()` returns an opaque request-local capability pinned to the selected workspace artifact. `module.call(name)` supplies an empty DValue and `module.call(name, input)` crosses copied BRRB values. Only names declared by `EXPORTS`, legacy `EXPORT_name`, or C++ `EXPORT DValue*(DValue*)` metadata are callable; module values cannot be stored, captured, converted, or forged. A module is first-class only during one request execution: it may occupy a local, be assigned, and pass through typed parameters, returns, and generic identity functions. It cannot serialize, convert, participate in arithmetic or conditions, enter an array/tuple/struct layout, be captured, or cross a workspace/request boundary. A capability is minted only after Bearer verifies the published metadata's Wasm and export-list SHA-256 hashes and the selected export's exact Wasm `(i32) -> i32` ABI. The sized result transport invokes the target once and clears the capability/staged result state when the request resets; nested resolution and relative file paths execute in the pinned target's source context.
+
+`EXPORTS` is reserved as a top-level directive; using it in a block is rejected explicitly. A declaration named `EXPORT_name` with the same signature remains compatibility syntax. The generated wrapper converts the opaque core DValue pointer to copied BRRB2, invokes the Capy function once, converts the result back into a core-owned DValue, and releases its Capy temporaries. Existing `unit_call` handler aliases and C++ export semantics remain unchanged. Structured Capy→C++, C++→Capy, and Capy→Capy calls all use the same copied membrane and execute-once staging.
 
 ## Function types and closures
 

@@ -1,0 +1,21 @@
+EXPORTS echo, counted, default_input
+
+function ONCE { print("handler-once;") }
+function RENDER { print("handler-render;") }
+
+function echo(input : dval) dval {
+    input
+}
+
+function default_input(input : dval) dval {
+    dval("default")
+}
+
+function counted(input : dval) dval {
+    print("counted;")
+    input
+}
+
+function hidden(input : dval) dval {
+    input
+}

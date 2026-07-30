@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 capyc=${CAPYC:-bin/capyc}
 output_dir=/tmp/capy-artifact-golden
 expected=scripts/capy_artifact_golden.sha256
+abi_version=$(awk '/^#define BEARER_WASM_CORE_ABI_VERSION / {print $3; exit}' src/wasm/abi.h)
 mapfile -t fixtures < <(git ls-files 'site/tests/*.capy' | sort)
 rm -rf "$output_dir"
 mkdir -p "$output_dir"
@@ -16,7 +17,7 @@ actual="$output_dir/actual.sha256"
 for source in "${fixtures[@]}"; do
 	name=${source//\//_}
 	artifact="$output_dir/$name.wasm"
-	"$capyc" "$source" -o "$artifact" --source-map "$artifact.source-map" --abi-version 22
+	"$capyc" "$source" -o "$artifact" --source-map "$artifact.source-map" --abi-version "$abi_version"
 	printf '%s  %s.wasm\n' "$(sha256sum "$artifact" | cut -d' ' -f1)" "$name" >>"$actual"
 	printf '%s  %s.wasm.source-map\n' "$(sha256sum "$artifact.source-map" | cut -d' ' -f1)" "$name" >>"$actual"
 done

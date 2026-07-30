@@ -60,6 +60,13 @@ int main(int argc, char** argv)
 		assert(static_cast<Call*>(f->body->items[0])->arguments.size() == 3);
 	}
 	{
+		Program p = parse("function CLI { box.callback(7) }\n", "member-call.capy");
+		auto* call = static_cast<Call*>(static_cast<Function*>(p.items[0])->body->items[0]);
+		auto* member = static_cast<Member*>(call->function);
+		assert(member->member == "callback" && static_cast<Name*>(member->value)->value == "box" && call->arguments.size() == 1 &&
+			call->location.file == "member-call.capy" && call->location.line == 1 && call->location.column == 19);
+	}
+	{
 		Program p = parse("var a := 1 // first\nvar b := 2\n", "comments.capy");
 		assert(p.items.size() == 2);
 	}
@@ -118,6 +125,12 @@ int main(int argc, char** argv)
 		assert(static_cast<MarkupText*>(static_cast<Markup*>(p.items[0])->parts[0])->value == "<script>const close = \"</>\";</script>");
 	}
 	{
+		Program p = parse("EXPORTS first, second\nEXPORTS third\n", "exports.capy");
+		auto* first = static_cast<Exports*>(p.items[0]);
+		auto* second = static_cast<Exports*>(p.items[1]);
+		assert(first->names == std::vector<std::string>({"first", "second"}) && second->names == std::vector<std::string>({"third"}));
+	}
+	{
 		Program p = parse("function value(x : s32) s32 { return x }\nfunction value(x : string) string { return x }\n", "overload.capy");
 		DeclarationIndex index;
 		index.add_program(p);
@@ -153,6 +166,9 @@ int main(int argc, char** argv)
 	expect_error("<><p>missing", "unterminated markup expression");
 	expect_error("function CLI { break junk }\n", "break does not accept arguments or operators");
 	expect_error("function CLI { continue() }\n", "continue does not accept arguments or operators");
+	expect_error("EXPORTS\n", "EXPORTS requires at least one function name");
+	expect_error("EXPORTS first,\n", "expected exported function name after ','");
+	expect_error("function CLI { EXPORTS first }\n", "EXPORTS is a reserved top-level directive");
 	expect_error("function meta(x : any) { #compile { emit(x) } }\n", "#compile compile-time metaprogramming is deferred beyond Capy phase 3");
 	expect_error("#wat", "unknown compiler directive #wat");
 	expect_error("@", "unexpected character '@'");

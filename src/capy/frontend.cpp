@@ -503,6 +503,7 @@ FunctionType::FunctionType(Location l) : Expr(ExprKind::FunctionType, std::move(
 Lambda::Lambda(Location l) : Expr(ExprKind::Lambda, std::move(l)), return_type(nullptr), body(nullptr) {}
 Function::Function(Location l, std::string n) : Expr(ExprKind::Function, std::move(l)), name(std::move(n)), return_type(nullptr), body(nullptr) {}
 Struct::Struct(Location l, std::string n) : Expr(ExprKind::Struct, std::move(l)), name(std::move(n)) {}
+Exports::Exports(Location l) : Expr(ExprKind::Exports, std::move(l)) {}
 Constant::Constant(Location l, std::string n, Expr* a, Expr* v) : Expr(ExprKind::Constant, std::move(l)), name(std::move(n)), annotation(a), value(v) {}
 For::For(Location l) : Expr(ExprKind::For, std::move(l)), iterable(nullptr), body(nullptr) {}
 If::If(Location l) : Expr(ExprKind::If, std::move(l)), condition(nullptr), then_body(nullptr), else_body(nullptr) {}
@@ -690,6 +691,8 @@ Expr* Parser::prefix()
 			return token().kind == TokenKind::identifier ? function(current.location) : function_expression(current.location);
 		if (current.text == "struct")
 			return structure(current.location);
+		if (current.text == "EXPORTS")
+			return exports(current.location);
 		if (current.text == "const")
 			return constant(current.location);
 		if (current.text == "var")
@@ -816,6 +819,8 @@ Block* Parser::block(Location location)
 	skip_separators();
 	while (!match("}"))
 	{
+		if (token().text == "EXPORTS")
+			fail(token().location, "EXPORTS is a reserved top-level directive");
 		if (token().text == "const")
 			fail(token().location, "const declarations are top-level only");
 		if (token().kind == TokenKind::eof)
@@ -921,6 +926,22 @@ Expr* Parser::structure(Location location)
 	result->members = block(location)->items;
 	return result;
 }
+Expr* Parser::exports(Location location)
+{
+	Exports* result = program_.make<Exports>(location);
+	if (token().kind != TokenKind::identifier)
+		fail(token().location, "EXPORTS requires at least one function name");
+	while (true)
+	{
+		result->names.push_back(require_identifier("exported function name").text);
+		if (!match(","))
+			break;
+		if (token().kind != TokenKind::identifier)
+			fail(token().location, "expected exported function name after ','");
+	}
+	return result;
+}
+
 Expr* Parser::constant(Location location)
 {
 	Token name = require_identifier("constant name");

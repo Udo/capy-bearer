@@ -98,7 +98,7 @@ if needs_rebuild bin/main.o src/linux_fastcgi.cpp src/lib src/capy src/fastcgi s
 	echo "Compiling main..."
 	tmp="bin/main.o.tmp.$$"
 	build_tmp_files+=("$tmp")
-	capy_compiler_build_id=$(sha256sum src/capy/*.cpp src/capy/*.h src/lib/compiler.cpp | sha256sum | awk '{print $1}')
+	capy_compiler_build_id=$(sha256sum src/capy/*.cpp src/capy/*.h src/lib/compiler.cpp src/lib/compiler-parser.cpp | sha256sum | awk '{print $1}')
 	time -p $COMPILER -c src/linux_fastcgi.cpp $SRCFLAGS $FLAGS \
 		"-DCAPY_COMPILER_BUILD_ID=\"$capy_compiler_build_id\"" -o "$tmp" 2>&1
 	mv "$tmp" bin/main.o

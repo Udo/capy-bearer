@@ -7,16 +7,223 @@
 #include <bit>
 #include <cstdint>
 #include <deque>
+#include <filesystem>
 #include <fstream>
 #include <limits>
+#include <list>
 #include <map>
+#include <mutex>
 #include <optional>
 #include <set>
 #include <sstream>
 #include <unordered_map>
+#include <unistd.h>
+
+#ifndef CAPY_COMPILER_BUILD_ID
+#define CAPY_COMPILER_BUILD_ID "unversioned"
+#endif
 
 namespace capy
 {
+
+struct ParsedSourceCache::State
+{
+	struct Key
+	{
+		std::uint64_t digest;
+		std::string canonical_identity, diagnostic_identity, parser_compiler_identity;
+		unsigned abi_version;
+		bool operator==(const Key&) const = default;
+		std::size_t charged_bytes() const
+		{
+			return sizeof(digest) + canonical_identity.size() + diagnostic_identity.size() + parser_compiler_identity.size() + sizeof(abi_version);
+		}
+	};
+	struct Entry
+	{
+		Key key;
+		std::string source;
+		std::shared_ptr<const Program> program;
+		std::size_t charged = 0;
+		bool pinned = false;
+	};
+	pid_t owner_pid;
+	mutable std::mutex mutex;
+	std::list<Entry> entries;
+	std::size_t user_entries = 0;
+	ParsedSourceCacheStats stats;
+	explicit State(pid_t owner) : owner_pid(owner) {}
+};
+
+ParsedSourceCache::ParsedSourceCache(std::size_t max_entries, std::size_t max_charged_bytes, std::size_t max_source_bytes)
+	: state_(std::make_shared<State>(getpid())), max_entries_(max_entries), max_charged_bytes_(max_charged_bytes), max_source_bytes_(max_source_bytes)
+{
+}
+ParsedSourceCache::~ParsedSourceCache() = default;
+
+static void cache_check_cancelled(const CancellationCallback& cancelled, const std::string& identity)
+{
+	if (cancelled && cancelled())
+		throw Error({identity, 1, 1, 0}, "Capy compilation cancelled");
+}
+
+static std::uint64_t cache_digest(std::string_view source, const CancellationCallback& cancelled, const std::string& identity)
+{
+	std::uint64_t hash = 1469598103934665603ull;
+	for (std::size_t index = 0; index < source.size(); ++index)
+	{
+		if ((index & 4095) == 0)
+			cache_check_cancelled(cancelled, identity);
+		hash = (hash ^ static_cast<unsigned char>(source[index])) * 1099511628211ull;
+	}
+	cache_check_cancelled(cancelled, identity);
+	return hash;
+}
+
+std::shared_ptr<const Program> ParsedSourceCache::acquire(std::string_view source, const std::string& canonical_identity,
+	const std::string& diagnostic_identity, const std::string& parser_compiler_identity, unsigned abi_version,
+	CancellationCallback cancelled, bool pinned)
+{
+	cache_check_cancelled(cancelled, diagnostic_identity);
+	if (canonical_identity.empty())
+	{
+		auto parsed = std::make_shared<const Program>(parse(source, diagnostic_identity, cancelled));
+		cache_check_cancelled(cancelled, diagnostic_identity);
+		return parsed;
+	}
+	const State::Key key{cache_digest(source, cancelled, diagnostic_identity), canonical_identity, diagnostic_identity, parser_compiler_identity, abi_version};
+	auto state = state_.load();
+	while (state->owner_pid != getpid())
+	{
+		auto replacement = std::make_shared<State>(getpid());
+		state_.compare_exchange_strong(state, replacement);
+		state = state_.load();
+	}
+	std::shared_ptr<const Program> hit;
+	{
+		std::lock_guard lock(state->mutex);
+		for (auto it = state->entries.begin(); it != state->entries.end(); ++it)
+			if (it->key == key && it->source == source)
+			{
+				hit = it->program;
+				state->entries.splice(state->entries.begin(), state->entries, it);
+				++state->stats.hits;
+				break;
+			}
+		if (!hit)
+			++state->stats.misses;
+	}
+	if (hit)
+	{
+		cache_check_cancelled(cancelled, diagnostic_identity);
+		return hit;
+	}
+	auto parsed = std::make_shared<const Program>(parse(source, diagnostic_identity, cancelled));
+	const std::size_t charged = source.size() + key.charged_bytes() + parsed->storage.size();
+	cache_check_cancelled(cancelled, diagnostic_identity);
+	if (!pinned && (source.size() > max_source_bytes_ || charged > max_charged_bytes_))
+	{
+		{
+			std::lock_guard lock(state->mutex);
+			++state->stats.oversize;
+		}
+		cache_check_cancelled(cancelled, diagnostic_identity);
+		return parsed;
+	}
+	std::vector<std::shared_ptr<const Program>> released;
+	std::shared_ptr<const Program> published;
+	{
+		std::lock_guard lock(state->mutex);
+		for (auto it = state->entries.begin(); it != state->entries.end(); ++it)
+			if (it->key == key && it->source == source)
+			{
+				published = it->program;
+				break;
+			}
+		if (!published)
+		{
+			state->entries.push_front({key, std::string(source), parsed, pinned ? 0 : charged, pinned});
+			if (pinned)
+			{
+				++state->stats.pinned_entries;
+				state->stats.pinned_source_bytes += source.size();
+			}
+			else
+			{
+				++state->user_entries;
+				state->stats.charged_bytes += charged;
+			}
+			while ((state->user_entries > max_entries_ || state->stats.charged_bytes > max_charged_bytes_) && !state->entries.empty())
+			{
+				auto victim = std::prev(state->entries.end());
+				if (victim->pinned)
+				{
+					auto candidate = victim;
+					while (candidate != state->entries.begin() && candidate->pinned)
+						--candidate;
+					if (candidate->pinned)
+						break;
+					victim = candidate;
+				}
+				state->stats.charged_bytes -= victim->charged;
+				--state->user_entries;
+				released.push_back(std::move(victim->program));
+				state->entries.erase(victim);
+				++state->stats.evictions;
+			}
+		}
+	}
+	cache_check_cancelled(cancelled, diagnostic_identity);
+	return published ? published : parsed;
+}
+
+ParsedSourceCacheStats ParsedSourceCache::stats() const
+{
+	auto state = state_.load();
+	while (state->owner_pid != getpid())
+	{
+		auto replacement = std::make_shared<State>(getpid());
+		state_.compare_exchange_strong(state, replacement);
+		state = state_.load();
+	}
+	std::lock_guard lock(state->mutex);
+	auto result = state->stats;
+	result.entries = state->user_entries;
+	return result;
+}
+
+void ParsedSourceCache::clear()
+{
+	auto state = state_.load();
+	while (state->owner_pid != getpid())
+	{
+		auto replacement = std::make_shared<State>(getpid());
+		state_.compare_exchange_strong(state, replacement);
+		state = state_.load();
+	}
+	std::vector<std::shared_ptr<const Program>> released;
+	{
+		std::lock_guard lock(state->mutex);
+		for (auto& entry : state->entries)
+			released.push_back(std::move(entry.program));
+		state->entries.clear();
+		state->user_entries = 0;
+		state->stats.entries = state->stats.charged_bytes = state->stats.pinned_entries = state->stats.pinned_source_bytes = 0;
+	}
+}
+
+namespace detail
+{
+struct ParsedSourceCacheAccess
+{
+	static std::shared_ptr<const Program> acquire(ParsedSourceCache& cache, std::string_view source, const std::string& canonical_identity,
+		const std::string& diagnostic_identity, const std::string& parser_compiler_identity, unsigned abi_version, CancellationCallback cancelled, bool pinned)
+	{
+		return cache.acquire(source, canonical_identity, diagnostic_identity, parser_compiler_identity, abi_version, std::move(cancelled), pinned);
+	}
+};
+} // namespace detail
+
 namespace
 {
 
@@ -146,7 +353,7 @@ std::string type_of_expression(const Expr* expression, bool allow_void = false)
 	if (name == "any" || name.find("::type") != std::string::npos)
 		throw Error(expression->location, "compile-time any and dependent result types are only valid in a generic function declaration");
 	if (name == "s32" || name == "s64" || name == "u64" || name == "f64" || name == "bool" || name == "string" || name == "markup" || name == "dval" ||
-		name == "request" || name == "void")
+		name == "request" || name == "module" || name == "void")
 		return name;
 	return "struct:" + name;
 }
@@ -170,6 +377,14 @@ struct GenericDefinition
 	std::vector<std::string> patterns;
 	int dependent_result = -1;
 };
+
+// A parser-level member call can be either an extension-style ordinary call or
+// an indirect invocation of a function-valued struct field.  Keep that syntax
+// distinction intact and classify only at a type-aware compiler boundary.
+const Member* member_call(const Call* call)
+{
+	return dynamic_cast<const Member*>(call->function);
+}
 
 struct Module;
 
@@ -196,6 +411,7 @@ struct FunctionLowerer
 
 	std::pair<Bytes, std::string> expression(Expr* value, bool value_required = true);
 	std::string infer(Expr* value);
+	std::optional<std::pair<unsigned, std::string>> compatible_local_callable(const std::string& name, const std::vector<std::string>& arguments) const;
 	std::vector<std::pair<std::string, std::string>> lambda_captures(Lambda* value) const;
 	std::tuple<std::string, unsigned, unsigned, Definition*, std::vector<std::pair<std::string, std::string>>> register_lambda(Lambda* value);
 	Bytes markup_escape_length(unsigned source, unsigned total, const Location& location);
@@ -372,10 +588,10 @@ struct Module
 		auto found = hosts_.find(key(name, types));
 		return found == hosts_.end() ? nullptr : &found->second;
 	}
-	Definition& resolve(const std::string& name, const std::vector<std::string>& types, const Location& location)
+	Definition* compatible_definition(const std::string& name, const std::vector<std::string>& types, const Location& location)
 	{
 		if (auto it = definitions_by_key_.find(key(name, types)); it != definitions_by_key_.end())
-			return definitions_[it->second];
+			return &definitions_[it->second];
 		std::vector<const GenericDefinition*> candidates;
 		unsigned best = 0;
 		for (const auto& generic : generics_[name])
@@ -409,7 +625,7 @@ struct Module
 		for (std::size_t i = 0; i < types.size(); ++i)
 			rendered += (i ? ", " : "") + types[i];
 		if (candidates.empty())
-			throw Error(location, "no overload " + name + "(" + rendered + ")");
+			return nullptr;
 		if (candidates.size() != 1)
 			throw Error(location, "ambiguous generic overload " + name + "(" + rendered + ")");
 		const GenericDefinition& generic = *candidates.front();
@@ -421,7 +637,16 @@ struct Module
 		definition.type = wasm_type(definition.parameters, definition.result);
 		definitions_by_key_[key(name, types)] = definitions_.size();
 		definitions_.push_back(std::move(definition));
-		return definitions_.back();
+		return &definitions_.back();
+	}
+	Definition& resolve(const std::string& name, const std::vector<std::string>& types, const Location& location)
+	{
+		if (Definition* definition = compatible_definition(name, types, location))
+			return *definition;
+		std::string rendered;
+		for (std::size_t i = 0; i < types.size(); ++i)
+			rendered += (i ? ", " : "") + types[i];
+		throw Error(location, "no overload " + name + "(" + rendered + ")");
 	}
 	Bytes marker(const Location& location)
 	{
@@ -508,6 +733,8 @@ std::string Module::value_type(const Expr* expression, bool allow_void)
 			const std::string field = value_type(tuple->items[i]);
 			if (wide_scalar(field))
 				throw Error(tuple->items[i]->location, "s64, u64, and f64 are not yet supported in tuple layouts");
+			if (field == "module")
+				throw Error(tuple->items[i]->location, "module is opaque and cannot be stored in tuple layouts");
 			type += (i ? "," : "") + field;
 		}
 		return type + ">";
@@ -519,6 +746,8 @@ std::string Module::value_type(const Expr* expression, bool allow_void)
 		const std::string element = value_type(array->items[0]);
 		if (wide_scalar(element))
 			throw Error(array->items[0]->location, "s64, u64, and f64 are not yet supported in array layouts");
+		if (element == "module")
+			throw Error(array->items[0]->location, "module is opaque and cannot be stored in array layouts");
 		return "array<" + element + ">";
 	}
 	if (auto function = dynamic_cast<const FunctionType*>(expression))
@@ -617,15 +846,7 @@ bool FunctionLowerer::expression_is_owned(const Expr* value)
 	if (auto binary = dynamic_cast<const Binary*>(value))
 		return binary->operator_ == "+" && infer(binary->left) == "string" && infer(binary->right) == "string";
 	if (auto call = dynamic_cast<const Call*>(value))
-	{
-		if (auto name = dynamic_cast<const Name*>(call->function))
-		{
-			if (name->value == "clone" || module_.has_struct(name->value))
-				return true;
-			if (name->value != "print" && name->value != "trap" && name->value != "arc_live")
-				return true;
-		}
-	}
+		return managed_type(infer(const_cast<Call*>(call)));
 	return false;
 }
 
@@ -788,6 +1009,8 @@ std::tuple<std::string, unsigned, unsigned, Definition*, std::vector<std::pair<s
 	for (const auto& [name, type] : captures)
 		if (wide_scalar(type))
 			throw Error(lambda->location, "s64, u64, and f64 are not yet supported in captured closure layouts");
+		else if (type == "module")
+			throw Error(lambda->location, "module is opaque and cannot be captured by a closure");
 	auto indirect_parameters = parameters;
 	indirect_parameters.insert(indirect_parameters.begin(), "s32");
 	const unsigned type = module_.wasm_type(indirect_parameters, result);
@@ -816,6 +1039,26 @@ std::tuple<std::string, unsigned, unsigned, Definition*, std::vector<std::pair<s
 	auto record = std::make_tuple(value_type, slot, type_id, &module_.definitions_.back(), captures);
 	module_.lambdas_[lambda] = record;
 	return record;
+}
+
+std::optional<std::pair<unsigned, std::string>> FunctionLowerer::compatible_local_callable(const std::string& name,
+	const std::vector<std::string>& arguments) const
+{
+	for (auto scope = scopes_.rbegin(); scope != scopes_.rend(); ++scope)
+		if (auto found = scope->find(name); found != scope->end() && found->second.second.rfind("function#", 0) == 0)
+		{
+			const unsigned type = static_cast<unsigned>(std::stoul(found->second.second.substr(9)));
+			if (type >= module_.types_.size())
+				throw Error({module_.source_path(), 1, 1, 0}, "invalid function value type");
+			const auto& signature = module_.types_[type];
+			if (signature.first.size() != arguments.size() + 1)
+				return std::nullopt;
+			for (std::size_t i = 0; i < arguments.size(); ++i)
+				if (signature.first[i + 1] != arguments[i])
+					return std::nullopt;
+			return found->second;
+		}
+	return std::nullopt;
 }
 
 std::string FunctionLowerer::infer(Expr* value)
@@ -853,6 +1096,8 @@ std::string FunctionLowerer::infer(Expr* value)
 			const std::string field = infer(tuple->items[i]);
 			if (wide_scalar(field))
 				throw Error(tuple->items[i]->location, "s64, u64, and f64 are not yet supported in tuple layouts");
+			if (field == "module")
+				throw Error(tuple->items[i]->location, "module is opaque and cannot be stored in tuple layouts");
 			type += (i ? "," : "") + field;
 		}
 		return type + ">";
@@ -874,6 +1119,8 @@ std::string FunctionLowerer::infer(Expr* value)
 		const std::string element = infer(array->items.front());
 		if (wide_scalar(element))
 			throw Error(array->items.front()->location, "s64, u64, and f64 are not yet supported in array layouts");
+		if (element == "module")
+			throw Error(array->items.front()->location, "module is opaque and cannot be stored in array layouts");
 		for (Expr* item : array->items)
 			if (infer(item) != element)
 				throw Error(item->location, "array literal elements must have one type");
@@ -913,6 +1160,21 @@ std::string FunctionLowerer::infer(Expr* value)
 	}
 	if (auto call = dynamic_cast<Call*>(value))
 	{
+		if (const Member* member = member_call(call))
+		{
+			std::vector<std::string> arguments{infer(member->value)};
+			for (Expr* argument : call->arguments)
+				arguments.push_back(infer(argument));
+			if (auto local = compatible_local_callable(member->member, arguments))
+			{
+				const auto& signature = module_.types_.at(static_cast<unsigned>(std::stoul(local->second.substr(9))));
+				return signature.second;
+			}
+			if (const Module::HostDeclaration* host = module_.host(member->member, arguments))
+				return host->result;
+			if (Definition* definition = module_.compatible_definition(member->member, arguments, call->location))
+				return definition->result;
+		}
 		auto name = dynamic_cast<Name*>(call->function);
 		if (!name)
 		{
@@ -1782,6 +2044,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			const std::string field = infer(item);
 			if (wide_scalar(field))
 				throw Error(item->location, "s64, u64, and f64 are not yet supported in tuple layouts");
+			if (field == "module")
+				throw Error(item->location, "module is opaque and cannot be stored in tuple layouts");
 			fields.push_back(field);
 		}
 		std::string type = "tuple<";
@@ -1851,6 +2115,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				element_type = compiled.second;
 			if (compiled.second != element_type)
 				throw Error(item->location, "array literal elements must have one type");
+			if (element_type == "module")
+				throw Error(item->location, "module is opaque and cannot be stored in array layouts");
 			if (!is_scalar(element_type) && !managed_type(element_type))
 				throw Error(item->location, "array element type is unsupported");
 			items.push_back({std::move(compiled.first), expression_is_owned(item)});
@@ -2647,8 +2913,29 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 	}
 	if (auto call = dynamic_cast<Call*>(value))
 	{
+		const Member* member = member_call(call);
+		std::vector<Expr*> method_arguments;
+		const std::vector<Expr*>* arguments = &call->arguments;
+		std::optional<std::pair<unsigned, std::string>> method_local;
+		const Module::HostDeclaration* method_host = nullptr;
+		Definition* method_definition = nullptr;
+		if (member)
+		{
+			method_arguments.push_back(member->value);
+			method_arguments.insert(method_arguments.end(), call->arguments.begin(), call->arguments.end());
+			std::vector<std::string> types;
+			for (Expr* argument : method_arguments)
+				types.push_back(infer(argument));
+			method_local = compatible_local_callable(member->member, types);
+			if (!method_local)
+				method_host = module_.host(member->member, types);
+			if (!method_local && !method_host)
+				method_definition = module_.compatible_definition(member->member, types, call->location);
+			if (method_local || method_host || method_definition)
+				arguments = &method_arguments;
+		}
 		auto named = dynamic_cast<Name*>(call->function);
-		if (!named)
+		if (!named && arguments == &call->arguments)
 		{
 			auto [function_code, function_type] = expression(call->function);
 			if (function_type.rfind("function#", 0) != 0)
@@ -2729,26 +3016,28 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			}
 			return {code, signature.second};
 		}
+		const std::string callee = member ? member->member : named->value;
+		if (!member || method_local)
 		for (auto scope = scopes_.rbegin(); scope != scopes_.rend(); ++scope)
-			if (auto found = scope->find(named->value); found != scope->end() && found->second.second.rfind("function#", 0) == 0)
+			if (auto found = scope->find(callee); found != scope->end() && found->second.second.rfind("function#", 0) == 0)
 			{
 				const unsigned type = static_cast<unsigned>(std::stoul(found->second.second.substr(9)));
 				if (type >= module_.types_.size())
 					throw Error(value->location, "invalid function value type");
 				const auto& signature = module_.types_[type];
-				if (signature.first.size() != call->arguments.size() + 1)
+				if (signature.first.size() != arguments->size() + 1)
 					throw Error(value->location, "function value argument count does not match signature");
 				Bytes code{0x20};
 				wasm::append_uleb(code, found->second.first);
 				std::vector<unsigned> owned_arguments;
-				for (std::size_t i = 0; i < call->arguments.size(); ++i)
+				for (std::size_t i = 0; i < arguments->size(); ++i)
 				{
-					auto [argument, actual] = expression(call->arguments[i]);
+					auto [argument, actual] = expression((*arguments)[i]);
 					if (actual != signature.first[i + 1])
-						throw Error(call->arguments[i]->location, "function value argument type does not match signature");
-					if (managed_type(actual) && expression_is_owned(call->arguments[i]))
+						throw Error((*arguments)[i]->location, "function value argument type does not match signature");
+					if (managed_type(actual) && expression_is_owned((*arguments)[i]))
 					{
-						const unsigned temporary = add_local("", actual, call->arguments[i]->location);
+						const unsigned temporary = add_local("", actual, (*arguments)[i]->location);
 						append(code, argument);
 						code.push_back(0x21);
 						wasm::append_uleb(code, temporary);
@@ -2789,12 +3078,12 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 					}
 				return {code, signature.second};
 			}
-		if (module_.has_struct(named->value))
+		if (!member && module_.has_struct(callee))
 		{
-			const auto& aggregate = module_.struct_type(named->value, named->location);
+			const auto& aggregate = module_.struct_type(callee, named->location);
 			if (call->arguments.size() != aggregate.fields.size())
-				throw Error(value->location, "struct " + named->value + " constructor field count does not match declaration");
-			const std::string type = "struct:" + named->value;
+				throw Error(value->location, "struct " + callee + " constructor field count does not match declaration");
+			const std::string type = "struct:" + callee;
 			const unsigned pointer = add_local("", type, value->location);
 			Bytes code{0x41};
 			wasm::append_sleb32(code, static_cast<std::int32_t>(16 + 4 * aggregate.fields.size()));
@@ -2845,7 +3134,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			wasm::append_uleb(code, pointer);
 			return {code, type};
 		}
-		if (named->value == "length")
+		if (!member && callee == "length")
 		{
 			if (call->arguments.size() != 1)
 				throw Error(value->location, "length expects one string, markup, or array");
@@ -2860,30 +3149,30 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			code.push_back(0x20); wasm::append_uleb(code, result);
 			return {code, "s32"};
 		}
-		if (named->value == "dval")
+		if (!member && callee == "dval")
 		{
 			if (call->arguments.size() != 1)
 				throw Error(value->location, "dval expects one scalar, map, or list");
 			return dval_value(call->arguments[0]);
 		}
-		if (named->value == "dval_has")
+		if (!member && callee == "dval_has")
 		{
 			if (call->arguments.size() != 2)
 				throw Error(value->location, "dval_has expects dval and string/s32 key");
 			return dval_lookup(call->arguments[0], call->arguments[1], false);
 		}
-		if (named->value == "dval_string") return dval_scalar(call, "string");
-		if (named->value == "dval_s32") return dval_scalar(call, "s32");
-		if (named->value == "dval_f64") return dval_scalar(call, "f64");
-		if (named->value == "dval_bool") return dval_scalar(call, "bool");
-		if (named->value == "trusted_markup")
+		if (!member && callee == "dval_string") return dval_scalar(call, "string");
+		if (!member && callee == "dval_s32") return dval_scalar(call, "s32");
+		if (!member && callee == "dval_f64") return dval_scalar(call, "f64");
+		if (!member && callee == "dval_bool") return dval_scalar(call, "bool");
+		if (!member && callee == "trusted_markup")
 		{
 			if (call->arguments.size() != 1) throw Error(value->location, "trusted_markup expects one string");
 			auto [source, type] = expression(call->arguments[0]);
 			if (type != "string") throw Error(call->arguments[0]->location, "expected string, found " + type);
 			return {std::move(source), "markup"};
 		}
-		if (named->value == "clone")
+		if (!member && callee == "clone")
 		{
 			if (call->arguments.size() != 1)
 				throw Error(value->location, "clone expects one string");
@@ -2902,13 +3191,13 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			}
 			return {code, "string"};
 		}
-		if (named->value == "arc_live")
+		if (!member && callee == "arc_live")
 		{
 			if (!call->arguments.empty())
 				throw Error(value->location, "arc_live expects no arguments");
 			return {{0x23, 0x01}, "s32"};
 		}
-		if (named->value == "trap")
+		if (!member && callee == "trap")
 		{
 			if (!call->arguments.empty())
 				throw Error(value->location, "trap expects no arguments");
@@ -2916,7 +3205,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			code.push_back(0x00);
 			return {code, "void"};
 		}
-		if (named->value == "print")
+		if (!member && callee == "print")
 		{
 			Bytes code;
 			for (Expr* argument : call->arguments)
@@ -2982,25 +3271,25 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			}
 			return {code, "void"};
 		}
-		std::vector<Bytes> arguments;
+		std::vector<Bytes> argument_code;
 		std::vector<std::string> types;
-		for (Expr* argument : call->arguments)
+		for (Expr* argument : *arguments)
 		{
 			auto item = expression(argument);
 			types.push_back(item.second);
-			arguments.push_back(std::move(item.first));
+			argument_code.push_back(std::move(item.first));
 		}
-		if (const Module::HostDeclaration* host = module_.host(named->value, types))
+		if (const Module::HostDeclaration* host = member ? method_host : module_.host(callee, types))
 		{
 			Bytes code;
 			std::vector<unsigned> locals, owned_arguments;
-			for (std::size_t i = 0; i < arguments.size(); ++i)
+			for (std::size_t i = 0; i < argument_code.size(); ++i)
 			{
-				const unsigned local = add_local("", types[i], call->arguments[i]->location);
-				append(code, arguments[i]);
+				const unsigned local = add_local("", types[i], (*arguments)[i]->location);
+				append(code, argument_code[i]);
 				code.push_back(0x21); wasm::append_uleb(code, local);
 				locals.push_back(local);
-				if (managed_type(types[i]) && expression_is_owned(call->arguments[i]))
+				if (managed_type(types[i]) && expression_is_owned((*arguments)[i]))
 					owned_arguments.push_back(local);
 			}
 			auto release_inputs = [&]
@@ -3067,15 +3356,15 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			code.push_back(0x20); wasm::append_uleb(code, result);
 			return {code, host->result};
 		}
-		Definition& target = module_.resolve(named->value, types, value->location);
+		Definition& target = member ? *method_definition : module_.resolve(callee, types, value->location);
 		Bytes code;
 		std::vector<unsigned> owned_arguments;
-		for (std::size_t i = 0; i < arguments.size(); ++i)
+		for (std::size_t i = 0; i < argument_code.size(); ++i)
 		{
-			if (managed_type(types[i]) && expression_is_owned(call->arguments[i]))
+			if (managed_type(types[i]) && expression_is_owned((*arguments)[i]))
 			{
-				const unsigned temporary = add_local("", types[i], call->arguments[i]->location);
-				append(code, arguments[i]);
+				const unsigned temporary = add_local("", types[i], (*arguments)[i]->location);
+				append(code, argument_code[i]);
 				code.push_back(0x21);
 				wasm::append_uleb(code, temporary);
 				code.push_back(0x20);
@@ -3083,7 +3372,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				owned_arguments.push_back(temporary);
 			}
 			else
-				append(code, arguments[i]);
+				append(code, argument_code[i]);
 		}
 		if (target.function && target.function->location.file == "capy://stdlib.capy")
 			append(code, module_.marker(value->location));
@@ -3158,7 +3447,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 	{
 		auto [condition, type] = expression(conditional->condition);
 		if (!is_scalar(type))
-			throw Error(conditional->condition->location, "if condition must be scalar");
+			throw Error(conditional->condition->location, type == "module" ? "module is opaque and cannot be used as a condition" : "if condition must be scalar");
 		condition.insert(condition.end(), {0x04, 0x40});
 		++control_depth_;
 		append(condition, block(conditional->then_body));
@@ -3180,7 +3469,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		auto [condition, type] = expression(loop->condition);
 		repeated_condition_scope_ = previous_condition_scope;
 		if (!is_scalar(type))
-			throw Error(loop->condition->location, "while condition must be scalar");
+			throw Error(loop->condition->location, type == "module" ? "module is opaque and cannot be used as a condition" : "while condition must be scalar");
 		const unsigned base = control_depth_, boundary = static_cast<unsigned>(owned_scopes_.size());
 		control_depth_ += 2;
 		loops_.push_back({base + 1, base + 2, boundary, {}, {}});
@@ -3834,6 +4123,8 @@ void Module::collect()
 				const std::string type = value_type(annotation->type_expr);
 				if (wide_scalar(type))
 					throw Error(annotation->location, "s64, u64, and f64 are not yet supported in struct layouts");
+				if (type == "module")
+					throw Error(annotation->location, "module is opaque and cannot be stored in struct layouts");
 				if (type.rfind("struct:", 0) == 0 && !structs_.contains(type.substr(7)))
 					throw Error(annotation->location, "unknown struct type '" + type.substr(7) + "'");
 				aggregate.fields.push_back({name->value, type});
@@ -3841,13 +4132,20 @@ void Module::collect()
 		}
 	}
 	std::set<std::string> handlers;
+	auto add_custom_export = [&](const std::string& name, Definition& definition, const Location& location)
+	{
+		for (const auto& existing : custom_exports_)
+			if (existing.first == name)
+				throw Error(location, "custom DValue export '" + name + "' is already declared");
+		custom_exports_.push_back({name, &definition});
+	};
 	for (Expr* item : items_)
 	{
 		check_cancelled();
 		auto function = dynamic_cast<Function*>(item);
 		if (!function)
 		{
-			if (dynamic_cast<Struct*>(item) || dynamic_cast<Constant*>(item))
+			if (dynamic_cast<Struct*>(item) || dynamic_cast<Exports*>(item) || dynamic_cast<Constant*>(item))
 				continue;
 			throw Error(item->location, "top-level executable expressions are not implemented by the native backend");
 		}
@@ -3861,15 +4159,15 @@ void Module::collect()
 			for (const auto& parameter : function->parameters)
 			{
 				const std::string type = value_type(parameter.type_expr);
-				if (type == "void" || (!is_scalar(type) && type != "string" && type != "dval" && type != "request"))
-					throw Error(parameter.type_expr->location, "host declarations support scalar, string, dval, and request parameters only");
+				if (type == "void" || (!is_scalar(type) && type != "string" && type != "dval" && type != "request" && type != "module"))
+					throw Error(parameter.type_expr->location, "host declarations support scalar, string, dval, request, and module parameters only");
 				parameters.push_back(type);
 			}
 			if (function->name.rfind("__bearer_", 0) != 0)
 				throw Error(function->location, "host declaration names must use the private __bearer_ prefix");
 			const std::string result = value_type(function->return_type, true);
-			if (result != "void" && !is_scalar(result) && result != "string" && result != "dval")
-				throw Error(function->location, "host declarations support scalar, string, dval, and void results only");
+			if (result != "void" && !is_scalar(result) && result != "string" && result != "dval" && result != "module")
+				throw Error(function->location, "host declarations support scalar, string, dval, module, and void results only");
 			const std::string declaration_key = key(function->name, parameters);
 			if (!hosts_.emplace(declaration_key, HostDeclaration{parameters, result, function->name.substr(2), function, function->trace_host}).second)
 				throw Error(function->location, "host declaration is already declared");
@@ -3947,15 +4245,39 @@ void Module::collect()
 					throw Error(function->location, "custom DValue export requires a name after EXPORT_");
 				if (parameters != std::vector<std::string>{"dval"} || result != "dval")
 					throw Error(function->location, "custom DValue export must have signature (dval) dval");
-				for (const auto& existing : custom_exports_)
-					if (existing.first == name)
-						throw Error(function->location, "custom DValue export '" + name + "' is already declared");
-				custom_exports_.push_back({name, &definitions_.back()});
+				add_custom_export(name, definitions_.back(), function->location);
 			}
 		}
 	}
+	for (Expr* item : items_)
+		if (auto exports = dynamic_cast<Exports*>(item))
+			for (const std::string& name : exports->names)
+			{
+				if (std::any_of(custom_exports_.begin(), custom_exports_.end(), [&](const auto& existing) { return existing.first == name; }))
+					throw Error(exports->location, "custom DValue export '" + name + "' is already declared");
+				Definition* target = nullptr;
+				bool local = false, generic = false;
+				for (Definition& definition : definitions_)
+					if (definition.function && definition.function->location.file == source_ && definition.function->name == name)
+					{
+						local = true;
+						if (definition.parameters == std::vector<std::string>{"dval"} && definition.result == "dval")
+							target = &definition;
+					}
+				if (auto found = generics_.find(name); found != generics_.end())
+					generic = std::any_of(found->second.begin(), found->second.end(), [&](const GenericDefinition& definition) { return definition.function->location.file == source_; });
+				if (!target)
+				{
+					if (generic)
+						throw Error(exports->location, "EXPORTS name '" + name + "' must name a non-generic local function with signature (dval) dval");
+					if (local)
+						throw Error(exports->location, "EXPORTS name '" + name + "' must have signature (dval) dval");
+					throw Error(exports->location, "EXPORTS names unknown local function '" + name + "'");
+				}
+				add_custom_export(name, *target, exports->location);
+			}
 	bool any_export = std::any_of(definitions_.begin(), definitions_.end(), [](const Definition& d) { return !d.exported.empty(); });
-	if (!any_export)
+	if (!any_export && custom_exports_.empty())
 		throw Error({source_, 1, 1, 0}, "Capy Bearer unit exports no CLI, RENDER, WS, ONCE, or INIT handler");
 }
 
@@ -4006,6 +4328,17 @@ Module::Capabilities Module::discover_capabilities()
 			return comparison ? "bool" : scan_value_type(binary->right);
 		}
 		if (auto call = dynamic_cast<Call*>(e))
+		{
+			if (const Member* member = member_call(call))
+			{
+				std::vector<std::string> arguments{scan_value_type(member->value)};
+				for (Expr* argument : call->arguments)
+					arguments.push_back(scan_value_type(argument));
+				if (const HostDeclaration* declaration = host(member->member, arguments))
+					return declaration->result;
+				if (auto found = definitions_by_key_.find(key(member->member, arguments)); found != definitions_by_key_.end())
+					return definitions_[found->second].result;
+			}
 			if (auto name = dynamic_cast<Name*>(call->function))
 			{
 				if (auto found = scan_value_names.find(name->value); found != scan_value_names.end() && found->second.rfind("function(", 0) == 0)
@@ -4029,6 +4362,7 @@ Module::Capabilities Module::discover_capabilities()
 				if (auto found = definitions_by_key_.find(key(name->value, arguments)); found != definitions_by_key_.end())
 					return definitions_[found->second].result;
 			}
+		}
 		return "";
 	};
 	std::function<void(Expr*)> scan_dval = [&](Expr* e)
@@ -4074,11 +4408,15 @@ Module::Capabilities Module::discover_capabilities()
 		check_cancelled();
 		if (auto c = dynamic_cast<Call*>(e))
 		{
-			if (auto n = dynamic_cast<Name*>(c->function))
+			const Member* member = member_call(c);
+			if (auto n = dynamic_cast<Name*>(c->function); n || member)
 			{
 				std::vector<std::string> host_arguments;
+				if (member)
+					host_arguments.push_back(scan_value_type(member->value));
 				for (Expr* argument : c->arguments) host_arguments.push_back(scan_value_type(argument));
-				if (const HostDeclaration* host = this->host(n->value, host_arguments))
+				const std::string& callee = member ? member->member : n->value;
+				if (const HostDeclaration* host = this->host(callee, host_arguments))
 				{
 					used_hosts_.insert(host->symbol);
 					trace_host_ = trace_host_ || host->trace;
@@ -4152,6 +4490,8 @@ Module::Capabilities Module::discover_capabilities()
 						scan_print_s32 = true;
 					}
 				}
+			if (member)
+				scan(member->value);
 			for (auto a : c->arguments)
 				scan(a);
 		}
@@ -4679,7 +5019,10 @@ CompileResult Module::compile()
 			throw Error(location, "source location is not registered in this Capy module");
 		map << "L\t" << std::hex << address << std::dec << "\t" << (source - sources_.begin()) + 1 << "\t" << location.line << "\t" << location.column << "\n";
 	}
-	return {std::move(result), map.str()};
+	CompileResult compiled{std::move(result), map.str(), {}};
+	for (const auto& [name, target] : custom_exports_)
+		compiled.custom_exports.push_back(name);
+	return compiled;
 }
 
 } // namespace
@@ -4699,7 +5042,16 @@ void collect_stdlib_demand(Expr* expression, std::set<std::pair<std::string, std
 		return;
 	if (auto call = dynamic_cast<Call*>(expression))
 	{
-		if (auto name = dynamic_cast<Name*>(call->function); name && !local(scopes, name->value))
+		if (const Member* member = member_call(call))
+		{
+			// The receiver is an ordinary first argument only after compatibility
+			// resolution; demand selection records that possible direct call without
+			// rewriting the parsed member expression.
+			if (!local(scopes, member->member))
+				calls.insert({member->member, call->arguments.size() + 1});
+			collect_stdlib_demand(member->value, calls, values, scopes);
+		}
+		else if (auto name = dynamic_cast<Name*>(call->function); name && !local(scopes, name->value))
 			calls.insert({name->value, call->arguments.size()});
 		else
 			collect_stdlib_demand(call->function, calls, values, scopes);
@@ -4921,16 +5273,26 @@ std::vector<Expr*> selected_stdlib(const Program& unit, const Program& library)
 	return result;
 }
 
-CompileResult compile_program(const Program& program, const std::string& source_path, const std::string& module_name, unsigned abi_version, CancellationCallback cancelled)
+std::shared_ptr<const Program> parsed_source(std::string_view source, const std::string& canonical_identity,
+	const std::string& diagnostic_identity, unsigned abi_version, CancellationCallback cancelled, ParsedSourceCache* cache, bool pinned = false)
 {
-	Program library = parse(stdlib::text, "capy://stdlib.capy", cancelled);
+	if (!cache || canonical_identity.empty())
+		return std::make_shared<const Program>(parse(source, diagnostic_identity, std::move(cancelled)));
+	return detail::ParsedSourceCacheAccess::acquire(*cache, source, canonical_identity, diagnostic_identity,
+		"capy-parsed-source-v1:" CAPY_COMPILER_BUILD_ID, abi_version, std::move(cancelled), pinned);
+}
+
+CompileResult compile_program(const Program& program, const std::string& source_path, const std::string& module_name, unsigned abi_version,
+	CancellationCallback cancelled, ParsedSourceCache* cache)
+{
+	auto library = parsed_source(stdlib::text, "capy://stdlib.capy", "capy://stdlib.capy", abi_version, cancelled, cache, true);
 	std::set<std::string> public_names;
-	for (Expr* item : library.items)
+	for (Expr* item : library->items)
 		if (auto function = dynamic_cast<Function*>(item))
 			public_names.insert(function->name);
 	validate_user_source(program, public_names);
 	std::vector<Expr*> items = program.items;
-	std::vector<Expr*> selected = selected_stdlib(program, library);
+	std::vector<Expr*> selected = selected_stdlib(program, *library);
 	items.insert(items.end(), selected.begin(), selected.end());
 	Program combined;
 	combined.items = items;
@@ -4946,14 +5308,15 @@ CompileResult compile_program(const Program& program, const std::string& source_
 
 CompileResult compile_bearer_unit(std::string_view source, const CompileOptions& options)
 {
-	Program program = parse(source, options.source_path, options.cancelled);
-	return compile_program(program, options.source_path, options.module_name, options.abi_version, options.cancelled);
+	auto program = parsed_source(source, options.canonical_source_identity, options.source_path, options.abi_version,
+		options.cancelled, options.parsed_source_cache);
+	return compile_program(*program, options.source_path, options.module_name, options.abi_version, options.cancelled, options.parsed_source_cache);
 }
 
 CompileResult compile_bearer_unit(const Program& program, const std::string& source_path, const std::string& module_name, unsigned abi_version,
 								  CancellationCallback cancelled)
 {
-	return compile_program(program, source_path, module_name, abi_version, std::move(cancelled));
+	return compile_program(program, source_path, module_name, abi_version, std::move(cancelled), nullptr);
 }
 
 CompileResult compile_bearer_file(const std::string& path, CompileOptions options)
@@ -4965,6 +5328,8 @@ CompileResult compile_bearer_file(const std::string& path, CompileOptions option
 	source << input.rdbuf();
 	if (options.source_path == "<input>")
 		options.source_path = path;
+	if (options.canonical_source_identity.empty())
+		options.canonical_source_identity = std::filesystem::absolute(path).lexically_normal().string();
 	return compile_bearer_unit(source.str(), options);
 }
 

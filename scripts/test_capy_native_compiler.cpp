@@ -2,10 +2,15 @@
 #include "../src/wasm/capy_backtrace.h"
 
 #include <cassert>
+#include <condition_variable>
 #include <fstream>
 #include <iostream>
+#include <mutex>
 #include <sstream>
 #include <string_view>
+#include <thread>
+#include <sys/wait.h>
+#include <unistd.h>
 
 int main()
 {
@@ -13,6 +18,119 @@ int main()
 	options.source_path = "native-test.capy";
 	options.module_name = "native-test.wasm";
 	options.abi_version = 11;
+	capy::ParsedSourceCache parsed_cache;
+	capy::CompileOptions cached_options = options;
+	cached_options.canonical_source_identity = "capy-test://cached-source";
+	cached_options.parsed_source_cache = &parsed_cache;
+	const std::string cached_source = "function CLI { print(request_body()) }\n";
+	const auto cached_first = capy::compile_bearer_unit(cached_source, cached_options);
+	const auto cached_second = capy::compile_bearer_unit(cached_source, cached_options);
+	const auto uncached = capy::compile_bearer_unit(cached_source, options);
+	assert(cached_first.wasm == cached_second.wasm && cached_first.source_map == cached_second.source_map);
+	assert(cached_first.wasm == uncached.wasm && cached_first.source_map == uncached.source_map);
+	const auto after_hit = parsed_cache.stats();
+	assert(after_hit.hits >= 2 && after_hit.entries == 1 && after_hit.pinned_entries == 1 && after_hit.pinned_source_bytes > 0);
+	capy::compile_bearer_unit("function CLI { print(request_body(), 2) }\n", cached_options);
+	const auto after_content_change = parsed_cache.stats();
+	assert(after_content_change.misses > after_hit.misses);
+	cached_options.source_path = "other-diagnostic.capy";
+	cached_options.canonical_source_identity = "capy-test://cached-source";
+	capy::compile_bearer_unit(cached_source, cached_options);
+	assert(parsed_cache.stats().misses > after_content_change.misses);
+	const auto entries_before_failure = parsed_cache.stats().entries;
+	cached_options.source_path = "bad.capy";
+	cached_options.canonical_source_identity = "capy-test://bad";
+	try { capy::compile_bearer_unit("function", cached_options); assert(false); }
+	catch (const capy::Error&) {}
+	assert(parsed_cache.stats().entries == entries_before_failure);
+
+	// These identities produced the same old newline-concatenated key.
+	cached_options.source_path = "path-c";
+	cached_options.canonical_source_identity = "identity\npath-b";
+	const auto newline_first = capy::compile_bearer_unit(cached_source, cached_options);
+	const auto misses_before_newline_second = parsed_cache.stats().misses;
+	cached_options.source_path = "path-b\npath-c";
+	cached_options.canonical_source_identity = "identity";
+	const auto newline_second = capy::compile_bearer_unit(cached_source, cached_options);
+	assert(parsed_cache.stats().misses > misses_before_newline_second && newline_first.source_map != newline_second.source_map);
+
+	unsigned hit_polls = 0;
+	cached_options.source_path = "native-test.capy";
+	cached_options.canonical_source_identity = "capy-test://cached-source";
+	cached_options.cancelled = [&] { return ++hit_polls == 4; };
+	try { capy::compile_bearer_unit(cached_source, cached_options); assert(false); }
+	catch (const capy::Error&) {}
+	assert(hit_polls == 4); // initial, hash start/end, then final cache-hit return poll
+	cached_options.cancelled = {};
+
+	std::mutex contention_mutex;
+	std::condition_variable contention_ready, contention_release;
+	bool first_parsing = false, second_finished = false, first_cancelled = false;
+	const std::string contention_source = "function CLI {}\n" + std::string(4097, ' ');
+	capy::CompileOptions contention_options = options;
+	contention_options.source_path = "contention.capy";
+	contention_options.canonical_source_identity = "capy-test://contention";
+	contention_options.parsed_source_cache = &parsed_cache;
+	std::thread first([&] {
+		unsigned polls = 0;
+		contention_options.cancelled = [&] {
+			if (++polls == 5)
+			{
+				std::unique_lock lock(contention_mutex);
+				first_parsing = true;
+				contention_ready.notify_one();
+				contention_release.wait(lock, [&] { return second_finished; });
+			}
+			return polls == 8;
+		};
+		try { capy::compile_bearer_unit(contention_source, contention_options); }
+		catch (const capy::Error&) { first_cancelled = true; }
+	});
+	{
+		std::unique_lock lock(contention_mutex);
+		contention_ready.wait(lock, [&] { return first_parsing; });
+	}
+	std::thread second([&] {
+		contention_options.cancelled = {};
+		capy::compile_bearer_unit(contention_source, contention_options);
+		std::lock_guard lock(contention_mutex);
+		second_finished = true;
+		contention_release.notify_one();
+	});
+	first.join();
+	second.join();
+	assert(first_cancelled);
+
+	capy::ParsedSourceCache bounded(2, 256, 96);
+	capy::CompileOptions bounded_options = options;
+	bounded_options.parsed_source_cache = &bounded;
+	for (const auto& identity : {"a", "b", "c"})
+	{
+		bounded_options.canonical_source_identity = identity;
+		capy::compile_bearer_unit("function CLI {}", bounded_options);
+	}
+	assert(bounded.stats().entries == 2 && bounded.stats().charged_bytes <= 256 && bounded.stats().evictions == 1);
+	bounded_options.canonical_source_identity = "large";
+	capy::compile_bearer_unit("function CLI { print(\"" + std::string(97, ' ') + "\") }", bounded_options);
+	assert(bounded.stats().oversize == 1);
+	if (const pid_t child = fork(); child == 0)
+	{
+		if (bounded.stats().entries != 0)
+			_exit(1);
+		bounded_options.canonical_source_identity = "child";
+		capy::compile_bearer_unit("function CLI {}", bounded_options);
+		_exit(bounded.stats().entries == 1 ? 0 : 1);
+	}
+	else
+	{
+		int status = 0;
+		assert(child > 0 && waitpid(child, &status, 0) == child && WIFEXITED(status) && WEXITSTATUS(status) == 0);
+	}
+	bounded.clear();
+	assert(bounded.stats().entries == 0 && bounded.stats().pinned_entries == 0);
+	options.cancelled = {};
+	options.source_path = "native-test.capy";
+	options.canonical_source_identity.clear();
 	auto result = capy::compile_bearer_unit("function CLI { print(1, \"ok\") }\n", options);
 	assert(result.wasm.size() >= 4 && result.wasm[0] == 0 && result.wasm[1] == 'a' && result.wasm[2] == 's' && result.wasm[3] == 'm');
 	auto validated = capy::wasm::validate_bearer_unit(result.wasm, {.bearer_abi_version = "11"});
@@ -47,6 +165,43 @@ int main()
 												"function CLI { print(identity(7), choose(4), countdown(3), identity((1, clone(\"x\")))[1], 2 as bool) }\n";
 	const auto generic = capy::compile_bearer_unit(generic_source, options);
 	assert(capy::wasm::validate_bearer_unit(generic.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto generic_method = capy::compile_bearer_unit(
+		"function same(value : any) value::type { value }\nfunction CLI { print((7).same()) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(generic_method.wasm, {.bearer_abi_version = "11"}).valid);
+	assert(generic_method.source_map.find("F\t1\tnative-test.capy\n") != std::string::npos);
+	const auto module_exports = capy::compile_bearer_unit(
+		"EXPORTS invoke\nEXPORTS other\nfunction invoke(value : dval) dval { value }\nfunction other(value : dval) dval { value }\n", options);
+	assert(module_exports.custom_exports == std::vector<std::string>({"invoke", "other"}));
+	assert(module_exports.source_map.find("F\t1\tnative-test.capy\n") != std::string::npos);
+	assert(capy::wasm::validate_bearer_unit(module_exports.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto module_call = capy::compile_bearer_unit(
+		"function CLI { var loaded : module = unit_load(\"child.capy\"); loaded.call(\"invoke\") }\n", options);
+	const std::string module_call_bytes(module_call.wasm.begin(), module_call.wasm.end());
+	assert(module_call_bytes.find("bearer_unit_load") != std::string::npos && module_call_bytes.find("bearer_module_call_brrb") != std::string::npos);
+	assert(capy::wasm::validate_bearer_unit(module_call.wasm, {.bearer_abi_version = "11"}).valid);
+	assert(module_call.source_map.find("F\t2\tcapy://stdlib.capy\n") != std::string::npos);
+	const auto module_passthrough = capy::compile_bearer_unit(
+		"function pass(value : module) module { value }\n"
+		"function identity(value : any) value::type { value }\n"
+		"function CLI { var loaded : module = unit_load(\"child.capy\"); var returned : module = pass(loaded); identity(returned).call(\"invoke\") }\n", options);
+	assert(capy::wasm::validate_bearer_unit(module_passthrough.wasm, {.bearer_abi_version = "11"}).valid);
+	for (const auto& [source, expected] : {
+			 std::pair{"EXPORTS missing\nfunction CLI {}\n", "unknown local function 'missing'"},
+			 std::pair{"EXPORTS wrong\nfunction wrong(value : string) string { value }\nfunction CLI {}\n", "must have signature (dval) dval"},
+			 std::pair{"EXPORTS generic\nfunction generic(value : any) value::type { value }\nfunction CLI {}\n", "must name a non-generic local function"},
+			 std::pair{"EXPORTS invoke\nfunction EXPORT_invoke(value : dval) dval { value }\nfunction CLI {}\n", "already declared"},
+			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); print(loaded + loaded) }\n", "unsupported operator + for module"},
+			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); if loaded {} }\n", "module is opaque and cannot be used as a condition"},
+			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); loaded as s32 }\n", "no explicit conversion from module to s32"},
+			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); var values := [loaded] }\n", "module is opaque and cannot be stored in array layouts"},
+			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); var pair := (loaded, loaded) }\n", "module is opaque and cannot be stored in tuple layouts"},
+			 std::pair{"struct Box { handle : module }\nfunction CLI {}\n", "module is opaque and cannot be stored in struct layouts"},
+			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); var f := function() module { loaded } }\n", "module is opaque and cannot be captured by a closure"},
+		 })
+	{
+		try { capy::compile_bearer_unit(source, options); assert(false); }
+		catch (const capy::Error& error) { assert(error.message.find(expected) != std::string::npos); }
+	}
 	const auto returning = capy::compile_bearer_unit(
 		"function choose(value : bool) s32 { if value { return 1 } else { return 2 } }\nfunction CLI { print(choose(true)) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(returning.wasm, {.bearer_abi_version = "11"}).valid);
@@ -137,7 +292,7 @@ int main()
 	const auto narrow_boundary = capy::compile_bearer_unit("function CLI { print(request_body()) }\n", options);
 	const std::string narrow_bytes(narrow_boundary.wasm.begin(), narrow_boundary.wasm.end());
 	assert(narrow_bytes.find("bearer_request_body") != std::string::npos);
-	for (const auto& absent : {"bearer_request_value", "bearer_ws_", "bearer_component_", "bearer_regex", "bearer_codec", "bearer_file_", "bearer_time"})
+	for (const auto& absent : {"bearer_request_value", "bearer_ws_", "bearer_component_", "bearer_regex", "bearer_codec", "bearer_file_", "bearer_time", "bearer_unit_load", "bearer_module_call_brrb"})
 		assert(narrow_bytes.find(absent) == std::string::npos);
 	std::ifstream compiler_source("src/capy/compiler.cpp");
 	const std::string compiler_text((std::istreambuf_iterator<char>(compiler_source)), {});
@@ -148,6 +303,8 @@ int main()
 	assert(compiler_text.find("named->value == \"__bearer_regex") == std::string::npos);
 	assert(compiler_text.find("named->value == \"__bearer_unit_call") == std::string::npos);
 	assert(compiler_text.find("named->value == \"__bearer_codec") == std::string::npos);
+	assert(compiler_text.find("named->value == \"unit_load\"") == std::string::npos);
+	assert(compiler_text.find("named->value == \"call\"") == std::string::npos);
 	for (const auto& public_name : {"array_merge", "dval_set", "dval_assign", "dval_push", "dval_pop", "dval_remove", "dval_clear", "dval_get_by_path", "dval_get_or_create",
 			 "dval_set_array", "dval_set_bool", "dval_set_type", "dval_get_type_name", "dval_key", "dval_keys", "dval_values", "dval_to_json", "dval_to_stringmap", "dval_put",
 			 "dval_to_s64", "dval_to_u64", "request_param", "request_get", "request_post", "request_cookie", "request_session", "request_body", "response_header", "request_context",
