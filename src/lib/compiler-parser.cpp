@@ -487,11 +487,11 @@ bool compiler_rewrite_named_entrypoint_line(String& line, String macro_prefix, S
 	}
 	u32 depth = 0;
 	u32 close_paren_pos = String::npos;
-	for(u32 i = open_paren_pos; i < signature.length(); i++)
+	for(u32 i = 0; i < handler_signature.length(); i++)
 	{
-		if(signature[i] == '(')
+		if(handler_signature[i] == '(')
 			depth += 1;
-		else if(signature[i] == ')' && --depth == 0)
+		else if(handler_signature[i] == ')' && --depth == 0)
 		{
 			close_paren_pos = i;
 			break;
@@ -499,7 +499,7 @@ bool compiler_rewrite_named_entrypoint_line(String& line, String macro_prefix, S
 	}
 	if(close_paren_pos == String::npos)
 		return(false);
-	line = indent + "BEARER_NAMED_TASK(" + exported + ", " + signature.substr(0, close_paren_pos + 1) + ")" + signature.substr(close_paren_pos + 1);
+	line = indent + "BEARER_NAMED_TASK(" + exported + ", " + handler_signature.substr(0, close_paren_pos + 1) + ")" + handler_signature.substr(close_paren_pos + 1);
 	return(true);
 }
 

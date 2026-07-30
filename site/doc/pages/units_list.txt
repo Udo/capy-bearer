@@ -12,10 +12,10 @@ Returns the normalized paths of all known `.uce` units.
 
 This includes the shared known-unit registry plus any units already loaded in the current runtime process.
 
-:example capy render
+:example capy cli
 var count := 0
 for item = units_list() { count = count + 1 }
 print("the runtime knows ", count, " compiled units\n")
 
-:example cpp render
+:example cpp cli
 print("the runtime knows ", units_list().size(), " compiled units\n");

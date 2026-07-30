@@ -95,26 +95,18 @@ RENDER(Request& context)
 					</div>
 					<div class="unit-list">
 					<?
+						u64 shown_units = 0;
 						for(auto& unit_path : unit_paths)
 						{
-							auto info = unit_info(unit_path);
-							String compile_status = info["compile_status"].to_string();
-							String error_status = info["error_status"].to_string();
-							String status_class = unit_status_class(compile_status, error_status);
+							if(shown_units++ >= 100)
+								break;
 							String select_link = unit_query(unit_path);
-							String title = first(info["src_file_name"].to_string(), unit_path);
-							String meta_line = std::to_string(info["exports"]._map.size()) + " exports";
 							bool is_selected = (selected_path == unit_path);
 					?>
 						<a class="unit-list-item <?= is_selected ? "is-selected" : "" ?>" href="<?= select_link ?>">
 							<div class="unit-list-title-row" title="<?= unit_path ?>">
-								<strong><?= title ?></strong>
-								<span class="status-badge <?= status_class ?>"><?= compile_status ?></span>
+								<strong><?= unit_path ?></strong>
 							</div>
-							
-							<? if(trim(error_status) != "") { ?>
-								<div class="unit-list-error"><?= error_status ?></div>
-							<? } ?>
 						</a>
 					<?
 						}

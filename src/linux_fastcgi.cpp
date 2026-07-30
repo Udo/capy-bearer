@@ -11,6 +11,7 @@
 #include <chrono>
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/wait.h>
@@ -1788,13 +1789,15 @@ bool task_admission_healthy()
 String task_retry_error;
 u64 task_retry_failures = 0;
 
-bool task_worker_alive(pid_t pid)
+bool task_worker_alive(const TaskWorkerProcess& worker)
 {
-	if(pid <= 0)
+	if(worker.pid <= 0 || worker.pid_fd < 0)
 		return(false);
-	int status = 0;
-	pid_t reaped = waitpid(pid, &status, WNOHANG);
-	return(reaped == 0 && kill(pid, 0) == 0);
+	pollfd descriptor = {worker.pid_fd, POLLIN, 0};
+	int result;
+	do result = poll(&descriptor, 1, 0);
+	while(result < 0 && errno == EINTR);
+	return(result == 0 || (result > 0 && !(descriptor.revents & POLLIN)));
 }
 
 void task_retry_later(const String& error)
@@ -1886,7 +1889,7 @@ void supervise_task_cancellations()
 	}
 	requests.status["requests"].each([&](const DValue& requested_lease, String) {
 		for(auto& worker : task_worker_processes)
-			if(worker.ready && worker.lease_id == requested_lease.to_string() && task_worker_alive(worker.pid))
+			if(worker.ready && worker.lease_id == requested_lease.to_string() && task_worker_alive(worker))
 			{
 				// pidfd pins this signal to the child we forked, even after PID reuse.
 				if(worker.pid_fd >= 0 && syscall(SYS_pidfd_send_signal, worker.pid_fd, SIGTERM, nullptr, 0) == 0)
@@ -1928,7 +1931,7 @@ void ensure_task_workers()
 	}
 	for(auto& worker : task_worker_processes)
 	{
-		if(task_worker_alive(worker.pid))
+		if(task_worker_alive(worker))
 			continue;
 		set_task_pool_healthy(false);
 		if(worker.pid > 0 && !worker.ready)
@@ -2408,7 +2411,7 @@ int main(int argc, char** argv)
 	for(auto& worker : workers)
 		kill(worker.first, SIGTERM);
 	for(const auto& worker : task_worker_processes)
-		if(worker.pid > 0) kill(worker.pid, SIGTERM);
+		if(task_worker_alive(worker)) syscall(SYS_pidfd_send_signal, worker.pid_fd, SIGTERM, nullptr, 0);
 	for(auto pid : proactive_compiler_pids)
 		if(pid > 0)
 			kill(pid, SIGTERM);
@@ -2423,7 +2426,7 @@ int main(int argc, char** argv)
 		for(auto pid : proactive_compiler_pids)
 			alive = alive || proactive_compiler_alive(pid);
 		for(const auto& worker : task_worker_processes)
-			alive = alive || task_worker_alive(worker.pid);
+			alive = alive || task_worker_alive(worker);
 		return(alive);
 	};
 	while((!workers.empty() || background_children_alive()) && time_precise() < drain_deadline)
@@ -2434,7 +2437,7 @@ int main(int argc, char** argv)
 	for(auto& worker : workers)
 		kill(worker.first, SIGKILL);
 	for(const auto& worker : task_worker_processes)
-		if(task_worker_alive(worker.pid)) kill(worker.pid, SIGKILL);
+		if(task_worker_alive(worker)) syscall(SYS_pidfd_send_signal, worker.pid_fd, SIGKILL, nullptr, 0);
 	for(auto pid : proactive_compiler_pids)
 		if(proactive_compiler_alive(pid))
 			kill(pid, SIGKILL);

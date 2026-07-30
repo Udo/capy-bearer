@@ -1038,20 +1038,20 @@ static bool wasm_source_map_load(const String& path, WasmSourceMap& map)
 	return(!map.rows.empty());
 }
 
-static String wasm_source_map_lookup(const WasmSourceMap& map, u64 address)
+static String wasm_source_map_lookup(const WasmSourceMap& map, u64 address, const String& preferred_file = "")
 {
 	const WasmSourceMap::Row* found = 0;
 	for(auto& row : map.rows)
 	{
 		if(row.address > address)
 			break;
-		found = &row;
+		auto file = map.files.find(row.file);
+		if(row.line != 0 && file != map.files.end() && (preferred_file == "" || file->second == preferred_file))
+			found = &row;
 	}
-	if(!found || found->line == 0)
+	if(!found)
 		return("");
 	auto file = map.files.find(found->file);
-	if(file == map.files.end())
-		return("");
 	String result = file->second + ":" + std::to_string(found->line);
 	if(found->column)
 		result += ":" + std::to_string(found->column);
@@ -2632,6 +2632,10 @@ struct WasmWorkspace : public WasmRequestProfile
 					unit = loaded.mod.get();
 					break;
 				}
+			// Wasmtime can omit the side-module name from interrupted frames.
+			// A single loaded guest remains unambiguous and keeps its source map.
+			if(!unit && frames[index].module == "" && units.size() == 1)
+				unit = units[0].mod.get();
 			if(!unit)
 				continue;
 			String map_path = unit->wasm_path + ".source-map";
@@ -2641,14 +2645,17 @@ struct WasmWorkspace : public WasmRequestProfile
 			if(loaded_map == maps.end())
 			{
 				WasmSourceMap source_map;
-				if(!wasm_source_map_load(map_path, source_map) || source_map.module_name != frames[index].module)
+				String expected_module = frames[index].module == "" ? unit->abi.module_name : frames[index].module;
+				if(!wasm_source_map_load(map_path, source_map) || source_map.module_name != expected_module)
 				{
 					unavailable.insert(map_path);
 					continue;
 				}
 				loaded_map = maps.emplace(map_path, std::move(source_map)).first;
 			}
-			String location = wasm_source_map_lookup(loaded_map->second, frames[index].offset);
+			String location = wasm_source_map_lookup(loaded_map->second, frames[index].offset, unit->source_path);
+			if(location == "")
+				location = wasm_source_map_lookup(loaded_map->second, frames[index].offset);
 			// stdlib wrappers are compiler-owned plumbing; their call-site marker maps
 			// failures to user source, and exposing the virtual frame obscures it.
 			if(location == "" || location.rfind("capy://stdlib.capy:", 0) == 0)

@@ -9,7 +9,6 @@ Doc pages are text files in site/doc/pages/*.txt using colon-prefixed sections.
 - `:example cpp render` — its equivalent C++ `.uce` example
 - `:see` — an area reference (`>area`) followed by closest sibling page slugs
 
-:capy-status cpp-specific
 
 :content
 This renderer-format reference is C++-specific; Capy examples are documented by the paired-example grammar rather than a runtime API.

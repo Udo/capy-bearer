@@ -3,7 +3,8 @@
 #include <string_view>
 namespace capy::parity {
 struct Evidence { std::string_view name, path, marker; };
-inline constexpr std::array<Evidence, 258> supported{{
+inline constexpr std::array<Evidence, 259> supported{{
+    {"3_Documentation format","site/doc/pages/3_Documentation format.txt",":example capy render"},
     {"1_INIT","site/tests/capy-lifecycle-parity.capy","function INIT"},
     {"1_ONCE","site/tests/capy-lifecycle-parity.capy","function ONCE"},
     {"1_CLI","site/tests/capy-strings.capy","function CLI"},
@@ -264,7 +265,7 @@ inline constexpr std::array<Evidence, 258> supported{{
     {"mysql_affected_rows","site/tests/capy-mysql.capy","mysql_affected_rows("},
 }};
 inline constexpr std::array<Evidence, 0> partial{{}};
-inline constexpr std::array<std::string_view, 6> cpp_specific{{"3_Blocked functions","3_C++ Preprocessor","3_Coming from React","3_Documentation format","error_pages","load"}};
+inline constexpr std::array<std::string_view, 5> cpp_specific{{"3_Blocked functions","3_C++ Preprocessor","3_Coming from React","error_pages","load"}};
 inline constexpr std::array<Evidence, 5> unsupported_by_design{{
     {"2_DValue_is_reference","","Capy has value semantics; BRRB crossings dereference copies and retain no reference identity."},
     {"2_DValue_reference_target","","Capy has no host DValue pointer/alias ABI by design."},

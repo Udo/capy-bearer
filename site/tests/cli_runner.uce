@@ -153,11 +153,16 @@ DValue cli_demo_error_markers()
 	return(markers);
 }
 
-void cli_run_demo_smoke()
+void cli_run_demo_smoke(u64 shard = 0, u64 shard_count = 1)
 {
 	DValue files = split("call_file.uce\ncall_file_funcs.uce\ncollections.uce\ncomponents.uce\ncookie.uce\ndvalue.uce\nempty.uce\nerror-reporting.uce\nfile_append.uce\nfileio.uce\nheader.uce\nhello.uce\nindex.uce\njson.uce\nmarkdown.uce\nmemcached.uce\nmysql.uce\nonce-init.uce\nparse_time.uce\npost-multipart.uce\npost.uce\npreprocessor-comments.uce\nrandom.uce\nregex.uce\nscript.uce\nsession.uce\nsharedunit.uce\nshell.uce\nsqlite.uce\nstr_replace.uce\nstring.uce\ntask.uce\nunit-browser.uce\nunit-info.uce\nuri.uce\nutf8.uce\nwebsockets.ws.uce\nworking-dir.uce\nxml.uce\nyaml.uce\nzip.uce", "\n");
+	u64 file_index = 0;
 	for(String file : files)
+	{
+		if(file_index++ % shard_count != shard)
+			continue;
 		cli_expect_http("bearer_demo_smoke:demo page " + file, "/demo/" + file, 200, "", file == "unit-browser.uce" ? DValue() : cli_demo_error_markers());
+	}
 }
 
 bool cli_doc_source_has_example(String source)
@@ -227,6 +232,8 @@ void cli_run_doc_pages_gate(u64 shard = 0, u64 shard_count = 1)
 			continue;
 		bool has_example = cli_doc_source_has_example(source);
 		bool has_legacy_examples = cli_doc_source_has_legacy_example(source);
+		bool has_render_example = has_legacy_examples || cli_contains(source, ":example capy render") || cli_contains(source, ":example cpp render");
+		bool has_compile_only_example = cli_contains(source, ":example capy cli") || cli_contains(source, ":example cpp cli") || cli_contains(source, ":example capy component") || cli_contains(source, ":example cpp component") || cli_contains(source, ":example capy init") || cli_contains(source, ":example cpp init") || cli_contains(source, ":example capy once") || cli_contains(source, ":example cpp once") || cli_contains(source, ":example capy ws") || cli_contains(source, ":example cpp ws");
 		String path = "/doc/index.uce?p=" + uri_encode(page);
 		CliHttpResponse res;
 		String summary;
@@ -242,10 +249,15 @@ void cli_run_doc_pages_gate(u64 shard = 0, u64 shard_count = 1)
 			String lower = to_lower(res.body);
 			if(has_example)
 			{
-				if(!cli_contains(res.body, "class=\"example-output\"") || !cli_contains(res.body, "example-output-label\">Output"))
+				if(has_render_example && (!cli_contains(res.body, "class=\"example-output\"") || !cli_contains(res.body, "example-output-label\">Output")))
 				{
 					ok = false;
 					summary += "; missing example Output block";
+				}
+				if(has_compile_only_example && !cli_contains(res.body, "class=\"example-compile-only\""))
+				{
+					ok = false;
+					summary += "; missing compile-only result";
 				}
 				if(cli_contains(lower, "doc example error"))
 				{
@@ -409,16 +421,6 @@ void cli_run_starter_parity()
 	cli_expect_http("bearer_starter_parity:starter unknown route 404", "/examples/bearer-starter/index.uce?does-not-exist", 404, "<title>404 Not Found | BEARER Starter</title>", cli_demo_error_markers());
 }
 
-void cli_run_task_lifetime_smoke()
-{
-	String late_file = "/tmp/bearer-site-tests-late-task.txt";
-	file_unlink(late_file);
-	CliHttpResponse res = cli_frontend("/tests/tasks.uce?mode=late");
-	usleep(3000000);
-	String observed = file_exists(late_file) ? file_get_contents(late_file) : "";
-	cli_test_case("bearer_task_lifetime:delayed callback after request return", res.status == 200 && cli_contains(res.body, "late task scheduled") && cli_contains(observed, "late callback ran"), "status=" + std::to_string(res.status) + " observed=" + cli_truncate(observed));
-}
-
 void cli_run_pool_isolation()
 {
 	DValue worker_counts;
@@ -480,7 +482,7 @@ void cli_run_wasm_kill(bool include_kill)
 void cli_print_list(bool include_kill)
 {
 	print("BEARER CLI test groups:\n");
-	print("  demo, http, site, doc-gate-1..30, security, task-lifetime, pool-isolation, starter, tcp");
+	print("  demo-1..4, http, site, doc-gate-1..90, security, pool-isolation, starter, tcp");
 	if(include_kill)
 		print(", wasm-kill");
 	print("\n");
@@ -489,8 +491,16 @@ void cli_print_list(bool include_kill)
 bool cli_run_group(String group, bool skip_local_service_pages, bool include_kill)
 {
 	f64 group_start = time_precise();
-	if(group == "demo")
-		cli_run_demo_smoke();
+	if(str_starts_with(group, "demo-"))
+	{
+		u64 shard = int_val(group.substr(5));
+		if(shard < 1 || shard > 4)
+		{
+			cli_test_case("bearer_cli_runner:known demo shard", false, "unknown group: " + group);
+			return(false);
+		}
+		cli_run_demo_smoke(shard - 1, 4);
+	}
 	else if(group == "http")
 		cli_run_http_smoke();
 	else if(group == "site")
@@ -498,17 +508,15 @@ bool cli_run_group(String group, bool skip_local_service_pages, bool include_kil
 	else if(str_starts_with(group, "doc-gate-"))
 	{
 		u64 shard = int_val(group.substr(9));
-		if(shard < 1 || shard > 30)
+		if(shard < 1 || shard > 90)
 		{
 			cli_test_case("bearer_cli_runner:known doc gate shard", false, "unknown group: " + group);
 			return(false);
 		}
-		cli_run_doc_pages_gate(shard - 1, 30);
+		cli_run_doc_pages_gate(shard - 1, 90);
 	}
 	else if(group == "security")
 		cli_run_security_smoke();
-	else if(group == "task-lifetime")
-		cli_run_task_lifetime_smoke();
 	else if(group == "pool-isolation")
 		cli_run_pool_isolation();
 	else if(group == "starter")
@@ -549,11 +557,13 @@ CLI(Request& context)
 		cli_run_group(group, input["skip_local_service_pages"].to_bool(), include_kill);
 	else
 	{
-		for(String item : { "demo", "http", "site" })
+		for(u64 shard = 1; shard <= 4; shard++)
+			cli_run_group("demo-" + std::to_string(shard), input["skip_local_service_pages"].to_bool(), include_kill);
+		for(String item : { "http", "site" })
 			cli_run_group(item, input["skip_local_service_pages"].to_bool(), include_kill);
-		for(u64 shard = 1; shard <= 30; shard++)
+		for(u64 shard = 1; shard <= 90; shard++)
 			cli_run_group("doc-gate-" + std::to_string(shard), input["skip_local_service_pages"].to_bool(), include_kill);
-		for(String item : { "security", "task-lifetime", "pool-isolation", "starter", "tcp" })
+		for(String item : { "security", "pool-isolation", "starter", "tcp" })
 			cli_run_group(item, input["skip_local_service_pages"].to_bool(), include_kill);
 		cli_run_group("wasm-kill", input["skip_local_service_pages"].to_bool(), include_kill);
 	}

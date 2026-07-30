@@ -58,17 +58,19 @@ if [[ "$action" == "list" ]]; then
 fi
 
 if [[ "$action" == "run" ]]; then
-	groups=(demo http site doc-gate-{1..30} security task-lifetime pool-isolation starter tcp)
+	python3 scripts/check_capy_doc_examples.py --self-test
+	python3 scripts/check_capy_doc_examples.py
+	groups=(demo-{1..4} http site doc-gate-{1..90} security pool-isolation starter tcp)
 	if [[ "$include_kill" == "1" ]]; then
 		groups+=(wasm-kill)
 	fi
-	for group in demo http site security task-lifetime pool-isolation starter tcp; do
+	for group in demo-{1..4} http site security pool-isolation starter tcp; do
 		echo "== BEARER CLI group: $group =="
 		curl -sS --max-time "$curl_timeout" --fail-with-body --unix-socket "$socket_path" "${base_url}&group=${group}"
 	done
 	# Doc gates run sequentially: concurrent cold doc-example compiles trap inside
 	# cli_run_doc_pages_gate (see docs/work: parallel-cold-compile race, 2026-07-24).
-	for group in doc-gate-{1..30}; do
+	for group in doc-gate-{1..90}; do
 		echo "== BEARER CLI group: $group =="
 		curl -sS --max-time "$curl_timeout" --fail-with-body --unix-socket "$socket_path" "${base_url}&group=${group}"
 	done

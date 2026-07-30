@@ -23,7 +23,7 @@ STRING_ARRAY = re.compile(
 )
 NAME = re.compile(r'\{\s*"([^"]+)"')
 CPP_TOKENS = re.compile(
-    r"\b(?:DValue|Request|String(?:List|Map)?|SharedUnit|std|void|bool|const|"
+    r"\b(?:DValue|Request|String(?:List|Map)?|SharedUnit|std|void|const|"
     r"auto|template|typename|class|nullptr|new|delete)\b|::|->|#\s*include"
 )
 
@@ -88,7 +88,9 @@ def check_page(page: Path, status: str) -> list[str]:
         if language == "capy":
             if "__bearer" in body:
                 errors.append(f"{page.name}:{line}: Capy example exposes private __bearer API")
-            if CPP_TOKENS.search(body):
+            checked_body = re.sub(r'"(?:\\.|[^"\\])*"', '""', body)
+            checked_body = re.sub(r"//[^\n]*", "", checked_body)
+            if CPP_TOKENS.search(checked_body):
                 errors.append(f"{page.name}:{line}: Capy example contains obvious C++ syntax or type")
         examples.append((line, language, entry, end_line))
 

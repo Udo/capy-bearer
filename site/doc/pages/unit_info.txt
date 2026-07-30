@@ -26,4 +26,4 @@ if dval_is_array(info) { print("unit_info() returns metadata for the unit\n") } 
 
 :example cpp render
 DValue info = unit_info("examples/sample_unit.uce");
-print("unit_info() returns ", info.get_type_name(), " metadata for the unit\n");
+print(info.is_array() ? "unit_info() returns metadata for the unit\n" : "empty metadata for the unit\n");

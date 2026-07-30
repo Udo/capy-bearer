@@ -2159,7 +2159,12 @@ DValue units_list()
 	auto known_units = strings_from_dvalue(compiler_list_known_units(context));
 	for(auto& it : context->server->units)
 		known_units.push_back(it.first);
-	return(dvalue_from_strings(compiler_normalize_unit_list(context, known_units)));
+	auto normalized = compiler_normalize_unit_list(context, known_units);
+	String site_directory = compiler_site_directory(context);
+	normalized.erase(std::remove_if(normalized.begin(), normalized.end(), [&](const String& path) {
+		return(site_directory == "" || !path_is_within(path, site_directory));
+	}), normalized.end());
+	return(dvalue_from_strings(normalized));
 }
 
 bool unit_compile(String path)
