@@ -1,0 +1,53 @@
+:title
+7. Strings and markup
+
+:content
+## Strings
+
+A `string` stores bytes. String literals use double quotes. Use escapes such as `\n` for a newline and `\"` for a quote.
+
+```capy
+var first := "Ada"
+var last := "Lovelace"
+var full := first + " " + last
+```
+
+`length(text)` returns the byte count. Bearer provides functions such as `substr`, `find`, `replace`, `lower`, `upper`, `trim`, `split`, and `join`. String offsets refer to bytes, not Unicode characters.
+
+```capy
+var words := split("one,two,three", ",")
+print(join(words, " | "))
+```
+
+Use the API reference for each function's handling of empty strings, negative offsets, and missing matches.
+
+## Markup
+
+A markup expression keeps HTML readable and escapes inserted text:
+
+```capy
+var title := "Tea & Biscuits"
+var page := <>
+    <article>
+        <h1><?= title ?></h1>
+    </article>
+</>
+```
+
+Bearer escapes strings inside `<?= value ?>`. It formats scalar numbers and booleans as text. An inserted `markup` value keeps its existing HTML.
+
+Use `<?: value ?>` only when `value` already has type `markup`. Use `trusted_markup(value)` to convert a trusted HTML string:
+
+```capy
+var icon := trusted_markup("<svg aria-hidden='true'>...</svg>")
+var button := <><button><?: icon ?> Save</button></>
+```
+
+Never give untrusted data to `trusted_markup`. This includes request values, database text, and remote content. Keep untrusted data as strings and use escaped interpolation.
+
+You can store, return, nest, and print markup. Use markup to produce HTML in Capy handlers and components.
+
+:see
+html_escape
+capy-08-arrays-tuples-and-structs
+capy-11-web-handlers

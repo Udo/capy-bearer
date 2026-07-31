@@ -1,0 +1,72 @@
+:title
+3. Types
+
+:content
+Capy checks types when it compiles a file. A value does not change type because another context expects a different type.
+
+## Scalar types
+
+Capy has these scalar types:
+
+- `bool`: `true` or `false`
+- `s32`: a signed 32-bit integer
+- `s64`: a signed 64-bit integer
+- `u64`: an unsigned 64-bit integer
+- `f64`: a 64-bit floating-point number
+
+An integer literal has type `s32` unless it has a suffix:
+
+```capy
+var small := 42
+var signed_wide := 42s64
+var unsigned_wide := 42u64
+var decimal := 3.5
+```
+
+File, database, and job APIs usually return `u64` handles. Keep these handles as `u64`. A conversion through `f64` can lose precision.
+
+## Strings and markup
+
+Use `string` for text, paths, request values, and encoded data. A string stores bytes. Use `markup` for HTML that can compose without a second escape. A normal string does not become trusted markup automatically.
+
+## Compound and special types
+
+- `[T]` is an array with items of type `T`.
+- A tuple has a fixed number of values and can contain different types.
+- A `struct` is a named record with fixed fields.
+- A `dval` is a dynamic value for Bearer APIs and unit calls.
+- `function(...) Result` describes a function value.
+- Bearer supplies `request` and `module` values. A program cannot create or serialize them.
+
+## Type inference
+
+Use `var name := value` to infer the variable type. Use `var name : Type = value` to state the type:
+
+```capy
+var count := 0
+var deadline : u64 = time() + 60u64
+```
+
+Inference does not make a variable dynamic. `count` remains `s32`, and `deadline` remains `u64`.
+
+## Explicit conversion
+
+Use `as` to request a conversion:
+
+```capy
+var count : s32 = 12
+var wide := count as s64
+var ratio := wide as f64 / 5.0
+var label := count as string
+```
+
+You can convert numeric and boolean values among scalar types. You can also format these values as strings. A conversion can wrap, round, or trap.
+
+A large `u64` can lose precision when converted to `f64`. An out-of-range or non-finite `f64` traps when converted to an integer.
+
+A function parameter can request the same conversion with `name : as Type`. The functions chapter explains this syntax.
+
+:see
+capy-04-variables-constants-and-expressions
+capy-05-operators-and-control-flow
+capy-10-dvalues

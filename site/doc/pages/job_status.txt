@@ -1,6 +1,10 @@
-# job_status
+:title
+job_status
 
+:sig
+DValue job_status(u64 job_id)
 
+:content
 Returns the file-backed async job state, e.g. `{ state, done, kind, pid, job_id }`. States include `pending`, `running`, `done`, `failed`, `cancelled`, and `missing`.
 
 :see

@@ -235,6 +235,11 @@ bool is_scalar(const std::string& type)
 	return type == "s32" || type == "s64" || type == "u64" || type == "f64" || type == "bool";
 }
 
+bool can_convert(const std::string& source, const std::string& target)
+{
+	return source == target || (is_scalar(source) && is_scalar(target)) || (is_scalar(source) && target == "string");
+}
+
 std::uint8_t wasm_value_type(const std::string& type)
 {
 	return type == "s64" || type == "u64" ? 0x7e : type == "f64" ? 0x7c : 0x7f;
@@ -378,6 +383,7 @@ struct Definition
 {
 	Function* function = nullptr;
 	std::vector<std::string> parameters;
+	std::vector<bool> convert;
 	std::string result;
 	std::string exported;
 	unsigned index = 0;
@@ -426,6 +432,7 @@ struct FunctionLowerer
 	unsigned control_depth_ = 0;
 
 	std::pair<Bytes, std::string> expression(Expr* value, bool value_required = true);
+	std::pair<Bytes, std::string> conversion(Bytes code, const std::string& source, const std::string& target, const Location& location);
 	std::string infer(Expr* value);
 	std::optional<std::pair<unsigned, std::string>> compatible_local_callable(const std::string& name, const std::vector<std::string>& arguments) const;
 	std::vector<std::pair<std::string, std::string>> lambda_captures(Lambda* value) const;
@@ -604,6 +611,76 @@ struct Module
 		auto found = hosts_.find(key(name, types));
 		return found == hosts_.end() ? nullptr : &found->second;
 	}
+	const Definition* converted_definition(const std::string& name, const std::vector<std::string>& types, const Location& location) const
+	{
+		if (definitions_by_key_.contains(key(name, types)))
+			return nullptr;
+		if (auto found = generics_.find(name); found != generics_.end())
+			for (const auto& generic : found->second)
+			{
+				if (generic.patterns.size() != types.size())
+					continue;
+				bool matches = true;
+				for (std::size_t i = 0; i < types.size(); ++i)
+					if (generic.patterns[i] != "any" && generic.patterns[i] != types[i]) { matches = false; break; }
+				if (matches)
+					return nullptr;
+			}
+		const Definition* selected = nullptr;
+		unsigned best = std::numeric_limits<unsigned>::max();
+		bool ambiguous = false;
+		for (const Definition& definition : definitions_)
+		{
+			if (!definition.function || definition.function->name != name || definition.parameters.size() != types.size() || definition.convert.size() != types.size())
+				continue;
+			unsigned conversions = 0;
+			bool matches = true;
+			for (std::size_t i = 0; i < types.size(); ++i)
+				if (types[i] != definition.parameters[i])
+				{
+					if (!definition.convert[i] || !can_convert(types[i], definition.parameters[i])) { matches = false; break; }
+					++conversions;
+				}
+			if (!matches) continue;
+			if (conversions < best) { selected = &definition; best = conversions; ambiguous = false; }
+			else if (conversions == best) ambiguous = true;
+		}
+		if (ambiguous)
+		{
+			std::string rendered;
+			for (std::size_t i = 0; i < types.size(); ++i)
+				rendered += (i ? ", " : "") + types[i];
+			throw Error(location, "ambiguous converted overload " + name + "(" + rendered + ")");
+		}
+		return selected;
+	}
+	std::optional<std::string> compatible_result(const std::string& name, const std::vector<std::string>& types, const Location& location) const
+	{
+		if (auto it = definitions_by_key_.find(key(name, types)); it != definitions_by_key_.end())
+			return definitions_[it->second].result;
+		std::vector<const GenericDefinition*> candidates;
+		unsigned best = 0;
+		if (auto found = generics_.find(name); found != generics_.end())
+			for (const auto& generic : found->second)
+			{
+				if (generic.patterns.size() != types.size())
+					continue;
+				unsigned exact = 0;
+				bool matches = true;
+				for (std::size_t i = 0; i < types.size(); ++i)
+					if (generic.patterns[i] != "any" && generic.patterns[i] != types[i]) { matches = false; break; }
+					else if (generic.patterns[i] != "any") ++exact;
+				if (!matches) continue;
+				if (candidates.empty() || exact > best) { candidates = {&generic}; best = exact; }
+				else if (exact == best) candidates.push_back(&generic);
+			}
+		if (candidates.size() > 1)
+			throw Error(location, "ambiguous generic overload " + name);
+		if (candidates.size() == 1)
+			return candidates[0]->dependent_result < 0 ? "void" : types[static_cast<unsigned>(candidates[0]->dependent_result)];
+		const Definition* converted = converted_definition(name, types, location);
+		return converted ? std::optional<std::string>(converted->result) : std::nullopt;
+	}
 	Definition* compatible_definition(const std::string& name, const std::vector<std::string>& types, const Location& location)
 	{
 		if (auto it = definitions_by_key_.find(key(name, types)); it != definitions_by_key_.end())
@@ -641,7 +718,7 @@ struct Module
 		for (std::size_t i = 0; i < types.size(); ++i)
 			rendered += (i ? ", " : "") + types[i];
 		if (candidates.empty())
-			return nullptr;
+			return const_cast<Definition*>(converted_definition(name, types, location));
 		if (candidates.size() != 1)
 			throw Error(location, "ambiguous generic overload " + name + "(" + rendered + ")");
 		const GenericDefinition& generic = *candidates.front();
@@ -770,7 +847,11 @@ std::string Module::value_type(const Expr* expression, bool allow_void)
 	{
 		std::vector<std::string> parameters{"s32"};
 		for (const auto& parameter : function->parameters)
+		{
+			if (parameter.convert)
+				throw Error(parameter.type_expr->location, "function types cannot request parameter conversion");
 			parameters.push_back(value_type(parameter.type_expr));
+		}
 		return "function#" + std::to_string(wasm_type(parameters, value_type(function->return_type, true)));
 	}
 	return type_of_expression(expression, allow_void);
@@ -861,6 +942,13 @@ bool FunctionLowerer::expression_is_owned(const Expr* value)
 		return managed_type(infer(member->value)) && expression_is_owned(member->value);
 	if (auto binary = dynamic_cast<const Binary*>(value))
 		return binary->operator_ == "+" && infer(binary->left) == "string" && infer(binary->right) == "string";
+	if (auto cast = dynamic_cast<const Cast*>(value))
+	{
+		const std::string source = infer(cast->value), target = type_of_expression(cast->target_type);
+		if (target == "string" && source != "string")
+			return source != "bool";
+		return managed_type(target) && expression_is_owned(cast->value);
+	}
 	if (auto call = dynamic_cast<const Call*>(value))
 		return managed_type(infer(const_cast<Call*>(call)));
 	return false;
@@ -1019,7 +1107,11 @@ std::tuple<std::string, unsigned, unsigned, Definition*, std::vector<std::pair<s
 		return found->second;
 	std::vector<std::string> parameters;
 	for (const auto& parameter : lambda->parameters)
+	{
+		if (parameter.convert)
+			throw Error(parameter.type_expr->location, "anonymous functions cannot request parameter conversion");
 		parameters.push_back(module_.value_type(parameter.type_expr));
+	}
 	const std::string result = module_.value_type(lambda->return_type, true);
 	const auto captures = lambda_captures(lambda);
 	for (const auto& [name, type] : captures)
@@ -1952,6 +2044,82 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 	return {code, "dval"};
 }
 
+std::pair<Bytes, std::string> FunctionLowerer::conversion(Bytes code, const std::string& source, const std::string& target,
+														 const Location& location)
+{
+	if (!can_convert(source, target))
+		throw Error(location, "no explicit conversion from " + source + " to " + target);
+	if (source == target || (source == "bool" && target == "s32"))
+		return {std::move(code), target};
+	if (target == "string")
+	{
+		if (source == "bool")
+		{
+			const unsigned value = add_local("", "bool", location);
+			code.push_back(0x21);
+			wasm::append_uleb(code, value);
+			const unsigned true_offset = module_.add_static_string("true"), false_offset = module_.add_static_string("false");
+			code.push_back(0x20);
+			wasm::append_uleb(code, value);
+			code.insert(code.end(), {0x04, 0x7f, 0x23, 0x00, 0x41});
+			wasm::append_sleb32(code, static_cast<std::int32_t>(true_offset));
+			code.insert(code.end(), {0x6a, 0x05, 0x23, 0x00, 0x41});
+			wasm::append_sleb32(code, static_cast<std::int32_t>(false_offset));
+			code.insert(code.end(), {0x6a, 0x0b});
+			return {std::move(code), "string"};
+		}
+		if (source == "s32")
+		{
+			code.push_back(0xac);
+			return {format_wide_scalar(std::move(code), "s64", location), "string"};
+		}
+		return {format_wide_scalar(std::move(code), source, location), "string"};
+	}
+	if (target == "bool")
+	{
+		if (source == "s32")
+			code.insert(code.end(), {0x45, 0x45});
+		else if (source == "s64" || source == "u64")
+			code.insert(code.end(), {0x50, 0x45});
+		else
+		{
+			code.push_back(0x44);
+			wasm::append_f64(code, 0.0);
+			code.push_back(0x62);
+		}
+		return {std::move(code), "bool"};
+	}
+	if (source == "bool" || source == "s32")
+	{
+		if (target == "s64")
+			code.push_back(0xac);
+		else if (target == "u64")
+			code.push_back(source == "bool" ? 0xad : 0xac);
+		else
+			code.push_back(0xb7);
+	}
+	else if (source == "s64")
+	{
+		if (target == "s32")
+			code.push_back(0xa7);
+		else if (target == "f64")
+			code.push_back(0xb9);
+	}
+	else if (source == "u64")
+	{
+		if (target == "s32")
+			code.push_back(0xa7);
+		else if (target == "f64")
+			code.push_back(0xba);
+	}
+	else if (source == "f64")
+	{
+		append(code, module_.marker(location));
+		code.push_back(target == "s32" ? 0xaa : target == "s64" ? 0xb0 : 0xb1);
+	}
+	return {std::move(code), target};
+}
+
 std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool value_required)
 {
 	module_.check_cancelled();
@@ -2878,54 +3046,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 	if (auto cast = dynamic_cast<Cast*>(value))
 	{
 		auto [code, source] = expression(cast->value);
-		std::string target = type_of_expression(cast->target_type);
-		if (!is_scalar(source) || !is_scalar(target))
-			throw Error(value->location, "no explicit conversion from " + source + " to " + target);
-		if (source == target || (source == "bool" && target == "s32"))
-			return {code, target};
-		if (target == "bool")
-		{
-			if (source == "s32")
-				code.insert(code.end(), {0x45, 0x45});
-			else if (source == "s64" || source == "u64")
-				code.insert(code.end(), {0x50, 0x45});
-			else
-			{
-				code.push_back(0x44);
-				wasm::append_f64(code, 0.0);
-				code.push_back(0x62);
-			}
-			return {code, "bool"};
-		}
-		if (source == "bool" || source == "s32")
-		{
-			if (target == "s64")
-				code.push_back(0xac);
-			else if (target == "u64")
-				code.push_back(source == "bool" ? 0xad : 0xac);
-			else
-				code.push_back(0xb7);
-		}
-		else if (source == "s64")
-		{
-			if (target == "s32")
-				code.push_back(0xa7);
-			else if (target == "f64")
-				code.push_back(0xb9);
-		}
-		else if (source == "u64")
-		{
-			if (target == "s32")
-				code.push_back(0xa7);
-			else if (target == "f64")
-				code.push_back(0xba);
-		}
-		else if (source == "f64")
-		{
-			append(code, module_.marker(value->location));
-			code.push_back(target == "s32" ? 0xaa : target == "s64" ? 0xb0 : 0xb1);
-		}
-		return {code, target};
+		return conversion(std::move(code), source, type_of_expression(cast->target_type), value->location);
 	}
 	if (auto call = dynamic_cast<Call*>(value))
 	{
@@ -3373,11 +3494,22 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			return {code, host->result};
 		}
 		Definition& target = member ? *method_definition : module_.resolve(callee, types, value->location);
+		std::vector<bool> converted_owned(argument_code.size(), false);
+		for (std::size_t i = 0; i < argument_code.size(); ++i)
+			if (types[i] != target.parameters[i])
+			{
+				if (i >= target.convert.size() || !target.convert[i])
+					throw std::runtime_error("resolved Capy call requires an undeclared parameter conversion");
+				converted_owned[i] = target.parameters[i] == "string" && types[i] != "string" && types[i] != "bool";
+				auto converted = conversion(std::move(argument_code[i]), types[i], target.parameters[i], (*arguments)[i]->location);
+				argument_code[i] = std::move(converted.first);
+				types[i] = std::move(converted.second);
+			}
 		Bytes code;
 		std::vector<unsigned> owned_arguments;
 		for (std::size_t i = 0; i < argument_code.size(); ++i)
 		{
-			if (managed_type(types[i]) && expression_is_owned((*arguments)[i]))
+			if (managed_type(types[i]) && (converted_owned[i] || expression_is_owned((*arguments)[i])))
 			{
 				const unsigned temporary = add_local("", types[i], (*arguments)[i]->location);
 				append(code, argument_code[i]);
@@ -4134,6 +4266,8 @@ void Module::collect()
 				auto name = annotation ? dynamic_cast<Name*>(annotation->value) : nullptr;
 				if (!name)
 					throw Error(member->location, "struct members must be name:type annotations");
+				if (annotation->convert)
+					throw Error(annotation->location, "'as' conversion markers are valid only on function parameters");
 				if (!names.insert(name->value).second)
 					throw Error(member->location, "struct member '" + name->value + "' is already declared");
 				const std::string type = value_type(annotation->type_expr);
@@ -4176,6 +4310,8 @@ void Module::collect()
 			std::vector<std::string> parameters;
 			for (const auto& parameter : function->parameters)
 			{
+				if (parameter.convert)
+					throw Error(parameter.type_expr->location, "host declarations cannot request parameter conversion");
 				const std::string type = value_type(parameter.type_expr);
 				if (type == "void" || (!is_scalar(type) && type != "string" && type != "dval" && type != "request" && type != "module"))
 					throw Error(parameter.type_expr->location, "host declarations support scalar, string, dval, request, and module parameters only");
@@ -4200,17 +4336,25 @@ void Module::collect()
 		if (invalid_task_name)
 			throw Error(function->location, "TASK handler suffix must match [A-Za-z_][A-Za-z0-9_]*");
 		std::vector<std::string> parameters;
+		std::vector<bool> conversions;
 		bool generic = false;
 		for (const auto& parameter : function->parameters)
 		{
 			const bool any = dynamic_cast<Name*>(parameter.type_expr) && type_name(*parameter.type_expr) == "any";
 			generic = generic || any;
 			parameters.push_back(any ? "any" : value_type(parameter.type_expr));
+			conversions.push_back(parameter.convert);
+			if (parameter.convert && (any || (parameters.back() != "string" && !is_scalar(parameters.back()))))
+				throw Error(parameter.type_expr->location, "'as' parameter conversion requires a concrete scalar or string type");
 			if (parameters.back() == "void")
 				throw Error(parameter.type_expr->location, "function parameters cannot have type void");
 		}
+		if (generic && std::any_of(conversions.begin(), conversions.end(), [](bool value) { return value; }))
+			throw Error(function->location, "generic functions cannot request parameter conversion");
 		if (handler && generic)
 			throw Error(function->location, "Bearer handlers cannot use any parameters");
+		if (handler && std::any_of(conversions.begin(), conversions.end(), [](bool value) { return value; }))
+			throw Error(function->location, "Bearer handlers cannot request parameter conversion");
 		const bool task_handler = function->name == "TASK" || function->name.rfind("TASK:", 0) == 0;
 		if (task_handler && parameters != std::vector<std::string>{"request"})
 			throw Error(function->location, "TASK handler requires exactly one request parameter");
@@ -4265,6 +4409,7 @@ void Module::collect()
 			Definition definition;
 			definition.function = function;
 			definition.parameters = parameters;
+			definition.convert = conversions;
 			definition.result = result;
 			definition.exported = exported;
 			definitions_by_key_[k] = definitions_.size();
@@ -4367,8 +4512,8 @@ Module::Capabilities Module::discover_capabilities()
 					arguments.push_back(scan_value_type(argument));
 				if (const HostDeclaration* declaration = host(member->member, arguments))
 					return declaration->result;
-				if (auto found = definitions_by_key_.find(key(member->member, arguments)); found != definitions_by_key_.end())
-					return definitions_[found->second].result;
+				if (auto result = compatible_result(member->member, arguments, member->location))
+					return *result;
 			}
 			if (auto name = dynamic_cast<Name*>(call->function))
 			{
@@ -4390,8 +4535,8 @@ Module::Capabilities Module::discover_capabilities()
 					arguments.push_back(scan_value_type(argument));
 				if (const HostDeclaration* declaration = host(name->value, arguments))
 					return declaration->result;
-				if (auto found = definitions_by_key_.find(key(name->value, arguments)); found != definitions_by_key_.end())
-					return definitions_[found->second].result;
+				if (auto result = compatible_result(name->value, arguments, name->location))
+					return *result;
 			}
 		}
 		return "";
@@ -4455,6 +4600,26 @@ Module::Capabilities Module::discover_capabilities()
 						if (managed_type(type)) { dval_ = dval_ || type == "dval"; scan_retain = true; scan_release = true; }
 					if (managed_type(host->result)) { dval_ = dval_ || host->result == "dval"; scan_alloc = true; scan_retain = true; scan_release = true; }
 				}
+				if (const Definition* converted = converted_definition(callee, host_arguments, c->location))
+				{
+					for (std::size_t i = 0; i < host_arguments.size(); ++i)
+						if (converted->parameters[i] == "string" && host_arguments[i] != "string" && host_arguments[i] != "bool")
+						{
+							scan_alloc = scan_retain = scan_release = true;
+							scan_format_s64 = scan_format_s64 || host_arguments[i] == "s32" || host_arguments[i] == "s64";
+							scan_format_u64 = scan_format_u64 || host_arguments[i] == "u64";
+							scan_format_f64 = scan_format_f64 || host_arguments[i] == "f64";
+						}
+				}
+				else if (std::find(host_arguments.begin(), host_arguments.end(), "") != host_arguments.end())
+					for (const Definition& candidate : definitions_)
+						if (candidate.function && candidate.function->name == callee && candidate.parameters.size() == host_arguments.size())
+							for (std::size_t i = 0; i < host_arguments.size(); ++i)
+								if (candidate.convert.size() == host_arguments.size() && candidate.convert[i] && candidate.parameters[i] == "string")
+								{
+									scan_alloc = scan_retain = scan_release = true;
+									scan_format_s64 = scan_format_u64 = scan_format_f64 = true;
+								}
 			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && (n->value == "dval" || n->value == "dval_has" || n->value == "dval_string" || n->value == "dval_s32" || n->value == "dval_f64" || n->value == "dval_bool"))
 			{
@@ -4586,6 +4751,18 @@ Module::Capabilities Module::discover_capabilities()
 					if (!inferred.empty())
 						scan_value_names[name->value] = inferred;
 				}
+		}
+		else if (auto c = dynamic_cast<Cast*>(e))
+		{
+			const std::string source = scan_value_type(c->value), target = type_of_expression(c->target_type);
+			if (target == "string" && source != "string" && source != "bool")
+			{
+				scan_alloc = scan_retain = scan_release = true;
+				scan_format_s64 = scan_format_s64 || source == "s32" || source == "s64";
+				scan_format_u64 = scan_format_u64 || source == "u64";
+				scan_format_f64 = scan_format_f64 || source == "f64";
+			}
+			scan(c->value);
 		}
 		else if (auto r = dynamic_cast<Return*>(e))
 		{

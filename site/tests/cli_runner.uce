@@ -221,20 +221,37 @@ void cli_run_doc_pages_gate(u64 shard = 0, u64 shard_count = 1)
 	error_markers.push_back(String("uncaught exception during ") + "request");
 	error_markers.push_back("timed out acquiring compile lock");
 
-	u64 page_index = 0;
+	DValue documents;
 	for(String file_name : ls("../doc/pages/").sort())
 	{
-		String source = file_get_contents("../doc/pages/" + file_name);
-		String page = nibble(file_name, ".");
+		DValue document;
+		String remaining = file_name;
+		document["page"] = nibble(remaining, ".");
+		document["source"] = file_get_contents("../doc/pages/" + file_name);
+		documents.push(document);
+	}
+	for(String file_name : ls("../doc/capy/").sort())
+	{
+		DValue document;
+		String remaining = file_name;
+		document["page"] = "capy-" + nibble(remaining, ".");
+		document["source"] = file_get_contents("../doc/capy/" + file_name);
+		documents.push(document);
+	}
+
+	u64 page_index = 0;
+	documents.each([&](DValue document, String) {
+		String source = document["source"].to_string();
+		String page = document["page"].to_string();
 		if(page == "")
-			continue;
+			return;
 		if(page_index++ % shard_count != shard)
-			continue;
+			return;
 		bool has_example = cli_doc_source_has_example(source);
 		bool has_legacy_examples = cli_doc_source_has_legacy_example(source);
 		bool has_render_example = has_legacy_examples || cli_contains(source, ":example capy render") || cli_contains(source, ":example cpp render");
 		bool has_compile_only_example = cli_contains(source, ":example capy cli") || cli_contains(source, ":example cpp cli") || cli_contains(source, ":example capy component") || cli_contains(source, ":example cpp component") || cli_contains(source, ":example capy init") || cli_contains(source, ":example cpp init") || cli_contains(source, ":example capy once") || cli_contains(source, ":example cpp once") || cli_contains(source, ":example capy ws") || cli_contains(source, ":example cpp ws");
-		String path = "/doc/index.uce?p=" + uri_encode(page);
+		String path = "/doc/?p=" + uri_encode(page);
 		CliHttpResponse res;
 		String summary;
 		bool ok = false;
@@ -276,22 +293,41 @@ void cli_run_doc_pages_gate(u64 shard = 0, u64 shard_count = 1)
 				break;
 		}
 		cli_test_case("bearer_doc_gate:doc page " + page, ok, ok ? summary : summary + "; body=" + cli_truncate(res.body));
-	}
+	});
 }
 
 void cli_run_http_smoke()
 {
-	cli_expect_http("bearer_http_smoke:doc index", "/doc/index.uce", 200, "<html>");
+	cli_expect_http("bearer_http_smoke:doc index", "/doc/", 200, "<html>");
 	// Regression guard: the index enumerates pages via ls("pages/"). When that
 	// returned empty (wasm ls() was a stub), the page still rendered <html> but
 	// listed nothing — so assert the function grid is actually populated.
-	cli_expect_http("bearer_http_smoke:doc index lists functions", "/doc/index.uce", 200, "func-item");
-	cli_expect_http("bearer_http_smoke:doc singlepage", "/doc/singlepage.uce", 200, "<html>");
-	cli_expect_http("bearer_http_smoke:doc component page", "/doc/index.uce?p=component", 200, "component()");
-	cli_expect_http("bearer_http_smoke:doc regex page", "/doc/index.uce?p=regex_search", 200, "regex_search");
-	cli_expect_http("bearer_http_smoke:doc xml page", "/doc/index.uce?p=xml_encode", 200, "xml_encode");
-	cli_expect_http("bearer_http_smoke:doc yaml page", "/doc/index.uce?p=yaml_encode", 200, "yaml_encode");
-	cli_expect_http("bearer_http_smoke:doc relative time page", "/doc/index.uce?p=time_format_relative", 200, "time_format_relative");
+	cli_expect_http("bearer_http_smoke:doc index lists functions", "/doc/", 200, "capy-guide-index");
+	cli_expect_http("bearer_http_smoke:Capy language article", "/doc/?p=capy-01-getting-started", 200, "A Capy program is a text file");
+	cli_expect_http("bearer_http_smoke:search includes Capy guides", "/doc/search.uce?q=closures", 200, "capy-09-function-values-closures-and-memory");
+	cli_expect_http("bearer_http_smoke:search no-result state", "/doc/search.uce?q=no-such-document-term", 200, "No results");
+	CliHttpResponse singlepage = cli_frontend("/doc/singlepage.uce");
+	u64 first_guide = singlepage.body.find("1. Getting started");
+	u64 last_guide = singlepage.body.find("14. Errors, debugging, and good style");
+	bool guides_once_in_order = singlepage.status == 200 && first_guide != String::npos && last_guide > first_guide &&
+		singlepage.body.find("1. Getting started", first_guide + 1) == String::npos && singlepage.body.find("API Reference") > last_guide;
+	cli_test_case("bearer_http_smoke:single-page ordered Capy guide", guides_once_in_order,
+		guides_once_in_order ? "14 guide articles precede API reference" : "single-page guide missing, duplicated, or unordered");
+	cli_expect_http("bearer_http_smoke:doc component page", "/doc/?p=component", 200, "component()");
+	cli_expect_http("bearer_http_smoke:doc regex page", "/doc/?p=regex_search", 200, "regex_search");
+	cli_expect_http("bearer_http_smoke:doc xml page", "/doc/?p=xml_encode", 200, "xml_encode");
+	cli_expect_http("bearer_http_smoke:doc yaml page", "/doc/?p=yaml_encode", 200, "yaml_encode");
+	cli_expect_http("bearer_http_smoke:doc relative time page", "/doc/?p=time_format_relative", 200, "time_format_relative");
+	CliHttpResponse dval_set_doc = cli_frontend("/doc/?p=2_DValue_set");
+	bool dval_set_signatures = dval_set_doc.status == 200 && cli_contains(dval_set_doc.body, "function dval_set(value : dval, source : dval) dval") &&
+		cli_contains(dval_set_doc.body, "void DValue::set(DValue source)");
+	cli_test_case("bearer_http_smoke:generated Capy and C++ signatures", dval_set_signatures,
+		dval_set_signatures ? "DValue set signatures are language-specific" : cli_truncate(dval_set_doc.body));
+	CliHttpResponse context_params_doc = cli_frontend("/doc/?p=request_context_params");
+	bool context_param_signatures = context_params_doc.status == 200 && cli_contains(context_params_doc.body, "function request_context() dval") &&
+		cli_contains(context_params_doc.body, "function request_query_route(default_path : string) dval");
+	cli_test_case("bearer_http_smoke:conceptual page Capy signatures", context_param_signatures,
+		context_param_signatures ? "request context accessors are explicit" : cli_truncate(context_params_doc.body));
 	cli_expect_http("bearer_http_smoke:starter home", "/examples/bearer-starter/", 200, "Stunning Apps");
 	cli_expect_http("bearer_http_smoke:starter dashboard", "/examples/bearer-starter/?dashboard", 200, "Dashboard");
 	cli_expect_http("bearer_http_smoke:starter dashboard ONCE assets reach head", "/examples/bearer-starter/?dashboard", 200, "views/dashboard.css");

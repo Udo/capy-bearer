@@ -1,9 +1,11 @@
 #pragma once
+#include "capy_signatures.generated.h"
 
 struct DocPage {
 	String title;
 	String content;
 	DValue sig_lines;
+	DValue capy_sig_lines;
 	DValue param_lines;
 	DValue example_blocks;
 	DValue example_pairs;
@@ -68,9 +70,61 @@ bool doc_has_area(String name)
 	return(file_exists("areas/" + name + ".txt"));
 }
 
+bool doc_page_name_is_safe(String name)
+{
+	if(name == "")
+		return(false);
+	for(char c : name)
+		if(!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-' || c == ' ' || c == '+'))
+			return(false);
+	return(true);
+}
+
+String doc_page_path(String name)
+{
+	if(!doc_page_name_is_safe(name))
+		return("");
+	if(name.rfind("capy-", 0) == 0)
+		return("capy/" + name.substr(5) + ".txt");
+	return("pages/" + name + ".txt");
+}
+
+String doc_page_source(String name)
+{
+	String path = doc_page_path(name);
+	return(path == "" ? "" : file_get_contents(path));
+}
+
+String doc_page_title_from_source(String source)
+{
+	u64 start = source.find(":title\n");
+	if(start == String::npos)
+		return("");
+	start += 7;
+	u64 end = source.find("\n:", start);
+	return(trim(source.substr(start, end == String::npos ? String::npos : end - start)));
+}
+
+DValue doc_page_names()
+{
+	DValue names;
+	for(String file_name : ls("pages/").sort())
+	{
+		String remaining = file_name;
+		names.push(nibble(remaining, "."));
+	}
+	for(String file_name : ls("capy/").sort())
+	{
+		String remaining = file_name;
+		names.push("capy-" + nibble(remaining, "."));
+	}
+	return(names);
+}
+
 bool doc_has_page(String name)
 {
-	return(file_exists("pages/" + name + ".txt"));
+	String path = doc_page_path(name);
+	return(path != "" && file_exists(path));
 }
 
 DocPageKind doc_page_kind(String page)
@@ -84,19 +138,6 @@ DocPageKind doc_page_kind(String page)
 	if(page.substr(0, 2) == "3_")
 		return(DocPageKind::info);
 	return(DocPageKind::function);
-}
-
-String doc_page_kind_badge(DocPageKind kind)
-{
-	if(kind == DocPageKind::struct_page)
-		return("struct");
-	if(kind == DocPageKind::directive)
-		return("directive");
-	if(kind == DocPageKind::method)
-		return("method");
-	if(kind == DocPageKind::info)
-		return("info");
-	return("");
 }
 
 String doc_index_label(String page)
@@ -225,7 +266,7 @@ void doc_add_example(DocPage& result, String language, String entry, String body
 DocPage load_doc_page(String page)
 {
 	DocPage result;
-	DValue lines = split(file_get_contents("pages/" + page + ".txt"), "\n");
+	DValue lines = split(doc_page_source(page), "\n");
 	String current_section = "";
 	DValue current_lines;
 	DValue content_lines;
@@ -326,5 +367,7 @@ DocPage load_doc_page(String page)
 		result.example_parse_error = "expected contiguous :example cpp " + pending_entry;
 	result.content = join(content_lines, "\n");
 	result.title = trim(result.title);
+	if(page.rfind("capy-", 0) != 0)
+		result.capy_sig_lines = doc_capy_signature_lines(page);
 	return(result);
 }

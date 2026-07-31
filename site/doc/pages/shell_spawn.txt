@@ -1,6 +1,10 @@
-# shell_spawn
+:title
+shell_spawn
 
+:sig
+u64 shell_spawn(DValue spec)
 
+:content
 Starts a bounded background shell job and returns a job id. `spec` fields: `cmd`, optional `stdin`, optional `env` map, optional `timeout_ms`.
 
 Use `job_status()`, `job_await()`, `job_result()`, or `job_cancel()` with the returned id.

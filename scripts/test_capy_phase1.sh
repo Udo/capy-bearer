@@ -44,6 +44,28 @@ operator_output=$(scripts/bearer-cli /tests/capy-operators.capy)
 	echo "Capy logical/unary/inferred-declaration output mismatch: $operator_output" >&2
 	exit 1
 }
+expect_equal "newline-independent expression parsing" "7|3|9" "$(scripts/bearer-cli /tests/capy-whitespace.capy)"
+coercion_expected="7|8|42|-9|10|4.25|true|false|12|false|1|2|3|9|4|0"
+expect_equal "declared parameter coercion and generic casts" "$coercion_expected" "$(scripts/bearer-cli /tests/capy-coercion.capy)"
+(
+	coercion_trap_dir=$(mktemp -d "$site_directory/tests/capy-coercion-trap.XXXXXX")
+	trap 'rm -rf -- "$coercion_trap_dir"' EXIT
+	coercion_trap_name=${coercion_trap_dir##*/}
+	cat >"$coercion_trap_dir/entry.capy" <<'EOF'
+function narrow(value : as s64) s64 { value }
+function CLI { print(narrow(1e300)) }
+EOF
+	set +e
+	coercion_trap_output=$(scripts/bearer-cli "/tests/$coercion_trap_name/entry.capy" 2>&1)
+	coercion_trap_status=$?
+	set -e
+	[[ $coercion_trap_status -ne 0 && "$coercion_trap_output" == *"integer overflow"* && "$coercion_trap_output" == *"entry.capy:2:29"* ]] || {
+		echo "Capy parameter conversion trap/source mapping mismatch: $coercion_trap_output" >&2
+		exit 1
+	}
+	expect_equal "parameter conversion trap recovery" "$coercion_expected" "$(scripts/bearer-cli /tests/capy-coercion.capy)"
+)
+
 variable_expression_output=$(scripts/bearer-cli /tests/capy-variable-expressions.capy)
 [[ "$variable_expression_output" == "var;1;typed;1;inferred;1;assigned;1;once;once-value;1;false;visible;equal;passed;call;and;or;2;2;0;2;0;returned;implicit;0" ]] || {
 	echo "Capy value-producing declaration output/ARC mismatch: $variable_expression_output" >&2

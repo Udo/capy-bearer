@@ -1,18 +1,23 @@
-# http_request_async
+:title
+http_request_async
 
+:sig
+u64 http_request_async(DValue req)
+
+:content
 Starts the same request shape as `http_request()`, including its opt-in `security` hardening fields, in the file-backed async job registry and returns a job id. An unknown `security` object remains legacy; any recognized hardening key requires all five keys to be explicit `true` or the request fails closed. Hardened curl remains in this job's worker process group, so `job_cancel()` kills curl and its descendants without signalling other jobs. Use `job_await()` or `job_result()` to retrieve the HTTP result.
 
 :see
 >socket
 
 :example capy render
-var request := dval({"method": "GET", "url": "http://127.0.0.1/doc/index.uce", "headers": {"Host": "bearer.openfu.com"}, "timeout_ms": 2000})
+var request := dval({"method": "GET", "url": "http://127.0.0.1/doc/", "headers": {"Host": "bearer.openfu.com"}, "timeout_ms": 2000})
 var job := http_request_async(request)
 var done := job_await(dval(job), 3000)
 print("async HTTP ", dval_s32(dval_get_by_path(done, "result/status")), "\n")
 
 :example cpp render
-DValue req; req["method"] = "GET"; req["url"] = "http://127.0.0.1/doc/index.uce";
+DValue req; req["method"] = "GET"; req["url"] = "http://127.0.0.1/doc/";
 req["headers"]["Host"] = "bearer.openfu.com"; req["timeout_ms"] = (f64)2000;
 u64 job = http_request_async(req);
 DValue done = job_await(job, 3000);

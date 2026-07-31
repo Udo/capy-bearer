@@ -53,6 +53,7 @@ if needs_rebuild bin/capyc src/capy scripts/build_capy.sh; then
 else
 	echo "Reusing bin/capyc"
 fi
+python3 scripts/generate_capy_doc_signatures.py --capyc bin/capyc --check
 
 # core.wasm: guest runtime loaded by the native wasm backend.
 if needs_rebuild bin/wasm/core.wasm src/wasm/core.cpp src/wasm/abi.h src/lib src/wasm/core_hostcalls.syms src/wasm/core_libc_exports.syms scripts/build_core_wasm.sh; then

@@ -18,6 +18,7 @@ else
 	echo "Reusing $BUILD_DIR/capyc"
 fi
 "$BUILD_DIR/capyc" --check-stdlib src/capy/stdlib.capy src/capy/stdlib.embedded.h
+python3 scripts/generate_capy_doc_signatures.py --capyc "$BUILD_DIR/capyc" --check
 python3 - <<'PY'
 from pathlib import Path
 import re

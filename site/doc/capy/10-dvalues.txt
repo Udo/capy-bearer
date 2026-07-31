@@ -1,0 +1,69 @@
+:title
+10. DValues
+
+:content
+A `dval` is a dynamic value for Bearer APIs. It can hold an empty value, string, boolean, number, map, or list. Use DValues for request data, JSON, database rows, component properties, task messages, and unit calls.
+
+## Creating DValues
+
+Use `dval(...)` with a scalar, map literal, or list literal:
+
+```capy
+var profile := dval({
+    "name": "Ada",
+    "active": true,
+    "tags": ["math", "logic"]
+})
+```
+
+## Reading values
+
+Use a string key to index a map. Use an integer to index a list:
+
+```capy
+var name := dval_string(profile["name"])
+var first_tag := dval_string(profile["tags"][0])
+```
+
+Indexing is strict. A missing key, wrong container type, or invalid list index traps. Check optional data before you read it:
+
+```capy
+if dval_has(profile, "nickname") {
+    print(dval_string(profile["nickname"]))
+}
+```
+
+Extraction functions include `dval_string`, `dval_bool`, `dval_s32`, `dval_f64`, `dval_to_s64`, and `dval_to_u64`. Select the function for the value you expect.
+
+The wide-integer functions accept optional fallback values. They preserve exact 64-bit results.
+
+## Iteration
+
+A map loop provides each string key. A list loop provides each numeric index:
+
+```capy
+for key, value = profile {
+    print(key, " = ", dval_to_string(value), "\n")
+}
+```
+
+A map loop visits keys in lexical order. A list loop visits indexes in numeric order.
+
+## Updating values
+
+DValue update functions return a replacement value. Assign the result:
+
+```capy
+var items := dval([])
+items = dval_push(items, dval("first"))
+items = dval_push(items, dval("second"))
+```
+
+This rule also applies to `dval_set`, `dval_remove`, `dval_clear`, and related functions. The `dval_map` and `dval_filter` functions apply a Capy function to copied child values.
+
+Bearer copies DValues passed to C++, another unit, a component, or a task. A change on one side does not change the other side.
+
+:see
+0_DValue
+capy-08-arrays-tuples-and-structs
+capy-12-components-and-units

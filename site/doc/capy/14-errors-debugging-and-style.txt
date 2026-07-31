@@ -1,0 +1,52 @@
+:title
+14. Errors, debugging, and good style
+
+:content
+## Compile errors
+
+Capy checks names, types, calls, handler signatures, struct members, and supported value layouts before Bearer runs a unit. A compile error gives the source file, line, and column. Fix the first error before you examine later errors.
+
+Common causes include:
+
+- An assignment has the wrong type.
+- No overload accepts the supplied arguments.
+- The code reads an unknown struct field.
+- A `return` does not supply a required value.
+- A handler has the wrong parameters.
+- A generic type does not support an operation.
+
+## Runtime traps
+
+Bearer detects some errors only while the unit runs. Examples include an invalid array index, missing DValue key, invalid scalar extraction, failed checked conversion, or explicit `trap()`.
+
+Bearer reports a Capy source location for these errors. `backtrace_get_frames()` returns text that lists the active Capy function calls.
+
+After a request traps, the next request starts with fresh request state. Do not use traps for normal optional data. Check conditions such as `dval_has` before strict access.
+
+## Testing Capy code
+
+Test through the same handler that the application uses. A small `CLI` handler is useful for functions without web effects. Test HTTP behavior through `RENDER` or `COMPONENT`. Include absent and malformed input.
+
+Test calls between units through the real export or component target. Include these boundary cases:
+
+- Empty strings and maximum-length strings.
+- Absent DValue keys.
+- Zero, negative, and wide integer values.
+- Repeated calls that can expose stale state.
+- Cancellation and time limits for remote work.
+- HTML output that contains untrusted text.
+
+## Style guidelines
+
+Use explicit types at boundaries. Use inference for obvious local variables. Keep request parsing and response changes near the handler.
+
+Use strings for text and markup for HTML. Use structs and arrays for private fixed data. Use DValues for dynamic data and unit calls.
+
+Keep functions small enough to show their result and side effects clearly. Use explicit `as` conversions instead of string round trips. Check optional data before strict extraction.
+
+Give named handlers and exported functions names that describe application behavior. Do not name them after transport details.
+
+:see
+capy-03-types
+capy-10-dvalues
+backtrace_get_frames

@@ -6,7 +6,7 @@ Capy is a statically compiled language that emits Bearer-compatible WebAssembly 
 
 ## Declaration grammar
 
-Capy declarations are expression-based. A function declaration consists of:
+Capy declarations are expression-based. Spaces, tabs, and newlines are ordinary whitespace; grammar and delimiters end expressions. Semicolons remain optional explicit separators when adjacent expressions would otherwise be ambiguous. A function declaration consists of:
 
 ```text
 function name [parameter expression] [return type expression] code block expression
@@ -30,7 +30,7 @@ function pair() (s32, s32) {
 
 A parenthesized header expression occupies one declaration slot, so `function pair() (s32, s32) {}` is deterministically an empty parameter expression followed by a tuple return-type expression, not a call expression.
 
-Function overload identity is the function name plus normalized parameter type patterns. Return types never distinguish overloads and expected result types never select an overload.
+Function overload identity is the function name plus normalized parameter type patterns. Return types never distinguish overloads and expected result types never select an overload. A parameter written `name : as Type` opts into call-site conversion to that concrete scalar or string type; the function body sees `name` as `Type`.
 
 ## Compile-time constants
 
@@ -47,7 +47,7 @@ function CLI { print(retries) }
 
 `&&` and `||` require `bool` operands and short-circuit their right side. Unary `!` requires `bool`; unary `-` accepts `s32`, `s64`, and `f64`. Unsuffixed integers remain `s32` and are limited to `-2147483648` through `2147483647`; append `s64` for signed 64-bit literals or `u64` for unsigned literals through `18446744073709551615u64`. Decimal-point and exponent literals are `f64`. Arithmetic and comparisons require equal types; `s64` division/remainder/order are signed, `u64` operations are unsigned, and `f64` follows Wasm IEEE-754 with no remainder operator.
 
-Explicit `as` casts convert among `s32`, `s64`, `u64`, `f64`, and `bool`. Integer narrowing wraps; negative `s32` to `u64` sign-extends modulo 2^64; `u64` to `f64` can round above 2^53; and out-of-range or non-finite `f64` to integer conversion traps at the cast source location. `time()` returns `u64` and `time_precise()` returns `f64` through Bearer's existing clock policy. Wide scalars work in locals, parameters, results, direct calls, and fixed-signature function values. Until aligned aggregate layouts are implemented, source-located errors reject `s64`/`u64`/`f64` array elements, tuple/struct fields, and captured closure fields.
+Explicit `as` casts convert among `s32`, `s64`, `u64`, `f64`, and `bool`, and format those values as `string`. Function parameters use the same conversion table with `name : as Type`. Integer narrowing wraps; negative `s32` to `u64` sign-extends modulo 2^64; `u64` to `f64` can round above 2^53; and out-of-range or non-finite `f64` to integer conversion traps at the cast source location. `time()` returns `u64` and `time_precise()` returns `f64` through Bearer's existing clock policy. Wide scalars work in locals, parameters, results, direct calls, and fixed-signature function values. Until aligned aggregate layouts are implemented, source-located errors reject `s64`/`u64`/`f64` array elements, tuple/struct fields, and captured closure fields.
 
 ## Compile-time polymorphism
 
@@ -61,11 +61,11 @@ function identity(x : any) x::type {
 
 `x::type` is a compile-time dependent type expression. A specialization fails at its callsite if its body requires an operator or conversion unavailable for the bound type. There is no runtime `any` tag or dispatch.
 
-The planned phase-3 overload ranking is deterministic:
+Overload ranking is deterministic:
 
 1. concrete exact parameter matches;
 2. `any` specializations without conversion;
-3. candidates using declared `as` conversions, ranked by total conversion cost;
+3. candidates using declared `as` conversions, ranked by the number of converted arguments;
 4. equal best candidates are ambiguous.
 
 ## Tuples and returns
@@ -292,4 +292,4 @@ Capy's `BEARER_SOURCE_MAP_V1` sidecar records sorted absolute byte offsets in th
 
 ## Current implementation boundary
 
-The current implementation includes the lexer, expression parser, bounded diagnostics, direct Wasm encoding, `.capy` artifact integration, and real Bearer CLI/HTTP execution. Scalar control flow—including ARC-safe `break` and `continue` through nested while/range/array loops—plus ARC strings, arrays, and nominal structs execute as native Wasm. Units emit only the Bearer host imports, ARC helpers/global, and function table they use; direct literal output is stored as raw UTF-8 bytes and lowered to one pointer/byte-length hostcall. Parameter `any` now monomorphizes lazily by concrete argument types, caches specializations, validates operators after substitution, supports `x::type` results, prefers exact overloads, and rejects equally ranked generic matches. Parenthesized comma expressions lower as managed heterogeneous tuples; parenthesized function results carry multiple values through static checked indexing and recursive ARC drop glue. Explicit scalar `as` conversions and locale-independent scalar print/markup formatting are implemented; conversion-ranked overload candidates remain open. Public fixed-signature function types, noncapturing lambdas, and ARC-managed capturing closures are implemented. Named calls remain direct; converting a name to a value generates a private closure thunk, managed captures are retained and dropped with the environment, and modules without function values omit their table. Capy exports `COMPONENT` alongside the other Bearer handlers. `unit_render(string)` and `component_render(string)` enter other units through core Bearer dispatch; tested Capy→C++ render and C++→Capy component calls do not share language object layouts. `dval(string)` creates an owned ARC object containing copied BRRB2 bytes, `dval_string` decodes a copied scalar, and `unit_call(target, function, dval)` crosses the existing Bearer unit membrane with a staged copied result so the target executes once. Copy/reassignment and managed temporary cleanup are covered. Nested DValue maps/lists, strict string/integer indexing, explicit missing checks, strict scalar extraction, ordered map/list iteration, Capy custom exports, and structured round trips in both language directions are implemented. Reflection and weak references remain open. The authoritative remaining work is tracked in `/root/docs/work/capy-compiler.md`.
+The current implementation includes the lexer, expression parser, bounded diagnostics, direct Wasm encoding, `.capy` artifact integration, and real Bearer CLI/HTTP execution. Scalar control flow—including ARC-safe `break` and `continue` through nested while/range/array loops—plus ARC strings, arrays, and nominal structs execute as native Wasm. Units emit only the Bearer host imports, ARC helpers/global, and function table they use; direct literal output is stored as raw UTF-8 bytes and lowered to one pointer/byte-length hostcall. Parameter `any` now monomorphizes lazily by concrete argument types, caches specializations, validates operators after substitution, supports `x::type` results, prefers exact overloads, and rejects equally ranked generic matches. Parenthesized comma expressions lower as managed heterogeneous tuples; parenthesized function results carry multiple values through static checked indexing and recursive ARC drop glue. Explicit `as` conversions and declaration-site `name : as Type` conversion-ranked overloads are implemented for numeric/boolean scalar conversions and scalar-to-string formatting. Public fixed-signature function types, noncapturing lambdas, and ARC-managed capturing closures are implemented. Named calls remain direct; converting a name to a value generates a private closure thunk, managed captures are retained and dropped with the environment, and modules without function values omit their table. Capy exports `COMPONENT` alongside the other Bearer handlers. `unit_render(string)` and `component_render(string)` enter other units through core Bearer dispatch; tested Capy→C++ render and C++→Capy component calls do not share language object layouts. `dval(string)` creates an owned ARC object containing copied BRRB2 bytes, `dval_string` decodes a copied scalar, and `unit_call(target, function, dval)` crosses the existing Bearer unit membrane with a staged copied result so the target executes once. Copy/reassignment and managed temporary cleanup are covered. Nested DValue maps/lists, strict string/integer indexing, explicit missing checks, strict scalar extraction, ordered map/list iteration, Capy custom exports, and structured round trips in both language directions are implemented. Reflection and weak references remain open. The authoritative remaining work is tracked in `/root/docs/work/capy-compiler.md`.

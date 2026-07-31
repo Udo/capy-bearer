@@ -1,0 +1,92 @@
+:title
+6. Functions
+
+:content
+## Declaring and calling functions
+
+Write each parameter as `name : Type`. Put the result type after the parameter list:
+
+```capy
+function area(width : f64, height : f64) f64 {
+    width * height
+}
+
+var size := area(4.0, 2.5)
+```
+
+The function returns its last expression. Use `return` to leave the function early:
+
+```capy
+function absolute(value : s32) s32 {
+    if value < 0 { return 0 - value }
+    value
+}
+```
+
+Capy evaluates arguments from left to right.
+
+## Parameter conversion
+
+A normal parameter requires its declared type. Put `as` after the colon to request conversion before the function runs:
+
+```capy
+function show(value : as string) {
+    print(value)
+}
+
+show(42)       // value is "42"
+show(3.5)      // value is "3.5"
+show(true)     // value is "true"
+```
+
+Inside `show`, `value` has type `string`. You can convert numeric and boolean values among scalar types. You can also convert these values to strings.
+
+Overload selection first uses an exact concrete match. It next uses a matching generic function. It uses a converting function only when neither earlier match exists.
+
+Two equally good converting functions make the call ambiguous. Use an explicit conversion to select the required type.
+
+The expression `value as Type` uses the same conversion rules:
+
+```capy
+function show_count(count : s64) { print(count) }
+show_count(12 as s64)
+```
+
+## Overloading
+
+Several functions can have the same name when their parameter types differ:
+
+```capy
+function describe(value : s32) string { "integer" }
+function describe(value : string) string { "text" }
+```
+
+The compiler selects an overload from the argument types. A result type cannot select an overload.
+
+## Generic functions
+
+`any` is a compile-time type parameter. `value::type` names the type supplied for that parameter:
+
+```capy
+function identity(value : any) value::type {
+    value
+}
+```
+
+The compiler checks each used type separately. There is no `any` value while the program runs. Each operation must support the supplied type.
+
+## Method-style calls
+
+A function can use its first parameter as a receiver:
+
+```capy
+function doubled(value : s32) s32 { value * 2 }
+print((4).doubled())
+```
+
+The compiler treats this as an ordinary function call. You can also call a function stored in a struct field with dot syntax.
+
+:see
+capy-03-types
+capy-09-function-values-closures-and-memory
+capy-14-errors-debugging-and-style

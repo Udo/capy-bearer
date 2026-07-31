@@ -1,9 +1,10 @@
+#include "lib/doc_page.h"
 
-void render_hit(String ft, String name, String badge, String snippet)
+void render_hit(String ft, String name, String snippet)
 {
 	<><div class="search-hit">
-		<a href="index.uce?p=<?= uri_encode(ft) ?>"><?= html_escape(name) ?><? if(badge != "") { ?><span class="badge"><?= badge ?></span><? } ?></a><?
-		if(snippet != "") { ?><span class="search-snippet"><?= html_escape(snippet) ?></span><? } ?>
+		<a href="./?p=<?= uri_encode(ft) ?>"><?= name ?></a><?
+		if(snippet != "") { ?><span class="search-snippet"><?= snippet ?></span><? } ?>
 	</div></>
 }
 
@@ -19,37 +20,22 @@ RENDER(Request& context)
 	// Collect results into two buckets: title matches first, then content-only matches
 	DValue title_ft;
 	DValue title_name;
-	DValue title_badge;
 	DValue title_snippet;
 
 	DValue body_ft;
 	DValue body_name;
-	DValue body_badge;
 	DValue body_snippet;
 
-	for(auto file_name : ls("pages/"))
-	{
-		String ft = nibble(file_name, ".");
-		String name = ft;
-		String badge = "";
-
-		if(ft.substr(0, 2) == "0_")
-		{
-			nibble(name, "_");
-			badge = "struct";
-		}
-		else if(ft.substr(0, 2) == "1_")
-		{
-			nibble(name, "_");
-			badge = "directive";
-		}
-
-		String content = file_get_contents("pages/" + ft + ".txt");
+	DValue documents = doc_page_names();
+	documents.each([&](DValue document, String) {
+		String ft = document.to_string();
+		String content = doc_page_source(ft);
+		String name = first(doc_page_title_from_source(content), doc_index_label(ft));
 		bool name_match = contains(to_lower(name), q);
 		bool content_match = contains(to_lower(content), q);
 
 		if(!name_match && !content_match)
-			continue;
+			return;
 
 		// Find first content line that contains the query for a snippet
 		String snippet = "";
@@ -72,29 +58,27 @@ RENDER(Request& context)
 		{
 			title_ft.push_back(ft);
 			title_name.push_back(name);
-			title_badge.push_back(badge);
 			title_snippet.push_back(snippet);
 		}
 		else
 		{
 			body_ft.push_back(ft);
 			body_name.push_back(name);
-			body_badge.push_back(badge);
 			body_snippet.push_back(snippet);
 		}
-	}
+	});
 
 	u32 count = title_ft.size() + body_ft.size();
 
 	if(count == 0)
 	{
-		<><p class="no-results">No results for "<strong><?= html_escape(q) ?></strong>"</p></>
+		<><p class="no-results">No results for "<strong><?= q ?></strong>"</p></>
 		return;
 	}
 
 	for(u32 i = 0; i < title_ft.size(); i++)
-		render_hit(title_ft[i], title_name[i], title_badge[i], title_snippet[i]);
+		render_hit(title_ft[i], title_name[i], title_snippet[i]);
 
 	for(u32 i = 0; i < body_ft.size(); i++)
-		render_hit(body_ft[i], body_name[i], body_badge[i], body_snippet[i]);
+		render_hit(body_ft[i], body_name[i], body_snippet[i]);
 }

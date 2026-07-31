@@ -17,7 +17,8 @@ void usage(std::ostream& output)
 {
 	output << "usage: capyc SOURCE -o UNIT.wasm --source-map UNIT.wasm.source-map --abi-version VERSION\n"
 		<< "       capyc --embed-stdlib SOURCE HEADER | --check-stdlib SOURCE HEADER\n"
-		<< "       capyc --parity-manifest [OUTPUT] | --check-unit WASM ABI [--llvm-nm PATH]\n";
+		<< "       capyc --stdlib-signatures SOURCE | --parity-manifest [OUTPUT]\n"
+		<< "       capyc --check-unit WASM ABI [--llvm-nm PATH]\n";
 }
 
 void write_atomic(const std::filesystem::path& path, const char* data, std::size_t size)

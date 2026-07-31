@@ -1,0 +1,69 @@
+:title
+11. Web handlers, requests, and sessions
+
+:content
+## Rendering a response
+
+A `RENDER` function handles a normal page request:
+
+```capy
+function RENDER {
+    var name := first(request_get("name"), "world")
+    print(<><h1>Hello, <?= name ?></h1></>)
+}
+```
+
+Use these request functions for common values:
+
+- `request_get(name)` reads a query parameter.
+- `request_post(name)` reads a form value.
+- `request_cookie(name)` reads a cookie.
+- `request_session(name)` reads a session value.
+- `request_param(name)` reads a server or request parameter.
+- `request_body()` returns the raw request body.
+
+Each function returns a string. It returns an empty string when the key is absent. Use `request_context()` when you need a structured request map or component properties.
+
+## Status, headers, cookies, and redirects
+
+```capy
+function RENDER {
+    response_status(201)
+    response_header("Content-Type", "text/plain; charset=utf-8")
+    response_cookie("theme", "dark")
+    print("created")
+}
+```
+
+`redirect(url)` sends a redirect response. Bearer checks status codes and header names before it uses them.
+
+## Components and named handlers
+
+`COMPONENT` renders the default component handler. Use a colon to declare a named handler:
+
+```capy
+function COMPONENT:CARD(request : request) {
+    var context := request_context(request)
+    var title := dval_string(context["props"]["title"])
+    print(<><article><h2><?= title ?></h2></article></>)
+}
+```
+
+A handler can omit the request parameter when it uses only zero-argument request functions. Use the parameter to read component properties or task input.
+
+## Sessions and CSRF protection
+
+Call `session_start(name)` before you use a named session. Use `session_set`, `session_remove`, and `session_destroy` to change it.
+
+Use `csrf_token`, `csrf_valid`, and `csrf_rotate` to protect forms. The API reference lists their overloads and default values.
+
+## WebSockets
+
+A `WS` handler reads the current message with `ws_message()`. It can call `ws_send`, `ws_send_to`, or `ws_close`. The related `ws_*` functions provide connection IDs and operation codes.
+
+:see
+0_Request
+1_RENDER
+1_COMPONENT
+1_WS
+capy-07-strings-and-markup

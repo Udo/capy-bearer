@@ -1,6 +1,10 @@
-# job_cancel
+:title
+job_cancel
 
+:sig
+bool job_cancel(u64 job_id)
 
+:content
 Attempts to terminate the background job process group and marks the registry entry as `cancelled`.
 
 :see

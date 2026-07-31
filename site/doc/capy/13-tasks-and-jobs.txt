@@ -1,0 +1,52 @@
+:title
+13. Tasks and jobs
+
+:content
+Tasks and jobs run work outside the current request. Use them for different types of work.
+
+## Tasks
+
+A task calls a named Bearer handler later. Each task handler receives a request parameter:
+
+```capy
+function TASK:SEND_EMAIL(request : request) {
+    var context := request_context(request)
+    var address := dval_string(context["props"]["address"])
+    // Send or persist the email here.
+}
+```
+
+Submit the task with a serializable DValue:
+
+```capy
+var id := task(
+    "/tasks/email.capy:SEND_EMAIL",
+    dval({"address": "ada@example.test"})
+)
+```
+
+`task` returns an opaque ID. Use `task_status(id)` or `task_await(id, timeout_ms)` to get a status DValue. Read its `state` field:
+
+```capy
+var status := task_await(id, 5000u64)
+print(dval_string(status["state"]))
+```
+
+The states are `queued`, `running`, `succeeded`, `failed`, `canceled`, and `missing`. `task_cancel(id)` requests cancellation and returns a status DValue.
+
+A successful task means that the handler finished. It does not return an application result to the caller. Store application results in a database, file, cache, or another application location.
+
+The task system does not retry a failed task. If a retry is safe, submit a new task under your application's policy.
+
+## Jobs
+
+Jobs run operating-system commands. `shell_spawn(spec)` returns a job DValue. Pass this value to `job_status`, `job_await`, `job_result`, or `job_cancel`.
+
+Use a task for application code in a Bearer unit. Use a job for an external command. Avoid waiting during a page request unless you need the result immediately. Always use a deliberate time limit.
+
+:see
+task
+task_status
+task_await
+task_cancel
+shell_spawn

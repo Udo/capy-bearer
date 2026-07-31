@@ -131,7 +131,11 @@ def check_page(page: Path, status: str) -> list[str]:
     return errors
 
 
-def check(pages: Path, manifest: Path) -> list[str]:
+def generated_capy_signature_pages(path: Path) -> set[str]:
+    return set(re.findall(r'^\s*\{"([^"]+)", "', path.read_text(), re.M))
+
+
+def check(pages: Path, manifest: Path, signatures: Path) -> list[str]:
     try:
         statuses = manifest_statuses(manifest)
     except (OSError, ValueError) as error:
@@ -144,7 +148,56 @@ def check(pages: Path, manifest: Path) -> list[str]:
     for name in sorted(actual - expected):
         errors.append(f"page set: documentation page missing from manifest: {name}")
     for name in sorted(actual & expected):
-        errors.extend(check_page(pages / f"{name}.txt", statuses[name]))
+        page = pages / f"{name}.txt"
+        errors.extend(check_page(page, statuses[name]))
+        if name not in {"3_Blocked functions", "3_Documentation format"} and ":sig\n" not in page.read_text():
+            errors.append(f"{page.name}: missing C++ :sig declaration")
+    try:
+        generated = generated_capy_signature_pages(signatures)
+    except OSError as error:
+        errors.append(f"Capy signatures: {error}")
+        generated = set()
+    required = {name for name, status in statuses.items() if status == "supported"} - {"3_Documentation format"}
+    for name in sorted(required - generated):
+        errors.append(f"Capy signatures: supported page has no generated declaration: {name}")
+    for name in sorted(generated - required):
+        errors.append(f"Capy signatures: stale or unsupported generated page: {name}")
+    return errors
+
+
+def check_language_guides(guides: Path, pages: Path) -> list[str]:
+    articles = sorted(guides.glob("*.txt"))
+    errors = []
+    if len(articles) < 10:
+        errors.append(f"Capy language guide needs at least 10 articles, found {len(articles)}")
+    expected_prefixes = [f"{number:02d}" for number in range(1, len(articles) + 1)]
+    actual_prefixes = [article.stem.partition("-")[0] for article in articles]
+    if actual_prefixes != expected_prefixes:
+        errors.append("Capy language guide filenames need contiguous ordered numeric prefixes")
+    valid_targets = {f"capy-{article.stem}" for article in articles}
+    valid_targets.update(page.stem for page in pages.glob("*.txt"))
+    for article in articles:
+        text = article.read_text()
+        lines = text.splitlines()
+        sections = [line[1:].strip() for line in lines if line.startswith(":")]
+        if sections.count("title") != 1 or sections.count("content") != 1:
+            errors.append(f"{article.name}: language article needs exactly one title and content section")
+        if any(section not in {"title", "content", "see"} for section in sections):
+            errors.append(f"{article.name}: language article contains an unsupported section")
+        if text.count("```") % 2:
+            errors.append(f"{article.name}: language article has an unclosed code fence")
+        if len(re.findall(r"\b[\w'-]+\b", text)) < 120:
+            errors.append(f"{article.name}: language article is too brief")
+        if "index.uce?p=" in text:
+            errors.append(f"{article.name}: use canonical /doc/?p= links")
+        section = ""
+        for line_number, line in enumerate(lines, 1):
+            if line.startswith(":"):
+                section = line[1:].strip()
+            elif section == "see" and line.strip() and not line.lstrip().startswith(">"):
+                target = line.strip()
+                if target not in valid_targets:
+                    errors.append(f"{article.name}:{line_number}: unknown :see target: {target}")
     return errors
 
 
@@ -166,17 +219,19 @@ def self_test() -> int:
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
         pages, manifest = root / "pages", root / "parity_manifest.h"
+        signatures = root / "capy_signatures.generated.h"
+        signatures.write_text('{"ok", "function ok"},\n')
         pages.mkdir()
         names = {"ok": "supported", "unsupported": "unsupported", "cpp": "cpp-specific"}
         fixture_manifest(manifest, names)
         def write(name: str, body: str) -> None:
             (pages / f"{name}.txt").write_text(body)
-        valid = ":example capy render\nprint(\"ok\")\n:example cpp render\nprint(\"ok\\n\");\n"
+        valid = ":sig\nvoid ok()\n:example capy render\nprint(\"ok\")\n:example cpp render\nprint(\"ok\\n\");\n"
         write("ok", valid)
-        write("unsupported", ":capy-status unsupported\n:example cpp render\nprint(\"ok\\n\");\n")
-        write("cpp", ":capy-status cpp-specific\n:example cpp render\nprint(\"ok\\n\");\n")
-        if check(pages, manifest):
-            print("self-test valid fixture failed:", *check(pages, manifest), sep="\n- ")
+        write("unsupported", ":sig\nvoid unsupported()\n:capy-status unsupported\n:example cpp render\nprint(\"ok\\n\");\n")
+        write("cpp", ":sig\nvoid cpp()\n:capy-status cpp-specific\n:example cpp render\nprint(\"ok\\n\");\n")
+        if check(pages, manifest, signatures):
+            print("self-test valid fixture failed:", *check(pages, manifest, signatures), sep="\n- ")
             return 1
         cases = {
             "bare": ("ok", ":example\nprint(\"x\")\n"),
@@ -195,19 +250,33 @@ def self_test() -> int:
         }
         for label, (name, body) in cases.items():
             original = (pages / f"{name}.txt").read_text()
+            if ":sig\n" not in body:
+                body = f":sig\nvoid {name}()\n" + body
             write(name, body)
-            if not check(pages, manifest):
+            if not check(pages, manifest, signatures):
                 print(f"self-test {label} was accepted")
                 return 1
             write(name, original)
         (pages / "ghost.txt").write_text("")
-        if not any(error.startswith("page set:") for error in check(pages, manifest)):
+        if not any(error.startswith("page set:") for error in check(pages, manifest, signatures)):
             print("self-test extra page was accepted")
             return 1
         (pages / "ghost.txt").unlink()
         fixture_manifest(manifest, {"ok": "supported"})
-        if not any(error.startswith("page set:") for error in check(pages, manifest)):
+        if not any(error.startswith("page set:") for error in check(pages, manifest, signatures)):
             print("self-test missing manifest page was accepted")
+            return 1
+        guides = root / "guides"
+        guides.mkdir()
+        prose = " ".join(["word"] * 120)
+        for number in range(1, 11):
+            (guides / f"{number:02d}-guide.txt").write_text(f":title\nGuide {number}\n\n:content\n{prose}\n\n:see\nok\n")
+        if check_language_guides(guides, pages):
+            print("self-test valid language guides failed:", *check_language_guides(guides, pages), sep="\n- ")
+            return 1
+        (guides / "10-guide.txt").write_text(f":title\nGuide 10\n\n:content\n{prose}\n\n:see\nmissing\n")
+        if not any("unknown :see target" in error for error in check_language_guides(guides, pages)):
+            print("self-test missing language-guide link was accepted")
             return 1
     print("Capy documentation example checker self-tests passed")
     return 0
@@ -217,12 +286,14 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--pages", type=Path, default=ROOT / "site/doc/pages")
     parser.add_argument("--manifest", type=Path, default=ROOT / "src/capy/parity_manifest.h")
+    parser.add_argument("--guides", type=Path, default=ROOT / "site/doc/capy")
+    parser.add_argument("--signatures", type=Path, default=ROOT / "site/doc/lib/capy_signatures.generated.h")
     parser.add_argument("--allow-incomplete", action="store_true", help="report conversion defects without failing")
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:
         return self_test()
-    errors = check(args.pages, args.manifest)
+    errors = check(args.pages, args.manifest, args.signatures) + check_language_guides(args.guides, args.pages)
     if errors:
         heading = "Capy documentation examples INCOMPLETE" if args.allow_incomplete else "Capy documentation examples FAILED"
         print(heading)

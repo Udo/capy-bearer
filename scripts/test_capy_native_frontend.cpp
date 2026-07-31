@@ -92,7 +92,7 @@ int main(int argc, char** argv)
 		assert(static_cast<Integer*>(p.items[1])->value == 2147483647LL);
 	}
 	{
-		Program p = parse("0u64\n18446744073709551615u64\n-9223372036854775808s64\n9223372036854775807s64\n1.5\n2e3\n1..3\n", "wide.capy");
+		Program p = parse("0u64; 18446744073709551615u64; -9223372036854775808s64; 9223372036854775807s64; 1.5; 2e3; 1..3", "wide.capy");
 		assert(static_cast<UnsignedInteger*>(p.items[0])->value == 0);
 		assert(static_cast<UnsignedInteger*>(p.items[1])->value == std::numeric_limits<std::uint64_t>::max());
 		assert(static_cast<SignedInteger*>(p.items[2])->value == std::numeric_limits<std::int64_t>::min());
@@ -131,7 +131,9 @@ int main(int argc, char** argv)
 		assert(first->names == std::vector<std::string>({"first", "second"}) && second->names == std::vector<std::string>({"third"}));
 	}
 	{
-		Program p = parse("function value(x : s32) s32 { return x }\nfunction value(x : string) string { return x }\n", "overload.capy");
+		Program p = parse("function value(x : s32) s32 { return x }\nfunction value(x : as string) string { return x }\n", "overload.capy");
+		auto* converted = static_cast<Function*>(p.items[1]);
+		assert(!static_cast<Function*>(p.items[0])->parameters[0].convert && converted->parameters[0].convert);
 		DeclarationIndex index;
 		index.add_program(p);
 		assert(index.functions.size() == 2);

@@ -207,6 +207,16 @@ int main()
 		"function same(value : any) value::type { value }\nfunction CLI { print((7).same()) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(generic_method.wasm, {.bearer_abi_version = "11"}).valid);
 	assert(generic_method.source_map.find("F\t1\tnative-test.capy\n") != std::string::npos);
+	const auto converted_parameters = capy::compile_bearer_unit(
+		"function text(value : as string) string { value }\nfunction wide(value : as s64) s64 { value }\n"
+		"function CLI { print(text(42), text(false), text([1][0]), wide(7u64), 8 as string) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(converted_parameters.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto unused_conversion = capy::compile_bearer_unit(
+		"function text(value : as string) string { value }\nfunction CLI {}\n", options);
+	const auto unused_conversion_validation = capy::wasm::validate_bearer_unit(unused_conversion.wasm, {.bearer_abi_version = "11"});
+	assert(unused_conversion_validation.valid);
+	for (const auto& imported : unused_conversion_validation.imports)
+		assert(imported.name.rfind("bearer_format_", 0) != 0);
 	const auto module_exports = capy::compile_bearer_unit(
 		"EXPORTS invoke\nEXPORTS other\nfunction invoke(value : dval) dval { value }\nfunction other(value : dval) dval { value }\n", options);
 	assert(module_exports.custom_exports == std::vector<std::string>({"invoke", "other"}));
@@ -231,6 +241,10 @@ int main()
 			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); print(loaded + loaded) }\n", "unsupported operator + for module"},
 			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); if loaded {} }\n", "module is opaque and cannot be used as a condition"},
 			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); loaded as s32 }\n", "no explicit conversion from module to s32"},
+			 std::pair{"function bad(value : as dval) {}\n", "requires a concrete scalar or string type"},
+			 std::pair{"function generic(value : any, count : as s64) value::type { value }\n", "generic functions cannot request parameter conversion"},
+			 std::pair{"function left(value : as s64) {}\nfunction left(value : as u64) {}\nfunction CLI { left(1) }\n", "ambiguous converted overload"},
+			 std::pair{"function CLI { var callback : function(value : as s64) s64 = function(value : s64) s64 { value } }\n", "function types cannot request parameter conversion"},
 			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); var values := [loaded] }\n", "module is opaque and cannot be stored in array layouts"},
 			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); var pair := (loaded, loaded) }\n", "module is opaque and cannot be stored in tuple layouts"},
 			 std::pair{"struct Box { handle : module }\nfunction CLI {}\n", "module is opaque and cannot be stored in struct layouts"},

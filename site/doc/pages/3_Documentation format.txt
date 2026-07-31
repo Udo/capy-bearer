@@ -1,8 +1,8 @@
-:sig
-Doc pages are text files in site/doc/pages/*.txt using colon-prefixed sections.
+:title
+Documentation format
 
 :params
-- `:sig` — one or more real C++ signatures, exactly as declared
+- `:sig` — one or more real C++ `.uce` signatures, exactly as declared
 - `:params` — `name : description` rows plus `return value : description`
 - `:content` — usage-first prose in 2-5 tight sentences
 - `:example capy render` — a Capy example, immediately followed by its C++ equivalent
@@ -11,7 +11,9 @@ Doc pages are text files in site/doc/pages/*.txt using colon-prefixed sections.
 
 
 :content
-This renderer-format reference is C++-specific; Capy examples are documented by the paired-example grammar rather than a runtime API.
+API pages live in `site/doc/pages/`; ordered Capy language-guide articles live in `site/doc/capy/`. Both use one parser, renderer, detail layout, search, single-page view, and runtime gate. Language articles require `:title` and `:content`; API pages additionally follow the manifest-driven paired-example rules below.
+
+Each applicable API page shows separate Capy and C++ `.uce` declarations. `capyc` extracts Capy declarations from `src/capy/stdlib.capy`; compiler primitives and handlers use a small checked catalog. The page's `:sig` section supplies the existing C++ `.uce` declaration. Unsupported and C++-specific pages show their status instead of a fabricated Capy signature.
 
 Doc pages use one structured text format shared by the index, detail view, single-page view, search, and tests. A typed example is exactly two contiguous blocks: `:example capy ENTRY`, then `:example cpp ENTRY`, where ENTRY is one of `render`, `cli`, `component`, `init`, `once`, or `ws`; the entries must match. Unknown, reversed, or unpaired typed blocks are rejected. During the migration, bare `:example` remains a legacy C++ render block and is visible to the checker, but new examples must use typed pairs.
 

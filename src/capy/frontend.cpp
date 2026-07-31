@@ -484,7 +484,8 @@ Markup::Markup(Location l) : Expr(ExprKind::Markup, std::move(l)) {}
 TupleExpr::TupleExpr(Location l) : Expr(ExprKind::Tuple, std::move(l)) {}
 ArrayLiteral::ArrayLiteral(Location l) : Expr(ExprKind::Array, std::move(l)) {}
 MapLiteral::MapLiteral(Location l) : Expr(ExprKind::Map, std::move(l)) {}
-Annotation::Annotation(Location l, Expr* v, Expr* t) : Expr(ExprKind::Annotation, std::move(l)), value(v), type_expr(t) {}
+Annotation::Annotation(Location l, Expr* v, Expr* t, bool convert)
+	: Expr(ExprKind::Annotation, std::move(l)), value(v), type_expr(t), convert(convert) {}
 Binary::Binary(Location l, std::string op, Expr* a, Expr* b) : Expr(ExprKind::Binary, std::move(l)), operator_(std::move(op)), left(a), right(b) {}
 Cast::Cast(Location l, Expr* v, Expr* t) : Expr(ExprKind::Cast, std::move(l)), value(v), target_type(t) {}
 ScopeLookup::ScopeLookup(Location l, Expr* v, std::string m) : Expr(ExprKind::ScopeLookup, std::move(l)), value(v), member(std::move(m)) {}
@@ -559,29 +560,36 @@ Program Parser::parse()
 	while (token().kind != TokenKind::eof)
 	{
 		items.push_back(expression());
-		if (token().kind != TokenKind::newline && token().kind != TokenKind::eof && token().text != ";" && token().text != "}")
-			fail(token().location, "expected expression separator, found '" + token().text + "'");
 		skip_separators();
 	}
 	program_.items = std::move(items);
 	return std::move(program_);
 }
 
-Expr* Parser::expression(int minimum)
+Expr* Parser::expression(int minimum, bool stop_at_newline)
 {
 	while (token().kind == TokenKind::newline)
 		take();
 	Expr* left = prefix();
-	if ((left->kind == ExprKind::Break || left->kind == ExprKind::Continue) && token().kind != TokenKind::newline && token().kind != TokenKind::eof &&
-		token().text != "}" && token().text != ";")
-		fail(token().location, std::string(left->kind == ExprKind::Break ? "break" : "continue") + " does not accept arguments or operators");
+	if (left->kind == ExprKind::Break || left->kind == ExprKind::Continue)
+	{
+		while (token().kind == TokenKind::newline)
+			take();
+		if (token().kind != TokenKind::eof && token().text != "}" && token().text != ";")
+			fail(token().location, std::string(left->kind == ExprKind::Break ? "break" : "continue") + " does not accept arguments or operators");
+		return left;
+	}
 	static const std::unordered_map<std::string, int> infix = {{"=", 5},   {":=", 5},  {":", 10}, {"..", 20}, {"||", 25}, {"&&", 30},
 															   {"==", 35}, {"!=", 35}, {"<", 40}, {"<=", 40}, {"as", 45}, {">", 40},
 															   {">=", 40}, {"+", 50},  {"-", 50}, {"*", 60},  {"/", 60},  {"%", 60}};
 	while (true)
 	{
+		if (stop_at_newline && token().kind == TokenKind::newline)
+			break;
+		while (token().kind == TokenKind::newline)
+			take();
 		Token next = token();
-		if (next.kind == TokenKind::newline || next.kind == TokenKind::eof || next.text == "," || next.text == ")" || next.text == "]" || next.text == "}" ||
+		if (next.kind == TokenKind::eof || next.text == "," || next.text == ")" || next.text == "]" || next.text == "}" ||
 			next.text == ";" || next.text == "{")
 			break;
 		if (next.text == "(")
@@ -622,7 +630,10 @@ Expr* Parser::expression(int minimum)
 			break;
 		Token op = take();
 		if (op.text == ":")
-			return program_.make<Annotation>(op.location, left, expression(81));
+		{
+			bool convert = match("as");
+			return program_.make<Annotation>(op.location, left, expression(81), convert);
+		}
 		if (op.text == "as")
 		{
 			left = program_.make<Cast>(op.location, left, expression(81));
@@ -826,8 +837,6 @@ Block* Parser::block(Location location)
 		if (token().kind == TokenKind::eof)
 			fail(location, "unterminated code block");
 		result->items.push_back(expression());
-		if (token().kind != TokenKind::newline && token().kind != TokenKind::eof && token().text != ";" && token().text != "}")
-			fail(token().location, "expected expression separator, found '" + token().text + "'");
 		skip_separators();
 	}
 	return result;
@@ -867,9 +876,14 @@ Expr* Parser::function(Location location, bool host, bool trace_host)
 	{
 		if (host && (token().kind == TokenKind::newline || token().kind == TokenKind::eof || token().text == ";"))
 			break;
-		if (token().kind == TokenKind::newline || token().kind == TokenKind::eof)
+		if (token().kind == TokenKind::newline)
+		{
+			take();
+			continue;
+		}
+		if (token().kind == TokenKind::eof)
 			fail(token().location, "expected function code block");
-		header.push_back(token().text == "(" ? parenthesized(take().location) : expression());
+		header.push_back(token().text == "(" ? parenthesized(take().location) : expression(0, host));
 		if (header.size() > 2)
 			fail(header.back()->location, "function declaration has more than parameter and return expressions");
 	}
@@ -921,7 +935,7 @@ std::vector<Parameter> Parser::parameters(Expr* expression_value)
 		std::string name = static_cast<Name*>(annotation->value)->value;
 		if (!names.insert(name).second)
 			fail(value->location, "function parameter '" + name + "' is already declared");
-		result.push_back({std::move(name), annotation->type_expr});
+		result.push_back({std::move(name), annotation->type_expr, false, annotation->convert});
 	}
 	return result;
 }
@@ -975,7 +989,9 @@ Expr* Parser::variable(Location location)
 }
 Expr* Parser::return_expr(Location location)
 {
-	if (token().kind == TokenKind::newline || token().kind == TokenKind::eof || token().text == ";" || token().text == "}")
+	while (token().kind == TokenKind::newline)
+		take();
+	if (token().kind == TokenKind::eof || token().text == ";" || token().text == "}")
 		return program_.make<Return>(location, nullptr);
 	std::vector<Expr*> values = {expression()};
 	while (match(","))

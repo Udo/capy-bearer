@@ -1,6 +1,10 @@
-# job_result
+:title
+job_result
 
+:sig
+DValue job_result(u64 job_id)
 
+:content
 Checks a job result with a small bounded wait. The returned value includes the current status fields and, when complete, a structured `result` value.
 
 :see

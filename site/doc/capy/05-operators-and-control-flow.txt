@@ -1,0 +1,70 @@
+:title
+5. Operators and control flow
+
+:content
+## Operators
+
+The arithmetic operators are `+`, `-`, `*`, `/`, and `%`. Both operands must have the same numeric type. The `%` operator supports integer types but not `f64`.
+
+The comparison operators are `==`, `!=`, `<`, `<=`, `>`, and `>=`. The boolean operators are `!`, `&&`, and `||`. The `&&` and `||` operators use short-circuit evaluation. Capy evaluates the right side only if the result requires it.
+
+```capy
+if enabled && count > 0 {
+    print("ready")
+}
+```
+
+The `..` operator creates a half-open integer range. The range `0..3` contains `0`, `1`, and `2`.
+
+## Conditions
+
+An `if` condition must have type `bool`:
+
+```capy
+if score >= 90 {
+    print("excellent")
+} else {
+    print("keep going")
+}
+```
+
+An `if` expression produces the selected branch value when both branches have compatible types.
+
+## Loops
+
+Use `while` for a loop controlled by a condition:
+
+```capy
+var count := 0
+while count < 3 {
+    print(count, "\n")
+    count = count + 1
+}
+```
+
+Use `for` for ranges and collections:
+
+```capy
+for number = 0..3 {
+    print(number, "\n")
+}
+
+for item = ["red", "green", "blue"] {
+    print(item, "\n")
+}
+```
+
+A DValue loop can provide both a key and a value:
+
+```capy
+for key, value = profile {
+    print(key, " = ", dval_to_string(value), "\n")
+}
+```
+
+Use `break` to leave the nearest loop. Use `continue` to start the next iteration. Use `return` to leave the current function and provide its result.
+
+:see
+capy-04-variables-constants-and-expressions
+capy-08-arrays-tuples-and-structs
+capy-10-dvalues

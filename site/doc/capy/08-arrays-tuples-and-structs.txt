@@ -1,0 +1,70 @@
+:title
+8. Arrays, tuples, and structs
+
+:content
+## Arrays
+
+An array contains values of one static type. Write its type as `[T]`:
+
+```capy
+var colors := ["red", "green", "blue"]
+print(colors[0])
+```
+
+Array indexes start at zero. An index outside the array traps and reports its source location. Use `for` to read each value:
+
+```capy
+for color = colors {
+    print(color, "\n")
+}
+```
+
+Use arrays for fixed data that stays inside the program. Current arrays support scalar and string items. Use a list DValue when data must cross an API or unit boundary.
+
+## Tuples
+
+A comma expression creates a tuple. A tuple has a fixed length and can contain different types:
+
+```capy
+function dimensions() (s32, s32) {
+    (640, 480)
+}
+
+var size := dimensions()
+print(size[0], " x ", size[1])
+```
+
+`()` is the empty tuple. `(value)` groups an expression and does not create a one-item tuple. The compiler treats `use(a, b)` and `use((a, b))` as different calls.
+
+## Structs
+
+A struct is a named value with declared fields:
+
+```capy
+struct User {
+    name : string
+    active : bool
+}
+
+var user := User("Ada", true)
+print(user.name)
+```
+
+Constructor arguments follow the field declaration order. The compiler checks member names.
+
+A field can hold a function value:
+
+```capy
+struct Formatter {
+    format : function(value : string) string
+}
+```
+
+The call `formatter.format("text")` invokes that field. Dot syntax can also call a function that takes the receiver as its first argument.
+
+Use structs for data with a stable shape. Use DValues for request data, decoded JSON, database rows, and messages between units.
+
+:see
+capy-03-types
+capy-06-functions
+capy-10-dvalues

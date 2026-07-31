@@ -1,0 +1,75 @@
+:title
+2. Basic syntax
+
+:content
+Capy source contains expressions, declarations, and blocks. A block starts with `{` and ends with `}`. A comment starts with `//` and continues to the line end.
+
+```capy
+// This function returns a greeting.
+function greeting(name : string) string {
+    "Hello, " + name
+}
+```
+
+A function returns its last expression. You can also use `return`:
+
+```capy
+function greeting(name : string) string {
+    return "Hello, " + name
+}
+```
+
+## Whitespace and semicolons
+
+Spaces, tabs, and newlines are ordinary whitespace. A line break does not change an expression:
+
+```capy
+var total := subtotal
+    + tax
+    + shipping
+```
+
+You can also format a call across several lines:
+
+```capy
+var result := calculate(
+    subtotal,
+    tax,
+    shipping
+)
+```
+
+The grammar usually shows where each expression ends. Use a semicolon when two adjacent expressions would otherwise be ambiguous. Calls, arrays, tuples, and maps still require commas between items.
+
+## Names
+
+Names are case-sensitive. `total`, `Total`, and `TOTAL` are different names. A local variable remains visible to the end of its block. An inner block can use the same name and hide the outer name.
+
+## Function declarations
+
+A function declaration has a name and a body. It can also have parameters and a result type:
+
+```capy
+function add(left : s32, right : s32) s32 {
+    left + right
+}
+```
+
+A function with no parameters can omit `()`:
+
+```capy
+function answer s32 { 42 }
+```
+
+Bearer handlers use the same syntax. Put a colon before the name of a named handler:
+
+```capy
+function COMPONENT:CARD(request : request) {
+    // Render the CARD component.
+}
+```
+
+:see
+capy-03-types
+capy-04-variables-constants-and-expressions
+capy-06-functions

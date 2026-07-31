@@ -49,8 +49,8 @@
 	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
 	--shadow-md: 0 4px 16px rgba(0, 0, 0, 0.25);
 	--shadow-glow: 0 0 20px rgba(240, 196, 48, 0.06);
-	--font-sans: 'default_sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-	--font-mono: 'default_mono', 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+	--font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	--font-mono: ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
 	--radius: 10px;
 	--radius-lg: 16px;
 	--ease: cubic-bezier(0.4, 0, 0.2, 1);
@@ -144,6 +144,46 @@ a:hover {
 	color: var(--accent-hover);
 	text-decoration: underline;
 	text-underline-offset: 2px;
+}
+
+/* ── Capy guide and API index ── */
+
+.capy-guide-index {
+	margin: 20px 0 40px;
+	padding: 28px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: linear-gradient(135deg, rgba(125, 211, 252, 0.08), rgba(167, 139, 250, 0.05));
+}
+
+.capy-guide-index > p,
+.api-reference-heading p {
+	color: var(--text-dim);
+	margin-top: -8px;
+}
+
+.capy-guide-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: 8px 18px;
+	margin-top: 20px;
+}
+
+.capy-guide-card a {
+	display: flex;
+	align-items: center;
+	min-height: 44px;
+	padding: 9px 12px;
+	border-radius: 6px;
+	font-weight: 600;
+}
+
+.capy-guide-card a:hover {
+	background: rgba(125, 211, 252, 0.09);
+}
+
+.api-reference-heading {
+	margin-bottom: 20px;
 }
 
 /* ── Index Layout ── */
@@ -243,18 +283,6 @@ a:hover {
 	transform: translateX(2px);
 }
 
-.badge {
-	font-size: 0.7rem;
-	font-weight: 600;
-	padding: 2px 8px;
-	border-radius: 10px;
-	margin-left: 8px;
-	vertical-align: middle;
-	background: rgba(255, 255, 255, 0.06);
-	color: var(--text-dim);
-	letter-spacing: 0.02em;
-}
-
 .dim {
 	opacity: 0.4;
 }
@@ -280,6 +308,96 @@ a:hover {
 	margin-bottom: 12px;
 	padding-bottom: 8px;
 	border-bottom: 1px solid var(--border);
+}
+
+/* Markdown prose needs its own rhythm; the reset intentionally removes it globally. */
+.doc-section.content {
+	font-size: 1.05rem;
+	line-height: 1.75;
+	color: rgba(239, 243, 252, 0.94);
+}
+
+.doc-section.content p {
+	margin: 0 0 1.15em;
+}
+
+.doc-section.content p:last-child {
+	margin-bottom: 0;
+}
+
+.doc-section.content h2,
+.doc-section.content h3,
+.doc-section.content h4 {
+	font-family: var(--font-sans);
+	font-weight: 700;
+	text-transform: none;
+	letter-spacing: -0.015em;
+	color: var(--text);
+	border: 0;
+	padding: 0;
+}
+
+.doc-section.content h2 {
+	font-size: 1.45rem;
+	margin: 1.8em 0 0.65em;
+}
+
+.doc-section.content h3 {
+	font-size: 1.15rem;
+	margin: 1.5em 0 0.55em;
+}
+
+.doc-section.content pre {
+	margin: 1.35em 0 1.55em;
+	padding: 18px 20px;
+	white-space: pre;
+	line-height: 1.65;
+	border-color: rgba(255, 255, 255, 0.11);
+	background: rgba(4, 16, 57, 0.58);
+}
+
+.doc-section.content code {
+	font-size: 0.86em;
+	padding: 0.12em 0.38em;
+	background: rgba(4, 16, 57, 0.48);
+	border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.doc-section.content pre code {
+	font-size: 0.9rem;
+	padding: 0;
+	border: 0;
+	background: transparent;
+}
+
+.doc-section.content ul,
+.doc-section.content ol {
+	margin: 0.4em 0 1.3em 1.45em;
+	padding: 0;
+}
+
+.doc-section.content ul {
+	list-style: disc;
+}
+
+.doc-section.content ol {
+	list-style: decimal;
+}
+
+.doc-section.content li {
+	padding: 0.18em 0 0.18em 0.25em;
+}
+
+.doc-section.content strong {
+	color: #fff;
+	font-weight: 700;
+}
+
+.doc-section.content blockquote {
+	margin: 1.25em 0;
+	padding: 0.2em 0 0.2em 1.1em;
+	border-left: 3px solid var(--accent);
+	color: var(--text-dim);
 }
 
 .sig {
@@ -324,8 +442,8 @@ a:hover {
 
 .detail-layout {
 	display: grid;
-	grid-template-columns: 1fr 220px;
-	gap: 24px;
+	grid-template-columns: minmax(0, 1fr) 320px;
+	gap: 32px;
 	align-items: start;
 }
 
@@ -333,10 +451,26 @@ a:hover {
 	grid-template-columns: 1fr;
 }
 
-@media (max-width: 900px) {
-	.detail-layout {
-		grid-template-columns: 1fr;
-	}
+.detail-layout.language-guide {
+	grid-template-columns: minmax(0, 740px) 320px;
+	justify-content: space-between;
+}
+
+.language-guide .doc-section.content {
+	background: transparent;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	border: 0;
+	box-shadow: none;
+	padding: 4px 0 48px;
+	font-size: 1.1rem;
+	line-height: 1.82;
+}
+
+.language-guide .doc-section.content > p:first-child {
+	font-size: 1.16rem;
+	line-height: 1.7;
+	color: #fff;
 }
 
 .detail-sidebar {
@@ -344,14 +478,20 @@ a:hover {
 	top: 20px;
 }
 
+@media (max-width: 900px) {
+	.detail-layout,
+	.detail-layout.language-guide {
+		grid-template-columns: 1fr;
+	}
+
+	.detail-sidebar {
+		position: static;
+	}
+}
+
 .sidebar-card {
-	background: var(--bg-surface);
-	backdrop-filter: blur(12px);
-	-webkit-backdrop-filter: blur(12px);
-	border: 1px solid var(--border);
-	border-radius: var(--radius);
-	padding: 16px 20px;
-	box-shadow: var(--shadow-sm);
+	border-left: 1px solid var(--border);
+	padding-left: 20px;
 }
 
 .sidebar-card h3 {
@@ -364,13 +504,21 @@ a:hover {
 	margin-top: 18px;
 }
 
-.sidebar-card div {
-	padding: 3px 0;
+.sidebar-card .related-link {
+	padding: 4px 0;
 	font-size: 0.875rem;
-	line-height: 1.5;
+	line-height: 1.4;
 	color: var(--text-dim);
-	overflow-wrap: anywhere;
-	word-break: break-word;
+	overflow-wrap: normal;
+	word-break: normal;
+}
+
+.sidebar-card h4 {
+	margin: 16px 0 5px;
+	font-size: 0.8rem;
+	color: var(--text-dim);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
 }
 
 .sidebar-card strong {

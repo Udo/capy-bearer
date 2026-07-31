@@ -1,21 +1,20 @@
 #include "lib/doc_page.h"
 
-void render_doc_page_link(String page, String label = "", String badge = "")
+// doc_page.h supplies compiler-generated API signatures.
+void render_doc_page_link(String page, String label = "")
 {
 	page = trim(page);
 	if(page == "")
 		return;
 	if(label == "")
-		label = doc_index_label(page);
-	if(badge == "")
-		badge = doc_page_kind_badge(doc_page_kind(page));
-
-	?><a href="index.uce?p=<?= uri_encode(page) ?>"><?= label ?><?
-	if(badge != "")
 	{
-		?><span class="badge"><?= badge ?></span><?
+		if(page.rfind("capy-", 0) == 0)
+			label = first(load_doc_page(page).title, doc_default_title(page));
+		else
+			label = doc_index_label(page);
 	}
-	else
+	?><a href="./?p=<?= uri_encode(page) ?>"><?= label ?><?
+	if(page.rfind("capy-", 0) != 0 && doc_page_kind(page) == DocPageKind::function)
 	{
 		?><span class="dim">()</span><?
 	}
@@ -139,16 +138,37 @@ void render_doc_example_result(String language, String entry, String body, DValu
 	?></div><?
 }
 
+void render_doc_signatures(DocPage doc_page)
+{
+	if(doc_page.capy_sig_lines.size() == 0 && doc_page.sig_lines.size() == 0 && doc_page.capy_status == "")
+		return;
+	?><div class="doc-section signatures">
+	<h3>Capy</h3><?
+	if(doc_page.capy_sig_lines.size() > 0)
+	{
+		?><pre><? print(join(doc_page.capy_sig_lines, "\n")); ?></pre><?
+	}
+	else
+	{
+		?><p class="signature-status"><?= doc_page.capy_status == "unsupported" ? "Unsupported by design for Capy." : doc_page.capy_status == "cpp-specific" ? "This page applies only to C++ (.uce)." : "No callable Capy declaration applies to this page." ?></p><?
+	}
+	if(doc_page.sig_lines.size() > 0)
+	{
+		?><h3>C++ (.uce)</h3><pre><? print(join(doc_page.sig_lines, "\n")); ?></pre><?
+	}
+	else
+	{
+		?><h3>C++ (.uce)</h3><p class="signature-status">No callable C++ declaration applies to this page.</p><?
+	}
+	?></div><?
+}
+
 void render_doc_examples(Request& context, String page, DocPage doc_page)
 {
 	if(doc_page.example_parse_error != "")
 	{
 		?><div class="doc-section example error"><h3>Example format error</h3><pre><?= doc_page.example_parse_error ?></pre></div><?
 		return;
-	}
-	if(doc_page.capy_status != "")
-	{
-		?><div class="doc-section capy-status"><strong>Capy status:</strong> <?= doc_page.capy_status == "unsupported" ? "unsupported" : "C++-specific" ?></div><?
 	}
 	for(u64 idx = 0; idx < doc_page.example_pairs.size(); idx++)
 	{
@@ -190,7 +210,7 @@ void render_doc_examples(Request& context, String page, DocPage doc_page)
 	}
 }
 
-void render_see_section(String name)
+void render_see_section(String name, bool compact = false)
 {
 	DValue lines = split(file_get_contents("areas/" + name + ".txt"), "\n");
 	s32 idx = 0;
@@ -204,7 +224,18 @@ void render_see_section(String name)
 		}
 		if(idx == 0)
 		{
-			<><div class="category"><h3><?= line ?></h3><ul></>
+			if(compact)
+			{
+				?><h4><?= line ?></h4><?
+			}
+			else
+			{
+				<><div class="category"><h3><?= line ?></h3><ul></>
+			}
+		}
+		else if(compact)
+		{
+			?><div class="related-link"><? render_doc_page_link(line); ?></div><?
 		}
 		else
 		{
@@ -212,7 +243,10 @@ void render_see_section(String name)
 		}
 		idx += 1;
 	}
-	<></ul></div></>
+	if(!compact)
+	{
+		<></ul></div></>
+	}
 }
 
 void render_doc_see_links(DValue see_lines)
@@ -229,16 +263,16 @@ void render_doc_see_links(DValue see_lines)
 			String target = trim(sl.substr(1));
 			if(doc_has_area(target))
 			{
-				render_see_section(target);
+				render_see_section(target, true);
 			}
 			else if(doc_has_page(target))
 			{
-				?><div><? render_doc_page_link(target); ?></div><?
+				?><div class="related-link"><? render_doc_page_link(target); ?></div><?
 			}
 		}
 		else
 		{
-			?><div><? render_doc_page_link(trim(sl)); ?></div><?
+			?><div class="related-link"><? render_doc_page_link(trim(sl)); ?></div><?
 		}
 	} 
 	?>
@@ -261,11 +295,12 @@ RENDER(Request& context)
 	<><html>
 	<head>
 		<meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+		<title><?= page == "index" ? "Bearer Documentation" : page_title + " | Bearer Documentation" ?></title>
 		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
 	</head>
 	<body>
 		<h1>
-			<a href="index.uce">BEARER Docs</a><?
+			<a href="./">BEARER Docs</a><?
 			if(page != "index")
 			{
 				?><span class="dim"> / </span><?= page_title ?><?
@@ -276,8 +311,21 @@ RENDER(Request& context)
 
 		if(page == "index")
 		{
-			?><div class="search-bar">
-				<input id="doc-search" type="search" placeholder="Search API…" autocomplete="off" spellcheck="false"/>
+			?><section class="capy-guide-index">
+				<h2>Learn Capy</h2>
+				<div class="capy-guide-grid"><?
+				for(auto file_name : ls("capy/").sort())
+				{
+					String article = nibble(file_name, ".");
+					String target = "capy-" + article;
+					DocPage guide = load_doc_page(target);
+					?><div class="capy-guide-card"><? render_doc_page_link(target, first(guide.title, doc_default_title(target))); ?></div><?
+				}
+				?></div>
+			</section>
+			<div class="api-reference-heading"><h2>API Reference</h2><p>Bearer APIs available to Capy and C++ units.</p></div>
+			<div class="search-bar">
+				<input id="doc-search" type="search" aria-label="Search documentation" placeholder="Search documentation…" autocomplete="off" spellcheck="false"/>
 				<span class="search-count" id="search-count"></span>
 			</div>
 			<div id="search-results" hidden></div>
@@ -291,14 +339,13 @@ RENDER(Request& context)
 			}
 			?></nav>
 			<main class="content">
-			<h2>All API Functions</h2>
+			<h2>All APIs</h2>
 			<div class="func-grid"><?
 			for(auto file_name : ls("pages/"))
 			{
 				String ft = nibble(file_name, ".");
 				String label = doc_index_label(ft);
-				String badge = doc_page_kind_badge(doc_page_kind(ft));
-				?><div class="func-item"><? render_doc_page_link(ft, label, badge); ?></div><?
+				?><div class="func-item"><? render_doc_page_link(ft, label); ?></div><?
 			}
 			?></div>
 			</main>
@@ -312,6 +359,7 @@ RENDER(Request& context)
 				var pane = document.getElementById('index-pane');
 				var counter = document.getElementById('search-count');
 				var timer;
+				var generation = 0;
 
 				function showResults(html) {
 					results.innerHTML = html;
@@ -330,18 +378,29 @@ RENDER(Request& context)
 
 				input.addEventListener('input', function () {
 					var q = this.value.trim();
+					var requestGeneration = ++generation;
 					clearTimeout(timer);
 					if (q.length < 2) { showIndex(); return; }
 					counter.textContent = '\u2026';
 					timer = setTimeout(function () {
 						fetch('search.uce?q=' + encodeURIComponent(q))
-							.then(function (r) { return r.text(); })
-							.then(showResults);
+							.then(function (r) { if (!r.ok) throw new Error('search failed'); return r.text(); })
+							.then(function (html) {
+								if (requestGeneration === generation) showResults(html);
+							})
+							.catch(function () {
+								if (requestGeneration === generation) counter.textContent = 'Search unavailable';
+							});
 					}, 220);
 				});
 
 				input.addEventListener('keydown', function (e) {
-					if (e.key === 'Escape') { this.value = ''; showIndex(); }
+					if (e.key === 'Escape') {
+						generation++;
+						clearTimeout(timer);
+						this.value = '';
+						showIndex();
+					}
 				});
 			})();
 			</script></>
@@ -349,19 +408,15 @@ RENDER(Request& context)
 		else
 		{
 			String detail_class = "detail-layout";
+			if(page.rfind("capy-", 0) == 0)
+				detail_class += " language-guide";
 			if(doc_page.see_lines.size() == 0)
 				detail_class += " no-sidebar";
 
 			?><div class="<?= detail_class ?>">
 			<article class="doc-detail"><?
 
-			if(doc_page.sig_lines.size() > 0)
-			{
-				?><div class="doc-section sig">
-				<h3>Signature</h3>
-				<pre><? print(join(doc_page.sig_lines, "\n")); ?></pre>
-				</div><?
-			}
+			render_doc_signatures(doc_page);
 
 			render_doc_params(doc_page.param_lines);
 

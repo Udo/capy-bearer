@@ -187,7 +187,8 @@ struct Annotation : Expr
 {
 	Expr* value;
 	Expr* type_expr;
-	Annotation(Location l, Expr* v, Expr* t);
+	bool convert;
+	Annotation(Location l, Expr* v, Expr* t, bool convert = false);
 };
 struct Binary : Expr
 {
@@ -333,7 +334,7 @@ struct Parser
 	Token require(std::string_view);
 	Token require_identifier(std::string_view);
 	void skip_separators();
-	Expr* expression(int minimum = 0);
+	Expr* expression(int minimum = 0, bool stop_at_newline = false);
 	Expr* prefix();
 	Expr* parenthesized(Location);
 	Expr* array_literal(Location);

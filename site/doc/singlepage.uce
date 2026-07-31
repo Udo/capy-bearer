@@ -1,5 +1,6 @@
 #include "lib/doc_page.h"
 
+// Keep generated Capy and source C++ signatures distinct in the combined view.
 StringMap* already_shown_items;
 
 void render_doc_params(DValue param_lines)
@@ -31,10 +32,6 @@ void render_doc_example_sources(DocPage doc_page)
 		?><div class="example error"><h3>Example format error</h3><pre><?= doc_page.example_parse_error ?></pre></div><?
 		return;
 	}
-	if(doc_page.capy_status != "")
-	{
-		?><div class="capy-status"><strong>Capy status:</strong> <?= doc_page.capy_status ?></div><?
-	}
 	for(DValue pair : doc_page.example_pairs)
 	{
 		String entry = pair["entry"].to_string();
@@ -62,9 +59,26 @@ void render_doc_page(String page)
 		title = doc_page.title;
 
 	<><section class="doc-page"><div class="sig"><h2><?= title ?></h2></>
-	if(doc_page.sig_lines.size() > 0)
+	if(doc_page.capy_sig_lines.size() > 0 || doc_page.sig_lines.size() > 0 || doc_page.capy_status != "")
 	{
-		<><pre><? print(join(doc_page.sig_lines, "\n")); ?></pre></>
+		?><h3>Capy</h3><?
+		if(doc_page.capy_sig_lines.size() > 0)
+		{
+			?><pre><? print(join(doc_page.capy_sig_lines, "\n")); ?></pre><?
+		}
+		else
+		{
+			?><p class="signature-status"><?= doc_page.capy_status == "unsupported" ? "Unsupported by design for Capy." : doc_page.capy_status == "cpp-specific" ? "This page applies only to C++ (.uce)." : "No callable Capy declaration applies to this page." ?></p><?
+		}
+		?><h3>C++ (.uce)</h3><?
+		if(doc_page.sig_lines.size() > 0)
+		{
+			?><pre><? print(join(doc_page.sig_lines, "\n")); ?></pre><?
+		}
+		else
+		{
+			?><p class="signature-status">No callable C++ declaration applies to this page.</p><?
+		}
 	}
 	<></div></>
 
@@ -104,13 +118,20 @@ RENDER(Request& context)
 
 	<><html>
 	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+		<title>Bearer Documentation</title>
 		<link rel="stylesheet" href='style.css?v=<?= time() ?>'></link>
 	</head>
 	<body>
-		<h1>
-			BEARER API
-		</h1>
+		<h1>BEARER Documentation</h1>
+		<h1>Capy Language Guide</h1>
 		<?
+		for(auto file_name : ls("capy/").sort())
+		{
+			String ft = "capy-" + nibble(file_name, ".");
+			render_doc_page(ft);
+		}
+		?><h1>API Reference</h1><?
 
 		for(auto file_name : ls("areas/"))
 		{

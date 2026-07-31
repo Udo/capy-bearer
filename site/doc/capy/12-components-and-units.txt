@@ -1,0 +1,59 @@
+:title
+12. Components and units
+
+:content
+Bearer compiles each Capy file as an independent unit. Units communicate through handlers or exported DValue functions. Bearer does not combine source files with an include statement.
+
+## Rendering another unit
+
+`unit_render(path)` renders another page into the current output:
+
+```capy
+unit_render("/shared/header.capy")
+```
+
+Use components for reusable rendered content:
+
+```capy
+var props := dval({"title": "Account"})
+component_render("/components/card.capy:CARD", props)
+```
+
+`component_capture` runs a component and returns its output as a string. It does not add that output to the current response. `component_exists` checks whether Bearer can resolve a target.
+
+Bearer copies component properties into the called handler's request context. After a nested component returns, Bearer restores the earlier properties.
+
+## Exporting structured functions
+
+`EXPORTS` makes selected `(dval) dval` functions available to other units:
+
+```capy
+EXPORTS lookup
+
+function lookup(input : dval) dval {
+    dval({"found": true, "query": input})
+}
+```
+
+Only the names in `EXPORTS` are public. Other helper functions remain private to the file.
+
+## Loading a module
+
+`unit_load(path)` returns a `module` for the current request. Use `module.call` to call a declared export:
+
+```capy
+var users := unit_load("/services/users.capy")
+var result := users.call("lookup", dval({"id": "42"}))
+```
+
+A module stays tied to the current request and loaded unit version. You can pass it to another Capy function during that request.
+
+You cannot store a module in a DValue or capture it in a closure. You also cannot serialize it or use it in a later request.
+
+Use `module.call` for several calls to one loaded unit. Use `unit_call(path, name, input)` for one structured call. Each call copies its input and result DValues. Capy and `.uce` units can therefore call each other without shared memory.
+
+:see
+component
+unit_load
+unit_call
+capy-10-dvalues
