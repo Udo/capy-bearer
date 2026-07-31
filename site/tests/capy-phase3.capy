@@ -70,5 +70,5 @@ function CLI {
     print(operation(2, 3))
     operation = subtract
     print(operation(2, 3), labeler(make_tuple()), "|", arc_live(), "|")
-    print(countdown(3), "|", 0 as bool, 2 as bool, true as s32, "|", arc_live())
+    print(countdown(3), "|", bool(0), bool(2), s32(true), "|", arc_live())
 }

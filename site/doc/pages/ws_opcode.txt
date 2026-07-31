@@ -17,7 +17,7 @@ Outside a WebSocket handler, it returns `0`. The zero value is the normal no-mes
 C++ returns the opcode as `u8` through the signature above.
 
 :example capy render
-print("opcode: ", ws_opcode() as u64, " (0 outside a WS frame)\n")
+print("opcode: ", u64(ws_opcode()), " (0 outside a WS frame)\n")
 
 :example cpp render
 // ws_opcode() returns the WebSocket frame opcode (1 text, 2 binary, 8 close, ...).

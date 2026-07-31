@@ -1,0 +1,81 @@
+struct Token {
+    value : string
+}
+
+struct Collector {
+    invoke : function(...values : as string) string
+}
+
+struct Pair {
+    left : s32
+    right : string
+}
+
+function Token(value : s32) Token { Token(string(value)) }
+function token_text(value : Token) string { value.value }
+function string(value : any) string { token_text(value) }
+function s32(value : string) s32 { if value == "seven" { return 7 }; 0 }
+function show(value : as string) string { value }
+function collect(...values : as string) [string] { values }
+function add(left : s32, right : s32) s32 { left + right }
+function mutate_copy(values : [string]) string {
+    values.push("local")
+    values[0] = "inside"
+    values[0] + string(length(values))
+}
+function joined(...values : as string) string {
+    var result := ""
+    for value = values { result = result + value }
+    result
+}
+
+function CLI {
+    {
+        print(s32("seven"), "|", show(Token("token")), "|", show(Token(8)), "|")
+
+        var values : [string] = []
+        values.reserve(8)
+        values.push("a")
+        values.push("b")
+        var copied := values
+        values[0] = "A"
+        print(values[0], "|", copied[0], copied[1], "|", mutate_copy(copied), "|", copied[0], copied[1], "|")
+
+        values.insert(1, "x")
+        var removed := values.remove(1)
+        var last := values.pop()
+        values.resize(3, "z")
+        var resized := values[0] + values[1] + values[2]
+        values.clear()
+        print(removed, "|", last, "|", resized, "|", length(values), "|", copied.capacity(), "|")
+
+        var wide := [1s64, 2s64]
+        var decimals := [1.5, 2.5]
+        var combined := [...copied, "c"]
+        var converted := collect(...[1, 2])
+        var pair := (4, 5)
+        var struct_args := (6, "p")
+        print(wide[1], "|", decimals[0], "|", ...combined, "|", ...converted, "|", add(...pair), "|", Pair(...struct_args).right, "|")
+
+        var named : function(...values : as string) string = joined
+        var anonymous := function(...values : as string) string {
+            var result := ""
+            for value = values { result = result + value }
+            result
+        }
+        var tuple_args := (4, "c")
+        var collector := Collector(named)
+        print(named("a", 2, true), "|", anonymous("b", 3), "|", named(...tuple_args), "|", (function(...values : as string) string { values[0] })(...tuple_args), "|", collector.invoke(...tuple_args))
+
+        var nested := [[clone("n")]]
+        var nested_copy := nested
+        nested[0] = [clone("m")]
+        nested.insert(1, [clone("i")])
+        var nested_removed := nested.remove(0)
+        nested.resize(3, [clone("r")])
+        print("|", nested_copy[0][0], nested_removed[0], nested[0][0], nested[2][0])
+        nested.clear()
+    }
+    var live := arc_live()
+    print("|", live)
+}

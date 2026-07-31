@@ -53,7 +53,7 @@ for s = ["one", "two", "three"] { // for loop over array literal
 	print(s, " ")
 }
 
-function print(args : as string...) { // variadic, syntactically sugar for array of strings in this case, the "as" keyword signals that implicit conversions should be performed if possible/necessary
+function print(...args : as string) { // variadic; args has type [string], and each tail argument is constructed as string when needed
 	for s in args {
 		write_to_current_buffer(s)
 	}

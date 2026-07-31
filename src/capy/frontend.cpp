@@ -483,11 +483,11 @@ MarkupField::MarkupField(Location l, Expr* v, bool e) : Expr(ExprKind::MarkupFie
 Markup::Markup(Location l) : Expr(ExprKind::Markup, std::move(l)) {}
 TupleExpr::TupleExpr(Location l) : Expr(ExprKind::Tuple, std::move(l)) {}
 ArrayLiteral::ArrayLiteral(Location l) : Expr(ExprKind::Array, std::move(l)) {}
+Spread::Spread(Location l, Expr* v) : Expr(ExprKind::Spread, std::move(l)), value(v) {}
 MapLiteral::MapLiteral(Location l) : Expr(ExprKind::Map, std::move(l)) {}
 Annotation::Annotation(Location l, Expr* v, Expr* t, bool convert)
 	: Expr(ExprKind::Annotation, std::move(l)), value(v), type_expr(t), convert(convert) {}
 Binary::Binary(Location l, std::string op, Expr* a, Expr* b) : Expr(ExprKind::Binary, std::move(l)), operator_(std::move(op)), left(a), right(b) {}
-Cast::Cast(Location l, Expr* v, Expr* t) : Expr(ExprKind::Cast, std::move(l)), value(v), target_type(t) {}
 ScopeLookup::ScopeLookup(Location l, Expr* v, std::string m) : Expr(ExprKind::ScopeLookup, std::move(l)), value(v), member(std::move(m)) {}
 Call::Call(Location l, Expr* f) : Expr(ExprKind::Call, std::move(l)), function(f) {}
 Index::Index(Location l, Expr* v, Expr* i) : Expr(ExprKind::Index, std::move(l)), value(v), index(i) {}
@@ -635,10 +635,7 @@ Expr* Parser::expression(int minimum, bool stop_at_newline)
 			return program_.make<Annotation>(op.location, left, expression(81), convert);
 		}
 		if (op.text == "as")
-		{
-			left = program_.make<Cast>(op.location, left, expression(81));
-			continue;
-		}
+			fail(op.location, "'as' is only valid on coercive parameters; call the target type constructor instead");
 		left = program_.make<Binary>(op.location, op.text, left, expression(found->second + (op.text == "=" || op.text == ":=" ? 0 : 1)));
 	}
 	return left;
@@ -722,6 +719,8 @@ Expr* Parser::prefix()
 			return while_expr(current.location);
 		return program_.make<Name>(current.location, current.text);
 	}
+	if (current.text == "...")
+		return program_.make<Spread>(current.location, expression(70));
 	if (current.text == "(")
 		return parenthesized(current.location);
 	if (current.text == "[")
@@ -918,8 +917,15 @@ bool Parser::is_parameter_expression(Expr* expression_value) const
 {
 	std::vector<Expr*> values =
 		expression_value->kind == ExprKind::Tuple ? static_cast<TupleExpr*>(expression_value)->items : std::vector<Expr*>{expression_value};
-	return std::all_of(values.begin(), values.end(),
-					   [](Expr* value) { return value->kind == ExprKind::Annotation && static_cast<Annotation*>(value)->value->kind == ExprKind::Name; });
+	return std::all_of(values.begin(), values.end(), [](Expr* value)
+	{
+		if (value->kind != ExprKind::Annotation)
+			return false;
+		Expr* binding = static_cast<Annotation*>(value)->value;
+		if (auto spread = dynamic_cast<Spread*>(binding))
+			binding = spread->value;
+		return binding->kind == ExprKind::Name;
+	});
 }
 std::vector<Parameter> Parser::parameters(Expr* expression_value)
 {
@@ -927,15 +933,27 @@ std::vector<Parameter> Parser::parameters(Expr* expression_value)
 		expression_value->kind == ExprKind::Tuple ? static_cast<TupleExpr*>(expression_value)->items : std::vector<Expr*>{expression_value};
 	std::vector<Parameter> result;
 	std::unordered_set<std::string> names;
-	for (Expr* value : values)
+	for (std::size_t i = 0; i < values.size(); ++i)
 	{
-		if (value->kind != ExprKind::Annotation || static_cast<Annotation*>(value)->value->kind != ExprKind::Name)
+		Expr* value = values[i];
+		if (value->kind != ExprKind::Annotation)
 			fail(value->location, "function parameter expression must contain name:type annotations");
 		Annotation* annotation = static_cast<Annotation*>(value);
-		std::string name = static_cast<Name*>(annotation->value)->value;
+		Expr* binding = annotation->value;
+		bool variadic = false;
+		if (auto spread = dynamic_cast<Spread*>(binding))
+		{
+			variadic = true;
+			binding = spread->value;
+		}
+		if (binding->kind != ExprKind::Name)
+			fail(value->location, "function parameter expression must contain name:type annotations");
+		if (variadic && i + 1 != values.size())
+			fail(value->location, "variadic parameter must be last");
+		std::string name = static_cast<Name*>(binding)->value;
 		if (!names.insert(name).second)
 			fail(value->location, "function parameter '" + name + "' is already declared");
-		result.push_back({std::move(name), annotation->type_expr, false, annotation->convert});
+		result.push_back({std::move(name), annotation->type_expr, variadic, annotation->convert});
 	}
 	return result;
 }
@@ -1057,6 +1075,8 @@ std::string type_name(const Expr& expression_value)
 		{
 			if (i)
 				result += ',';
+			if (value.parameters[i].variadic)
+				result += "...";
 			result += type_name(*value.parameters[i].type_expr);
 		}
 		return result + ") " + (value.return_type ? type_name(*value.return_type) : "void");
@@ -1092,7 +1112,7 @@ void DeclarationIndex::add_program(const Program& program)
 		Function* function_value = static_cast<Function*>(item);
 		FunctionKey key{function_value->name, {}};
 		for (const Parameter& parameter : function_value->parameters)
-			key.parameter_types.push_back(type_name(*parameter.type_expr));
+			key.parameter_types.push_back((parameter.variadic ? "..." : "") + type_name(*parameter.type_expr));
 		auto existing = functions.find(key);
 		if (existing != functions.end())
 		{

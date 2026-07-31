@@ -86,10 +86,10 @@ enum struct ExprKind
 	Markup,
 	Tuple,
 	Array,
+	Spread,
 	Map,
 	Annotation,
 	Binary,
-	Cast,
 	ScopeLookup,
 	Call,
 	Index,
@@ -176,7 +176,14 @@ struct TupleExpr : Expr
 struct ArrayLiteral : Expr
 {
 	std::vector<Expr*> items;
+	Expr* explicit_element_type = nullptr;
 	explicit ArrayLiteral(Location l);
+};
+struct Spread : Expr
+{
+	Expr* value;
+	Expr* target_element_type = nullptr;
+	Spread(Location l, Expr* v);
 };
 struct MapLiteral : Expr
 {
@@ -195,11 +202,6 @@ struct Binary : Expr
 	std::string operator_;
 	Expr *left, *right;
 	Binary(Location l, std::string op, Expr* a, Expr* b);
-};
-struct Cast : Expr
-{
-	Expr *value, *target_type;
-	Cast(Location l, Expr* v, Expr* t);
 };
 struct ScopeLookup : Expr
 {

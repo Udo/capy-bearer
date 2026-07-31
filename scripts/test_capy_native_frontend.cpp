@@ -139,6 +139,13 @@ int main(int argc, char** argv)
 		assert(index.functions.size() == 2);
 	}
 	{
+		Program p = parse("function gather(prefix : string, ...values : as string) [string] { return values }\nfunction CLI { gather(\"x\", ...[\"a\", \"b\"]) }\n", "variadic.capy");
+		auto* gather = static_cast<Function*>(p.items[0]);
+		assert(gather->parameters.size() == 2 && gather->parameters[1].variadic && gather->parameters[1].convert);
+		auto* call = static_cast<Call*>(static_cast<Function*>(p.items[1])->body->items[0]);
+		assert(call->arguments.size() == 2 && call->arguments[1]->kind == ExprKind::Spread);
+	}
+	{
 		Program p = parse("function value(x : s32) s32 { return x }\nfunction value(x : s32) string { return x }\n", "overload.capy");
 		try
 		{
@@ -152,6 +159,8 @@ int main(int argc, char** argv)
 	}
 	expect_error("function CLI { const answer : s32 = 42 }\n", "const declarations are top-level only");
 	expect_error("function bad(s32) s32 { return 1 }\n", "name:type annotations");
+	expect_error("function bad(...values : string, tail : string) {}\n", "variadic parameter must be last");
+	expect_error("function CLI { var value := 1 as s64 }\n", "call the target type constructor instead");
 	expect_error("trace function bad() string {}\n", "trace modifier applies only to host function declarations");
 	expect_error("function bad(value : any, value : any) value::type { value }\n", "function parameter 'value' is already declared");
 	try

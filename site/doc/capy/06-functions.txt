@@ -39,17 +39,43 @@ show(3.5)      // value is "3.5"
 show(true)     // value is "true"
 ```
 
-Inside `show`, `value` has type `string`. You can convert numeric and boolean values among scalar types. You can also convert these values to strings.
+Inside `show`, `value` has type `string`. Capy passes a string unchanged. For another type, it inserts one `string(value)` constructor call.
 
-Overload selection first uses an exact concrete match. It next uses a matching generic function. It uses a converting function only when neither earlier match exists.
+Overload selection first uses an exact concrete match. It next uses a matching generic function. It uses a coercive function only when neither earlier match exists.
 
-Two equally good converting functions make the call ambiguous. Use an explicit conversion to select the required type.
-
-The expression `value as Type` uses the same conversion rules:
+Two equally good coercive functions make the call ambiguous. Call the required type constructor to select one:
 
 ```capy
 function show_count(count : s64) { print(count) }
-show_count(12 as s64)
+show_count(s64(12))
+```
+
+## Variadic parameters
+
+Put `...` before the final parameter name to accept zero or more trailing arguments:
+
+```capy
+function join_words(...words : as string) string {
+    var result := ""
+    for word = words { result = result + word }
+    result
+}
+```
+
+Inside the function, `words` has type `[string]`. The `as` modifier constructs each non-string argument before packing the array.
+
+Use `...` at a call to spread an array into a variadic tail:
+
+```capy
+var words := ["Capy", " ", "Bearer"]
+print(...words)
+```
+
+A tuple has static arity, so it can spread into fixed parameters:
+
+```capy
+var point := (10, 20)
+draw(...point)
 ```
 
 ## Overloading

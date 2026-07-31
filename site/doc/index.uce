@@ -1,6 +1,6 @@
 #include "lib/doc_page.h"
 
-// doc_page.h supplies compiler-generated API signatures.
+// doc_page.h supplies current compiler-generated API signatures.
 void render_doc_page_link(String page, String label = "")
 {
 	page = trim(page);

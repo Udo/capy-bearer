@@ -2,15 +2,15 @@
 void print(...val)
 
 :params
-...val : one or more values to output
+...val : zero or more values to output
 
 :see
 >string
 
 :content
-In Capy, `print()` writes each supplied value to the current request output.
+In Capy, `print(...values : as string)` constructs each non-string value as `string` and writes the values in order.
 
-When an output buffer is active, `print()` writes to that buffer. Otherwise, it writes to the response.
+Use `print(...array)` to spread a `[string]` array. When an output buffer is active, `print()` writes to that buffer. Otherwise, it writes to the response.
 
 
 :example capy render

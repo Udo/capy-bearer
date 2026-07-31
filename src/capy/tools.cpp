@@ -76,7 +76,6 @@ void stdlib_signatures(const std::string& path)
 		{"1_COMPONENT", "function COMPONENT"}, {"1_COMPONENT", "function COMPONENT(request : request)"},
 		{"1_COMPONENT", "function COMPONENT:NAME"}, {"1_COMPONENT", "function COMPONENT:NAME(request : request)"},
 		{"1_WS", "function WS"}, {"1_WS", "function WS(request : request)"},
-		{"print", "print(value)"}, {"print", "print(first, second, ...)"},
 		{"2_DValue_each", "for key, value = input { ... }"},
 		{"2_DValue_has", "dval_has(value : dval, key : string) bool"},
 		{"2_DValue_operator_index", "value[key]"},

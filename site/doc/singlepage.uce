@@ -1,6 +1,6 @@
 #include "lib/doc_page.h"
 
-// Keep generated Capy and source C++ signatures distinct in the combined view.
+// Keep current generated Capy and source C++ signatures distinct in the combined view.
 StringMap* already_shown_items;
 
 void render_doc_params(DValue param_lines)

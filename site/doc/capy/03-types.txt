@@ -49,22 +49,28 @@ var deadline : u64 = time() + 60u64
 
 Inference does not make a variable dynamic. `count` remains `s32`, and `deadline` remains `u64`.
 
-## Explicit conversion
+## Type constructors
 
-Use `as` to request a conversion:
+Call a type name to construct a value of that type:
 
 ```capy
 var count : s32 = 12
-var wide := count as s64
-var ratio := wide as f64 / 5.0
-var label := count as string
+var wide := s64(count)
+var ratio := f64(wide) / 5.0
+var label := string(count)
 ```
 
-You can convert numeric and boolean values among scalar types. You can also format these values as strings. A conversion can wrap, round, or trap.
+Primitive constructors convert numeric and Boolean values. The `string` constructors format those values as text. Boolean strings are `true` and `false`. A constructor can wrap, round, or trap.
 
-A large `u64` can lose precision when converted to `f64`. An out-of-range or non-finite `f64` traps when converted to an integer.
+A large `u64` can lose precision in `f64(value)`. An out-of-range or non-finite float traps in an integer constructor.
 
-A function parameter can request the same conversion with `name : as Type`. The functions chapter explains this syntax.
+Types have overload sets. You can add a constructor for a new source type by defining a function with the type name and result:
+
+```capy
+function string(value : User) string { value.name }
+```
+
+A coercive parameter uses the same constructor with `name : as Type`. The functions chapter explains this syntax.
 
 :see
 capy-04-variables-constants-and-expressions

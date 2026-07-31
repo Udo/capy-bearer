@@ -11,7 +11,29 @@ var colors := ["red", "green", "blue"]
 print(colors[0])
 ```
 
-Array indexes start at zero. An index outside the array traps and reports its source location. Use `for` to read each value:
+Array indexes start at zero. An index outside the array traps and reports its source location. A typed declaration can create an empty array:
+
+```capy
+var colors : [string] = []
+colors.push("red")
+colors.push("green")
+colors[0] = "blue"
+```
+
+Arrays provide vector operations:
+
+- `push(value)` adds an item.
+- `pop()` removes and returns the last item.
+- `insert(index, value)` adds an item at an index.
+- `remove(index)` removes and returns an item.
+- `clear()` removes all items.
+- `reserve(capacity)` reserves storage.
+- `resize(length, fill)` changes the length.
+- `capacity()` returns the reserved item count.
+
+Assignment has value semantics. Changing a copy does not change the original. Capy uses copy-on-write storage to avoid an immediate deep copy.
+
+Use `for` to read each value:
 
 ```capy
 for color = colors {
@@ -19,7 +41,14 @@ for color = colors {
 }
 ```
 
-Use arrays for fixed data that stays inside the program. Current arrays support scalar and string items. Use a list DValue when data must cross an API or unit boundary.
+Spread arrays into another literal or a variadic call:
+
+```capy
+var more := [...colors, "purple"]
+print(...more)
+```
+
+Arrays can contain scalar, string, and managed aggregate values. Use a list-shaped `dval` when data must cross an API or unit boundary.
 
 ## Tuples
 

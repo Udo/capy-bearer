@@ -1,4 +1,5 @@
 // Private typed host ABI declarations.  Names map directly to env symbols.
+host function __bearer_print_bytes(value : string)
 host function __bearer_dv_apply_brrb(operation : s32, value : dval, key : string, argument : dval) dval
 host function __bearer_dv_s64_brrb(value : dval, fallback : s64) s64
 host function __bearer_dv_u64_brrb(value : dval, fallback : u64) u64
@@ -264,6 +265,9 @@ const __bearer_codec_json_decode : s32 = 4
 
 // DValues cross the Bearer boundary as copied ARC values.  Mutators return the
 // replacement value: `value = dval_push(value, child)`; no host alias escapes.
+function print(...values : as string) {
+    for value = values { __bearer_print_bytes(value) }
+}
 function to_lower(value : string) string { lower(value) }
 function to_upper(value : string) string { upper(value) }
 function find(haystack : string, needle : string) s32 { __bearer_string_find(haystack, needle) }
@@ -276,9 +280,9 @@ function first(one : string) string { return one }
 function first(one : string, two : string) string { var result := two; if __bearer_string_nonblank(one) { result = one }; return result }
 function first(one : string, two : string, three : string) string { return first(first(one, two), three) }
 function first(one : string, two : string, three : string, four : string) string { return first(first(one, two), first(three, four)) }
-function substr(value : string, start : s32) string { __bearer_string_substr(value, start as s64, length(value) as s64) }
-function substr(value : string, start : s64) string { __bearer_string_substr(value, start, length(value) as s64) }
-function substr(value : string, start : s32, length : s32) string { __bearer_string_substr(value, start as s64, length as s64) }
+function substr(value : string, start : s32) string { __bearer_string_substr(value, s64(start), s64(length(value))) }
+function substr(value : string, start : s64) string { __bearer_string_substr(value, start, s64(length(value))) }
+function substr(value : string, start : s32, length : s32) string { __bearer_string_substr(value, s64(start), s64(length)) }
 function substr(value : string, start : s64, length : s64) string { __bearer_string_substr(value, start, length) }
 function strpos(haystack : string, needle : string) s64 { __bearer_string_strpos(haystack, needle, 0s64) }
 function strpos(haystack : string, needle : string, offset : s64) s64 { __bearer_string_strpos(haystack, needle, offset) }

@@ -40,9 +40,9 @@ Test calls between units through the real export or component target. Include th
 
 Use explicit types at boundaries. Use inference for obvious local variables. Keep request parsing and response changes near the handler.
 
-Use strings for text and markup for HTML. Use structs and arrays for private fixed data. Use DValues for dynamic data and unit calls.
+Use strings for text and markup for HTML. Use structs for stable records and arrays for typed vector data. Use DValues for dynamic data and unit calls.
 
-Keep functions small enough to show their result and side effects clearly. Use explicit `as` conversions instead of string round trips. Check optional data before strict extraction.
+Keep functions small enough to show their result and side effects clearly. Use type constructors instead of string round trips. Check optional data before strict extraction.
 
 Give named handlers and exported functions names that describe application behavior. Do not name them after transport details.
 

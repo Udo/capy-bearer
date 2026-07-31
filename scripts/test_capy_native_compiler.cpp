@@ -200,7 +200,7 @@ int main()
 												"function choose(value : any) value::type { value }\n"
 												"function choose(value : s32) value::type { value + 1 }\n"
 												"function countdown(value : any) value::type { if value == 0 { return value }; return countdown(value - 1) }\n"
-												"function CLI { print(identity(7), choose(4), countdown(3), identity((1, clone(\"x\")))[1], 2 as bool) }\n";
+												"function CLI { print(identity(7), choose(4), countdown(3), identity((1, clone(\"x\")))[1], bool(2)) }\n";
 	const auto generic = capy::compile_bearer_unit(generic_source, options);
 	assert(capy::wasm::validate_bearer_unit(generic.wasm, {.bearer_abi_version = "11"}).valid);
 	const auto generic_method = capy::compile_bearer_unit(
@@ -209,8 +209,30 @@ int main()
 	assert(generic_method.source_map.find("F\t1\tnative-test.capy\n") != std::string::npos);
 	const auto converted_parameters = capy::compile_bearer_unit(
 		"function text(value : as string) string { value }\nfunction wide(value : as s64) s64 { value }\n"
-		"function CLI { print(text(42), text(false), text([1][0]), wide(7u64), 8 as string) }\n", options);
+		"function CLI { print(text(42), text(false), text([1][0]), wide(7u64), string(8)) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(converted_parameters.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto constructors_and_variadics = capy::compile_bearer_unit(
+		"struct Token { value : string }\n"
+		"struct Pair { left : s32; right : string }\n"
+		"function Token(value : s32) Token { Token(string(value)) }\n"
+		"function token_text(value : Token) string { value.value }\n"
+		"function string(value : any) string { token_text(value) }\n"
+		"function collect(...values : as string) [string] { values }\n"
+		"function CLI { var values : [string] = []; values.push(string(Token(7))); var copy := values; values[0] = \"x\"; var fields := (1, \"p\"); print(...copy, ...collect(1, 2), Pair(...fields).right) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(constructors_and_variadics.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto variadic_function_field = capy::compile_bearer_unit(
+		"function compose(...values : as string) string { values[0] }\n"
+		"struct Collector { invoke : function(...values : as string) string }\n"
+		"function CLI { var collector := Collector(compose); print(collector.invoke(...(1, \"x\"))) }\n", options);
+	const auto variadic_field_validation = capy::wasm::validate_bearer_unit(variadic_function_field.wasm, {.bearer_abi_version = "11"});
+	assert(variadic_field_validation.valid);
+	bool field_formats_s64 = false;
+	for (const auto& imported : variadic_field_validation.imports)
+	{
+		field_formats_s64 = field_formats_s64 || imported.name == "bearer_format_s64";
+		assert(imported.name != "bearer_format_u64" && imported.name != "bearer_format_f64");
+	}
+	assert(field_formats_s64);
 	const auto unused_conversion = capy::compile_bearer_unit(
 		"function text(value : as string) string { value }\nfunction CLI {}\n", options);
 	const auto unused_conversion_validation = capy::wasm::validate_bearer_unit(unused_conversion.wasm, {.bearer_abi_version = "11"});
@@ -240,11 +262,14 @@ int main()
 			 std::pair{"EXPORTS invoke\nfunction EXPORT_invoke(value : dval) dval { value }\nfunction CLI {}\n", "already declared"},
 			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); print(loaded + loaded) }\n", "unsupported operator + for module"},
 			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); if loaded {} }\n", "module is opaque and cannot be used as a condition"},
-			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); loaded as s32 }\n", "no explicit conversion from module to s32"},
-			 std::pair{"function bad(value : as dval) {}\n", "requires a concrete scalar or string type"},
-			 std::pair{"function generic(value : any, count : as s64) value::type { value }\n", "generic functions cannot request parameter conversion"},
+			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); s32(loaded) }\n", "no overload s32(module)"},
+			 std::pair{"function bad(value : as [s32]) {}\n", "requires a concrete named type constructor"},
 			 std::pair{"function left(value : as s64) {}\nfunction left(value : as u64) {}\nfunction CLI { left(1) }\n", "ambiguous converted overload"},
-			 std::pair{"function CLI { var callback : function(value : as s64) s64 = function(value : s64) s64 { value } }\n", "function types cannot request parameter conversion"},
+			 std::pair{"function CLI { var callback : function(value : as s64) s64 = function(value : s64) s64 { value } }\n", "only variadic function-type parameters may request conversion"},
+			 std::pair{"function CLI { var value := 1 as s64 }\n", "call the target type constructor instead"},
+			 std::pair{"struct Point { x : s32 }\nfunction string(value : any) string { value + \"!\" }\nfunction show(value : as string) {}\nfunction CLI { show(Point(1)) }\n", "string operators require string operands"},
+			 std::pair{"function s32(value : string) string { value }\nfunction CLI {}\n", "constructor 's32' must return s32"},
+			 std::pair{"struct Point { x : s32 }\nfunction Point(x : s32) Point { Point(x) }\nfunction CLI {}\n", "duplicates the generated Point field constructor"},
 			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); var values := [loaded] }\n", "module is opaque and cannot be stored in array layouts"},
 			 std::pair{"function CLI { var loaded : module = unit_load(\"x\"); var pair := (loaded, loaded) }\n", "module is opaque and cannot be stored in tuple layouts"},
 			 std::pair{"struct Box { handle : module }\nfunction CLI {}\n", "module is opaque and cannot be stored in struct layouts"},
@@ -303,8 +328,9 @@ int main()
 	assert(no_stdlib_bytes.find("bearer_sqlite_") == std::string::npos && no_stdlib_bytes.find("bearer_mysql_") == std::string::npos && no_stdlib_bytes.find("bearer_capy_backtrace") == std::string::npos);
 	const auto f64_print = capy::compile_bearer_unit("function emit(value : f64) { print(value) }\nfunction CLI { emit(1.5) }\n", options);
 	const std::string f64_print_bytes(f64_print.wasm.begin(), f64_print.wasm.end());
-	assert(f64_print_bytes.find("bearer_print_f64") != std::string::npos);
-	assert(f64_print_bytes.find("bearer_print_s64") == std::string::npos && f64_print_bytes.find("bearer_print_u64") == std::string::npos);
+	assert(f64_print_bytes.find("bearer_format_f64") != std::string::npos && f64_print_bytes.find("bearer_print_bytes") != std::string::npos);
+	assert(f64_print_bytes.find("bearer_print_f64") == std::string::npos && f64_print_bytes.find("bearer_print_s64") == std::string::npos &&
+		f64_print_bytes.find("bearer_print_u64") == std::string::npos);
 	const auto ordinary_backtrace = capy::compile_bearer_unit(
 		"function outer() string { inner() }\nfunction inner() string { var capture := function() string { backtrace_get_frames(2, 1) }; capture() }\nfunction CLI { print(outer(), backtrace_get_frames()) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(ordinary_backtrace.wasm, {.bearer_abi_version = "11"}).valid);
@@ -415,7 +441,7 @@ int main()
 	}
 	const auto wide =
 		capy::compile_bearer_unit("function next(value : u64) u64 { value + 1u64 }\nfunction half(value : f64) f64 { value / 2.0 }\n"
-								  "function CLI { var fn : function(value : u64) u64 = next; print(fn(4u64), half(3.0), -1 as u64, 9.0 as s32) }\n",
+								  "function CLI { var fn : function(value : u64) u64 = next; print(fn(4u64), half(3.0), u64(-1), s32(9.0)) }\n",
 								  options);
 	assert(capy::wasm::validate_bearer_unit(wide.wasm, {.bearer_abi_version = "11"}).valid);
 	const auto marker_collision = capy::compile_bearer_unit("function CLI { 1509949440; print([1][1]) }\n", options);
@@ -451,7 +477,6 @@ int main()
 			 std::pair{"function CLI { (1 + 2) := 3 }\n", "inferred declaration target must be a local name"},
 			 std::pair{"function CLI { print(1 && true) }\n", "logical operators require bool operands"},
 			 std::pair{"function CLI { var held := clone(\"old\"); var replace := function() { held = clone(\"new\") } }\n", "unknown local 'held'"},
-			 std::pair{"function CLI { var values := [1u64, 2u64] }\n", "not yet supported in array layouts"},
 			 std::pair{"function CLI { var values := (1s64, 2) }\n", "s64, u64, and f64 are not yet supported in tuple layouts"},
 			 std::pair{"struct Wide { value : f64 }\nfunction CLI {}\n", "not yet supported in struct layouts"},
 			 std::pair{"function CLI { print(first(\"ok\", 1)) }\n", "no overload first(string, s32)"},
