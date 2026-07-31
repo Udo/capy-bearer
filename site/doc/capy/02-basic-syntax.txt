@@ -2,7 +2,7 @@
 2. Basic syntax
 
 :content
-Capy source contains expressions, declarations, and blocks. A block starts with `{` and ends with `}`. A comment starts with `//` and continues to the line end.
+Capy source contains declarations. Function bodies contain expressions and blocks. A block starts with `{` and ends with `}`. A comment starts with `//` and continues to the line end. Top-level executable expressions are not supported.
 
 ```capy
 // This function returns a greeting.
@@ -45,6 +45,8 @@ The grammar usually shows where each expression ends. Use a semicolon when two a
 
 Names are case-sensitive. `total`, `Total`, and `TOTAL` are different names. A local variable remains visible to the end of its block. An inner block can use the same name and hide the outer name.
 
+Bearer loads Capy's public standard-library declarations when the source uses them. You do not import or include that source. Standard-library names are reserved, and application code cannot declare or call private names that start with `__bearer_`.
+
 ## Function declarations
 
 A function declaration has a name and a body. It can also have parameters and a result type:
@@ -59,6 +61,12 @@ A function with no parameters can omit `()`:
 
 ```capy
 function answer s32 { 42 }
+```
+
+Parentheses group one declaration slot. For a function with no parameters and a tuple result, write both slots:
+
+```capy
+function position() (s32, s32) { (10, 20) }
 ```
 
 Bearer handlers use the same syntax. Put a colon before the name of a named handler:

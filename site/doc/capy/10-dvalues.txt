@@ -6,15 +6,18 @@ A `dval` is a dynamic value for Bearer APIs. It can hold an empty value, string,
 
 ## Creating DValues
 
-Use `dval(...)` with a scalar, map literal, or list literal:
+Use `dval(...)` with a string, `s32`, `u64`, `f64`, `bool`, existing DValue, map literal, or list literal:
 
 ```capy
 var profile := dval({
-    "name": "Ada",
+    name: "Ada",
     "active": true,
-    "tags": ["math", "logic"]
+    tags: ["math", "logic"]
 })
+var empty_map := dval({:})
 ```
+
+A map key can be an identifier or a quoted string. A list literal inside `dval(...)` becomes a dynamic DValue list, not a typed `[T]` array.
 
 ## Reading values
 
@@ -33,9 +36,9 @@ if dval_has(profile, "nickname") {
 }
 ```
 
-Extraction functions include `dval_string`, `dval_bool`, `dval_s32`, `dval_f64`, `dval_to_s64`, and `dval_to_u64`. Select the function for the value you expect.
+Strict extraction functions include `dval_string`, `dval_bool`, `dval_s32`, and `dval_f64`. Select the function for the value you expect. `dval_f64` also accepts a complete finite numeric string because Bearer's JSON decoder preserves JSON numbers as strings.
 
-The wide-integer functions accept optional fallback values. They preserve exact 64-bit results.
+Conversion functions such as `dval_to_string`, `dval_to_bool`, `dval_to_f64`, `dval_to_s64`, and `dval_to_u64` support documented fallback overloads. The wide-integer forms preserve exact 64-bit results.
 
 ## Iteration
 
@@ -61,7 +64,9 @@ items = dval_push(items, dval("second"))
 
 This rule also applies to `dval_set`, `dval_remove`, `dval_clear`, and related functions. The `dval_map` and `dval_filter` functions apply a Capy function to copied child values.
 
-Bearer copies DValues passed to C++, another unit, a component, or a task. A change on one side does not change the other side.
+`dval_key`, `dval_keys`, and `dval_values` return copied values. `dval_get_by_path` reads nested paths, `array_merge` applies Bearer's map/list merge rules, and `dval_to_json` serializes a copied value. The DValue API pages describe each shape and fallback.
+
+Bearer copies DValues passed to C++, another unit, a component, or a task. A change on one side does not change the other side. Native reference or alias identity never crosses this boundary.
 
 :see
 0_DValue

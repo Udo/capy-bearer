@@ -11,7 +11,7 @@ var colors := ["red", "green", "blue"]
 print(colors[0])
 ```
 
-Array indexes start at zero. An index outside the array traps and reports its source location. A typed declaration can create an empty array:
+Array indexes start at zero. An index outside the array traps and reports its source location. Empty `pop`, invalid `insert` or `remove`, and negative `reserve` or `resize` values also trap. A typed declaration can create an empty array:
 
 ```capy
 var colors : [string] = []
@@ -31,7 +31,7 @@ Arrays provide vector operations:
 - `resize(length, fill)` changes the length.
 - `capacity()` returns the reserved item count.
 
-Assignment has value semantics. Changing a copy does not change the original. Capy uses copy-on-write storage to avoid an immediate deep copy.
+Assignment and parameter passing have value semantics. Changing a copy does not change the original. Capy uses copy-on-write storage to avoid an immediate deep copy, including for nested arrays and managed elements.
 
 Use `for` to read each value:
 
@@ -48,7 +48,7 @@ var more := [...colors, "purple"]
 print(...more)
 ```
 
-Arrays can contain scalar, string, and managed aggregate values. Use a list-shaped `dval` when data must cross an API or unit boundary.
+Arrays can contain narrow or wide scalars, strings, and managed aggregate values. Use a list-shaped `dval` when data must cross an API or unit boundary.
 
 ## Tuples
 
@@ -63,7 +63,9 @@ var size := dimensions()
 print(size[0], " x ", size[1])
 ```
 
-`()` is the empty tuple. `(value)` groups an expression and does not create a one-item tuple. The compiler treats `use(a, b)` and `use((a, b))` as different calls.
+`()` is the empty tuple. `(value)` groups an expression and does not create a one-item tuple. The compiler treats `use(a, b)` and `use((a, b))` as different calls. A tuple can spread into fixed call parameters with `use(...tuple)`.
+
+Tuple layouts can own managed values, but they do not yet accept `s64`, `u64`, or `f64` fields.
 
 ## Structs
 
@@ -79,7 +81,9 @@ var user := User("Ada", true)
 print(user.name)
 ```
 
-Constructor arguments follow the field declaration order. The compiler checks member names.
+The generated constructor uses field declaration order. The compiler checks member names. You can add other constructor overloads by declaring functions named `User`, but you cannot replace the generated field constructor.
+
+A struct can spread into call parameters in field declaration order. Struct layouts can own managed values, but they do not yet accept `s64`, `u64`, or `f64` fields.
 
 A field can hold a function value:
 

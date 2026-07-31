@@ -4,9 +4,9 @@
 :content
 ## Operators
 
-The arithmetic operators are `+`, `-`, `*`, `/`, and `%`. Both operands must have the same numeric type. The `%` operator supports integer types but not `f64`.
+The arithmetic operators are `+`, `-`, `*`, `/`, and `%`. Both operands must have the same numeric type. Unary `-` supports `s32`, `s64`, and `f64`. The `%` operator supports integer types but not `f64`. Integer arithmetic uses the corresponding WebAssembly signed or unsigned operation; division by zero traps.
 
-The comparison operators are `==`, `!=`, `<`, `<=`, `>`, and `>=`. The boolean operators are `!`, `&&`, and `||`. The `&&` and `||` operators use short-circuit evaluation. Capy evaluates the right side only if the result requires it.
+The comparison operators are `==`, `!=`, `<`, `<=`, `>`, and `>=`. Their operands must have the same type. The boolean operators are `!`, `&&`, and `||` and require `bool` values. The `&&` and `||` operators use short-circuit evaluation. Capy evaluates the right side only if the result requires it.
 
 ```capy
 if enabled && count > 0 {
@@ -14,7 +14,7 @@ if enabled && count > 0 {
 }
 ```
 
-The `..` operator creates a half-open integer range. The range `0..3` contains `0`, `1`, and `2`.
+The `..` operator creates a half-open `s32` range. The range `0..3` contains `0`, `1`, and `2`. A range whose start is not below its end is empty.
 
 ## Conditions
 
@@ -28,7 +28,7 @@ if score >= 90 {
 }
 ```
 
-An `if` expression produces the selected branch value when both branches have compatible types.
+An `if` expression currently has type `void`, including when it has an `else` branch. Assign to an outer variable when the branches must choose a later value.
 
 ## Loops
 
@@ -42,7 +42,7 @@ while count < 3 {
 }
 ```
 
-Use `for` for ranges and collections:
+Use `for` for ranges and collections. A range or array loop has one binding:
 
 ```capy
 for number = 0..3 {
@@ -54,7 +54,7 @@ for item = ["red", "green", "blue"] {
 }
 ```
 
-A DValue loop can provide both a key and a value:
+A DValue loop can provide a value alone or both a key and a value:
 
 ```capy
 for key, value = profile {
@@ -62,7 +62,7 @@ for key, value = profile {
 }
 ```
 
-Use `break` to leave the nearest loop. Use `continue` to start the next iteration. Use `return` to leave the current function and provide its result.
+Use `break` to leave the nearest loop. Use `continue` to start the next iteration. Neither accepts a value. Use `return` to leave the current function and provide its result. Capy releases owned values on each normal loop, `break`, `continue`, and `return` path.
 
 :see
 capy-04-variables-constants-and-expressions

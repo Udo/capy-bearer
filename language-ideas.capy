@@ -1,3 +1,7 @@
+// DESIGN NOTES ONLY: this file is not current Capy documentation or executable source.
+// Some examples describe deferred or rejected syntax. See site/doc/capy/*.txt for the
+// supported language and docs/capy-language.md for the implementation boundary.
+
 // function declaration
 
 function test(x : s32) s32 { // overload identity is keyed by name and parameter types: test+s32

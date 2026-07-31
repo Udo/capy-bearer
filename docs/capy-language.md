@@ -152,7 +152,7 @@ The first direct-Wasm backend emits:
 - a matching `BEARER_SOURCE_MAP_V1` sidecar;
 - no WASI imports; dynamic values use Bearer’s workspace allocator.
 
-Compiler generation c31 uses core ABI w24. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
+Compiler artifacts include the native compiler build identity and use core ABI w25. Artifact staging, freshness metadata, native serialization, bounded diagnostics, and last-known-good policy remain owned by Bearer’s existing compiler coordinator. Frontend, typed lowering, and CLI code are separate files, and all participate in artifact freshness signatures.
 
 ## Automatic reference counting
 
@@ -183,7 +183,7 @@ Rules:
 - traps skip cleanup safely because the complete workspace is discarded;
 - ARC does not collect strong cycles. `weak<T>` will support deliberate back-references; remaining strong cycles persist only until workspace teardown.
 
-Current managed-value lowering imports Bearer’s workspace allocator/free functions and emits private retain, release, clone, and type-directed drop helpers into each Capy module. Allocation failure traps before any header or payload write. Literal strings are aligned immortal objects. Managed parameters are borrowed and cannot be rebound; managed results are owned; assignments retain-before-release; owned argument temporaries are released after calls; and every supported normal lexical/early-return edge emits cleanup. Arrays use `[T]` in type slots, bounds-check indexing, support array iteration, and currently accept scalar or string elements. Nominal structs use declaration-order constructors and checked member names. String-array and struct drop glue recursively releases managed fields before freeing the aggregate. `arc_live()` is a temporary conformance counter; trapping requests intentionally skip releases and prove that the next workspace starts clean.
+Current managed-value lowering imports Bearer’s workspace allocator/free functions and emits private retain, release, clone, and type-directed drop helpers into each Capy module. Allocation failure traps before any header or payload write. Literal strings are aligned immortal objects. Managed parameters are borrowed and cannot be rebound; managed results are owned; assignments retain-before-release; owned argument temporaries are released after calls; and every supported normal lexical/early-return edge emits cleanup. Arrays use `[T]` in type slots, bounds-check indexing, support array iteration, and accept narrow or wide scalars plus managed aggregate elements. Nominal structs use declaration-order constructors and checked member names. String-array and struct drop glue recursively releases managed fields before freeing the aggregate. `arc_live()` is a temporary conformance counter; trapping requests intentionally skip releases and prove that the next workspace starts clean.
 
 Capy values never expose their object layout to C++. Dynamic cross-language values use owned/copied DValue/BRRB adapters at the Bearer membrane.
 

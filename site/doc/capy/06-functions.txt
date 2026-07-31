@@ -14,12 +14,17 @@ function area(width : f64, height : f64) f64 {
 var size := area(4.0, 2.5)
 ```
 
-The function returns its last expression. Use `return` to leave the function early:
+The function returns its last expression. Use `return` to leave the function early. A `void` function may use a bare `return`:
 
 ```capy
 function absolute(value : s32) s32 {
     if value < 0 { return 0 - value }
     value
+}
+
+function log_ready {
+    print("ready")
+    return
 }
 ```
 
@@ -41,9 +46,7 @@ show(true)     // value is "true"
 
 Inside `show`, `value` has type `string`. Capy passes a string unchanged. For another type, it inserts one `string(value)` constructor call.
 
-Overload selection first uses an exact concrete match. It next uses a matching generic function. It uses a coercive function only when neither earlier match exists.
-
-Two equally good coercive functions make the call ambiguous. Call the required type constructor to select one:
+Overload selection prefers an exact concrete match, then an `any` specialization without construction, then a fixed-arity coercive match, and finally a variadic match. Within those groups, fewer constructor calls and a longer fixed variadic prefix win. Two equally ranked matches are ambiguous. Call the required type constructor to select one:
 
 ```capy
 function show_count(count : s64) { print(count) }
@@ -52,7 +55,7 @@ show_count(s64(12))
 
 ## Variadic parameters
 
-Put `...` before the final parameter name to accept zero or more trailing arguments:
+Put `...` before the final parameter name to accept zero or more trailing arguments. A variadic parameter must be last and cannot use `any`:
 
 ```capy
 function join_words(...words : as string) string {
@@ -78,6 +81,8 @@ var point := (10, 20)
 draw(...point)
 ```
 
+A struct created by its generated field constructor can also spread its fields in declaration order. Every argument or spread source is evaluated once from left to right.
+
 ## Overloading
 
 Several functions can have the same name when their parameter types differ:
@@ -99,7 +104,9 @@ function identity(value : any) value::type {
 }
 ```
 
-The compiler checks each used type separately. There is no `any` value while the program runs. Each operation must support the supplied type.
+The compiler checks each used type separately. There is no `any` value while the program runs. Each operation must support the supplied type. A generic can return `value::type` or a fixed declared result type. A function value must have a concrete function type; generic declarations are specialized at direct call sites.
+
+After overload resolution selects a generic specialization, an error in that specialization is the call's error. The compiler does not backtrack to a weaker overload.
 
 ## Method-style calls
 
@@ -110,7 +117,7 @@ function doubled(value : s32) s32 { value * 2 }
 print((4).doubled())
 ```
 
-The compiler treats this as an ordinary function call. You can also call a function stored in a struct field with dot syntax.
+The compiler treats this as an ordinary receiver-first function call and evaluates the receiver once. You can also call a function stored in a struct field with dot syntax. Field lookup wins when the receiver's struct has a callable field with that name.
 
 :see
 capy-03-types

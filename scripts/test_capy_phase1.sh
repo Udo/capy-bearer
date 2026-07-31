@@ -100,14 +100,14 @@ variable_expression_output=$(scripts/bearer-cli /tests/capy-variable-expressions
 	cat >"$variable_trap_dir/entry.capy" <<'EOF'
 function CLI {
     var owned := clone("owned")
-    while var value := [1][1] {}
+    while var again := true { var value := [1][1] }
 }
 EOF
 	set +e
 	variable_trap_output=$(scripts/bearer-cli "/tests/$variable_trap_name/entry.capy" 2>&1)
 	variable_trap_status=$?
 	set -e
-	[[ $variable_trap_status -ne 0 && "$variable_trap_output" == *"entry.capy:3:27"* ]] || {
+	[[ $variable_trap_status -ne 0 && "$variable_trap_output" == *"entry.capy:3:47"* ]] || {
 		echo "Capy declaration initializer trap/source mapping mismatch: $variable_trap_output" >&2
 		exit 1
 	}

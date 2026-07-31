@@ -2,6 +2,22 @@
 11. Web handlers, requests, and sessions
 
 :content
+## Handler forms
+
+A Bearer unit can declare these Capy handlers:
+
+- `CLI` handles command-line execution.
+- `RENDER` handles a normal page request.
+- `COMPONENT` renders reusable content.
+- `WS` handles a WebSocket message.
+- `SERVE_HTTP` handles a request for a server started through Bearer.
+- `TASK` handles durable queued work.
+- `ONCE` and `INIT` expose Bearer's lifecycle entry points.
+
+`RENDER:NAME`, `COMPONENT:NAME`, `SERVE_HTTP:NAME`, and `TASK:NAME` declare named handlers. A handler cannot be overloaded, generic, variadic, coercive, or return a value. A non-task handler accepts no parameter or one `request` parameter. Every task handler requires exactly one `request` parameter.
+
+`ONCE` and `INIT` exports exist for ABI parity, but their automatic ordering and deduplication contract is not defined yet. Do not rely on them for application lifecycle behavior.
+
 ## Rendering a response
 
 A `RENDER` function handles a normal page request:
@@ -22,7 +38,7 @@ Use these request functions for common values:
 - `request_param(name)` reads a server or request parameter.
 - `request_body()` returns the raw request body.
 
-Each function returns a string. It returns an empty string when the key is absent. Use `request_context()` when you need a structured request map or component properties.
+Each function returns a string. It returns an empty string when the key is absent. Use `request_context()` when you need the copied structured request map or component properties. The snapshot includes request data, application config, connection data, input, and the current unit, but not Bearer's operational server configuration.
 
 ## Status, headers, cookies, and redirects
 
@@ -57,13 +73,18 @@ Call `session_start(name)` before you use a named session. Use `session_set`, `s
 
 Use `csrf_token`, `csrf_valid`, and `csrf_rotate` to protect forms. The API reference lists their overloads and default values.
 
+## Custom HTTP servers
+
+A `SERVE_HTTP` handler reads the request with the same request functions and writes the response with `print`, status, and header functions. `server_start_http` selects the default or named handler. The server remains host-owned; the Capy handler still runs in a fresh Bearer request workspace.
+
 ## WebSockets
 
-A `WS` handler reads the current message with `ws_message()`. It can call `ws_send`, `ws_send_to`, or `ws_close`. The related `ws_*` functions provide connection IDs and operation codes.
+A `WS` handler reads the current message with `ws_message()`. It can call `ws_send`, `ws_send_to`, or `ws_close`. The related `ws_*` functions provide connection IDs, scopes, binary state, and operation codes. Send and close operations return `bool`.
 
 :see
 0_Request
 1_RENDER
 1_COMPONENT
 1_WS
+server_start_http
 capy-07-strings-and-markup

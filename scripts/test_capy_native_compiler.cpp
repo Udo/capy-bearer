@@ -487,6 +487,8 @@ int main()
 	for (const auto& [source, expected] : {
 			 std::pair{"function CLI { (1 + 2) := 3 }\n", "inferred declaration target must be a local name"},
 			 std::pair{"function CLI { print(1 && true) }\n", "logical operators require bool operands"},
+			 std::pair{"function CLI { if 1 { print(\"bad\") } }\n", "if condition must be bool"},
+			 std::pair{"function CLI { while 1u64 { break } }\n", "while condition must be bool"},
 			 std::pair{"function CLI { var held := clone(\"old\"); var replace := function() { held = clone(\"new\") } }\n", "unknown local 'held'"},
 			 std::pair{"function CLI { var values := (1s64, 2) }\n", "s64, u64, and f64 are not yet supported in tuple layouts"},
 			 std::pair{"struct Wide { value : f64 }\nfunction CLI {}\n", "not yet supported in struct layouts"},

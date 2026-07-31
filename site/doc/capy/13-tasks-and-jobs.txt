@@ -6,7 +6,7 @@ Tasks and jobs run work outside the current request. Use them for different type
 
 ## Tasks
 
-A task calls a named Bearer handler later. Each task handler receives a request parameter:
+A task calls a durable named Bearer handler later. Each task handler has the form `TASK` or `TASK:NAME` and receives exactly one `request` parameter. Tasks do not accept closures, process IDs, or repeat callbacks:
 
 ```capy
 function TASK:SEND_EMAIL(request : request) {
@@ -25,18 +25,20 @@ var id := task(
 )
 ```
 
-`task` returns an opaque ID. Use `task_status(id)` or `task_await(id, timeout_ms)` to get a status DValue. Read its `state` field:
+`task` copies the submitted DValue and returns an opaque ID. A dedicated worker creates a fresh request workspace. It does not inherit the caller's request, session, connection, open handles, or resource state. The copied input appears in `request_context(request)["props"]`.
+
+Use `task_status(id)` or `task_await(id, timeout_ms)` to get a status DValue. Read its `state` field:
 
 ```capy
 var status := task_await(id, 5000u64)
 print(dval_string(status["state"]))
 ```
 
-The states are `queued`, `running`, `succeeded`, `failed`, `canceled`, and `missing`. `task_cancel(id)` requests cancellation and returns a status DValue.
+The states are `queued`, `running`, `succeeded`, `failed`, `canceled`, and `missing`. A failed status can also include a failure code and message. `task_cancel(id)` requests cancellation and returns a status DValue; a task that already finished may keep its terminal state.
 
 A successful task means that the handler finished. It does not return an application result to the caller. Store application results in a database, file, cache, or another application location.
 
-The task system does not retry a failed task. If a retry is safe, submit a new task under your application's policy.
+The task system does not retry a failed task. If a retry is safe, submit a new task under your application's policy. Cancellation and deadlines are cooperative at bounded runtime points; a cancellation request does not imply that an external side effect was rolled back.
 
 ## Jobs
 

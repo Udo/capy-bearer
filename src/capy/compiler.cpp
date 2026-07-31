@@ -4491,8 +4491,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 	if (auto conditional = dynamic_cast<If*>(value))
 	{
 		auto [condition, type] = expression(conditional->condition);
-		if (!is_scalar(type))
-			throw Error(conditional->condition->location, type == "module" ? "module is opaque and cannot be used as a condition" : "if condition must be scalar");
+		if (type != "bool")
+			throw Error(conditional->condition->location, type == "module" ? "module is opaque and cannot be used as a condition" : "if condition must be bool");
 		condition.insert(condition.end(), {0x04, 0x40});
 		++control_depth_;
 		append(condition, block(conditional->then_body));
@@ -4513,8 +4513,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		repeated_condition_scope_ = owned_scopes_.size();
 		auto [condition, type] = expression(loop->condition);
 		repeated_condition_scope_ = previous_condition_scope;
-		if (!is_scalar(type))
-			throw Error(loop->condition->location, type == "module" ? "module is opaque and cannot be used as a condition" : "while condition must be scalar");
+		if (type != "bool")
+			throw Error(loop->condition->location, type == "module" ? "module is opaque and cannot be used as a condition" : "while condition must be bool");
 		const unsigned base = control_depth_, boundary = static_cast<unsigned>(owned_scopes_.size());
 		control_depth_ += 2;
 		loops_.push_back({base + 1, base + 2, boundary, {}, {}});

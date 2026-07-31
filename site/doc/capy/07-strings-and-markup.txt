@@ -4,7 +4,7 @@
 :content
 ## Strings
 
-A `string` stores bytes. String literals use double quotes. Use escapes such as `\n` for a newline and `\"` for a quote.
+A `string` stores bytes. String literals use double quotes. They may span lines. Supported escapes are `\n`, `\r`, `\t`, `\"`, and `\\`. Other escape sequences are compile errors.
 
 ```capy
 var first := "Ada"
@@ -12,7 +12,7 @@ var last := "Lovelace"
 var full := first + " " + last
 ```
 
-`length(text)` returns the byte count. Bearer provides functions such as `substr`, `find`, `replace`, `lower`, `upper`, `trim`, `split`, and `join`. String offsets refer to bytes, not Unicode characters.
+The `+` operator concatenates strings. `==` and `!=` compare their bytes. `length(text)` returns the byte count. Bearer provides functions such as `substr`, `strpos`, `find`, `contains`, `replace`, `lower`, `upper`, `trim`, `split`, and `join`. String offsets refer to bytes, not Unicode characters. Negative substring starts count from the end, and a negative length excludes bytes from the end.
 
 ```capy
 var words := split("one,two,three", ",")
@@ -45,7 +45,9 @@ var button := <><button><?: icon ?> Save</button></>
 
 Never give untrusted data to `trusted_markup`. This includes request values, database text, and remote content. Keep untrusted data as strings and use escaped interpolation.
 
-You can store, return, nest, and print markup. Use markup to produce HTML in Capy handlers and components.
+You can store, return, nest, and print markup. Each interpolation expression runs once. Dynamic markup computes one exact escaped result and remains ARC-managed like a string.
+
+Inside literal markup, write `\<>` or `\</>` when the delimiter text itself must appear without opening or closing a fragment. Use markup to produce HTML in Capy handlers and components.
 
 :see
 html_escape

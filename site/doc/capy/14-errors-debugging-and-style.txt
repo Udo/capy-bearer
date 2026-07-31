@@ -19,11 +19,19 @@ Common causes include:
 
 Bearer detects some errors only while the unit runs. Examples include an invalid array index, missing DValue key, invalid scalar extraction, failed checked conversion, or explicit `trap()`.
 
-Bearer reports a Capy source location for these errors. `backtrace_get_frames()` returns text that lists the active Capy function calls.
+Bearer reports the relevant Capy expression location for these errors. Function-entry locations provide a fallback. `backtrace_get_frames()` returns text that lists the active Capy function calls. Internal standard-library frames are hidden so the application call remains primary.
 
 After a request traps, the next request starts with fresh request state. Do not use traps for normal optional data. Check conditions such as `dval_has` before strict access.
 
+## Current language boundaries
+
+Capy has no textual include, top-level executable statements, mutable closure captures, weak references, or implicit conversion chains. The `#compile`, `#callsite`, and `emit` metaprogramming forms are reserved but not implemented. The compiler reports a targeted error rather than running them.
+
+Use constructors for explicit conversion. Use units and `EXPORTS` for composition. Treat any syntax in `language-ideas.capy` as design notes unless these online guides describe it.
+
 ## Testing Capy code
+
+Guide code blocks may show a complete unit or a focused fragment. A fragment belongs inside a function or handler before you run it; Capy does not accept top-level executable statements. For a quick smoke test, put the fragment in `function CLI { ... }` and run it through Bearer's CLI.
 
 Test through the same handler that the application uses. A small `CLI` handler is useful for functions without web effects. Test HTTP behavior through `RENDER` or `COMPONENT`. Include absent and malformed input.
 
@@ -42,7 +50,7 @@ Use explicit types at boundaries. Use inference for obvious local variables. Kee
 
 Use strings for text and markup for HTML. Use structs for stable records and arrays for typed vector data. Use DValues for dynamic data and unit calls.
 
-Keep functions small enough to show their result and side effects clearly. Use type constructors instead of string round trips. Check optional data before strict extraction.
+Keep functions small enough to show their result and side effects clearly. Use type constructors instead of string round trips. Check optional data before strict extraction. Prefer `bool` conditions and explicit comparisons; Capy does not use integers, strings, or handles as truth values.
 
 Give named handlers and exported functions names that describe application behavior. Do not name them after transport details.
 

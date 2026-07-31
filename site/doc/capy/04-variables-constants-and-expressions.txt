@@ -11,6 +11,14 @@ var name := "Ada"
 var visits := 1
 ```
 
+Inside a function, `name := value` is the shorter inferred declaration form:
+
+```capy
+message := "ready"
+```
+
+Both forms declare the name in the current lexical scope. They do not assign an existing variable.
+
 Use `: Type =` to state the type:
 
 ```capy
@@ -40,7 +48,7 @@ if (line = trim(line)) != "" {
 }
 ```
 
-The compiler evaluates each initializer or right side one time.
+The compiler evaluates each initializer or right side one time. A declaration in an `if` condition remains in that function block after the condition. The conditional right side of `&&` or `||` has its own nested scope, so a declaration there does not escape.
 
 ## Constants
 
@@ -58,9 +66,9 @@ Capy currently supports only top-level `s32` literal constants. Use a function o
 
 ## Expressions and results
 
-Calls, arithmetic, comparisons, assignments, declarations, conditionals, collections, and blocks produce values. Markup also produces a value.
+Calls, arithmetic, comparisons, assignments, declarations, collections, and markup produce values. `if`, loops, and ordinary blocks currently have type `void`; use assignment in their branches when later code needs a result.
 
-A block produces the value of its last expression. A function returns its final expression when it has no explicit `return`.
+A function returns its final expression when it has no explicit `return`. This function-result rule does not make every nested block a value.
 
 Use parentheses to make precedence or tuple boundaries clear:
 

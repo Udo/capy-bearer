@@ -47,7 +47,7 @@ Run this command from the project directory:
 scripts/bearer-cli /hello.capy
 ```
 
-A source file can contain helper functions, constants, structs, and Bearer handlers. Most guide examples use `CLI` because it shows output directly. The same language also supports pages, components, WebSocket handlers, and tasks.
+A source file can contain helper functions, constants, structs, and Bearer handlers. Most guide examples use `CLI` because it shows output directly. The same language also supports pages, components, custom HTTP servers, WebSocket handlers, lifecycle hooks, and durable tasks. Read the handler guide for the complete handler list and parameter rules.
 
 ## What to read next
 
@@ -57,3 +57,4 @@ Read basic syntax first. Then read about types, variables, operators, and functi
 capy-02-basic-syntax
 capy-03-types
 capy-11-web-handlers
+capy-13-tasks-and-jobs
