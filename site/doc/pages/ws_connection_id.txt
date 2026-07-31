@@ -8,9 +8,11 @@ return value : connection ID of the current WebSocket client
 >websocket
 
 :content
-Returns the runtime-generated connection ID of the client whose message is currently being handled.
+In Capy, `ws_connection_id()` takes no inputs and returns the current client's connection ID as a `string`.
 
-This ID can be passed to `ws_send_to()` or `ws_close()` to target a single connected client.
+Use the ID with `ws_send_to()` or `ws_close()` to select one client. Outside a WebSocket handler, it returns an empty string.
+
+The empty string is the normal no-connection result. C++ returns the same value as `String`.
 
 :example capy render
 var id := ws_connection_id()

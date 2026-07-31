@@ -2,18 +2,22 @@
 f64 draw_float(f64 from, f64 to, f64 decimal_precision = 0.000000000001)
 
 :params
-from : minimum value
-to : maximum value
-return value : a noise value between 'from' and 'to'
+from : first range value
+to : second range value
+decimal_precision : output precision
+return value : `f64` noise value between `from` and `to`
 
 :see
 >noise
 
 :content
-Works like `generate_float()`, but uses `context.random_index` for the index value and `context.random_seed` for the seed.
+`draw_float()` returns a Capy `f64` noise value between two values.
 
-After each call, `context.random_index` is increased by one. At the start of every request, `context.random_seed` is automatically populated with a new seed value.
+Pass the range values and optional precision. Bearer uses the request random seed and advances its random index after each call.
 
+Use it when one request needs repeatable noise values from its random sequence.
+
+The C++ `.uce` call has the same arguments.
 
 :example capy render
 if draw_float(1.0, 0.0, 1.0) >= 0.0 { print("float\n") } else { print("bad\n") }

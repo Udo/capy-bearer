@@ -8,7 +8,9 @@ return value : one of String, f64, bool, array, pointer, reference, or unknown
 0_DValue
 
 :content
-Returns a human-readable name for the dereferenced value's type tag.
+Use `dval_get_type_name(value)` in Capy to get the type name of a copied `dval`. It takes one value and returns a string. Normal results are `String`, `f64`, `bool`, `array`, `pointer`, `reference`, or `unknown`.
+
+C++ `get_type_name()` gets the name after it dereferences the value.
 
 
 :example capy render

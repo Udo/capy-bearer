@@ -12,12 +12,11 @@ zip_create
 zip_read
 
 :content
-Compresses `src` and returns a gzip-format byte string.
+`gz_compress()` returns gzip-compressed bytes for a string. The returned string is binary data.
 
-The result is binary data. Store it in a file, send it with an appropriate content type/encoding, or pass it directly to `gz_uncompress()`.
+Pass the result to `gz_uncompress()`, write it to a file, or send it with the correct HTTP encoding. Use it to create gzip payloads.
 
-
-BEARER writes a standard gzip wrapper around a deflate stream, including CRC32 and uncompressed-size footer fields.
+The result uses the standard gzip format, including CRC32 and uncompressed-size fields.
 
 :example capy render
 var original := "hello hello hello hello hello"

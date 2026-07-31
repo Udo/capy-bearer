@@ -3,7 +3,7 @@ DValue xml_decode(String s)
 
 :params
 s : XML source string
-return value : element-shaped DValue
+return value : element-shaped `dval`
 
 :see
 >markup
@@ -13,34 +13,13 @@ json_decode
 0_String
 
 :content
-Parses a simple XML document into a structured `DValue`.
+In Capy, `xml_decode(source)` accepts XML source as a `string` and returns a structured `dval`.
 
-`xml_decode()` parses a compact XML subset. It does not validate schemas, DTDs, namespaces, or document types. It parses the first root element and returns the same structural element shape accepted by `xml_encode()`.
+Use it to read XML data into the element shape that `xml_encode()` accepts. It reads the first root element.
 
-Try the live example in the [XML demo](../demo/xml.uce).
+The parser supports elements, quoted attributes, text, CDATA, comments, processing instructions, and XML entities. It does not validate schemas, DTDs, namespaces, or document types.
 
-Return shape:
-
-
-Example:
-
-
-CDATA and numeric entities are folded into text:
-
-
-Supported parser features:
-
-- elements
-- attributes with quoted values
-- self-closing tags
-- text nodes
-- XML entities such as `&amp;`, `&lt;`, `&gt;`, `&quot;`, and `&apos;`
-- decimal and hexadecimal numeric entities
-- comments, processing instructions, and CDATA sections
-
-Whitespace-only text between child elements is ignored. Mixed non-empty text is concatenated into `node["text"]`.
-
-Malformed XML raises a request-visible runtime error.
+Malformed XML raises a request-visible runtime error. C++ returns the same data as `DValue` through the signature above.
 
 :example capy render
 var node := xml_decode("<root><name>Ada</name></root>")

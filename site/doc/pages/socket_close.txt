@@ -2,15 +2,15 @@
 void socket_close(u64 sockfd)
 
 :params
-sockfd : socket handle
+sockfd : socket handle from `socket_connect()`
 
 :see
 >socket
 
 :content
-Closes an existing socket connection.
+Capy `socket_close(sockfd)` closes a socket handle from `socket_connect()`. It does not return a value.
 
-Use this when you are done with a socket opened through `socket_connect()`.
+Call it after you finish reading or writing the socket. Do not use the handle after you close it.
 
 :example capy render
 var fd := socket_connect("127.0.0.1", 80)

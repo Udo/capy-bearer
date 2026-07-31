@@ -3,10 +3,10 @@ DValue regex_split(String pattern, String subject)
 DValue regex_split(String pattern, String subject, String flags)
 
 :params
-pattern : PCRE2 regular expression pattern used as the separator
-subject : string to split
-flags : optional regex flags
-return value : a list of string parts
+pattern : PCRE2 regular expression separator
+subject : text to split
+flags : optional PCRE2 flags
+return value : `dval` list of text parts
 
 :see
 >string
@@ -20,19 +20,9 @@ join
 0_StringList
 
 :content
-Splits `subject` wherever `pattern` matches.
+In Capy, use this function when a regular expression defines the separator. Use `split()` for a literal separator.
 
-Example:
-
-
-This is the pattern-aware companion to `split()`.
-
-Behavior notes:
-
-- Separators are removed from the returned list.
-- Empty fields are preserved.
-- If the pattern does not match, the result contains the original subject as a single item.
-- Zero-length separators are handled safely to avoid infinite loops.
+The result does not include separators. It keeps empty parts. If the pattern does not match, the result contains `subject` as one item. Zero-length matches advance safely.
 
 :example capy render
 print(join(regex_split("\\s+", "bearer docs api"), ","), "\n")

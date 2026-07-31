@@ -15,7 +15,13 @@ return value : reference to the child node
 2_DValue_has
 
 :content
-Returns a mutable reference to a child, creating the child when it does not already exist. If this value is an internal reference, the operation is forwarded to the target. This has the same creation behavior as `get_or_create()`, so use `has()`, `key()`, or `get_by_path()` for non-mutating reads.
+In Capy, use `value[key]` or `value[index]` to read a child from a `dval`. The result is a copied `dval`, not a mutable alias. Use `dval_put` to set a named child and assign its returned replacement value.
+
+A missing child does not give Capy a writable child reference. Use `dval_has` or `dval_get_by_path` when you need to test a read.
+
+## C++ API
+
+`DValue::operator[]` returns a mutable child reference. It creates a missing child and follows an internal reference. Use `has`, `key`, or `get_by_path` for a C++ read that must not create a child.
 
 
 :example capy render

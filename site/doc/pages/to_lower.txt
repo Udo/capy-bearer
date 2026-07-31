@@ -2,16 +2,18 @@
 String to_lower(String s)
 
 :params
-s : the string to be converted
-return value : returns a version of 's' where all upper case characters have been changed into lower case
+s : text to convert
+return value : `s` with uppercase characters changed to lowercase
 
 :see
 >string
 
 :content
-Returns a lower-case version of `s`.
+In Capy, call `to_lower(value)` to return a lowercase `string` value.
 
-This function is not yet Unicode-aware.
+Use it to normalize ASCII text before comparison. Capy does not convert Unicode case.
+
+C++ uses the legacy `s` parameter in the signature above. C++ also does not provide Unicode case conversion through this function.
 
 
 :example capy render

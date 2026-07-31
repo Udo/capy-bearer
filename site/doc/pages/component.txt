@@ -8,56 +8,15 @@ String component(String name, [DValue props], [Request& context])
 >1_RENDER
 
 :content
-Renders another `.uce` file as a component and returns the captured output as a `String`.
+`component()` runs a Capy component and returns its output as a string.
 
-`component()` resolves the target file relative to the current page and also tries the `components/` prefix automatically, mirroring the shorthand used by the starter example project.
+Pass a component name and optional `dval` props. The component reads copied props from `request_context()["props"]`. Use `component()` when you need captured output, such as markup inside a larger value.
 
-Component props are passed in `context.props`.
+Bearer first tries the exact name. Without a suffix, it also tries the `.uce` form. It checks both forms below `components/`. An explicit `.capy` name selects a Capy source file. A colon selects a named component handler. A name that starts with a colon selects a handler in the current file.
 
-Calling a missing component or named component handler is a server error and sets HTTP status 500. Probe intentionally optional components with `component_exists()` before calling `component()`.
+A missing component or handler causes a server error with status 500. Call `component_exists()` first when the component is optional.
 
-Because `<?= ... ?>` HTML-escapes its value, embed component markup with `<?: component(...) ?>`, `print(component(...))`, or use `component_render(...)` for direct output.
-
-## Named Components
-
-When `name` contains a colon, such as `components/card:BODY`, the part after the colon selects a named component handler exported from the component file through `COMPONENT:BODY(Request& context)`.
-
-The default handler is `COMPONENT(Request& context)`.
-
-When `name` starts with a colon, such as `:BODY`, the target resolves against the current `.uce` file so component files can call their own named handlers without repeating the file name.
-
-When a component unit defines `ONCE(Request& context)`, the runtime calls that hook once per request, per resolved component file, before the first `COMPONENT()` or `COMPONENT:NAME()` handler from that file runs.
-
-## Resolution Order
-
-- exact file name
-- exact file name with `.uce`
-- the same two forms under `components/`
-
-## Common Patterns
-
-Default component handler:
-
-
-Named component handler:
-
-
-Self-targeted named handler from inside the same file:
-
-
-Preparing props in C++ before rendering:
-
-
-Embedding returned component markup inside a literal block:
-
-
-Because `<?= ... ?>` escapes HTML, use `<?: ... ?>` when inserting the returned markup from `component()`.
-
-## Lifecycle Notes
-
-- `INIT(Request& context)` runs once when the worker loads that unit into memory.
-- `ONCE(Request& context)` runs once per request before the first component or render entrypoint from that file.
-- `component()` then calls either `COMPONENT(Request& context)` or the selected `COMPONENT:NAME(Request& context)` handler.
+`component_render()` writes output directly. In C++ `.uce`, pass `context` as the optional final argument when needed.
 
 :example capy render
 print(component("examples/sample_unit"), "\n")

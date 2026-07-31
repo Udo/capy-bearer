@@ -9,7 +9,11 @@ return value : a string that contains the decoded version of 's'
 >uri
 
 :content
-Decodes a URI-encoded string.
+In Capy, `uri_decode(value)` accepts a URI-encoded `string` and returns the decoded `string`.
+
+Use it to read URI data such as a query value. The API has no error return.
+
+C++ uses the signature above. Its `String` input and return value correspond to Capy `string` values.
 
 
 :example capy render

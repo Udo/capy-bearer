@@ -2,18 +2,18 @@
 String memcache_get(u64 connection, String key, String default_value = "")
 
 :params
-connection : connection handle
-key : key string
-default_value : optional default value
-return value : value that was returned by the Memcache server
+connection : open connection handle
+key : entry key
+default_value : value returned when no complete value is available
+return value : stored value or `default_value`
 
 :see
 >memcache
 
 :content
-Retrieves a value from an existing Memcache connection.
+In Capy, pass the `u64` handle from `memcache_connect()`.
 
-If the key is missing, `default_value` is returned instead.
+This function returns the stored value for `key`. It returns `default_value` for a missing key, malformed response, truncated value body, or non-`VALUE` response.
 
 :example capy render
 var conn := memcache_connect()

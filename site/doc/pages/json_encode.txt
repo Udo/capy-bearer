@@ -3,9 +3,8 @@ String json_encode(String s)
 String json_encode(DValue t)
 
 :params
-s : string to encode as a JSON string literal
-t : DValue object to be serialized
-return value : string containing the JSON result
+value : string or `dval` value to encode
+return value : JSON text
 
 :see
 >string
@@ -16,12 +15,11 @@ json_decode
 html_escape
 
 :content
-Serializes either a `String` or a `DValue` into JSON notation.
+In Capy, this function encodes a `string` or `dval` value as JSON text.
 
-When passed a `String`, `json_encode()` returns a quoted and escaped JSON string literal.
+Use it to send structured data in a response or store it as text. List-shaped `dval` values encode as JSON arrays.
 
-When passed a `DValue`, scalar values are serialized directly and nested map values are emitted as JSON objects.
-
+The C++ API also accepts an optional quote character. Capy has no quote-character argument.
 
 :example capy render
 var value := dval({name: "Ada"})

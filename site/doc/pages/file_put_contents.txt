@@ -2,12 +2,14 @@
 bool file_put_contents(String file_name, String content)
 
 :params
-file_name : file to write, resolved against the unit's directory
-content : bytes to write (replaces any existing content)
-return value : true on success
+file_name : path of the file to write
+content : Capy `string` that replaces existing content
+return value : true when Capy writes the file, otherwise false
 
 :content
-Writes `content` to a file, replacing whatever was there. The write takes an exclusive lock for the truncate-and-write, so concurrent writers are serialized and readers wait for it; you never manage locks yourself.
+In Capy, `file_put_contents()` writes a `string` to a complete file. Use it to create or replace a small file. It returns `false` when Capy cannot write the file.
+
+C++ `.uce` uses `String` and returns the same Boolean result.
 
 :example capy render
 file_put_contents("/tmp/doc-put.txt", "first")

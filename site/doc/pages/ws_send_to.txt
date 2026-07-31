@@ -11,7 +11,13 @@ return value : true if the target connection exists and the message was queued
 >websocket
 
 :content
-Queues a WebSocket message for one specific connected client.
+In Capy, `ws_send_to(connection_id, message, binary)` sends one message to the selected WebSocket client.
+
+Both IDs and messages are `string` values. Set `binary` to `true` for a binary message. The function returns `true` when it finds the client and queues the message.
+
+Use it after `ws_connection_id()` or `ws_connections()`. A `false` return is the normal missing-client result.
+
+C++ uses the signature above. Its `String` and `bool` inputs correspond to Capy `string` and `bool` values.
 
 :example capy render
 if ws_send_to("example-connection-id", "direct message", false) { print("message queued\n") } else { print("no such connection\n") }

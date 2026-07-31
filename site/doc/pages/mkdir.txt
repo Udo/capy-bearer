@@ -2,11 +2,13 @@
 bool mkdir(String path)
 
 :params
-path : directory to create
-return value : true on success
+path : directory path
+return value : `true` if the API creates the directory
 
 :content
-Creates a single directory and returns whether it succeeded. The parent directory must already exist, so build nested paths one level at a time.
+In Capy, this function creates one directory at `path`.
+
+Use it when the parent directory already exists. It does not create missing parent directories. The C++ API has the same behavior.
 
 :example capy render
 var root := file_temp("/tmp/doc-mkdir-")

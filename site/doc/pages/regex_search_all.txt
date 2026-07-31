@@ -4,9 +4,9 @@ DValue regex_search_all(String pattern, String subject, String flags)
 
 :params
 pattern : PCRE2 regular expression pattern
-subject : string to search
+subject : text to search
 flags : optional regex flags
-return value : a DValue containing all non-overlapping matches
+return value : `dval` match data
 
 :see
 >string
@@ -18,19 +18,11 @@ regex_split
 0_DValue
 
 :content
-Finds every non-overlapping match of `pattern` in `subject`.
+In Capy, use this function to find all non-overlapping matches in text.
 
-Example:
+It returns `dval` match data. Each result has `matched`, `count`, `matches`, `pattern`, and `flags` fields. `matches` contains entries with the same shape as `regex_search()`.
 
-
-Return shape:
-
-- `matched` is `true` when at least one match exists.
-- `count` is the number of matches.
-- `matches` is a list of entries with the same shape returned by `regex_search()`.
-- `pattern` and `flags` mirror the call inputs.
-
-Zero-length matches are handled safely; the scanner advances after each zero-length match to avoid infinite loops.
+The function advances after a zero-length match. This prevents an infinite search.
 
 :example capy render
 var matches := regex_search_all("[a-z]+", "bearer docs")

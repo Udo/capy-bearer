@@ -2,8 +2,8 @@
 bool unit_compile(String path = "")
 
 :params
-path : optional BEARER unit path. If empty, recompiles the current executing unit.
-return value : `true` when the host compiler accepted and compiled the unit
+path : optional unit path. If empty, recompiles the current unit
+return value : `true` if the compiler compiles the unit
 
 :see
 >runtime
@@ -12,9 +12,13 @@ units_list
 unit_call
 
 :content
-Triggers a manual recompile of a BEARER compilation unit through the host membrane.
+In Capy, call `unit_compile()` for the current unit. Call `unit_compile(path)` for another unit.
 
-If `path` is relative, it is resolved by the host unit resolver. The function returns whether compilation succeeded; it does not return or expose a native `SharedUnit*` to wasm units.
+The function returns `true` when compilation succeeds. It returns `false` when compilation fails. Use it when an operator must compile a unit explicitly.
+
+Relative paths use the unit path rules. Capy does not return a C++ unit object.
+
+C++ uses the optional `path` value in the signature above. It has the same success result.
 
 :example capy render
 if unit_compile("examples/sample_unit.uce") { print("compiled the sample unit\n") } else { print("compile failed\n") }

@@ -8,12 +8,13 @@ return value : opcode of the current WebSocket message
 >websocket
 
 :content
-Returns the opcode of the message currently being handled by `WS(Request& context)`.
+In Capy, `ws_opcode()` takes no inputs and returns the current WebSocket message opcode as `s32`.
 
-Common values are:
+Use it to identify the message type. Text messages use `1`, and binary messages use `2`.
 
-- `0x1` for text messages
-- `0x2` for binary messages
+Outside a WebSocket handler, it returns `0`. The zero value is the normal no-message result.
+
+C++ returns the opcode as `u8` through the signature above.
 
 :example capy render
 print("opcode: ", ws_opcode() as u64, " (0 outside a WS frame)\n")

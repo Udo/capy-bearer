@@ -8,9 +8,11 @@ unit_compile
 unit_load
 
 :content
-Returns the normalized paths of all known `.uce` units.
+In Capy, call `units_list()` to get a `dval` list of known unit paths.
 
-This includes the shared known-unit registry plus any units already loaded in the current runtime process.
+Use this list to inspect units that the current runtime can load. The list includes known `.uce` units and units already loaded by the current runtime process.
+
+C++ returns a `DValue` list through the signature above. Use the same normal use case.
 
 :example capy cli
 var count := 0

@@ -2,16 +2,17 @@
 bool str_ends_with(String haystack, String needle)
 
 :params
-haystack : string to inspect
-needle : suffix to compare against the end of `haystack`
-return value : `true` when `haystack` ends with `needle`, otherwise `false`
+haystack : Capy string to inspect
+needle : suffix to compare
+return value : `true` when the string ends with the suffix. Otherwise, `false`.
 
 :see
 >string
 
 :content
-Checks whether `haystack` ends with `needle`.
+Use `str_ends_with` to test whether a Capy string ends with a suffix. Pass the string and the suffix. The function returns a Boolean value.
 
+Capy uses `string` values. C++ `.uce` uses `String`, as the signature shows.
 
 :example capy render
 if str_ends_with("index.uce", ".uce") { print("yes\n") } else { print("no\n") }

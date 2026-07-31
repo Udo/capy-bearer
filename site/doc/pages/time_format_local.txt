@@ -2,18 +2,18 @@
 String time_format_local(String format = "", u64 timestamp = 0)
 
 :params
-format : formatting string specifying the date format
-timestamp : optional timestamp value, defaults to current time
-return value : a formatted date
+format : optional Capy format string
+timestamp : optional Unix timestamp. Omit it to use the current time.
+return value : formatted local-time string
 
 :see
 >time
 >time_format_relative
 
 :content
-Formats a timestamp in the server's local timezone.
+Use `time_format_local` to format a Unix timestamp in the server local time zone. Pass a format string and, if needed, a timestamp. The function returns a Capy `string`. Omit the timestamp to format the current time.
 
-This formatter is based on the Linux `date` command and supports the same core formatting tokens plus BEARER's relative-time delta tokens.
+The formatter supports core Linux `date` format tokens and the relative-time delta tokens.
 
 Supported format sequences:
 
@@ -21,6 +21,9 @@ Supported format sequences:
 Padding and case flags may follow `%`:
 
 
+The `RFC1123` special format applies only to `time_format_utc`. Use that function for RFC 1123 output.
+
+C++ `.uce` uses `String` and `u64`, as the signature shows.
 
 :example capy render
 if time_format_local("%Y-%m-%d", 0u64) != "" { print("formatted\n") } else { print("empty\n") }

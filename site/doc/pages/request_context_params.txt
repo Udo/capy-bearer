@@ -15,19 +15,19 @@ route_path_is_safe
 0_Request
 
 :content
-BEARER populates several convenience request parameters before invoking page, component, CLI, custom HTTP, or WebSocket handlers:
+Before Capy runs a page, component, CLI, custom HTTP, or WebSocket handler, Bearer adds these values to the request context. In Capy, read them from `request_context()["params"]`.
 
-- `context.params["SCRIPT_URL"]`: canonical script URL, with `/index.uce` collapsed to the containing directory URL
-- `context.params["BASE_URL"]`: canonical directory URL for the script
-- `context.params["ROUTE_PATH"]`: sanitized first keyless query-string segment, defaulting to `index` when no route was supplied
-- `context.params["ROUTE_PAGE"]`: first segment of `ROUTE_PATH`
-- `context.params["ROUTE_PATH_RAW"]`: normalized but not trusted route input, for diagnostics only
-- `context.params["ROUTE_VALID"]`: `1` when the supplied/defaulted route is safe, `0` when the supplied route was rejected
-- `context.params["BEARER_BIN_DIRECTORY"]`: writable runtime cache directory from `BIN_DIRECTORY`, useful for generated helper units or other request-local artifacts that must not be written into the source tree
+- `SCRIPT_URL` is the canonical script URL. It changes `/index.uce` to the containing directory URL.
+- `BASE_URL` is the canonical directory URL for the script.
+- `ROUTE_PATH` is the safe keyless query route. It defaults to `index` when no route exists.
+- `ROUTE_PAGE` is the first segment of `ROUTE_PATH`.
+- `ROUTE_PATH_RAW` is normalized route input. Treat it as diagnostic data, not a safe path.
+- `ROUTE_VALID` is `1` for a safe route and `0` for a rejected route.
+- `BEARER_BIN_DIRECTORY` is the writable runtime cache directory from `BIN_DIRECTORY`.
 
-`ROUTE_PATH` is safe to compose under an application-controlled route root. Unsafe route input such as `..`, `.`, empty interior segments, backslashes, dots in filenames, or other non route-segment characters is rejected by the runtime and yields an empty `ROUTE_PATH` with `ROUTE_VALID=0`.
+Use `ROUTE_PATH` only below an application-controlled route root. The runtime rejects unsafe input and sets `ROUTE_PATH` to an empty string. Unsafe input includes dot segments, empty interior segments, backslashes, filename dots, and characters outside route segments.
 
-These are useful for front-controller apps that use URLs like `/?dashboard` or `/?workspace/projects` while still accepting ordinary named query parameters.
+This supports URLs such as `/?dashboard` and `/?workspace/projects`. Named query parameters can occur with the route.
 
 :example capy render
 var snapshot := request_context()

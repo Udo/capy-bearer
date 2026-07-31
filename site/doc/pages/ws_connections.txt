@@ -9,9 +9,11 @@ return value : list of connection IDs currently connected to that scope
 >websocket
 
 :content
-Returns the currently connected WebSocket client IDs for the given scope.
+In Capy, `ws_connections()` returns a `dval` list of IDs in the current WebSocket scope. `ws_connections(scope)` accepts a scope `string` and returns that scope's list.
 
-If `scope` is omitted, the current page scope is used.
+Use it to inspect or select connected clients. The declaration has no error return.
+
+C++ uses the optional `String` input in the signature above. Capy provides separate zero-input and one-input declarations.
 
 :example capy render
 var count := 0

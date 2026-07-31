@@ -2,18 +2,19 @@
 DValue split(String str, String delim)
 
 :params
-str : string to be split
-delim : delimiter
-return value : a list of strings
+str : string to split
+delim : exact separator string
+return value : list-shaped `dval` with string entries
 
 :see
 >string
 
 :content
-Splits `str` into multiple strings using `delim` as the separator.
+Capy `split(str, delim)` returns a list-shaped `dval` of strings. Give it a string and an exact separator string.
 
-Every exact occurrence of `delim` creates a new entry in the returned list-shaped `DValue`.
+Each occurrence of `delim` starts the next entry. Empty entries remain in the result. Use it to separate text with a known delimiter.
 
+The C++ API calls the result `DValue`. Capy uses the `dval` value type.
 
 :example capy render
 print(join(split("a,b,c", ","), "|"), "\n")

@@ -2,9 +2,19 @@
 DValue list (legacy `StringList` spelling)
 
 :content
-Removed as a distinct container. `StringList` is now the source-compatible alias for a list-shaped `DValue`; it has no separate storage, ABI, or Capy representation.
+Use a list-shaped `dval` for an ordered string list in Capy. Create one with `dval([...])` or use a result from `split`, `split_utf8`, `regex_split`, `ls`, `units_list`, or `ws_connections`.
 
-Use `DValue` for all new code. List-shaped values preserve ordered string iteration, indexing, `push_back()`, `filter()`, `map()`, `keys()`, `each()`, `unique()`, `sort()`, `some()`, `every()`, and `find()`.
+List functions take a list-shaped `dval` and return a `dval`, a `string`, or a `bool`. Use `join`, `map`, `filter`, `keys`, `unique`, `sort`, `some`, `every`, and `string_list_find` for normal list work.
+
+`dval_push` and `dval_pop` return a replacement list. Assign the result back to retain the update.
+
+## Capy Limit
+
+Capy has no separate `StringList` type or representation. It uses copied `dval` values, not C++ container aliases.
+
+## C++ API
+
+`StringList` is a C++ name for a list-shaped `DValue`. Capy uses a list-shaped `dval` instead.
 
 :example capy render
 var labels := map(unique(split("a,b,a", ",")), function(item : string) string { return to_upper(item) })

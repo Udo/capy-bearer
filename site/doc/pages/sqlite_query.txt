@@ -3,10 +3,10 @@ DValue sqlite_query(SQLite* db, String q)
 DValue sqlite_query(SQLite* db, String q, StringMap params)
 
 :params
-db : pointer to an active SQLite connection
-q : SQL statement
-params : optional named parameter map
-return value : list of result rows as a DValue
+db : Capy SQLite connection value
+q : one SQL statement
+params : optional Capy `dval` map of named parameter values
+return value : Capy `dval` value that contains the result rows
 
 :see
 >sqlite
@@ -17,13 +17,13 @@ sqlite_affected_rows
 0_DValue
 
 :content
-Executes one SQLite statement and returns result rows as a `DValue` array. Multi-statement SQL strings are rejected so migrations cannot silently run only their first statement.
+Use `sqlite_query` to run one SQL statement on a Capy SQLite connection. Pass the SQL string. You can also pass a `dval` map for named values. The function returns result rows as a `dval` value.
 
-Use named parameters with `:name` placeholders only. Positional `?` placeholders and SQLite's other named marker forms (`@name`, `$name`) are rejected so BEARER SQLite queries use the same placeholder style as the MySQL helper. BEARER binds parameters with SQLite prepared statements; it does not substitute values into the SQL string.
+Use `:name` placeholders with the parameter map. The API rejects positional `?`, `@name`, and `$name` placeholders. It also rejects SQL strings with more than one statement. Use `sqlite_error` to read a SQLite error. Check `sqlite_affected_rows` or `sqlite_insert_id` after a statement that does not return rows.
 
-Result rows are objects keyed by column name. SQLite integer, float, text, blob, and null values are converted to DValue values. Blob values are returned as byte strings.
+Rows use column names as keys. SQLite integers, floats, text, blobs, and null values convert to `dval` values. Blob values return as byte strings.
 
-For statements that do not return rows, inspect `sqlite_affected_rows()` or `sqlite_insert_id()` after the call.
+Capy uses a connection value and a `dval` map. C++ `.uce` uses an `SQLite*`, `String`, and `StringMap`, as the signatures show.
 
 :example capy render
 var db := sqlite_connect(":memory:")

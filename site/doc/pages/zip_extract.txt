@@ -13,12 +13,13 @@ zip_list
 zip_read
 
 :content
-Extracts every member in a ZIP archive into `destination_directory`.
+In Capy, `zip_extract(path, destination)` accepts an archive path and destination path. It returns `true` when extraction completes.
 
+Use it to extract all archive members. Bearer creates the destination and required child directories.
 
-BEARER creates the destination directory and any needed child directories when they do not already exist.
+Member names cannot be empty, absolute, drive-qualified, or contain `..` path segments. The call rejects those names.
 
-For safety, every member name is normalized and checked before extraction. Absolute paths, drive-qualified paths, empty names, and `..` path segments are rejected so archives cannot write outside the destination directory.
+The declaration has no separate error return. C++ uses `String` values through the signature above.
 
 :example capy render
 var archive := "/tmp/capy-doc-zipext.zip"

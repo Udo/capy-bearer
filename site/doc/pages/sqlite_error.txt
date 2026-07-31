@@ -2,17 +2,17 @@
 String sqlite_error(SQLite* db)
 
 :params
-db : pointer to an SQLite connection
-return value : latest connector/SQLite status message
+db : SQLite handle from `sqlite_connect()`
+return value : latest SQLite status or error message
 
 :see
 >sqlite
 sqlite_query
 
 :content
-Returns the latest SQLite connector status or error message.
+Capy `sqlite_error(db)` returns the latest SQLite status or error message for a handle. Give it a handle from `sqlite_connect()`.
 
-Successful calls usually set the message to `ok` or `connected`. Failed prepare, bind, step, pragma, or open operations include connector context plus SQLite's own error text.
+Call it after `sqlite_connect()` or `sqlite_query()` when you need error text. A failed operation sets an error message. The C++ API uses an `SQLite*` pointer. Capy uses a `u64` handle.
 
 :example capy render
 var db := sqlite_connect(":memory:")

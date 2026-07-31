@@ -6,7 +6,11 @@ raw : Base64-encoded text
 return value : the decoded bytes (empty on invalid input)
 
 :content
-Decodes Base64 text back to bytes. Pairs with `base64_encode()` for round-tripping binary data through text channels.
+Capy's `base64_decode(raw)` returns the decoded bytes as a `string`. Capy strings can contain binary bytes.
+
+Pass Base64 text from `base64_encode()` or another Base64 source. Invalid input returns an empty string. Use it with `base64_encode()` to move binary data through text channels.
+
+The C++ `String` function has the same input and result.
 
 :example capy render
 print(base64_decode("aGVsbG8="), "\n")

@@ -5,7 +5,11 @@ job_await
 DValue job_await(u64 job_id, u64 timeout_ms)
 
 :content
-Waits up to `timeout_ms` for a job to finish, then returns status/result data. The wait is always bounded and returns with `state=running` if the job is still active.
+`job_await()` waits for a job for up to `timeout_ms` milliseconds. It returns a `dval` status map and includes `result` when the job finishes.
+
+It returns a running status when the time limit expires. Use it after `shell_spawn()` or `http_request_async()` when you can wait for completion.
+
+In Capy, pass the job ID as `dval`. In C++ `.uce`, pass the `u64` job ID shown above.
 
 :see
 >sys

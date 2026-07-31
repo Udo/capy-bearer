@@ -12,11 +12,11 @@ backtrace_get_frames
 signal_name
 
 :content
-Captures and formats a native backtrace for the current call stack.
+Capy's `backtrace_capture()` returns a formatted `string` for the current call stack. Use it for diagnostic output.
 
-This helper is for diagnostics. It is used by runtime error reporting paths and can also be useful in local debugging pages.
+The zero-argument form captures up to 32 frames and skips none. The two-argument form accepts `max_frames` and `skip_frames`. The function returns an empty string when no trace is available. It does not report errors.
 
-Example:
+C++ uses the same operation with `u32` arguments. Native runtime error paths also use it.
 
 
 :example capy render

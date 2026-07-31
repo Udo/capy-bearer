@@ -2,17 +2,17 @@
 bool server_stop(String key)
 
 :params
-key : runtime-wide server key used with `server_start_http()`
-return value : `true` when no listener remains or a stop signal was sent
+key : runtime-wide listener key from `server_start_http()`
+return value : `true` when no listener remains or Bearer stopped it
 
 :see
 >sys
 server_start_http
 
 :content
-Stops a custom server listener by key and removes its registry config.
+In Capy, use this function to stop a custom HTTP listener that `server_start_http()` created.
 
-`server_stop()` currently targets custom servers started through `server_start_http()`. The same key model is intended to extend to future `server_start_tcp()` and `server_start_udp()` helpers.
+It removes the listener configuration for `key`. It returns true if no listener exists for that key. It returns false for an empty key or when the stop operation fails.
 
 :example capy render
 server_start_http("doc-demo-stop", "/tmp/bearer/custom-servers/doc-stop.sock", "examples/sample_unit.uce", "RENDER")

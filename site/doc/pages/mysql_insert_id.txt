@@ -2,16 +2,16 @@
 u64 mysql_insert_id(MySQL* m)
 
 :params
-m : pointer to an active MySQL connection
-return value : the last used automatic row ID
+m : an active MySQL connection. Capy uses a `u64` handle. C++ uses a pointer.
+return value : the last automatic row ID for this connection
 
 :see
 >mysql
 
 :content
-Returns the last automatically assigned row ID used by the current MySQL connection.
+In Capy, `mysql_insert_id()` returns the last automatic row ID as `u64`.
 
-This is typically used after an `INSERT` into a table with an `AUTO_INCREMENT` primary key.
+Call this after an `INSERT` into a table with an `AUTO_INCREMENT` column.
 
 :example capy render
 var db := mysql_connect("localhost", "root", "", "")

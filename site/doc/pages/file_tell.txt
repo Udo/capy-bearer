@@ -2,11 +2,11 @@
 s64 file_tell(u64 h)
 
 :params
-h : handle from file_open()
-return value : the current absolute byte offset
+h : handle from `file_open()`
+return value : current absolute byte offset
 
 :content
-Returns a handle's current read/write offset, as moved by `file_read()`, `file_write()`, and `file_seek()`.
+`file_tell` returns the current byte offset for a handle. Use it to record the position after `file_read()`, `file_write()`, or `file_seek()`. C++ .uce uses the same numeric result.
 
 :example capy render
 var handle := file_open("/tmp/doc-tell.txt", "w")

@@ -11,7 +11,13 @@ return value : converted value or the fallback
 2_DValue_get_by_path
 
 :content
-Converts strings, numbers, bools, pointers, and maps to bool. Text such as `true`, `yes`, `on`, `1`, `false`, `no`, `off`, `0`, and `null` is recognized; non-empty unparseable strings are truthy; empty strings use the default. Multi-child maps are true when non-empty.
+`dval_to_bool(value, fallback)` takes a `dval` and an optional boolean fallback. It returns a boolean. Use it to read a boolean from request or structured data.
+
+It recognizes `true`, `yes`, `on`, `1`, `false`, `no`, `off`, `0`, and `null`. A nonempty unrecognized string is true. An empty string returns the fallback. A multi-child map is true when nonempty.
+
+## C++ API
+
+`DValue::to_bool()` also converts C++ pointers and references.
 
 :example capy render
 var value := dval("true")

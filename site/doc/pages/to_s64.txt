@@ -2,9 +2,9 @@
 s64 to_s64(String s, s64 fallback = 0)
 
 :params
-s : string to parse
-fallback : value returned when `s` is empty or not a complete signed integer
-return value : parsed s64, or `fallback`.
+s : text to parse
+fallback : value returned for empty or invalid integer text
+return value : parsed `s64`, or `fallback`
 
 :see
 >types
@@ -14,9 +14,11 @@ to_bool
 int_val
 
 :content
-Parses a trimmed string as a base-10 signed integer.
+In Capy, call `to_s64(raw[, fallback])` to convert text to an `s64` value.
 
-The whole trimmed string must be consumed by the parser. Empty strings and partially parsed values such as `"-12px"` return the fallback.
+Invalid text returns `fallback`. Use this function for signed numeric input.
+
+C++ uses the legacy `s` parameter and default shown above. It parses a base-10 integer from complete trimmed text. Empty or partial text such as `"-12px"` returns `fallback`.
 
 :example capy render
 print(to_s64("-7"), "\n")

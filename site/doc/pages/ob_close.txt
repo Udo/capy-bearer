@@ -2,10 +2,12 @@
 void ob_close()
 
 :params
-return value : none
+return value : no value
 
 :content
-Discards the current output buffer and its contents, switching back to the previous buffer on the stack. Use it when you captured output only to throw it away (e.g. rendering for a side effect).
+In Capy, `ob_close()` discards the current output buffer and returns to the previous buffer.
+
+Use this when you do not need captured output.
 
 :example capy render
 ob_start()

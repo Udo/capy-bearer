@@ -2,12 +2,16 @@
 u64 file_write(u64 h, String data)
 
 :params
-h : handle from file_open() opened for writing
-data : bytes to write at the current offset
-return value : number of bytes written
+h : `u64` handle from `file_open()` in a writable mode
+data : string bytes to write at the current offset
+return value : `u64` number of bytes written
 
 :content
-Writes `data` at the handle's current offset and advances the offset. The handle must come from `file_open()` with a writable mode (`"w"`, `"a"`, or `"r+"`). Binary-safe: `data` may contain NUL and other non-text bytes.
+`file_write()` writes string bytes at a file handle's current offset. It returns the `u64` number of bytes written and advances the offset.
+
+Pass a handle from `file_open()` in `"w"`, `"a"`, or `"r+"` mode. Strings can contain NUL bytes and other binary data.
+
+It returns `0u64` for an invalid, closed, or non-writable handle. Use it for sequential file output.
 
 :example capy render
 var handle := file_open("/tmp/doc-write.txt", "w")

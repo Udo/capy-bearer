@@ -11,8 +11,13 @@ return value : none
 2_DValue_has
 
 :content
-Ensures the value is map-shaped and erases the named child. Removing the last child resets the next array index to zero.
+`dval_remove(value, key)` takes a `dval` and a string key. It returns a replacement without that child. Assign the result back to retain the update.
 
+The operation makes a scalar map-shaped. A missing key causes no other change. Removing the last child resets the next numeric index to zero.
+
+## C++ API
+
+`DValue::remove()` changes the object in place.
 
 :example capy render
 var user := dval_remove(dval({"a": "1", "b": "2"}), "a")

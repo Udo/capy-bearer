@@ -2,14 +2,20 @@
 DValue DValue::pop()
 
 :params
-return value : removed child, or an empty DValue when no child exists
+return value : removed child as a `dval`, or an empty `dval` when no child exists
 
 :see
 0_DValue
 2_DValue_push
 
 :content
-Ensures the value is map-shaped, removes the last entry according to `std::map` reverse key order, and returns it. For list-mode values, the next array index is reset to the new size.
+`dval_pop(value)` takes a `dval` and returns the updated value after it removes one child. Assign the result back to retain the change. An empty value becomes an empty map-shaped value.
+
+For a list, it removes the last numeric child and resets the next list index. For a map, it removes the last key in reverse map order. Capy does not return the removed child.
+
+## C++ API
+
+`DValue::pop()` returns the removed child. It uses reverse `std::map` key order for maps.
 
 
 :example capy render

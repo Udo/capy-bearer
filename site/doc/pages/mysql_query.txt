@@ -2,25 +2,23 @@
 DValue mysql_query(MySQL* m, String q, StringMap params)
 
 :params
-m : pointer to an active MySQL connection struct
-q : a string containing a MySQL query
-params : optional, a list of query parameter keys and values
-return value : a list of rows returned from executing the query
+m : an active MySQL connection. Capy uses a `u64` handle. C++ uses a pointer.
+q : the MySQL query text
+params : optional named parameter values
+return value : the query result rows
 
 :see
 >mysql
 mysql_affected_rows
 
 :content
-Executes a MySQL query and returns the resulting data, if any.
+In Capy, `mysql_query()` runs a MySQL query and returns its rows as a `dval`.
 
-`params` provides the query parameter values used by the statement. Use named `:name` placeholders only; positional `?` placeholders are rejected.
+Pass parameter values as a `dval` map. Use named `:name` placeholders. The API rejects positional `?` placeholders.
 
-Ordinary placeholders are escaped and quoted as SQL string values. For grammar positions that require an unquoted non-negative integer, such as `LIMIT` and `OFFSET`, append `!` to the placeholder (`:limit!`). Unsigned placeholders fail before query execution unless their value is a non-empty sequence of decimal digits. They never accept signs, whitespace, expressions, identifiers, or other SQL fragments.
+Ordinary placeholders become quoted SQL strings. For an unquoted non-negative integer, such as `LIMIT` or `OFFSET`, add `!` to the placeholder: `:limit!`. Its value must contain one or more decimal digits. It cannot contain signs, whitespace, expressions, identifiers, or SQL fragments.
 
-The result is returned as a `DValue`, which makes it easy to iterate through rows and read fields with the usual `DValue` accessors.
-
-After an insert, update, or delete, use `mysql_affected_rows()` to inspect how many rows changed.
+After an insert, update, or delete, call `mysql_affected_rows()`.
 
 :example capy cli
 var db := mysql_connect("localhost", "root", "", "")

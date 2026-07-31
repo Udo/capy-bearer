@@ -12,33 +12,21 @@ WS(Request& context)
 >1_RENDER
 
 :content
-Defines the WebSocket message handler for the current `.uce` page.
+`function WS` defines the Capy WebSocket message handler.
 
-Any `.uce` unit may expose both `RENDER(Request& context)` and `WS(Request& context)`. `RENDER(Request& context)` serves the initial HTTP response, while `WS(Request& context)` is called whenever a complete WebSocket message arrives for that page. Configure nginx/Apache to route WebSocket upgrade requests for `.uce` paths to the runtime's HTTP/WebSocket listener.
+Use `function WS { ... }` for the normal form. You can also declare `function WS(request : request) { ... }`. The optional input is an opaque Capy request value. The handler returns no value.
 
-BEARER reassembles fragmented messages before calling `WS(Request& context)`. Text and binary frames are both delivered. The current payload is available directly on `context.in`, message metadata is mirrored into `context.params["WS_..."]`, and connection-local state lives on `context.connection`.
+Bearer calls `WS` after it receives one complete WebSocket message for the unit. It reassembles fragmented frames first. Text and binary messages both reach the handler. Define `RENDER` in the same unit when it must serve the initial HTTP page.
 
-## Connection State
+Use `ws_message()` to get the current message string. Use `ws_connection_id()`, `ws_scope()`, `ws_connection_count()`, `ws_opcode()`, and `ws_is_binary()` to inspect message metadata. Use `ws_send()`, `ws_send_to()`, and `ws_close()` to act on connections. These functions use Capy values and return their documented value.
 
-`context.connection` is a broker-owned `DValue` for the current socket. It starts empty for a new client and persists across later `WS(Request& context)` calls on that same connection.
+The compiler rejects other parameter forms, a return type, and handler overloads. A trap in `WS` stops that message invocation.
 
-## Message Data
+## C++ API
 
-The current message payload is available as:
+C++ declares `WS(Request& context)`. It reads the payload from `context.in`, metadata from `context.params["WS_..."]`, and persistent connection state from `context.connection`. The connection value starts empty and persists for later calls on that socket.
 
-- `context.in`: current WebSocket payload
-- `context.params["WS_MESSAGE"]`: same payload mirrored into the parameter map
-
-The current message metadata is available as:
-
-- `context.params["WS_CONNECTION_ID"]`: sender connection ID
-- `context.params["WS_SCOPE"]`: current endpoint scope
-- `context.params["WS_CONNECTION_COUNT"]`: number of currently connected clients in that scope
-- `context.params["WS_OPCODE"]`: WebSocket opcode of the current message
-- `context.params["WS_MESSAGE_TYPE"]`: `TEXT` or `BINARY`
-- `context.params["WS_DOCUMENT_URI"]`: request URI of the current endpoint
-
-Helper wrappers such as `ws_message()`, `ws_connection_id()`, `ws_scope()`, `ws_connection_count()`, `ws_opcode()`, and `ws_is_binary()` are still available when that reads better for the handler.
+Capy does not expose C++ `Request&`, `context.connection`, or mutable `DValue` aliases. Use the Capy WebSocket functions and copied `dval` values. Capy cannot use C++ references or direct C++ object access.
 
 :example capy render
 print("WS is a unit directive; place it at top level in a .uce unit.\n")

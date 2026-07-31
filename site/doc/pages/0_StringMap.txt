@@ -9,24 +9,19 @@ encode_query
 array_merge
 
 :content
-Associative container mapping `String` keys to `String` values.
+Use a map-shaped `dval` for string-keyed values in Capy. Create one with `dval({"key": "value"})`.
 
-`StringMap` is an alias for `std::map<String, String>`.
+Use `value["key"]` to read a child. Use `dval_has(value, "key")` to test for a child. Use `dval_put(value, "key", dval("value"))` to return a map with a set child.
 
-## Common Uses
+`parse_query(query)` returns a map-shaped `dval`. `encode_query(map)` returns a query string. `array_merge(left, right)` returns a merged `dval`.
 
-`StringMap` commonly appears in:
+## Capy Limit
 
-- `context.params`
-- `context.get`
-- `context.post`
-- `context.cookies`
-- `context.session`
-- `context.header`
+Capy has no `StringMap` type. A Capy map holds `dval` children and uses copied value semantics. It does not expose C++ map references or mutation through `operator[]`.
 
-Because it uses `std::map`, `map["key"]` will create an empty entry when that key does not already exist.
+## C++ API
 
-Helpers such as `parse_query()` and `encode_query()` convert between query strings and `StringMap` values.
+C++ `StringMap` is `std::map<String, String>`. C++ `map["key"]` creates an empty entry when the key is missing.
 
 :example capy render
 var params := dval({"page": "docs"})

@@ -10,8 +10,11 @@ return value : none
 2_DValue_is_list
 
 :content
-Clears the value and makes it an empty list-shaped map. Subsequent `push()` calls append numeric keys starting at `0`.
+`dval_set_array(value)` takes a `dval` and returns an empty list-shaped replacement. Assign the result back to retain the update. Later `dval_push` calls use numeric keys from `0`.
 
+## C++ API
+
+`DValue::set_array()` changes the object in place.
 
 :example capy render
 var list := dval_push(dval_set_array(dval("")), dval("first"))

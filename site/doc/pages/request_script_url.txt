@@ -7,8 +7,9 @@ request_base_url
 request_query_route
 
 :content
-Returns the request script URL from `DOCUMENT_URI` / `SCRIPT_NAME`, canonicalizing a front-controller URL ending in `/index.uce` to the containing directory URL.
+In Capy, this function reads the current request. Do not pass a `Request` value.
 
+It returns the script URL from `DOCUMENT_URI` or `SCRIPT_NAME`. For a front controller, it changes a URL that ends in `/index.uce` to the containing directory URL.
 
 :example capy render
 if request_script_url() != "" { print("script url\n") } else { print("empty\n") }

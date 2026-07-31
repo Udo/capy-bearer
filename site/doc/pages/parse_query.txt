@@ -2,8 +2,8 @@
 StringMap parse_query(String q)
 
 :params
-q : string containing URL parameters
-return value : a StringMap containing the parameters
+q : query text in URL form
+return value : decoded parameters as a map-shaped `dval`. C++ returns `StringMap`
 
 :see
 >uri
@@ -11,21 +11,16 @@ encode_query
 request_context_params
 
 :content
-Decodes a query-string fragment such as `a=b&c=d` into a `StringMap`.
+In Capy, `parse_query()` decodes query text such as `a=b&c=d` into a map-shaped `dval`.
 
-Parsing rules:
+- `&` separates pairs.
+- The first raw `=` separates a key and value.
+- The API URL-decodes keys and values.
+- A key without `=` has an empty value.
+- Empty pairs, including a final `&`, are ignored.
+- The last value replaces an earlier value for the same key.
 
-- pairs are separated on `&`
-- each pair is split on the first raw `=` only
-- both key and value are URL-decoded
-- keyless flags such as `preview` are present with an empty string value
-- empty pairs, including a trailing `&`, are ignored
-- repeated keys use the last value seen
-
-Examples:
-
-
-This is useful when you need to work with URL parameter data outside the normal request parsing flow.
+Use this API for query text outside normal request parsing.
 
 
 :example capy render

@@ -11,12 +11,16 @@ return value : resolved target pointer, or 0 when this node is not a usable refe
 2_DValue_deref
 
 :content
-If this node is an internal reference, follows reference links up to the runtime safety limit and returns the final non-reference target. Returns `0` for non-references, null/self references, or chains that still resolve to a reference.
+Capy does not support `reference_target`. Capy `dval` values are copies. They have no host pointer, alias, or reference identity.
+
+## C++ API
+
+`DValue::reference_target()` follows an internal reference chain and returns its final non-reference target pointer. It returns `0` for a non-reference, a null or self reference, or an unresolved chain.
 
 
 :capy-status unsupported
 
-Capy exposes no host DValue pointer or alias ABI, so a reference target cannot be observed.
+Capy exposes no host DValue pointer or alias identity, so it cannot observe a reference target.
 
 :example cpp render
 DValue target;

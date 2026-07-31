@@ -11,7 +11,13 @@ return value : converted value or the fallback
 2_DValue_get_by_path
 
 :content
-Converts strings, f64, bool, pointer, and single-value maps to a signed integer. Invalid or empty strings return the default. Values outside the signed range are clamped.
+`dval_to_s64(value, fallback)` takes a `dval` and an optional s64 fallback. It returns a signed integer. Use it to read an integer from structured data.
+
+Strings, f64 values, booleans, and one-child maps can convert. Empty or invalid strings return the fallback. Values outside the signed range clamp to its limit.
+
+## C++ API
+
+`DValue::to_s64()` also converts C++ pointers and resolved references.
 
 :example capy render
 var value := dval("-42")

@@ -2,7 +2,7 @@
 StringList DValue::keys() const
 
 :params
-return value : child keys for map/list values; empty for scalars
+return value : child keys for map or list values. Scalars return an empty list
 
 :see
 >types
@@ -11,7 +11,13 @@ return value : child keys for map/list values; empty for scalars
 0_StringList
 
 :content
-Returns the keys produced by `each()`. Scalar values have no child key, so the result is empty. List-shaped values return their numeric keys as strings.
+`dval_keys(value)` takes a `dval` and returns a list-shaped `dval` of its child keys. Map keys use map order. List keys are numeric strings in list order. A scalar has no child keys, so it returns an empty list.
+
+Capy returns a copied value. It does not expose a mutable child alias.
+
+## C++ API
+
+`DValue::keys()` has the same result.
 
 :example capy render
 var user := dval({"name": "Ada", "role": "admin"})

@@ -12,7 +12,9 @@ return value : pointer to existing child, or 0
 2_DValue_get_or_create
 
 :content
-Looks up one child without creating it. The non-const overload forwards through references; both overloads return `0` for scalars or missing keys.
+Use `dval_key(value, key)` in Capy to get a copied child without creating it. It takes a copied `dval` and key. It returns an empty `dval` for a scalar or missing key. Use a `dval_to_*` fallback when you need a default scalar value.
+
+C++ `key(key)` returns a pointer to an existing child or `0`. Its non-const overload follows internal references.
 
 
 :example capy render

@@ -13,27 +13,23 @@ COMPONENT(Request& context)
 >1_WS
 
 :content
-Defines the default component entrypoint for the current `.uce` file.
+`function COMPONENT` defines the default Capy component entrypoint.
 
-`component()` and `component_render()` call `COMPONENT(Request& context)` by default. Named component entrypoints use `COMPONENT:NAME(Request& context)`.
+Use `function COMPONENT { ... }` for the normal form. Use `function COMPONENT:NAME { ... }` for a named component. Each form can instead accept one `request : request` value. The value is opaque and has no C++ object layout.
 
-If the same file defines `ONCE(Request& context)`, that hook runs once per request before the first `COMPONENT()` or `COMPONENT:NAME()` call for that unit.
+A component handler accepts zero inputs or one `request` input. It returns no value. Component props cross the Bearer boundary as a copied `dval` value. Use `request_context()` or `request_context(request)` to read that snapshot.
 
-If the file defines `INIT(Request& context)`, that hook runs once when the worker loads the compiled unit into memory.
+Call `component()` to capture component output as a string. Call `component_render()` to write component output. The helpers call `COMPONENT` by default. A `:NAME` target selects `COMPONENT:NAME`. A target that starts with `:NAME` resolves in the current unit.
 
-## Why It Exists
+Use `COMPONENT` in a reusable unit. A unit can define `COMPONENT` without `RENDER`. `ONCE` runs before the first component call for that unit and request. `INIT` runs when a worker loads the unit.
 
-This keeps page rendering and component rendering separate:
+The compiler rejects other parameter forms, a return type, handler overloads, and `COMPONENT_NAME` syntax. A trap in the handler stops that component invocation.
 
-- direct HTTP requests call `RENDER(Request& context)`
-- WebSocket messages call `WS(Request& context)`
-- component helpers call `COMPONENT(Request& context)` or `COMPONENT:NAME(Request& context)`
+## C++ API
 
-A file intended only for component reuse can define `COMPONENT()` without defining `RENDER()`.
+C++ declares `COMPONENT(Request& context)` or `COMPONENT:NAME(Request& context)`. C++ reads live component props from `context.props` and passes the live context to component helpers.
 
-Inside component handlers, props arrive through `context.props`.
-
-When you call `component(":NAME", props, context)` or `component_render(":NAME", props, context)`, the runtime resolves `:NAME` against the current `.uce` file instead of requiring the file name again.
+Capy does not expose C++ `Request&`, `context.props`, or mutable `DValue` aliases. It uses an opaque request handle and copied `dval` snapshots.
 
 ## Example
 

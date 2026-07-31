@@ -2,15 +2,18 @@
 String encode_query(StringMap map)
 
 :params
-q : StringMap containing URL parameters to be encoded
-return value : a string with the encoded parameters
+map : `dval` map of URL parameters in Capy
+return value : encoded query string
 
 :see
 >uri
 
 :content
-Encodes a `StringMap` of URL parameters into a single query-string `String`.
+`encode_query()` converts a Capy `dval` map into an encoded URL query string.
 
+Pass the parameter map. It returns one string that you can append after a URL `?`. Use it to make query parameters from structured values.
+
+C++ `.uce` uses a `StringMap` instead of a Capy `dval` map.
 
 :example capy render
 var query := dval({"name": "Ada Lovelace"})

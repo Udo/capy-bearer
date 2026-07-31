@@ -9,17 +9,16 @@ route_path_sanitize
 request_script_url
 
 :content
-Builds a small route tree from the first keyless query-string segment.
+In Capy, this function reads the current request. Do not pass a `Request` value.
 
-Fields:
+It reads the first keyless query-string segment and returns route metadata:
 
-- `raw_path`: normalized but untrusted route input, for diagnostics only
-- `l_path`: sanitized full route path, or empty string when input was rejected
-- `page`: first path segment of `l_path`, or empty string when input was rejected
-- `valid`: boolean; true when `l_path` is safe
+- `raw_path` is normalized input. Treat it as diagnostic data, not a safe path.
+- `l_path` is the safe full route, or an empty string when validation fails.
+- `page` is the first segment of `l_path`, or an empty string when validation fails.
+- `valid` is true when `l_path` is safe.
 
-
-This supports front-controller apps that use URLs such as `/?dashboard` or `/?workspace/projects` while still allowing ordinary named query parameters alongside the route. The returned `l_path` is already sanitized for composing under an application-controlled route root.
+Use `l_path` below an application-controlled route root. Named query parameters can occur with the route.
 
 :example capy render
 var route := request_query_route("index")

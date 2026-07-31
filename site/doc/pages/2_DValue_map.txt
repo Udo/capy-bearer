@@ -12,7 +12,13 @@ return value : mapped copy
 2_DValue_filter
 
 :content
-Builds a new `DValue` by replacing each iterated child with the mapper's returned value. List-shaped input stays list-shaped and is re-indexed by `push()`. Map-shaped input preserves keys. Scalar input is mapped once and pushed into a list.
+`dval_map(value, mapper)` takes a `dval` and a callback. The callback receives each child and its key. It returns a new `dval` with each child replaced by the callback result.
+
+A list stays a list and uses consecutive numeric keys. A map keeps its keys. A scalar calls the mapper once with an empty key and returns a one-item list. Capy values are copies. Assign the returned value when you need to retain it.
+
+## C++ API
+
+`DValue::map()` uses a C++ callback and returns a new `DValue`.
 
 :example capy render
 var names := dval(["ada", "grace"])

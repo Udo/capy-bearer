@@ -2,9 +2,9 @@
 String nibble(String& haystack, String delim)
 
 :params
-haystack : string to be nibbled at
-delim : delimiter
-return value : string before first occurrence of 'delim'
+haystack : the string to change
+delim : the delimiter
+return value : the text before the first `delim`
 
 :see
 >string
@@ -12,13 +12,11 @@ return value : string before first occurrence of 'delim'
 :capy-status unsupported
 
 :content
-Capy has no equivalent because its strings are copied ARC values and it deliberately has no reference-parameter ABI to mutate the caller's string.
+Capy does not support this API. Capy passes strings by value and cannot change the caller's string through a reference parameter.
 
-Returns the part of `haystack` before the first occurrence of `delim`.
+C++ returns the text before the first `delim`. It removes that text and the delimiter from `haystack`.
 
-As a side effect, the consumed portion is removed from `haystack`, including the delimiter itself.
-
-If `delim` does not occur in `haystack`, the entire string is returned and `haystack` is set to an empty string.
+If `delim` does not occur, it returns all of `haystack` and clears `haystack`.
 
 
 :example cpp render

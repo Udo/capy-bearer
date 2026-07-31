@@ -2,11 +2,11 @@
 bool file_fsync(u64 h)
 
 :params
-h : handle from file_open() opened for writing
-return value : true if the flush succeeded
+h : writable handle from `file_open()`
+return value : true when Capy flushes the handle, otherwise false
 
 :content
-Flushes a handle's buffered writes to disk, so the data survives a crash or power loss. Call it before `file_close()` when durability matters (e.g. after writing a checkpoint).
+`file_fsync` flushes writes for a handle. Use it before `file_close()` when durable storage matters. It returns false when the flush fails. C++ .uce uses the same handle and Boolean result.
 
 :example capy render
 var handle := file_open("/tmp/doc-fsync.txt", "w")

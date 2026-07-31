@@ -2,17 +2,19 @@
 String mysql_escape(String raw, char quote_char)
 
 :params
-raw : the string to be escaped
-quote_char : the character that should be used to wrap the string (pass NULL for no wrapping)
-return value : the safe version of the 'raw' string
+raw : the string to escape
+quote_char : the character that wraps the result. Pass `NULL` for no wrapper.
+return value : the escaped form of `raw`
 
 :see
 >mysql
 
 :content
-Escapes a string so it can be used safely as a value inside an SQL expression.
+In Capy, `mysql_escape(raw)` escapes `raw` and wraps it in single quotes. Use the two-argument form to select one wrapper character.
 
-If `quote_char` is provided, the escaped result is wrapped with that quote character. Pass `NULL` when you only want escaping without wrapping.
+Use an empty Capy string for no wrapper. In C++, pass `NULL` for no wrapper.
+
+Use query parameters with `mysql_query()` when possible. Escape values only when you must build SQL text.
 
 :example capy render
 print(mysql_escape("O'Brien; DROP TABLE users", "'"), "\n")

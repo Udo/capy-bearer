@@ -3,10 +3,12 @@ String sha256_hex(String data)
 
 :params
 data : bytes to hash
-return value : the SHA-256 digest as a 64-character lowercase hex string
+return value : 64-character lowercase hexadecimal SHA-256 digest
 
 :content
-Returns the SHA-256 digest of `data` as hex text. Use it for checksums, cache keys, and content fingerprints where you want a printable digest. For the raw 32-byte digest use `sha256()`.
+In Capy, use this function when you need a printable SHA-256 digest.
+
+It returns the SHA-256 digest of `data` as 64 lowercase hexadecimal characters. Use it for checksums, cache keys, and content fingerprints. Use `sha256()` when you need the raw 32-byte digest.
 
 :example capy render
 print(sha256_hex("abc"), "\n")

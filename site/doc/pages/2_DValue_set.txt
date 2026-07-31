@@ -6,11 +6,10 @@ void DValue::set(DValue source)
 void DValue::set(StringMap source)
 
 :params
-s : string value for the String overload
-p : pointer value for the pointer overload
-f : floating point value for the f64 overload
-source : DValue or StringMap to copy
-return value : none
+value : Capy `dval` to replace
+source : replacement `dval`
+s, p, f : C++-only string, pointer, and `f64` overload values
+return value : replacement `dval` in Capy. C++ changes the receiver and returns nothing
 
 :see
 0_DValue
@@ -18,8 +17,13 @@ return value : none
 2_DValue_set_array
 
 :content
-Assigns a new value, forwarding through references when possible. String, pointer, and f64 overloads set scalar nodes. `set(DValue)` copies the source's current type and payload. `set(StringMap)` creates a map-shaped value with each string entry as a child.
+`dval_set(value, source)` takes two `dval` values and returns a copy of `source`. Assign the result back to replace `value`. Capy values cross the host boundary as copies.
 
+Capy does not accept a C++ pointer or `StringMap` overload. Use `dval(...)` to create the source value.
+
+## C++ API
+
+`DValue::set()` changes the object in place. C++ overloads accept a string, pointer, f64, `DValue`, or `StringMap`.
 
 :example capy render
 var value := dval_set(dval(""), dval("hello"))

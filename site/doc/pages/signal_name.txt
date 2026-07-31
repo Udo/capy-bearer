@@ -3,7 +3,7 @@ String signal_name(s32 sig)
 
 :params
 sig : POSIX signal number
-return value : signal name such as `SIGSEGV`, or an empty string when unknown
+return value : signal name, or an empty string for an unknown number
 
 :see
 >runtime
@@ -11,12 +11,9 @@ backtrace_capture
 backtrace_get_frames
 
 :content
-Returns a readable name for a POSIX signal number.
+Capy `signal_name(sig)` returns the POSIX name for a signal number. Give it a numeric signal value.
 
-Example:
-
-
-This is mostly useful in diagnostics and error reporting code.
+It returns names such as `SIGSEGV`. It returns an empty string when the number is unknown. Use it to add a signal name to an error message or diagnostic output.
 
 :example capy render
 print(signal_name(11), " / ", signal_name(6), "\n")

@@ -2,11 +2,11 @@
 void file_unlink(String file_name)
 
 :params
-file_name : file to delete, resolved against the unit's directory
+file_name : path of the file to delete
 return value : none
 
 :content
-Deletes a file. Deleting a path that does not exist is a no-op, so it is safe to call before recreating a file.
+`file_unlink` deletes a file at `file_name`. Use it to remove a temporary file or before you recreate a file. A missing path does not cause an error. The Capy API does not return an error value.
 
 :example capy render
 file_put_contents("/tmp/doc-unlink.txt", "x")

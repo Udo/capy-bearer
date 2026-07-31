@@ -14,9 +14,9 @@ return value : filtered copy
 2_DValue_keys
 
 :content
-`filter(keys)` copies existing children with the named keys into a new map-shaped `DValue`.
+Use `dval_filter(value, predicate)` in Capy to make a copied `dval` that contains matching values. The predicate receives an item and key. The function returns a new value. A list result keeps list shape and reindexes kept items. A map result keeps its keys. A scalar result is a one-item list when the predicate accepts it.
 
-`filter(f)` calls the predicate for each item from `each()`. Kept children from list-shaped input are pushed into a new list and re-indexed from zero; kept children from map-shaped input keep their original keys. Scalar input is passed to the predicate once and, if accepted, is pushed into a list.
+C++ also provides `filter(keys)`, which copies named children into a map. Its callback overload follows the same list, map, and scalar rules.
 
 :example capy render
 var user := dval({"name": "Ada", "email": "ada@example.test"})

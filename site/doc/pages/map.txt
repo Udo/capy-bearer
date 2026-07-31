@@ -3,9 +3,9 @@ DValue map(DValue items, function<String (String)> f)
 DValue::map(function<String (String)> f)
 
 :params
-items : list of items to transform
-f : a function that returns the transformed value for each item
-return value : a new list containing the transformed values
+items : list of string items to transform
+f : function that returns one string for each item
+return value : new list of transformed strings
 
 :see
 >string
@@ -13,11 +13,11 @@ filter
 0_DValue
 
 :content
-Returns a new list by calling `f` for each item in `items`.
+In Capy, this function calls `f` for each list item and returns a new list.
 
+Use it to transform each string in a list. Capy converts each input item with `dval_string()` before it calls `f`.
 
-Use `filter()` when you want to keep only matching items, and `map()` when you want to transform each item.
-
+Use `filter()` when you want to keep matching items instead.
 
 :example capy render
 var names := split("ada,grace", ",")

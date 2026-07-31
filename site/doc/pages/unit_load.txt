@@ -3,7 +3,7 @@ module unit_load(String file_name)
 
 :params
 file_name : unit source path
-return value : request-local module capability
+return value : a `module` value for the unit
 
 :see
 >ob
@@ -12,11 +12,13 @@ return value : request-local module capability
 >unit_call
 
 :content
-In Capy, `unit_load()` resolves and compiles a readable unit through the normal workspace policy and returns an opaque request-local module capability. A capability pins the selected artifact for its request and cannot be stored, forged, or reused by another request.
+In Capy, call `unit_load(path)` to get a `module` value for a readable unit.
 
-Call only declared DValue exports with `module.call(name[, input])`. `EXPORTS echo` declares an ordinary Capy function `function echo(input : dval) dval`; legacy `EXPORT_name` and C++ `EXPORT DValue* name(DValue*)` remain callable through the same capability path. Inputs and results are copied BRRB values, and the sized result protocol executes the target once.
+Call an exported function with `module.call(name[, input])`. Inputs and results are `dval` values. The no-input form passes an empty `dval` value. A Capy unit uses `EXPORTS` to declare callable functions.
 
-A Capy caller can write `var module := unit_load("examples/sample_unit.capy")` and then `module.call("echo", input)`. C++ does not expose Capy's request-local `module` value; use `unit_call()` for the equivalent verified load-and-call operation.
+Use `unit_load()` when several calls use one unit. A missing unit or export is an error.
+
+C++ cannot use a Capy `module` value. Use `unit_call()` with the `DValue*` API instead. C++ exports use `EXPORT DValue* name(DValue*)`.
 
 :example capy cli
 var module := unit_load("examples/sample_unit.capy")

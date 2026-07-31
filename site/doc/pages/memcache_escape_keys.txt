@@ -2,15 +2,17 @@
 DValue memcache_escape_keys(DValue keys)
 
 :params
-keys : list of application keys
-return value : escaped keys
+keys : input `dval` values
+return value : new `dval` list of escaped keys
 
 :see
 >sys
 >memcache_escape_key
 
 :content
-Applies `memcache_escape_key()` to each key in a list.
+In Capy, this function converts each input item to a string and returns a new `dval` list.
+
+It applies `memcache_escape_key()` to every item. The C++ API uses the same `DValue` input and result model.
 
 :example capy render
 var keys := dval(["a b", "c\td"])

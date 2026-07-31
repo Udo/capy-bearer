@@ -2,11 +2,15 @@
 String path_real(String path)
 
 :params
-path : path to resolve
-return value : the canonical absolute path, or "" if it cannot be resolved
+path : the path to resolve
+return value : the canonical absolute path, or `""` if resolution fails
 
 :content
-Resolves a path to its canonical absolute form, following symlinks and collapsing `.` and `..` segments. The path must exist. Combine with `path_is_within()` to validate that user-supplied paths stay inside an allowed root.
+In Capy, `path_real()` returns the canonical absolute path as a `string`. It follows symbolic links and removes `.` and `..` segments.
+
+It returns `""` if it cannot resolve the path.
+
+Use `path_is_within()` after this call to check a user-supplied path against an allowed root.
 
 :example capy render
 var path := "/tmp/doc-real.txt"

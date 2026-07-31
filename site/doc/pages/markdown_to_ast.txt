@@ -3,9 +3,9 @@ DValue markdown_to_ast(String src)
 DValue markdown_to_ast(String src, DValue options)
 
 :params
-src : markdown source text
-options : optional markdown options tree
-return value : a `DValue` document AST
+src : Markdown text
+options : optional `dval` options
+return value : `dval` document tree
 
 :see
 >markup
@@ -16,60 +16,23 @@ json_encode
 0_DValue
 
 :content
-Parses Markdown source into a structured `DValue` document tree.
+In Capy, this function parses Markdown text into a `dval` document tree.
 
-The parser targets a practical GitHub-flavored subset by default:
+The root is a map-shaped document node. Its `children` field is a list-shaped value. The parser stores component data but does not call component hooks during parsing.
 
-- ATX headings with `#`
-- setext headings
-- paragraphs
-- blockquotes
-- ordered and unordered lists
-- task list items
-- fenced code blocks
-- tables
-- horizontal rules
-- emphasis, strong, and strikethrough
-- links, images, autolinks, and code spans
-- `:::` directive blocks for component-based extensions
+By default, the parser supports GitHub-flavored headings, paragraphs, blockquotes, lists, task items, code blocks, and tables.
 
-The returned AST uses `type` plus node-specific fields such as `level`, `text`, `lang`, `href`, `src`, `name`, `argument`, `attrs`, and `children`.
+It also supports rules, emphasis, links, images, autolinks, code spans, and `:::` directive blocks.
 
-Top-level documents use:
+Each node has a `type` field and node-specific fields. Common fields include `level`, `text`, `lang`, `href`, `src`, `name`, `argument`, `attrs`, and `children`.
 
-
-Common block nodes:
-
-- `heading`
-- `paragraph`
-- `blockquote`
-- `list`
-- `list_item`
-- `code_block`
-- `table`
-- `directive`
-- `hr`
-
-Common inline nodes:
-
-- `text`
-- `code`
-- `strong`
-- `em`
-- `strike`
-- `link`
-- `image`
-- `raw_html`
-
-Example:
-
+Common block types are `heading`, `paragraph`, `blockquote`, `list`, `list_item`, `code_block`, `table`, `directive`, and `hr`. Common inline types are `text`, `code`, `strong`, `em`, `strike`, `link`, `image`, and `raw_html`.
 
 Options:
 
-- `options["gfm"]` enables GitHub-style extras such as tables, task lists, strikethrough, and bare-URL autolinks. Defaults to `true`.
-- `options["allow_html"]` allows raw HTML passthrough nodes to be captured and rendered. Defaults to `false`.
-- `options["components"]` provides the component hook map later used by `markdown_to_html()`. The parser preserves directive data needed by those hooks.
-
+- `options["gfm"]` enables tables, task lists, strikethrough, and bare URL autolinks. The default is `true`.
+- `options["allow_html"]` captures raw HTML nodes for later output. The default is `false`.
+- `options["components"]` stores hooks for `markdown_to_html()`.
 
 :example capy render
 var ast := markdown_to_ast("# Title")

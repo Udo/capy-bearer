@@ -2,12 +2,12 @@
 bool file_chmod(String path, u32 mode)
 
 :params
-path : file or directory to change
-mode : permission bits, e.g. 0644 or 0600 (octal)
-return value : true on success
+path : path of the file or directory
+mode : permission bits, such as 0644 or 0600
+return value : true when Capy changes the mode, otherwise false
 
 :content
-Sets a path's permission bits, like the shell `chmod`. Pass the mode as an octal literal such as `0600`.
+`file_chmod` sets permission bits on a path. Use it to restrict or grant file access. Capy receives `mode` as a number. The C++ .uce example can use an octal literal such as `0600`.
 
 :example capy render
 file_put_contents("/tmp/doc-chmod.txt", "secret")

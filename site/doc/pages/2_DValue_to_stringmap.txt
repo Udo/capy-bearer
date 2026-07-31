@@ -2,7 +2,7 @@
 StringMap DValue::to_stringmap() const
 
 :params
-return value : StringMap copy of the value
+return value : map-shaped `dval` in Capy. C++ returns a `StringMap` copy
 
 :see
 >types
@@ -11,7 +11,13 @@ return value : StringMap copy of the value
 2_DValue_to_string
 
 :content
-Converts a `DValue` to `StringMap`. Map children become entries converted with `to_string()`. Non-empty strings become `value=<string>`. f64, bool, and pointer values become `value=<to_string()>`. References that cannot be resolved produce an empty map.
+`dval_to_stringmap(value)` takes a `dval` and returns a map-shaped `dval` of strings. Map children become entries after string conversion. A nonempty string becomes a `value` entry. An f64 or boolean also becomes a `value` entry.
+
+An empty string returns an empty map. Capy has no separate `StringMap` type. Use the returned `dval` as a map.
+
+## C++ API
+
+`DValue::to_stringmap()` returns a `StringMap`. It also converts pointers and returns an empty map for an unresolved reference.
 
 :example capy render
 var user := dval({"name": "Ada"})

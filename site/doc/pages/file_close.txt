@@ -2,10 +2,10 @@
 void file_close(u64 h)
 
 :params
-h : handle returned by file_open()
+h : handle returned by `file_open()`
 
 :content
-Closes a file handle and releases the lock that `file_open()` took. Always close handles you open: locks are scoped to the handle's lifetime, so a leaked handle holds its lock until the worker recycles.
+`file_close` closes a handle from `file_open()`. Use it after the final read or write. The Capy API does not return an error value. C++ .uce uses the same handle value and call.
 
 :example capy render
 var handle := file_open("/tmp/doc-close.txt", "w")

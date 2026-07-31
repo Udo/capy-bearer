@@ -9,7 +9,11 @@ return value : an URI-encoded version of 's'
 >uri
 
 :content
-URI-encodes a string.
+In Capy, `uri_encode(value)` accepts a `string` and returns its URI-encoded `string` form.
+
+Use it before you place text in a URI component. The API has no error return.
+
+C++ uses the signature above. Its `String` input and return value correspond to Capy `string` values.
 
 
 :example capy render

@@ -3,15 +3,17 @@ DValue filter(DValue items, function<bool (String)> f)
 DValue::filter(function<bool (String)> f)
 
 :params
-items : list of items to be filtered
-f : predicate function; items are kept when this returns `true`
-return value : a new list
+items : `dval` list whose values are read as strings
+f : Capy function that returns `bool` for each string
+return value : new `dval` list of selected string values
 
 :see
 >string
 
 :content
-Returns a new list containing the members of `items` for which `f` returned `true`.
+`filter()` reads each `dval` list value as a string. It returns a new `dval` list with values where `f` returns `true`.
+
+Use it to select string values without changing `items`. In C++ `.uce`, use `DValue` and a lambda that accepts `String`.
 
 
 :example capy render

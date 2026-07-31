@@ -2,15 +2,17 @@
 u64 gen_noise64(u64 index, u64 seed = 0)
 
 :params
-index : index position
-seed : seed set (defaults to 0)
-return value : a noise value given the 'index' and 'seed' values.
+index : deterministic input position
+seed : deterministic input seed, default `0`
+return value : deterministic `u64` noise value
 
 :see
 >noise
 
 :content
-Generates a deterministic 64-bit-indexed noise value for the given `index` and `seed`.
+`gen_noise64()` returns a deterministic `u64` noise value for `index` and `seed`.
+
+Use it for repeatable 64-bit integer noise. The C++ `.uce` call uses the declaration above.
 
 
 :example capy render

@@ -2,7 +2,13 @@
 DValue::each(String callback) (legacy `StringList` page)
 
 :content
-Removed as a separate StringList API. List-shaped `DValue::each()` invokes the callback once per string in numeric list order.
+`each(items, callback)` takes a list-shaped `dval` and a callback that takes one string. It calls the callback once for each item in numeric list order. It returns no value.
+
+Use a list from `split` or `dval([...])`. Capy has no separate `StringList` type. It uses copied `dval` values.
+
+## C++ API
+
+`DValue::each()` provides the legacy StringList operation.
 
 :see
 0_DValue

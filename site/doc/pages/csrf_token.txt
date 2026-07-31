@@ -2,14 +2,18 @@
 String csrf_token(String session_name = "bearer-session", String token_name = "csrf_token")
 
 :params
-session_name : session/cookie name to store the token under
-token_name : form/action token namespace inside the session
+session_name : session and cookie name
+token_name : token namespace in the session
 return value : printable CSRF token for the active session
 
 :content
-Starts the named session if needed and returns a stable per-session CSRF token for `token_name`. Use it in hidden fields on forms that mutate server state, then verify the submitted value with `csrf_valid()` before applying the change.
+`csrf_token()` returns a stable Capy CSRF token for one session and token namespace.
 
-Tokens are generated from cryptographic randomness and stored in `context.session` under an internal key. Use a different `token_name` when independent forms should have independent tokens.
+Pass the session name and token namespace. It starts the named session when necessary. Use different token namespaces when forms need separate tokens.
+
+Use the returned value in a hidden form field. Call `csrf_valid()` before you apply a browser-submitted change.
+
+The C++ `.uce` call has the same arguments.
 
 :example capy render
 var token := csrf_token("bearer-doc-session")

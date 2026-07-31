@@ -2,9 +2,9 @@
 f64 to_f64(String s, f64 fallback = 0)
 
 :params
-s : string to parse
-fallback : value returned when `s` is empty or not a complete floating-point number
-return value : parsed f64, or `fallback`.
+s : text to parse
+fallback : value returned for empty or invalid number text
+return value : parsed `f64`, or `fallback`
 
 :see
 >types
@@ -14,9 +14,11 @@ to_bool
 float_val
 
 :content
-Parses a trimmed string as a floating-point number.
+In Capy, call `to_f64(raw[, fallback])` to convert text to an `f64` value.
 
-Unlike `float_val()`, the whole trimmed string must be consumed by the parser. Empty strings and partially parsed values such as `"3.5ms"` return the fallback.
+Capy accepts surrounding whitespace. Invalid text returns `fallback`. Use this function when a value must be a complete floating-point number.
+
+C++ uses the legacy `s` parameter and default shown above. Unlike `float_val()`, C++ requires the complete trimmed text. Empty or partial text such as `"3.5ms"` returns `fallback`.
 
 :example capy render
 print(to_f64("3.5"), "\n")

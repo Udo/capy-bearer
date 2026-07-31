@@ -2,17 +2,17 @@
 bool memcache_delete(u64 connection, String key)
 
 :params
-connection : connection handle
-key : key string
-return value : true if the operation was successful
+connection : open connection handle
+key : entry key
+return value : `true` only for a `DELETED` server response
 
 :see
 >memcache
 
 :content
-Deletes the entry identified by `key`.
+In Capy, pass the `u64` handle from `memcache_connect()`.
 
-The return value is `true` when the operation succeeds.
+This function deletes the entry for `key`. It returns `true` only when the trimmed server response is exactly `DELETED`.
 
 :example capy render
 var conn := memcache_connect()

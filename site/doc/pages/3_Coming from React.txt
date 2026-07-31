@@ -18,54 +18,31 @@ filter
 :capy-status cpp-specific
 
 :content
-This page describes the C++/Bearer template workflow; Capy uses typed `function RENDER` units rather than this preprocessor model.
+Capy uses typed `function RENDER` units. Capy has no C++ template-preprocessor workflow.
 
-BEARER is server-first C++ with a small template preprocessor. It does not try to be React, but several concepts map cleanly.
+This page describes the C++ Bearer workflow. Bearer renders on the server. It does not provide a client-side virtual DOM or a required file router.
 
-## Concept Map
+## C++ concept map
 
-- `RENDER(Request& context)` is the page/server-render entrypoint.
-- `COMPONENT(Request& context)` and `COMPONENT:NAME(Request& context)` are server-rendered components.
-- `context.props` is the component invocation payload, similar to props.
-- `context.call` is request-local scratch state shared across units during one request.
-- `context.cfg` is structured app/config data.
-- `ONCE(Request& context)` is per-request setup for a unit before its first render/component entry.
-- `INIT(Request& context)` is worker-local setup when a unit is loaded.
-- `<?= expression ?>` is escaped interpolation; prefer it for user-visible text.
-- `<?: expression ?>` writes trusted raw markup, similar to `dangerouslySetInnerHTML` in React.
-- `unit_render()` renders another page unit; `component()` returns component HTML as a string.
+`RENDER(Request& context)` renders a page. `COMPONENT(Request& context)` and `COMPONENT:NAME(Request& context)` render reusable server components. `context.props` holds component input.
 
-## Routes and Layouts
+`context.call` holds request-local shared state. `context.cfg` holds structured app data. `ONCE(Request& context)` prepares one unit for a request. `INIT(Request& context)` prepares a loaded worker unit.
 
-BEARER does not require a framework-level router. A front controller can keep routing explicit and app-local. The starter example demonstrates this in `site/examples/bearer-starter/index.uce`: it resolves a request path by checking:
+Use `<?= expression ?>` for escaped text. Use `<?: expression ?>` only for trusted markup. `component()` returns component HTML. `unit_render()` renders another page unit.
 
-1. `views/<path>.uce`
-2. `views/<path>/index.uce`
-3. parent index handlers such as `views/workspace/index.uce` with the last segment as a route parameter
+## Routes and data
 
-That keeps file-based and hierarchical routing in normal BEARER code instead of hiding it in the runtime.
+Keep routing in a front controller when that fits the app. The starter example checks page files and parent index handlers. This keeps route rules visible in application code.
 
-## Data Shaping Near Render Code
+Use collection helpers for short transformations. Use explicit loops when the work has side effects or several steps.
 
-The function library includes small collection helpers for common route/menu/card transformations:
+## What Bearer does not provide
 
-
-Use these when a short transformation is clearer than a loop. Prefer explicit loops for side effects or multi-step validation.
-
-## Assets and Islands
-
-BEARER core does not provide a global asset or island registry. The starter emits CSS and JavaScript from the owning unit's `ONCE(Request& context)` hook, with a few shared sibling asset components when multiple components need the same files. The starter's `COMPONENT:island` helper in `components/theme/web_affordances.uce` covers small progressive-enhancement modules while keeping app policy in the app.
+Bearer does not provide a global asset registry or island registry. It does not require JSX-like component tags. C++ components do not have built-in child or slot syntax. Pass explicit props and call components instead.
 
 ## Debugging
 
-When a unit fails to compile, BEARER reports the source path, generated C++ path, compile-output artifact, a source/generated excerpt when it can identify a line, and the raw compiler output. The generated C++ under `BIN_DIRECTORY` is the source of truth for what the configured compiler actually saw.
-
-## What Not To Expect
-
-- No client-side virtual DOM is built into BEARER.
-- No global file-router is imposed by the runtime.
-- No JSX-like component tags are required for this workflow.
-- Component children/slot syntax is not part of BEARER yet; use explicit props and component calls for now.
+Check generated C++ under `BIN_DIRECTORY` when a C++ unit does not compile. Bearer reports the source path and compiler output.
 
 :example cpp render
 // Components are BEARER's reusable, props-driven building blocks (like React components).

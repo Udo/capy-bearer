@@ -5,7 +5,11 @@ job_cancel
 bool job_cancel(u64 job_id)
 
 :content
-Attempts to terminate the background job process group and marks the registry entry as `cancelled`.
+`job_cancel()` requests cancellation of a job. It returns `true` when it cancels an active job, or `false` otherwise.
+
+Use it to stop a job that no longer has a useful result. Its status then reports `cancelled`.
+
+In Capy, pass the job ID as `dval`. In C++ `.uce`, pass the `u64` job ID shown above.
 
 :see
 >sys

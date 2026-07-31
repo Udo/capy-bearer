@@ -3,10 +3,10 @@ String regex_replace(String pattern, String replacement, String subject)
 String regex_replace(String pattern, String replacement, String subject, String flags)
 
 :params
-pattern : PCRE2 regular expression pattern
-replacement : replacement string
-subject : string where replacements should happen
-flags : optional regex flags
+pattern : the PCRE2 regular expression
+replacement : the replacement text
+subject : the string to change
+flags : optional regular expression flags
 return value : a new string with all matches replaced
 
 :see
@@ -19,16 +19,13 @@ regex_split
 replace
 
 :content
-Replaces every match of `pattern` in `subject` and returns the transformed string.
+In Capy, `regex_replace()` replaces every `pattern` match in `subject` and returns a new `string`.
 
-Example:
+The replacement uses PCRE2 substitution syntax. Use `$1` for a numbered capture. Use `${name}` for a named capture.
 
+Use `replace()` for a literal search. Use `regex_replace()` when you need a pattern, capture, character class, anchor, or flag.
 
-Replacement strings use PCRE2 substitution syntax, including numbered capture references such as `$1` and named references such as `${name}`.
-
-For simple literal search-and-replace, use `replace()`. Use `regex_replace()` when the match condition needs a pattern, captures, character classes, anchors, or flags.
-
-Invalid patterns, invalid flags, or invalid substitution syntax raise a request-visible runtime error.
+Invalid patterns, flags, and replacement syntax raise a request-visible runtime error.
 
 :example capy render
 print(regex_replace("docs", "manual", "bearer docs"), "\n")

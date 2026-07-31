@@ -11,7 +11,13 @@ return value : converted value or the fallback
 2_DValue_get_by_path
 
 :content
-Converts strings, f64, bool, pointer, and single-value maps to a finite double. Invalid or empty strings return the default.
+`dval_to_f64(value, fallback)` takes a `dval` and an optional f64 fallback. It returns a finite f64 value. Use it to read a number from structured data.
+
+Strings, f64 values, booleans, and one-child maps can convert. Empty, invalid, and non-finite strings return the fallback.
+
+## C++ API
+
+`DValue::to_f64()` also converts C++ pointers and resolved references.
 
 :example capy render
 var value := dval("12.5")

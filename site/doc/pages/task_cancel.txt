@@ -2,8 +2,8 @@
 DValue task_cancel(String id)
 
 :params
-id : opaque ID returned by `task()`
-return value : status after the cancellation request
+id : opaque ID returned by `task`
+return value : current task status after the cancellation request
 
 :see
 >task
@@ -12,7 +12,11 @@ task_status
 task_await
 
 :content
-Requests cancellation and returns the resulting current status, making races visible. A queued task becomes `canceled` atomically. Canceling a running task interrupts its dedicated worker and supervision restores pool capacity; if the handler already completed, its terminal success remains authoritative.
+Use `task_cancel` to request cancellation of a Capy task. Pass the task ID. The function returns the current status after it processes the request.
+
+A queued task becomes `canceled`. A running task can finish before cancellation takes effect. In that case, its completed status remains valid. Check the returned status because cancellation can race with task completion.
+
+Capy task IDs are `string` values, and task status is a `dval` value. C++ `.uce` uses `String` and `DValue`, as the signature shows.
 
 :example capy render
 var id := task("/doc/examples/task_worker.capy:STORE", dval({"message": "cancel"}))

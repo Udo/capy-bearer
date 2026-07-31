@@ -7,10 +7,11 @@ brb_decode
 json_encode
 
 :content
-Serializes a `DValue` to BRRB1, BEARER's binary DValue wire format for the WASM membrane and future cross-instance calls.
+`brb_encode()` converts a Capy `dval` into a BRRB1 byte string.
 
-BRRB1 is length-prefixed and binary-safe. It preserves nested maps, list-shaped maps, empty lists, and scalar bytes, including embedded NUL bytes. Use JSON/YAML/XML serializers for human-facing formats; use BRRB1 when BEARER code needs the native DValue protocol.
+Pass a `dval` that you will later decode with `brb_decode()`. The returned string can contain any byte, including NUL. BRRB1 keeps scalar bytes, nested maps, lists, and empty lists.
 
+Use this function for Bearer DValue data. Use JSON, YAML, or XML functions for text formats that people read.
 
 :example capy render
 var original := dval({"msg": "hello"})

@@ -2,14 +2,16 @@
 String trim(String raw)
 
 :params
-raw : string to be trimmed
-return value : string with leading and trailing whitespace characters removed
+raw : text to trim
+return value : `raw` without leading or trailing whitespace
 
 :see
 >string
 
 :content
-Returns `raw` with leading and trailing whitespace removed.
+In Capy, call `trim(raw)` to return a `string` without leading or trailing whitespace.
+
+Use it to normalize text before validation or comparison. C++ uses the same input and return value.
 
 
 :example capy render

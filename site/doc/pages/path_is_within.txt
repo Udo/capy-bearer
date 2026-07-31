@@ -2,12 +2,14 @@
 bool path_is_within(String path, String root)
 
 :params
-path : path to test
-root : directory that should contain it
-return value : true if `path` is inside `root`
+path : the path to test
+root : the directory that must contain the path
+return value : `true` if `path` is inside `root`
 
 :content
-Reports whether `path` lies inside `root`. It resolves both paths to their canonical form (like `path_real()`), so they must exist and `..` traversal is collapsed first. Use it to reject path-traversal attempts before opening user-supplied paths.
+In Capy, `path_is_within()` returns `true` when `path` is inside `root`. It resolves both paths with `path_real()`. Both paths must exist. Resolution follows symbolic links and removes `.` and `..` segments.
+
+Use this check before you open a user-supplied path.
 
 :example capy render
 var root := file_temp("/tmp/doc-within-")

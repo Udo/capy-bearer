@@ -9,12 +9,11 @@ request_query_path
 request_query_route
 
 :content
-Returns whether a normalized route path is safe to use as a route-derived file path segment.
+In Capy, use this function to test whether route text is safe after normalization.
 
-A safe route path contains only non-empty segments made from ASCII letters, digits, `_`, and `-`. The segments `.` and `..` are rejected.
+A safe route has non-empty segments. Each segment can contain ASCII letters, digits, `_`, and `-`. The function rejects `.` and `..` segments.
 
-
-Most request code should use runtime-populated `context.params["ROUTE_PATH"]` or `request_query_route()` instead of calling this directly.
+For request routes, prefer `request_query_route()` or `ROUTE_PATH`. These APIs also parse and sanitize the request input.
 
 :example capy render
 if route_path_is_safe("docs/index") { print("safe\n") } else { print("unsafe\n") }

@@ -2,16 +2,20 @@
 DValue request_route_from_raw_path(String raw_path, String default_path = "index")
 
 :params
-raw_path : raw route path from a request or query string
- default_path : route used for an empty path
-return value : route metadata DValue
+raw_path : route text from a request or query string
+default_path : route for empty input
+return value : route metadata as a `dval`
 
 :see
 >request
 >route_path_sanitize
 
 :content
-Normalizes and validates a raw route path. The returned DValue includes route fields used by request context population, including sanitized path and validity metadata.
+In Capy, use this function to validate route text before you use it as a file-backed route.
+
+The result contains `raw_path`, `l_path`, `page`, and `valid`. `raw_path` is normalized input for diagnostics. `l_path` is the safe route, or an empty string when validation fails. `page` is the first route segment. `valid` is true when `l_path` is safe.
+
+The function uses `default_path` for empty input. Treat only `l_path` as safe to compose below an application-controlled route root.
 
 :example capy render
 var route := request_route_from_raw_path("blog/2024/hello-world")

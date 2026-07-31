@@ -2,16 +2,18 @@
 String mysql_error(MySQL* m)
 
 :params
-m : pointer to a MySQL connection struct
-return value : MySQL error message (if present, otherwise empty string)
+m : Capy MySQL handle
+return value : diagnostic text for the connection attempt or latest operation
 
 :see
 >mysql
 
 :content
-Returns the last error message associated with the given MySQL connection.
+In Capy, pass the opaque `u64` handle from `mysql_connect()`.
 
-If there is no current error, the result is an empty string.
+This function returns diagnostic text for a failed connection or the latest MySQL operation. Use it after `mysql_connected()` returns `false` or an operation fails.
+
+The C++ API accepts `MySQL*` instead.
 
 :example capy render
 var db := mysql_connect("localhost", "root", "", "")

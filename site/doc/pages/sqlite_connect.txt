@@ -2,8 +2,8 @@
 SQLite* sqlite_connect(String path)
 
 :params
-path : filesystem path to the SQLite database file
-return value : pointer to a SQLite connection struct
+path : database file path, or `:memory:` for an in-memory database
+return value : SQLite handle, or `0u64` when the connection fails
 
 :see
 >sqlite
@@ -12,20 +12,11 @@ sqlite_error
 sqlite_disconnect
 
 :content
-Opens an SQLite database file and returns a connection handle.
+Capy `sqlite_connect(path)` opens an SQLite database and returns a `u64` handle. Give it a database file path, or `:memory:` for an in-memory database.
 
-BEARER opens SQLite with serialized/full-mutex connection mode, sets a busy timeout, enables foreign keys, and applies WAL-oriented defaults:
+It returns `0u64` when it cannot open the database. Use the handle with `sqlite_query()`, `sqlite_error()`, and `sqlite_disconnect()`. Call `sqlite_disconnect()` when you finish with the handle.
 
-```sql
-PRAGMA busy_timeout = 5000;
-PRAGMA foreign_keys = ON;
-PRAGMA journal_mode = WAL;
-PRAGMA synchronous = NORMAL;
-```
-
-SQLite itself handles file locking and one-writer/many-reader concurrency. BEARER does not add a separate app-level database lock.
-
-Connections are registered for request cleanup, but explicit `sqlite_disconnect()` is still preferred when you are done with the handle.
+The C++ API returns an `SQLite*` pointer. Capy uses a `u64` handle.
 
 :example capy render
 var db := sqlite_connect(":memory:")

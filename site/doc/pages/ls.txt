@@ -2,11 +2,15 @@
 DValue ls(String path)
 
 :params
-path : directory to list
-return value : a list-shaped DValue of entry names
+directory : directory to list
+return value : copied `dval` list of names
 
 :content
-Returns the names of the entries in a list-shaped `DValue`. For names only this is simpler than `dir_list()`, which returns full metadata per entry.
+In Capy, this function returns a copied `dval` list of directory entry names.
+
+Use it when you need to inspect a directory. Handle an empty result when the directory has no entries or cannot be listed.
+
+The C++ API returns a native `DValue`.
 
 :example capy render
 var root := file_temp("/tmp/doc-ls-")

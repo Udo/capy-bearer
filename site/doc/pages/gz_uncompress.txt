@@ -12,10 +12,9 @@ zip_list
 zip_extract
 
 :content
-Uncompresses a gzip-format byte string and returns the original content.
+`gz_uncompress()` returns the uncompressed bytes from a gzip string. Use it to read data made by `gz_compress()` or another gzip writer.
 
-
-`gz_uncompress()` validates the gzip header, CRC32 footer, and uncompressed-size footer. It throws a runtime error when the input is not a supported gzip stream or fails validation.
+It validates the gzip header, CRC32 footer, and uncompressed-size footer. It reports an error for unsupported or invalid gzip data.
 
 :example capy render
 var packed := gz_compress("round trip data")

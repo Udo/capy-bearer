@@ -2,18 +2,18 @@
 String time_format_utc(String format = "", u64 timestamp = 0)
 
 :params
-format : formatting string specifying the date format
-timestamp : optional timestamp value, defaults to current time
-return value : a formatted date
+format : optional Capy format string
+timestamp : optional Unix timestamp. Omit it to use the current time.
+return value : formatted UTC string
 
 :see
 >time
 >time_format_relative
 
 :content
-Formats a timestamp in the GMT/UTC timezone.
+Use `time_format_utc` to format a Unix timestamp in UTC. Pass a format string and, if needed, a timestamp. The function returns a Capy `string`. Omit the timestamp to format the current time.
 
-This formatter is based on the Linux `date` command and supports the same core formatting tokens plus BEARER's relative-time delta tokens.
+The formatter supports core Linux `date` format tokens and the relative-time delta tokens. Pass `RFC1123` to use the built-in RFC 1123 UTC format.
 
 Supported format sequences:
 
@@ -21,6 +21,7 @@ Supported format sequences:
 Padding and case flags may follow `%`:
 
 
+Capy uses `string` and `u64` values. C++ `.uce` uses `String` and `u64`, as the signature shows.
 
 :example capy render
 print(time_format_utc("%Y-%m-%d", 0u64), "\n")

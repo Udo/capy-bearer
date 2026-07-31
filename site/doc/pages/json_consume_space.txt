@@ -2,8 +2,9 @@
 void json_consume_space(String s, u32& i)
 
 :params
-s : JSON source string
-i : current byte offset; advanced past JSON whitespace
+source : JSON source text
+index : byte offset where scanning starts
+return value : Capy byte offset after JSON whitespace
 
 :see
 >string
@@ -11,12 +12,11 @@ json_encode
 json_decode
 
 :content
-Advances `i` past JSON whitespace in `s`.
+In Capy, this function returns the byte offset after JSON whitespace in `source`.
 
-This helper is mainly useful when writing a parser that follows BEARER's JSON parsing rules. Most page code should call `json_decode()` instead.
+Use it when you write a parser that must continue at a known JSON position. Most code should use `json_decode()` instead.
 
-Example:
-
+The C++ API advances its `u32&` offset argument. Both APIs scan byte positions.
 
 :example capy render
 var index := json_consume_space("   value", 0)

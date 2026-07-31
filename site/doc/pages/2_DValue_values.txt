@@ -2,7 +2,7 @@
 DValue DValue::values() const
 
 :params
-return value : a list-shaped DValue containing each iterated child value
+return value : a list-shaped `dval` containing each child value
 
 :see
 >types
@@ -11,7 +11,13 @@ return value : a list-shaped DValue containing each iterated child value
 2_DValue_push
 
 :content
-Copies the values produced by `each()` into a new list-shaped `DValue`.
+`dval_values(value)` takes a `dval` and returns a list-shaped `dval` of its child values. It copies each child. Map values use map order. List values use numeric list order.
+
+A scalar produces a one-item list that contains the scalar. Capy returns copied values.
+
+## C++ API
+
+`DValue::values()` has the same result.
 
 :example capy render
 var user := dval({"name": "Ada", "role": "admin"})

@@ -3,8 +3,8 @@ void unit_render(String file_name)
 void unit_render(String file_name, Request& context)
 
 :params
-file_name : BEARER file to load and execute
-context : optional request context to pass into the target page
+file_name : unit path
+context : optional request context for the target page
 
 :see
 >ob
@@ -14,13 +14,13 @@ unit_load
 component
 
 :content
-Calls another BEARER file and executes its `RENDER(Request& context)` function.
+In Capy, call `unit_render(name)` to run another unit's `RENDER` function.
 
-If `context` is omitted, the current active request context is used.
+Capy has no `context` input. It uses the current request context. Use this function when the unit writes page output instead of returning a value.
 
-Calling a missing unit or render handler is a server error and sets HTTP status 500. If a unit is intentionally optional, inspect it with `unit_info()` before calling `unit_render()`.
+A missing unit or `RENDER` function is an error. For an optional unit, call `unit_info()` before `unit_render()`.
 
-Examples:
+C++ adds the `Request& context` overload in the signature above. If you omit it, C++ uses the active request context.
 
 
 :example capy render

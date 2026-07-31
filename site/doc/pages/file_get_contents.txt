@@ -2,11 +2,13 @@
 String file_get_contents(String file_name)
 
 :params
-file_name : file to read, resolved against the unit's directory
-return value : the file's contents, or "" if it cannot be read
+file_name : path of the file to read
+return value : file content as a Capy `string`, or `""` when Capy cannot read it
 
 :content
-Reads an entire file and returns it as a `String`. The read takes a shared lock for its duration, so it waits for any in-progress `file_put_contents()` / `file_append()` write to finish; you never manage locks yourself. For large files or random access, use `file_open()` + `file_read()`.
+In Capy, `file_get_contents()` reads a complete file into a `string`. Use it for a small file that you need as one value. An unreadable file returns `""`.
+
+Use `file_open()` and `file_read()` for streamed reads. C++ `.uce` returns the same data as `String`.
 
 :example capy render
 file_put_contents("/tmp/doc-get.txt", "hello")

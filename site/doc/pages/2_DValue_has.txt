@@ -12,7 +12,9 @@ return value : true when the dereferenced value is map-shaped and contains the k
 2_DValue_get_by_path
 
 :content
-Checks for a child key without creating it. Returns false for scalars and missing keys.
+Use `dval_has(value, key)` in Capy to test a key in a copied `dval`. It returns `true` when the value is map-shaped and contains the key. It does not create a child. It returns `false` for scalars and missing keys.
+
+C++ `has(key)` applies the same test after it dereferences the value.
 
 :example capy render
 var user := dval({"name": "Ada"})

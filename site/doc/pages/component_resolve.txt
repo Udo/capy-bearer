@@ -9,13 +9,11 @@ component_render
 1_COMPONENT
 
 :content
-Resolves a component name to the concrete `.uce` file path that will be loaded.
+`component_resolve()` returns the file path for a Capy component name.
 
-Resolution searches host-side candidate bases in order: absolute target when supplied, entry unit directory, current unit directory, and site root. Within each base it tries the exact file name, the same name with `.uce` appended, and the same two forms under the `components/` prefix.
+Pass a component name. A name without a suffix resolves to its `.uce` file. An explicit `.capy` target resolves to its Capy source path. A colon and handler name do not affect the returned path.
 
-If `name` contains a colon, only the file portion is used for resolution.
-
-This is primarily a debugging helper so you can see which concrete file a shorthand component name maps to.
+Use this function to inspect a shorthand name before you render a component. Its name resolution matches `component()` and `component_exists()`.
 
 :example capy render
 print("resolved path: ", component_resolve("examples/sample_unit"), "\n")

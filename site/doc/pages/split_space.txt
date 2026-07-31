@@ -2,17 +2,18 @@
 DValue split_space(String str)
 
 :params
-str : string to be split
-return value : a list of strings
+str : string to split
+return value : list-shaped `dval` with string entries
 
 :see
 >string
 
 :content
-Splits `str` on runs of whitespace.
+Capy `split_space(str)` returns a list-shaped `dval` of strings. Give it text with whitespace-separated values.
 
-Multiple adjacent whitespace characters are treated as a single separator, so repeated spaces, tabs, or line breaks do not create empty entries.
+It treats each run of spaces, tabs, or line breaks as one separator. It does not create empty entries for repeated whitespace. Use it to parse simple whitespace-separated input.
 
+The C++ API calls the result `DValue`. Capy uses the `dval` value type.
 
 :example capy render
 print(join(split_space("one  two\tthree"), ","), "\n")

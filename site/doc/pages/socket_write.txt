@@ -2,17 +2,17 @@
 bool socket_write(u64 sockfd, String data)
 
 :params
-sockfd : socket handle
-data : a string containing the data to be written to the socket
-return value : true if the write operation was successful
+sockfd : socket handle from `socket_connect()`
+data : string to send
+return value : `true` when the write succeeds, otherwise `false`
 
 :see
 >socket
 
 :content
-Writes `data` to the given socket.
+Capy `socket_write(sockfd, data)` sends a string to a socket. Give it a socket handle and the data to send.
 
-The function returns `true` when the write succeeds.
+It returns `true` when the write succeeds. It returns `false` when it fails. Use it after `socket_connect()` to send a request.
 
 :example capy render
 var fd := socket_connect("127.0.0.1", 80)

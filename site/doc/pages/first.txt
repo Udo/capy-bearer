@@ -2,16 +2,16 @@
 String first(String... args)
 
 :params
-args : a variable number of String arguments
-return value : first of the 'args' that was not empty.
+args : zero or more strings, in selection order
+return value : first nonblank string, or an empty string
 
 :see
 >string
 
 :content
-Returns the first non-empty string from the provided arguments.
+`first()` returns the first nonblank string. It returns an empty string when no argument is nonblank.
 
-Leading and trailing whitespace are ignored when checking emptiness, so a string containing only whitespace counts as empty.
+It ignores leading and trailing whitespace when it tests each argument. Use it to select a fallback string.
 
 
 :example capy render

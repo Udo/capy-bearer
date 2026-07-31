@@ -2,14 +2,18 @@
 u64 time_parse(String time_string)
 
 :params
-time_string : a string containing a date and/or time in text form
-return value : the interpreted 'time_string' as a Unix timestamp
+time_string : text that contains a date, time, or both
+return value : the parsed Unix timestamp, or `0u64` when Capy cannot parse the text
 
 :see
 >time
 
 :content
-Attempts to parse `time_string` into a Unix timestamp.
+In Capy, call `time_parse(value)` with date or time text.
+
+The function returns a `u64` Unix timestamp. It returns `0u64` when it cannot parse `value`. Use it to convert external time text before you compare or format a timestamp.
+
+C++ uses the legacy `time_string` parameter in the signature above. Its normal use case is the same.
 
 
 :example capy render

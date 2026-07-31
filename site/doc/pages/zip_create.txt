@@ -14,17 +14,13 @@ zip_extract
 DValue
 
 :content
-Creates a ZIP archive at `zip_file_name`.
+In Capy, `zip_create(path, entries)` accepts an archive path and a `dval` of entries. It returns `true` when it writes the archive.
 
-`entries` can be a simple map where each key is the archive member name and each value is the file content:
+Use a map when each key is a member name and each value is its content. An entry can also name a source file with `file`.
 
+Member names cannot be empty, absolute, drive-qualified, or contain `..` path segments. The call rejects those names.
 
-For list-shaped input or when the map key should not be the member name, each child can provide explicit fields:
-
-
-An entry may also provide `file` instead of `content`; BEARER reads that source file and stores its contents under `name`.
-
-Entry names are normalized to forward slashes and rejected when they are absolute paths, drive-qualified paths, empty names, or contain `..` path segments.
+The declaration has no separate error return. C++ uses `String` and `DValue` values through the signature above.
 
 :example capy render
 var archive := "/tmp/capy-doc-zip.zip"

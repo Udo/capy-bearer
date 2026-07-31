@@ -2,11 +2,11 @@
 bool file_exists(String path)
 
 :params
-path : path to check, resolved against the unit's directory
-return value : true if a regular file exists at `path`
+path : path to check
+return value : true when a regular file exists, otherwise false
 
 :content
-Reports whether a regular file exists. Use it to guard reads or to confirm a write or delete took effect. It is file-oriented and returns false for directories — use `file_stat()` and check `is_dir` to test for a directory.
+`file_exists` tests whether a regular file exists at `path`. Use it before a file read or after a file write. It returns false for a directory. Use `file_stat()` and its `is_dir` field to test a directory.
 
 :example capy render
 file_put_contents("/tmp/doc-exists.txt", "x")

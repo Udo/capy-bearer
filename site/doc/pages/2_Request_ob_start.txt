@@ -10,7 +10,13 @@ ob_start
 ob_get_close
 
 :content
-Starts a new output buffer for the request and makes it the active `context.ob`. Most unit code should prefer the higher-level output-buffer helpers (`ob_start()`, `ob_get()`, `ob_get_close()`, `ob_close()`) rather than calling the method directly.
+`ob_start()` starts a new output buffer for the active request. It returns no value. Output after the call goes to this buffer until `ob_get`, `ob_get_close`, or `ob_close` uses it.
+
+Use `ob_start`, `ob_get`, `ob_get_close`, and `ob_close` for normal Capy output capture. Capy does not expose `context.ob`.
+
+## C++ API
+
+`Request::ob_start()` creates the active `context.ob` buffer.
 
 
 :example capy render

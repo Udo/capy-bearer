@@ -2,17 +2,19 @@
 String memcache_command(u64 connection, String command)
 
 :params
-connection : connection handle
-command : string containing the Memcache command
-return value : string containing the Memcache server's response
+connection : open connection handle
+command : Memcache command text
+return value : one bounded server response read
 
 :see
 >memcache
 
 :content
-Executes a raw command on an open Memcache connection and returns the server response as a string.
+In Capy, pass the `u64` handle from `memcache_connect()`.
 
-This is the low-level escape hatch for Memcache operations that are not covered by the dedicated helpers.
+This function appends CRLF to `command` and sends it to the server. It makes one bounded read for the response. It does not guarantee a complete multi-chunk response.
+
+Use a dedicated helper when it supports the operation.
 
 :example capy render
 var conn := memcache_connect()

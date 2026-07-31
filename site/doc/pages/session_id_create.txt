@@ -2,16 +2,15 @@
 String session_id_create()
 
 :params
-return value : a new session ID
+return value : new 64-character lowercase hexadecimal session ID
 
 :see
 >session
 
 :content
-Creates and returns a new session ID.
+In Capy, use this function only when you need a new session ID without starting a session.
 
-This helper is useful when you need to generate a session token directly rather than starting a full session flow with `session_start()`.
-
+It returns a new 64-character lowercase hexadecimal ID. Use `session_start()` for the normal cookie and session-data flow.
 
 :example capy render
 if length(session_id_create()) > 0 { print("session id\n") } else { print("empty\n") }

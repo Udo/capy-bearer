@@ -2,12 +2,12 @@
 bool file_rename(String from, String to)
 
 :params
-from : source path
-to : destination path
-return value : true on success
+from : current path of the file
+to : new path of the file
+return value : true when Capy renames the file, otherwise false
 
 :content
-Renames or moves a file. After a successful rename the source path no longer exists. Use it for atomic publish patterns: write a temp file, then rename it into place.
+`file_rename` moves a file from one path to another. Use it after writing a temporary file. A successful call removes the source path. It returns false when Capy cannot rename the file. C++ .uce uses the same paths and Boolean result.
 
 :example capy render
 file_put_contents("/tmp/doc-rename-a.txt", "moved")

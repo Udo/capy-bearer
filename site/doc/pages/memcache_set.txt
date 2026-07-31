@@ -2,19 +2,19 @@
 bool memcache_set(u64 connection, String key, String value, u64 expires_in = 60*60)
 
 :params
-connection : connection handle
-key : the entry's key
-value : the value to be set
-expires_in : optional expiration timeout, defaults to one hour
-return value : true if the operation was successful
+connection : open connection handle
+key : entry key
+value : value text
+expire : lifetime in seconds
+return value : `true` only for a `STORED` server response
 
 :see
 >memcache
 
 :content
-Stores `value` under `key` on the Memcache server.
+In Capy, pass the `u64` handle from `memcache_connect()`.
 
-`expires_in` controls the expiration timeout and defaults to one hour.
+This function stores `value` under `key`. It sends the value length in bytes. It returns `true` only when the trimmed server response is exactly `STORED`.
 
 :example capy render
 var conn := memcache_connect()

@@ -8,9 +8,11 @@ return value : true if the current WebSocket message is binary
 >websocket
 
 :content
-Returns whether the message currently being handled by `WS(Request& context)` arrived as a binary frame.
+In Capy, `ws_is_binary()` takes no inputs and returns `true` for the current binary WebSocket message.
 
-If this returns `false`, the current message was delivered as a text frame.
+Use it before you parse `ws_message()`. It returns `false` for a text message and outside a WebSocket handler.
+
+The `false` value is the normal nonbinary result. C++ returns the same value as `bool`.
 
 :example capy render
 if ws_is_binary() { print("binary frame\n") } else { print("text frame (default outside a WS handler)\n") }

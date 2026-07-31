@@ -2,15 +2,17 @@
 String memcache_escape_key(String key)
 
 :params
-key : application key
-return value : memcache-safe key string
+key : key text
+return value : key with whitespace characters replaced by underscores
 
 :see
 >sys
 >memcache_escape_keys
 
 :content
-Normalizes whitespace in a memcache key to underscores before it is placed into a text protocol command.
+In Capy, use this function to replace whitespace in a Memcache key with underscores.
+
+It replaces only characters for which C++ `isspace()` returns true. It does not reject or escape every invalid Memcache protocol byte.
 
 :example capy render
 print(memcache_escape_key("a key with spaces"), "\n")

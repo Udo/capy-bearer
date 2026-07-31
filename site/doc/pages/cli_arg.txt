@@ -7,12 +7,13 @@ String cli_arg(Request& context, String key, String default_value = "")
 >cli_input
 
 :content
-Reads one value from the merged `cli_input(context)` parameter tree.
+`cli_arg()` returns one string value from Capy `cli_input()` data.
 
-If the key is missing, or the resolved value is empty, `default_value` is returned.
+Pass the input key and an optional fallback value. It returns the fallback when the key is absent or its resolved value is empty.
 
+Use `cli_arg()` for one simple command value. Use `cli_input()` once when you need several values or DValue types.
 
-For commands that need multiple values or typed reads, prefer calling `cli_input(context)` once and reading the returned `DValue` directly.
+In C++ `.uce`, pass `context` as the first argument. Capy gets the request data without that argument.
 
 :example capy render
 var name := cli_arg("name", "world")

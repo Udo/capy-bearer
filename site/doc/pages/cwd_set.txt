@@ -2,13 +2,17 @@
 void cwd_set(String path)
 
 :params
-path : the new working directory
+path : new working directory path
 
 :see
 >sys
 
 :content
-Sets the host worker process current directory. In wasm this is a hostcall, so restore the previous directory when using it inside request code.
+`cwd_set()` changes the current working directory to a Capy string path.
+
+Pass the destination path. Save the current path with `cwd_get()` and restore it after temporary use. This change affects the worker process.
+
+The C++ `.uce` call has the same arguments.
 
 :example capy render
 var old := cwd_get()

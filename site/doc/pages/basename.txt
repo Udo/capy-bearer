@@ -6,7 +6,11 @@ fn : a path
 return value : the final path component
 
 :content
-Returns the last component of a path — the file or directory name without its leading directories.
+Capy's `basename(path)` returns the final path component as a `string`. Pass a path string.
+
+Use it to get a file or directory name without its parent directories. The function does not access the file system. It does not report errors.
+
+The C++ `String` function has the same input and result.
 
 :example capy render
 print(basename("/var/www/site/index.uce"), "\n")

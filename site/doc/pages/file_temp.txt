@@ -2,11 +2,13 @@
 String file_temp(String prefix)
 
 :params
-prefix : path prefix for the temp file; a unique suffix is appended
-return value : the path of the newly created temp file, or "" on failure
+prefix : path prefix for the temporary file
+return value : path of a new empty temporary file, or `""` on failure
 
 :content
-Creates a new, uniquely named empty file using `prefix` as the leading path and returns its full path. Use it for scratch files and the write-then-rename publish pattern.
+In Capy, `file_temp()` creates an empty temporary file and returns its path as a `string`. It adds a unique suffix to `prefix`.
+
+Use it for scratch files or before `file_rename()`. It returns `""` when Capy cannot create a file.
 
 :example capy render
 var path := file_temp("/tmp/doc-temp-")

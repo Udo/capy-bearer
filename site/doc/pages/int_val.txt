@@ -2,9 +2,9 @@
 u64 int_val(String s, u32 base = 10)
 
 :params
-s : string to be converted
-base : number system base (default 10)
-return value : a u64 containing the number (0 if no number could be identified).
+s : string that can contain an integer
+base : number base, default `10`
+return value : parsed `u64`, or `0` when no usable number exists
 
 :see
 >string
@@ -12,9 +12,9 @@ float_val
 0_String
 
 :content
-Extracts an integer value from `s`.
+`int_val()` extracts an unsigned integer from a string. It returns `0` when it cannot identify a usable number.
 
-The `base` argument controls which number system is used while parsing. If no usable number can be identified, the function returns `0`.
+`base` selects the number base and defaults to `10`. Use it for numeric input text. In C++ `.uce`, the same call returns `u64`.
 
 :example capy render
 var decimal := "0"

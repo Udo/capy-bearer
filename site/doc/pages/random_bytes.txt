@@ -2,11 +2,13 @@
 String random_bytes(u64 n)
 
 :params
-n : number of bytes to generate
-return value : `n` cryptographically random bytes
+n : the number of random bytes to request
+return value : cryptographically random bytes
 
 :content
-Returns `n` cryptographically secure random bytes, suitable for session IDs, tokens, and salts. The bytes are binary; wrap them with `base64_encode()` or `sha256_hex()` when you need printable text.
+In Capy, `random_bytes()` returns cryptographically secure bytes as a `string`. The API returns no more than 1 MiB. It can return fewer bytes, including an empty string, if the random source fails.
+
+Use these bytes for session IDs, tokens, and salts. The result can contain binary bytes. Use `base64_encode()` or `sha256_hex()` when you need printable text.
 
 :example capy render
 var token := base64_encode(random_bytes(16u64))

@@ -14,13 +14,11 @@ return value : merged result
 json_decode
 
 :content
-Merges two maps or trees using PHP-like merge behavior.
+Capy's `array_merge(left, right)` returns a new `dval`. It does not change either input value.
 
-For `StringMap`, keys from `b` overwrite keys from `a`.
+Pass two `dval` maps, lists, or scalar values. String keys in `right` replace matching keys in `left`. List values append. They use consecutive numeric keys. The function does not report errors.
 
-For `DValue`, string keys from `b` overwrite keys from `a`. Numeric keys are appended and reindexed when either side behaves like a list.
-
-This helper is the closest BEARER equivalent to PHP `array_merge()` for common request, config, and JSON-shaped data.
+Use it to combine request, configuration, or JSON-shaped values. The C++ API also accepts `StringMap` values. Its `DValue` form has the same merge rules.
 
 :example capy render
 var merged := array_merge(dval({"name": "Ada"}), dval({"role": "admin"}))

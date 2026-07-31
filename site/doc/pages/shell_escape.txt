@@ -2,16 +2,16 @@
 String shell_escape(String raw)
 
 :params
-raw : string that should be escaped
-return value : escaped version of 'raw'
+raw : string value to use as one shell word
+return value : a single-quoted shell word that represents `raw`
 
 :see
 >sys
 
 :content
-Escapes a parameter so it can be used more safely with `shell_exec()`.
+Capy `shell_escape(raw)` returns `raw` as one shell word. Give it one value that will become an argument in a command string.
 
-This is the helper to reach for when building shell command lines from dynamic input.
+Use it before `shell_exec()` when a command contains input from outside the program. It does not make a complete command safe. Do not use it for shell syntax.
 
 :example capy render
 print(shell_escape("rm -rf /; echo pwned"), "\n")

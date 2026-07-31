@@ -2,17 +2,19 @@
 StringMap memcache_get_multiple(u64 connection, DValue keys)
 
 :params
-connection : connection handle
-keys : a list of strings containing the keys to be retrieved
-return value : a StringMap with the retrieved entries
+connection : open connection handle
+keys : `dval` list of entry keys
+return value : `dval` map of returned entries
 
 :see
 >memcache
 
 :content
-Retrieves multiple entries in one call.
+In Capy, this function returns a `dval` map of entries parsed from `VALUE` responses.
 
-The result is returned as a `StringMap` keyed by the requested Memcache keys.
+Use it to read several keys through one connection. Missing keys are absent from the map.
+
+The C++ API returns `StringMap` instead.
 
 :example capy render
 var conn := memcache_connect()

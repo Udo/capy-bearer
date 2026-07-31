@@ -2,7 +2,13 @@
 DValue::keys() (legacy `StringList` page)
 
 :content
-Removed as a separate StringList API. `DValue::keys()` returns a list-shaped DValue of ordered child keys.
+`keys(items)` takes a list-shaped `dval` and returns a list-shaped `dval` of numeric string keys in list order. It returns copied values.
+
+Capy has no separate `StringList` type. Use `dval_keys` when you need keys from any `dval` map or list.
+
+## C++ API
+
+`DValue::keys()` provides the legacy StringList operation.
 
 :see
 0_DValue

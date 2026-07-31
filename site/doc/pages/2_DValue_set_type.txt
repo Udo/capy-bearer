@@ -11,9 +11,13 @@ return value : none
 2_DValue_set_array
 
 :content
-Changes the node's internal type tag, forwarding through references when possible. Switching to map type clears children, resets list state, and resets the array index.
+`dval_set_type(value, type)` takes a `dval` and a type-tag string. It returns a replacement with that internal type. Assign the result back to retain the update.
 
-Prefer the typed setters (`set`, `set_bool`, `set_array`) in normal unit code.
+Use `dval_set`, `dval_set_bool`, or `dval_set_array` for normal Capy code. Setting map type clears children and resets list state and the next numeric index.
+
+## C++ API
+
+`DValue::set_type()` changes the object in place and can follow an internal reference.
 
 
 :example capy render

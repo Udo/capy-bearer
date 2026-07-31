@@ -2,17 +2,17 @@
 String join(DValue l, String delim = "\n")
 
 :params
-l : list of strings to be joined
-delim : delimiter (defaults to newline character)
-return value : a string containing items joined by 'delim'
+l : `dval` list whose values are read as strings
+delim : separator string, default newline
+return value : string with all list values separated by `delim`
 
 :see
 >string
 
 :content
-Joins all strings in `l` into a single `String`.
+`join()` reads every `dval` list value as a string and returns one string. It inserts `delim` between values.
 
-The delimiter is inserted between items. If `delim` is omitted, the default separator is a newline character.
+It uses a newline when `delim` is omitted. Use it to make text from a list. In C++ `.uce`, use `DValue`.
 
 
 :example capy render

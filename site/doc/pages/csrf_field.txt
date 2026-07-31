@@ -2,15 +2,19 @@
 String csrf_field(String session_name = "bearer-session", String token_name = "csrf_token", String field_name = "")
 
 :params
-session_name : session/cookie name to store the token under
-token_name : form/action token namespace
-field_name : submitted POST field name; defaults to `token_name`
-return value : HTML hidden input containing the active CSRF token
+session_name : session and cookie name
+token_name : token namespace
+field_name : submitted form field name. The default is `token_name`.
+return value : HTML hidden input with the active CSRF token
 
 :content
-Starts the named session if needed and returns the standard hidden form input for a CSRF token. The field name and generated token value are HTML-escaped.
+`csrf_field()` returns an HTML hidden input with the active Capy CSRF token.
 
-Use this in ordinary server-rendered POST forms when the submitted field name should match `token_name`, or pass `field_name` when several forms share the same submitted parameter name but need separate token namespaces. Validate the submitted value with `csrf_valid(context.post[field_name], session_name, token_name)` before mutating state.
+Pass the session name, token namespace, and optional form field name. It starts the named session when necessary. It HTML-escapes the field name and token value.
+
+Use it in server-rendered forms that change state. Validate the submitted field with `csrf_valid()` before you change state.
+
+The C++ `.uce` call has the same arguments.
 
 :example capy render
 print("<form method=\"post\">\n\t")

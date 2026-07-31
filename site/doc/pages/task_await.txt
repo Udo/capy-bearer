@@ -2,9 +2,9 @@
 DValue task_await(String id, u64 timeout_ms)
 
 :params
-id : opaque ID returned by `task()`
-timeout_ms : maximum time to wait
-return value : current status when terminal or when the wait bound expires
+id : opaque ID returned by `task`
+timeout_ms : maximum wait time in milliseconds
+return value : current task status when the task ends or the wait time expires
 
 :see
 >task
@@ -13,7 +13,11 @@ task_status
 task_cancel
 
 :content
-Waits up to `timeout_ms` for a task to become terminal and returns its bounded status. Waiting does not execute the task in the caller; dedicated task workers remain the only consumers. A nonterminal status after the bound is an ordinary timeout of the wait, not cancellation of the task.
+Use `task_await` to wait for a Capy task status. Pass the task ID and a maximum wait time in milliseconds. The function returns the current status when the task ends or the wait time expires.
+
+This call does not run the task in the caller. If the task remains nonterminal after the wait time, it continues to run. The wait time does not cancel it.
+
+Capy task IDs are `string` values, and task status is a `dval` value. C++ `.uce` uses `String`, `u64`, and `DValue`, as the signature shows.
 
 :example capy render
 var id := task("/doc/examples/task_worker.capy:STORE", dval({"message": "await"}))

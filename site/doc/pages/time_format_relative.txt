@@ -2,13 +2,13 @@
 String time_format_relative(u64 timestamp, String format_very_recent = "", u64 medium_recency_seconds = 0, String format_medium_recent = "", u64 not_recent_seconds = 0, String format_not_recent = "")
 
 :params
-timestamp : Unix timestamp to compare against the current time
-format_very_recent : output format for very recent timestamps, defaults to `just now`
-medium_recency_seconds : cutoff between the very-recent and medium-recent formats, defaults to `90`
-format_medium_recent : output format for medium-recent timestamps, defaults to `%deltaM minutes ago`
-not_recent_seconds : cutoff between the medium-recent and not-recent formats, defaults to `5400`
-format_not_recent : output format for older timestamps, defaults to `%deltaH hours ago`
-return value : a formatted relative-time string
+timestamp : Capy Unix timestamp to compare with the current time
+format_very_recent : text for recent timestamps. An empty value uses `just now`.
+medium_recency_seconds : recent cutoff in seconds. Zero uses `90`.
+format_medium_recent : text after the recent cutoff. An empty value uses `%deltaM minutes ago`.
+not_recent_seconds : older cutoff in seconds. Zero uses `5400`.
+format_not_recent : text after the older cutoff. An empty value uses `%deltaH hours ago`.
+return value : formatted relative-time string
 
 :see
 >time
@@ -16,20 +16,16 @@ return value : a formatted relative-time string
 >time_format_utc
 
 :content
-Formats a timestamp relative to the current time using the same formatting engine as `time_format_local()` and `time_format_utc()`.
+Use `time_format_relative` to show a Capy timestamp relative to the current time. Pass the timestamp. You can also set the three output formats and their two cutoffs. The function returns a Capy `string`.
 
-The formatter chooses one of three output formats:
+The formatter uses `format_very_recent` before `medium_recency_seconds`. It uses `format_medium_recent` before `not_recent_seconds`. It uses `format_not_recent` at or after that cutoff.
 
-- if `now - timestamp` is less than `medium_recency_seconds`, use `format_very_recent`
-- else if it is less than `not_recent_seconds`, use `format_medium_recent`
-- otherwise use `format_not_recent`
-
-The relative-time tokens available in all time formatters are:
-
+All time formatters support relative-time delta tokens.
 
 Default behavior examples:
 
 
+Capy uses `u64` and `string` values. C++ `.uce` uses `u64` and `String`, as the signature shows.
 
 :example capy render
 print(time_format_relative(0u64), "\n")

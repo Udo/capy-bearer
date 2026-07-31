@@ -2,11 +2,13 @@
 DValue file_stat(String path)
 
 :params
-path : path to inspect, resolved against the unit's directory
-return value : a map with exists, is_file, is_dir, is_symlink, size, mode, mtime, ctime
+path : path to inspect
+return value : a `dval` map with `exists`, `is_file`, `is_dir`, `is_symlink`, `size`, `mode`, `mtime`, and `ctime`
 
 :content
-Returns metadata about a path as a `DValue` map. Read fields with the usual accessors, e.g. `st["size"].to_u64()` and `st["is_file"].to_bool()`. When the path does not exist, `exists` is false.
+In Capy, `file_stat()` returns file metadata in a map-shaped `dval`. Use it to test a path type or read its size and times.
+
+The `exists` field is `false` when the path does not exist. Read fields with functions such as `dval_to_bool()`.
 
 :example capy render
 file_put_contents("/tmp/doc-stat.txt", "12345")

@@ -2,12 +2,12 @@
 u64 file_open(String path, String mode)
 
 :params
-path : file to open, resolved against the unit's directory
-mode : "r" read, "w" truncate+write, "a" append, "r+" read+write
-return value : opaque handle; 0 means open failed (bad path, policy denial, or lock timeout)
+path : path of the file to open
+mode : `"r"` for reading, `"w"` for writing, `"a"` for appending, or `"r+"` for reading and writing
+return value : a `u64` handle, or 0 when Capy cannot open the file
 
 :content
-Opens a file for streaming, handle-based I/O and returns an opaque handle for `file_read()`, `file_write()`, `file_seek()`, and `file_close()`. Locks are automatic and scoped to the handle: read opens take a shared lock, write/append/read-write opens take an exclusive lock, and `file_close()` releases it. Lock waits are bounded by `BEARER_FILE_LOCK_TIMEOUT_MS` (default 2000ms), so a contended open returns 0 instead of blocking forever. For whole-file access prefer `file_get_contents()` / `file_put_contents()`.
+`file_open` returns a handle for streamed file access. Use the handle with `file_read()`, `file_write()`, `file_seek()`, and `file_close()`. A return value of 0 means that Capy could not open the file. Use `file_get_contents()` or `file_put_contents()` for whole-file access. C++ .uce uses the same modes and handle value.
 
 :example capy render
 var handle := file_open("/tmp/doc-open.txt", "w")

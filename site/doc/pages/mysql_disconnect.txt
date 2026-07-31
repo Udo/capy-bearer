@@ -2,15 +2,17 @@
 void mysql_disconnect(MySQL* m)
 
 :params
-m : pointer to an existing MySQL connection struct
+m : Capy MySQL handle
 
 :see
 >mysql
 
 :content
-Closes an existing connection to a MySQL server.
+In Capy, pass the opaque `u64` handle from `mysql_connect()`.
 
-Releases the lease returned by `mysql_connect()`. The request-local server connection remains available for another same-credential `mysql_connect()` call and is closed by BEARER during request cleanup, including after exceptions or fatal request recovery. A `MySQL*` is only valid inside the request that opened it; do not use it after release or cache it across requests.
+This function releases the connection lease. It does not necessarily close a pooled server connection immediately. Do not use the handle after this call.
+
+The C++ API accepts `MySQL*` instead.
 
 :example capy render
 var db := mysql_connect("localhost", "root", "", "")

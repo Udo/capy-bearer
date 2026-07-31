@@ -2,10 +2,12 @@
 String ob_get()
 
 :params
-return value : the current buffer's contents
+return value : the current output buffer contents
 
 :content
-Returns the current output buffer's contents WITHOUT discarding the buffer, so more output can still be appended. Use `ob_get_close()` when you also want to pop the buffer.
+In Capy, `ob_get()` returns the current output buffer as a `string`. The buffer stays active, so later `print()` calls add more output.
+
+Use `ob_get_close()` to get the contents and close the buffer.
 
 :example capy render
 ob_start()

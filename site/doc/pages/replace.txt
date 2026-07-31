@@ -2,19 +2,18 @@
 String replace(String s, String search, String replace_with)
 
 :params
-s : the string where replacements should happen
-search : the string that should be searched for
-replace_with : the string that should appear in places where 'search' occurs
-return value : a version of 's' where all instances of 'search' have been replaced with 'replace_with'
+s : source text
+search : literal text to replace
+replace_with : replacement text
+return value : source text with every literal match replaced
 
 :see
 >string
 
 :content
-Replaces every occurrence of `search` in `s` with `replace_with`.
+In Capy, use this function to replace every literal occurrence of `search` in `s`.
 
-The returned string contains the fully replaced result.
-
+The function returns the changed text. It does not change `s`. Use `regex_replace()` when the search pattern is a regular expression.
 
 :example capy render
 print(replace("hello docs", "docs", "BEARER"), "\n")

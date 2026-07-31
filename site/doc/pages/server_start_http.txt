@@ -2,11 +2,11 @@
 pid_t server_start_http(String key, String socket_fn_or_port, String call_bearer_filename, String call_function = "")
 
 :params
-key : runtime-wide server key
-socket_fn_or_port : TCP port number or Unix socket path to listen on
-call_bearer_filename : `.uce` file containing `SERVE_HTTP` handlers
-call_function : optional named `SERVE_HTTP:name` handler
-return value : listener process PID, or `0` when it could not be started
+key : runtime-wide listener key
+socket_fn_or_port : TCP port number or Unix socket path
+call_bearer_filename : `.capy` or `.uce` file that contains the handler
+call_function : optional named handler
+return value : listener process PID, or `0` if Bearer cannot start it
 
 :see
 >sys
@@ -14,28 +14,28 @@ server_stop
 task
 
 :content
-Starts or updates a custom HTTP listener backed by a BEARER handler file.
+In Capy, this function starts or updates a custom HTTP listener. It supports custom HTTP listeners only.
 
-The server key is runtime-wide. Calling `server_start_http()` again with the same key and the same bind target updates the mapped BEARER file/function without restarting the listener. If the bind target changes, BEARER stops the old listener and starts a replacement.
+The key identifies one runtime-wide listener. A second call with the same key and bind target updates the handler without a restart. A changed bind target stops the old listener and starts another one.
 
-`socket_fn_or_port` may be a numeric TCP port such as `"19091"` or a Unix socket path.
+Pass a numeric TCP port such as `"19091"` or a Unix socket path. Bearer accepts handler files only below its configured custom-server root. Runtime settings also limit ports, socket paths, and listener count.
 
-Handler files use `SERVE_HTTP`:
+A Capy handler file uses `SERVE_HTTP`:
 
-```uce
-SERVE_HTTP(Request* req)
-{
-    req->header["Content-Type"] = "text/plain; charset=utf-8";
-    print("hello from custom HTTP\n");
+```capy
+function SERVE_HTTP {
+    response_header("Content-Type", "text/plain; charset=utf-8")
+    print("hello from custom HTTP\n")
 }
 
-SERVE_HTTP:admin(Request* req)
-{
-    print("named handler\n");
+function SERVE_HTTP:admin {
+    print("named handler\n")
 }
 ```
 
-The custom server dispatcher uses the same nonblocking HTTP listener machinery as the built-in HTTP/WebSocket path, and hands request/response data through the normal `Request` object. Handler code may block in the first implementation; future worker dispatch can be added without changing this API.
+The handler can read normal request data. A long-running handler delays its listener.
+
+The paired example starts the existing C++ `examples/sample_unit.uce` handler. Pass a `.capy` path and an empty handler name to call its default `SERVE_HTTP` handler.
 
 :example capy render
 var pid := server_start_http("doc-demo-server", "/tmp/bearer/custom-servers/doc-demo.sock", "examples/sample_unit.uce", "RENDER")

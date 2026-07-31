@@ -2,15 +2,17 @@
 f64 gen_noise01(u64 index, u64 seed = 0)
 
 :params
-index : index position
-seed : seed set (defaults to 0)
-return value : a noise value from 0 to 1
+index : deterministic input position
+seed : deterministic input seed, default `0`
+return value : deterministic `f64` noise value from `0` to `1`
 
 :see
 >noise
 
 :content
-Generates a deterministic noise value in the range from `0` to `1` for the given `index` and `seed`.
+`gen_noise01()` returns a deterministic `f64` noise value from `0` to `1`. `index` and `seed` select the value.
+
+Use it for repeatable normalized noise. The C++ `.uce` call uses the declaration above.
 
 
 :example capy render

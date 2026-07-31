@@ -2,11 +2,11 @@
 StringMap split_kv(String s, char separator = '=', bool trim_whitespace = true, bool uppercase_keys = false)
 
 :params
-s : input containing one key/value pair per line
-separator : character separating each key from its value
+s : text with one key and value per line
+separator : separator string. Capy uses its first character
 trim_whitespace : trim keys and values when true
-uppercase_keys : uppercase keys when true
-return value : map of parsed keys and values
+uppercase_keys : convert keys to uppercase when true
+return value : map-shaped `dval` of keys and values
 
 :see
 >string
@@ -14,14 +14,13 @@ split
 split_http_headers
 
 :content
-Parses simple line-based key/value text into a `StringMap`.
+Capy `split_kv(s, separator, trim_whitespace, uppercase_keys)` returns a map-shaped `dval`. Give it line-based text and a separator.
 
-Each non-empty line is split on the first `separator`. Lines without the separator are kept with an empty value.
+It ignores empty lines and lines that start with `#`. It splits each other line at the first separator. A line without a separator has an empty value.
 
-Example:
+Use it for small configuration files, metadata blocks, and tests.
 
-
-This is useful for small config files, metadata blocks, and tests that need predictable key/value parsing.
+The C++ API accepts a `char` separator and returns `StringMap`. Capy accepts a string separator and returns a map-shaped `dval`.
 
 :example capy render
 var values := split_kv("name=Ada\nrole=admin")

@@ -2,12 +2,12 @@
 bool file_copy(String from, String to)
 
 :params
-from : source path
-to : destination path (overwritten if it exists)
-return value : true on success
+from : path of the source file
+to : path of the destination file
+return value : true when Capy copies the file, otherwise false
 
 :content
-Copies a file's contents to a new path, overwriting the destination if present.
+`file_copy` copies one file to another path. Use it to keep the source and create a second file. The call reports failure with false. C++ .uce uses the same paths and Boolean result.
 
 :example capy render
 file_put_contents("/tmp/doc-copy-src.txt", "payload")

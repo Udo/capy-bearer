@@ -10,8 +10,11 @@ return value : none
 2_DValue_to_bool
 
 :content
-Stores a boolean value, forwarding through references when possible.
+`dval_set_bool(value, flag)` takes a `dval` and a boolean. It returns a replacement that stores `flag`. Assign the result back to retain the update.
 
+## C++ API
+
+`DValue::set_bool()` changes the object in place and can follow an internal reference.
 
 :example capy render
 var flag := dval_set_bool(dval(""), true)

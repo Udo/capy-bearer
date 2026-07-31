@@ -6,7 +6,11 @@ raw : arbitrary input string
 return value : an ASCII-only sanitized name
 
 :content
-Like `safe_name()`, but also restricts the result to ASCII, transliterating or dropping non-ASCII characters. Use it when the consumer (a legacy filesystem, header, or protocol) requires plain ASCII.
+Capy's `ascii_safe_name(raw)` returns an ASCII-only `string` name. Pass any input string.
+
+The function transliterates or removes non-ASCII characters. Use it when a file name, header, or protocol requires ASCII. The function does not report errors.
+
+The C++ `String` function has the same input and result.
 
 :example capy render
 print(ascii_safe_name("Cafe Munchen 2024"), "\n")

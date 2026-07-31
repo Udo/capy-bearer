@@ -8,11 +8,13 @@ return value : payload of the current WebSocket message
 >websocket
 
 :content
-Returns the payload of the current WebSocket message being handled by `WS(Request& context)`.
+In Capy, `ws_message()` takes no inputs and returns the current WebSocket message payload as a `string`.
 
-For text frames this is the decoded text payload. For binary frames this `String` contains the raw message bytes.
+Text messages return text. Binary messages return raw bytes in the `string` value.
 
-Use `ws_is_binary()` or `ws_opcode()` to choose how to parse the payload.
+Use `ws_is_binary()` or `ws_opcode()` before you parse the payload. Outside a WebSocket handler, the result is an empty string.
+
+The empty string is the normal no-message result. C++ returns the same value as `String`.
 
 :example capy render
 print("payload length in this non-WS context: ", length(ws_message()), "\n")

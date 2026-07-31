@@ -5,7 +5,9 @@ job_result
 DValue job_result(u64 job_id)
 
 :content
-Checks a job result with a small bounded wait. The returned value includes the current status fields and, when complete, a structured `result` value.
+`job_result()` checks a job with a short bounded wait. It returns a `dval` status map and includes `result` when the job finishes.
+
+Use it to poll after `shell_spawn()` or `http_request_async()`. In Capy, pass the job ID as `dval`. In C++ `.uce`, pass the `u64` job ID shown above.
 
 :see
 >sys

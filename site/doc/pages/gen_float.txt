@@ -2,17 +2,19 @@
 f64 gen_float(f64 from, f64 to, u64 index, u64 seed = 0, f64 decimal_precision = 0.000000000001)
 
 :params
-from : minimum result
-to : maximum result
-index : index position to generate number from
-seed : seed position to generate number from (defaults to 0)
-return value : noise value
+from : first range endpoint
+to : second range endpoint
+index : deterministic input position
+seed : deterministic input seed, default `0`
+return value : deterministic `f64` noise value
 
 :see
 >noise
 
 :content
-Generates a deterministic noise value between `from` and `to` for the given `index` and `seed`.
+`gen_float()` returns a deterministic `f64` noise value for `index` and `seed`. `from` and `to` set the output range.
+
+Use the same inputs to reproduce procedural values. Capy calls the optional fifth input `precision`.
 
 
 :example capy render

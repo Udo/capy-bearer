@@ -10,7 +10,9 @@ return value : true when this node itself is a reference node
 2_DValue_deref
 
 :content
-Reports whether the current node's direct type tag is the internal reference tag. Most read methods dereference automatically; this helper is mainly useful when handling reference-aware runtime state.
+Capy has no `dval_is_reference` API. Capy `dval` values are copied values. They have no reference identity, so this test has no Capy equivalent.
+
+C++ `is_reference()` tests this node's direct internal reference tag. Most C++ read methods dereference values automatically.
 
 
 :capy-status unsupported

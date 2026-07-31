@@ -13,17 +13,21 @@ INIT(Request& context)
 >unit_call
 
 :content
-Defines a worker-load hook for the current `.uce` unit.
+`function INIT` defines the Capy worker-load hook.
 
-When a worker instantiates the unit's compiled wasm module, the runtime checks whether the unit exposes `INIT(Request& context)`. If it does, the hook runs once for that instance before the unit begins serving requests from that worker-local copy.
+Use `function INIT { ... }` for the normal form. You can also declare `function INIT(request : request) { ... }`. The optional input is an opaque Capy request value.
 
-Because BEARER usually loads units on demand during a request, `INIT()` still receives a valid `Request& context`. Use it for worker-local initialization, not for request-local state that should reset each request.
+The hook accepts no other inputs and returns no value. It runs once when a worker loads this unit instance. Use it to prepare worker-local state, caches, or static lookup data.
 
-## Typical Uses
+Do not use `INIT` for state that must reset for each request. Use `ONCE` for that state. Bearer can load a unit during a request, so the optional request value is valid for that load.
 
-- warm caches or parse static lookup data into globals
-- initialize worker-local helper state for expensive component trees
-- perform one-time registration work for that unit's in-memory copy
+The compiler rejects other parameter forms, a return type, and handler overloads. A trap in `INIT` stops the load invocation.
+
+## C++ API
+
+C++ declares `INIT(Request& context)`. It receives the live request context when Bearer loads the unit during a request.
+
+Capy does not expose C++ `Request&` or its mutable fields. Use the opaque `request` value and Capy request functions. Capy cannot use C++ references or direct C++ object access.
 
 ## Example
 

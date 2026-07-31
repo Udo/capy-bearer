@@ -12,33 +12,21 @@ RENDER(Request& context)
 >1_WS
 
 :content
-Defines the main HTTP render handler for the current `.uce` page.
+`function RENDER` defines the Capy HTTP page entrypoint.
 
-When a page is requested over HTTP, the runtime loads the target file and calls its `RENDER(Request& context)` function.
+Use `function RENDER { ... }` for the normal form. You can also declare `function RENDER(request : request) { ... }`. The optional input is an opaque Capy request value. The handler returns no value. Print response content and use Capy request and response functions in the body.
 
-## Entry Point Behavior
+Bearer calls `RENDER` for a direct HTTP request to the unit. `ONCE` runs before the first render or component entrypoint for the unit and request. `INIT` runs when a worker loads the unit. A direct page request has no component props.
 
-The default page entrypoint is always the plain `RENDER(Request& context)` handler.
+Use `COMPONENT` or `COMPONENT:NAME` for reusable component output. Component helpers do not call `RENDER`. A unit can define `RENDER`, `COMPONENT`, and `WS` together. In that case, `RENDER` serves HTTP and `WS` handles later WebSocket messages.
 
-Reusable component handlers live on `COMPONENT(Request& context)` and `COMPONENT:NAME(Request& context)`. The component helpers call those handlers, not `RENDER()`.
+The compiler rejects other parameter forms, a return type, and handler overloads. A trap in `RENDER` stops that request invocation.
 
-The request environment is passed explicitly through `context`, including params, cookies, post data, session state, headers, uploaded files, and the current `context.props` tree.
+## C++ API
 
-If the file defines `ONCE(Request& context)`, the runtime calls that hook once per request before the first `RENDER()` or `COMPONENT...` entrypoint from that unit runs.
+C++ declares `RENDER(Request& context)`. It receives live parameters, cookies, POST data, session state, headers, uploaded files, and component props. `unit_render(file_name, context)` passes that live context to the callee.
 
-If the file defines `INIT(Request& context)`, the runtime calls that hook once when the worker loads the compiled unit into memory.
-
-For a normal direct page request, `context.props` starts empty.
-
-If the page is invoked from another BEARER file via `unit_render(file_name, context)`, the callee receives that same `context`.
-
-Pages that serve WebSocket traffic may expose both `RENDER(Request& context)` and `WS(Request& context)`. Files may also define `COMPONENT()` handlers when one unit needs both page and component behavior.
-
-In that case:
-
-- `RENDER(Request& context)` serves the direct HTTP response
-- `WS(Request& context)` handles later WebSocket messages
-- `COMPONENT()` remains available only through the component helpers
+Capy does not expose C++ `Request&`, mutable request fields, or C++ object layouts. Use Capy request functions and copied `dval` values. Capy cannot use C++ references or direct C++ object access.
 
 :example capy render
 print("RENDER is a unit directive; place it at top level in a .uce unit.\n")

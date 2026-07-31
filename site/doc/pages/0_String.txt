@@ -9,15 +9,17 @@ substr
 html_escape
 
 :content
-Primary string type used throughout BEARER.
+`string` is Capy's text and byte value type. Use string literals, variables, parameters, and return values directly.
 
-`String` is an alias for `std::string`.
+String functions take `string` inputs and return `string`, numeric, or boolean values. Common functions include `length`, `find`, `contains`, `replace`, `to_lower`, `to_upper`, `substr`, `split`, and `split_utf8`.
 
-It is used for request data, headers, cookie values, file contents, query strings, JSON text, and WebSocket payloads.
+Capy passes strings by value. A function call does not expose a mutable C++ string reference.
 
-Because it is backed by `std::string`, it is binary-safe and may also contain raw bytes.
+A `string` can contain raw bytes. Use `split_utf8()` when you must split UTF-8 text by characters. Do not treat each byte as one character.
 
-For UTF-8-aware splitting, use helpers such as `split_utf8()` instead of assuming one byte equals one character.
+## C++ API
+
+C++ uses `String`, an alias for `std::string`. The same value can hold text or raw bytes.
 
 :example capy render
 var name := "Ada"

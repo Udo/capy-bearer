@@ -3,11 +3,17 @@ String expand_path(String path, String relative_to_path = "")
 
 :params
 path : path to expand
-relative_to_path : base directory a relative `path` is resolved against
-return value : the expanded path
+relative_to_path : base directory for a relative path
+return value : expanded path
 
 :content
-Expands a path: a relative `path` is resolved against `relative_to_path` (or the current unit's directory when that is empty), producing a normalized path you can hand to the file APIs.
+`expand_path()` returns a normalized Capy path string.
+
+Pass a path and an optional base directory. It resolves a relative path against the base directory. Without a base directory, it uses the current unit directory.
+
+Use the returned path with file API functions.
+
+The C++ `.uce` call has the same arguments.
 
 :example capy render
 print(expand_path("sub/page.uce", "/var/www/site"), "\n")

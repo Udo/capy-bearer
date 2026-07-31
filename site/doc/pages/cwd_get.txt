@@ -2,13 +2,17 @@
 String cwd_get()
 
 :params
-return value : the current working directory
+return value : current working directory path
 
 :see
 >sys
 
 :content
-Returns the current working directory.
+`cwd_get()` returns the current working directory path as a Capy string.
+
+Use it before `cwd_set()` when you must restore the original directory.
+
+The C++ `.uce` call has the same arguments.
 
 :example capy render
 if cwd_get() != "" { print("have a working directory\n") } else { print("none\n") }

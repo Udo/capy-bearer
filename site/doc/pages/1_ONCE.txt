@@ -13,17 +13,21 @@ ONCE(Request& context)
 >unit_call
 
 :content
-Defines a request-local one-time hook for the current `.uce` unit.
+`function ONCE` defines the Capy request-local hook for one unit.
 
-When a request first enters a given file through `RENDER(Request& context)`, `COMPONENT(Request& context)`, or any `COMPONENT:NAME(Request& context)` handler, the runtime checks whether that unit exposes `ONCE(Request& context)`. If it does, the hook runs before the selected render or component handler.
+Use `function ONCE { ... }` for the normal form. You can also declare `function ONCE(request : request) { ... }`. The optional input is an opaque Capy request value.
 
-`ONCE()` is tracked per request and per resolved unit file, so repeated component calls to the same file inside one request do not rerun it.
+The hook accepts no other inputs and returns no value. Bearer runs it before the first render or component call for this resolved unit and request. Later component calls to the same unit in that request do not run it again.
 
-## Typical Uses
+Use `ONCE` to prepare request-local derived data that several component calls need. Do not use it for worker-local state. Use `INIT` for worker-local state.
 
-- prepare request-local derived state on `context.call`
-- load request-scoped config or data needed by multiple named component handlers
-- normalize shared props before the unit's first render/component call
+The compiler rejects other parameter forms, a return type, and handler overloads. A trap in `ONCE` stops that invocation.
+
+## C++ API
+
+C++ declares `ONCE(Request& context)`. C++ can store request-local data in the live context.
+
+Capy does not expose C++ `Request&`, `context.call`, or mutable `DValue` aliases. Use Capy request functions and copied `dval` values. Capy cannot use C++ references or direct C++ object access.
 
 ## Example
 

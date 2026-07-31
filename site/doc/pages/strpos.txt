@@ -2,21 +2,20 @@
 s64 strpos(String haystack, String needle, s64 offset = 0)
 
 :params
-haystack : string to search in
-needle : substring to search for
-offset : optional start offset; negative values count from the end of the string
-return value : zero-based position of the first match, or `-1` if `needle` is not found
+haystack : Capy string to search
+needle : Capy string to find
+offset : optional start position. Negative values count from the end.
+return value : zero-based first match position, or `-1` when no match exists
 
 :see
 >string
 
 :content
-Finds the first occurrence of `needle` inside `haystack`.
+Use `strpos` to find the first `needle` in a Capy string. Pass the string, the text to find, and an optional start position. The function returns a zero-based position or `-1`.
 
-This is the closest BEARER equivalent to PHP `strpos()`, but it returns `-1` instead of `false` when no match is found.
+An empty `needle` returns the normalized start position. This differs from PHP `strpos`, which returns `false` when no match exists.
 
-If `needle` is an empty string, `strpos()` returns the normalized start offset.
-
+Capy uses `string` values. C++ `.uce` uses `String` and `s64`, as the signature shows.
 
 :example capy render
 print(strpos("bearer docs", "docs"), "\n")

@@ -14,7 +14,11 @@ json_encode
 print
 
 :content
-Returns a string representation of `t` intended for debugging.
+In Capy, `var_dump(value)` accepts a `dval` and returns a readable `string` representation.
+
+Use it to inspect a value while you debug. The API has no error return.
+
+Capy supports a `dval` input only. C++ also provides the `StringMap` overload and optional prefix and postfix inputs shown above.
 
 :example capy render
 var user := dval({"name": "Ada", "role": "engineer"})

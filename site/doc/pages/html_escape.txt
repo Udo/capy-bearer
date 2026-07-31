@@ -2,8 +2,8 @@
 String html_escape(String s)
 
 :params
-s : string to be escaped
-return value : an HTML-safe escaped version of 's'
+s : string to encode for HTML text
+return value : string with HTML-sensitive characters replaced by entities
 
 :see
 >string
@@ -12,12 +12,9 @@ print
 component
 
 :content
-Returns a version of the input string where special HTML characters are replaced by entities:
+`html_escape()` returns a string that is safe to insert as HTML text. Use it for text from users or other untrusted sources.
 
-- `&` becomes `&amp;`
-- `<` becomes `&lt;`
-- `>` becomes `&gt;`
-- `"` becomes `&quot;`
+It escapes ampersands, angle brackets, and double quotes.
 
 :example capy render
 print(html_escape("<b>Tom & Jerry</b>"), "\n")

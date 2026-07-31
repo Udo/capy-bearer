@@ -2,7 +2,13 @@
 DValue::unique() (legacy `StringList` page)
 
 :content
-Removed as a separate StringList API. List-shaped `DValue::unique()` returns first-occurrence strings, preserving order.
+`unique(items)` takes a list-shaped `dval` and returns a new list-shaped `dval`. It keeps the first instance of each string and keeps input order.
+
+Capy has no separate `StringList` type. It uses copied `dval` values.
+
+## C++ API
+
+`DValue::unique()` provides the legacy StringList operation.
 
 :see
 0_DValue

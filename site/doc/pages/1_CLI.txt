@@ -16,33 +16,25 @@ CLI(Request& context)
 >cli_arg
 
 :content
-Defines a local command-line entrypoint for a BEARER unit.
+`function CLI` defines the local command entrypoint for a Capy unit.
 
-`CLI(Request& context)` is invoked only through the local BEARER CLI Unix socket, not through ordinary public HTTP requests. This lets web apps keep test runners, migrations, maintenance tasks, and admin tooling beside the rest of their BEARER units while still separating those commands from browser-facing `RENDER()` routes.
+Use `function CLI { ... }` for the normal form. You can also declare `function CLI(request : request) { ... }`. The optional `request` is an opaque Capy value. It is not a C++ `Request&`.
 
-The default CLI socket path is `/run/bearer/cli.sock` and is configured with `CLI_SOCKET_PATH`.
+The handler accepts no other inputs and returns no value. The body can print output and call Capy request functions such as `cli_input()` and `cli_arg()`. `cli_input()` returns a copied `dval`. `cli_arg()` returns a string value.
 
-Example convenience script usage:
+Bearer calls `CLI` only through its local CLI Unix socket. It does not call `CLI` for a public HTTP request. Use this handler for local tests, migrations, maintenance, and administration.
 
+The default socket path is `/run/bearer/cli.sock`. Set `CLI_SOCKET_PATH` to change it. The `scripts/bearer-cli` helper sends `key=value` input as a JSON POST body by default. Use `--get` for a query-string request.
 
-Equivalent curl probe:
+A Capy declaration fails to compile if it has a non-`request` parameter, more than one parameter, or a return type. A trap in the handler stops that invocation.
 
+`ONCE` runs before `CLI` for the unit. `INIT` runs when a worker loads the unit.
 
-For structured commands, prefer JSON POST bodies. The `scripts/bearer-cli` helper sends `key=value` parameters as JSON POST by default, while still allowing `--get` for simple query-string probes.
+## C++ API
 
-Inside the handler, the usual `Request& context` fields are available:
+C++ declares `CLI(Request& context)`. Its live `context` provides query, POST, body, parameter, header, and response access. C++ can test `context.params["BEARER_CLI"]` and read `context.params["SCRIPT_FILENAME"]`.
 
-- `context.get` for command query parameters
-- `context.post` and `context.in` for POST bodies
-- `context.params["BEARER_CLI"] == "1"` for CLI socket dispatch
-- `context.params["SCRIPT_FILENAME"]` for the invoked unit file
-
-CLI responses default to `text/plain; charset=utf-8`, but the handler may set headers and status explicitly.
-
-Use `cli_input(context)` to merge query parameters, form parameters, and JSON POST fields into one `DValue`.
-
-
-`ONCE(Request& context)` runs before `CLI()` in the same way it runs before render and component entrypoints. `INIT(Request& context)` runs when the unit is loaded into a worker.
+Capy does not expose the C++ `Request&` layout or its mutable `DValue` aliases. Use the Capy request functions and copied `dval` values instead.
 
 :example capy render
 print("CLI is a unit directive; place it at top level in a .uce unit.\n")

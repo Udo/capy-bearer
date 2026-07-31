@@ -2,7 +2,13 @@
 DValue::sort() (legacy `StringList` page)
 
 :content
-Removed as a separate StringList API. List-shaped `DValue::sort()` returns a new ascending string-sorted list.
+`sort(items)` takes a list-shaped `dval` and returns a new list-shaped `dval` with strings in ascending order. It does not change `items`.
+
+Capy has no separate `StringList` type. It uses copied `dval` values.
+
+## C++ API
+
+`DValue::sort()` provides the legacy StringList operation.
 
 :see
 0_DValue

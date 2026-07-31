@@ -2,16 +2,16 @@
 void sqlite_disconnect(SQLite* db)
 
 :params
-db : pointer to an active SQLite connection
+db : SQLite handle from `sqlite_connect()`
 
 :see
 >sqlite
 sqlite_connect
 
 :content
-Closes an SQLite connection and deletes the BEARER connection wrapper.
+Capy `sqlite_disconnect(db)` closes an SQLite handle from `sqlite_connect()`. It does not return a value.
 
-BEARER also cleans up SQLite connections that remain open at request end, but explicit disconnects keep resource lifetime local and clear.
+Call it when you finish database work. Do not use the handle after this call. The C++ API uses an `SQLite*` pointer. Capy uses a `u64` handle.
 
 :example capy render
 var db := sqlite_connect(":memory:")

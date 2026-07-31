@@ -2,16 +2,15 @@
 void session_destroy(String session_name = "bearer-session")
 
 :params
-session_name : the name of the session
+session_name : session cookie name
 
 :see
 >session
 
 :content
-Deletes the cookie specified by `session_name`, removes the matching server-side session file, and clears the data stored under the current session ID.
+In Capy, use this function to end the named session.
 
-This also empties `context.session_id`, `context.session_name`, and `context.session`.
-
+It expires the cookie and removes the matching server-side session file. For the active session, a later `request_context()` snapshot has empty `session_id`, `session_name`, and `session` fields.
 
 :example capy render
 var id := session_start("bearer-doc-example-destroy")

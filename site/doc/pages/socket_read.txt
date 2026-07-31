@@ -2,18 +2,18 @@
 String socket_read(u64 sockfd, u32 max_length = 1024*128, u32 timeout = 1);
 
 :params
-sockfd : socket handle
-max_length : optional maximum data size, defaults to 128kBytes
-timeout : optional operation timeout, defaults to one second
-return value : string containing the data that was read
+sockfd : socket handle from `socket_connect()`
+max_length : maximum number of bytes to read. Default: 131072
+timeout : read timeout in seconds. Default: 1
+return value : data read from the socket
 
 :see
 >socket
 
 :content
-Reads data from a socket connection.
+Capy `socket_read(sockfd, max_length, timeout)` reads a string from a socket. Give it a socket handle, a byte limit, and a timeout in seconds.
 
-`max_length` limits how much data is read, and `timeout` controls how long the operation is allowed to wait.
+It returns the data that it reads. It can return an empty string when no data is available. Use it after `socket_connect()` or `socket_write()` when you expect a response.
 
 :example capy render
 var fd := socket_connect("127.0.0.1", 80)

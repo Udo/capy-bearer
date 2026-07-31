@@ -3,10 +3,10 @@ bool regex_match(String pattern, String subject)
 bool regex_match(String pattern, String subject, String flags)
 
 :params
-pattern : PCRE2 regular expression pattern
-subject : string to test
-flags : optional regex flags
-return value : `true` when the entire subject matches the pattern
+pattern : the PCRE2 regular expression
+subject : the string to test
+flags : optional regular expression flags
+return value : `true` if the entire subject matches the pattern
 
 :see
 >string
@@ -18,25 +18,22 @@ regex_split
 0_String
 
 :content
-Tests whether `subject` matches `pattern` from start to end.
+In Capy, `regex_match()` returns `true` when all of `subject` matches `pattern`.
 
-This is a full-string match, not a substring search. Use `regex_search()` when you want to find the first occurrence anywhere in a string.
-
-Examples:
-
+This is not a substring search. Use `regex_search()` to find the first match in a string.
 
 Supported flags:
 
-- `i` enables case-insensitive matching.
+- `i` ignores case.
 - `m` enables multiline `^` and `$`.
-- `s` lets `.` match newlines.
-- `x` enables extended / whitespace-insensitive pattern syntax.
-- `u` explicitly enables UTF-8 and Unicode character properties.
-- `a` disables UTF-8 / Unicode property mode for ASCII-oriented matching.
+- `s` lets `.` match a newline.
+- `x` enables extended pattern syntax.
+- `u` enables UTF-8 and Unicode properties.
+- `a` uses ASCII-oriented matching instead.
 
-BEARER uses PCRE2 in UTF-8 + Unicode-property mode by default, so patterns such as `\\p{L}+` work naturally on Unicode text.
+Bearer uses PCRE2 UTF-8 and Unicode properties by default. For example, `\\p{L}+` matches Unicode letters.
 
-Invalid patterns or invalid flags raise a request-visible runtime error with the PCRE2 diagnostic message.
+Invalid patterns and flags raise a request-visible runtime error with the PCRE2 diagnostic.
 
 :example capy render
 if regex_match("^[a-z]+$", "docs") { print("match\n") } else { print("no\n") }

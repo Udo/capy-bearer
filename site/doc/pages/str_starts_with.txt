@@ -2,16 +2,17 @@
 bool str_starts_with(String haystack, String needle)
 
 :params
-haystack : string to inspect
-needle : prefix to compare against the start of `haystack`
-return value : `true` when `haystack` begins with `needle`, otherwise `false`
+haystack : Capy string to inspect
+needle : prefix to compare
+return value : `true` when the string starts with the prefix. Otherwise, `false`.
 
 :see
 >string
 
 :content
-Checks whether `haystack` starts with `needle`.
+Use `str_starts_with` to test whether a Capy string starts with a prefix. Pass the string and the prefix. The function returns a Boolean value.
 
+Capy uses `string` values. C++ `.uce` uses `String`, as the signature shows.
 
 :example capy render
 if str_starts_with("/doc", "/") { print("yes\n") } else { print("no\n") }

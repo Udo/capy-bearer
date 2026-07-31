@@ -2,11 +2,13 @@
 String safe_name(String raw)
 
 :params
-raw : arbitrary input string
-return value : a sanitized name safe to use as a file or key name
+raw : source text
+return value : text that contains only letters, digits, and `_`
 
 :content
-Sanitizes a string into a safe name by normalizing or stripping characters that are unsafe in file names and identifiers (whitespace, separators, control characters). Use it before turning user input into a file name or cache key.
+In Capy, use this function to remove unsafe characters from a name.
+
+The result keeps only letters, digits, and `_`. It removes whitespace, separators, punctuation, and other characters. The result can be empty. Use `runtime_safe_key()` when you need a stable non-empty runtime key.
 
 :example capy render
 print(safe_name("My Report: 2024/Q1!"), "\n")

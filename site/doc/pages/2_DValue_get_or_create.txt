@@ -11,7 +11,9 @@ return value : pointer to the child node
 2_DValue_has
 
 :content
-Ensures the value is map-shaped and returns the named child. If the key does not exist, an empty child is created. Creating a non-numeric key on a list-shaped value clears list mode.
+Use `dval_get_or_create(value, key)` in Capy to make sure a copied `dval` map has `key`. It returns the replacement map value, not a child alias. Assign the result back before you add the child value. It creates an empty child when needed. A nonnumeric key changes a list into a map.
+
+C++ `get_or_create(key)` returns a pointer to the child. It creates the child when needed.
 
 
 :example capy render

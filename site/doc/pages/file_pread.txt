@@ -2,13 +2,15 @@
 String file_pread(u64 h, u64 offset, u64 len)
 
 :params
-h : handle from file_open() opened for reading
-offset : absolute byte offset to read from
+h : readable handle from `file_open()`
+offset : absolute byte offset
 len : maximum number of bytes to read
-return value : up to `len` bytes read at `offset`
+return value : a Capy `string` with up to `len` bytes
 
 :content
-Reads `len` bytes from an absolute `offset` without moving the handle's current offset. Useful for random access reads that interleave with sequential ones.
+In Capy, `file_pread()` reads from an absolute byte offset and returns a `string`. It does not change the handle position.
+
+Use it for random reads between sequential reads. An invalid handle returns an empty string.
 
 :example capy render
 var writer := file_open("/tmp/doc-pread.txt", "w")

@@ -2,7 +2,7 @@
 #load "myfile.uce"
 
 :params
-file name : name of an BEARER file that should be included
+file name : Bearer source file to include
 
 :see
 >ob
@@ -10,14 +10,11 @@ file name : name of an BEARER file that should be included
 :capy-status cpp-specific
 
 :content
-Capy has no `#load` preprocessor directive; use ordinary Capy declarations or `unit_load()`/`unit_render()` for runtime module composition.
+Capy does not support the C++ `#load` directive.
 
-Includes another BEARER file.
+Use ordinary Capy declarations in one unit. Use `unit_load()` or runtime composition APIs when you must load another unit at runtime.
 
-Use `#load` when you want the current file to pull in declarations or reusable content from another BEARER source file.
-
-Loaded sources are tracked transitively. Changing a direct or nested `#load` dependency invalidates and recompiles the entry unit before its next execution.
-
+The C++ `#load` directive includes another Bearer source file. Bearer tracks direct and nested dependencies. A changed dependency causes recompilation before the next execution.
 
 :example cpp render
 // #load "file.uce" includes another unit at COMPILE time (a preprocessor directive,

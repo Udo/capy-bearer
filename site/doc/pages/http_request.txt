@@ -5,19 +5,15 @@ http_request
 DValue http_request(DValue req)
 
 :content
-Performs an outbound HTTP(S) request using the runtime `curl` binary. Existing request fields remain backward-compatible: `method`, `url`, `headers`, `body`, `timeout_ms`, and `follow_redirects`.
+`http_request()` sends an outbound HTTP or HTTPS request from a `dval` request map. It returns a `dval` map with `status`, `headers`, `body`, and `error`.
 
-An absent `security` map, or a map containing none of these recognized keys, keeps the legacy request behavior. If a `security` map contains any recognized key, it selects hardening and **every** recognized field below must be explicitly boolean `true`; missing, partial, non-true, or `false` fields fail closed with `invalid_request`.
+Set `method`, `url`, `headers`, `body`, `timeout_ms`, and `follow_redirects` as needed. Use it for an outbound request when the request handler can wait for the response.
 
-- `https_only` rejects non-HTTPS URLs, IP-literal hosts, and URL userinfo.
-- `public_dns_only` validates **every** DNS answer against the public IPv4 policy. IPv6 answers currently fail closed.
-- `pin_dns` pins curl to one validated answer with `--resolve`, retaining the URL hostname for TLS/SNI.
-- `isolated_curl` uses absolute `/usr/bin/curl`, `--disable` as argv[1], cleared environment, no proxy/config/netrc/HSTS/Alt-Svc inheritance, no redirects, a three-second connect bound, and a ten-second total bound.
-- `no_redirects` makes redirect following and `follow_redirects=true` invalid composition.
+For hardened HTTPS requests, set every `security` field to `true`: `https_only`, `public_dns_only`, `pin_dns`, `isolated_curl`, and `no_redirects`. A partial or false hardened policy returns `invalid_request`.
 
-Hardened requests bound body input/output to 64 KiB and response headers to 8 KiB. Async hardened requests keep curl and its descendants in the job worker process group, so cancelling that job kills that group only. Methods are limited to `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`; header names/values are validated and caller-controlled `Host`, framing, connection, and expectation headers are rejected. Sensitive request bodies go to curl stdin, never argv. Errors are typed non-secret values such as `invalid_request`, `unsafe_dns`, `timeout`, `response_too_large`, `redirect_not_allowed`, `http_status`, and `network_failure`.
+The hardened policy rejects non-HTTPS URLs, IP hosts, URL userinfo, unsafe DNS results, and redirects. It limits request and response bodies to 64 KiB and response headers to 8 KiB.
 
-Returns `{ status, headers, body, error }`.
+The `error` value can report `invalid_request`, `unsafe_dns`, `timeout`, `response_too_large`, `redirect_not_allowed`, `http_status`, or `network_failure`. In C++ `.uce`, use `DValue` for the request and response.
 
 :see
 >socket

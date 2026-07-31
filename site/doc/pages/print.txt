@@ -2,15 +2,15 @@
 void print(...val)
 
 :params
-...val : one or more values that should be output
+...val : one or more values to output
 
 :see
 >string
 
 :content
-Appends data to the current request output stream.
+In Capy, `print()` writes each supplied value to the current request output.
 
-Use `print()` when you want to emit response content directly from BEARER code.
+When an output buffer is active, `print()` writes to that buffer. Otherwise, it writes to the response.
 
 
 :example capy render

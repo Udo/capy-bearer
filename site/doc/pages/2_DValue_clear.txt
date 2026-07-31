@@ -9,7 +9,9 @@ return value : none
 2_DValue_set_array
 
 :content
-Clears the value into an empty map-shaped value and resets its array index. Unlike `set_array()`, this does not set list mode.
+Use `dval_clear(value)` in Capy to replace a copied `dval` with an empty map. Pass the value and assign the returned value back. The result is map-shaped, not list-shaped. Use `dval_set_array()` when you need an empty list.
+
+C++ `clear()` empties this `DValue` and resets its array index. It does not set list mode.
 
 
 :example capy render

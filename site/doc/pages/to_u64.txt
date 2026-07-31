@@ -2,9 +2,9 @@
 u64 to_u64(String s, u64 fallback = 0)
 
 :params
-s : string to parse
-fallback : value returned when `s` is empty or not a complete unsigned integer
-return value : parsed u64, or `fallback`.
+s : text to parse
+fallback : value returned for empty or invalid integer text
+return value : parsed `u64`, or `fallback`
 
 :see
 >types
@@ -14,10 +14,11 @@ to_bool
 int_val
 
 :content
-Parses a trimmed string as a base-10 unsigned integer. An optional leading `+`
-is accepted. Negative and overflowing values return the fallback.
+In Capy, call `to_u64(raw[, fallback])` to convert text to a `u64` value.
 
-Unlike `int_val()`, the whole trimmed string must be consumed by the parser. Empty strings and partially parsed values such as `"42px"` return the fallback.
+Invalid text returns `fallback`. Use this function for nonnegative numeric input.
+
+C++ uses the legacy `s` parameter and default shown above. It accepts a leading `+`. Negative and overflowing text returns `fallback`. Unlike `int_val()`, C++ requires complete trimmed text. Empty or partial text such as `"42px"` returns `fallback`.
 
 :example capy render
 print(to_u64("7"), "\n")

@@ -9,10 +9,11 @@ request_query_path
 request_query_route
 
 :content
-Trims whitespace and removes leading/trailing `/` from a route path without deciding whether the path is safe.
+In Capy, use this function only to prepare route text for display or diagnostics.
 
+It removes outer whitespace and leading and trailing `/`. It does not validate the result.
 
-For route data that may be used to compose file paths, prefer `route_path_sanitize()` or runtime-populated `context.params["ROUTE_PATH"]`.
+Before you compose a file path, use `route_path_sanitize()` or `ROUTE_PATH`.
 
 :example capy render
 print(route_path_normalize("/docs/index/"), "\n")

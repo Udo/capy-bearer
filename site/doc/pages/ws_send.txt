@@ -11,9 +11,13 @@ return value : true if the message was queued for at least one connected client
 >websocket
 
 :content
-Queues a WebSocket message for every client connected to the given scope.
+In Capy, `ws_send(message, binary)` sends to the current WebSocket scope. `ws_send(message, binary, scope)` accepts an explicit scope.
 
-If `scope` is omitted, the current page scope is used.
+`message` is a `string`. Set `binary` to `true` for a binary message. The function returns `true` when it queues the message for at least one client.
+
+Use it to send one message to every client in a scope. A `false` return is the normal no-client result.
+
+C++ uses the optional `String` scope input in the signature above. Capy provides separate two-input and three-input declarations.
 
 :example capy render
 if ws_send("hello subscribers", false, "") { print("broadcast queued\n") } else { print("no active WS scope to broadcast to\n") }

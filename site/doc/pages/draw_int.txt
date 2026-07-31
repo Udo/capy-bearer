@@ -2,18 +2,21 @@
 u64 draw_int(u64 from, u64 to)
 
 :params
-from : minimum value
-to : maximum value
-return value : a noise value between 'from' and 'to'
+from : first range value
+to : second range value
+return value : `u64` noise value between `from` and `to`
 
 :see
 >noise
 
 :content
-Works like `generate_int()`, but uses `context.random_index` for the index value and `context.random_seed` for the seed.
+`draw_int()` returns a Capy `u64` noise value between two values.
 
-After each call, `context.random_index` is increased by one. At the start of every request, `context.random_seed` is automatically populated with a new seed value.
+Pass the range values. Bearer uses the request random seed and advances its random index after each call.
 
+Use it when one request needs repeatable integer noise values from its random sequence.
+
+The C++ `.uce` call has the same arguments.
 
 :example capy render
 if draw_int(1u64, 10u64) >= 1u64 { print("int\n") } else { print("bad\n") }

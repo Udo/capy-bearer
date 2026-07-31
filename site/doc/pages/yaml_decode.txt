@@ -3,7 +3,7 @@ DValue yaml_decode(String s)
 
 :params
 s : YAML source string
-return value : decoded DValue
+return value : decoded `dval`
 
 :see
 >markup
@@ -13,32 +13,13 @@ xml_decode
 0_DValue
 
 :content
-Parses a practical YAML subset into a `DValue`.
+In Capy, `yaml_decode(source)` accepts YAML source as a `string` and returns a `dval`.
 
-`yaml_decode()` is designed for concise BEARER config files. It supports a practical YAML subset and does not implement anchors, aliases, tags, directives, or complex inline collection syntax.
+Use it to read configuration data. The parser supports indentation-based maps and lists, quoted strings, booleans, comments, and block strings.
 
-Try the live example in the [YAML demo](../demo/yaml.uce).
+It does not support anchors, aliases, tags, directives, or complex inline collections. Numeric-looking values are strings. Convert them when you read them.
 
-Example:
-
-
-Supported syntax:
-
-- indentation-based maps
-- indentation-based lists
-- `key: value` map entries
-- list entries with `- value`
-- quoted strings with single or double quotes
-- booleans `true` and `false`
-- empty/null-ish values as empty strings
-- comments beginning with `#` outside quoted strings
-- literal block strings with `|`
-- folded block strings with `>`
-- optional `---` and `...` document markers
-
-Numeric-looking values are stored as strings, matching `json_decode()`'s current behavior. Use `to_s64()`, `to_u64()`, or `to_f64()` when reading numeric config values.
-
-Malformed input raises a request-visible `yaml_decode(): ...` runtime error.
+Malformed input raises a request-visible runtime error. C++ returns the same data as `DValue` through the signature above.
 
 :example capy render
 var value := yaml_decode("name: Ada\n")

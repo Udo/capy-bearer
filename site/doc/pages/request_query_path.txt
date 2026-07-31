@@ -10,14 +10,13 @@ route_path_is_safe
 parse_query
 
 :content
-Returns the first keyless query-string segment as a sanitized route path.
+In Capy, this function reads the current request. Do not pass a `Request` value.
 
-For a request such as `/?workspace/projects&theme=dark`, this returns `workspace/projects`.
+It returns the first keyless query-string segment as a safe route path. For `/?workspace/projects&theme=dark`, it returns `workspace/projects`.
 
-When no keyless route is supplied, the result is `default_path`. When unsafe route input is supplied, the result is an empty string. Unsafe route input includes `.` or `..` segments, empty interior segments, backslashes, dots in filenames, or any character outside ASCII letters, digits, `_`, and `-`.
+If no keyless route exists, it returns `default_path`. If the route is unsafe, it returns an empty string. Unsafe input includes dot segments, empty interior segments, backslashes, filename dots, and characters outside ASCII letters, digits, `_`, and `-`.
 
-
-The runtime-populated `context.params["ROUTE_PATH"]` uses the same sanitizer.
+`ROUTE_PATH` uses the same sanitizer.
 
 :example capy render
 if request_query_path("index") != "" { print("path\n") } else { print("empty\n") }

@@ -2,12 +2,12 @@
 bool file_truncate(String path, u64 size)
 
 :params
-path : file to resize
+path : path of the file to resize
 size : new length in bytes
-return value : true on success
+return value : true when Capy resizes the file, otherwise false
 
 :content
-Truncates (or extends) a file to exactly `size` bytes. Shrinking discards trailing bytes; growing pads with zero bytes.
+`file_truncate` sets a file length to `size` bytes. Use it to remove trailing content or extend a file. A smaller size discards trailing bytes. It returns false when Capy cannot resize the file.
 
 :example capy render
 file_put_contents("/tmp/doc-truncate.txt", "hello world")

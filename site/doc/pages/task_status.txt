@@ -2,8 +2,8 @@
 DValue task_status(String id)
 
 :params
-id : opaque ID returned by `task()`
-return value : bounded task status map
+id : opaque ID returned by `task`
+return value : current task status map
 
 :see
 >task
@@ -12,7 +12,11 @@ task_await
 task_cancel
 
 :content
-Returns the current durable status for a task. States are `queued`, `running`, `succeeded`, `failed`, `canceled`, and `missing`. The map contains bounded machine-readable fields such as `id`, `state`, `attempt`, and `failure_code`; it never exposes a worker PID.
+Use `task_status` to read the current status of a Capy task. Pass the task ID. The function returns a `dval` status map.
+
+The `state` value is `queued`, `running`, `succeeded`, `failed`, `canceled`, or `missing`. The map can include `id`, `state`, `attempt`, and `failure_code`.
+
+Capy task IDs are `string` values. C++ `.uce` uses `String` and `DValue`, as the signature shows.
 
 :example capy render
 var id := task("/doc/examples/task_worker.capy:STORE", dval({"message": "status"}))

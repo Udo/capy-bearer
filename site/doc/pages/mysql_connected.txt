@@ -2,14 +2,16 @@
 bool mysql_connected(MySQL* m)
 
 :params
-m : pointer returned by mysql_connect()
-return value : true only when the wrapper owns a live server connection
+m : Capy MySQL handle
+return value : `true` when the handle has a live server connection
 
 :see
 >mysql
 
 :content
-Tests whether a MySQL wrapper has a usable server connection. `mysql_connect()` retains a failed wrapper so that callers can retrieve its diagnostic through `mysql_error()`; this helper distinguishes that state from a live handle without consuming the diagnostic.
+In Capy, pass the opaque `u64` handle from `mysql_connect()`.
+
+This function distinguishes a failed connection wrapper from a live server connection. It returns `false` for a failed wrapper in both Capy and C++.
 
 :example capy render
 var db := mysql_connect("localhost", "root", "", "")

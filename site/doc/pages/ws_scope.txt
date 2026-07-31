@@ -8,11 +8,11 @@ return value : scope identifier of the current WebSocket endpoint
 >websocket
 
 :content
-Returns the runtime's scope identifier for the current WebSocket endpoint.
+In Capy, `ws_scope()` takes no inputs and returns the current WebSocket scope as a `string`.
 
-This is the same default scope used by `ws_send()`, `ws_connections()`, and `ws_connection_count()` when no explicit scope is supplied.
+Use this value with `ws_send()`, `ws_connections()`, or `ws_connection_count()` when you need an explicit scope. Outside a WebSocket handler, it returns an empty string.
 
-In the current runtime implementation this scope is the page's internal endpoint identifier, typically the absolute `SCRIPT_FILENAME` of the `.uce` file that accepted the WebSocket upgrade.
+The empty string is the normal no-scope result. C++ returns the same value as `String`.
 
 :example capy render
 var scope := ws_scope()

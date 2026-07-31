@@ -11,7 +11,13 @@ return value : converted value or the fallback
 2_DValue_get_by_path
 
 :content
-Returns the stored string, converts f64/bool/pointer values to text, and returns the default for empty strings, maps, unresolved references, or unknown types. Bool text is `(true)` or `(false)`.
+`dval_to_string(value, fallback)` takes a `dval` and an optional string fallback. It returns stored text or converted f64 and boolean text. Boolean text is `(true)` or `(false)`.
+
+An empty string, a map, or an unsupported value returns the fallback. Use it for normal Capy reads.
+
+## C++ API
+
+`DValue::to_string()` also converts pointers. It returns the fallback for an unresolved reference or an unknown type.
 
 :example capy render
 var value := dval(true)

@@ -11,13 +11,15 @@ Documentation format
 
 
 :content
-API pages live in `site/doc/pages/`; ordered Capy language-guide articles live in `site/doc/capy/`. Both use one parser, renderer, detail layout, search, single-page view, and runtime gate. Language articles require `:title` and `:content`; API pages additionally follow the manifest-driven paired-example rules below.
+Write the Capy API first. State its name and value model. State its inputs, return value, errors, and normal use. Then describe the matching C++ `.uce` API. If Capy does not support a C++ feature, state that limitation. Do not invent a Capy signature.
 
-Each applicable API page shows separate Capy and C++ `.uce` declarations. `capyc` extracts Capy declarations from `src/capy/stdlib.capy`; compiler primitives and handlers use a small checked catalog. The page's `:sig` section supplies the existing C++ `.uce` declaration. Unsupported and C++-specific pages show their status instead of a fabricated Capy signature.
+`capyc` reads Capy declarations from `src/capy/stdlib.capy`. Compiler primitives and handlers use a checked catalog. The page's `:sig` section contains the existing C++ `.uce` declaration. Unsupported and C++-specific pages show their status.
 
-Doc pages use one structured text format shared by the index, detail view, single-page view, search, and tests. A typed example is exactly two contiguous blocks: `:example capy ENTRY`, then `:example cpp ENTRY`, where ENTRY is one of `render`, `cli`, `component`, `init`, `once`, or `ws`; the entries must match. Unknown, reversed, or unpaired typed blocks are rejected. During the migration, bare `:example` remains a legacy C++ render block and is visible to the checker, but new examples must use typed pairs.
+API pages live in `site/doc/pages/`. Ordered Capy language articles live in `site/doc/capy/`. Both use one parser, renderer, detail layout, search, single-page view, and runtime gate. Language articles require `:title` and `:content`.
 
-Render pairs compile and execute through their actual Capy and C++ units, must produce exactly equal output, and show each language's source and output or error. Other entries compile their real handler but are explicitly compile-only: documentation never fakes a CLI, component, lifecycle, or WebSocket invocation. Keep examples self-contained and deterministic.
+A typed example has two contiguous blocks. Put `:example capy ENTRY` before `:example cpp ENTRY`. ENTRY is `render`, `cli`, `component`, `init`, `once`, or `ws`, and both entries must match. The checker rejects unknown, reversed, and unpaired typed blocks. Bare `:example` is a legacy C++ render block. New examples must use typed pairs.
+
+Render pairs compile and run as Capy and C++ units. They must produce equal output and show their source and output or error. Other entries compile their actual handler only. Documentation does not simulate a CLI, component, lifecycle, or WebSocket call. Keep examples self-contained and deterministic.
 
 :example capy render
 print("A doc page normally contains :sig, :params, :content, :example, and :see.\n")

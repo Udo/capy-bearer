@@ -3,23 +3,20 @@ String substr(String s, s64 start_pos)
 String substr(String s, s64 start_pos, s64 length)
 
 :params
-s : source string
-start_pos : zero-based start position; negative values count from the end of the string
-length : optional substring length; negative values trim bytes from the end of the result range
-return value : extracted substring, or an empty string if the requested range is outside the source string
+s : Capy source string
+start_pos : zero-based start position. Negative values count from the end.
+length : optional result length. Negative values remove bytes from the end of the range.
+return value : extracted string, or an empty string when the range is outside the source string
 
 :see
 >string
 
 :content
-Extracts part of a string using PHP-style start and length semantics.
+Use `substr` to get part of a Capy string. Pass the source string and a start position. Add a length to limit the result. The two-input form returns text from the start position to the end.
 
-Use the two-argument form to return everything from `start_pos` to the end of the string.
+A negative start position counts from the end. A negative length stops the result that many bytes before the end.
 
-If `start_pos` is negative, counting starts from the end of the string.
-
-If `length` is negative, the returned range stops that many bytes before the end of the string.
-
+Capy accepts `s32` or `s64` positions and lengths. C++ `.uce` uses `String` and `s64`, as the signatures show.
 
 :example capy render
 print(substr("documentation", 0, 3), "\n")

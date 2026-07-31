@@ -7,8 +7,9 @@ request_script_url
 request_query_route
 
 :content
-Returns the canonical directory base URL for the current script. This is useful for front-controller apps that generate links to sibling assets or query-routed pages.
+In Capy, this function reads the current request. Do not pass a `Request` value.
 
+It returns the canonical directory URL for the current script. Use it to create links to sibling assets or query-routed pages.
 
 :example capy render
 if request_base_url() != "" { print("base url\n") } else { print("empty\n") }

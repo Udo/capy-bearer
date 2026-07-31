@@ -2,8 +2,8 @@
 URI parse_uri(String uri_string)
 
 :params
-uri_string : URI or URL string
-return value : URI object with `parts` and `query` maps
+uri_string : the URI or URL text
+return value : URI data as a `dval`. C++ returns a `URI` value
 
 :see
 >uri
@@ -12,16 +12,13 @@ uri_decode
 uri_encode
 
 :content
-Parses a URI into its component maps.
+In Capy, `parse_uri()` returns URI parts as a `dval`.
 
-`return.parts` contains the parsed URI fields. `return.query` contains query parameters decoded with the same rules as `parse_query()`.
+Read the `parts` and `query` maps from the result. `query` uses the same rules as `parse_query()`.
 
-For absolute URLs, `parts` exposes `scheme`, `host`, optional `port`, `path`, raw `query`, and `fragment`. The normalized `path` does not include its leading slash.
+For an absolute URL, `parts` can contain `scheme`, `host`, `port`, `path`, `query`, and `fragment`. `path` does not start with `/`.
 
-Example:
-
-
-Use `parse_uri()` when you need to inspect a full URL. Use `parse_query()` when you only have the query string.
+Use `parse_uri()` for a complete URL. Use `parse_query()` for query text only.
 
 :example capy render
 var uri := parse_uri("https://example.test/docs?name=Ada")

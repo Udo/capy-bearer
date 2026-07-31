@@ -13,12 +13,13 @@ zip_list
 zip_extract
 
 :content
-Reads one file member from a ZIP archive and returns its uncompressed bytes as a `String`.
+In Capy, `zip_read(path, entry)` accepts an archive path and member name. It returns the uncompressed member bytes as a `string`.
 
+Use `zip_list()` to discover member names before you read them. Member names cannot be empty, absolute, drive-qualified, or contain `..` path segments.
 
-`entry_name` is normalized to forward slashes and rejected when it is empty, absolute, drive-qualified, or contains a `..` path segment.
+The call rejects invalid member names. The declaration has no separate error return.
 
-Use `zip_list()` when you need to discover entry names before reading them.
+C++ returns the same data as `String` through the signature above.
 
 :example capy render
 var archive := "/tmp/capy-doc-zipread.zip"

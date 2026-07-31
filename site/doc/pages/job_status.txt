@@ -5,7 +5,11 @@ job_status
 DValue job_status(u64 job_id)
 
 :content
-Returns the file-backed async job state, e.g. `{ state, done, kind, pid, job_id }`. States include `pending`, `running`, `done`, `failed`, `cancelled`, and `missing`.
+`job_status()` returns a `dval` status map for a job. The map can include `state`, `done`, `kind`, `pid`, and `job_id`.
+
+`state` can be `pending`, `running`, `done`, `failed`, `cancelled`, or `missing`. Use it to poll without waiting for a result.
+
+In Capy, pass the job ID as `dval`. In C++ `.uce`, pass the `u64` job ID shown above.
 
 :see
 >sys

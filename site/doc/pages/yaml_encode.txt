@@ -13,25 +13,13 @@ xml_encode
 0_DValue
 
 :content
-Serializes a `DValue` into a compact YAML string for configuration files.
+In Capy, `yaml_encode(value)` accepts a `dval` and returns YAML as a `string`.
 
-`yaml_encode()` focuses on the ordinary data shapes BEARER apps use for config: nested maps, lists, strings, booleans, and numeric `f64` values. It does not emit YAML tags, anchors, aliases, or custom schema features.
+Use it to write configuration data. It writes nested maps, lists, strings, booleans, and numeric `f64` values.
 
-Try the live example in the [YAML demo](../demo/yaml.uce).
+It does not write YAML tags, anchors, aliases, or custom schema features. The declaration has no error return.
 
-Example:
-
-
-Typical result:
-
-
-Notes:
-
-- Map keys are emitted in `DValue` map iteration order.
-- Strings are left plain when safe and quoted when needed.
-- Multiline strings are emitted as literal block scalars with `|`.
-- Empty strings are emitted as `""` so they are not confused with YAML null.
-- Decoded numeric-looking config values are strings unless the original `DValue` value was explicitly numeric.
+C++ uses `DValue` and `String` values through the signature above.
 
 :example capy render
 var value := dval({"name": "Ada"})

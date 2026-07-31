@@ -11,8 +11,13 @@ return value : none
 2_DValue_set_array
 
 :content
-Appends a child under the next numeric key. Empty values become list-shaped. Existing contiguous lists continue at their size; non-list maps use the next unused numeric key and remain non-list.
+`dval_push(value, child)` takes two `dval` values and returns a replacement with `child` at the next numeric key. Assign the returned value to retain the update.
 
+An empty value becomes a list. A contiguous list adds the child after its last item. A non-list map uses its next unused numeric key and remains a map.
+
+## C++ API
+
+`DValue::push()` changes the object in place.
 
 :example capy render
 var list := dval_push(dval_push(dval([]), dval("x")), dval("y"))

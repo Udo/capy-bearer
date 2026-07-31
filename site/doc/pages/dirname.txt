@@ -2,11 +2,15 @@
 String dirname(String fn)
 
 :params
-fn : a path
-return value : the directory portion of the path
+fn : path to inspect
+return value : directory part of the path
 
 :content
-Returns everything in a path except the final component — i.e. the containing directory.
+`dirname()` returns the directory part of a Capy path string.
+
+Pass a path with a final component. The returned string omits that final component. Use it to get a containing directory.
+
+The C++ `.uce` call has the same arguments.
 
 :example capy render
 print(dirname("/var/www/site/index.uce"), "\n")

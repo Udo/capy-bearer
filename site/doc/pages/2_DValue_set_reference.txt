@@ -10,12 +10,16 @@ return value : none
 2_DValue_reference_target
 
 :content
-Stores an internal reference to another `DValue`. Most unit code should not need to create references directly; normal reads and writes generally follow existing references automatically.
+Capy does not support `set_reference`. Capy `dval` values are copies and cannot hold a C++ `DValue*` target.
+
+## C++ API
+
+`DValue::set_reference()` stores an internal reference to another `DValue`. Normal C++ reads and writes usually follow an existing reference.
 
 
 :capy-status unsupported
 
-Capy uses copied values and exposes no reference-parameter ABI, so it cannot create a DValue reference.
+Capy passes values by copy and cannot create a DValue reference.
 
 :example cpp render
 DValue target;

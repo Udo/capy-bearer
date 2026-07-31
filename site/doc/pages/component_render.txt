@@ -9,22 +9,15 @@ component_resolve
 1_COMPONENT
 
 :content
-Renders another `.uce` file as a component and writes the result directly to the current output buffer.
+`component_render()` runs a Capy component and writes its output to the current response.
 
-This is the direct-output counterpart to `component()`.
+Pass a component name and optional `dval` props. The component receives props through the request context. Use this function when you do not need the component output as a string.
 
-Component props are passed through `context.props`, and `name:COMPONENTFUNC` may be used to select a named handler exported by `COMPONENT:COMPONENTFUNC(Request& context)`.
+Bearer accepts the same names as `component()`. A colon selects a named handler. A name that starts with a colon selects a handler in the current file.
 
-When `name` starts with `:`, the runtime resolves that named handler against the current `.uce` file.
+A missing component or handler causes a server error with status 500. Call `component_exists()` first when the component is optional.
 
-Calling a missing component or named component handler is a server error and sets HTTP status 500. Probe intentionally optional components with `component_exists()` before calling `component_render()`.
-
-If the target file defines `ONCE(Request& context)`, that hook runs once per request before the file's first component or render entrypoint.
-
-Use `component_render()` when you want to write component output directly from C++ code instead of capturing it as a `String`.
-
-## Example
-
+`component()` captures output in a string. In C++ `.uce`, pass `context` as the optional final argument when needed.
 
 :example capy render
 component_render("examples/sample_unit")

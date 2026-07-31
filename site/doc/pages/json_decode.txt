@@ -2,8 +2,8 @@
 DValue json_decode(String s)
 
 :params
-s : string containing JSON data
-return value : a DValue object containing the deserialized JSON data
+s : text that contains JSON data
+return value : decoded `dval` data
 
 :see
 0_DValue
@@ -13,20 +13,11 @@ json_encode
 2_DValue_to_u64
 
 :content
-Deserializes `s` into a `DValue` structure.
+In Capy, this function decodes JSON text into `dval` data.
 
-The returned structure is usually consumed through `DValue` accessors such as:
+JSON objects become map-shaped values. JSON arrays become list-shaped values. JSON booleans become `bool` values. JSON strings become `string` values. JSON numbers become string values, so use a typed conversion to read them.
 
-- `tree["key"].to_string()`
-- `tree["count"].to_u64()`
-- `tree["enabled"].to_bool()`
-
-Current runtime behavior:
-
-- JSON objects and arrays become map-shaped `DValue` values.
-- JSON booleans become native `bool` `DValue` values.
-- JSON strings become native `String` `DValue` values.
-- JSON numbers currently deserialize as string-valued `DValue` nodes, so typed conversions such as `to_f64()` and `to_u64()` are the normal way to read numeric content.
+JSON `null` becomes an empty string value. Malformed JSON returns empty or partial data without an error. Use `dval` accessors to read the result.
 
 :example capy render
 var data := json_decode("{\"name\": \"Ada\", \"tags\": [\"x\", \"y\"]}")

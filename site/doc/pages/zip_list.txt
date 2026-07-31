@@ -3,7 +3,7 @@ DValue zip_list(String zip_file_name)
 
 :params
 zip_file_name : path to the ZIP archive to inspect
-return value : DValue containing archive metadata and an `entries` array
+return value : `dval` containing archive metadata and an `entries` list
 
 :see
 >sys
@@ -13,24 +13,13 @@ zip_extract
 DValue
 
 :content
-Reads the central directory from `zip_file_name` and returns structured metadata.
+In Capy, `zip_list(path)` accepts an archive path and returns metadata as a `dval`.
 
-The returned tree contains:
+The result contains `file`, `count`, and an `entries` list. Each entry contains `name`, `index`, `size`, `compressed_size`, `is_directory`, and `method`.
 
-- `file` : archive path
-- `count` : number of entries
-- `entries` : list of entry metadata
+Use it to inspect an archive or discover member names before `zip_read()`. The declaration has no error return.
 
-Each entry contains:
-
-- `name`
-- `index`
-- `size`
-- `compressed_size`
-- `is_directory`
-- `method`
-
-Example:
+C++ returns the same data as `DValue` through the signature above.
 
 
 :example capy render

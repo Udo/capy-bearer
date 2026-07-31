@@ -10,104 +10,48 @@ DValue
 json_decode
 
 :content
-`DValue` is BEARER's general-purpose structured value type. It is the runtime's default container for nested data such as configuration trees, call payloads, decoded JSON, connection state, and metadata returned by runtime helpers.
+`dval` is Capy's structured value type. Use `dval(...)` to create a value from a scalar, a map, or a list.
 
-## Value Kinds
+A `dval` owns its data. Values that cross the Bearer boundary are copies. Capy has no DValue pointer, reference, or alias identity.
 
-`DValue` can hold:
+## Normal Use
 
-- `String`
-- `f64`
-- `bool`
-- pointer values
-- nested child `DValue` values in a map-shaped container
+Use a map-shaped `dval` for named fields. Use a list-shaped `dval` for ordered values.
 
-Map-shaped `DValue` values can also represent list-like data when their keys are numeric strings in sequence.
+- `dval({"name": "Ada"})` creates named fields.
+- `dval(["Ada", "Lin"])` creates an ordered list.
+- `value["name"]` reads a named child.
+- `value[0]` reads a list child.
+- The `dval_to_*` functions convert scalar values and accept optional fallbacks.
+- `dval_has(value, key)` tests for a child.
+- `dval_get_by_path(value, "a/b/c")` reads a nested child.
+- `dval_to_json(value)` returns JSON text.
 
-## Where It Appears
+`dval_get_by_path` does not create missing path entries. Conversion functions return the fallback when conversion cannot produce the requested value.
 
-You will encounter `DValue` throughout the runtime, especially in:
+## Updates
 
-- `context.cfg`
-- `context.props`
-- `context.connection`
-- `json_decode()` results
-- `unit_call()` return values
-- `unit_info()`
+Capy update functions return a replacement value. Assign the result back to retain the update.
 
-## Reading Values
+- `value = dval_put(value, key, child)` sets a named child.
+- `value = dval_push(value, child)` adds a list child.
+- `value = dval_pop(value)` removes the final list child.
+- `value = dval_remove(value, key)` removes a named child.
+- `value = dval_clear(value)` removes all children.
+- `value = dval_set_array(value)` makes a list-shaped value.
+- `value = dval_assign(value, source)` replaces the value.
 
-- `["key"]` accesses or creates a child node.
-- `.has("key")` checks whether a child exists without creating it.
-- `.key("key")` returns a child pointer when it already exists.
-- `.get_or_create("key")` returns a child pointer and creates it when missing.
-- `.get_by_path("a/b/c")` traverses nested children without creating missing keys.
-- `.to_string(default)` reads scalar content as text.
-- `.to_s64(default)`, `.to_u64(default)`, and `.to_f64(default)` perform best-effort numeric conversion.
-- `.to_bool(default)` performs best-effort boolean conversion.
-- `.to_stringmap()` converts a map-shaped tree into `StringMap`.
+Use `dval_map` and `dval_filter` when callbacks need each child as a `dval`. Use `map`, `filter`, `keys`, `unique`, `sort`, `some`, `every`, and `string_list_find` for list-shaped string values.
 
-All read accessors are `const` and never modify the tree; they work directly on `const DValue&` values such as `each()` callback parameters. Every `to_*` conversion takes an optional default that is returned when the value is missing or cannot be converted — see the individual pages (`2_DValue_to_string`, `2_DValue_to_s64`, `2_DValue_to_u64`, `2_DValue_to_f64`, `2_DValue_to_bool`) for the exact rules:
+## Capy Limit
 
+Capy does not support the C++ DValue reference APIs. It cannot preserve pointer identity, aliases, or references across a Bearer boundary.
 
-`operator[]` creates missing entries, just like `std::map`. `.has()` and `.key()` are the non-mutating lookup helpers, and `.get_by_path()` is the non-creating traversal helper.
+## C++ API
 
-`json_decode()` currently stores JSON numbers as string-valued `DValue` nodes, so typed numeric conversion is the normal way to consume those values.
+C++ uses the `DValue` class. It supports method calls such as `set`, `push`, `get_by_path`, and `to_string`.
 
-References are dereferenced automatically in most normal reads.
-
-## Conversion Rules
-
-- Scalar-looking strings are trimmed before numeric and boolean parsing.
-- `.to_bool()` understands common textual forms such as `true`, `false`, `yes`, `no`, `1`, and `0`.
-- `bool` values convert numerically to `1` and `0`.
-- Pointer values convert numerically when read as numbers.
-- Single-value maps can act as scalar wrappers for numeric and boolean conversion.
-- Missing values and invalid numeric input fall back to the accessor's `default_value` argument (`0`, `""`, or `false` when not given).
-- `.to_stringmap()` converts map children key-by-key using each child's `to_string()`.
-
-## Writing Values
-
-Common mutating helpers include:
-
-- `.set(String)`
-- `.set(f64)`
-- `.set_bool(bool)`
-- `.set(StringMap)`
-- `.set_array()`
-- `.push(...)`
-- `.pop()`
-- `.remove(key)`
-- `.clear()`
-
-Use `.set_array()` when you want list-style behavior with `push()` and `pop()`. List-shaped DValues are also the unified ordered-string container: `split*()`, `regex_split()`, `ls()`, `units_list()`, and `ws_connections()` return them; `join()`, `filter()`, `map()`, `keys()`, `each()`, `unique()`, `sort()`, `some()`, `every()`, and `find()` consume their string children. `StringList` remains only as a source-compatible alias.
-
-## Inspection Helpers
-
-Useful inspection helpers include:
-
-- `.has(key)`
-- `.key(key)`
-- `.get_or_create(key)`
-- `.get_type_name()`
-- `.is_array()`
-- `.is_list()`
-- `.to_json()`
-
-## each()
-
-`each(std::function<void (const DValue& t, String key)> f)` iterates over the current tree value (see `2_DValue_each` for details).
-
-For map-shaped `DValue` values, the callback runs once per child entry and receives:
-
-- `t` as the child value, by const reference (no copy)
-- `key` as the child key
-
-For non-map values, `each()` still invokes the callback once:
-
-- `t` is the current value
-- `key` is an empty string
-
+C++ `operator[]` can create a missing child. Use `has`, `key`, or `get_by_path` when you must not create a child.
 
 ## Examples
 

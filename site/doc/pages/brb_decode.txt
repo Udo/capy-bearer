@@ -8,9 +8,11 @@ brb_encode
 json_decode
 
 :content
-Decodes BRRB1 bytes produced by `brb_encode()` back into a `DValue`.
+Capy's `brb_decode(encoded)` returns the decoded `dval` value. Pass BRRB1 bytes from `brb_encode()`.
 
-The one-argument form returns an empty `DValue` on invalid input. The three-argument form reports whether decoding succeeded and can return a human-readable error string.
+Invalid input returns an empty `dval`. Capy has no error-output form. Use the returned value with Capy's value semantics. It does not modify another value.
+
+The C++ one-argument `DValue` form has the same result. Its three-argument form also returns a success flag and an error string.
 
 
 :example capy render

@@ -2,13 +2,15 @@
 f64 time_precise()
 
 :params
-return value : current Unix timestamp
+return value : current Unix timestamp as an `f64`
 
 :see
 >time
 
 :content
-Returns the current Unix timestamp as a 64-bit float with millisecond accuracy or better.
+In Capy, call `time_precise()` to get the current Unix timestamp as an `f64`.
+
+Use this value to measure elapsed time within an operation. C++ uses the same no-input call and return value.
 
 
 :example capy render

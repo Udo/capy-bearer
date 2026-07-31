@@ -2,15 +2,19 @@
 bool csrf_valid(String submitted_token, String session_name = "bearer-session", String token_name = "csrf_token")
 
 :params
-submitted_token : value received from the request, usually `context.post["csrf_token"]`
-session_name : session/cookie name used by `csrf_token()`
-token_name : form/action token namespace used by `csrf_token()`
+submitted_token : value from the request, usually `context.post["csrf_token"]`
+session_name : session and cookie name
+token_name : token namespace
 return value : `true` when the submitted token matches the session token
 
 :content
-Starts the named session if needed and checks `submitted_token` against the stored CSRF token using constant-time comparison. It does not create a token when none exists, so a request without a previously rendered form token fails closed.
+`csrf_valid()` checks a submitted Capy CSRF token against the session token.
 
-Use this before mutating state from POST forms or other browser-submitted requests.
+Pass the submitted value, session name, and token namespace. It returns `true` only for the active matching token. It starts the named session when necessary.
+
+It does not create a missing token. Use it before you apply a change from a browser-submitted request.
+
+The C++ `.uce` call has the same arguments.
 
 :example capy render
 var token := csrf_token("bearer-doc-session")

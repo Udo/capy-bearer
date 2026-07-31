@@ -2,17 +2,17 @@
 String gen_sha1(String s, bool as_binary = false)
 
 :params
-s : data to be hashed
-as_binary : when set to false, returns hash in hexadecimal notation (defaults to false)
-return value : the resulting hash value
+s : string bytes to hash
+as_binary : `false` for hexadecimal text, `true` for raw bytes
+return value : SHA-1 digest string
 
 :see
 >noise
 
 :content
-Returns the SHA-1 hash of `s`.
+`gen_sha1()` returns the SHA-1 digest of string bytes. It returns hexadecimal text by default, or raw digest bytes when `as_binary` is `true`.
 
-When `as_binary` is `false`, the hash is returned as hexadecimal text. When it is `true`, the raw binary hash bytes are returned.
+Use it only where SHA-1 compatibility is required. Use a current hash for new security-sensitive designs.
 
 
 :example capy render

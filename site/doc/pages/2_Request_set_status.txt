@@ -13,7 +13,13 @@ redirect
 set_cookie
 
 :content
-Sets the request status line and mirrors the numeric status into `context.flags.status`. When `reason` is omitted, common HTTP status codes get their standard phrase. FastCGI-style requests use a `Status:` prefix; other requests use `HTTP/1.1`.
+`response_status(code, reason)` sets the active response status. It takes an HTTP status code and an optional reason string. It returns no value.
+
+If you omit `reason`, common HTTP codes use their standard reason phrase. Use this function before response output. Capy does not expose `context.flags.status`.
+
+## C++ API
+
+`Request::set_status()` also stores the numeric code in `context.flags.status`. FastCGI requests use a `Status:` prefix. Other requests use `HTTP/1.1`.
 
 :example capy render
 response_status(200, "OK")

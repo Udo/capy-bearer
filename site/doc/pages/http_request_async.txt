@@ -5,7 +5,13 @@ http_request_async
 u64 http_request_async(DValue req)
 
 :content
-Starts the same request shape as `http_request()`, including its opt-in `security` hardening fields, in the file-backed async job registry and returns a job id. An unknown `security` object remains legacy; any recognized hardening key requires all five keys to be explicit `true` or the request fails closed. Hardened curl remains in this job's worker process group, so `job_cancel()` kills curl and its descendants without signalling other jobs. Use `job_await()` or `job_result()` to retrieve the HTTP result.
+`http_request_async()` starts an outbound request from a `dval` request map. It returns a `u64` job ID.
+
+Use `job_await()` or `job_result()` to get the response map from `http_request()`. Use it when the handler must continue before the request finishes.
+
+The `security` map follows `http_request()` rules. Any recognized hardening field requires all five fields to be `true`, or the job reports `invalid_request`.
+
+`job_cancel()` cancels a hardened request and its child processes. In C++ `.uce`, pass `DValue` and use the returned job ID.
 
 :see
 >socket

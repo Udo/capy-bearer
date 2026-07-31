@@ -2,11 +2,17 @@
 DValue dir_list(String path)
 
 :params
-path : directory to list
-return value : a list of entry maps, each with name, type, size, mtime
+path : directory path to list
+return value : `dval` list of entry maps with `name`, `type`, `size`, and `mtime`
 
 :content
-Lists a directory's entries as a `DValue` list. Each entry is a map with `name`, `type` ("file", "dir", "symlink", or "other"), `size`, and `mtime`. Iterate with `.each()` and read fields with `item.key("name")->to_string()`.
+`dir_list()` returns entries from a directory as a Capy `dval` list.
+
+Pass a directory path. Each returned entry is a map with `name`, `type`, `size`, and `mtime`. The `type` value is `file`, `dir`, `symlink`, or `other`.
+
+Use this function when Capy must inspect directory entries. Read map fields with DValue access functions.
+
+The C++ `.uce` call returns the same DValue data.
 
 :example capy render
 var root := file_temp("/tmp/capy-doc-dirlist-")

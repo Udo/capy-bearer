@@ -15,34 +15,13 @@ json_encode
 html_escape
 
 :content
-Serializes a `DValue` into a simple XML string.
+In Capy, `xml_encode(value)` accepts a `dval` and returns XML as a `string`. `xml_encode(value, root_name)` uses the supplied root name.
 
-`xml_encode()` does not validate against a schema, DTD, or namespace rules. It is a structural converter for application data, similar in spirit to `json_encode()`.
+Use it to write application data as simple XML. It escapes text and attribute values. List values use repeated `item` elements.
 
-Try the live example in the [XML demo](../demo/xml.uce).
+The function does not validate schema, DTD, or namespace rules. The declaration has no error return.
 
-The native element shape is:
-
-
-Example:
-
-
-The result is:
-
-
-For simple map/list/scalar trees, `xml_encode()` creates ordinary child elements:
-
-
-Result:
-
-
-Notes:
-
-- Element and attribute names are normalized to XML-name-safe strings when needed.
-- Text and attribute values are escaped.
-- List values use repeated `<item>` children.
-- Empty elements serialize as self-closing tags.
-- Map child order follows `DValue` map iteration order.
+C++ uses `DValue` and `String` values through the signatures above.
 
 :example capy render
 var value := dval({"name": "Ada"})

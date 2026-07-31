@@ -2,12 +2,14 @@
 String hmac_sha256_hex(String key, String data)
 
 :params
-key : secret key
-data : message to authenticate
-return value : the HMAC-SHA256 as a 64-character lowercase hex string
+key : secret string bytes
+data : message string bytes
+return value : 64-character lowercase hexadecimal HMAC-SHA256 string
 
 :content
-Computes an HMAC-SHA256 message authentication code and returns it as hex. Use it to sign tokens, cookies, and webhook payloads, then verify with `crypto_equal()` to avoid timing leaks.
+`hmac_sha256_hex()` returns the HMAC-SHA256 for `key` and `data` as lowercase hexadecimal text.
+
+Use it when you need a printable signature. Compare received signatures with `crypto_equal()`.
 
 :example capy render
 print(hmac_sha256_hex("key", "The quick brown fox jumps over the lazy dog"), "\n")

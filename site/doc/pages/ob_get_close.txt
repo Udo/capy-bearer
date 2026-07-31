@@ -2,10 +2,12 @@
 String ob_get_close()
 
 :params
-return value : the current buffer's contents
+return value : the current output buffer contents
 
 :content
-Returns the current output buffer's contents and discards the buffer, switching back to the previous one on the stack. This is the usual way to capture rendered output for post-processing.
+In Capy, `ob_get_close()` returns the current output buffer as a `string` and closes it. Output returns to the previous buffer.
+
+Use this to capture output before you change or print it.
 
 :example capy render
 ob_start()

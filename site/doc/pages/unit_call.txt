@@ -2,10 +2,10 @@
 DValue* unit_call(String file_name, String function_name, DValue* call_param = null)
 
 :params
-file_name : BEARER file to load and execute
-function_name : name of the function to invoke
-call_param : optional, call parameter
-return value : DValue* returned from function
+file_name : unit path
+function_name : exported function name
+call_param : optional function input
+return value : the function result
 
 :see
 >ob
@@ -16,32 +16,15 @@ unit_info
 1_COMPONENT
 
 :content
-Calls an exported function inside another BEARER file.
+In Capy, call `unit_call(file_name, function_name[, props])` to call an exported unit function.
 
-Use `unit_call()` when you need structured data exchange between units rather than rendered HTML output. In Capy, prefer `unit_load(path).call(name[, input])` when several calls share one request-local pinned target; both paths retain the legacy handler aliases below.
+The input and result are `dval` values. The two-input form supplies an empty `dval` value. Use `unit_call()` for one direct call that returns data.
 
-The callee must expose an `EXPORT` function whose name matches `function_name`. Arguments are passed through `call_param`, and the return value is a `DValue*` owned by the callee.
+For repeated calls, `unit_load(path).call(name[, input])` gives a module value. A Capy unit declares callable functions with `EXPORTS`. For example, `EXPORTS echo` exposes `echo(input : dval) dval`.
 
-`unit_call()` also understands the request-bound BEARER entrypoint names:
+A missing unit or export is an error. `unit_call()` also accepts `RENDER`, `RENDER:NAME`, `COMPONENT`, `COMPONENT:NAME`, `ONCE`, and `INIT`.
 
-- `RENDER`
-- `RENDER:NAME`
-- `COMPONENT`
-- `COMPONENT:NAME`
-- `ONCE`
-- `INIT`
-
-When `function_name` matches one of those macro-style entrypoints, `unit_call()` does not look for a plain `EXPORT DValue* ...` function. Instead, it translates the name to the generated C++ symbol, uses the current `Request` context, and passes `call_param` into `context.props`, matching the normal component invocation model.
-
-For `RENDER...` and `COMPONENT...`, the unit's `ONCE(Request& context)` hook is still honored automatically before the selected handler runs.
-
-Example:
-
-
-Calling a named component handler through `unit_call()`:
-
-
-Calling a page render handler through `unit_call()`:
+C++ does not use the Capy `module` value. Use the `DValue*` API in the signature above. C++ exports use `EXPORT DValue* name(DValue*)`.
 
 
 :example capy render

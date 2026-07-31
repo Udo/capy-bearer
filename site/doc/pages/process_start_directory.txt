@@ -2,7 +2,7 @@
 String process_start_directory()
 
 :params
-return value : worker process start directory
+return value : the worker process start directory
 
 :see
 >sys
@@ -10,7 +10,9 @@ return value : worker process start directory
 >cwd_set
 
 :content
-Returns the directory captured when the native process started. It remains stable even if `cwd_set()` changes the current working directory.
+In Capy, `process_start_directory()` returns the worker's start directory as a `string`.
+
+The value does not change when `cwd_set()` changes the current directory.
 
 :example capy render
 if process_start_directory() != "" { print("have a start directory\n") } else { print("none\n") }

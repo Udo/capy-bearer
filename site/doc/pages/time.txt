@@ -2,14 +2,15 @@
 u64 time()
 
 :params
-return value : second-accurate current Unix timestamp
+return value : current Unix timestamp with second precision
 
 :see
 >time
 
 :content
-Returns the current Unix timestamp as a 64-bit integer with second precision.
+Use `time` to get the current Capy Unix timestamp. The function takes no input. It returns a `u64` value with second precision. Use it for timestamps and time calculations.
 
+Capy and C++ `.uce` both return `u64`, as the signature shows.
 
 :example capy render
 if time() > 0u64 { print("timestamp\n") } else { print("no timestamp\n") }

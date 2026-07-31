@@ -7,9 +7,9 @@ page_compiler_error=site/errors/compiler-error.uce
 page_runtime_error=site/errors/runtime-error.uce
 
 :params
-page_compiling : BEARER page rendered (status 503) while the requested page is being built
-page_compiler_error : BEARER page rendered (status 500) when the requested page fails to build
-page_runtime_error : BEARER page rendered (status 500) after a recovered fault or uncaught exception
+page_compiling : page rendered with status 503 while a requested page builds
+page_compiler_error : page rendered with status 500 when a requested page fails to build
+page_runtime_error : page rendered with status 500 after a recovered fault or uncaught exception
 
 :see
 >runtime
@@ -20,38 +20,12 @@ page_runtime_error : BEARER page rendered (status 500) after a recovered fault o
 :capy-status cpp-specific
 
 :content
-Error-page configuration is a Bearer C++ runtime surface; Capy has no independent configuration equivalent.
+Capy cannot configure Bearer error pages. Configure these C++ runtime settings in `/etc/bearer/settings.cfg` instead.
 
-Three optional keys in `/etc/bearer/settings.cfg` route error conditions to developer-defined BEARER pages. Each key names a `.uce` file, either absolute or relative to the server's working directory. When a key is unset, or the named file does not exist, or the error page itself fails, the runtime's built-in plain-text behavior stands.
+Set each optional key to a `.uce` error page path. The path can be absolute or relative to the server working directory. Bearer uses built-in plain text when a key is unset, missing, or fails.
 
-All three pages receive the error context in `context.call["error"]`:
+Each error page receives error data in `context.call["error"]`. It includes `type` and `source`. Compiler errors also include compiler output, generated C++, status, and details. Runtime errors also include title, details, request URI, signal data, trace, and generated C++.
 
-- `type` — `compiling`, `compiler_error`, or `runtime_error`
-- `source` — the requested `.uce` file
-- `compiler_error` adds: `compiler_output` (raw clang output), `generated_cpp`, `status`, `details`
-- `runtime_error` adds: `title`, `details`, `request_uri`, `signal`, `signal_name`, `trace`, `generated_cpp`
+`page_compiling` returns status 503 while proactive compilation builds a requested page. `page_compiler_error` returns status 500 after an entry page fails to build. `page_runtime_error` returns status 500 after a recovered fault or uncaught exception.
 
-A sensible status code is set before the page renders (`503` for compiling, `500` for errors); the page may override it with `set_status()` and set its own headers.
-
-## page_compiling
-
-Without this key, a request that hits an uncompiled or changed page blocks until the synchronous build finishes. With it, the runtime responds immediately with your page, hands the build to the proactive compiler, and the page can poll until the build lands:
-
-
-The compiling page is only used while `PROACTIVE_COMPILE_ENABLED` is on (the default) — otherwise nothing would finish the build asynchronously, and the runtime waits for the on-request wasm compile.
-
-## page_compiler_error
-
-Triggered when the entry page fails to build (components that fail mid-page keep the inline behavior, since the page is already half-rendered). `context.call["error"]["compiler_output"]` carries the full raw compiler output — show it on development hosts, hide it in production.
-
-## page_runtime_error
-
-Triggered after the worker recovers from a fatal signal or an uncaught exception. The worker has just recovered from a fault, so keep this page simple: static markup and the error fields, no database connections or heavy components.
-
-## Recursion safety
-
-While an error page renders, error-page handling is disabled: a compiling, broken, or crashing error page falls back to the built-in behavior instead of looping.
-
-## Ready-made examples
-
-`site/errors/compiling.uce`, `site/errors/compiler-error.uce`, and `site/errors/runtime-error.uce` in this repository are working examples — point the config keys at them or copy them into your site.
+An error page can change the status and headers. Keep runtime error pages simple. Bearer uses built-in output if an error page fails, so error pages cannot recurse.
