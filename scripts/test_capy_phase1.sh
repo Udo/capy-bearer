@@ -48,7 +48,7 @@ expect_equal "newline-independent expression parsing" "7|3|9" "$(scripts/bearer-
 coercion_expected="7|8|42|-9|10|4.25|true|false|12|false|1|2|3|9|4|0"
 expect_equal "declared parameter coercion and constructors" "$coercion_expected" "$(scripts/bearer-cli /tests/capy-coercion.capy)"
 expect_equal "constructors, vector arrays, variadics, splats, function values, and ARC" \
-	"7|token|8|A|ab|inside3|ab|x|b|Azz|0|8|2|1.5|abc|12|9|p|a2true|b3|4c|4|4c|nmir|0" "$(scripts/bearer-cli /tests/capy-vector-variadic.capy)"
+	"7|token|8|A|ab|inside3|ab|x|b|Azz|0|8|2|1.5|abc|12|9|p|a2true|b3|4c|4|4c|nmir|function-print6|0" "$(scripts/bearer-cli /tests/capy-vector-variadic.capy)"
 (
 	vector_trap_dir=$(mktemp -d "$site_directory/tests/capy-vector-traps.XXXXXX")
 	trap 'rm -rf -- "$vector_trap_dir"' EXIT
@@ -66,7 +66,7 @@ expect_equal "constructors, vector arrays, variadics, splats, function values, a
 		set -e
 		[[ $status -ne 0 && "$output" == *"$name.capy:1:"* && "$output" != *"capy://stdlib.capy"* ]]
 		expect_equal "vector trap recovery after $name" \
-			"7|token|8|A|ab|inside3|ab|x|b|Azz|0|8|2|1.5|abc|12|9|p|a2true|b3|4c|4|4c|nmir|0" "$(scripts/bearer-cli /tests/capy-vector-variadic.capy)"
+			"7|token|8|A|ab|inside3|ab|x|b|Azz|0|8|2|1.5|abc|12|9|p|a2true|b3|4c|4|4c|nmir|function-print6|0" "$(scripts/bearer-cli /tests/capy-vector-variadic.capy)"
 	done
 )
 (

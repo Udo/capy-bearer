@@ -246,6 +246,13 @@ bool primitive_constructor_name(const std::string& name)
 	return name == "s32" || name == "s64" || name == "u64" || name == "f64" || name == "bool" || name == "string";
 }
 
+constexpr unsigned scalar_format_scratch_size = 32;
+
+std::string sink_format_helper(const std::string& symbol, const std::string& type)
+{
+	return "sink_format:" + symbol + ":" + type;
+}
+
 std::uint8_t wasm_value_type(const std::string& type)
 {
 	return type == "s64" || type == "u64" ? 0x7e : type == "f64" ? 0x7c : 0x7f;
@@ -414,6 +421,7 @@ struct Definition
 	unsigned type = 0;
 	unsigned thunk_target = 0xffffffffu;
 	bool closure_body = false;
+	bool fused_only = false;
 	std::vector<std::pair<std::string, std::string>> captures;
 };
 
@@ -432,6 +440,61 @@ struct GenericDefinition
 const Member* member_call(const Call* call)
 {
 	return dynamic_cast<const Member*>(call->function);
+}
+
+bool references_function_value(Expr* expression, const std::string& target)
+{
+	if (!expression) return false;
+	if (auto name = dynamic_cast<Name*>(expression)) return name->value == target;
+	if (auto call = dynamic_cast<Call*>(expression))
+	{
+		if (!dynamic_cast<Name*>(call->function) && references_function_value(call->function, target)) return true;
+		for (Expr* argument : call->arguments)
+			if (references_function_value(argument, target)) return true;
+		return false;
+	}
+	if (auto block = dynamic_cast<Block*>(expression))
+	{
+		for (Expr* item : block->items) if (references_function_value(item, target)) return true;
+		return false;
+	}
+	if (auto function = dynamic_cast<Function*>(expression)) return references_function_value(function->body, target);
+	if (auto lambda = dynamic_cast<Lambda*>(expression)) return references_function_value(lambda->body, target);
+	if (auto variable = dynamic_cast<Variable*>(expression)) return references_function_value(variable->value, target);
+	if (auto constant = dynamic_cast<Constant*>(expression)) return references_function_value(constant->value, target);
+	if (auto annotation = dynamic_cast<Annotation*>(expression)) return references_function_value(annotation->value, target);
+	if (auto binary = dynamic_cast<Binary*>(expression)) return references_function_value(binary->left, target) || references_function_value(binary->right, target);
+	if (auto lookup = dynamic_cast<ScopeLookup*>(expression)) return references_function_value(lookup->value, target);
+	if (auto returned = dynamic_cast<Return*>(expression)) return references_function_value(returned->value, target);
+	if (auto conditional = dynamic_cast<If*>(expression))
+		return references_function_value(conditional->condition, target) || references_function_value(conditional->then_body, target) || references_function_value(conditional->else_body, target);
+	if (auto loop = dynamic_cast<While*>(expression)) return references_function_value(loop->condition, target) || references_function_value(loop->body, target);
+	if (auto loop = dynamic_cast<For*>(expression)) return references_function_value(loop->iterable, target) || references_function_value(loop->body, target);
+	if (auto index = dynamic_cast<Index*>(expression)) return references_function_value(index->value, target) || references_function_value(index->index, target);
+	if (auto member = dynamic_cast<Member*>(expression)) return references_function_value(member->value, target);
+	if (auto tuple = dynamic_cast<TupleExpr*>(expression))
+	{
+		for (Expr* item : tuple->items) if (references_function_value(item, target)) return true;
+		return false;
+	}
+	if (auto array = dynamic_cast<ArrayLiteral*>(expression))
+	{
+		for (Expr* item : array->items) if (references_function_value(item, target)) return true;
+		return false;
+	}
+	if (auto spread = dynamic_cast<Spread*>(expression)) return references_function_value(spread->value, target);
+	if (auto map = dynamic_cast<MapLiteral*>(expression))
+	{
+		for (const auto& [key, item] : map->entries) if (references_function_value(item, target)) return true;
+		return false;
+	}
+	if (auto markup = dynamic_cast<Markup*>(expression))
+	{
+		for (Expr* item : markup->parts) if (references_function_value(item, target)) return true;
+		return false;
+	}
+	if (auto field = dynamic_cast<MarkupField*>(expression)) return references_function_value(field->value, target);
+	return false;
 }
 
 struct Module;
@@ -598,7 +661,7 @@ struct Module
 		for (std::size_t i = 0; i < definitions_.size(); ++i)
 			if (definitions_[i].function && definitions_[i].function->name == name && definitions_[i].exported.empty())
 				candidates.push_back(i);
-		if (generics_.contains(name))
+		if (auto generic = generics_.find(name); generic != generics_.end() && !generic->second.empty())
 			throw Error(location, "generic function value '" + name + "' requires an explicit concrete function type");
 		if (candidates.empty())
 			throw Error(location, "unknown local '" + name + "'");
@@ -928,6 +991,9 @@ struct Module
 	std::set<std::string> used_hosts_;
 	std::map<std::string, unsigned> host_types_;
 	std::map<std::string, unsigned> helpers_;
+	std::set<std::pair<std::string, std::string>> fused_sink_formats_;
+	std::set<std::string> string_format_types_;
+	unsigned fused_sink_scratch_offset_ = 0;
 	Bytes data_;
 	bool dval_ = false, trace_host_ = false, use_trace_global_ = false;
 	unsigned trace_stack_offset_ = 0;
@@ -1923,36 +1989,15 @@ std::pair<Bytes, unsigned> FunctionLowerer::allocate_blob(const std::string& typ
 
 Bytes FunctionLowerer::format_wide_scalar(Bytes code, const std::string& type, const Location& location)
 {
-	const unsigned value = add_local("", type, location);
-	code.push_back(0x21);
-	wasm::append_uleb(code, value);
-	auto input = [&]
-	{
-		code.push_back(0x20);
-		wasm::append_uleb(code, value);
-	};
-	const std::string import = "bearer_format_" + type;
-	input();
-	code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10});
-	wasm::append_uleb(code, module_.import_index(import));
-	const unsigned length = add_local("", "s32", location);
-	code.push_back(0x21);
-	wasm::append_uleb(code, length);
-	auto [allocation, pointer] = allocate_blob("string", 1, length, location);
-	append(code, allocation);
-	input();
-	code.push_back(0x20);
-	wasm::append_uleb(code, pointer);
-	code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-	wasm::append_uleb(code, length);
 	code.push_back(0x10);
-	wasm::append_uleb(code, module_.import_index(import));
-	code.push_back(0x20);
-	wasm::append_uleb(code, length);
-	code.insert(code.end(), {0x47, 0x04, 0x40});
+	wasm::append_uleb(code, module_.helper_index("format_" + type));
+	const unsigned result = add_local("", "string", location);
+	code.push_back(0x22);
+	wasm::append_uleb(code, result);
+	code.insert(code.end(), {0x45, 0x04, 0x40});
 	append(code, module_.marker(location));
 	code.insert(code.end(), {0x00, 0x0b, 0x20});
-	wasm::append_uleb(code, pointer);
+	wasm::append_uleb(code, result);
 	return code;
 }
 
@@ -4224,6 +4269,13 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				code.push_back(0x20); wasm::append_uleb(code, item); code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20}); wasm::append_uleb(code, item);
 				code.insert(code.end(), {0x28, 0x02, 0x10, 0x10}); wasm::append_uleb(code, module_.import_index(sink->symbol));
 			};
+			auto emit_formatted_sink = [&](unsigned item, const std::string& source)
+			{
+				const std::string helper_type = source == "s32" ? "s64" : source;
+				code.push_back(0x20); wasm::append_uleb(code, item);
+				if (source == "s32") code.push_back(0xac);
+				code.push_back(0x10); wasm::append_uleb(code, module_.helper_index(sink_format_helper(sink->symbol, helper_type)));
+			};
 			for (std::size_t i = 0; i < arguments->size(); ++i)
 			{
 				if (auto spread = dynamic_cast<Spread*>((*arguments)[i]))
@@ -4243,6 +4295,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 					code.push_back(array_load_opcode(source_element)); code.push_back(source_size == 8 ? 3 : 2); code.insert(code.end(), {0x00, 0x21}); wasm::append_uleb(code, item);
 					if (source_element == "string")
 						emit_sink(item);
+					else if (source_element == "s32" || source_element == "s64" || source_element == "u64" || source_element == "f64")
+						emit_formatted_sink(item, source_element);
 					else
 					{
 						const std::string temporary_name = "\x1fvariadic_spread_" + std::to_string(item);
@@ -4260,9 +4314,17 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 					continue;
 				}
 				Expr* argument = (*arguments)[i];
+				const std::string source_type = types[i];
+				if (source_type == "s32" || source_type == "s64" || source_type == "u64" || source_type == "f64")
+				{
+					auto compiled = expression(argument);
+					const unsigned item = add_local("", source_type, argument->location);
+					append(code, compiled.first); code.push_back(0x21); wasm::append_uleb(code, item); emit_formatted_sink(item, source_type);
+					continue;
+				}
 				std::unique_ptr<Name> constructor;
 				std::unique_ptr<Call> converted;
-				if (types[i] != target.variadic_element)
+				if (source_type != target.variadic_element)
 				{
 					constructor = std::make_unique<Name>(argument->location, target.variadic_element);
 					converted = std::make_unique<Call>(argument->location, constructor.get());
@@ -4997,6 +5059,43 @@ std::vector<Bytes> Module::runtime_bodies() const
 								 0x6a, 0x20, 0x00, 0x41, 0x14, 0x6a, 0x20, 0x02, 0xfc, 0x0a, 0x00, 0x00, 0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01, 0x20, 0x01});
 		result.push_back(body({0x01, 0x02, 0x7f}, std::move(code)));
 	}
+	auto format_body = [&](const std::string& type)
+	{
+		Bytes code{0x20, 0x00, 0x41, 0x00, 0x41, 0x00, 0x10};
+		wasm::append_uleb(code, import_index("bearer_format_" + type));
+		code.insert(code.end(), {0x22, 0x01, 0x41});
+		wasm::append_sleb32(code, std::numeric_limits<std::int32_t>::max() - 20);
+		code.insert(code.end(), {0x4b, 0x04, 0x40, 0x41, 0x00, 0x0f, 0x0b, 0x20, 0x01, 0x41, 0x14, 0x6a, 0x10});
+		wasm::append_uleb(code, import_index("bearer_alloc"));
+		code.insert(code.end(), {0x22, 0x02, 0x45, 0x04, 0x40, 0x41, 0x00, 0x0f, 0x0b});
+		for (const auto [literal, offset] : {std::pair<std::int32_t, unsigned>{1, 0}, {1, 4}, {1, 8}})
+		{
+			code.insert(code.end(), {0x20, 0x02, 0x41});
+			wasm::append_sleb32(code, literal);
+			code.insert(code.end(), {0x36, 0x02});
+			wasm::append_uleb(code, offset);
+		}
+		code.insert(code.end(), {0x20, 0x02, 0x20, 0x01, 0x41, 0x14, 0x6a, 0x36, 0x02, 0x0c, 0x20, 0x02, 0x20, 0x01, 0x36, 0x02, 0x10,
+								 0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01, 0x20, 0x00, 0x20, 0x02, 0x41, 0x14, 0x6a, 0x20, 0x01, 0x10});
+		wasm::append_uleb(code, import_index("bearer_format_" + type));
+		code.insert(code.end(), {0x20, 0x01, 0x47, 0x04, 0x40, 0x20, 0x02, 0x10});
+		wasm::append_uleb(code, release_index());
+		code.insert(code.end(), {0x41, 0x00, 0x0f, 0x0b, 0x20, 0x02});
+		result.push_back(body({0x01, 0x02, 0x7f}, std::move(code)));
+	};
+	if (string_format_types_.contains("s64")) format_body("s64");
+	if (string_format_types_.contains("u64")) format_body("u64");
+	if (string_format_types_.contains("f64")) format_body("f64");
+	for (const auto& [symbol, type] : fused_sink_formats_)
+	{
+		Bytes code{0x20, 0x00, 0x23, 0x00, 0x41}; wasm::append_sleb32(code, static_cast<std::int32_t>(fused_sink_scratch_offset_));
+		code.insert(code.end(), {0x6a, 0x41}); wasm::append_sleb32(code, scalar_format_scratch_size);
+		code.push_back(0x10); wasm::append_uleb(code, import_index("bearer_format_" + type));
+		code.insert(code.end(), {0x22, 0x01, 0x41}); wasm::append_sleb32(code, scalar_format_scratch_size);
+		code.insert(code.end(), {0x4b, 0x04, 0x40, 0x00, 0x0b, 0x23, 0x00, 0x41}); wasm::append_sleb32(code, static_cast<std::int32_t>(fused_sink_scratch_offset_));
+		code.insert(code.end(), {0x6a, 0x20, 0x01, 0x10}); wasm::append_uleb(code, import_index(symbol));
+		result.push_back(body({0x01, 0x01, 0x7f}, std::move(code)));
+	}
 	return result;
 }
 
@@ -5523,6 +5622,8 @@ Module::Capabilities Module::discover_capabilities()
 		scan_format_s64 = scan_format_s64 || source == "s32" || source == "s64";
 		scan_format_u64 = scan_format_u64 || source == "u64";
 		scan_format_f64 = scan_format_f64 || source == "f64";
+		if (source == "s32" || source == "s64") string_format_types_.insert("s64");
+		else if (source == "u64" || source == "f64") string_format_types_.insert(source);
 	};
 	std::function<void(Expr*)> scan = [&](Expr* e)
 	{
@@ -5577,21 +5678,30 @@ Module::Capabilities Module::discover_capabilities()
 				{
 					for (std::size_t i = 0; i < host_arguments.size(); ++i)
 						if (converted->parameters[i] == "string" && host_arguments[i] != "string" && host_arguments[i] != "bool")
-						{
-							scan_alloc = scan_retain = scan_release = true;
-							scan_format_s64 = scan_format_s64 || host_arguments[i] == "s32" || host_arguments[i] == "s64";
-							scan_format_u64 = scan_format_u64 || host_arguments[i] == "u64";
-							scan_format_f64 = scan_format_f64 || host_arguments[i] == "f64";
-						}
+							scan_string_construction(host_arguments[i]);
 				}
 				if (const Definition* variadic = variadic_definition(callee, host_arguments, c->location))
 				{
-					if (!fused_variadic_sink(*variadic)) scan_alloc = scan_retain = scan_release = true;
+					const HostDeclaration* sink = fused_variadic_sink(*variadic);
+					if (sink) used_hosts_.insert(sink->symbol);
+					else scan_alloc = scan_retain = scan_release = true;
 					const std::size_t fixed = variadic->parameters.size() - 1;
 					for (std::size_t i = fixed; i < host_arguments.size(); ++i)
 					{
 						const std::string source = host_arguments[i].rfind("spread<", 0) == 0 ? host_arguments[i].substr(7, host_arguments[i].size() - 8) : host_arguments[i];
-						if (variadic->variadic_convert && variadic->variadic_element == "string") scan_string_construction(source);
+						if (variadic->variadic_convert && variadic->variadic_element == "string")
+						{
+							if (sink && (source == "s32" || source == "s64" || source == "u64" || source == "f64"))
+							{
+								const std::string type = source == "s32" ? "s64" : source;
+								fused_sink_formats_.insert({sink->symbol, type});
+								scan_format_s64 = scan_format_s64 || type == "s64";
+								scan_format_u64 = scan_format_u64 || type == "u64";
+								scan_format_f64 = scan_format_f64 || type == "f64";
+							}
+							else
+								scan_string_construction(source);
+						}
 					}
 				}
 				else if (std::find(host_arguments.begin(), host_arguments.end(), "") != host_arguments.end())
@@ -5600,8 +5710,14 @@ Module::Capabilities Module::discover_capabilities()
 						{
 							if (candidate.variadic && candidate.parameters.size() - 1 <= host_arguments.size() && candidate.variadic_convert && candidate.variadic_element == "string")
 							{
+								if (const HostDeclaration* sink = fused_variadic_sink(candidate))
+								{
+									used_hosts_.insert(sink->symbol);
+									for (const std::string& type : {"s64", "u64", "f64"}) fused_sink_formats_.insert({sink->symbol, type});
+								}
 								scan_alloc = scan_retain = scan_release = true;
 								scan_format_s64 = scan_format_u64 = scan_format_f64 = true;
+								string_format_types_.insert("s64"); string_format_types_.insert("u64"); string_format_types_.insert("f64");
 							}
 							if (candidate.parameters.size() == host_arguments.size())
 								for (std::size_t i = 0; i < host_arguments.size(); ++i)
@@ -5609,6 +5725,7 @@ Module::Capabilities Module::discover_capabilities()
 									{
 										scan_alloc = scan_retain = scan_release = true;
 										scan_format_s64 = scan_format_u64 = scan_format_f64 = true;
+										string_format_types_.insert("s64"); string_format_types_.insert("u64"); string_format_types_.insert("f64");
 									}
 						}
 			}
@@ -5632,14 +5749,7 @@ Module::Capabilities Module::discover_capabilities()
 			if (auto n = dynamic_cast<Name*>(c->function); n && primitive_constructor_name(n->value) && c->arguments.size() == 1)
 			{
 				const std::string source = scan_value_type(c->arguments[0]);
-				if (n->value == "string" && source != "string" && source != "bool")
-				{
-					scan_alloc = scan_retain = scan_release = true;
-					scan_clone = scan_clone || source == "markup";
-					scan_format_s64 = scan_format_s64 || source == "s32" || source == "s64";
-					scan_format_u64 = scan_format_u64 || source == "u64";
-					scan_format_f64 = scan_format_f64 || source == "f64";
-				}
+				if (n->value == "string" && source != "string" && source != "bool") scan_string_construction(source);
 			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "clone")
 			{
@@ -5692,6 +5802,7 @@ Module::Capabilities Module::discover_capabilities()
 			{
 				scan_alloc = scan_retain = scan_release = scan_clone = true;
 				scan_format_s64 = scan_format_u64 = scan_format_f64 = true;
+				string_format_types_.insert("s64"); string_format_types_.insert("u64"); string_format_types_.insert("f64");
 			}
 			const std::string annotation = v->annotation ? type_of_expression(v->annotation) : "";
 			if ((v->annotation && annotation == "string") || (!v->annotation && scan_is_string(v->value)))
@@ -5773,6 +5884,7 @@ Module::Capabilities Module::discover_capabilities()
 					scan_format_s64 = scan_format_s64 || wide == "s64";
 					scan_format_u64 = scan_format_u64 || wide == "u64";
 					scan_format_f64 = scan_format_f64 || wide == "f64";
+					if (wide == "s64" || wide == "u64" || wide == "f64") string_format_types_.insert(wide);
 					scan(field->value);
 				}
 		}
@@ -5811,6 +5923,7 @@ Module::Capabilities Module::discover_capabilities()
 	};
 	for (auto& d : definitions_)
 	{
+		if (d.fused_only) continue;
 		scan(d.function);
 		for (const auto& type : d.parameters)
 			if (managed_type(type))
@@ -5866,15 +5979,30 @@ CompileResult Module::compile()
 {
 	collect();
 	check_cancelled();
+	for (Definition& definition : definitions_)
+		if (definition.function && definition.function->location.file == "capy://stdlib.capy" && fused_variadic_sink(definition))
+		{
+			definition.fused_only = std::none_of(items_.begin(), items_.end(), [&](Expr* item)
+			{
+				return references_function_value(item, definition.function->name);
+			});
+		}
 	const Capabilities capabilities = discover_capabilities();
 	const bool scan_format_s64 = capabilities.format_s64, scan_format_u64 = capabilities.format_u64, scan_format_f64 = capabilities.format_f64;
 	const bool scan_alloc = capabilities.alloc, scan_retain = capabilities.retain, scan_release = capabilities.release, scan_clone = capabilities.clone,
 			   scan_arc_live = capabilities.arc_live;
+	const bool scan_free = scan_release;
 	use_retain_ = scan_retain;
 	use_release_ = scan_release;
 	use_clone_ = scan_clone;
 	use_arc_global_ = scan_arc_live || scan_alloc || scan_release || scan_clone;
 	use_trace_global_ = trace_host_;
+	if (!fused_sink_formats_.empty())
+	{
+		while (data_.size() % 8) data_.push_back(0);
+		fused_sink_scratch_offset_ = static_cast<unsigned>(data_.size());
+		data_.insert(data_.end(), scalar_format_scratch_size, 0);
+	}
 	if (use_trace_global_)
 	{
 		while (data_.size() % 8)
@@ -5891,7 +6019,7 @@ CompileResult Module::compile()
 		imports_["bearer_format_f64"] = next++;
 	if (scan_alloc || scan_clone)
 		imports_["bearer_alloc"] = next++;
-	if (scan_release)
+	if (scan_free)
 		imports_["bearer_free"] = next++;
 	for (const std::string& name : runtime_imports_)
 		imports_[name] = next++;
@@ -5932,6 +6060,14 @@ CompileResult Module::compile()
 		helpers_["release"] = next++;
 	if (use_clone_)
 		helpers_["clone"] = next++;
+	if (string_format_types_.contains("s64"))
+		helpers_["format_s64"] = next++;
+	if (string_format_types_.contains("u64"))
+		helpers_["format_u64"] = next++;
+	if (string_format_types_.contains("f64"))
+		helpers_["format_f64"] = next++;
+	for (const auto& [symbol, type] : fused_sink_formats_)
+		helpers_[sink_format_helper(symbol, type)] = next++;
 	first_user_index_ = next;
 	for (auto& d : definitions_)
 	{
@@ -5947,8 +6083,13 @@ CompileResult Module::compile()
 	unsigned format_u64_type = wasm_type({"u64", "s32", "s32"}, "s32");
 	unsigned format_f64_type = wasm_type({"f64", "s32", "s32"}, "s32");
 	unsigned alloc_type = (scan_alloc || scan_clone) ? wasm_type({"s32"}, "s32") : 0;
-	unsigned release_type = scan_release ? wasm_type({"s32"}, "void") : 0;
+	unsigned release_type = scan_free ? wasm_type({"s32"}, "void") : 0;
 	unsigned clone_type = scan_clone ? wasm_type({"s32"}, "s32") : 0;
+	unsigned format_string_s64_type = string_format_types_.contains("s64") ? wasm_type({"s64"}, "string") : 0;
+	unsigned format_string_u64_type = string_format_types_.contains("u64") ? wasm_type({"u64"}, "string") : 0;
+	unsigned format_string_f64_type = string_format_types_.contains("f64") ? wasm_type({"f64"}, "string") : 0;
+	std::map<std::pair<std::string, std::string>, unsigned> sink_format_types;
+	for (const auto& sink : fused_sink_formats_) sink_format_types[sink] = wasm_type({sink.second}, "void");
 	unsigned blob_type = wasm_type({"s32", "s32", "s32", "s32"}, "s32");
 	unsigned scalar_adapter_type = wasm_type({"s32", "s32", "s32"}, "s32");
 	unsigned f64_adapter_type = wasm_type({"f64", "s32", "s32"}, "s32");
@@ -5959,7 +6100,7 @@ CompileResult Module::compile()
 	unsigned count_type = wasm_type({"s32", "s32"}, "s32");
 	std::vector<Bytes> user_bodies;
 	for (std::size_t i = 0; i < definitions_.size(); ++i)
-		user_bodies.push_back(FunctionLowerer(*this, definitions_[i]).lower());
+		user_bodies.push_back(definitions_[i].fused_only ? Bytes{0x02, 0x00, 0x0b} : FunctionLowerer(*this, definitions_[i]).lower());
 	std::vector<Bytes> bodies = runtime_bodies();
 	bodies.insert(bodies.end(), user_bodies.begin(), user_bodies.end());
 	for (const auto& [name, target] : custom_exports_)
@@ -6014,6 +6155,14 @@ CompileResult Module::compile()
 		wasm::append_uleb(functions, release_type);
 	if (use_clone_)
 		wasm::append_uleb(functions, clone_type);
+	if (string_format_types_.contains("s64"))
+		wasm::append_uleb(functions, format_string_s64_type);
+	if (string_format_types_.contains("u64"))
+		wasm::append_uleb(functions, format_string_u64_type);
+	if (string_format_types_.contains("f64"))
+		wasm::append_uleb(functions, format_string_f64_type);
+	for (const auto& sink : fused_sink_formats_)
+		wasm::append_uleb(functions, sink_format_types.at(sink));
 	for (const auto& d : definitions_)
 		wasm::append_uleb(functions, d.type);
 	for (std::size_t i = 0; i < custom_exports_.size(); ++i)

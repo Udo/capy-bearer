@@ -75,6 +75,9 @@ function CLI {
         nested.resize(3, [clone("r")])
         print("|", nested_copy[0][0], nested_removed[0], nested[0][0], nested[2][0])
         nested.clear()
+
+        var printer : function(...values : as string) void = print
+        printer("|function-print", 6)
     }
     var live := arc_live()
     print("|", live)

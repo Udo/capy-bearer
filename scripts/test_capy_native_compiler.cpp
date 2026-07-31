@@ -326,11 +326,22 @@ int main()
 	const auto no_stdlib_demand = capy::compile_bearer_unit("function CLI { print(1) }\n", options);
 	const std::string no_stdlib_bytes(no_stdlib_demand.wasm.begin(), no_stdlib_demand.wasm.end());
 	assert(no_stdlib_bytes.find("bearer_sqlite_") == std::string::npos && no_stdlib_bytes.find("bearer_mysql_") == std::string::npos && no_stdlib_bytes.find("bearer_capy_backtrace") == std::string::npos);
+	assert(no_stdlib_bytes.find("bearer_format_s64") != std::string::npos && no_stdlib_bytes.find("bearer_print_bytes") != std::string::npos);
+	assert(no_stdlib_bytes.find("bearer_alloc") == std::string::npos && no_stdlib_bytes.find("bearer_free") == std::string::npos);
+	assert(no_stdlib_demand.source_map.find("\t1\t1\t16\n") != std::string::npos);
+	const auto literal_print = capy::compile_bearer_unit("function CLI { print(\"ok\") }\n", options);
+	assert(literal_print.wasm.size() < 600);
 	const auto f64_print = capy::compile_bearer_unit("function emit(value : f64) { print(value) }\nfunction CLI { emit(1.5) }\n", options);
 	const std::string f64_print_bytes(f64_print.wasm.begin(), f64_print.wasm.end());
 	assert(f64_print_bytes.find("bearer_format_f64") != std::string::npos && f64_print_bytes.find("bearer_print_bytes") != std::string::npos);
 	assert(f64_print_bytes.find("bearer_print_f64") == std::string::npos && f64_print_bytes.find("bearer_print_s64") == std::string::npos &&
 		f64_print_bytes.find("bearer_print_u64") == std::string::npos);
+	assert(f64_print_bytes.find("bearer_alloc") == std::string::npos && f64_print_bytes.find("bearer_free") == std::string::npos);
+	const auto print_value = capy::compile_bearer_unit(
+		"function CLI { var output : function(...values : as string) void = print; output(1, \"x\") }\n", options);
+	assert(capy::wasm::validate_bearer_unit(print_value.wasm, {.bearer_abi_version = "11"}).valid);
+	const std::string print_value_bytes(print_value.wasm.begin(), print_value.wasm.end());
+	assert(print_value_bytes.find("bearer_alloc") != std::string::npos && print_value_bytes.find("bearer_free") != std::string::npos);
 	const auto ordinary_backtrace = capy::compile_bearer_unit(
 		"function outer() string { inner() }\nfunction inner() string { var capture := function() string { backtrace_get_frames(2, 1) }; capture() }\nfunction CLI { print(outer(), backtrace_get_frames()) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(ordinary_backtrace.wasm, {.bearer_abi_version = "11"}).valid);
