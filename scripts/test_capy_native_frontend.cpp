@@ -25,9 +25,9 @@ static void expect_error(const std::string& source, const std::string& text, con
 int main(int argc, char** argv)
 {
 	{
-		Program p = parse("const answer : s32 = 42\n", "constant.capy");
-		auto* constant = static_cast<Constant*>(p.items[0]);
-		assert(constant->name == "answer" && type_name(*constant->annotation) == "s32" && static_cast<Integer*>(constant->value)->value == 42);
+		Program p = parse("type Count = s64\n", "alias.capy");
+		auto* alias = static_cast<TypeAlias*>(p.items[0]);
+		assert(alias->name == "Count" && type_name(*alias->value) == "s64");
 	}
 	{
 		Program p = parse("trace host function __bearer_trace(value : s32) string\n", "host.capy");
@@ -157,7 +157,8 @@ int main(int argc, char** argv)
 			assert(e.message.find("return type does not distinguish overloads") != std::string::npos);
 		}
 	}
-	expect_error("function CLI { const answer : s32 = 42 }\n", "const declarations are top-level only");
+	expect_error("const answer : s32 = 42\nfunction CLI {}\n", "const declarations were removed");
+	expect_error("function CLI { type Count = s64 }\n", "type aliases are top-level only");
 	expect_error("function bad(s32) s32 { return 1 }\n", "name:type annotations");
 	expect_error("function bad(...values : string, tail : string) {}\n", "variadic parameter must be last");
 	expect_error("function CLI { var value := 1 as s64 }\n", "call the target type constructor instead");

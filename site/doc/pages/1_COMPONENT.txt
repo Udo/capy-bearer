@@ -21,7 +21,7 @@ A component handler accepts zero inputs or one `request` input. It returns no va
 
 Call `component()` to capture component output as a string. Call `component_render()` to write component output. The helpers call `COMPONENT` by default. A `:NAME` target selects `COMPONENT:NAME`. A target that starts with `:NAME` resolves in the current unit.
 
-Use `COMPONENT` in a reusable unit. A unit can define `COMPONENT` without `RENDER`. `ONCE` runs before the first component call for that unit and request. `INIT` runs when a worker loads the unit.
+Use `COMPONENT` in a reusable unit. A unit can define `COMPONENT` without `RENDER`. `INIT` runs when Bearer materializes the unit in the current request workspace. `ONCE` then runs before the first component call for that unit and request.
 
 The compiler rejects other parameter forms, a return type, handler overloads, and `COMPONENT_NAME` syntax. A trap in the handler stops that component invocation.
 
@@ -35,7 +35,7 @@ Capy does not expose C++ `Request&`, `context.props`, or mutable `DValue` aliase
 
 
 :example capy render
-print("COMPONENT is a unit directive; place it at top level in a .uce unit.\n")
+print("Declare COMPONENT as a top-level function.\n")
 
 :example cpp render
-print("COMPONENT is a unit directive; place it at top level in a .uce unit.\n");
+print("Declare COMPONENT as a top-level function.\n");

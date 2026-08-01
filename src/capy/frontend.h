@@ -107,7 +107,7 @@ enum struct ExprKind
 	For,
 	If,
 	While,
-	Constant
+	TypeAlias
 };
 struct Expr
 {
@@ -284,11 +284,11 @@ struct Exports : Expr
 	std::vector<std::string> names;
 	explicit Exports(Location l);
 };
-struct Constant : Expr
+struct TypeAlias : Expr
 {
 	std::string name;
-	Expr *annotation, *value;
-	Constant(Location l, std::string n, Expr* a, Expr* v);
+	Expr* value;
+	TypeAlias(Location l, std::string n, Expr* v);
 };
 struct For : Expr
 {
@@ -349,7 +349,7 @@ struct Parser
 	std::vector<Parameter> parameters(Expr*);
 	Expr* structure(Location);
 	Expr* exports(Location);
-	Expr* constant(Location);
+	Expr* type_alias(Location);
 	Expr* variable(Location);
 	Expr* return_expr(Location);
 	Expr* for_expr(Location);

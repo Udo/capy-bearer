@@ -505,7 +505,7 @@ Lambda::Lambda(Location l) : Expr(ExprKind::Lambda, std::move(l)), return_type(n
 Function::Function(Location l, std::string n) : Expr(ExprKind::Function, std::move(l)), name(std::move(n)), return_type(nullptr), body(nullptr) {}
 Struct::Struct(Location l, std::string n) : Expr(ExprKind::Struct, std::move(l)), name(std::move(n)) {}
 Exports::Exports(Location l) : Expr(ExprKind::Exports, std::move(l)) {}
-Constant::Constant(Location l, std::string n, Expr* a, Expr* v) : Expr(ExprKind::Constant, std::move(l)), name(std::move(n)), annotation(a), value(v) {}
+TypeAlias::TypeAlias(Location l, std::string n, Expr* v) : Expr(ExprKind::TypeAlias, std::move(l)), name(std::move(n)), value(v) {}
 For::For(Location l) : Expr(ExprKind::For, std::move(l)), iterable(nullptr), body(nullptr) {}
 If::If(Location l) : Expr(ExprKind::If, std::move(l)), condition(nullptr), then_body(nullptr), else_body(nullptr) {}
 While::While(Location l) : Expr(ExprKind::While, std::move(l)), condition(nullptr), body(nullptr) {}
@@ -702,7 +702,9 @@ Expr* Parser::prefix()
 		if (current.text == "EXPORTS")
 			return exports(current.location);
 		if (current.text == "const")
-			return constant(current.location);
+			fail(current.location, "const declarations were removed; use a local value or function");
+		if (current.text == "type" && token().kind == TokenKind::identifier)
+			return type_alias(current.location);
 		if (current.text == "var")
 			return variable(current.location);
 		if (current.text == "return")
@@ -832,7 +834,9 @@ Block* Parser::block(Location location)
 		if (token().text == "EXPORTS")
 			fail(token().location, "EXPORTS is a reserved top-level directive");
 		if (token().text == "const")
-			fail(token().location, "const declarations are top-level only");
+			fail(token().location, "const declarations were removed; use a local value or function");
+		if (token().text == "type" && position_ + 1 < tokens_.size() && tokens_[position_ + 1].kind == TokenKind::identifier)
+			fail(token().location, "type aliases are top-level only");
 		if (token().kind == TokenKind::eof)
 			fail(location, "unterminated code block");
 		result->items.push_back(expression());
@@ -981,14 +985,11 @@ Expr* Parser::exports(Location location)
 	return result;
 }
 
-Expr* Parser::constant(Location location)
+Expr* Parser::type_alias(Location location)
 {
-	Token name = require_identifier("constant name");
-	require(":");
-	Expr* annotation = expression(11);
+	Token name = require_identifier("type alias name");
 	require("=");
-	Expr* value = expression();
-	return program_.make<Constant>(location, name.text, annotation, value);
+	return program_.make<TypeAlias>(location, name.text, expression());
 }
 Expr* Parser::variable(Location location)
 {

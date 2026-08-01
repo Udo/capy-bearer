@@ -45,6 +45,44 @@ operator_output=$(scripts/bearer-cli /tests/capy-operators.capy)
 	exit 1
 }
 expect_equal "newline-independent expression parsing" "7|3|9" "$(scripts/bearer-cli /tests/capy-whitespace.capy)"
+consistency_expected="1|-2|3|4.5|x|10.5|3|4|left|right|early|late|0"
+expect_equal "type aliases, value blocks, conditional values, and wide aggregates" \
+	"$consistency_expected" "$(scripts/bearer-cli /tests/capy-language-consistency.capy)"
+(
+	value_trap_dir=$(mktemp -d "$site_directory/tests/capy-value-trap.XXXXXX")
+	trap 'rm -rf -- "$value_trap_dir"' EXIT
+	value_trap_name=${value_trap_dir##*/}
+	cat >"$value_trap_dir/then.capy" <<'EOF'
+function CLI {
+    var value := if true { [1][1] } else { [1][0] }
+    print(value)
+}
+EOF
+	cat >"$value_trap_dir/else.capy" <<'EOF'
+function CLI {
+    var value := if false { [1][0] } else { [1][1] }
+    print(value)
+}
+EOF
+	cat >"$value_trap_dir/block.capy" <<'EOF'
+function CLI {
+    var value := { var values := [1]; values[1] }
+    print(value)
+}
+EOF
+	for case in then:2:31 else:2:48 block:2:45; do
+		name=${case%%:*}; location=${case#*:}
+		set +e
+		value_trap_output=$(scripts/bearer-cli "/tests/$value_trap_name/$name.capy" 2>&1)
+		value_trap_status=$?
+		set -e
+		[[ $value_trap_status -ne 0 && "$value_trap_output" == *"$name.capy:$location"* ]] || {
+			echo "Capy $name value trap/source mapping mismatch: $value_trap_output" >&2
+			exit 1
+		}
+		expect_equal "$name value trap recovery" "$consistency_expected" "$(scripts/bearer-cli /tests/capy-language-consistency.capy)"
+	done
+)
 coercion_expected="7|8|42|-9|10|4.25|true|false|12|false|1|2|3|9|4|0"
 expect_equal "declared parameter coercion and constructors" "$coercion_expected" "$(scripts/bearer-cli /tests/capy-coercion.capy)"
 expect_equal "constructors, vector arrays, variadics, splats, function values, and ARC" \
@@ -557,6 +595,9 @@ expect_equal "network socket/hardened HTTP adapters" "true|true|true|200|true:tr
 expect_equal "time adapters" "5|0|1970|true|true|0" "$(scripts/bearer-cli /tests/capy-time-parity.capy)"
 lifecycle_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-lifecycle-parity.capy)
 expect_equal "INIT/ONCE lifecycle" "entry-init;entry-once;child-init;child-once;child-component;child-component;render" "$lifecycle_output"
+expect_equal "INIT/ONCE lifecycle in a later request workspace" \
+	"entry-init;entry-once;child-init;child-once;child-component;child-component;render" \
+	"$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-lifecycle-parity.capy)"
 component_parity_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-component-parity.capy)
 expect_equal "component/unit convenience APIs" "Capy|1|Capy|1|unit|true" "$component_parity_output"
 expect_equal "general methods receiver order/overload/generic/local shadow/function fields" "receiver;argument;method;10|s32|string|9|shadow;5|field;5|extension;6" "$(scripts/bearer-cli /tests/capy-methods.capy)"

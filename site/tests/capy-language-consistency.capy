@@ -1,0 +1,52 @@
+type Count = s64
+type Counts = [Count]
+type WideTuple = (s32, Count, u64, f64, string)
+type Printer = function(...values : as string) void
+
+struct Wide {
+    narrow : s32
+    signed : Count
+    unsigned : u64
+    decimal : f64
+    text : string
+}
+
+function choose(flag : bool) s32 {
+    {
+        var base := 2
+        if flag { base + 1 } else { base + 2 }
+    }
+}
+
+function choose_text(flag : bool) string {
+    if flag {
+        var result := clone("left")
+        result
+    } else {
+        var result := clone("right")
+        result
+    }
+}
+
+function early(flag : bool) string {
+    var outer := clone("outer")
+    if flag { return clone("early") } else { clone("late") }
+}
+
+function capture(value : u64, decimal : f64, text : string) (function(add : u64) f64) {
+    function(add : u64) f64 {
+        f64(value + add) + decimal + f64(length(text))
+    }
+}
+
+function CLI {
+    {
+        var counts : Counts = [Count(-2)]
+        var tuple : WideTuple = (1, counts[0], 3u64, 4.5, clone("x"))
+        var wide := Wide(...tuple)
+        var closure := capture(wide.unsigned, wide.decimal, wide.text)
+        var output : Printer = print
+        output(wide.narrow, "|", wide.signed, "|", wide.unsigned, "|", wide.decimal, "|", wide.text, "|", closure(2u64), "|")
+    }
+    print(choose(true), "|", choose(false), "|", choose_text(true), "|", choose_text(false), "|", early(true), "|", early(false), "|", arc_live())
+}

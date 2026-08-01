@@ -28,7 +28,7 @@ The default socket path is `/run/bearer/cli.sock`. Set `CLI_SOCKET_PATH` to chan
 
 A Capy declaration fails to compile if it has a non-`request` parameter, more than one parameter, or a return type. A trap in the handler stops that invocation.
 
-`ONCE` runs before `CLI` for the unit. `INIT` runs when a worker loads the unit.
+`INIT` runs when Bearer materializes the unit in the current request workspace. `ONCE` then runs before `CLI` for the unit. Both can run again in a later request workspace.
 
 ## C++ API
 
@@ -37,7 +37,7 @@ C++ declares `CLI(Request& context)`. Its live `context` provides query, POST, b
 Capy does not expose the C++ `Request&` layout or its mutable `DValue` aliases. Use the Capy request functions and copied `dval` values instead.
 
 :example capy render
-print("CLI is a unit directive; place it at top level in a .uce unit.\n")
+print("Declare CLI as a top-level function.\n")
 
 :example cpp render
-print("CLI is a unit directive; place it at top level in a .uce unit.\n");
+print("Declare CLI as a top-level function.\n");

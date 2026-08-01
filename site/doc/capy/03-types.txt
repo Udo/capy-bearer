@@ -42,7 +42,22 @@ Use `string` for text, paths, request values, and encoded data. A string stores 
 - `void` means that a function or expression provides no value. It is not a variable or parameter type.
 - Bearer supplies `request` and `module` values. A program cannot create or serialize them.
 
-Wide scalar values work in arrays, locals, parameters, results, and function values. The current tuple, struct, and captured-closure layouts do not accept `s64`, `u64`, or `f64` fields. A `module` is opaque and cannot enter an array, tuple, struct, closure, or DValue.
+Wide scalar values work in arrays, tuples, structs, closures, locals, parameters, results, and function values. A `module` is opaque and cannot enter an array, tuple, struct, closure, or DValue.
+
+## Type aliases
+
+A top-level `type` declaration gives a type expression another name:
+
+```capy
+type Count = s64
+type Counts = [Count]
+type Pair = (Count, string)
+type Formatter = function(value : Count) string
+```
+
+An alias is transparent. It has the same compile-time identity as its expanded type and creates no runtime object or tag. You can use an alias in each type position. An alias to a scalar, struct, or `dval` can also name that type's constructors. Forward aliases are valid. Cycles and name conflicts are errors.
+
+Capy has no `const` declaration. Use a local value or a zero-argument function when you need a named value.
 
 ## Type inference
 
@@ -79,6 +94,6 @@ function string(value : User) string { value.name }
 A coercive parameter uses the same constructor with `name : as Type`. The functions chapter explains this syntax.
 
 :see
-capy-04-variables-constants-and-expressions
+capy-04-variables-scope-and-expressions
 capy-05-operators-and-control-flow
 capy-10-dvalues

@@ -79,5 +79,5 @@ function COMPONENT:CARD(request : request) {
 
 :see
 capy-03-types
-capy-04-variables-constants-and-expressions
+capy-04-variables-scope-and-expressions
 capy-06-functions

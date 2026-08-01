@@ -29,7 +29,7 @@ C++ declares `WS(Request& context)`. It reads the payload from `context.in`, met
 Capy does not expose C++ `Request&`, `context.connection`, or mutable `DValue` aliases. Use the Capy WebSocket functions and copied `dval` values. Capy cannot use C++ references or direct C++ object access.
 
 :example capy render
-print("WS is a unit directive; place it at top level in a .uce unit.\n")
+print("Declare WS as a top-level function.\n")
 
 :example cpp render
-print("WS is a unit directive; place it at top level in a .uce unit.\n");
+print("Declare WS as a top-level function.\n");

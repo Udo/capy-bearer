@@ -92,7 +92,7 @@ function describe(value : s32) string { "integer" }
 function describe(value : string) string { "text" }
 ```
 
-The compiler selects an overload from the argument types. A result type cannot select an overload.
+The compiler selects an overload from the canonical argument types. A result type cannot select an overload. A transparent type alias does not create a separate overload.
 
 ## Generic functions
 

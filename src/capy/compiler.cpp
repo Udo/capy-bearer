@@ -278,6 +278,45 @@ std::uint8_t array_store_opcode(const std::string& type)
 	return type == "s64" || type == "u64" ? 0x37 : type == "f64" ? 0x39 : 0x36;
 }
 
+struct AggregateLayout
+{
+	std::vector<unsigned> offsets;
+	unsigned size;
+};
+
+unsigned align_to(unsigned value, unsigned alignment)
+{
+	return (value + alignment - 1) & ~(alignment - 1);
+}
+
+AggregateLayout aggregate_layout(const std::vector<std::string>& fields, unsigned first_offset)
+{
+	AggregateLayout result{{}, first_offset};
+	for (const std::string& field : fields)
+	{
+		const unsigned size = array_element_size(field);
+		result.size = align_to(result.size, size);
+		result.offsets.push_back(result.size);
+		result.size += size;
+	}
+	result.size = align_to(result.size, 8);
+	return result;
+}
+
+void load_field(Bytes& code, const std::string& type, unsigned offset)
+{
+	code.push_back(array_load_opcode(type));
+	code.push_back(static_cast<std::uint8_t>(array_element_size(type) == 8 ? 3 : 2));
+	wasm::append_uleb(code, offset);
+}
+
+void store_field(Bytes& code, const std::string& type, unsigned offset)
+{
+	code.push_back(array_store_opcode(type));
+	code.push_back(static_cast<std::uint8_t>(array_element_size(type) == 8 ? 3 : 2));
+	wasm::append_uleb(code, offset);
+}
+
 void append_u32_le(std::string& out, std::uint32_t value)
 {
 	out.push_back(static_cast<char>(value));
@@ -407,6 +446,17 @@ std::string type_of_expression(const Expr* expression, bool allow_void = false)
 	return "struct:" + name;
 }
 
+std::string literal_type(const Expr* expression)
+{
+	if (dynamic_cast<const Integer*>(expression)) return "s32";
+	if (dynamic_cast<const SignedInteger*>(expression)) return "s64";
+	if (dynamic_cast<const UnsignedInteger*>(expression)) return "u64";
+	if (dynamic_cast<const Float*>(expression)) return "f64";
+	if (dynamic_cast<const String*>(expression)) return "string";
+	if (auto name = dynamic_cast<const Name*>(expression); name && (name->value == "true" || name->value == "false")) return "bool";
+	return "";
+}
+
 struct Definition
 {
 	Function* function = nullptr;
@@ -421,7 +471,9 @@ struct Definition
 	unsigned type = 0;
 	unsigned thunk_target = 0xffffffffu;
 	bool closure_body = false;
-	bool fused_only = false;
+	bool body_omitted = false;
+	bool inline_only = false;
+	Expr* inline_value = nullptr;
 	std::vector<std::pair<std::string, std::string>> captures;
 };
 
@@ -461,7 +513,6 @@ bool references_function_value(Expr* expression, const std::string& target)
 	if (auto function = dynamic_cast<Function*>(expression)) return references_function_value(function->body, target);
 	if (auto lambda = dynamic_cast<Lambda*>(expression)) return references_function_value(lambda->body, target);
 	if (auto variable = dynamic_cast<Variable*>(expression)) return references_function_value(variable->value, target);
-	if (auto constant = dynamic_cast<Constant*>(expression)) return references_function_value(constant->value, target);
 	if (auto annotation = dynamic_cast<Annotation*>(expression)) return references_function_value(annotation->value, target);
 	if (auto binary = dynamic_cast<Binary*>(expression)) return references_function_value(binary->left, target) || references_function_value(binary->right, target);
 	if (auto lookup = dynamic_cast<ScopeLookup*>(expression)) return references_function_value(lookup->value, target);
@@ -512,6 +563,7 @@ struct FunctionLowerer
 	unsigned local_count_ = 0;
 	std::vector<std::string> local_types_;
 	bool implicit_result_ = false;
+	std::set<const Expr*> owned_expression_results_;
 	std::optional<std::size_t> repeated_condition_scope_;
 	struct Loop
 	{
@@ -539,7 +591,15 @@ struct FunctionLowerer
 	Bytes array_ensure_unique(unsigned slot, const std::string& array_type, unsigned required, const Location& location);
 	std::pair<Bytes, unsigned> allocate_blob(const std::string& type, unsigned type_id, unsigned length, const Location& location);
 	Bytes format_wide_scalar(Bytes code, const std::string& type, const Location& location);
+	struct BlockValue
+	{
+		Bytes code;
+		std::string type;
+		bool falls_through;
+	};
 	Bytes block(Block* block, bool new_scope = true);
+	BlockValue value_block(Block* block);
+	std::string infer_block(Block* block);
 	Bytes cleanup_scopes(unsigned first = 0) const;
 	bool expression_is_owned(const Expr* value);
 	std::pair<unsigned, std::string> lookup(const Name* name) const;
@@ -650,10 +710,43 @@ struct Module
 		tuples_[type] = id;
 		return id;
 	}
-	const Constant* constant(const std::string& name) const
+	bool has_alias(const std::string& name) const
 	{
-		auto found = constants_.find(name);
-		return found == constants_.end() ? nullptr : found->second;
+		return aliases_.contains(name);
+	}
+	std::string alias_type(const std::string& name, const Location& location)
+	{
+		if (auto resolved = resolved_aliases_.find(name); resolved != resolved_aliases_.end())
+			return resolved->second;
+		auto found = aliases_.find(name);
+		if (found == aliases_.end())
+			throw Error(location, "unknown type '" + name + "'");
+		if (!resolving_aliases_.insert(name).second)
+			throw Error(found->second->location, "cyclic type alias '" + name + "'");
+		const std::string resolved = value_type(found->second->value);
+		resolving_aliases_.erase(name);
+		resolved_aliases_[name] = resolved;
+		return resolved;
+	}
+	std::string named_type(const std::string& name, const Location& location)
+	{
+		if (has_alias(name))
+			return alias_type(name, location);
+		if (name == "s32" || name == "s64" || name == "u64" || name == "f64" || name == "bool" || name == "string" || name == "markup" ||
+			name == "dval" || name == "request" || name == "module" || name == "void")
+			return name;
+		if (has_struct(name))
+			return "struct:" + name;
+		throw Error(location, "unknown type '" + name + "'");
+	}
+	std::string constructor_name(const std::string& name, const Location& location)
+	{
+		const std::string type = named_type(name, location);
+		if (type.rfind("struct:", 0) == 0)
+			return type.substr(7);
+		if (primitive_constructor_name(type) || type == "dval")
+			return type;
+		throw Error(location, "type '" + name + "' has no constructor call");
 	}
 	std::pair<std::string, unsigned> reference_function(const std::string& name, const Location& location)
 	{
@@ -681,7 +774,7 @@ struct Module
 		thunk.parameters = target.parameters;
 		thunk.parameters.insert(thunk.parameters.begin(), "s32");
 		thunk.result = target.result;
-		thunk.index = first_user_index_ + static_cast<unsigned>(definitions_.size());
+		thunk.index = first_user_index_ + static_cast<unsigned>(std::count_if(definitions_.begin(), definitions_.end(), [](const Definition& value) { return !value.inline_only; }));
 		thunk.type = value_type_index;
 		thunk.thunk_target = static_cast<unsigned>(candidates.front());
 		definitions_.push_back(std::move(thunk));
@@ -938,7 +1031,7 @@ struct Module
 		definition.parameters = types;
 		definition.convert = generic.convert;
 		definition.result = generic.dependent_result >= 0 ? types[static_cast<unsigned>(generic.dependent_result)] : generic.fixed_result;
-		definition.index = first_user_index_ + static_cast<unsigned>(definitions_.size());
+		definition.index = first_user_index_ + static_cast<unsigned>(std::count_if(definitions_.begin(), definitions_.end(), [](const Definition& value) { return !value.inline_only; }));
 		definition.type = wasm_type(definition.parameters, definition.result);
 		definitions_by_key_[key(name, types)] = definitions_.size();
 		definitions_.push_back(std::move(definition));
@@ -987,7 +1080,9 @@ struct Module
 	std::map<std::string, unsigned> imports_;
 	std::set<std::string> runtime_imports_;
 	std::unordered_map<std::string, HostDeclaration> hosts_;
-	std::unordered_map<std::string, Constant*> constants_;
+	std::map<std::string, TypeAlias*> aliases_;
+	std::map<std::string, std::string> resolved_aliases_;
+	std::set<std::string> resolving_aliases_;
 	std::set<std::string> used_hosts_;
 	std::map<std::string, unsigned> host_types_;
 	std::map<std::string, unsigned> helpers_;
@@ -1041,8 +1136,6 @@ std::string Module::value_type(const Expr* expression, bool allow_void)
 		for (std::size_t i = 0; i < tuple->items.size(); ++i)
 		{
 			const std::string field = value_type(tuple->items[i]);
-			if (wide_scalar(field))
-				throw Error(tuple->items[i]->location, "s64, u64, and f64 are not yet supported in tuple layouts");
 			if (field == "module")
 				throw Error(tuple->items[i]->location, "module is opaque and cannot be stored in tuple layouts");
 			type += (i ? "," : "") + field;
@@ -1083,6 +1176,8 @@ std::string Module::value_type(const Expr* expression, bool allow_void)
 		if (variadic) variadic_function_types_[type] = {parameters.size() - 2, element, convert};
 		return "function#" + std::to_string(type);
 	}
+	if (auto name = dynamic_cast<const Name*>(expression))
+		return named_type(name->value, name->location);
 	return type_of_expression(expression, allow_void);
 }
 
@@ -1164,8 +1259,26 @@ bool expression_always_returns(const Expr* value)
 	return false;
 }
 
+bool expression_falls_through(const Expr* value)
+{
+	if (dynamic_cast<const Return*>(value) || dynamic_cast<const Break*>(value) || dynamic_cast<const Continue*>(value))
+		return false;
+	if (auto block = dynamic_cast<const Block*>(value))
+	{
+		for (const Expr* item : block->items)
+			if (!expression_falls_through(item))
+				return false;
+		return true;
+	}
+	if (auto conditional = dynamic_cast<const If*>(value))
+		return !conditional->else_body || expression_falls_through(conditional->then_body) || expression_falls_through(conditional->else_body);
+	return true;
+}
+
 bool FunctionLowerer::expression_is_owned(const Expr* value)
 {
+	if (owned_expression_results_.contains(value))
+		return true;
 	if (auto lambda = dynamic_cast<const Lambda*>(value))
 		return !std::get<4>(register_lambda(const_cast<Lambda*>(lambda))).empty();
 	if (dynamic_cast<const ArrayLiteral*>(value) || dynamic_cast<const MapLiteral*>(value) || dynamic_cast<const TupleExpr*>(value) ||
@@ -1226,7 +1339,7 @@ std::vector<std::pair<std::string, std::string>> FunctionLowerer::lambda_capture
 		}
 		else if (auto name = dynamic_cast<Name*>(value))
 		{
-			if (name->value == "true" || name->value == "false" || module_.constant(name->value))
+			if (name->value == "true" || name->value == "false")
 				return;
 			if (std::any_of(scopes.rbegin(), scopes.rend(), [&](const auto& scope) { return scope.contains(name->value); }))
 				return;
@@ -1357,9 +1470,7 @@ std::tuple<std::string, unsigned, unsigned, Definition*, std::vector<std::pair<s
 	const std::string result = module_.value_type(lambda->return_type, true);
 	const auto captures = lambda_captures(lambda);
 	for (const auto& [name, type] : captures)
-		if (wide_scalar(type))
-			throw Error(lambda->location, "s64, u64, and f64 are not yet supported in captured closure layouts");
-		else if (type == "module")
+		if (type == "module")
 			throw Error(lambda->location, "module is opaque and cannot be captured by a closure");
 	auto indirect_parameters = parameters;
 	indirect_parameters.insert(indirect_parameters.begin(), "s32");
@@ -1379,7 +1490,7 @@ std::tuple<std::string, unsigned, unsigned, Definition*, std::vector<std::pair<s
 	definition.variadic_element = variadic_element;
 	definition.variadic_convert = variadic_convert;
 	definition.result = result;
-	definition.index = module_.first_user_index_ + static_cast<unsigned>(module_.definitions_.size());
+	definition.index = module_.first_user_index_ + static_cast<unsigned>(std::count_if(module_.definitions_.begin(), module_.definitions_.end(), [](const Definition& value) { return !value.inline_only; }));
 	definition.type = type;
 	definition.closure_body = true;
 	definition.captures = captures;
@@ -1416,6 +1527,47 @@ std::optional<std::pair<unsigned, std::string>> FunctionLowerer::compatible_loca
 	return std::nullopt;
 }
 
+std::string FunctionLowerer::infer_block(Block* block_value)
+{
+	const auto saved_scopes = scopes_;
+	scopes_.push_back({});
+	std::string result = "void";
+	for (std::size_t i = 0; i < block_value->items.size(); ++i)
+	{
+		Expr* item = block_value->items[i];
+		const bool final = i + 1 == block_value->items.size();
+		if (dynamic_cast<Return*>(item) || dynamic_cast<Break*>(item) || dynamic_cast<Continue*>(item))
+			result = "never";
+		else if (auto conditional = dynamic_cast<If*>(item); conditional && !final)
+		{
+			if (infer(conditional->condition) != "bool")
+				throw Error(conditional->condition->location, "if condition must be bool");
+			result = "void";
+		}
+		else
+			result = infer(item);
+		if (auto variable = dynamic_cast<Variable*>(item))
+			scopes_.back()[variable->name] = {0, result};
+		else if (auto binary = dynamic_cast<Binary*>(item); binary && binary->operator_ == ":=")
+			if (auto name = dynamic_cast<Name*>(binary->left))
+				scopes_.back()[name->value] = {0, result};
+		auto register_condition_declaration = [&](Expr* condition)
+		{
+			if (auto variable = dynamic_cast<Variable*>(condition))
+				scopes_.back()[variable->name] = {0, "bool"};
+			else if (auto binary = dynamic_cast<Binary*>(condition); binary && binary->operator_ == ":=")
+				if (auto name = dynamic_cast<Name*>(binary->left))
+					scopes_.back()[name->value] = {0, "bool"};
+		};
+		if (auto conditional = dynamic_cast<If*>(item)) register_condition_declaration(conditional->condition);
+		if (auto loop = dynamic_cast<While*>(item)) register_condition_declaration(loop->condition);
+		if (!expression_falls_through(item))
+			break;
+	}
+	scopes_ = saved_scopes;
+	return result;
+}
+
 std::string FunctionLowerer::infer(Expr* value)
 {
 	if (dynamic_cast<Integer*>(value))
@@ -1432,6 +1584,36 @@ std::string FunctionLowerer::infer(Expr* value)
 		return "markup";
 	if (auto lambda = dynamic_cast<Lambda*>(value))
 		return std::get<0>(register_lambda(lambda));
+	if (auto block = dynamic_cast<Block*>(value))
+		return infer_block(block);
+	if (auto conditional = dynamic_cast<If*>(value))
+	{
+		const auto saved_scopes = scopes_;
+		const std::string condition = infer(conditional->condition);
+		if (condition != "bool")
+			throw Error(conditional->condition->location, "if condition must be bool");
+		if (auto variable = dynamic_cast<Variable*>(conditional->condition))
+			scopes_.back()[variable->name] = {0, condition};
+		else if (auto binary = dynamic_cast<Binary*>(conditional->condition); binary && binary->operator_ == ":=")
+			if (auto name = dynamic_cast<Name*>(binary->left))
+				scopes_.back()[name->value] = {0, condition};
+		const std::string then_type = infer_block(conditional->then_body);
+		const std::string else_type = conditional->else_body ? infer_block(conditional->else_body) : "void";
+		scopes_ = saved_scopes;
+		if (!conditional->else_body)
+			return "void";
+		if (then_type == "never")
+			return else_type;
+		if (else_type == "never")
+			return then_type;
+		if (then_type != else_type)
+			throw Error(conditional->location, "if branches produce " + then_type + " and " + else_type);
+		return then_type;
+	}
+	if (dynamic_cast<Return*>(value) || dynamic_cast<Break*>(value) || dynamic_cast<Continue*>(value))
+		return "never";
+	if (dynamic_cast<While*>(value) || dynamic_cast<For*>(value))
+		return "void";
 	if (auto name = dynamic_cast<Name*>(value))
 	{
 		if (name->value == "true" || name->value == "false")
@@ -1439,8 +1621,6 @@ std::string FunctionLowerer::infer(Expr* value)
 		for (auto scope = scopes_.rbegin(); scope != scopes_.rend(); ++scope)
 			if (auto found = scope->find(name->value); found != scope->end())
 				return found->second.second;
-		if (const Constant* constant = module_.constant(name->value))
-			return module_.value_type(constant->annotation);
 		return module_.reference_function(name->value, name->location).first;
 	}
 	if (auto tuple = dynamic_cast<TupleExpr*>(value))
@@ -1451,8 +1631,6 @@ std::string FunctionLowerer::infer(Expr* value)
 		for (std::size_t i = 0; i < tuple->items.size(); ++i)
 		{
 			const std::string field = infer(tuple->items[i]);
-			if (wide_scalar(field))
-				throw Error(tuple->items[i]->location, "s64, u64, and f64 are not yet supported in tuple layouts");
 			if (field == "module")
 				throw Error(tuple->items[i]->location, "module is opaque and cannot be stored in tuple layouts");
 			type += (i ? "," : "") + field;
@@ -1648,7 +1826,8 @@ std::string FunctionLowerer::infer(Expr* value)
 				const unsigned type = static_cast<unsigned>(std::stoul(found->second.second.substr(9)));
 				return function_value_result(type);
 			}
-		if (name->value == "dval")
+		const std::string type_callee = module_.has_alias(name->value) ? module_.constructor_name(name->value, name->location) : name->value;
+		if (type_callee == "dval")
 		{
 			if (call->arguments.size() != 1)
 				throw Error(call->location, "dval expects one scalar, map, or list");
@@ -1670,22 +1849,22 @@ std::string FunctionLowerer::infer(Expr* value)
 			}
 			else
 				arguments.push_back(infer(argument));
-		if (primitive_constructor_name(name->value) && arguments.size() == 1)
+		if (primitive_constructor_name(type_callee) && arguments.size() == 1)
 		{
-			if (Definition* exact = module_.exact_definition(name->value, arguments))
+			if (Definition* exact = module_.exact_definition(type_callee, arguments))
 				return exact->result;
-			if (can_convert(arguments[0], name->value))
-				return name->value;
-			return module_.resolve(name->value, arguments, call->location).result;
+			if (can_convert(arguments[0], type_callee))
+				return type_callee;
+			return module_.resolve(type_callee, arguments, call->location).result;
 		}
-		if (module_.has_struct(name->value))
+		if (module_.has_struct(type_callee))
 		{
 			std::vector<std::string> fields;
-			for (const auto& field : module_.struct_type(name->value, call->location).fields)
+			for (const auto& field : module_.struct_type(type_callee, call->location).fields)
 				fields.push_back(field.second);
 			if (arguments == fields)
-				return "struct:" + name->value;
-			return module_.resolve(name->value, arguments, call->location).result;
+				return "struct:" + type_callee;
+			return module_.resolve(type_callee, arguments, call->location).result;
 		}
 		if (name->value == "clone")
 			return infer(call->arguments.at(0));
@@ -2762,7 +2941,11 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			code.push_back(0x6a);
 			return {code, type};
 		}
-		const unsigned pointer = add_local("", type, value->location), size = 20 + 4 * static_cast<unsigned>(captures.size());
+		std::vector<std::string> capture_types;
+		for (const auto& [name, capture_type] : captures)
+			capture_types.push_back(capture_type);
+		const AggregateLayout layout = aggregate_layout(capture_types, 24);
+		const unsigned pointer = add_local("", type, value->location), size = layout.size;
 		Bytes code{0x41};
 		wasm::append_sleb32(code, static_cast<std::int32_t>(size));
 		code.push_back(0x10);
@@ -2805,8 +2988,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			wasm::append_uleb(code, pointer);
 			code.push_back(0x20);
 			wasm::append_uleb(code, local);
-			code.insert(code.end(), {0x36, 0x02});
-			wasm::append_uleb(code, static_cast<unsigned>(20 + 4 * i));
+			store_field(code, actual, layout.offsets[i]);
 		}
 		code.push_back(0x20);
 		wasm::append_uleb(code, pointer);
@@ -2820,8 +3002,6 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		for (Expr* item : tuple->items)
 		{
 			const std::string field = infer(item);
-			if (wide_scalar(field))
-				throw Error(item->location, "s64, u64, and f64 are not yet supported in tuple layouts");
 			if (field == "module")
 				throw Error(item->location, "module is opaque and cannot be stored in tuple layouts");
 			fields.push_back(field);
@@ -2830,9 +3010,10 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		for (std::size_t i = 0; i < fields.size(); ++i)
 			type += (i ? "," : "") + fields[i];
 		type += ">";
+		const AggregateLayout layout = aggregate_layout(fields, 16);
 		const unsigned pointer = add_local("", type, value->location);
 		Bytes code{0x41};
-		wasm::append_sleb32(code, static_cast<std::int32_t>(16 + 4 * fields.size()));
+		wasm::append_sleb32(code, static_cast<std::int32_t>(layout.size));
 		code.push_back(0x10);
 		wasm::append_uleb(code, module_.import_index("bearer_alloc"));
 		code.push_back(0x21);
@@ -2843,7 +3024,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		for (const auto [header, offset] : {std::pair<std::int32_t, unsigned>{1, 0},
 											{1, 4},
 											{static_cast<std::int32_t>(module_.tuple_type(type)), 8},
-											{static_cast<std::int32_t>(16 + 4 * fields.size()), 12}})
+											{static_cast<std::int32_t>(layout.size), 12}})
 		{
 			code.push_back(0x20);
 			wasm::append_uleb(code, pointer);
@@ -2873,8 +3054,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			wasm::append_uleb(code, pointer);
 			code.push_back(0x20);
 			wasm::append_uleb(code, temporary);
-			code.insert(code.end(), {0x36, 0x02});
-			wasm::append_uleb(code, static_cast<unsigned>(16 + 4 * i));
+			store_field(code, actual, layout.offsets[i]);
 		}
 		code.push_back(0x20);
 		wasm::append_uleb(code, pointer);
@@ -3078,14 +3258,14 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			if (!item || item->value < 0 || static_cast<std::size_t>(item->value) >= fields.size())
 				throw Error(index->index->location, "tuple index is out of bounds");
 			const std::string result_type = fields[item->value];
+			const AggregateLayout layout = aggregate_layout(fields, 16);
 			const unsigned object = add_local("", array_type, index->value->location);
 			Bytes code = std::move(array_code);
 			code.push_back(0x21);
 			wasm::append_uleb(code, object);
 			code.push_back(0x20);
 			wasm::append_uleb(code, object);
-			code.insert(code.end(), {0x28, 0x02});
-			wasm::append_uleb(code, static_cast<unsigned>(16 + 4 * item->value));
+			load_field(code, result_type, layout.offsets[item->value]);
 			if (expression_is_owned(index->value))
 			{
 				const unsigned result = add_local("", result_type, value->location);
@@ -3175,13 +3355,16 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		if (found == fields.end())
 			throw Error(member->location, "struct has no member '" + member->member + "'");
 		const unsigned field_index = static_cast<unsigned>(found - fields.begin()), object = add_local("", object_type, member->value->location);
+		std::vector<std::string> field_types;
+		for (const auto& [name, field_type] : fields)
+			field_types.push_back(field_type);
+		const AggregateLayout layout = aggregate_layout(field_types, 16);
 		Bytes code = std::move(object_code);
 		code.push_back(0x21);
 		wasm::append_uleb(code, object);
 		code.push_back(0x20);
 		wasm::append_uleb(code, object);
-		code.insert(code.end(), {0x28, 0x02});
-		wasm::append_uleb(code, 16 + 4 * field_index);
+		load_field(code, found->second, layout.offsets[field_index]);
 		if (expression_is_owned(member->value))
 		{
 			const unsigned result = add_local("", found->second, value->location);
@@ -3403,8 +3586,6 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				wasm::append_uleb(code, found->second.first);
 				return {code, found->second.second};
 			}
-		if (const Constant* constant = module_.constant(name->value))
-			return expression(constant->value);
 		auto [type, slot] = module_.reference_function(name->value, name->location);
 		const unsigned offset = module_.add_static_closure(slot);
 		Bytes code{0x23, 0x00, 0x41};
@@ -3967,7 +4148,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			}
 			return {code, signature.second};
 		}
-		const std::string callee = member ? member->member : named->value;
+		std::string callee = member ? member->member : named->value;
 		if (!member || method_local)
 		for (auto scope = scopes_.rbegin(); scope != scopes_.rend(); ++scope)
 			if (auto found = scope->find(callee); found != scope->end() && found->second.second.rfind("function#", 0) == 0)
@@ -4030,6 +4211,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 					}
 				return {code, signature.second};
 			}
+		if (!member && module_.has_alias(callee))
+			callee = module_.constructor_name(callee, call->location);
 		if (!member && primitive_constructor_name(callee) && call->arguments.size() == 1)
 		{
 			const std::string source = infer(call->arguments[0]);
@@ -4052,10 +4235,14 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		if (generated_struct)
 		{
 			const auto& aggregate = module_.struct_type(callee, named->location);
+			std::vector<std::string> field_types;
+			for (const auto& [name, field_type] : aggregate.fields)
+				field_types.push_back(field_type);
+			const AggregateLayout layout = aggregate_layout(field_types, 16);
 			const std::string type = "struct:" + callee;
 			const unsigned pointer = add_local("", type, value->location);
 			Bytes code{0x41};
-			wasm::append_sleb32(code, static_cast<std::int32_t>(16 + 4 * aggregate.fields.size()));
+			wasm::append_sleb32(code, static_cast<std::int32_t>(layout.size));
 			code.push_back(0x10);
 			wasm::append_uleb(code, module_.import_index("bearer_alloc"));
 			code.push_back(0x21);
@@ -4066,7 +4253,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			for (const auto [header, offset] : {std::pair<std::int32_t, unsigned>{1, 0},
 												{1, 4},
 												{static_cast<std::int32_t>(aggregate.type_id), 8},
-												{static_cast<std::int32_t>(16 + 4 * aggregate.fields.size()), 12}})
+												{static_cast<std::int32_t>(layout.size), 12}})
 			{
 				code.push_back(0x20);
 				wasm::append_uleb(code, pointer);
@@ -4096,8 +4283,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				wasm::append_uleb(code, pointer);
 				code.push_back(0x20);
 				wasm::append_uleb(code, temporary);
-				code.insert(code.end(), {0x36, 0x02});
-				wasm::append_uleb(code, static_cast<unsigned>(16 + 4 * i));
+				store_field(code, actual, layout.offsets[i]);
 			}
 			code.push_back(0x20);
 			wasm::append_uleb(code, pointer);
@@ -4258,6 +4444,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			return {code, host->result};
 		}
 		Definition& target = member ? *method_definition : module_.resolve(callee, types, value->location);
+		if (!member && target.inline_value && arguments->empty())
+			return expression(target.inline_value);
 		auto fused_variadic_sink = [&]() -> std::optional<std::pair<Bytes, std::string>>
 		{
 			const Module::HostDeclaration* sink = module_.fused_variadic_sink(target);
@@ -4493,19 +4681,48 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		auto [condition, type] = expression(conditional->condition);
 		if (type != "bool")
 			throw Error(conditional->condition->location, type == "module" ? "module is opaque and cannot be used as a condition" : "if condition must be bool");
-		condition.insert(condition.end(), {0x04, 0x40});
-		++control_depth_;
-		append(condition, block(conditional->then_body));
-		--control_depth_;
-		if (conditional->else_body)
+		if (!conditional->else_body || !value_required)
 		{
-			condition.push_back(0x05);
+			condition.insert(condition.end(), {0x04, 0x40});
 			++control_depth_;
-			append(condition, block(conditional->else_body));
+			append(condition, block(conditional->then_body));
 			--control_depth_;
+			if (conditional->else_body)
+			{
+				condition.push_back(0x05);
+				++control_depth_;
+				append(condition, block(conditional->else_body));
+				--control_depth_;
+			}
+			condition.push_back(0x0b);
+			return {condition, "void"};
 		}
+		++control_depth_;
+		BlockValue then_value = value_block(conditional->then_body);
+		--control_depth_;
+		++control_depth_;
+		BlockValue else_value = value_block(conditional->else_body);
+		--control_depth_;
+		std::string result = "void";
+		if (then_value.falls_through && else_value.falls_through)
+		{
+			if (then_value.type != else_value.type)
+				throw Error(conditional->location, "if branches produce " + then_value.type + " and " + else_value.type);
+			result = then_value.type;
+		}
+		else if (then_value.falls_through)
+			result = then_value.type;
+		else if (else_value.falls_through)
+			result = else_value.type;
+		condition.push_back(0x04);
+		condition.push_back(result == "void" ? 0x40 : wasm_value_type(result));
+		append(condition, then_value.code);
+		condition.push_back(0x05);
+		append(condition, else_value.code);
 		condition.push_back(0x0b);
-		return {condition, "void"};
+		if (managed_type(result))
+			owned_expression_results_.insert(value);
+		return {condition, result};
 	}
 	if (auto loop = dynamic_cast<While*>(value))
 	{
@@ -4752,8 +4969,75 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		return {code, "void"};
 	}
 	if (auto nested = dynamic_cast<Block*>(value))
-		return {block(nested), "void"};
+	{
+		if (!value_required)
+			return {block(nested), "void"};
+		BlockValue result = value_block(nested);
+		if (managed_type(result.type))
+			owned_expression_results_.insert(value);
+		return {std::move(result.code), result.type};
+	}
 	throw Error(value->location, "native Capy backend does not yet lower expression");
+}
+
+FunctionLowerer::BlockValue FunctionLowerer::value_block(Block* block_value)
+{
+	scopes_.push_back({});
+	owned_scopes_.push_back({});
+	Bytes code;
+	std::string result_type = "void";
+	bool falls_through = true;
+	for (std::size_t i = 0; i < block_value->items.size(); ++i)
+	{
+		Expr* item = block_value->items[i];
+		const bool final = i + 1 == block_value->items.size();
+		auto [part, type] = expression(item, final);
+		append(code, part);
+		falls_through = expression_falls_through(item);
+		if (!final)
+		{
+			if (type != "void" && type != "never")
+			{
+				if (managed_type(type) && expression_is_owned(item))
+				{
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.release_index());
+				}
+				else
+					code.push_back(0x1a);
+			}
+			if (!falls_through)
+				break;
+			continue;
+		}
+		result_type = type;
+		if (falls_through)
+		{
+			if (type != "void")
+			{
+				const unsigned result = add_local("", type, item->location);
+				code.push_back(0x21);
+				wasm::append_uleb(code, result);
+				if (managed_type(type) && !expression_is_owned(item))
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, result);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.retain_index());
+				}
+				append(code, cleanup_scopes(owned_scopes_.size() - 1));
+				code.push_back(0x20);
+				wasm::append_uleb(code, result);
+			}
+			else
+				append(code, cleanup_scopes(owned_scopes_.size() - 1));
+		}
+	}
+	if (block_value->items.empty())
+		append(code, cleanup_scopes(owned_scopes_.size() - 1));
+	owned_scopes_.pop_back();
+	scopes_.pop_back();
+	return {std::move(code), result_type, falls_through};
 }
 
 Bytes FunctionLowerer::block(Block* block_value, bool new_scope)
@@ -4768,9 +5052,9 @@ Bytes FunctionLowerer::block(Block* block_value, bool new_scope)
 	{
 		Expr* item = block_value->items[i];
 		const auto variable = dynamic_cast<Variable*>(item);
-		const bool declaration_result = variable && !new_scope && i + 1 == block_value->items.size() && definition_.result != "void" &&
-			infer(variable) == definition_.result;
-		auto [part, type] = expression(item, declaration_result || !variable);
+		const bool final_result = !new_scope && i + 1 == block_value->items.size() && definition_.result != "void";
+		const bool declaration_result = variable && final_result && infer(variable) == definition_.result;
+		auto [part, type] = expression(item, declaration_result || (!variable && final_result));
 		append(code, part);
 		const bool implicit_result = declaration_result || (!variable && !new_scope && i + 1 == block_value->items.size() && type == definition_.result && type != "void");
 		if (implicit_result)
@@ -4883,17 +5167,22 @@ Bytes FunctionLowerer::lower()
 		wasm::append_uleb(code, module_.retain_index());
 	}
 	if (definition_.closure_body)
+	{
+		std::vector<std::string> capture_types;
+		for (const auto& [name, type] : definition_.captures)
+			capture_types.push_back(type);
+		const AggregateLayout layout = aggregate_layout(capture_types, 24);
 		for (std::size_t i = 0; i < definition_.captures.size(); ++i)
 		{
 			Name name(definition_.function->location, definition_.captures[i].first);
 			auto [slot, type] = lookup(&name);
 			code.push_back(0x20);
 			wasm::append_uleb(code, 0);
-			code.insert(code.end(), {0x28, 0x02});
-			wasm::append_uleb(code, static_cast<unsigned>(20 + 4 * i));
+			load_field(code, type, layout.offsets[i]);
 			code.push_back(0x21);
 			wasm::append_uleb(code, slot);
 		}
+	}
 	append(code, block(definition_.function->body, false));
 	if (definition_.result != "void" && !implicit_result_ && !expression_always_returns(definition_.function->body))
 		throw Error(definition_.function->location, "not all paths produce " + definition_.result);
@@ -4981,6 +5270,7 @@ std::vector<Bytes> Module::runtime_bodies() const
 		code.insert(code.end(), {0x20, 0x01, 0x41, 0x01, 0x6a, 0x21, 0x01, 0x0c, 0x00, 0x0b, 0x0b, 0x0b});
 		for (const auto& [type_id, captures] : closure_types_)
 		{
+			const AggregateLayout layout = aggregate_layout(captures, 24);
 			std::vector<unsigned> managed;
 			for (unsigned i = 0; i < captures.size(); ++i)
 				if (managed_type(captures[i]))
@@ -4992,8 +5282,9 @@ std::vector<Bytes> Module::runtime_bodies() const
 			code.insert(code.end(), {0x46, 0x04, 0x40});
 			for (unsigned i : managed)
 			{
-				code.insert(code.end(), {0x20, 0x00, 0x28, 0x02});
-				wasm::append_uleb(code, 20 + 4 * i);
+				code.push_back(0x20);
+				wasm::append_uleb(code, 0);
+				load_field(code, captures[i], layout.offsets[i]);
 				code.push_back(0x10);
 				wasm::append_uleb(code, release_index());
 			}
@@ -5001,6 +5292,10 @@ std::vector<Bytes> Module::runtime_bodies() const
 		}
 		for (const auto& [name, aggregate] : structs_)
 		{
+			std::vector<std::string> field_types;
+			for (const auto& [field_name, field_type] : aggregate.fields)
+				field_types.push_back(field_type);
+			const AggregateLayout layout = aggregate_layout(field_types, 16);
 			std::vector<unsigned> managed;
 			for (unsigned i = 0; i < aggregate.fields.size(); ++i)
 				if (managed_type(aggregate.fields[i].second))
@@ -5012,8 +5307,9 @@ std::vector<Bytes> Module::runtime_bodies() const
 			code.insert(code.end(), {0x46, 0x04, 0x40});
 			for (unsigned i : managed)
 			{
-				code.insert(code.end(), {0x20, 0x00, 0x28, 0x02});
-				wasm::append_uleb(code, 16 + 4 * i);
+				code.push_back(0x20);
+				wasm::append_uleb(code, 0);
+				load_field(code, aggregate.fields[i].second, layout.offsets[i]);
 				code.push_back(0x10);
 				wasm::append_uleb(code, release_index());
 			}
@@ -5022,6 +5318,7 @@ std::vector<Bytes> Module::runtime_bodies() const
 		for (const auto& [type, id] : tuples_)
 		{
 			const auto fields = aggregate_elements(type);
+			const AggregateLayout layout = aggregate_layout(fields, 16);
 			std::vector<unsigned> managed;
 			for (unsigned i = 0; i < fields.size(); ++i)
 				if (managed_type(fields[i]))
@@ -5033,8 +5330,9 @@ std::vector<Bytes> Module::runtime_bodies() const
 			code.insert(code.end(), {0x46, 0x04, 0x40});
 			for (unsigned i : managed)
 			{
-				code.insert(code.end(), {0x20, 0x00, 0x28, 0x02});
-				wasm::append_uleb(code, 16 + 4 * i);
+				code.push_back(0x20);
+				wasm::append_uleb(code, 0);
+				load_field(code, fields[i], layout.offsets[i]);
 				code.push_back(0x10);
 				wasm::append_uleb(code, release_index());
 			}
@@ -5180,26 +5478,30 @@ Bytes Module::custom_export_body(const Definition& target) const
 void Module::collect()
 {
 	for (Expr* item : items_)
-		if (auto constant = dynamic_cast<Constant*>(item))
+		if (auto alias = dynamic_cast<TypeAlias*>(item))
 		{
-			if (constant->name == "true" || constant->name == "false" || !constants_.emplace(constant->name, constant).second)
-				throw Error(constant->location, "constant '" + constant->name + "' is already declared");
-			if (value_type(constant->annotation) != "s32" || !dynamic_cast<Integer*>(constant->value))
-				throw Error(constant->location, "constants currently require an s32 literal value");
+			if (alias->name == "true" || alias->name == "false" || alias->name == "any" ||
+				alias->name == "s32" || alias->name == "s64" || alias->name == "u64" || alias->name == "f64" || alias->name == "bool" ||
+				alias->name == "string" || alias->name == "markup" || alias->name == "dval" || alias->name == "request" || alias->name == "module" || alias->name == "void")
+				throw Error(alias->location, "type alias name '" + alias->name + "' is reserved");
+			if (!aliases_.emplace(alias->name, alias).second)
+				throw Error(alias->location, "type alias '" + alias->name + "' is already declared");
 		}
-	// Reserve nominal IDs first so member types can refer to declarations in either order.
+	// Reserve nominal IDs first so aliases and member types can refer to declarations in either order.
 	for (Expr* item : items_)
 	{
 		check_cancelled();
 		if (auto structure = dynamic_cast<Struct*>(item))
 		{
-			if (constants_.contains(structure->name))
-				throw Error(structure->location, "struct name conflicts with constant");
+			if (aliases_.contains(structure->name))
+				throw Error(structure->location, "struct name conflicts with type alias");
 			if (structs_.contains(structure->name))
 				throw Error(structure->location, "struct '" + structure->name + "' is already declared");
 			structs_[structure->name] = {next_aggregate_type_++, {}};
 		}
 	}
+	for (const auto& [name, alias] : aliases_)
+		alias_type(name, alias->location);
 	for (Expr* item : items_)
 	{
 		check_cancelled();
@@ -5218,8 +5520,6 @@ void Module::collect()
 				if (!names.insert(name->value).second)
 					throw Error(member->location, "struct member '" + name->value + "' is already declared");
 				const std::string type = value_type(annotation->type_expr);
-				if (wide_scalar(type))
-					throw Error(annotation->location, "s64, u64, and f64 are not yet supported in struct layouts");
 				if (type == "module")
 					throw Error(annotation->location, "module is opaque and cannot be stored in struct layouts");
 				if (type.rfind("struct:", 0) == 0 && !structs_.contains(type.substr(7)))
@@ -5244,12 +5544,12 @@ void Module::collect()
 		auto function = dynamic_cast<Function*>(item);
 		if (!function)
 		{
-			if (dynamic_cast<Struct*>(item) || dynamic_cast<Exports*>(item) || dynamic_cast<Constant*>(item))
+			if (dynamic_cast<Struct*>(item) || dynamic_cast<Exports*>(item) || dynamic_cast<TypeAlias*>(item))
 				continue;
 			throw Error(item->location, "top-level executable expressions are not implemented by the native backend");
 		}
-		if (constants_.contains(function->name))
-			throw Error(function->location, "function name conflicts with constant");
+		if (aliases_.contains(function->name))
+			throw Error(function->location, "function name conflicts with type alias");
 		if (function->host)
 		{
 			std::vector<std::string> parameters;
@@ -5391,6 +5691,8 @@ void Module::collect()
 			definition.variadic_convert = variadic_convert;
 			definition.result = result;
 			definition.exported = exported;
+			if (function->location.file == "capy://stdlib.capy" && parameters.empty() && function->body && function->body->items.size() == 1 && literal_type(function->body->items[0]) == result)
+				definition.inline_value = function->body->items[0];
 			definitions_by_key_[k] = definitions_.size();
 			definitions_.push_back(std::move(definition));
 			if (function->name.rfind("EXPORT_", 0) == 0)
@@ -5463,6 +5765,15 @@ Module::Capabilities Module::discover_capabilities()
 			return "string";
 		if (dynamic_cast<Markup*>(e))
 			return "markup";
+		if (auto block = dynamic_cast<Block*>(e))
+			return block->items.empty() ? "void" : scan_value_type(block->items.back());
+		if (auto conditional = dynamic_cast<If*>(e))
+		{
+			if (!conditional->else_body) return "void";
+			const std::string then_type = scan_value_type(conditional->then_body);
+			const std::string else_type = scan_value_type(conditional->else_body);
+			return then_type == else_type ? then_type : "";
+		}
 		if (auto tuple = dynamic_cast<TupleExpr*>(e))
 		{
 			std::string type = "tuple<";
@@ -5476,7 +5787,7 @@ Module::Capabilities Module::discover_capabilities()
 		}
 		if (auto array = dynamic_cast<ArrayLiteral*>(e))
 		{
-			if (array->items.empty()) return array->explicit_element_type ? "array<" + type_of_expression(array->explicit_element_type) + ">" : "";
+			if (array->items.empty()) return array->explicit_element_type ? "array<" + value_type(array->explicit_element_type) + ">" : "";
 			std::string element;
 			for (Expr* value : array->items)
 			{
@@ -5491,8 +5802,6 @@ Module::Capabilities Module::discover_capabilities()
 		{
 			if (name->value == "true" || name->value == "false")
 				return "bool";
-			if (const Constant* constant = this->constant(name->value))
-				return this->value_type(constant->annotation);
 			if (auto found = scan_value_names.find(name->value); found != scan_value_names.end())
 				return found->second;
 		}
@@ -5504,7 +5813,7 @@ Module::Capabilities Module::discover_capabilities()
 			return "";
 		}
 		if (auto variable = dynamic_cast<Variable*>(e))
-			return variable->annotation ? type_of_expression(variable->annotation) : scan_value_type(variable->value);
+			return variable->annotation ? value_type(variable->annotation) : scan_value_type(variable->value);
 		if (auto index = dynamic_cast<Index*>(e))
 		{
 			const std::string source = scan_value_type(index->value);
@@ -5555,9 +5864,10 @@ Module::Capabilities Module::discover_capabilities()
 					const std::size_t result = found->second.rfind(") ");
 					return result == std::string::npos ? "" : found->second.substr(result + 2);
 				}
-				if (name->value == "dval") return "dval";
-				if (has_struct(name->value)) return "struct:" + name->value;
-				if (primitive_constructor_name(name->value) && call->arguments.size() == 1 && can_convert(scan_value_type(call->arguments[0]), name->value)) return name->value;
+				const std::string callee = has_alias(name->value) ? constructor_name(name->value, name->location) : name->value;
+				if (callee == "dval") return "dval";
+				if (has_struct(callee)) return "struct:" + callee;
+				if (primitive_constructor_name(callee) && call->arguments.size() == 1 && can_convert(scan_value_type(call->arguments[0]), callee)) return callee;
 				if (name->value == "clone") return call->arguments.empty() ? "" : scan_value_type(call->arguments.front());
 				if (name->value == "length" || name->value == "arc_live") return "s32";
 				if (name->value == "dval_has" || name->value == "dval_bool") return "bool";
@@ -5568,9 +5878,9 @@ Module::Capabilities Module::discover_capabilities()
 				std::vector<std::string> arguments;
 				for (Expr* argument : call->arguments)
 					arguments.push_back(scan_value_type(argument));
-				if (const HostDeclaration* declaration = host(name->value, arguments))
+				if (const HostDeclaration* declaration = host(callee, arguments))
 					return declaration->result;
-				if (auto result = compatible_result(name->value, arguments, name->location))
+				if (auto result = compatible_result(callee, arguments, name->location))
 					return *result;
 			}
 		}
@@ -5631,6 +5941,9 @@ Module::Capabilities Module::discover_capabilities()
 		if (auto c = dynamic_cast<Call*>(e))
 		{
 			const Member* member = member_call(c);
+			const Name* named_call = dynamic_cast<Name*>(c->function);
+			const std::string named_callee = named_call && has_alias(named_call->value) && !scan_value_names.contains(named_call->value)
+				? constructor_name(named_call->value, named_call->location) : named_call ? named_call->value : "";
 			if (member && scan_value_type(member->value).rfind("array<", 0) == 0 &&
 				(member->member == "push" || member->member == "pop" || member->member == "insert" || member->member == "remove" ||
 				 member->member == "clear" || member->member == "reserve" || member->member == "resize"))
@@ -5648,7 +5961,7 @@ Module::Capabilities Module::discover_capabilities()
 					else
 						host_arguments.push_back(type);
 				}
-				const std::string& callee = member ? member->member : n->value;
+				const std::string callee = member ? member->member : has_alias(n->value) ? constructor_name(n->value, n->location) : n->value;
 				if (member)
 				{
 					const std::string receiver = scan_value_type(member->value);
@@ -5729,27 +6042,27 @@ Module::Capabilities Module::discover_capabilities()
 									}
 						}
 			}
-			if (auto n = dynamic_cast<Name*>(c->function); n && (n->value == "dval" || n->value == "dval_has" || n->value == "dval_string" || n->value == "dval_s32" || n->value == "dval_f64" || n->value == "dval_bool"))
+			if (named_call && (named_callee == "dval" || named_callee == "dval_has" || named_callee == "dval_string" || named_callee == "dval_s32" || named_callee == "dval_f64" || named_callee == "dval_bool"))
 			{
 				dval_ = true;
 				scan_alloc = true;
 				scan_retain = true;
 				scan_release = true;
-				if (n->value == "dval")
+				if (named_callee == "dval")
 				{
 					if (!c->arguments.empty())
 						scan_dval(c->arguments.front());
 				}
-				else if (n->value == "dval_has") runtime_imports_.insert("bearer_dv_get_brrb");
-				else if (n->value == "dval_string") { runtime_imports_.insert("bearer_dv_scalar_type_brrb"); runtime_imports_.insert("bearer_dv_brrb_to_string"); }
-				else if (n->value == "dval_s32") runtime_imports_.insert("bearer_dv_s32_brrb");
-				else if (n->value == "dval_f64") runtime_imports_.insert("bearer_dv_f64_brrb");
-				else if (n->value == "dval_bool") runtime_imports_.insert("bearer_dv_bool_brrb");
+				else if (named_callee == "dval_has") runtime_imports_.insert("bearer_dv_get_brrb");
+				else if (named_callee == "dval_string") { runtime_imports_.insert("bearer_dv_scalar_type_brrb"); runtime_imports_.insert("bearer_dv_brrb_to_string"); }
+				else if (named_callee == "dval_s32") runtime_imports_.insert("bearer_dv_s32_brrb");
+				else if (named_callee == "dval_f64") runtime_imports_.insert("bearer_dv_f64_brrb");
+				else if (named_callee == "dval_bool") runtime_imports_.insert("bearer_dv_bool_brrb");
 			}
-			if (auto n = dynamic_cast<Name*>(c->function); n && primitive_constructor_name(n->value) && c->arguments.size() == 1)
+			if (named_call && primitive_constructor_name(named_callee) && c->arguments.size() == 1)
 			{
 				const std::string source = scan_value_type(c->arguments[0]);
-				if (n->value == "string" && source != "string" && source != "bool") scan_string_construction(source);
+				if (named_callee == "string" && source != "string" && source != "bool") scan_string_construction(source);
 			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "clone")
 			{
@@ -5765,8 +6078,12 @@ Module::Capabilities Module::discover_capabilities()
 				scan(a);
 		}
 		else if (auto b = dynamic_cast<Block*>(e))
+		{
 			for (auto x : b->items)
 				scan(x);
+			if (!b->items.empty() && managed_type(scan_value_type(b->items.back())))
+				scan_retain = scan_release = true;
+		}
 		else if (auto f = dynamic_cast<Function*>(e))
 		{
 			auto outer_strings = scan_string_names;
@@ -5775,7 +6092,7 @@ Module::Capabilities Module::discover_capabilities()
 			scan_value_names.clear();
 			for (const Parameter& parameter : f->parameters)
 			{
-				std::string type = type_of_expression(parameter.type_expr);
+				std::string type = value_type(parameter.type_expr);
 				if (parameter.variadic)
 					type = "array<" + type + ">";
 				if (type == "string")
@@ -5797,20 +6114,24 @@ Module::Capabilities Module::discover_capabilities()
 		else if (auto v = dynamic_cast<Variable*>(e))
 		{
 			scan(v->value);
-			if (auto function_type = dynamic_cast<FunctionType*>(v->annotation); function_type && !function_type->parameters.empty() &&
-				function_type->parameters.back().variadic && function_type->parameters.back().convert && type_of_expression(function_type->parameters.back().type_expr) == "string")
+			const std::string annotation = v->annotation ? value_type(v->annotation) : "";
+			if (annotation.rfind("function#", 0) == 0)
 			{
-				scan_alloc = scan_retain = scan_release = scan_clone = true;
-				scan_format_s64 = scan_format_u64 = scan_format_f64 = true;
-				string_format_types_.insert("s64"); string_format_types_.insert("u64"); string_format_types_.insert("f64");
+				const unsigned type = static_cast<unsigned>(std::stoul(annotation.substr(9)));
+				if (auto contract = variadic_function_types_.find(type); contract != variadic_function_types_.end() &&
+					contract->second.convert && contract->second.element == "string")
+				{
+					scan_alloc = scan_retain = scan_release = scan_clone = true;
+					scan_format_s64 = scan_format_u64 = scan_format_f64 = true;
+					string_format_types_.insert("s64"); string_format_types_.insert("u64"); string_format_types_.insert("f64");
+				}
 			}
-			const std::string annotation = v->annotation ? type_of_expression(v->annotation) : "";
 			if ((v->annotation && annotation == "string") || (!v->annotation && scan_is_string(v->value)))
 				scan_string_names.insert(v->name);
 			const std::string inferred = annotation.empty() ? scan_value_type(v->value) : annotation;
 			if (!inferred.empty())
 				scan_value_names[v->name] = inferred;
-			if (v->annotation && (managed_type(annotation) || dynamic_cast<FunctionType*>(v->annotation)))
+			if (v->annotation && managed_type(annotation))
 			{
 				scan_retain = true;
 				scan_release = true;
@@ -5923,7 +6244,7 @@ Module::Capabilities Module::discover_capabilities()
 	};
 	for (auto& d : definitions_)
 	{
-		if (d.fused_only) continue;
+		if (d.body_omitted || d.inline_only) continue;
 		scan(d.function);
 		for (const auto& type : d.parameters)
 			if (managed_type(type))
@@ -5980,12 +6301,15 @@ CompileResult Module::compile()
 	collect();
 	check_cancelled();
 	for (Definition& definition : definitions_)
-		if (definition.function && definition.function->location.file == "capy://stdlib.capy" && fused_variadic_sink(definition))
+		if (definition.function && definition.function->location.file == "capy://stdlib.capy" &&
+			(fused_variadic_sink(definition) || definition.inline_value))
 		{
-			definition.fused_only = std::none_of(items_.begin(), items_.end(), [&](Expr* item)
+			const bool referenced = std::any_of(items_.begin(), items_.end(), [&](Expr* item)
 			{
 				return references_function_value(item, definition.function->name);
 			});
+			definition.inline_only = definition.inline_value && !referenced;
+			definition.body_omitted = !definition.inline_value && !referenced;
 		}
 	const Capabilities capabilities = discover_capabilities();
 	const bool scan_format_s64 = capabilities.format_s64, scan_format_u64 = capabilities.format_u64, scan_format_f64 = capabilities.format_f64;
@@ -6069,8 +6393,9 @@ CompileResult Module::compile()
 	for (const auto& [symbol, type] : fused_sink_formats_)
 		helpers_[sink_format_helper(symbol, type)] = next++;
 	first_user_index_ = next;
-	for (auto& d : definitions_)
+	for (Definition& d : definitions_)
 	{
+		if (d.inline_only) continue;
 		d.index = next++;
 		if (d.thunk_target != 0xffffffffu || d.closure_body)
 			continue;
@@ -6098,9 +6423,28 @@ CompileResult Module::compile()
 	unsigned get_type = wasm_type({"s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"}, "s32");
 	unsigned entry_type = wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32");
 	unsigned count_type = wasm_type({"s32", "s32"}, "s32");
+	auto omitted_body = [](const std::string& result)
+	{
+		Bytes content{0x00};
+		if (result == "s64" || result == "u64") content.insert(content.end(), {0x42, 0x00});
+		else if (result == "f64") { content.push_back(0x44); wasm::append_f64(content, 0.0); }
+		else if (result != "void") content.insert(content.end(), {0x41, 0x00});
+		content.push_back(0x0b);
+		Bytes body;
+		wasm::append_uleb(body, static_cast<unsigned>(content.size()));
+		body.insert(body.end(), content.begin(), content.end());
+		return body;
+	};
 	std::vector<Bytes> user_bodies;
-	for (std::size_t i = 0; i < definitions_.size(); ++i)
-		user_bodies.push_back(definitions_[i].fused_only ? Bytes{0x02, 0x00, 0x0b} : FunctionLowerer(*this, definitions_[i]).lower());
+	for (std::size_t index = 0; index < definitions_.size(); ++index)
+	{
+		if (definitions_[index].inline_only) continue;
+		user_bodies.push_back(definitions_[index].body_omitted ? omitted_body(definitions_[index].result) : FunctionLowerer(*this, definitions_[index]).lower());
+	}
+	std::vector<const Definition*> emitted_definitions;
+	for (const Definition& definition : definitions_)
+		if (!definition.inline_only)
+			emitted_definitions.push_back(&definition);
 	std::vector<Bytes> bodies = runtime_bodies();
 	bodies.insert(bodies.end(), user_bodies.begin(), user_bodies.end());
 	for (const auto& [name, target] : custom_exports_)
@@ -6163,28 +6507,28 @@ CompileResult Module::compile()
 		wasm::append_uleb(functions, format_string_f64_type);
 	for (const auto& sink : fused_sink_formats_)
 		wasm::append_uleb(functions, sink_format_types.at(sink));
-	for (const auto& d : definitions_)
-		wasm::append_uleb(functions, d.type);
+	for (const Definition* definition : emitted_definitions)
+		wasm::append_uleb(functions, definition->type);
 	for (std::size_t i = 0; i < custom_exports_.size(); ++i)
 		wasm::append_uleb(functions, custom_export_type);
 	Bytes exports;
 	unsigned export_count = static_cast<unsigned>(custom_exports_.size());
-	for (const auto& d : definitions_)
-		if (!d.exported.empty())
+	for (const Definition* definition : emitted_definitions)
+		if (!definition->exported.empty())
 			++export_count;
 	wasm::append_uleb(exports, export_count);
-	for (const auto& d : definitions_)
-		if (!d.exported.empty())
+	for (const Definition* definition : emitted_definitions)
+		if (!definition->exported.empty())
 		{
-			wasm::append_string(exports, d.exported);
+			wasm::append_string(exports, definition->exported);
 			exports.push_back(0);
-			wasm::append_uleb(exports, d.index);
+			wasm::append_uleb(exports, definition->index);
 		}
 	for (std::size_t i = 0; i < custom_exports_.size(); ++i)
 	{
 		wasm::append_string(exports, custom_exports_[i].first);
 		exports.push_back(0);
-		wasm::append_uleb(exports, first_user_index_ + static_cast<unsigned>(definitions_.size() + i));
+		wasm::append_uleb(exports, first_user_index_ + static_cast<unsigned>(emitted_definitions.size() + i));
 	}
 	Bytes data_segment{0, 0x23, 0, 0x0b};
 	wasm::append_uleb(data_segment, static_cast<unsigned>(data_.size()));
@@ -6277,7 +6621,7 @@ CompileResult Module::compile()
 	for (std::size_t index = 0; index < runtime_count; ++index)
 		cursor += bodies[index].size();
 	std::vector<std::pair<std::size_t, Location>> source_rows;
-	for (std::size_t index = runtime_count; index < runtime_count + definitions_.size(); ++index)
+	for (std::size_t index = runtime_count; index < runtime_count + emitted_definitions.size(); ++index)
 	{
 		std::size_t instruction = 0;
 		read_uleb(bodies[index], instruction); // body byte length
@@ -6287,14 +6631,14 @@ CompileResult Module::compile()
 			read_uleb(bodies[index], instruction);
 			++instruction;
 		}
-		const Definition& definition = definitions_[index - runtime_count];
+		const Definition& definition = *emitted_definitions[index - runtime_count];
 		const Location& location = definition.function ? definition.function->location : definitions_[definition.thunk_target].function->location;
 		source_rows.push_back({cursor + instruction, location});
 		cursor += bodies[index].size();
 	}
 	for (std::size_t index = 0; index < custom_exports_.size(); ++index)
 	{
-		const Bytes& body = bodies[runtime_count + definitions_.size() + index];
+		const Bytes& body = bodies[runtime_count + emitted_definitions.size() + index];
 		std::size_t instruction = 0;
 		read_uleb(body, instruction);
 		const std::uint32_t groups = read_uleb(body, instruction);
@@ -6389,13 +6733,13 @@ void collect_stdlib_demand(Expr* expression, std::set<std::pair<std::string, std
 	else if (auto variable = dynamic_cast<Variable*>(expression))
 	{
 		if (auto name = dynamic_cast<Name*>(variable->value); name && variable->annotation && !local(scopes, name->value))
+		{
+			FunctionKey key{name->value, {}};
 			if (auto type = dynamic_cast<FunctionType*>(variable->annotation))
-			{
-				FunctionKey key{name->value, {}};
 				for (const auto& parameter : type->parameters)
-					key.parameter_types.push_back(type_of_expression(parameter.type_expr));
-				values.insert(std::move(key));
-			}
+					key.parameter_types.push_back(type_name(*parameter.type_expr));
+			values.insert(std::move(key));
+		}
 		collect_stdlib_demand(variable->value, calls, values, scopes);
 		scopes.back().insert(variable->name);
 	}
@@ -6537,12 +6881,12 @@ void validate_user_source(const Program& program, const std::set<std::string>& p
 		}
 		else if (auto structure = dynamic_cast<Struct*>(item); structure && structure->name.rfind("__bearer_", 0) == 0)
 			throw Error(structure->location, "__bearer_* names are reserved for the Capy standard library");
-		else if (auto constant = dynamic_cast<Constant*>(item))
+		else if (auto alias = dynamic_cast<TypeAlias*>(item))
 		{
-			if (constant->name.rfind("__bearer_", 0) == 0)
-				throw Error(constant->location, "__bearer_* names are reserved for the Capy standard library");
-			if (public_names.contains(constant->name))
-				throw Error(constant->location, "'" + constant->name + "' is reserved by the Capy standard library");
+			if (alias->name.rfind("__bearer_", 0) == 0)
+				throw Error(alias->location, "__bearer_* names are reserved for the Capy standard library");
+			if (public_names.contains(alias->name))
+				throw Error(alias->location, "'" + alias->name + "' is reserved by the Capy standard library");
 		}
 	}
 }
@@ -6574,7 +6918,11 @@ std::vector<Expr*> selected_stdlib(const Program& unit, const Program& library)
 				{
 					return call.first == function->name && call.second + 1 >= function->parameters.size();
 				});
-			if (!called && !values.contains(key))
+			const bool referenced_value = std::any_of(values.begin(), values.end(), [&](const FunctionKey& value)
+			{
+				return value.name == key.name && (value.parameter_types.empty() || value.parameter_types.size() == key.parameter_types.size());
+			});
+			if (!called && !referenced_value)
 				continue;
 			if (selected.insert(function).second)
 			{
@@ -6587,7 +6935,7 @@ std::vector<Expr*> selected_stdlib(const Program& unit, const Program& library)
 	for (Expr* item : library.items)
 		if (auto function = dynamic_cast<Function*>(item); function && (function->host || selected.contains(function)))
 			result.push_back(item);
-		else if (dynamic_cast<Constant*>(item))
+		else if (dynamic_cast<TypeAlias*>(item))
 			result.push_back(item);
 	return result;
 }
@@ -6598,7 +6946,7 @@ std::shared_ptr<const Program> parsed_source(std::string_view source, const std:
 	if (!cache || canonical_identity.empty())
 		return std::make_shared<const Program>(parse(source, diagnostic_identity, std::move(cancelled)));
 	return detail::ParsedSourceCacheAccess::acquire(*cache, source, canonical_identity, diagnostic_identity,
-		"capy-parsed-source-v1:" CAPY_COMPILER_BUILD_ID, abi_version, std::move(cancelled), pinned);
+		"capy-parsed-source-v2:" CAPY_COMPILER_BUILD_ID, abi_version, std::move(cancelled), pinned);
 }
 
 CompileResult compile_program(const Program& program, const std::string& source_path, const std::string& module_name, unsigned abi_version,

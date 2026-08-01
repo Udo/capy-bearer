@@ -47,7 +47,7 @@ print(add_ten(5))
 
 The closure stores each captured value. Scalars copy into the closure. Managed captures remain alive until the closure releases them. These values remain available while the closure exists. The closure does not share a mutable outer variable.
 
-A closure can read an outer variable. It cannot assign a new value to that outer variable. Captured-closure layouts do not yet accept `s64`, `u64`, `f64`, or opaque `module` values.
+A closure can read an outer variable. It cannot assign a new value to that outer variable. A closure can capture `s64`, `u64`, `f64`, and managed values. It cannot capture an opaque `module` value.
 
 ## Memory management
 
@@ -55,7 +55,7 @@ Capy releases strings, markup, arrays, tuples, structs, and closures automatical
 
 Assignment, function calls, returns, and block exits preserve each required value. Bearer discards all request data after a trapped request.
 
-Avoid permanent cycles in which two managed values own each other. Reference counting cannot release a strong cycle before the request ends. Weak references are not implemented yet. Trees, lists, and other acyclic data need no special handling.
+Avoid permanent cycles in which two managed values own each other. Reference counting cannot release a strong cycle before the request ends. Capy has no weak-reference source type. Trees, lists, and other acyclic data need no special handling.
 
 :see
 capy-06-functions

@@ -13,26 +13,21 @@ if find "$reference_dir" -type f -name '*.uce' -print -quit | grep -q .; then
 fi
 
 pages=(index syntax types ownership interop status)
-markers=(
-	'Capy language reference'
-	'Syntax'
-	'Types and overloads'
-	'Automatic reference counting'
-	'Bearer interoperability'
-	'Implementation status'
+targets=(
+	'capy-01-getting-started'
+	'capy-02-basic-syntax'
+	'capy-03-types'
+	'capy-09-function-values-closures-and-memory'
+	'capy-12-components-and-units'
+	'capy-14-errors-debugging-and-style'
 )
 for index in "${!pages[@]}"; do
 	path="$base/${pages[$index]}.capy"
-	body=$(curl -fsS --max-time 30 -H "Host: $host" "$path")
-	[[ "$body" == *"${markers[$index]}"* ]] || {
-		echo "Capy reference marker missing from $path" >&2
+	headers=$(curl -fsS --max-time 30 -o /dev/null -D - -H "Host: $host" "$path" | tr -d '\r')
+	[[ "$headers" == *"HTTP/1.1 302"* && "$headers" == *"Location: /doc/?p=${targets[$index]}"* ]] || {
+		echo "Capy reference redirect mismatch for $path" >&2
 		exit 1
 	}
 done
 
-root_body=$(curl -fsS --max-time 30 -H "Host: $host" "$base/")
-[[ "$root_body" == *'<title>Capy Language Reference</title>'* ]]
-css=$(curl -fsS --max-time 30 -H "Host: $host" "$base/style.css")
-[[ "$css" == *'--accent'* ]]
-
-echo "Capy language reference passed: directory root, ${#pages[@]} Capy pages, and CSS"
+echo "Legacy Capy reference redirects passed for ${#pages[@]} pages"

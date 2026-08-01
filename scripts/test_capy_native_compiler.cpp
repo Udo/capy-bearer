@@ -282,27 +282,28 @@ int main()
 	const auto returning = capy::compile_bearer_unit(
 		"function choose(value : bool) s32 { if value { return 1 } else { return 2 } }\nfunction CLI { print(choose(true)) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(returning.wasm, {.bearer_abi_version = "11"}).valid);
-	const auto constants = capy::compile_bearer_unit("const answer : s32 = 42\nfunction CLI { print(answer) }\n", options);
-	const auto constants_repeat = capy::compile_bearer_unit("const answer : s32 = 42\nfunction CLI { print(answer) }\n", options);
-	const auto constant_baseline = capy::compile_bearer_unit("function CLI { print(42) }\n", options);
-	assert(constants.wasm == constants_repeat.wasm && constants.source_map == constants_repeat.source_map);
-	assert(constants.wasm == constant_baseline.wasm);
-	const auto shadowed_constant = capy::compile_bearer_unit("const answer : s32 = 42\nfunction CLI { var answer : s32 = 7; print(answer) }\n", options);
-	assert(shadowed_constant.wasm == capy::compile_bearer_unit("function CLI { var answer : s32 = 7; print(answer) }\n", options).wasm);
-	try { capy::compile_bearer_unit("const x : s32 = 1\nconst x : s32 = 2\nfunction CLI { print(x) }\n", options); assert(false); }
-	catch (const capy::Error& error) { assert(error.message.find("already declared") != std::string::npos); }
-	try { capy::compile_bearer_unit("const x : s32 = 1\nfunction x() s32 { 1 }\nfunction CLI { print(x) }\n", options); assert(false); }
-	catch (const capy::Error& error) { assert(error.message.find("conflicts with constant") != std::string::npos); }
-	try { capy::compile_bearer_unit("function x() s32 { 1 }\nconst x : s32 = 1\nfunction CLI {}\n", options); assert(false); }
-	catch (const capy::Error& error) { assert(error.message.find("conflicts with constant") != std::string::npos); }
-	try { capy::compile_bearer_unit("struct x {}\nconst x : s32 = 1\nfunction CLI {}\n", options); assert(false); }
-	catch (const capy::Error& error) { assert(error.message.find("conflicts with constant") != std::string::npos); }
-	try { capy::compile_bearer_unit("const answer : s32 = 42\nfunction CLI { answer() }\n", options); assert(false); }
-	catch (const capy::Error& error) { assert(error.location.line == 2 && error.message.find("no overload answer()") != std::string::npos); }
-	try { capy::compile_bearer_unit("const x : string = \"x\"\nfunction CLI { print(x) }\n", options); assert(false); }
-	catch (const capy::Error& error) { assert(error.message.find("s32 literal") != std::string::npos); }
-	try { capy::compile_bearer_unit("const __bearer_x : s32 = 1\nfunction CLI { print(1) }\n", options); assert(false); }
-	catch (const capy::Error& error) { assert(error.message.find("reserved") != std::string::npos); }
+	const std::string aliases_source =
+		"type Count = s64\ntype Counts = [Count]\ntype Pair = (Count, string)\ntype Printer = function(...values : as string) void\n"
+		"type User = Person\ntype Json = dval\nstruct Person { value : s32 }\n"
+		"function take(value : Count) Count { value }\nfunction CLI { var values : Counts = [Count(4)]; var pair : Pair = (values[0], \"x\"); "
+		"var user : User = User(7); var json : Json = Json({value: user.value}); var output : Printer = print; "
+		"output(take(pair[0]), pair[1], dval_s32(json[\"value\"])) }\n";
+	const auto aliases = capy::compile_bearer_unit(aliases_source, options);
+	const auto aliases_repeat = capy::compile_bearer_unit(aliases_source, options);
+	assert(capy::wasm::validate_bearer_unit(aliases.wasm, {.bearer_abi_version = "11"}).valid);
+	assert(aliases.wasm == aliases_repeat.wasm && aliases.source_map == aliases_repeat.source_map);
+	for (const auto& [source, expected] : {
+			 std::pair{"const x : s32 = 1\nfunction CLI {}\n", "const declarations were removed"},
+			 std::pair{"type A = B\ntype B = A\nfunction CLI {}\n", "cyclic type alias"},
+			 std::pair{"type MissingAlias = Missing\nfunction CLI {}\n", "unknown type 'Missing'"},
+			 std::pair{"type s32 = u64\nfunction CLI {}\n", "is reserved"},
+			 std::pair{"type Thing = s32\nstruct Thing { value : s32 }\nfunction CLI {}\n", "conflicts with type alias"},
+			 std::pair{"type Id = s32\nfunction use(value : Id) {}\nfunction use(value : s32) {}\nfunction CLI {}\n", "return type does not distinguish overloads"},
+		 })
+	{
+		try { capy::compile_bearer_unit(source, options); assert(false); }
+		catch (const capy::Error& error) { assert(error.message.find(expected) != std::string::npos); }
+	}
 	const auto boundary = capy::compile_bearer_unit("function CLI { print(-2147483648, 2147483647) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(boundary.wasm, {.bearer_abi_version = "11"}).valid);
 	const auto ordinary_sqlite = capy::compile_bearer_unit("function CLI { var db := sqlite_connect(\":memory:\"); print(sqlite_error(db)); sqlite_disconnect(db) }\n", options);
@@ -484,18 +485,25 @@ int main()
 		{
 		}
 	}
+	const auto wide_aggregates = capy::compile_bearer_unit(
+		"struct Wide { narrow : s32; signed : s64; unsigned : u64; decimal : f64; text : string }\n"
+		"function capture(value : u64, decimal : f64, text : string) (function(add : u64) f64) { function(add : u64) f64 { f64(value + add) + decimal + f64(length(text)) } }\n"
+		"function CLI { var tuple := (1, -2s64, 3u64, 4.5, clone(\"x\")); var wide := Wide(tuple[0], tuple[1], tuple[2], tuple[3], tuple[4]); var fn := capture(wide.unsigned, wide.decimal, wide.text); print(wide.signed, fn(2u64), arc_live()) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(wide_aggregates.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto value_expressions = capy::compile_bearer_unit(
+		"function choose(flag : bool) string { { var prefix := clone(\"p\"); if flag { prefix + \"a\" } else { return clone(\"b\") } } }\n"
+		"function CLI { var scalar := { var base := 2; if true { base + 1 } else { base + 2 } }; print(scalar, choose(true), choose(false), arc_live()) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(value_expressions.wasm, {.bearer_abi_version = "11"}).valid);
 	for (const auto& [source, expected] : {
 			 std::pair{"function CLI { (1 + 2) := 3 }\n", "inferred declaration target must be a local name"},
 			 std::pair{"function CLI { print(1 && true) }\n", "logical operators require bool operands"},
 			 std::pair{"function CLI { if 1 { print(\"bad\") } }\n", "if condition must be bool"},
 			 std::pair{"function CLI { while 1u64 { break } }\n", "while condition must be bool"},
 			 std::pair{"function CLI { var held := clone(\"old\"); var replace := function() { held = clone(\"new\") } }\n", "unknown local 'held'"},
-			 std::pair{"function CLI { var values := (1s64, 2) }\n", "s64, u64, and f64 are not yet supported in tuple layouts"},
-			 std::pair{"struct Wide { value : f64 }\nfunction CLI {}\n", "not yet supported in struct layouts"},
+			 std::pair{"function CLI { var value := if true { 1 } else { \"x\" } }\n", "if branches produce s32 and string"},
 			 std::pair{"function CLI { print(first(\"ok\", 1)) }\n", "no overload first(string, s32)"},
 			 std::pair{"function CLI { array_merge(dval({\"x\": \"y\"}), \"bad\") }\n", "no overload array_merge(dval, string)"},
 			 std::pair{"function CLI { array_merge(dval({\"x\": \"y\"})) }\n", "no overload array_merge(dval)"},
-			 std::pair{"function CLI { var value := 1u64; var closure := function() u64 { value } }\n", "not yet supported in captured closure layouts"},
 		 })
 	{
 		try

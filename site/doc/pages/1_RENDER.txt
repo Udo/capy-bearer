@@ -16,7 +16,7 @@ RENDER(Request& context)
 
 Use `function RENDER { ... }` for the normal form. You can also declare `function RENDER(request : request) { ... }`. The optional input is an opaque Capy request value. The handler returns no value. Print response content and use Capy request and response functions in the body.
 
-Bearer calls `RENDER` for a direct HTTP request to the unit. `ONCE` runs before the first render or component entrypoint for the unit and request. `INIT` runs when a worker loads the unit. A direct page request has no component props.
+Bearer calls `RENDER` for a direct HTTP request to the unit. `INIT` runs when Bearer materializes the unit in the current request workspace. `ONCE` then runs before the first render or component entrypoint for the unit and request. A direct page request has no component props.
 
 Use `COMPONENT` or `COMPONENT:NAME` for reusable component output. Component helpers do not call `RENDER`. A unit can define `RENDER`, `COMPONENT`, and `WS` together. In that case, `RENDER` serves HTTP and `WS` handles later WebSocket messages.
 
@@ -29,7 +29,7 @@ C++ declares `RENDER(Request& context)`. It receives live parameters, cookies, P
 Capy does not expose C++ `Request&`, mutable request fields, or C++ object layouts. Use Capy request functions and copied `dval` values. Capy cannot use C++ references or direct C++ object access.
 
 :example capy render
-print("RENDER is a unit directive; place it at top level in a .uce unit.\n")
+print("Declare RENDER as a top-level function.\n")
 
 :example cpp render
-print("RENDER is a unit directive; place it at top level in a .uce unit.\n");
+print("Declare RENDER as a top-level function.\n");

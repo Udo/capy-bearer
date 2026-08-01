@@ -16,7 +16,7 @@ A Bearer unit can declare these Capy handlers:
 
 `RENDER:NAME`, `COMPONENT:NAME`, `SERVE_HTTP:NAME`, and `TASK:NAME` declare named handlers. A handler cannot be overloaded, generic, variadic, coercive, or return a value. A non-task handler accepts no parameter or one `request` parameter. Every task handler requires exactly one `request` parameter.
 
-`ONCE` and `INIT` exports exist for ABI parity, but their automatic ordering and deduplication contract is not defined yet. Do not rely on them for application lifecycle behavior.
+`INIT` runs after Bearer materializes the unit in a request workspace and before its first dispatch. Bearer creates a new workspace for each request, so `INIT` can run again for the next request. It does not provide persistent worker-local state. `ONCE` runs before the first entry or component call for one resolved unit in one request. Later calls to that unit in the same request do not run it again.
 
 ## Rendering a response
 

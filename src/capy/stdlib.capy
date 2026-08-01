@@ -88,180 +88,180 @@ host function __bearer_regex_text(operation : s32, pattern : string, subject : s
 host function __bearer_codec_text(operation : s32, value : string) string
 host function __bearer_codec_dval(operation : s32, value : string) dval
 
-const __bearer_dval_dval_set : s32 = 0
-const __bearer_dval_dval_push : s32 = 1
-const __bearer_dval_dval_pop : s32 = 2
-const __bearer_dval_dval_remove : s32 = 3
-const __bearer_dval_dval_clear : s32 = 4
-const __bearer_dval_dval_get_by_path : s32 = 5
-const __bearer_dval_dval_get_or_create : s32 = 6
-const __bearer_dval_dval_set_array : s32 = 7
-const __bearer_dval_dval_set_bool : s32 = 8
-const __bearer_dval_dval_set_type : s32 = 9
-const __bearer_dval_dval_get_type_name : s32 = 10
-const __bearer_dval_dval_is_array : s32 = 11
-const __bearer_dval_dval_is_list : s32 = 12
-const __bearer_dval_dval_key : s32 = 13
-const __bearer_dval_dval_keys : s32 = 14
-const __bearer_dval_dval_values : s32 = 15
-const __bearer_dval_dval_to_json : s32 = 16
-const __bearer_dval_dval_to_stringmap : s32 = 17
-const __bearer_dval_dval_put : s32 = 18
-const __bearer_dval_dval_to_string : s32 = 19
-const __bearer_dval_dval_to_f64 : s32 = 20
-const __bearer_dval_dval_to_bool : s32 = 21
-const __bearer_text_ascii_safe_name : s32 = 0
-const __bearer_text_safe_name : s32 = 1
-const __bearer_text_trim : s32 = 2
-const __bearer_text_float_val : s32 = 3
-const __bearer_text_int_val : s32 = 4
-const __bearer_text_to_bool : s32 = 5
-const __bearer_text_str_starts_with : s32 = 6
-const __bearer_text_str_ends_with : s32 = 7
-const __bearer_text_encode_query : s32 = 8
-const __bearer_text_parse_query : s32 = 9
-const __bearer_text_split : s32 = 10
-const __bearer_text_split_space : s32 = 11
-const __bearer_text_split_utf8 : s32 = 12
-const __bearer_text_split_http_headers : s32 = 13
-const __bearer_text_split_kv : s32 = 14
-const __bearer_text_sort : s32 = 15
-const __bearer_route_parse_uri : s32 = 0
-const __bearer_route_route_path_normalize : s32 = 1
-const __bearer_route_route_path_is_safe : s32 = 2
-const __bearer_route_route_path_sanitize : s32 = 3
-const __bearer_route_runtime_safe_key : s32 = 4
-const __bearer_diagnostic_signal_name : s32 = 0
-const __bearer_diagnostic_backtrace_capture : s32 = 1
-const __bearer_diagnostic_usleep : s32 = 2
-const __bearer_diagnostic_var_dump : s32 = 3
-const __bearer_archive_brb_decode : s32 = 0
-const __bearer_archive_brb_encode : s32 = 1
-const __bearer_archive_xml_decode : s32 = 2
-const __bearer_archive_xml_encode : s32 = 3
-const __bearer_archive_yaml_decode : s32 = 4
-const __bearer_archive_yaml_encode : s32 = 5
-const __bearer_archive_markdown_to_html : s32 = 6
-const __bearer_archive_markdown_to_ast : s32 = 7
-const __bearer_archive_json_consume_space : s32 = 8
-const __bearer_archive_json_encode : s32 = 9
-const __bearer_archive_json_encode_10 : s32 = 10
-const __bearer_archive_html_escape : s32 = 11
-const __bearer_archive_gz_compress : s32 = 12
-const __bearer_archive_gz_uncompress : s32 = 13
-const __bearer_archive_zip_list : s32 = 14
-const __bearer_archive_zip_read : s32 = 15
-const __bearer_archive_zip_create : s32 = 16
-const __bearer_archive_zip_extract : s32 = 17
-const __bearer_crypto_gen_sha1 : s32 = 0
-const __bearer_crypto_sha256 : s32 = 1
-const __bearer_crypto_sha256_hex : s32 = 2
-const __bearer_crypto_hmac_sha256 : s32 = 3
-const __bearer_crypto_hmac_sha256_hex : s32 = 4
-const __bearer_crypto_crypto_equal : s32 = 5
-const __bearer_crypto_password_hash : s32 = 6
-const __bearer_crypto_password_verify : s32 = 7
-const __bearer_crypto_password_needs_rehash : s32 = 8
-const __bearer_filesystem_basename : s32 = 0
-const __bearer_filesystem_dirname : s32 = 1
-const __bearer_filesystem_path_join : s32 = 2
-const __bearer_filesystem_path_real : s32 = 3
-const __bearer_filesystem_path_is_within : s32 = 4
-const __bearer_filesystem_expand_path : s32 = 5
-const __bearer_filesystem_file_get_contents : s32 = 6
-const __bearer_filesystem_file_put_contents : s32 = 7
-const __bearer_filesystem_file_append : s32 = 8
-const __bearer_filesystem_file_copy : s32 = 9
-const __bearer_filesystem_file_rename : s32 = 10
-const __bearer_filesystem_file_stat : s32 = 11
-const __bearer_filesystem_file_mtime : s32 = 12
-const __bearer_filesystem_file_exists : s32 = 13
-const __bearer_filesystem_file_truncate : s32 = 14
-const __bearer_filesystem_file_chmod : s32 = 15
-const __bearer_filesystem_file_symlink : s32 = 16
-const __bearer_filesystem_ls : s32 = 17
-const __bearer_filesystem_mkdir : s32 = 18
-const __bearer_filesystem_dir_list : s32 = 19
-const __bearer_filesystem_dir_remove : s32 = 20
-const __bearer_filesystem_cwd_get : s32 = 21
-const __bearer_filesystem_cwd_set : s32 = 22
-const __bearer_request_ob_start : s32 = 0
-const __bearer_request_ob_close : s32 = 1
-const __bearer_request_ob_get : s32 = 2
-const __bearer_request_ob_get_close : s32 = 3
-const __bearer_request_response_status : s32 = 4
-const __bearer_request_redirect : s32 = 5
-const __bearer_request_session_start : s32 = 6
-const __bearer_request_session_set : s32 = 7
-const __bearer_request_response_cookie : s32 = 22
-const __bearer_request_session_destroy : s32 = 8
-const __bearer_request_session_id_create : s32 = 9
-const __bearer_request_csrf_token : s32 = 10
-const __bearer_request_csrf_valid : s32 = 11
-const __bearer_request_csrf_rotate : s32 = 12
-const __bearer_request_csrf_field : s32 = 13
-const __bearer_request_cli_input : s32 = 14
-const __bearer_request_cli_arg : s32 = 15
-const __bearer_request_request_base_url : s32 = 16
-const __bearer_request_request_script_url : s32 = 17
-const __bearer_request_request_query_path : s32 = 18
-const __bearer_request_request_query_route : s32 = 19
-const __bearer_request_request_route_from_raw_path : s32 = 20
-const __bearer_request_request_perf : s32 = 21
-const __bearer_cache_memcache_connect : s32 = 0
-const __bearer_cache_memcache_command : s32 = 1
-const __bearer_cache_memcache_set : s32 = 2
-const __bearer_cache_memcache_delete : s32 = 3
-const __bearer_cache_memcache_get : s32 = 4
-const __bearer_cache_memcache_get_multiple : s32 = 5
-const __bearer_cache_memcache_escape_key : s32 = 6
-const __bearer_cache_memcache_escape_keys : s32 = 7
-const __bearer_process_shell_escape : s32 = 0
-const __bearer_process_shell_exec : s32 = 1
-const __bearer_process_shell_spawn : s32 = 2
-const __bearer_process_job_status : s32 = 3
-const __bearer_process_job_result : s32 = 4
-const __bearer_process_job_await : s32 = 5
-const __bearer_process_job_cancel : s32 = 6
-const __bearer_process_process_start_directory : s32 = 7
-const __bearer_process_server_start_http : s32 = 8
-const __bearer_process_server_stop : s32 = 9
-const __bearer_process_task_submit : s32 = 10
-const __bearer_process_task_status : s32 = 11
-const __bearer_process_task_await : s32 = 12
-const __bearer_process_task_cancel : s32 = 13
-const __bearer_network_socket_connect : s32 = 0
-const __bearer_network_socket_close : s32 = 1
-const __bearer_network_socket_write : s32 = 2
-const __bearer_network_socket_read : s32 = 3
-const __bearer_network_http_request : s32 = 4
-const __bearer_network_http_request_async : s32 = 5
-const __bearer_time_time_parse : s32 = 0
-const __bearer_time_time_format_local : s32 = 1
-const __bearer_time_time_format_utc : s32 = 2
-const __bearer_time_time_format_relative : s32 = 3
-const __bearer_websocket_ws_connections : s32 = 0
-const __bearer_websocket_ws_connection_count : s32 = 1
-const __bearer_noise_gen_noise64 : s32 = 0
-const __bearer_noise_gen_int : s32 = 1
-const __bearer_noise_draw_int : s32 = 2
-const __bearer_noise_gen_noise01 : s32 = 0
-const __bearer_noise_gen_float : s32 = 1
-const __bearer_noise_draw_float : s32 = 2
-const __bearer_request_value_request_param : s32 = 0
-const __bearer_request_value_request_get : s32 = 1
-const __bearer_request_value_request_post : s32 = 2
-const __bearer_request_value_request_cookie : s32 = 3
-const __bearer_request_value_request_session : s32 = 4
-const __bearer_regex_regex_split : s32 = 3
-const __bearer_regex_regex_search : s32 = 0
-const __bearer_regex_regex_search_all : s32 = 1
-const __bearer_regex_regex_replace : s32 = 2
-const __bearer_codec_base64_encode : s32 = 0
-const __bearer_codec_base64_decode : s32 = 1
-const __bearer_codec_uri_encode : s32 = 2
-const __bearer_codec_uri_decode : s32 = 3
-const __bearer_codec_json_decode : s32 = 4
+function __bearer_dval_dval_set() s32 { 0 }
+function __bearer_dval_dval_push() s32 { 1 }
+function __bearer_dval_dval_pop() s32 { 2 }
+function __bearer_dval_dval_remove() s32 { 3 }
+function __bearer_dval_dval_clear() s32 { 4 }
+function __bearer_dval_dval_get_by_path() s32 { 5 }
+function __bearer_dval_dval_get_or_create() s32 { 6 }
+function __bearer_dval_dval_set_array() s32 { 7 }
+function __bearer_dval_dval_set_bool() s32 { 8 }
+function __bearer_dval_dval_set_type() s32 { 9 }
+function __bearer_dval_dval_get_type_name() s32 { 10 }
+function __bearer_dval_dval_is_array() s32 { 11 }
+function __bearer_dval_dval_is_list() s32 { 12 }
+function __bearer_dval_dval_key() s32 { 13 }
+function __bearer_dval_dval_keys() s32 { 14 }
+function __bearer_dval_dval_values() s32 { 15 }
+function __bearer_dval_dval_to_json() s32 { 16 }
+function __bearer_dval_dval_to_stringmap() s32 { 17 }
+function __bearer_dval_dval_put() s32 { 18 }
+function __bearer_dval_dval_to_string() s32 { 19 }
+function __bearer_dval_dval_to_f64() s32 { 20 }
+function __bearer_dval_dval_to_bool() s32 { 21 }
+function __bearer_text_ascii_safe_name() s32 { 0 }
+function __bearer_text_safe_name() s32 { 1 }
+function __bearer_text_trim() s32 { 2 }
+function __bearer_text_float_val() s32 { 3 }
+function __bearer_text_int_val() s32 { 4 }
+function __bearer_text_to_bool() s32 { 5 }
+function __bearer_text_str_starts_with() s32 { 6 }
+function __bearer_text_str_ends_with() s32 { 7 }
+function __bearer_text_encode_query() s32 { 8 }
+function __bearer_text_parse_query() s32 { 9 }
+function __bearer_text_split() s32 { 10 }
+function __bearer_text_split_space() s32 { 11 }
+function __bearer_text_split_utf8() s32 { 12 }
+function __bearer_text_split_http_headers() s32 { 13 }
+function __bearer_text_split_kv() s32 { 14 }
+function __bearer_text_sort() s32 { 15 }
+function __bearer_route_parse_uri() s32 { 0 }
+function __bearer_route_route_path_normalize() s32 { 1 }
+function __bearer_route_route_path_is_safe() s32 { 2 }
+function __bearer_route_route_path_sanitize() s32 { 3 }
+function __bearer_route_runtime_safe_key() s32 { 4 }
+function __bearer_diagnostic_signal_name() s32 { 0 }
+function __bearer_diagnostic_backtrace_capture() s32 { 1 }
+function __bearer_diagnostic_usleep() s32 { 2 }
+function __bearer_diagnostic_var_dump() s32 { 3 }
+function __bearer_archive_brb_decode() s32 { 0 }
+function __bearer_archive_brb_encode() s32 { 1 }
+function __bearer_archive_xml_decode() s32 { 2 }
+function __bearer_archive_xml_encode() s32 { 3 }
+function __bearer_archive_yaml_decode() s32 { 4 }
+function __bearer_archive_yaml_encode() s32 { 5 }
+function __bearer_archive_markdown_to_html() s32 { 6 }
+function __bearer_archive_markdown_to_ast() s32 { 7 }
+function __bearer_archive_json_consume_space() s32 { 8 }
+function __bearer_archive_json_encode() s32 { 9 }
+function __bearer_archive_json_encode_10() s32 { 10 }
+function __bearer_archive_html_escape() s32 { 11 }
+function __bearer_archive_gz_compress() s32 { 12 }
+function __bearer_archive_gz_uncompress() s32 { 13 }
+function __bearer_archive_zip_list() s32 { 14 }
+function __bearer_archive_zip_read() s32 { 15 }
+function __bearer_archive_zip_create() s32 { 16 }
+function __bearer_archive_zip_extract() s32 { 17 }
+function __bearer_crypto_gen_sha1() s32 { 0 }
+function __bearer_crypto_sha256() s32 { 1 }
+function __bearer_crypto_sha256_hex() s32 { 2 }
+function __bearer_crypto_hmac_sha256() s32 { 3 }
+function __bearer_crypto_hmac_sha256_hex() s32 { 4 }
+function __bearer_crypto_crypto_equal() s32 { 5 }
+function __bearer_crypto_password_hash() s32 { 6 }
+function __bearer_crypto_password_verify() s32 { 7 }
+function __bearer_crypto_password_needs_rehash() s32 { 8 }
+function __bearer_filesystem_basename() s32 { 0 }
+function __bearer_filesystem_dirname() s32 { 1 }
+function __bearer_filesystem_path_join() s32 { 2 }
+function __bearer_filesystem_path_real() s32 { 3 }
+function __bearer_filesystem_path_is_within() s32 { 4 }
+function __bearer_filesystem_expand_path() s32 { 5 }
+function __bearer_filesystem_file_get_contents() s32 { 6 }
+function __bearer_filesystem_file_put_contents() s32 { 7 }
+function __bearer_filesystem_file_append() s32 { 8 }
+function __bearer_filesystem_file_copy() s32 { 9 }
+function __bearer_filesystem_file_rename() s32 { 10 }
+function __bearer_filesystem_file_stat() s32 { 11 }
+function __bearer_filesystem_file_mtime() s32 { 12 }
+function __bearer_filesystem_file_exists() s32 { 13 }
+function __bearer_filesystem_file_truncate() s32 { 14 }
+function __bearer_filesystem_file_chmod() s32 { 15 }
+function __bearer_filesystem_file_symlink() s32 { 16 }
+function __bearer_filesystem_ls() s32 { 17 }
+function __bearer_filesystem_mkdir() s32 { 18 }
+function __bearer_filesystem_dir_list() s32 { 19 }
+function __bearer_filesystem_dir_remove() s32 { 20 }
+function __bearer_filesystem_cwd_get() s32 { 21 }
+function __bearer_filesystem_cwd_set() s32 { 22 }
+function __bearer_request_ob_start() s32 { 0 }
+function __bearer_request_ob_close() s32 { 1 }
+function __bearer_request_ob_get() s32 { 2 }
+function __bearer_request_ob_get_close() s32 { 3 }
+function __bearer_request_response_status() s32 { 4 }
+function __bearer_request_redirect() s32 { 5 }
+function __bearer_request_session_start() s32 { 6 }
+function __bearer_request_session_set() s32 { 7 }
+function __bearer_request_response_cookie() s32 { 22 }
+function __bearer_request_session_destroy() s32 { 8 }
+function __bearer_request_session_id_create() s32 { 9 }
+function __bearer_request_csrf_token() s32 { 10 }
+function __bearer_request_csrf_valid() s32 { 11 }
+function __bearer_request_csrf_rotate() s32 { 12 }
+function __bearer_request_csrf_field() s32 { 13 }
+function __bearer_request_cli_input() s32 { 14 }
+function __bearer_request_cli_arg() s32 { 15 }
+function __bearer_request_request_base_url() s32 { 16 }
+function __bearer_request_request_script_url() s32 { 17 }
+function __bearer_request_request_query_path() s32 { 18 }
+function __bearer_request_request_query_route() s32 { 19 }
+function __bearer_request_request_route_from_raw_path() s32 { 20 }
+function __bearer_request_request_perf() s32 { 21 }
+function __bearer_cache_memcache_connect() s32 { 0 }
+function __bearer_cache_memcache_command() s32 { 1 }
+function __bearer_cache_memcache_set() s32 { 2 }
+function __bearer_cache_memcache_delete() s32 { 3 }
+function __bearer_cache_memcache_get() s32 { 4 }
+function __bearer_cache_memcache_get_multiple() s32 { 5 }
+function __bearer_cache_memcache_escape_key() s32 { 6 }
+function __bearer_cache_memcache_escape_keys() s32 { 7 }
+function __bearer_process_shell_escape() s32 { 0 }
+function __bearer_process_shell_exec() s32 { 1 }
+function __bearer_process_shell_spawn() s32 { 2 }
+function __bearer_process_job_status() s32 { 3 }
+function __bearer_process_job_result() s32 { 4 }
+function __bearer_process_job_await() s32 { 5 }
+function __bearer_process_job_cancel() s32 { 6 }
+function __bearer_process_process_start_directory() s32 { 7 }
+function __bearer_process_server_start_http() s32 { 8 }
+function __bearer_process_server_stop() s32 { 9 }
+function __bearer_process_task_submit() s32 { 10 }
+function __bearer_process_task_status() s32 { 11 }
+function __bearer_process_task_await() s32 { 12 }
+function __bearer_process_task_cancel() s32 { 13 }
+function __bearer_network_socket_connect() s32 { 0 }
+function __bearer_network_socket_close() s32 { 1 }
+function __bearer_network_socket_write() s32 { 2 }
+function __bearer_network_socket_read() s32 { 3 }
+function __bearer_network_http_request() s32 { 4 }
+function __bearer_network_http_request_async() s32 { 5 }
+function __bearer_time_time_parse() s32 { 0 }
+function __bearer_time_time_format_local() s32 { 1 }
+function __bearer_time_time_format_utc() s32 { 2 }
+function __bearer_time_time_format_relative() s32 { 3 }
+function __bearer_websocket_ws_connections() s32 { 0 }
+function __bearer_websocket_ws_connection_count() s32 { 1 }
+function __bearer_noise_gen_noise64() s32 { 0 }
+function __bearer_noise_gen_int() s32 { 1 }
+function __bearer_noise_draw_int() s32 { 2 }
+function __bearer_noise_gen_noise01() s32 { 0 }
+function __bearer_noise_gen_float() s32 { 1 }
+function __bearer_noise_draw_float() s32 { 2 }
+function __bearer_request_value_request_param() s32 { 0 }
+function __bearer_request_value_request_get() s32 { 1 }
+function __bearer_request_value_request_post() s32 { 2 }
+function __bearer_request_value_request_cookie() s32 { 3 }
+function __bearer_request_value_request_session() s32 { 4 }
+function __bearer_regex_regex_split() s32 { 3 }
+function __bearer_regex_regex_search() s32 { 0 }
+function __bearer_regex_regex_search_all() s32 { 1 }
+function __bearer_regex_regex_replace() s32 { 2 }
+function __bearer_codec_base64_encode() s32 { 0 }
+function __bearer_codec_base64_decode() s32 { 1 }
+function __bearer_codec_uri_encode() s32 { 2 }
+function __bearer_codec_uri_decode() s32 { 3 }
+function __bearer_codec_json_decode() s32 { 4 }
 
 // DValues cross the Bearer boundary as copied ARC values.  Mutators return the
 // replacement value: `value = dval_push(value, child)`; no host alias escapes.
@@ -286,33 +286,33 @@ function substr(value : string, start : s32, length : s32) string { __bearer_str
 function substr(value : string, start : s64, length : s64) string { __bearer_string_substr(value, start, length) }
 function strpos(haystack : string, needle : string) s64 { __bearer_string_strpos(haystack, needle, 0s64) }
 function strpos(haystack : string, needle : string, offset : s64) s64 { __bearer_string_strpos(haystack, needle, offset) }
-function dval_set(value : dval, source : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set, value, "", source) }
+function dval_set(value : dval, source : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set(), value, "", source) }
 function dval_assign(value : dval, source : dval) dval { dval_set(value, source) }
-function dval_push(value : dval, child : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_push, value, "", child) }
-function dval_pop(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_pop, value, "", dval("")) }
-function dval_remove(value : dval, key : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_remove, value, key, dval("")) }
-function dval_clear(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_clear, value, "", dval("")) }
-function dval_get_by_path(value : dval, path : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_get_by_path, value, path, dval("")) }
-function dval_get_or_create(value : dval, key : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_get_or_create, value, key, dval("")) }
-function dval_set_array(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set_array, value, "", dval("")) }
-function dval_set_bool(value : dval, flag : bool) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set_bool, value, "", dval(flag)) }
-function dval_set_type(value : dval, type : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set_type, value, type, dval("")) }
-function dval_get_type_name(value : dval) string { dval_string(__bearer_dv_apply_brrb(__bearer_dval_dval_get_type_name, value, "", dval(""))) }
-function dval_is_array(value : dval) bool { dval_bool(__bearer_dv_apply_brrb(__bearer_dval_dval_is_array, value, "", dval(""))) }
-function dval_is_list(value : dval) bool { dval_bool(__bearer_dv_apply_brrb(__bearer_dval_dval_is_list, value, "", dval(""))) }
-function dval_key(value : dval, key : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_key, value, key, dval("")) }
-function dval_keys(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_keys, value, "", dval("")) }
-function dval_values(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_values, value, "", dval("")) }
-function dval_to_json(value : dval) string { dval_string(__bearer_dv_apply_brrb(__bearer_dval_dval_to_json, value, "", dval(""))) }
-function dval_to_json(value : dval, quote : string) string { dval_string(__bearer_dv_apply_brrb(__bearer_dval_dval_to_json, value, quote, dval(""))) }
-function dval_to_stringmap(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_to_stringmap, value, "", dval("")) }
-function dval_put(value : dval, key : string, child : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_put, value, key, child) }
-function dval_to_string(value : dval) string { dval_string(__bearer_dv_apply_brrb(__bearer_dval_dval_to_string, value, "", dval(""))) }
-function dval_to_string(value : dval, fallback : string) string { dval_string(__bearer_dv_apply_brrb(__bearer_dval_dval_to_string, value, "", dval(fallback))) }
-function dval_to_f64(value : dval) f64 { dval_f64(__bearer_dv_apply_brrb(__bearer_dval_dval_to_f64, value, "", dval(0.0))) }
-function dval_to_f64(value : dval, fallback : f64) f64 { dval_f64(__bearer_dv_apply_brrb(__bearer_dval_dval_to_f64, value, "", dval(fallback))) }
-function dval_to_bool(value : dval) bool { dval_bool(__bearer_dv_apply_brrb(__bearer_dval_dval_to_bool, value, "", dval(false))) }
-function dval_to_bool(value : dval, fallback : bool) bool { dval_bool(__bearer_dv_apply_brrb(__bearer_dval_dval_to_bool, value, "", dval(fallback))) }
+function dval_push(value : dval, child : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_push(), value, "", child) }
+function dval_pop(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_pop(), value, "", dval("")) }
+function dval_remove(value : dval, key : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_remove(), value, key, dval("")) }
+function dval_clear(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_clear(), value, "", dval("")) }
+function dval_get_by_path(value : dval, path : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_get_by_path(), value, path, dval("")) }
+function dval_get_or_create(value : dval, key : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_get_or_create(), value, key, dval("")) }
+function dval_set_array(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set_array(), value, "", dval("")) }
+function dval_set_bool(value : dval, flag : bool) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set_bool(), value, "", dval(flag)) }
+function dval_set_type(value : dval, type : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set_type(), value, type, dval("")) }
+function dval_get_type_name(value : dval) string { dval_string(__bearer_dv_apply_brrb(__bearer_dval_dval_get_type_name(), value, "", dval(""))) }
+function dval_is_array(value : dval) bool { dval_bool(__bearer_dv_apply_brrb(__bearer_dval_dval_is_array(), value, "", dval(""))) }
+function dval_is_list(value : dval) bool { dval_bool(__bearer_dv_apply_brrb(__bearer_dval_dval_is_list(), value, "", dval(""))) }
+function dval_key(value : dval, key : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_key(), value, key, dval("")) }
+function dval_keys(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_keys(), value, "", dval("")) }
+function dval_values(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_values(), value, "", dval("")) }
+function dval_to_json(value : dval) string { dval_string(__bearer_dv_apply_brrb(__bearer_dval_dval_to_json(), value, "", dval(""))) }
+function dval_to_json(value : dval, quote : string) string { dval_string(__bearer_dv_apply_brrb(__bearer_dval_dval_to_json(), value, quote, dval(""))) }
+function dval_to_stringmap(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_to_stringmap(), value, "", dval("")) }
+function dval_put(value : dval, key : string, child : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_put(), value, key, child) }
+function dval_to_string(value : dval) string { dval_string(__bearer_dv_apply_brrb(__bearer_dval_dval_to_string(), value, "", dval(""))) }
+function dval_to_string(value : dval, fallback : string) string { dval_string(__bearer_dv_apply_brrb(__bearer_dval_dval_to_string(), value, "", dval(fallback))) }
+function dval_to_f64(value : dval) f64 { dval_f64(__bearer_dv_apply_brrb(__bearer_dval_dval_to_f64(), value, "", dval(0.0))) }
+function dval_to_f64(value : dval, fallback : f64) f64 { dval_f64(__bearer_dv_apply_brrb(__bearer_dval_dval_to_f64(), value, "", dval(fallback))) }
+function dval_to_bool(value : dval) bool { dval_bool(__bearer_dv_apply_brrb(__bearer_dval_dval_to_bool(), value, "", dval(false))) }
+function dval_to_bool(value : dval, fallback : bool) bool { dval_bool(__bearer_dv_apply_brrb(__bearer_dval_dval_to_bool(), value, "", dval(fallback))) }
 function dval_to_s64(value : dval) s64 { __bearer_dv_s64_brrb(value, 0s64) }
 function dval_to_s64(value : dval, fallback : s64) s64 { __bearer_dv_s64_brrb(value, fallback) }
 function dval_to_u64(value : dval) u64 { __bearer_dv_u64_brrb(value, 0u64) }
@@ -391,33 +391,33 @@ function dval_filter(value : dval, predicate : function(value : dval, key : stri
 
 // Core utility adapters retain the C++ implementation as the semantic authority.
 // text/parsing/collection operation order: names, scalars, predicates, query, split/sort
-function ascii_safe_name(raw : string) string { dval_string(__bearer_text_parsing_brrb(__bearer_text_ascii_safe_name, dval(raw), "", dval(""))) }
-function safe_name(raw : string) string { dval_string(__bearer_text_parsing_brrb(__bearer_text_safe_name, dval(raw), "", dval(""))) }
-function trim(raw : string) string { dval_string(__bearer_text_parsing_brrb(__bearer_text_trim, dval(raw), "", dval(""))) }
-function float_val(raw : string) f64 { dval_f64(__bearer_text_parsing_brrb(__bearer_text_float_val, dval(raw), "", dval(0.0))) }
-function int_val(raw : string) u64 { __bearer_dv_u64_brrb(__bearer_text_parsing_brrb(__bearer_text_int_val, dval(raw), "", dval(10.0)), 0u64) }
-function int_val(raw : string, base : s32) u64 { __bearer_dv_u64_brrb(__bearer_text_parsing_brrb(__bearer_text_int_val, dval(raw), "", dval(base)), 0u64) }
-function to_bool(raw : string) bool { dval_bool(__bearer_text_parsing_brrb(__bearer_text_to_bool, dval(raw), "", dval(false))) }
-function to_bool(raw : string, fallback : bool) bool { dval_bool(__bearer_text_parsing_brrb(__bearer_text_to_bool, dval(raw), "", dval(fallback))) }
+function ascii_safe_name(raw : string) string { dval_string(__bearer_text_parsing_brrb(__bearer_text_ascii_safe_name(), dval(raw), "", dval(""))) }
+function safe_name(raw : string) string { dval_string(__bearer_text_parsing_brrb(__bearer_text_safe_name(), dval(raw), "", dval(""))) }
+function trim(raw : string) string { dval_string(__bearer_text_parsing_brrb(__bearer_text_trim(), dval(raw), "", dval(""))) }
+function float_val(raw : string) f64 { dval_f64(__bearer_text_parsing_brrb(__bearer_text_float_val(), dval(raw), "", dval(0.0))) }
+function int_val(raw : string) u64 { __bearer_dv_u64_brrb(__bearer_text_parsing_brrb(__bearer_text_int_val(), dval(raw), "", dval(10.0)), 0u64) }
+function int_val(raw : string, base : s32) u64 { __bearer_dv_u64_brrb(__bearer_text_parsing_brrb(__bearer_text_int_val(), dval(raw), "", dval(base)), 0u64) }
+function to_bool(raw : string) bool { dval_bool(__bearer_text_parsing_brrb(__bearer_text_to_bool(), dval(raw), "", dval(false))) }
+function to_bool(raw : string, fallback : bool) bool { dval_bool(__bearer_text_parsing_brrb(__bearer_text_to_bool(), dval(raw), "", dval(fallback))) }
 function to_f64(raw : string) f64 { dval_to_f64(dval(raw), 0.0) }
 function to_f64(raw : string, fallback : f64) f64 { dval_to_f64(dval(raw), fallback) }
 function to_s64(raw : string) s64 { __bearer_dv_s64_brrb(dval(raw), 0s64) }
 function to_s64(raw : string, fallback : s64) s64 { __bearer_dv_s64_brrb(dval(raw), fallback) }
 function to_u64(raw : string) u64 { __bearer_dv_u64_brrb(dval(raw), 0u64) }
 function to_u64(raw : string, fallback : u64) u64 { __bearer_dv_u64_brrb(dval(raw), fallback) }
-function str_starts_with(haystack : string, needle : string) bool { dval_bool(__bearer_text_parsing_brrb(__bearer_text_str_starts_with, dval(haystack), needle, dval(false))) }
-function str_ends_with(haystack : string, needle : string) bool { dval_bool(__bearer_text_parsing_brrb(__bearer_text_str_ends_with, dval(haystack), needle, dval(false))) }
-function encode_query(map : dval) string { dval_string(__bearer_text_parsing_brrb(__bearer_text_encode_query, map, "", dval(""))) }
-function parse_query(query : string) dval { __bearer_text_parsing_brrb(__bearer_text_parse_query, dval(query), "", dval("")) }
+function str_starts_with(haystack : string, needle : string) bool { dval_bool(__bearer_text_parsing_brrb(__bearer_text_str_starts_with(), dval(haystack), needle, dval(false))) }
+function str_ends_with(haystack : string, needle : string) bool { dval_bool(__bearer_text_parsing_brrb(__bearer_text_str_ends_with(), dval(haystack), needle, dval(false))) }
+function encode_query(map : dval) string { dval_string(__bearer_text_parsing_brrb(__bearer_text_encode_query(), map, "", dval(""))) }
+function parse_query(query : string) dval { __bearer_text_parsing_brrb(__bearer_text_parse_query(), dval(query), "", dval("")) }
 // route/path operation order: URI parse, normalize, validate, sanitize, key
-function parse_uri(uri : string) dval { __bearer_route_path_brrb(__bearer_route_parse_uri, dval(uri), "", dval("")) }
-function route_path_normalize(path : string) string { dval_string(__bearer_route_path_brrb(__bearer_route_route_path_normalize, dval(path), "", dval(""))) }
-function route_path_is_safe(path : string) bool { dval_bool(__bearer_route_path_brrb(__bearer_route_route_path_is_safe, dval(path), "", dval(false))) }
-function route_path_sanitize(path : string) string { dval_string(__bearer_route_path_brrb(__bearer_route_route_path_sanitize, dval(path), "index", dval(""))) }
-function route_path_sanitize(path : string, fallback : string) string { dval_string(__bearer_route_path_brrb(__bearer_route_route_path_sanitize, dval(path), fallback, dval(""))) }
-function runtime_safe_key(key : string) string { dval_string(__bearer_route_path_brrb(__bearer_route_runtime_safe_key, dval(key), "runtime key", dval(""))) }
-function runtime_safe_key(key : string, label : string) string { dval_string(__bearer_route_path_brrb(__bearer_route_runtime_safe_key, dval(key), label, dval(""))) }
-function split(value : string, delimiter : string) dval { __bearer_text_parsing_brrb(__bearer_text_split, dval(value), delimiter, dval("")) }
+function parse_uri(uri : string) dval { __bearer_route_path_brrb(__bearer_route_parse_uri(), dval(uri), "", dval("")) }
+function route_path_normalize(path : string) string { dval_string(__bearer_route_path_brrb(__bearer_route_route_path_normalize(), dval(path), "", dval(""))) }
+function route_path_is_safe(path : string) bool { dval_bool(__bearer_route_path_brrb(__bearer_route_route_path_is_safe(), dval(path), "", dval(false))) }
+function route_path_sanitize(path : string) string { dval_string(__bearer_route_path_brrb(__bearer_route_route_path_sanitize(), dval(path), "index", dval(""))) }
+function route_path_sanitize(path : string, fallback : string) string { dval_string(__bearer_route_path_brrb(__bearer_route_route_path_sanitize(), dval(path), fallback, dval(""))) }
+function runtime_safe_key(key : string) string { dval_string(__bearer_route_path_brrb(__bearer_route_runtime_safe_key(), dval(key), "runtime key", dval(""))) }
+function runtime_safe_key(key : string, label : string) string { dval_string(__bearer_route_path_brrb(__bearer_route_runtime_safe_key(), dval(key), label, dval(""))) }
+function split(value : string, delimiter : string) dval { __bearer_text_parsing_brrb(__bearer_text_split(), dval(value), delimiter, dval("")) }
 function join(items : dval) string { join(items, "\n") }
 function join(items : dval, delimiter : string) string {
     var result := ""
@@ -425,139 +425,139 @@ function join(items : dval, delimiter : string) string {
     for key, item = items { if !first { result = result + delimiter }; result = result + dval_string(item); first = false }
     result
 }
-function regex_split(pattern : string, subject : string) dval { __bearer_regex_dval(__bearer_regex_regex_split, pattern, subject, "", "") }
-function regex_split(pattern : string, subject : string, flags : string) dval { __bearer_regex_dval(__bearer_regex_regex_split, pattern, subject, "", flags) }
-function split_space(value : string) dval { __bearer_text_parsing_brrb(__bearer_text_split_space, dval(value), "", dval("")) }
-function split_utf8(value : string) dval { __bearer_text_parsing_brrb(__bearer_text_split_utf8, dval(value), "", dval(false)) }
-function split_utf8(value : string, compound : bool) dval { __bearer_text_parsing_brrb(__bearer_text_split_utf8, dval(value), "", dval(compound)) }
-function split_http_headers(value : string) dval { __bearer_text_parsing_brrb(__bearer_text_split_http_headers, dval(value), "", dval("")) }
+function regex_split(pattern : string, subject : string) dval { __bearer_regex_dval(__bearer_regex_regex_split(), pattern, subject, "", "") }
+function regex_split(pattern : string, subject : string, flags : string) dval { __bearer_regex_dval(__bearer_regex_regex_split(), pattern, subject, "", flags) }
+function split_space(value : string) dval { __bearer_text_parsing_brrb(__bearer_text_split_space(), dval(value), "", dval("")) }
+function split_utf8(value : string) dval { __bearer_text_parsing_brrb(__bearer_text_split_utf8(), dval(value), "", dval(false)) }
+function split_utf8(value : string, compound : bool) dval { __bearer_text_parsing_brrb(__bearer_text_split_utf8(), dval(value), "", dval(compound)) }
+function split_http_headers(value : string) dval { __bearer_text_parsing_brrb(__bearer_text_split_http_headers(), dval(value), "", dval("")) }
 function split_kv(value : string) dval { split_kv(value, "=", true, false) }
 function split_kv(value : string, separator : string) dval { split_kv(value, separator, true, false) }
-function split_kv(value : string, separator : string, trim_whitespace : bool, uppercase_keys : bool) dval { __bearer_text_parsing_brrb(__bearer_text_split_kv, dval(value), separator, dval({"trim": trim_whitespace, "uppercase": uppercase_keys})) }
-function sort(items : dval) dval { __bearer_text_parsing_brrb(__bearer_text_sort, items, "", dval("")) }
+function split_kv(value : string, separator : string, trim_whitespace : bool, uppercase_keys : bool) dval { __bearer_text_parsing_brrb(__bearer_text_split_kv(), dval(value), separator, dval({"trim": trim_whitespace, "uppercase": uppercase_keys})) }
+function sort(items : dval) dval { __bearer_text_parsing_brrb(__bearer_text_sort(), items, "", dval("")) }
 function each(items : dval, callback : function(value : string) string) { for key, item = items { var ignored := callback(dval_string(item)) } }
 // runtime-diagnostic operation order: signal, backtrace, sleep, value dump
-function signal_name(signal : s32) string { dval_string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_signal_name, dval(signal), "", dval(""))) }
-function backtrace_capture() string { dval_string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_backtrace_capture, dval(32.0), "", dval(0.0))) }
-function backtrace_capture(max_frames : s32, skip_frames : s32) string { dval_string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_backtrace_capture, dval(max_frames), "", dval(skip_frames))) }
+function signal_name(signal : s32) string { dval_string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_signal_name(), dval(signal), "", dval(""))) }
+function backtrace_capture() string { dval_string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_backtrace_capture(), dval(32.0), "", dval(0.0))) }
+function backtrace_capture(max_frames : s32, skip_frames : s32) string { dval_string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_backtrace_capture(), dval(max_frames), "", dval(skip_frames))) }
 // Capy exposes source-mapped guest frames rather than the native void* ABI.
 function backtrace_get_frames() string { __bearer_capy_backtrace(32, 0) }
 function backtrace_get_frames(max_frames : s32) string { __bearer_capy_backtrace(max_frames, 0) }
 function backtrace_get_frames(max_frames : s32, skip_frames : s32) string { __bearer_capy_backtrace(max_frames, skip_frames) }
-function usleep(usec : s32) s32 { dval_s32(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_usleep, dval(usec), "", dval(0.0))) }
-function var_dump(value : dval) string { dval_string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_var_dump, value, "", dval(""))) }
-function var_dump(value : dval, prefix : string, postfix : string) string { dval_string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_var_dump, value, prefix, dval(postfix))) }
+function usleep(usec : s32) s32 { dval_s32(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_usleep(), dval(usec), "", dval(0.0))) }
+function var_dump(value : dval) string { dval_string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_var_dump(), value, "", dval(""))) }
+function var_dump(value : dval, prefix : string, postfix : string) string { dval_string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_var_dump(), value, prefix, dval(postfix))) }
 
 // Codecs cross the copied-DValue membrane; native parsers remain authoritative.
-function brb_decode(encoded : string) dval { __bearer_codec_archive_brrb(__bearer_archive_brb_decode, dval(encoded), "", dval("")) }
-function brb_encode(value : dval) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_brb_encode, value, "", dval(""))) }
-function xml_decode(source : string) dval { __bearer_codec_archive_brrb(__bearer_archive_xml_decode, dval(source), "", dval("")) }
-function xml_encode(value : dval) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_xml_encode, value, "root", dval(""))) }
-function xml_encode(value : dval, root_name : string) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_xml_encode, value, root_name, dval(""))) }
-function yaml_decode(source : string) dval { __bearer_codec_archive_brrb(__bearer_archive_yaml_decode, dval(source), "", dval("")) }
-function yaml_encode(value : dval) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_yaml_encode, value, "", dval(""))) }
-function markdown_to_html(source : string) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_markdown_to_html, dval(source), "", dval({:}))) }
-function markdown_to_html(source : string, options : dval) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_markdown_to_html, dval(source), "", options)) }
-function markdown_to_ast(source : string) dval { __bearer_codec_archive_brrb(__bearer_archive_markdown_to_ast, dval(source), "", dval({:})) }
-function markdown_to_ast(source : string, options : dval) dval { __bearer_codec_archive_brrb(__bearer_archive_markdown_to_ast, dval(source), "", options) }
+function brb_decode(encoded : string) dval { __bearer_codec_archive_brrb(__bearer_archive_brb_decode(), dval(encoded), "", dval("")) }
+function brb_encode(value : dval) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_brb_encode(), value, "", dval(""))) }
+function xml_decode(source : string) dval { __bearer_codec_archive_brrb(__bearer_archive_xml_decode(), dval(source), "", dval("")) }
+function xml_encode(value : dval) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_xml_encode(), value, "root", dval(""))) }
+function xml_encode(value : dval, root_name : string) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_xml_encode(), value, root_name, dval(""))) }
+function yaml_decode(source : string) dval { __bearer_codec_archive_brrb(__bearer_archive_yaml_decode(), dval(source), "", dval("")) }
+function yaml_encode(value : dval) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_yaml_encode(), value, "", dval(""))) }
+function markdown_to_html(source : string) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_markdown_to_html(), dval(source), "", dval({:}))) }
+function markdown_to_html(source : string, options : dval) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_markdown_to_html(), dval(source), "", options)) }
+function markdown_to_ast(source : string) dval { __bearer_codec_archive_brrb(__bearer_archive_markdown_to_ast(), dval(source), "", dval({:})) }
+function markdown_to_ast(source : string, options : dval) dval { __bearer_codec_archive_brrb(__bearer_archive_markdown_to_ast(), dval(source), "", options) }
 // Capy scalars are values: return the advanced offset for reassignment.
-function json_consume_space(source : string, index : s32) s32 { dval_s32(__bearer_codec_archive_brrb(__bearer_archive_json_consume_space, dval(source), "", dval(index))) }
-function json_encode(value : dval) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_json_encode, value, "", dval(""))) }
-function json_encode(value : string) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_json_encode_10, dval(value), "", dval(""))) }
-function html_escape(value : string) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_html_escape, dval(value), "", dval(""))) }
-function gz_compress(source : string) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_gz_compress, dval(source), "", dval(""))) }
-function gz_uncompress(source : string) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_gz_uncompress, dval(source), "", dval(""))) }
-function zip_list(path : string) dval { __bearer_codec_archive_brrb(__bearer_archive_zip_list, dval(path), "", dval("")) }
-function zip_read(path : string, entry : string) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_zip_read, dval(path), entry, dval(""))) }
-function zip_create(path : string, entries : dval) bool { dval_bool(__bearer_codec_archive_brrb(__bearer_archive_zip_create, dval(path), "", entries)) }
-function zip_extract(path : string, destination : string) bool { dval_bool(__bearer_codec_archive_brrb(__bearer_archive_zip_extract, dval(path), destination, dval(""))) }
+function json_consume_space(source : string, index : s32) s32 { dval_s32(__bearer_codec_archive_brrb(__bearer_archive_json_consume_space(), dval(source), "", dval(index))) }
+function json_encode(value : dval) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_json_encode(), value, "", dval(""))) }
+function json_encode(value : string) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_json_encode_10(), dval(value), "", dval(""))) }
+function html_escape(value : string) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_html_escape(), dval(value), "", dval(""))) }
+function gz_compress(source : string) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_gz_compress(), dval(source), "", dval(""))) }
+function gz_uncompress(source : string) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_gz_uncompress(), dval(source), "", dval(""))) }
+function zip_list(path : string) dval { __bearer_codec_archive_brrb(__bearer_archive_zip_list(), dval(path), "", dval("")) }
+function zip_read(path : string, entry : string) string { dval_string(__bearer_codec_archive_brrb(__bearer_archive_zip_read(), dval(path), entry, dval(""))) }
+function zip_create(path : string, entries : dval) bool { dval_bool(__bearer_codec_archive_brrb(__bearer_archive_zip_create(), dval(path), "", entries)) }
+function zip_extract(path : string, destination : string) bool { dval_bool(__bearer_codec_archive_brrb(__bearer_archive_zip_extract(), dval(path), destination, dval(""))) }
 
 // Filesystem policy stays in the core/host boundary; these wrappers only unpack
 // copied values from that authoritative implementation.
-function basename(path : string) string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_basename, dval(path), "", dval(""))) }
-function dirname(path : string) string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_dirname, dval(path), "", dval(""))) }
-function path_join(base : string, child : string) string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_path_join, dval(base), child, dval(""))) }
-function path_real(path : string) string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_path_real, dval(path), "", dval(""))) }
-function path_is_within(path : string, root : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_path_is_within, dval(path), root, dval(false))) }
-function expand_path(path : string) string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_expand_path, dval(path), "", dval(""))) }
-function expand_path(path : string, relative_to_path : string) string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_expand_path, dval(path), relative_to_path, dval(""))) }
-function file_get_contents(path : string) string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_file_get_contents, dval(path), "", dval(""))) }
-function file_put_contents(path : string, content : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_put_contents, dval(path), "", dval(content))) }
-function file_append(path : string, content : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_append, dval(path), "", dval(content))) }
+function basename(path : string) string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_basename(), dval(path), "", dval(""))) }
+function dirname(path : string) string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_dirname(), dval(path), "", dval(""))) }
+function path_join(base : string, child : string) string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_path_join(), dval(base), child, dval(""))) }
+function path_real(path : string) string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_path_real(), dval(path), "", dval(""))) }
+function path_is_within(path : string, root : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_path_is_within(), dval(path), root, dval(false))) }
+function expand_path(path : string) string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_expand_path(), dval(path), "", dval(""))) }
+function expand_path(path : string, relative_to_path : string) string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_expand_path(), dval(path), relative_to_path, dval(""))) }
+function file_get_contents(path : string) string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_file_get_contents(), dval(path), "", dval(""))) }
+function file_put_contents(path : string, content : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_put_contents(), dval(path), "", dval(content))) }
+function file_append(path : string, content : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_append(), dval(path), "", dval(content))) }
 function file_append(path : string, first : string, second : string) bool { file_append(path, first + second) }
 function file_append(path : string, first : string, second : string, third : string) bool { file_append(path, first + second + third) }
 function file_pread(handle : u64, offset : u64, length : u64) string { __bearer_file_pread(handle, offset, length) }
 function file_pwrite(handle : u64, offset : u64, data : string) u64 { __bearer_file_pwrite(handle, offset, data) }
-function file_copy(from : string, to : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_copy, dval(from), to, dval(false))) }
-function file_rename(from : string, to : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_rename, dval(from), to, dval(false))) }
-function file_stat(path : string) dval { __bearer_filesystem_brrb(__bearer_filesystem_file_stat, dval(path), "", dval("")) }
-function file_mtime(path : string) u64 { __bearer_dv_u64_brrb(__bearer_filesystem_brrb(__bearer_filesystem_file_mtime, dval(path), "", dval("")), 0u64) }
-function file_exists(path : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_exists, dval(path), "", dval(false))) }
-function file_truncate(path : string, size : u64) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_truncate, dval(path), "", dval(size))) }
-function file_chmod(path : string, mode : s32) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_chmod, dval(path), "", dval(mode))) }
-function file_symlink(target : string, linkpath : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_symlink, dval(target), linkpath, dval(false))) }
-function ls(path : string) dval { __bearer_filesystem_brrb(__bearer_filesystem_ls, dval(path), "", dval("")) }
-function mkdir(path : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_mkdir, dval(path), "", dval(false))) }
-function dir_list(path : string) dval { __bearer_filesystem_brrb(__bearer_filesystem_dir_list, dval(path), "", dval("")) }
-function dir_remove(path : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_dir_remove, dval(path), "", dval(false))) }
-function dir_remove(path : string, recursive : bool) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_dir_remove, dval(path), "", dval(recursive))) }
-function cwd_get() string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_cwd_get, dval(""), "", dval(""))) }
-function cwd_set(path : string) { var ignored := __bearer_filesystem_brrb(__bearer_filesystem_cwd_set, dval(path), "", dval("")) }
+function file_copy(from : string, to : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_copy(), dval(from), to, dval(false))) }
+function file_rename(from : string, to : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_rename(), dval(from), to, dval(false))) }
+function file_stat(path : string) dval { __bearer_filesystem_brrb(__bearer_filesystem_file_stat(), dval(path), "", dval("")) }
+function file_mtime(path : string) u64 { __bearer_dv_u64_brrb(__bearer_filesystem_brrb(__bearer_filesystem_file_mtime(), dval(path), "", dval("")), 0u64) }
+function file_exists(path : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_exists(), dval(path), "", dval(false))) }
+function file_truncate(path : string, size : u64) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_truncate(), dval(path), "", dval(size))) }
+function file_chmod(path : string, mode : s32) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_chmod(), dval(path), "", dval(mode))) }
+function file_symlink(target : string, linkpath : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_file_symlink(), dval(target), linkpath, dval(false))) }
+function ls(path : string) dval { __bearer_filesystem_brrb(__bearer_filesystem_ls(), dval(path), "", dval("")) }
+function mkdir(path : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_mkdir(), dval(path), "", dval(false))) }
+function dir_list(path : string) dval { __bearer_filesystem_brrb(__bearer_filesystem_dir_list(), dval(path), "", dval("")) }
+function dir_remove(path : string) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_dir_remove(), dval(path), "", dval(false))) }
+function dir_remove(path : string, recursive : bool) bool { dval_bool(__bearer_filesystem_brrb(__bearer_filesystem_dir_remove(), dval(path), "", dval(recursive))) }
+function cwd_get() string { dval_string(__bearer_filesystem_brrb(__bearer_filesystem_cwd_get(), dval(""), "", dval(""))) }
+function cwd_set(path : string) { var ignored := __bearer_filesystem_brrb(__bearer_filesystem_cwd_set(), dval(path), "", dval("")) }
 
 // Request/workspace operations cross the copied-DValue membrane.  The core owns
 // the live Request and all session, routing, and response policy.
-function ob_start() { var ignored := __bearer_request_workspace_brrb(__bearer_request_ob_start, dval(""), "", dval("")) }
-function ob_close() { var ignored := __bearer_request_workspace_brrb(__bearer_request_ob_close, dval(""), "", dval("")) }
-function ob_get() string { dval_string(__bearer_request_workspace_brrb(__bearer_request_ob_get, dval(""), "", dval(""))) }
-function ob_get_close() string { dval_string(__bearer_request_workspace_brrb(__bearer_request_ob_get_close, dval(""), "", dval(""))) }
+function ob_start() { var ignored := __bearer_request_workspace_brrb(__bearer_request_ob_start(), dval(""), "", dval("")) }
+function ob_close() { var ignored := __bearer_request_workspace_brrb(__bearer_request_ob_close(), dval(""), "", dval("")) }
+function ob_get() string { dval_string(__bearer_request_workspace_brrb(__bearer_request_ob_get(), dval(""), "", dval(""))) }
+function ob_get_close() string { dval_string(__bearer_request_workspace_brrb(__bearer_request_ob_get_close(), dval(""), "", dval(""))) }
 function response_status(code : s32) { response_status(code, "") }
-function response_status(code : s32, reason : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_response_status, dval(code), reason, dval("")) }
+function response_status(code : s32, reason : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_response_status(), dval(code), reason, dval("")) }
 function redirect(url : string) { redirect(url, 302) }
-function redirect(url : string, code : s32) { var ignored := __bearer_request_workspace_brrb(__bearer_request_redirect, dval(url), "", dval(code)) }
+function redirect(url : string, code : s32) { var ignored := __bearer_request_workspace_brrb(__bearer_request_redirect(), dval(url), "", dval(code)) }
 function session_start() string { session_start("bearer-session") }
-function session_start(name : string) string { dval_string(__bearer_request_workspace_brrb(__bearer_request_session_start, dval(name), "", dval(""))) }
-function session_set(key : string, value : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_session_set, dval(key), "set", dval(value)) }
-function session_remove(key : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_session_set, dval(key), "remove", dval("")) }
-function response_cookie(name : string, value : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_response_cookie, dval(name), "", dval(value)) }
+function session_start(name : string) string { dval_string(__bearer_request_workspace_brrb(__bearer_request_session_start(), dval(name), "", dval(""))) }
+function session_set(key : string, value : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_session_set(), dval(key), "set", dval(value)) }
+function session_remove(key : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_session_set(), dval(key), "remove", dval("")) }
+function response_cookie(name : string, value : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_response_cookie(), dval(name), "", dval(value)) }
 function session_destroy() { session_destroy("bearer-session") }
-function session_destroy(name : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_session_destroy, dval(name), "", dval("")) }
-function session_id_create() string { dval_string(__bearer_request_workspace_brrb(__bearer_request_session_id_create, dval(""), "", dval(""))) }
+function session_destroy(name : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_session_destroy(), dval(name), "", dval("")) }
+function session_id_create() string { dval_string(__bearer_request_workspace_brrb(__bearer_request_session_id_create(), dval(""), "", dval(""))) }
 function csrf_token() string { csrf_token("bearer-session", "csrf_token") }
 function csrf_token(session_name : string) string { csrf_token(session_name, "csrf_token") }
-function csrf_token(session_name : string, token_name : string) string { dval_string(__bearer_request_workspace_brrb(__bearer_request_csrf_token, dval(session_name), token_name, dval(""))) }
+function csrf_token(session_name : string, token_name : string) string { dval_string(__bearer_request_workspace_brrb(__bearer_request_csrf_token(), dval(session_name), token_name, dval(""))) }
 function csrf_valid(submitted : string) bool { csrf_valid(submitted, "bearer-session", "csrf_token") }
 function csrf_valid(submitted : string, session_name : string) bool { csrf_valid(submitted, session_name, "csrf_token") }
-function csrf_valid(submitted : string, session_name : string, token_name : string) bool { dval_bool(__bearer_request_workspace_brrb(__bearer_request_csrf_valid, dval(submitted), session_name, dval(token_name))) }
+function csrf_valid(submitted : string, session_name : string, token_name : string) bool { dval_bool(__bearer_request_workspace_brrb(__bearer_request_csrf_valid(), dval(submitted), session_name, dval(token_name))) }
 function csrf_rotate() { csrf_rotate("bearer-session", "csrf_token") }
 function csrf_rotate(session_name : string) { csrf_rotate(session_name, "csrf_token") }
-function csrf_rotate(session_name : string, token_name : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_csrf_rotate, dval(session_name), token_name, dval("")) }
+function csrf_rotate(session_name : string, token_name : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_csrf_rotate(), dval(session_name), token_name, dval("")) }
 function csrf_field() string { csrf_field("bearer-session", "csrf_token", "") }
 function csrf_field(session_name : string) string { csrf_field(session_name, "csrf_token", "") }
 function csrf_field(session_name : string, token_name : string) string { csrf_field(session_name, token_name, "") }
-function csrf_field(session_name : string, token_name : string, field_name : string) string { dval_string(__bearer_request_workspace_brrb(__bearer_request_csrf_field, dval(session_name), token_name, dval(field_name))) }
-function cli_input() dval { __bearer_request_workspace_brrb(__bearer_request_cli_input, dval(""), "", dval("")) }
+function csrf_field(session_name : string, token_name : string, field_name : string) string { dval_string(__bearer_request_workspace_brrb(__bearer_request_csrf_field(), dval(session_name), token_name, dval(field_name))) }
+function cli_input() dval { __bearer_request_workspace_brrb(__bearer_request_cli_input(), dval(""), "", dval("")) }
 function cli_arg(key : string) string { cli_arg(key, "") }
-function cli_arg(key : string, fallback : string) string { dval_string(__bearer_request_workspace_brrb(__bearer_request_cli_arg, dval(key), fallback, dval(""))) }
-function request_base_url() string { dval_string(__bearer_request_workspace_brrb(__bearer_request_request_base_url, dval(""), "", dval(""))) }
-function request_script_url() string { dval_string(__bearer_request_workspace_brrb(__bearer_request_request_script_url, dval(""), "", dval(""))) }
+function cli_arg(key : string, fallback : string) string { dval_string(__bearer_request_workspace_brrb(__bearer_request_cli_arg(), dval(key), fallback, dval(""))) }
+function request_base_url() string { dval_string(__bearer_request_workspace_brrb(__bearer_request_request_base_url(), dval(""), "", dval(""))) }
+function request_script_url() string { dval_string(__bearer_request_workspace_brrb(__bearer_request_request_script_url(), dval(""), "", dval(""))) }
 function request_query_path() string { request_query_path("index") }
-function request_query_path(default_path : string) string { dval_string(__bearer_request_workspace_brrb(__bearer_request_request_query_path, dval(""), default_path, dval(""))) }
+function request_query_path(default_path : string) string { dval_string(__bearer_request_workspace_brrb(__bearer_request_request_query_path(), dval(""), default_path, dval(""))) }
 function request_query_route() dval { request_query_route("index") }
-function request_query_route(default_path : string) dval { __bearer_request_workspace_brrb(__bearer_request_request_query_route, dval(""), default_path, dval("")) }
+function request_query_route(default_path : string) dval { __bearer_request_workspace_brrb(__bearer_request_request_query_route(), dval(""), default_path, dval("")) }
 function request_route_from_raw_path(raw_path : string) dval { request_route_from_raw_path(raw_path, "index") }
-function request_route_from_raw_path(raw_path : string, default_path : string) dval { __bearer_request_workspace_brrb(__bearer_request_request_route_from_raw_path, dval(raw_path), default_path, dval("")) }
-function request_perf() dval { __bearer_request_workspace_brrb(__bearer_request_request_perf, dval(""), "", dval("")) }
+function request_route_from_raw_path(raw_path : string, default_path : string) dval { __bearer_request_workspace_brrb(__bearer_request_request_route_from_raw_path(), dval(raw_path), default_path, dval("")) }
+function request_perf() dval { __bearer_request_workspace_brrb(__bearer_request_request_perf(), dval(""), "", dval("")) }
 
-function gen_sha1(value : string) string { dval_string(__bearer_crypto_password_brrb(__bearer_crypto_gen_sha1, dval(value), "", dval(false))) }
-function gen_sha1(value : string, as_binary : bool) string { dval_string(__bearer_crypto_password_brrb(__bearer_crypto_gen_sha1, dval(value), "", dval(as_binary))) }
-function sha256(value : string) string { dval_string(__bearer_crypto_password_brrb(__bearer_crypto_sha256, dval(value), "", dval(""))) }
-function sha256_hex(value : string) string { dval_string(__bearer_crypto_password_brrb(__bearer_crypto_sha256_hex, dval(value), "", dval(""))) }
-function hmac_sha256(key : string, value : string) string { dval_string(__bearer_crypto_password_brrb(__bearer_crypto_hmac_sha256, dval(key), "", dval(value))) }
-function hmac_sha256_hex(key : string, value : string) string { dval_string(__bearer_crypto_password_brrb(__bearer_crypto_hmac_sha256_hex, dval(key), "", dval(value))) }
-function crypto_equal(left : string, right : string) bool { dval_bool(__bearer_crypto_password_brrb(__bearer_crypto_crypto_equal, dval(left), "", dval(right))) }
-function password_hash(password : string) string { dval_string(__bearer_crypto_password_brrb(__bearer_crypto_password_hash, dval(password), "", dval(""))) }
-function password_verify(password : string, encoded : string) bool { dval_bool(__bearer_crypto_password_brrb(__bearer_crypto_password_verify, dval(password), "", dval(encoded))) }
-function password_needs_rehash(encoded : string) bool { dval_bool(__bearer_crypto_password_brrb(__bearer_crypto_password_needs_rehash, dval(encoded), "", dval(""))) }
+function gen_sha1(value : string) string { dval_string(__bearer_crypto_password_brrb(__bearer_crypto_gen_sha1(), dval(value), "", dval(false))) }
+function gen_sha1(value : string, as_binary : bool) string { dval_string(__bearer_crypto_password_brrb(__bearer_crypto_gen_sha1(), dval(value), "", dval(as_binary))) }
+function sha256(value : string) string { dval_string(__bearer_crypto_password_brrb(__bearer_crypto_sha256(), dval(value), "", dval(""))) }
+function sha256_hex(value : string) string { dval_string(__bearer_crypto_password_brrb(__bearer_crypto_sha256_hex(), dval(value), "", dval(""))) }
+function hmac_sha256(key : string, value : string) string { dval_string(__bearer_crypto_password_brrb(__bearer_crypto_hmac_sha256(), dval(key), "", dval(value))) }
+function hmac_sha256_hex(key : string, value : string) string { dval_string(__bearer_crypto_password_brrb(__bearer_crypto_hmac_sha256_hex(), dval(key), "", dval(value))) }
+function crypto_equal(left : string, right : string) bool { dval_bool(__bearer_crypto_password_brrb(__bearer_crypto_crypto_equal(), dval(left), "", dval(right))) }
+function password_hash(password : string) string { dval_string(__bearer_crypto_password_brrb(__bearer_crypto_password_hash(), dval(password), "", dval(""))) }
+function password_verify(password : string, encoded : string) bool { dval_bool(__bearer_crypto_password_brrb(__bearer_crypto_password_verify(), dval(password), "", dval(encoded))) }
+function password_needs_rehash(encoded : string) bool { dval_bool(__bearer_crypto_password_brrb(__bearer_crypto_password_needs_rehash(), dval(encoded), "", dval(""))) }
 
 function sqlite_connect(path : string) u64 { __bearer_sqlite_connect(path) }
 function sqlite_disconnect(handle : u64) { __bearer_sqlite_disconnect(handle) }
@@ -582,60 +582,60 @@ function mysql_affected_rows(handle : u64) u64 { __bearer_mysql_affected_rows(ha
 function random_bytes(count : u64) string { __bearer_random_bytes(count) }
 function gen_noise32(index : u64) u64 { __bearer_noise32(index, 0u64) }
 function gen_noise32(index : u64, seed : u64) u64 { __bearer_noise32(index, seed) }
-function gen_noise64(index : u64) u64 { __bearer_noise_u64(__bearer_noise_gen_noise64, index, 0u64, 0u64, 0u64) }
-function gen_noise64(index : u64, seed : u64) u64 { __bearer_noise_u64(__bearer_noise_gen_noise64, index, seed, 0u64, 0u64) }
-function gen_noise01(index : u64) f64 { __bearer_noise_f64(__bearer_noise_gen_noise01, 0.0, 0.0, index, 0u64, 0.0) }
-function gen_noise01(index : u64, seed : u64) f64 { __bearer_noise_f64(__bearer_noise_gen_noise01, 0.0, 0.0, index, seed, 0.0) }
-function gen_int(from : u64, to : u64, index : u64) u64 { __bearer_noise_u64(__bearer_noise_gen_int, from, to, index, 0u64) }
-function gen_int(from : u64, to : u64, index : u64, seed : u64) u64 { __bearer_noise_u64(__bearer_noise_gen_int, from, to, index, seed) }
-function gen_float(from : f64, to : f64, index : u64) f64 { __bearer_noise_f64(__bearer_noise_gen_float, from, to, index, 0u64, 0.000000000001) }
-function gen_float(from : f64, to : f64, index : u64, seed : u64) f64 { __bearer_noise_f64(__bearer_noise_gen_float, from, to, index, seed, 0.000000000001) }
-function gen_float(from : f64, to : f64, index : u64, seed : u64, precision : f64) f64 { __bearer_noise_f64(__bearer_noise_gen_float, from, to, index, seed, precision) }
-function draw_int(from : u64, to : u64) u64 { __bearer_noise_u64(__bearer_noise_draw_int, from, to, 0u64, 0u64) }
-function draw_float(from : f64, to : f64) f64 { __bearer_noise_f64(__bearer_noise_draw_float, from, to, 0u64, 0u64, 0.000000000001) }
-function draw_float(from : f64, to : f64, precision : f64) f64 { __bearer_noise_f64(__bearer_noise_draw_float, from, to, 0u64, 0u64, precision) }
+function gen_noise64(index : u64) u64 { __bearer_noise_u64(__bearer_noise_gen_noise64(), index, 0u64, 0u64, 0u64) }
+function gen_noise64(index : u64, seed : u64) u64 { __bearer_noise_u64(__bearer_noise_gen_noise64(), index, seed, 0u64, 0u64) }
+function gen_noise01(index : u64) f64 { __bearer_noise_f64(__bearer_noise_gen_noise01(), 0.0, 0.0, index, 0u64, 0.0) }
+function gen_noise01(index : u64, seed : u64) f64 { __bearer_noise_f64(__bearer_noise_gen_noise01(), 0.0, 0.0, index, seed, 0.0) }
+function gen_int(from : u64, to : u64, index : u64) u64 { __bearer_noise_u64(__bearer_noise_gen_int(), from, to, index, 0u64) }
+function gen_int(from : u64, to : u64, index : u64, seed : u64) u64 { __bearer_noise_u64(__bearer_noise_gen_int(), from, to, index, seed) }
+function gen_float(from : f64, to : f64, index : u64) f64 { __bearer_noise_f64(__bearer_noise_gen_float(), from, to, index, 0u64, 0.000000000001) }
+function gen_float(from : f64, to : f64, index : u64, seed : u64) f64 { __bearer_noise_f64(__bearer_noise_gen_float(), from, to, index, seed, 0.000000000001) }
+function gen_float(from : f64, to : f64, index : u64, seed : u64, precision : f64) f64 { __bearer_noise_f64(__bearer_noise_gen_float(), from, to, index, seed, precision) }
+function draw_int(from : u64, to : u64) u64 { __bearer_noise_u64(__bearer_noise_draw_int(), from, to, 0u64, 0u64) }
+function draw_float(from : f64, to : f64) f64 { __bearer_noise_f64(__bearer_noise_draw_float(), from, to, 0u64, 0u64, 0.000000000001) }
+function draw_float(from : f64, to : f64, precision : f64) f64 { __bearer_noise_f64(__bearer_noise_draw_float(), from, to, 0u64, 0u64, precision) }
 
 // Cache and process policy remains in sys.cpp/worker; Capy passes copied values.
 function memcache_connect() u64 { memcache_connect("127.0.0.1", 11211) }
-function memcache_connect(host : string, port : s32) u64 { __bearer_dv_u64_brrb(__bearer_cache_brrb(__bearer_cache_memcache_connect, dval(host), "", dval(port)), 0u64) }
-function memcache_command(connection : u64, command : string) string { dval_string(__bearer_cache_brrb(__bearer_cache_memcache_command, dval(connection), command, dval(""))) }
+function memcache_connect(host : string, port : s32) u64 { __bearer_dv_u64_brrb(__bearer_cache_brrb(__bearer_cache_memcache_connect(), dval(host), "", dval(port)), 0u64) }
+function memcache_command(connection : u64, command : string) string { dval_string(__bearer_cache_brrb(__bearer_cache_memcache_command(), dval(connection), command, dval(""))) }
 function memcache_set(connection : u64, key : string, value : string) bool { memcache_set(connection, key, value, 3600u64) }
-function memcache_set(connection : u64, key : string, value : string, expires_in : u64) bool { dval_bool(__bearer_cache_brrb(__bearer_cache_memcache_set, dval(connection), key, dval({"value": value, "expires": expires_in}))) }
-function memcache_delete(connection : u64, key : string) bool { dval_bool(__bearer_cache_brrb(__bearer_cache_memcache_delete, dval(connection), key, dval(""))) }
+function memcache_set(connection : u64, key : string, value : string, expires_in : u64) bool { dval_bool(__bearer_cache_brrb(__bearer_cache_memcache_set(), dval(connection), key, dval({"value": value, "expires": expires_in}))) }
+function memcache_delete(connection : u64, key : string) bool { dval_bool(__bearer_cache_brrb(__bearer_cache_memcache_delete(), dval(connection), key, dval(""))) }
 function memcache_get(connection : u64, key : string) string { memcache_get(connection, key, "") }
-function memcache_get(connection : u64, key : string, default_value : string) string { dval_string(__bearer_cache_brrb(__bearer_cache_memcache_get, dval(connection), key, dval(default_value))) }
-function memcache_get_multiple(connection : u64, keys : dval) dval { __bearer_cache_brrb(__bearer_cache_memcache_get_multiple, dval(connection), "", keys) }
-function memcache_escape_key(key : string) string { dval_string(__bearer_cache_brrb(__bearer_cache_memcache_escape_key, dval(key), "", dval(""))) }
-function memcache_escape_keys(keys : dval) dval { __bearer_cache_brrb(__bearer_cache_memcache_escape_keys, keys, "", dval("")) }
+function memcache_get(connection : u64, key : string, default_value : string) string { dval_string(__bearer_cache_brrb(__bearer_cache_memcache_get(), dval(connection), key, dval(default_value))) }
+function memcache_get_multiple(connection : u64, keys : dval) dval { __bearer_cache_brrb(__bearer_cache_memcache_get_multiple(), dval(connection), "", keys) }
+function memcache_escape_key(key : string) string { dval_string(__bearer_cache_brrb(__bearer_cache_memcache_escape_key(), dval(key), "", dval(""))) }
+function memcache_escape_keys(keys : dval) dval { __bearer_cache_brrb(__bearer_cache_memcache_escape_keys(), keys, "", dval("")) }
 
-function shell_escape(raw : string) string { dval_string(__bearer_process_jobs_brrb(__bearer_process_shell_escape, dval(raw), "", dval(""))) }
-function shell_exec(command : string) string { dval_string(__bearer_process_jobs_brrb(__bearer_process_shell_exec, dval(command), "", dval(""))) }
+function shell_escape(raw : string) string { dval_string(__bearer_process_jobs_brrb(__bearer_process_shell_escape(), dval(raw), "", dval(""))) }
+function shell_exec(command : string) string { dval_string(__bearer_process_jobs_brrb(__bearer_process_shell_exec(), dval(command), "", dval(""))) }
 // Job IDs remain copied DValues in Capy so the host's exact u64 registry IDs
 // never cross a lossy scalar conversion.
-function shell_spawn(spec : dval) dval { __bearer_process_jobs_brrb(__bearer_process_shell_spawn, spec, "", dval("")) }
-function job_status(job : dval) dval { __bearer_process_jobs_brrb(__bearer_process_job_status, job, "", dval("")) }
-function job_result(job : dval) dval { __bearer_process_jobs_brrb(__bearer_process_job_result, job, "", dval("")) }
-function job_await(job : dval, timeout_ms : s32) dval { __bearer_process_jobs_brrb(__bearer_process_job_await, job, "", dval(timeout_ms)) }
-function job_cancel(job : dval) bool { dval_bool(__bearer_process_jobs_brrb(__bearer_process_job_cancel, job, "", dval(""))) }
-function process_start_directory() string { dval_string(__bearer_process_jobs_brrb(__bearer_process_process_start_directory, dval(""), "", dval(""))) }
+function shell_spawn(spec : dval) dval { __bearer_process_jobs_brrb(__bearer_process_shell_spawn(), spec, "", dval("")) }
+function job_status(job : dval) dval { __bearer_process_jobs_brrb(__bearer_process_job_status(), job, "", dval("")) }
+function job_result(job : dval) dval { __bearer_process_jobs_brrb(__bearer_process_job_result(), job, "", dval("")) }
+function job_await(job : dval, timeout_ms : s32) dval { __bearer_process_jobs_brrb(__bearer_process_job_await(), job, "", dval(timeout_ms)) }
+function job_cancel(job : dval) bool { dval_bool(__bearer_process_jobs_brrb(__bearer_process_job_cancel(), job, "", dval(""))) }
+function process_start_directory() string { dval_string(__bearer_process_jobs_brrb(__bearer_process_process_start_directory(), dval(""), "", dval(""))) }
 function server_start_http(key : string, bind : string, file : string) s32 { server_start_http(key, bind, file, "") }
-function server_start_http(key : string, bind : string, file : string, callback : string) s32 { dval_s32(__bearer_process_jobs_brrb(__bearer_process_server_start_http, dval(key), bind, dval({"file": file, "function": callback}))) }
-function server_stop(key : string) bool { dval_bool(__bearer_process_jobs_brrb(__bearer_process_server_stop, dval(key), "", dval(""))) }
-function task(target : string, props : dval) string { dval_string(__bearer_process_jobs_brrb(__bearer_process_task_submit, dval(target), "", props)) }
-function task_status(id : string) dval { __bearer_process_jobs_brrb(__bearer_process_task_status, dval(id), "", dval("")) }
-function task_await(id : string, timeout_ms : u64) dval { __bearer_process_jobs_brrb(__bearer_process_task_await, dval(id), "", dval(timeout_ms)) }
-function task_cancel(id : string) dval { __bearer_process_jobs_brrb(__bearer_process_task_cancel, dval(id), "", dval("")) }
+function server_start_http(key : string, bind : string, file : string, callback : string) s32 { dval_s32(__bearer_process_jobs_brrb(__bearer_process_server_start_http(), dval(key), bind, dval({"file": file, "function": callback}))) }
+function server_stop(key : string) bool { dval_bool(__bearer_process_jobs_brrb(__bearer_process_server_stop(), dval(key), "", dval(""))) }
+function task(target : string, props : dval) string { dval_string(__bearer_process_jobs_brrb(__bearer_process_task_submit(), dval(target), "", props)) }
+function task_status(id : string) dval { __bearer_process_jobs_brrb(__bearer_process_task_status(), dval(id), "", dval("")) }
+function task_await(id : string, timeout_ms : u64) dval { __bearer_process_jobs_brrb(__bearer_process_task_await(), dval(id), "", dval(timeout_ms)) }
+function task_cancel(id : string) dval { __bearer_process_jobs_brrb(__bearer_process_task_cancel(), dval(id), "", dval("")) }
 
 // Network resources remain request-owned by the workspace. Handles are encoded
 // as decimal DValues at the BRRB boundary, then parsed exactly as u64 values.
-function socket_connect(host : string, port : s32) u64 { __bearer_dv_u64_brrb(__bearer_network_http_brrb(__bearer_network_socket_connect, dval(host), "", dval(port)), 0u64) }
-function socket_close(handle : u64) { var ignored := __bearer_network_http_brrb(__bearer_network_socket_close, dval(handle), "", dval("")) }
-function socket_write(handle : u64, data : string) bool { dval_bool(__bearer_network_http_brrb(__bearer_network_socket_write, dval(handle), data, dval(""))) }
+function socket_connect(host : string, port : s32) u64 { __bearer_dv_u64_brrb(__bearer_network_http_brrb(__bearer_network_socket_connect(), dval(host), "", dval(port)), 0u64) }
+function socket_close(handle : u64) { var ignored := __bearer_network_http_brrb(__bearer_network_socket_close(), dval(handle), "", dval("")) }
+function socket_write(handle : u64, data : string) bool { dval_bool(__bearer_network_http_brrb(__bearer_network_socket_write(), dval(handle), data, dval(""))) }
 function socket_read(handle : u64) string { socket_read(handle, 131072, 1) }
 function socket_read(handle : u64, max_length : s32) string { socket_read(handle, max_length, 1) }
-function socket_read(handle : u64, max_length : s32, timeout : s32) string { dval_string(__bearer_network_http_brrb(__bearer_network_socket_read, dval(handle), "", dval({"max_length": max_length, "timeout": timeout}))) }
-function http_request(request : dval) dval { __bearer_network_http_brrb(__bearer_network_http_request, request, "", dval("")) }
-function http_request_async(request : dval) u64 { __bearer_dv_u64_brrb(__bearer_network_http_brrb(__bearer_network_http_request_async, request, "", dval("")), 0u64) }
+function socket_read(handle : u64, max_length : s32, timeout : s32) string { dval_string(__bearer_network_http_brrb(__bearer_network_socket_read(), dval(handle), "", dval({"max_length": max_length, "timeout": timeout}))) }
+function http_request(request : dval) dval { __bearer_network_http_brrb(__bearer_network_http_request(), request, "", dval("")) }
+function http_request_async(request : dval) u64 { __bearer_dv_u64_brrb(__bearer_network_http_brrb(__bearer_network_http_request_async(), request, "", dval("")), 0u64) }
 
 // C++ unit/component policy remains in the existing workspace dispatcher.
 function component(name : string) string { component_capture(name) }
@@ -643,30 +643,30 @@ function component(name : string, props : dval) string { component_capture(name,
 function unit_call(file_name : string, function_name : string) dval { unit_call(file_name, function_name, dval("")) }
 
 // Time parsing/formatting stays in sys.cpp; u64 values cross BRRB as exact text.
-function time_parse(value : string) u64 { __bearer_dv_u64_brrb(__bearer_time_format_brrb(__bearer_time_time_parse, dval(value), "", dval("")), 0u64) }
+function time_parse(value : string) u64 { __bearer_dv_u64_brrb(__bearer_time_format_brrb(__bearer_time_time_parse(), dval(value), "", dval("")), 0u64) }
 function time_format_local() string { time_format_local("", 0u64) }
 function time_format_local(format : string) string { time_format_local(format, 0u64) }
-function time_format_local(format : string, timestamp : u64) string { dval_string(__bearer_time_format_brrb(__bearer_time_time_format_local, dval(format), "", dval(timestamp))) }
+function time_format_local(format : string, timestamp : u64) string { dval_string(__bearer_time_format_brrb(__bearer_time_time_format_local(), dval(format), "", dval(timestamp))) }
 function time_format_utc() string { time_format_utc("", 0u64) }
 function time_format_utc(format : string) string { time_format_utc(format, 0u64) }
-function time_format_utc(format : string, timestamp : u64) string { dval_string(__bearer_time_format_brrb(__bearer_time_time_format_utc, dval(format), "", dval(timestamp))) }
+function time_format_utc(format : string, timestamp : u64) string { dval_string(__bearer_time_format_brrb(__bearer_time_time_format_utc(), dval(format), "", dval(timestamp))) }
 function time_format_relative(timestamp : u64) string { time_format_relative(timestamp, "", 0u64, "", 0u64, "") }
-function time_format_relative(timestamp : u64, very_recent : string, medium_seconds : u64, medium_recent : string, not_recent_seconds : u64, not_recent : string) string { dval_string(__bearer_time_format_brrb(__bearer_time_time_format_relative, dval(timestamp), very_recent, dval({"medium_seconds": medium_seconds, "medium_recent": medium_recent, "not_recent_seconds": not_recent_seconds, "not_recent": not_recent}))) }
+function time_format_relative(timestamp : u64, very_recent : string, medium_seconds : u64, medium_recent : string, not_recent_seconds : u64, not_recent : string) string { dval_string(__bearer_time_format_brrb(__bearer_time_time_format_relative(), dval(timestamp), very_recent, dval({"medium_seconds": medium_seconds, "medium_recent": medium_recent, "not_recent_seconds": not_recent_seconds, "not_recent": not_recent}))) }
 
-function ws_connections() dval { __bearer_websocket_registry_brrb(__bearer_websocket_ws_connections, dval(""), "", dval("")) }
-function ws_connections(scope : string) dval { __bearer_websocket_registry_brrb(__bearer_websocket_ws_connections, dval(scope), "", dval("")) }
-function ws_connection_count() u64 { __bearer_dv_u64_brrb(__bearer_websocket_registry_brrb(__bearer_websocket_ws_connection_count, dval(""), "", dval("")), 0u64) }
-function ws_connection_count(scope : string) u64 { __bearer_dv_u64_brrb(__bearer_websocket_registry_brrb(__bearer_websocket_ws_connection_count, dval(scope), "", dval("")), 0u64) }
+function ws_connections() dval { __bearer_websocket_registry_brrb(__bearer_websocket_ws_connections(), dval(""), "", dval("")) }
+function ws_connections(scope : string) dval { __bearer_websocket_registry_brrb(__bearer_websocket_ws_connections(), dval(scope), "", dval("")) }
+function ws_connection_count() u64 { __bearer_dv_u64_brrb(__bearer_websocket_registry_brrb(__bearer_websocket_ws_connection_count(), dval(""), "", dval("")), 0u64) }
+function ws_connection_count(scope : string) u64 { __bearer_dv_u64_brrb(__bearer_websocket_registry_brrb(__bearer_websocket_ws_connection_count(), dval(scope), "", dval("")), 0u64) }
 
 // Direct byte-span adapters remain private; public names below this boundary are
 // ordinary declarations selected from this source with user-call provenance.
 function array_merge(left : dval, right : dval) dval { __bearer_dv_merge_brrb(left, right) }
 
-function request_param(key : string) string { __bearer_request_value(__bearer_request_value_request_param, key) }
-function request_get(key : string) string { __bearer_request_value(__bearer_request_value_request_get, key) }
-function request_post(key : string) string { __bearer_request_value(__bearer_request_value_request_post, key) }
-function request_cookie(key : string) string { __bearer_request_value(__bearer_request_value_request_cookie, key) }
-function request_session(key : string) string { __bearer_request_value(__bearer_request_value_request_session, key) }
+function request_param(key : string) string { __bearer_request_value(__bearer_request_value_request_param(), key) }
+function request_get(key : string) string { __bearer_request_value(__bearer_request_value_request_get(), key) }
+function request_post(key : string) string { __bearer_request_value(__bearer_request_value_request_post(), key) }
+function request_cookie(key : string) string { __bearer_request_value(__bearer_request_value_request_cookie(), key) }
+function request_session(key : string) string { __bearer_request_value(__bearer_request_value_request_session(), key) }
 function request_body() string { __bearer_request_body() }
 function request_context() dval { __bearer_request_context_brrb() }
 function request_context(value : request) dval { __bearer_request_context_for_brrb(value) }
@@ -702,18 +702,18 @@ function unit_compile(path : string) bool { __bearer_unit_compile(path) }
 
 function regex_match(pattern : string, subject : string) bool { __bearer_regex_match(pattern, subject, "") }
 function regex_match(pattern : string, subject : string, flags : string) bool { __bearer_regex_match(pattern, subject, flags) }
-function regex_search(pattern : string, subject : string) dval { __bearer_regex_dval(__bearer_regex_regex_search, pattern, subject, "", "") }
-function regex_search(pattern : string, subject : string, flags : string) dval { __bearer_regex_dval(__bearer_regex_regex_search, pattern, subject, "", flags) }
-function regex_search_all(pattern : string, subject : string) dval { __bearer_regex_dval(__bearer_regex_regex_search_all, pattern, subject, "", "") }
-function regex_search_all(pattern : string, subject : string, flags : string) dval { __bearer_regex_dval(__bearer_regex_regex_search_all, pattern, subject, "", flags) }
-function regex_replace(pattern : string, replacement : string, subject : string) string { __bearer_regex_text(__bearer_regex_regex_replace, pattern, subject, replacement, "") }
-function regex_replace(pattern : string, replacement : string, subject : string, flags : string) string { __bearer_regex_text(__bearer_regex_regex_replace, pattern, subject, replacement, flags) }
+function regex_search(pattern : string, subject : string) dval { __bearer_regex_dval(__bearer_regex_regex_search(), pattern, subject, "", "") }
+function regex_search(pattern : string, subject : string, flags : string) dval { __bearer_regex_dval(__bearer_regex_regex_search(), pattern, subject, "", flags) }
+function regex_search_all(pattern : string, subject : string) dval { __bearer_regex_dval(__bearer_regex_regex_search_all(), pattern, subject, "", "") }
+function regex_search_all(pattern : string, subject : string, flags : string) dval { __bearer_regex_dval(__bearer_regex_regex_search_all(), pattern, subject, "", flags) }
+function regex_replace(pattern : string, replacement : string, subject : string) string { __bearer_regex_text(__bearer_regex_regex_replace(), pattern, subject, replacement, "") }
+function regex_replace(pattern : string, replacement : string, subject : string, flags : string) string { __bearer_regex_text(__bearer_regex_regex_replace(), pattern, subject, replacement, flags) }
 
-function base64_encode(value : string) string { __bearer_codec_text(__bearer_codec_base64_encode, value) }
-function base64_decode(value : string) string { __bearer_codec_text(__bearer_codec_base64_decode, value) }
-function uri_encode(value : string) string { __bearer_codec_text(__bearer_codec_uri_encode, value) }
-function uri_decode(value : string) string { __bearer_codec_text(__bearer_codec_uri_decode, value) }
-function json_decode(value : string) dval { __bearer_codec_dval(__bearer_codec_json_decode, value) }
+function base64_encode(value : string) string { __bearer_codec_text(__bearer_codec_base64_encode(), value) }
+function base64_decode(value : string) string { __bearer_codec_text(__bearer_codec_base64_decode(), value) }
+function uri_encode(value : string) string { __bearer_codec_text(__bearer_codec_uri_encode(), value) }
+function uri_decode(value : string) string { __bearer_codec_text(__bearer_codec_uri_decode(), value) }
+function json_decode(value : string) dval { __bearer_codec_dval(__bearer_codec_json_decode(), value) }
 
 function file_open(path : string, mode : string) u64 { __bearer_file_open(path, mode) }
 function file_read(handle : u64, count : u64) string { __bearer_file_read(handle, count) }

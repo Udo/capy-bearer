@@ -19,7 +19,7 @@ Use `function ONCE { ... }` for the normal form. You can also declare `function 
 
 The hook accepts no other inputs and returns no value. Bearer runs it before the first render or component call for this resolved unit and request. Later component calls to the same unit in that request do not run it again.
 
-Use `ONCE` to prepare request-local derived data that several component calls need. Do not use it for worker-local state. Use `INIT` for worker-local state.
+Use `ONCE` to prepare request-local derived data that several component calls need. Do not use it for worker-local state. Capy unit hooks do not provide persistent worker-local state.
 
 The compiler rejects other parameter forms, a return type, and handler overloads. A trap in `ONCE` stops that invocation.
 
@@ -33,7 +33,7 @@ Capy does not expose C++ `Request&`, `context.call`, or mutable `DValue` aliases
 
 
 :example capy render
-print("ONCE is a unit directive; place it at top level in a .uce unit.\n")
+print("Declare ONCE as a top-level function.\n")
 
 :example cpp render
-print("ONCE is a unit directive; place it at top level in a .uce unit.\n");
+print("Declare ONCE as a top-level function.\n");

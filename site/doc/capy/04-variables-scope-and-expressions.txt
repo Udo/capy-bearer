@@ -1,0 +1,75 @@
+:title
+4. Variables, scope, and expressions
+
+:content
+## Declaring variables
+
+Use `:=` to infer a variable type:
+
+```capy
+var name := "Ada"
+var visits := 1
+```
+
+Inside a function, `name := value` is the shorter inferred declaration form. Use `: Type =` to state the type:
+
+```capy
+message := "ready"
+var started : u64 = time()
+```
+
+Both forms declare the name in the current lexical scope. They do not assign an existing variable. The compiler rejects two declarations of the same name in one scope. A nested block can declare the same name and hide the outer name until that block ends.
+
+Capy has no `const` declaration. Use a local value or a zero-argument function for a named value. Use a top-level `type` declaration only to name a type expression. The types chapter defines transparent aliases.
+
+## Assignment
+
+Use `=` to replace the value of an existing variable:
+
+```capy
+var count := 1
+count = count + 1
+```
+
+The new value must have the variable type. A declaration produces the value that it stores. An assignment also produces the stored value.
+
+The compiler evaluates each initializer or right side once. A declaration in an `if` condition remains in that function block after the condition. The conditional right side of `&&` or `||` has its own nested scope, so a declaration there does not escape.
+
+## Block results
+
+A block evaluates its expressions in order. An empty block has type `void`. A non-empty block produces its final reachable expression:
+
+```capy
+var total := {
+    var subtotal := 40
+    var tax := 2
+    subtotal + tax
+}
+```
+
+The result survives cleanup of locals declared in the block. Capy releases managed locals exactly once after it preserves the result.
+
+An `if` with `else` produces the selected branch value when all branches that can finish have the same type:
+
+```capy
+var label := if ready {
+    "ready"
+} else {
+    "waiting"
+}
+```
+
+An `if` without `else` has type `void`. Loops also have type `void`.
+
+A function returns its final reachable expression when it has no explicit `return`. Use parentheses to make precedence or tuple boundaries clear:
+
+```capy
+var total := (price + shipping) * quantity
+var coordinates := (10, 20)
+```
+
+:see
+capy-03-types
+capy-05-operators-and-control-flow
+capy-06-functions
+capy-08-arrays-tuples-and-structs

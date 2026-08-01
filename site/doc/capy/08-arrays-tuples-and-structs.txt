@@ -65,7 +65,7 @@ print(size[0], " x ", size[1])
 
 `()` is the empty tuple. `(value)` groups an expression and does not create a one-item tuple. The compiler treats `use(a, b)` and `use((a, b))` as different calls. A tuple can spread into fixed call parameters with `use(...tuple)`.
 
-Tuple layouts can own managed values, but they do not yet accept `s64`, `u64`, or `f64` fields.
+Tuples can contain narrow scalars, `s64`, `u64`, `f64`, and managed values. Capy aligns fields internally. Source code does not depend on the byte layout.
 
 ## Structs
 
@@ -83,7 +83,7 @@ print(user.name)
 
 The generated constructor uses field declaration order. The compiler checks member names. You can add other constructor overloads by declaring functions named `User`, but you cannot replace the generated field constructor.
 
-A struct can spread into call parameters in field declaration order. Struct layouts can own managed values, but they do not yet accept `s64`, `u64`, or `f64` fields.
+A struct can spread into call parameters in field declaration order. Structs can own managed values and can contain `s64`, `u64`, and `f64` fields.
 
 A field can hold a function value:
 
