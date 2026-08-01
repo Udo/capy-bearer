@@ -725,7 +725,6 @@ StringMap default_config()
 {
 	StringMap cfg;
 	cfg["SESSION_TIME"] = std::to_string(60*60*24*30);
-	cfg["MAX_MEMORY"] = std::to_string(1024*1024*16);
 	return(cfg);
 }
 
@@ -738,6 +737,7 @@ StringMap default_config()
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <execinfo.h>
+#include <spawn.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <sys/file.h>
@@ -745,6 +745,8 @@ StringMap default_config()
 #include "sys.h"
 #include "hash.h"
 #include "uri.h"
+
+extern char** environ;
 
 String sha256(String data) { return(sha256_native(data)); }
 String sha256_hex(String data) { return(sha256_hex_native(data)); }
@@ -1449,6 +1451,7 @@ struct ProcessSigchldBlock
 	bool blocked = false;
 	ProcessSigchldBlock()
 	{
+		sigemptyset(&previous);
 		sigset_t mask;
 		sigemptyset(&mask);
 		sigaddset(&mask, SIGCHLD);
@@ -1465,6 +1468,28 @@ struct ProcessSigchldBlock
 	~ProcessSigchldBlock() { restore(); }
 };
 
+}
+
+String process_identity_start_ticks(pid_t pid)
+{
+	std::ifstream input("/proc/" + std::to_string((long long)pid) + "/stat");
+	if(!input)
+		return("");
+	String raw;
+	std::getline(input, raw);
+	size_t close = raw.rfind(')');
+	if(close == String::npos || close + 2 >= raw.size())
+		return("");
+	std::istringstream fields(raw.substr(close + 2));
+	String value;
+	for(int field = 3; field <= 22; field++)
+	{
+		if(!(fields >> value))
+			return("");
+		if(field == 22)
+			return(value);
+	}
+	return("");
 }
 
 DValue process_exec(String cmd, String input, StringMap env, u64 timeout_ms, u64 output_limit)
@@ -1488,29 +1513,82 @@ DValue process_exec(String cmd, String input, StringMap env, u64 timeout_ms, u64
 	}
 	ProcessSigchldBlock sigchld;
 	unsigned int child_status_snapshot_value = child_exit_status_snapshot();
-	pid_t pid = fork();
-	if(pid < 0)
+	StringMap merged_environment;
+	for(char** item = environ; item && *item; item++)
+	{
+		String value(*item);
+		auto equal = value.find('=');
+		if(equal != String::npos)
+			merged_environment[value.substr(0, equal)] = value.substr(equal + 1);
+	}
+	for(const auto& value : env)
+		if(value.first != "" && value.first.find('=') == String::npos)
+			merged_environment[value.first] = value.second;
+	std::vector<String> environment_storage;
+	environment_storage.reserve(merged_environment.size());
+	for(const auto& value : merged_environment)
+		environment_storage.push_back(value.first + "=" + value.second);
+	std::vector<char*> environment;
+	environment.reserve(environment_storage.size() + 1);
+	for(String& value : environment_storage)
+		environment.push_back(value.data());
+	environment.push_back(0);
+	String parent_pid = std::to_string((long long)getpid());
+	char* arguments[] = {(char*)"bearer_fastcgi", (char*)"--exec-shell", parent_pid.data(), cmd.data(), 0};
+	posix_spawn_file_actions_t actions;
+	posix_spawnattr_t attributes;
+	int spawn_error = posix_spawn_file_actions_init(&actions);
+	bool actions_ready = spawn_error == 0;
+	if(spawn_error == 0) spawn_error = posix_spawn_file_actions_adddup2(&actions, inpipe[0], 0);
+	if(spawn_error == 0) spawn_error = posix_spawn_file_actions_adddup2(&actions, outpipe[1], 1);
+	if(spawn_error == 0) spawn_error = posix_spawn_file_actions_adddup2(&actions, errpipe[1], 2);
+	for(int fd : {inpipe[0], inpipe[1], outpipe[0], outpipe[1], errpipe[0], errpipe[1]})
+		if(spawn_error == 0) spawn_error = posix_spawn_file_actions_addclose(&actions, fd);
+	if(spawn_error == 0) spawn_error = posix_spawnattr_init(&attributes);
+	bool attributes_ready = spawn_error == 0;
+	if(spawn_error == 0) spawn_error = posix_spawnattr_setflags(&attributes, POSIX_SPAWN_SETPGROUP | POSIX_SPAWN_SETSIGMASK);
+	if(spawn_error == 0) spawn_error = posix_spawnattr_setpgroup(&attributes, 0);
+	if(spawn_error == 0) spawn_error = posix_spawnattr_setsigmask(&attributes, &sigchld.previous);
+	pid_t pid = -1;
+	if(spawn_error == 0)
+		spawn_error = posix_spawn(&pid, "/proc/self/exe", &actions, &attributes, arguments, environment.data());
+	if(actions_ready)
+		posix_spawn_file_actions_destroy(&actions);
+	if(attributes_ready)
+		posix_spawnattr_destroy(&attributes);
+	if(spawn_error != 0)
 	{
 		close(inpipe[0]); close(inpipe[1]); close(outpipe[0]); close(outpipe[1]); close(errpipe[0]); close(errpipe[1]);
-		result["stderr"] = "fork failed";
+		result["stderr"] = "posix_spawn failed: " + String(strerror(spawn_error));
 		return(result);
 	}
-	if(pid == 0)
+	int start_status = 0;
+	pid_t stopped;
+	do { stopped = waitpid(pid, &start_status, WUNTRACED); } while(stopped < 0 && errno == EINTR);
+	if(stopped != pid || !WIFSTOPPED(start_status))
 	{
-		sigchld.restore();
-		setpgid(0, 0);
-		pid_t expected_parent = getppid();
-		prctl(PR_SET_PDEATHSIG, SIGKILL);
-		if(getppid() != expected_parent)
-			_exit(127);
-		dup2(inpipe[0], 0); dup2(outpipe[1], 1); dup2(errpipe[1], 2);
+		kill(pid, SIGKILL);
 		close(inpipe[0]); close(inpipe[1]); close(outpipe[0]); close(outpipe[1]); close(errpipe[0]); close(errpipe[1]);
-		for(auto& value : env)
-			setenv(value.first.c_str(), value.second.c_str(), 1);
-		execl("/bin/sh", "sh", "-c", cmd.c_str(), (char*)0);
-		_exit(127);
+		result["stderr"] = "process helper did not enter its start gate";
+		return(result);
 	}
-	setpgid(pid, pid);
+	if(const char* job_directory = getenv("BEARER_JOB_DIRECTORY"))
+	{
+		String start_ticks = process_identity_start_ticks(pid);
+		if(start_ticks != "")
+		{
+			file_put_contents(path_join(job_directory, "command_pid"), std::to_string((long long)pid));
+			file_put_contents(path_join(job_directory, "command_start_ticks"), start_ticks);
+		}
+	}
+	if(kill(pid, SIGCONT) != 0)
+	{
+		kill(pid, SIGKILL);
+		waitpid(pid, 0, 0);
+		close(inpipe[0]); close(inpipe[1]); close(outpipe[0]); close(outpipe[1]); close(errpipe[0]); close(errpipe[1]);
+		result["stderr"] = "process helper start failed";
+		return(result);
+	}
 	close(inpipe[0]); close(outpipe[1]); close(errpipe[1]);
 	fcntl(inpipe[1], F_SETFL, fcntl(inpipe[1], F_GETFL, 0) | O_NONBLOCK);
 	fcntl(outpipe[0], F_SETFL, fcntl(outpipe[0], F_GETFL, 0) | O_NONBLOCK);
@@ -1622,13 +1700,15 @@ DValue process_exec(String cmd, String input, StringMap env, u64 timeout_ms, u64
 pid_t spawn_subprocess(std::function<void()> exec_after_spawn)
 {
 	parent_pid = getpid();
+	pid_t expected_parent = parent_pid;
 	pid_t p;
 	p = fork();
 	if(p == 0)
 	{
 		my_pid = getpid();
 		//printf("(C) child procress started, PID:%i\n", my_pid);
-		prctl(PR_SET_PDEATHSIG, SIGHUP);
+		if(prctl(PR_SET_PDEATHSIG, SIGHUP) != 0 || getppid() != expected_parent)
+			_exit(1);
 		exec_after_spawn();
 		return(0);
 	}
@@ -1666,9 +1746,19 @@ DValue task_status(String id) { return(task_result_value(task_workers::status(id
 DValue task_await(String id, u64 timeout_ms) { return(task_result_value(task_workers::await(id, timeout_ms))); }
 DValue task_cancel(String id) { return(task_result_value(task_workers::cancel(id))); }
 
+static volatile sig_atomic_t child_exit_pending = 0;
+
 void on_child_exit(int sig)
 {
 	(void)sig;
+	child_exit_pending = 1;
+}
+
+void reap_child_exits()
+{
+	if(!child_exit_pending)
+		return;
+	child_exit_pending = 0;
 	pid_t pid;
 	int status;
 	while((pid = waitpid(-1, &status, WNOHANG)) > 0)
@@ -1720,12 +1810,17 @@ StringMap make_server_settings()
 	cfg["CONTENT_TYPE"] = "text/html; charset=utf-8";
 	cfg["FCGI_SOCKET_PATH"] = "/run/bearer/fastcgi.sock";
 	cfg["FCGI_SOCKET_MODE"] = "0666";
+	cfg["FCGI_PORT"] = "";
+	cfg["FCGI_BIND_ADDRESS"] = "";
 	cfg["CLI_SOCKET_PATH"] = "/run/bearer/cli.sock";
 	cfg["CLI_SOCKET_MODE"] = "0600";
 	// Command socket the WS broker listens on; workers flush ws_* dispatch
 	// command batches here at workspace teardown.
 	cfg["WS_BROKER_SOCKET_PATH"] = "/run/bearer/ws-broker.sock";
 	cfg["WS_BROKER_OUTBOUND_TIMEOUT_SECONDS"] = "30";
+	cfg["WS_BROKER_MAX_OUTBOUND_FORWARDS"] = "64";
+	cfg["WS_BROKER_MAX_OUTBOUND_PER_CONNECTION"] = "1";
+	cfg["WS_BROKER_MAX_OUTBOUND_BYTES"] = std::to_string(4 * 1024 * 1024);
 	// Comma-separated bearer_host_* names a sysadmin disables; empty = nothing blocked.
 	cfg["BEARER_HOSTCALL_BLOCKLIST"] = "";
 	cfg["TMP_UPLOAD_PATH"] = "/tmp/bearer/uploads";
@@ -1749,6 +1844,8 @@ StringMap make_server_settings()
 	cfg["TRANSPORT_MAX_WEBSOCKET_MESSAGE_BYTES"] = std::to_string(1024 * 1024);
 	cfg["TRANSPORT_MAX_WEBSOCKET_OUTPUT_BYTES"] = std::to_string(4 * 1024 * 1024);
 	cfg["TRANSPORT_MAX_RESPONSE_BYTES"] = std::to_string(8 * 1024 * 1024);
+	cfg["TRANSPORT_MAX_FASTCGI_REQUESTS_PER_CONNECTION"] = "16";
+	cfg["TRANSPORT_MAX_FASTCGI_OUTPUT_BYTES"] = std::to_string(16 * 1024 * 1024);
 	cfg["TRANSPORT_HTTP_REQUEST_TIMEOUT_SECONDS"] = "15";
 	cfg["TRANSPORT_CONNECTION_IDLE_TIMEOUT_SECONDS"] = "120";
 	cfg["HTTP_DOCUMENT_ROOT"] = "";
@@ -1763,7 +1860,10 @@ StringMap make_server_settings()
 	cfg["ARCHIVE_MAX_OUTPUT_BYTES"] = std::to_string(64 * 1024 * 1024);
 	cfg["ARCHIVE_MAX_ZIP_ENTRIES"] = "4096";
 
-	cfg["HTTP_PORT"] = std::to_string(8080);
+	cfg["HTTP_SOCKET_PATH"] = "";
+	cfg["HTTP_SOCKET_MODE"] = "0666";
+	cfg["HTTP_PORT"] = "";
+	cfg["HTTP_BIND_ADDRESS"] = "";
 	cfg["SESSION_TIME"] = std::to_string(60*60*24*30);
 	cfg["WORKER_COUNT"] = std::to_string(4);
 	cfg["TASK_DIRECTORY"] = "/var/lib/bearer/tasks";
@@ -1773,7 +1873,6 @@ StringMap make_server_settings()
 	cfg["TASK_EXECUTION_TIMEOUT_MS"] = "30000";
 	cfg["TASK_STATUS_RETENTION_SECONDS"] = "86400";
 	cfg["TASK_POLL_MS"] = "50";
-	cfg["MAX_MEMORY"] = std::to_string(1024*1024*16);
 
 	for(auto& it : split_kv(file_get_contents("/etc/bearer/settings.cfg")))
 	{

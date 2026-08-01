@@ -6,11 +6,21 @@
 #include <fcntl.h>
 #include <functional>
 #include <signal.h>
+#include <spawn.h>
 #include <sys/wait.h>
 #include <sys/syscall.h>
 #include <unistd.h>
 
+extern char** environ;
+
 static u64 hardened_http_monotonic_ms() { timespec ts{}; clock_gettime(CLOCK_MONOTONIC,&ts); return (u64)ts.tv_sec*1000ull+(u64)ts.tv_nsec/1000000ull; }
+static String hardened_http_process_start_ticks(pid_t pid)
+{
+	std::ifstream input("/proc/"+std::to_string((long long)pid)+"/stat"); String raw; if(!input||!std::getline(input,raw)) return("");
+	size_t close=raw.rfind(')'); if(close==String::npos||close+2>=raw.size()) return("");
+	std::istringstream fields(raw.substr(close+2)); String value; for(int field=3;field<=22;field++) { if(!(fields>>value)) return(""); if(field==22) return(value); }
+	return("");
+}
 static void hardened_http_close_inherited_fds()
 {
 #ifdef SYS_close_range
@@ -43,23 +53,59 @@ static bool hardened_http_public_address(String text)
 // Three private pipes keep curl's -D headers and -o body distinct. The child
 // inherits only stdin/stdout/stderr and the header pipe on fd 3. Async workers
 // retain their own process group so job_cancel can kill curl and its descendants.
-static HardenedHttpExecResult hardened_http_exec_argv_capture(std::vector<String> argv, String input, u64 timeout_ms, size_t output_limit, bool clean_env=true, bool own_process_group=true)
+static HardenedHttpExecResult hardened_http_exec_argv_capture(std::vector<String> argv, String input, u64 timeout_ms, size_t output_limit, bool clean_env=true, bool own_process_group=true, String exec_helper="")
 {
 	HardenedHttpExecResult r; if(argv.empty()) return r;
 	int in[2], body[2], headers[2], err[2];
 	if(pipe(in)||pipe(body)||pipe(headers)||pipe(err)) return r;
-	pid_t pid=fork();
-	if(pid==0) {
-		if(own_process_group) setpgid(0,0);
-		dup2(in[0],0); dup2(body[1],1); dup2(err[1],2); dup2(headers[1],3);
-		hardened_http_close_inherited_fds();
-		std::vector<char*> args; for(String& a:argv) args.push_back((char*)a.c_str()); args.push_back(0);
-		if(clean_env) { clearenv(); setenv("PATH","/usr/bin:/bin",1); execv(args[0],args.data()); } else execvp(args[0],args.data());
-		_exit(127);
-	}
 	auto close_all=[&](){ for(int fd: {in[0],in[1],body[0],body[1],headers[0],headers[1],err[0],err[1]}) close(fd); };
+	pid_t pid=-1;
+	if(exec_helper != "")
+	{
+		String parent_pid=std::to_string((long long)getpid());
+		std::vector<char*> args={(char*)"bearer_fastcgi",(char*)"--exec-clean-argv",parent_pid.data()}; for(String& a:argv) args.push_back(a.data()); args.push_back(0);
+		posix_spawn_file_actions_t actions; posix_spawnattr_t attributes;
+		int spawn_error=posix_spawn_file_actions_init(&actions); bool actions_ready=spawn_error==0;
+		if(spawn_error==0) spawn_error=posix_spawn_file_actions_adddup2(&actions,in[0],0);
+		if(spawn_error==0) spawn_error=posix_spawn_file_actions_adddup2(&actions,body[1],1);
+		if(spawn_error==0) spawn_error=posix_spawn_file_actions_adddup2(&actions,err[1],2);
+		if(spawn_error==0) spawn_error=posix_spawn_file_actions_adddup2(&actions,headers[1],3);
+		for(int fd:{in[0],in[1],body[0],body[1],headers[0],headers[1],err[0],err[1]}) if(spawn_error==0&&fd!=3) spawn_error=posix_spawn_file_actions_addclose(&actions,fd);
+		if(spawn_error==0) spawn_error=posix_spawnattr_init(&attributes); bool attributes_ready=spawn_error==0;
+		sigset_t mask; sigprocmask(SIG_SETMASK,0,&mask); short flags=POSIX_SPAWN_SETSIGMASK|(own_process_group?POSIX_SPAWN_SETPGROUP:0);
+		if(spawn_error==0) spawn_error=posix_spawnattr_setflags(&attributes,flags);
+		if(spawn_error==0&&own_process_group) spawn_error=posix_spawnattr_setpgroup(&attributes,0);
+		if(spawn_error==0) spawn_error=posix_spawnattr_setsigmask(&attributes,&mask);
+		char* environment[]={(char*)"PATH=/usr/bin:/bin",0};
+		if(spawn_error==0) spawn_error=posix_spawn(&pid,exec_helper.c_str(),&actions,&attributes,args.data(),clean_env?environment:environ);
+		if(actions_ready) posix_spawn_file_actions_destroy(&actions); if(attributes_ready) posix_spawnattr_destroy(&attributes);
+		if(spawn_error!=0) pid=-1;
+	}
+	else
+	{
+		pid=fork();
+		if(pid==0) {
+			if(own_process_group) setpgid(0,0);
+			dup2(in[0],0); dup2(body[1],1); dup2(err[1],2); dup2(headers[1],3);
+			hardened_http_close_inherited_fds();
+			std::vector<char*> args; for(String& a:argv) args.push_back((char*)a.c_str()); args.push_back(0);
+			if(clean_env) { clearenv(); setenv("PATH","/usr/bin:/bin",1); execv(args[0],args.data()); } else execvp(args[0],args.data());
+			_exit(127);
+		}
+		if(pid>0&&own_process_group) setpgid(pid,pid);
+	}
 	if(pid<0) { close_all(); return r; }
-	if(own_process_group) setpgid(pid,pid);
+	if(exec_helper!="") {
+		int start_status=0; pid_t stopped; do { stopped=waitpid(pid,&start_status,WUNTRACED); } while(stopped<0&&errno==EINTR);
+		if(stopped!=pid||!WIFSTOPPED(start_status)) { kill(pid,SIGKILL); close_all(); return r; }
+		if(const char* job_directory=getenv("BEARER_JOB_DIRECTORY")) {
+			String start_ticks=hardened_http_process_start_ticks(pid); if(start_ticks!="") {
+				std::ofstream pid_file(String(job_directory)+"/command_pid",std::ios::trunc); pid_file<<pid; pid_file.flush();
+				std::ofstream start_file(String(job_directory)+"/command_start_ticks",std::ios::trunc); start_file<<start_ticks; start_file.flush();
+			}
+		}
+		if(kill(pid,SIGCONT)!=0) { kill(pid,SIGKILL); waitpid(pid,0,0); close_all(); return r; }
+	}
 	close(in[0]); close(body[1]); close(headers[1]); close(err[1]);
 	for(int fd: {in[1],body[0],headers[0],err[0]}) fcntl(fd,F_SETFL,fcntl(fd,F_GETFL,0)|O_NONBLOCK);
 	size_t input_off=0, total=0; bool in_open=true,body_open=true,headers_open=true,err_open=true,exited=false,killed=false; int status=0; u64 deadline=hardened_http_monotonic_ms()+timeout_ms;

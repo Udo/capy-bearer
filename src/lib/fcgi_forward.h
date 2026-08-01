@@ -13,6 +13,12 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <climits>
+#include <cstddef>
+#include <ctime>
+#include <cerrno>
 #include <cstring>
 #include <algorithm>
 
@@ -78,11 +84,29 @@ inline String fcgi_build_request(const StringMap& params, const String& stdin_bo
 // Forward `params` + `stdin_body` to the FastCGI responder at unix `socket_path`
 // and return the parsed CGI response. Times out (recv) at `timeout_seconds`.
 inline FcgiForwardResult fcgi_forward_request(const String& socket_path,
-	const StringMap& params, const String& stdin_body, u32 timeout_seconds = 30)
+	const StringMap& params, const String& stdin_body, u32 timeout_seconds = 30,
+	u64 max_response_bytes = 8 * 1024 * 1024)
 {
 	FcgiForwardResult result;
 
-	int fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+	auto monotonic_ms = []() { timespec now{}; clock_gettime(CLOCK_MONOTONIC, &now); return((u64)now.tv_sec * 1000 + (u64)now.tv_nsec / 1000000); };
+	u64 started = monotonic_ms();
+	u64 timeout_ms = std::max<u64>(1, timeout_seconds) * 1000;
+	u64 deadline = started > UINT64_MAX - timeout_ms ? UINT64_MAX : started + timeout_ms;
+	auto wait_for = [&](int fd, short events) {
+		for(;;)
+		{
+			u64 now = monotonic_ms();
+			if(now >= deadline) return(false);
+			pollfd item{fd, events, 0};
+			int rc = poll(&item, 1, (int)std::min<u64>(INT_MAX, deadline - now));
+			if(rc > 0) return((item.revents & events) != 0 && (item.revents & (POLLERR|POLLNVAL)) == 0);
+			if(rc == 0) return(false);
+			if(errno != EINTR) return(false);
+		}
+	};
+
+	int fd = ::socket(AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
 	if(fd < 0)
 	{
 		result.error = "fcgi_forward: socket() failed";
@@ -91,24 +115,42 @@ inline FcgiForwardResult fcgi_forward_request(const String& socket_path,
 	struct sockaddr_un addr;
 	memset(&addr, 0, sizeof(addr));
 	addr.sun_family = AF_UNIX;
-	strncpy(addr.sun_path, socket_path.c_str(), sizeof(addr.sun_path) - 1);
-	if(::connect(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
+	if(socket_path.empty() || socket_path.size() >= sizeof(addr.sun_path))
 	{
 		::close(fd);
-		result.error = "fcgi_forward: connect(" + socket_path + ") failed";
+		result.error = "fcgi_forward: invalid Unix socket path";
 		return(result);
 	}
-	struct timeval tv;
-	tv.tv_sec = timeout_seconds;
-	tv.tv_usec = 0;
-	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv));
-
-	String request = fcgi_build_request(params, stdin_body);
-	if(::send(fd, request.data(), request.size(), MSG_NOSIGNAL) != (ssize_t)request.size())
+	memcpy(addr.sun_path, socket_path.data(), socket_path.size());
+	int connected = ::connect(fd, (struct sockaddr*)&addr, offsetof(sockaddr_un, sun_path) + socket_path.size() + 1);
+	if(connected < 0 && errno == EINPROGRESS && wait_for(fd, POLLOUT))
+	{
+		int socket_error = 0;
+		socklen_t error_size = sizeof(socket_error);
+		connected = getsockopt(fd, SOL_SOCKET, SO_ERROR, &socket_error, &error_size) == 0 && socket_error == 0 ? 0 : -1;
+	}
+	if(connected < 0)
 	{
 		::close(fd);
-		result.error = "fcgi_forward: short write to responder";
+		result.error = "fcgi_forward: connect(" + socket_path + ") failed or timed out";
 		return(result);
+	}
+
+	String request = fcgi_build_request(params, stdin_body);
+	for(size_t offset = 0; offset < request.size();)
+	{
+		ssize_t sent = ::send(fd, request.data() + offset, request.size() - offset, MSG_NOSIGNAL);
+		if(sent < 0 && errno == EINTR)
+			continue;
+		if(sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK) && wait_for(fd, POLLOUT))
+			continue;
+		if(sent <= 0)
+		{
+			::close(fd);
+			result.error = "fcgi_forward: write to responder failed";
+			return(result);
+		}
+		offset += (size_t)sent;
 	}
 
 	// Read records; collect FCGI_STDOUT content until FCGI_END_REQUEST or EOF.
@@ -118,6 +160,10 @@ inline FcgiForwardResult fcgi_forward_request(const String& socket_path,
 	while(!ended)
 	{
 		ssize_t n = ::recv(fd, buf, sizeof(buf), 0);
+		if(n < 0 && errno == EINTR)
+			continue;
+		if(n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK) && wait_for(fd, POLLIN))
+			continue;
 		if(n <= 0)
 			break;
 		inbuf.append(buf, n);
@@ -131,13 +177,26 @@ inline FcgiForwardResult fcgi_forward_request(const String& socket_path,
 				break;
 			unsigned char type = h[1];
 			if(type == 6 /*FCGI_STDOUT*/)
+			{
+				if(stdout_data.size() > max_response_bytes || content > max_response_bytes - stdout_data.size())
+				{
+					::close(fd);
+					result.error = "fcgi_forward: response exceeded configured output limit";
+					return(result);
+				}
 				stdout_data.append(inbuf.data() + 8, content);
+			}
 			else if(type == 3 /*FCGI_END_REQUEST*/)
 				ended = true;
 			inbuf.erase(0, record_len);
 		}
 	}
 	::close(fd);
+	if(!ended)
+	{
+		result.error = "fcgi_forward: responder ended before FCGI_END_REQUEST";
+		return(result);
+	}
 
 	// Parse the CGI response: header block, then body. Status: header (if any)
 	// sets the HTTP status; everything else is a response header.

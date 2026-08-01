@@ -81,9 +81,9 @@ CliHttpResponse cli_frontend(String path, String extra_headers = "")
 	return(cli_http_request("127.0.0.1", 80, path, extra_headers));
 }
 
-CliHttpResponse cli_direct_http(String path, String extra_headers = "")
+CliHttpResponse cli_http_proxy(String path, String extra_headers = "")
 {
-	return(cli_http_request("127.0.0.1", 8080, path, extra_headers));
+	return(cli_http_request("127.0.0.1", 80, path, extra_headers));
 }
 
 void cli_test_case(String name, bool ok, String summary)
@@ -252,45 +252,34 @@ void cli_run_doc_pages_gate(u64 shard = 0, u64 shard_count = 1)
 		bool has_render_example = has_legacy_examples || cli_contains(source, ":example capy render") || cli_contains(source, ":example cpp render");
 		bool has_compile_only_example = cli_contains(source, ":example capy cli") || cli_contains(source, ":example cpp cli") || cli_contains(source, ":example capy component") || cli_contains(source, ":example cpp component") || cli_contains(source, ":example capy init") || cli_contains(source, ":example cpp init") || cli_contains(source, ":example capy once") || cli_contains(source, ":example cpp once") || cli_contains(source, ":example capy ws") || cli_contains(source, ":example cpp ws");
 		String path = "/doc/?p=" + uri_encode(page);
-		CliHttpResponse res;
+		CliHttpResponse res = cli_frontend(path);
 		String summary;
-		bool ok = false;
-		// Frontend GETs may serve the last complete nested component while its
-		// prioritized replacement compiles; cover a normal cold WASI compile.
-		for(u64 attempt = 0; attempt < 12; attempt++)
+		bool ok = cli_expect_http_once(res, path, 200, "doc-detail", error_markers, summary);
+		String lower = to_lower(res.body);
+		if(has_example)
 		{
-			if(attempt > 0)
-				usleep(500000);
-			res = cli_frontend(path);
-			ok = cli_expect_http_once(res, path, 200, "doc-detail", error_markers, summary);
-			String lower = to_lower(res.body);
-			if(has_example)
+			if(has_render_example && (!cli_contains(res.body, "class=\"example-output\"") || !cli_contains(res.body, "example-output-label\">Output")))
 			{
-				if(has_render_example && (!cli_contains(res.body, "class=\"example-output\"") || !cli_contains(res.body, "example-output-label\">Output")))
-				{
-					ok = false;
-					summary += "; missing example Output block";
-				}
-				if(has_compile_only_example && !cli_contains(res.body, "class=\"example-compile-only\""))
-				{
-					ok = false;
-					summary += "; missing compile-only result";
-				}
-				if(cli_contains(lower, "doc example error"))
-				{
-					ok = false;
-					summary += "; example reported an error";
-				}
-				if(cli_doc_example_is_placeholder(source))
-				{
-					ok = false;
-					summary += "; placeholder example (must exercise the API)";
-				}
-				if(has_legacy_examples)
-					summary += "; legacy C++ example retained during migration";
+				ok = false;
+				summary += "; missing example Output block";
 			}
-			if(ok)
-				break;
+			if(has_compile_only_example && !cli_contains(res.body, "class=\"example-compile-only\""))
+			{
+				ok = false;
+				summary += "; missing compile-only result";
+			}
+			if(cli_contains(lower, "doc example error"))
+			{
+				ok = false;
+				summary += "; example reported an error";
+			}
+			if(cli_doc_example_is_placeholder(source))
+			{
+				ok = false;
+				summary += "; placeholder example (must exercise the API)";
+			}
+			if(has_legacy_examples)
+				summary += "; legacy C++ example retained during migration";
 		}
 		cli_test_case("bearer_doc_gate:doc page " + page, ok, ok ? summary : summary + "; body=" + cli_truncate(res.body));
 	});
@@ -412,11 +401,11 @@ void cli_run_security_smoke()
 		optional_component.status == 200 && optional_component.body == "optional component absent",
 		"status=" + std::to_string(optional_component.status) + " body=" + cli_truncate(optional_component.body));
 
-	CliHttpResponse dotdot = cli_direct_http("/../site/demo/hello.uce");
-	cli_test_case("bearer_security_smoke:direct HTTP rejects dot-dot script traversal", dotdot.status == 404 && !cli_contains(dotdot.body, "hello world"), "direct HTTP dot-dot traversal returned HTTP " + std::to_string(dotdot.status));
+	CliHttpResponse dotdot = cli_http_proxy("/../site/demo/hello.uce");
+	cli_test_case("bearer_security_smoke:HTTP proxy rejects dot-dot script traversal", (dotdot.status == 400 || dotdot.status == 404) && !cli_contains(dotdot.body, "hello world"), "HTTP proxy dot-dot traversal returned HTTP " + std::to_string(dotdot.status));
 
-	CliHttpResponse spoof = cli_direct_http("/no-such-script.uce", "Script-Filename: /Code/bearer.openfu.com/bearer/site/demo/hello.uce\r\n");
-	cli_test_case("bearer_security_smoke:direct HTTP ignores Script-Filename header", spoof.status == 404 && !cli_contains(spoof.body, "hello world"), "direct HTTP Script-Filename override returned HTTP " + std::to_string(spoof.status));
+	CliHttpResponse spoof = cli_http_proxy("/no-such-script.uce", "Script-Filename: /Code/bearer.openfu.com/bearer/site/demo/hello.uce\r\n");
+	cli_test_case("bearer_security_smoke:HTTP proxy ignores Script-Filename header", spoof.status == 404 && !cli_contains(spoof.body, "hello world"), "HTTP proxy Script-Filename override returned HTTP " + std::to_string(spoof.status));
 
 	CliHttpResponse sanitizer = cli_frontend("/tests/security_headers.uce");
 	String headers_lower = to_lower(sanitizer.headers);
@@ -424,7 +413,7 @@ void cli_run_security_smoke()
 	for(String header : { "x-bearer-injected", "x-bearer-injected-name", "x-bearer-cookie-injected", "x-bearer-redirect-injected", "x-bearer-status-injected" })
 		if(cli_contains(headers_lower, "\r\n" + to_lower(header) + ":"))
 			injected = true;
-	CliHttpResponse direct_sanitizer = cli_direct_http("/site/tests/security_headers.uce");
+	CliHttpResponse direct_sanitizer = cli_http_proxy("/site/tests/security_headers.uce");
 	bool direct_ok = direct_sanitizer.status < 500 || cli_contains(direct_sanitizer.body, "security header sanitizer test");
 	cli_test_case("bearer_security_smoke:response headers sanitize CRLF", !injected && direct_ok, "CRLF response header injection sanitized");
 
@@ -491,10 +480,10 @@ void cli_run_tcp_smoke()
 	if(fd80 != 0)
 		socket_close(fd80);
 	u64 fd8080 = socket_connect("127.0.0.1", 8080);
-	cli_test_case("bearer_tcp_smoke:http websocket port 8080", fd8080 != 0, "TCP connect " + String(fd8080 != 0 ? "succeeded" : "failed") + " on port 8080");
+	cli_test_case("bearer_tcp_smoke:direct HTTP TCP is disabled", fd8080 == 0, "TCP port 8080 is " + String(fd8080 == 0 ? "closed" : "unexpectedly open"));
 	if(fd8080 != 0)
 		socket_close(fd8080);
-	CliHttpResponse direct = cli_direct_http("/tests/pool-isolation.uce?token=raw-http-framing");
+	CliHttpResponse direct = cli_http_proxy("/tests/pool-isolation.uce?token=raw-http-framing");
 	DValue direct_parts = split(trim(direct.body), "|");
 	bool one_response = direct.status == 200 && direct_parts.size() == 3 && direct_parts[0] == "fresh" && direct_parts[1] == "raw-http-framing" && direct.body.find("HTTP/1.1 ") == String::npos;
 	cli_test_case("bearer_tcp_smoke:raw HTTP dynamic response is framed once", one_response,

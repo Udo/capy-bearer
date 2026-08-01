@@ -3,13 +3,30 @@ set -euo pipefail
 cd "$(dirname "$0")"
 cd ..
 
-BUILDMODE=${2:-"debug"}
-OPT_FLAG="O0"
+BUILDMODE=${1:-release}
+case "$BUILDMODE" in
+	debug)
+		OPT_FLAG="O0"
+		DEBUG_FLAGS="-g"
+		;;
+	release)
+		OPT_FLAG="O2"
+		DEBUG_FLAGS=""
+		;;
+	*)
+		printf 'Usage: %s [debug|release]\n' "$0" >&2
+		exit 2
+		;;
+esac
 GF="bearer_fastcgi"
 
 mkdir -p bin/tmp bin/assets bin/wasm work
+build_mode_file="bin/.build_mode"
 exec 9>bin/.build.lock
 flock 9
+if [[ ! -r "$build_mode_file" || "$(<"$build_mode_file")" != "$BUILDMODE" ]]; then
+	printf '%s\n' "$BUILDMODE" > "$build_mode_file"
+fi
 build_tmp_files=()
 cleanup_build_tmp() {
 	((${#build_tmp_files[@]} == 0)) || rm -f "${build_tmp_files[@]}"
@@ -18,7 +35,7 @@ trap cleanup_build_tmp EXIT
 
 COMPILER="clang++"
 # -rdynamic is a link-time flag; the -c compiles below do not need it.
-FLAGS="-g -w -Wall -$OPT_FLAG -std=c++20 -fpermissive -ffast-math -fuse-ld=lld"
+FLAGS="$DEBUG_FLAGS -w -Wall -$OPT_FLAG -std=c++20 -fpermissive -fuse-ld=lld"
 
 # Wasmtime C++ API — needed only by the wasm backend object (src/wasm).
 WASMTIME_HOME=${WASMTIME_HOME:-/opt/wasmtime}
@@ -47,7 +64,7 @@ needs_rebuild() {
 
 # Native Capy compiler CLI. The same src/capy compiler implementation is also
 # linked into Bearer below; this executable is the operator/build interface.
-if needs_rebuild bin/capyc src/capy scripts/build_capy.sh; then
+if needs_rebuild bin/capyc src/capy scripts/build_capy.sh "$build_mode_file"; then
 	echo "Compiling native Capy compiler..."
 	bash scripts/build_capy.sh bin/capyc "$BUILDMODE"
 else
@@ -56,7 +73,7 @@ fi
 python3 scripts/generate_capy_doc_signatures.py --capyc bin/capyc --check
 
 # core.wasm: guest runtime loaded by the native wasm backend.
-if needs_rebuild bin/wasm/core.wasm src/wasm/core.cpp src/wasm/abi.h src/lib src/wasm/core_hostcalls.syms src/wasm/core_libc_exports.syms scripts/build_core_wasm.sh; then
+if needs_rebuild bin/wasm/core.wasm src/wasm/core.cpp src/wasm/abi.h src/lib src/wasm/core_hostcalls.syms src/wasm/core_libc_exports.syms scripts/build_core_wasm.sh "$build_mode_file"; then
 	echo "Compiling wasm core..."
 	bash scripts/build_core_wasm.sh || exit 1
 else
@@ -64,11 +81,11 @@ else
 fi
 
 # SQLite: vendored C, depends only on its own source (not our headers).
-if needs_rebuild bin/sqlite3.o src/3rdparty/sqlite/sqlite3.c src/3rdparty/sqlite/sqlite3.h; then
+if needs_rebuild bin/sqlite3.o src/3rdparty/sqlite/sqlite3.c src/3rdparty/sqlite/sqlite3.h "$build_mode_file"; then
 	echo "Compiling SQLite..."
 	tmp="bin/sqlite3.o.tmp.$$"
 	build_tmp_files+=("$tmp")
-	clang -g -O2 -fPIC \
+	clang $DEBUG_FLAGS -$OPT_FLAG -fPIC \
 		-DSQLITE_THREADSAFE=1 \
 		-DSQLITE_OMIT_LOAD_EXTENSION=1 \
 		-DSQLITE_DQS=0 \
@@ -82,7 +99,7 @@ fi
 
 # wasm backend object: the wasm sources plus the lib headers it includes for
 # declarations (not the lib .cpp — those are compiled into main.o).
-if needs_rebuild bin/wasm.o src/wasm src/lib/*.h; then
+if needs_rebuild bin/wasm.o src/wasm src/lib/*.h "$build_mode_file"; then
 	echo "Compiling wasm backend..."
 	tmp="bin/wasm.o.tmp.$$"
 	build_tmp_files+=("$tmp")
@@ -95,7 +112,7 @@ fi
 # main object: the FastCGI entrypoint + the bearer_lib core amalgamation. Depends
 # on linux_fastcgi.cpp, the whole lib tree, fcgicc, and the wasm backend header
 # (its only view of the wasm object) — but not the wasm .cpp sources.
-if needs_rebuild bin/main.o src/linux_fastcgi.cpp src/lib src/capy src/fastcgi src/wasm/backend.h src/wasm/abi.h; then
+if needs_rebuild bin/main.o src/linux_fastcgi.cpp src/lib src/capy src/fastcgi src/wasm/backend.h src/wasm/abi.h "$build_mode_file"; then
 	echo "Compiling main..."
 	tmp="bin/main.o.tmp.$$"
 	build_tmp_files+=("$tmp")

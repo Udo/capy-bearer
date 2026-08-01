@@ -58,6 +58,9 @@ if [[ "$action" == "list" ]]; then
 fi
 
 if [[ "$action" == "run" ]]; then
+	scripts/test_session_state_native.sh
+	scripts/test_split_utf8_native.sh
+	scripts/test_fcgi_forward_native.sh
 	python3 scripts/check_capy_doc_examples.py --self-test
 	python3 scripts/check_capy_doc_examples.py
 	groups=(demo-{1..4} http site doc-gate-{1..90} security pool-isolation starter tcp)
@@ -78,7 +81,7 @@ if [[ "$action" == "run" ]]; then
 	scripts/test_abi_generation_rollout.sh
 	scripts/test_wasm_core_smoke.sh
 	scripts/test_capy_phase1.sh
-	scripts/test_task_workers_runtime.sh
+	timeout --signal=TERM --kill-after=5s 120s scripts/test_task_workers_runtime.sh
 	scripts/test_capy_reference.sh
 	scripts/test_parallel_precompile.sh
 	timeout --signal=TERM --kill-after=5s 175s scripts/test_parallel_proactive_compile.sh

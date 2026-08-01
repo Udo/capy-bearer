@@ -40,13 +40,13 @@ if [[ "$output" != *'wasm `unreachable` instruction executed'* || "$output" != *
 	exit 1
 fi
 
-rm "$artifact_dir/entry.uce.wasm.source-map"
+printf '\ncorrupt-source-map\n' >>"$artifact_dir/entry.uce.wasm.source-map"
 set +e
 without_map=$(scripts/bearer-cli "/$test_name/entry.uce" 2>&1)
 status=$?
 set -e
 if [[ $status -eq 0 || "$without_map" != *'wasm `unreachable` instruction executed'* || "$without_map" == *"source locations:"* ]]; then
-	echo "missing-map trap fallback failed:" >&2
+	echo "mismatched-map trap fallback failed:" >&2
 	echo "$without_map" >&2
 	exit 1
 fi

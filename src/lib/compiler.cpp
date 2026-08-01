@@ -30,6 +30,8 @@ struct SharedUnitFilesystemState
 	bool metadata_exists = false;
 	bool compile_output_exists = false;
 	bool metadata_parsed = false;
+	bool metadata_format_valid = false;
+	bool source_map_exists = false;
 	bool abi_compatible = false;
 	bool input_signature_matches = false;
 	time_t source_time = 0;
@@ -264,8 +266,13 @@ UnitSourceSignatureEntry compiler_unit_source_entry(String file_name, bool allow
 	return(entry);
 }
 
-void compiler_append_unit_source_signature(String file_name, std::set<String>& visited, String& signature, bool allow_recent_stat)
+void compiler_append_unit_source_signature(String file_name, std::set<String>& visited, String& signature, bool allow_recent_stat, u32 depth = 0)
 {
+	if(depth >= 256 || visited.size() >= 20000)
+	{
+		signature += "load-graph-limit\n";
+		return;
+	}
 	// The signature already deduplicates canonical files. Skip repeated exact
 	// load paths before resolving them again; distinct aliases are still
 	// canonicalized so symlink retargets remain visible on the next check.
@@ -292,7 +299,7 @@ void compiler_append_unit_source_signature(String file_name, std::set<String>& v
 		entry = compiler_unit_source_entry(normalized, allow_recent_stat);
 	signature += normalized + ":" + entry.content_hash + (entry.readable ? String("") : String(":unreadable")) + "\n";
 	for(String loaded : entry.loaded_paths)
-		compiler_append_unit_source_signature(loaded, visited, signature, allow_recent_stat);
+		compiler_append_unit_source_signature(loaded, visited, signature, allow_recent_stat, depth + 1);
 }
 
 String compiler_unit_source_signature(String file_name, bool allow_recent_stat = false)
@@ -301,6 +308,49 @@ String compiler_unit_source_signature(String file_name, bool allow_recent_stat =
 	String signature = "bearer-load-graph-v1\n";
 	compiler_append_unit_source_signature(file_name, visited, signature, allow_recent_stat);
 	return(gen_sha1(signature));
+}
+
+bool compiler_find_unit_load_cycle(String file_name, std::vector<String>& stack, std::set<String>& complete, String& cycle, u64& nodes)
+{
+	if(stack.size() >= 256 || ++nodes > 10000)
+	{
+		cycle = "#load dependency graph exceeds the 256-level or 10000-unit limit";
+		return(true);
+	}
+	String normalized = compiler_source_path_real(file_name);
+	if(normalized == "")
+		normalized = file_name;
+	auto active = std::find(stack.begin(), stack.end(), normalized);
+	if(active != stack.end())
+	{
+		std::vector<String> paths(active, stack.end());
+		paths.push_back(normalized);
+		cycle = join_strings(paths, " -> ");
+		return(true);
+	}
+	if(complete.find(normalized) != complete.end())
+		return(false);
+
+	stack.push_back(normalized);
+	auto entry = compiler_unit_source_entry(normalized, false);
+	for(const String& loaded : entry.loaded_paths)
+	{
+		if(compiler_find_unit_load_cycle(loaded, stack, complete, cycle, nodes))
+			return(true);
+	}
+	stack.pop_back();
+	complete.insert(normalized);
+	return(false);
+}
+
+String compiler_unit_load_cycle(String file_name)
+{
+	std::vector<String> stack;
+	std::set<String> complete;
+	String cycle;
+	u64 nodes = 0;
+	compiler_find_unit_load_cycle(file_name, stack, complete, cycle, nodes);
+	return(cycle);
 }
 
 String compiler_unit_input_signature(Request* context, SharedUnit* su, bool allow_recent_source_stat = false, bool source_exists_known = false)
@@ -328,8 +378,10 @@ String compiler_unit_build_token()
 	);
 }
 
+String compiler_source_map_path(String wasm_path);
+
 String compiler_unit_metadata_text(Request* context, SharedUnit* su, String input_signature = "",
-	String wasm_path = "", String exports_path = "")
+	String wasm_path = "", String exports_path = "", String source_map_path = "")
 {
 	if(input_signature == "")
 		input_signature = compiler_unit_input_signature(context, su);
@@ -337,14 +389,17 @@ String compiler_unit_metadata_text(Request* context, SharedUnit* su, String inpu
 		wasm_path = su->wasm_name;
 	if(exports_path == "")
 		exports_path = su->api_file_name;
+	if(source_map_path == "")
+		source_map_path = compiler_source_map_path(wasm_path);
 	return(
-		"format=bearer-unit-metadata-v2\n"
+		"format=bearer-unit-metadata-v3\n"
 		"unit_abi_version=" + std::to_string(BEARER_UNIT_ABI_VERSION) + "\n"
 		"wasm_core_abi_version=" + std::to_string(BEARER_WASM_CORE_ABI_VERSION) + "\n"
 		"source_path=" + su->file_name + "\n"
 		"input_signature=" + input_signature + "\n"
 		"wasm_sha256=" + sha256_hex_native(file_get_contents(wasm_path)) + "\n"
 		"exports_sha256=" + sha256_hex_native(file_get_contents(exports_path)) + "\n"
+		"source_map_sha256=" + sha256_hex_native(file_get_contents(source_map_path)) + "\n"
 		"build_token=" + compiler_unit_build_token() + "\n"
 	);
 }
@@ -359,6 +414,11 @@ String compiler_cached_wasm_path(String wasm_path)
 String compiler_source_map_path(String wasm_path)
 {
 	return(wasm_path + ".source-map");
+}
+
+String compiler_cached_wasm_manifest_path(String wasm_path)
+{
+	return(compiler_cached_wasm_path(wasm_path) + ".manifest");
 }
 
 static bool compiler_publish_staged_artifacts(SharedUnit* su, String staged_pre_name, String staged_api_name,
@@ -378,6 +438,7 @@ static bool compiler_publish_staged_artifacts(SharedUnit* su, String staged_pre_
 		{ staged_api_name, su->api_file_name, staged_api_name + ".previous" },
 		{ staged_map_name, compiler_source_map_path(su->wasm_name), staged_map_name + ".previous" },
 		{ "", compiler_cached_wasm_path(su->wasm_name), staged_wasm_name + ".cached.previous", true },
+		{ "", compiler_cached_wasm_manifest_path(su->wasm_name), staged_wasm_name + ".cached-manifest.previous", true },
 		{ staged_wasm_name, su->wasm_name, staged_wasm_name + ".previous" },
 		{ "", su->compile_output_file_name, staged_wasm_name + ".compile.previous", true },
 		{ "", su->wasm_check_file_name, staged_wasm_name + ".check.previous", true },
@@ -552,6 +613,7 @@ void compiler_unlink_unit_wasm_artifacts(SharedUnit* su)
 {
 	file_unlink(su->wasm_name);
 	file_unlink(compiler_cached_wasm_path(su->wasm_name));
+	file_unlink(compiler_cached_wasm_manifest_path(su->wasm_name));
 	file_unlink(compiler_source_map_path(su->wasm_name));
 }
 
@@ -575,6 +637,8 @@ SharedUnitCompileCheck shared_unit_compile_check(const SharedUnitFilesystemState
 		state.compiled_time < state.required_time ||
 		!state.metadata_exists ||
 		!state.metadata_parsed ||
+		!state.metadata_format_valid ||
+		!state.source_map_exists ||
 		!state.abi_compatible ||
 		!state.input_signature_matches;
 	return(result);
@@ -588,7 +652,7 @@ bool compiler_failure_retry_deferred(Request* context, SharedUnit* su, const Sha
 		return(false);
 	if(state.source_time == 0)
 		return(false);
-	if(!state.metadata_exists || !state.metadata_parsed || !state.abi_compatible || !state.input_signature_matches)
+	if(!state.metadata_exists || !state.metadata_parsed || !state.metadata_format_valid || !state.abi_compatible || !state.input_signature_matches)
 		return(false);
 	if(state.metadata_source_path == "" || state.metadata_source_path != su->file_name)
 		return(false);
@@ -847,10 +911,13 @@ SharedUnitFilesystemState inspect_shared_unit_filesystem(Request* context, Share
 	state.current_input_signature = compiler_unit_input_signature(context, su, allow_recent_source_stat, state.source_exists);
 	state.metadata_exists = (state.metadata_time != 0);
 	state.compile_output_exists = (state.compile_output_time != 0);
+	state.source_map_exists = file_exists(compiler_source_map_path(su->wasm_name));
 	if(state.metadata_exists)
 	{
 		state.metadata_content = file_get_contents(su->meta_file_name);
 		auto metadata = compiler_parse_unit_metadata(state.metadata_content);
+		auto format_it = metadata.find("format");
+		state.metadata_format_valid = format_it != metadata.end() && format_it->second == "bearer-unit-metadata-v3";
 		auto abi_it = metadata.find("unit_abi_version");
 		if(abi_it != metadata.end() && compiler_is_u64_string(abi_it->second))
 		{
@@ -1293,6 +1360,24 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 		return;
 	}
 
+	String load_cycle = compiler_unit_load_cycle(su->file_name);
+	if(load_cycle != "")
+	{
+		su->compiler_messages = load_cycle.rfind("#load ", 0) == 0 ? load_cycle : "#load dependency cycle: " + load_cycle;
+		file_put_contents(su->compile_output_file_name, su->compiler_messages + "\n");
+		file_put_contents(su->wasm_check_file_name, su->compiler_messages + "\n");
+		file_put_contents(su->meta_file_name, compiler_unit_metadata_text(context, su));
+		if(!preserve_last_known_good)
+			compiler_unlink_unit_wasm_artifacts(su);
+		compiler_record_compile_result(su, time_precise() - comp_start, false, "compile_error", su->compiler_messages);
+		printf("%s \n", compiler_format_compile_failure(context, su, su->compiler_messages).c_str());
+		if(deadline)
+			compiler_mark_source_generation_nonblocking(context);
+		else
+			compiler_mark_source_generation(context);
+		return;
+	}
+
 	mkdir(su->pre_path);
 	String compiled_input_signature;
 	String staged_wasm_file_name;
@@ -1432,7 +1517,7 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 			{
 					if(!file_put_contents(staged_map_name, replace(source_map, staged_pre_name, compiler_generated_cpp_path(su))) ||
 						!file_put_contents(staged_meta_name, compiler_unit_metadata_text(context, su, compiled_input_signature,
-							staged_wasm_name, staged_api_name)))
+							staged_wasm_name, staged_api_name, staged_map_name)))
 					{
 						su->compiler_messages = "could not stage bounded compile metadata";
 						publication_failed = true;
@@ -1520,6 +1605,7 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 		if(!deadline)
 		{
 			file_unlink(compiler_cached_wasm_path(su->wasm_name));
+			file_unlink(compiler_cached_wasm_manifest_path(su->wasm_name));
 			file_put_contents(su->meta_file_name, compiler_unit_metadata_text(context, su, compiled_input_signature,
 				su->wasm_name, su->api_file_name));
 		}

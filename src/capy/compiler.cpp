@@ -4906,8 +4906,9 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		scopes_.push_back({{loop->names[0], {item, element}}});
 		owned_scopes_.push_back(expression_is_owned(loop->iterable) ? std::vector<std::pair<unsigned, std::string>>{{array, type}}
 																	: std::vector<std::pair<unsigned, std::string>>{});
+		const unsigned array_loop_boundary = static_cast<unsigned>(owned_scopes_.size());
 		control_depth_ += 3;
-		loops_.push_back({base + 1, base + 3, boundary, {}, {}});
+		loops_.push_back({base + 1, base + 3, array_loop_boundary, {}, {}});
 		Bytes body = block(loop->body);
 		loops_.pop_back();
 		control_depth_ -= 3;
@@ -6732,15 +6733,17 @@ void collect_stdlib_demand(Expr* expression, std::set<std::pair<std::string, std
 	}
 	else if (auto variable = dynamic_cast<Variable*>(expression))
 	{
-		if (auto name = dynamic_cast<Name*>(variable->value); name && variable->annotation && !local(scopes, name->value))
+		const auto name = dynamic_cast<Name*>(variable->value);
+		const auto type = variable->annotation ? dynamic_cast<FunctionType*>(variable->annotation) : nullptr;
+		if (name && type && !local(scopes, name->value))
 		{
 			FunctionKey key{name->value, {}};
-			if (auto type = dynamic_cast<FunctionType*>(variable->annotation))
-				for (const auto& parameter : type->parameters)
-					key.parameter_types.push_back(type_name(*parameter.type_expr));
+			for (const auto& parameter : type->parameters)
+				key.parameter_types.push_back(type_name(*parameter.type_expr));
 			values.insert(std::move(key));
 		}
-		collect_stdlib_demand(variable->value, calls, values, scopes);
+		else
+			collect_stdlib_demand(variable->value, calls, values, scopes);
 		scopes.back().insert(variable->name);
 	}
 	else if (auto binary = dynamic_cast<Binary*>(expression))
@@ -6804,6 +6807,8 @@ void collect_stdlib_demand(Expr* expression, std::set<std::pair<std::string, std
 		collect_stdlib_demand(lambda->body, calls, values, scopes);
 		scopes.pop_back();
 	}
+	else if (auto name = dynamic_cast<Name*>(expression); name && !local(scopes, name->value))
+		values.insert({name->value, {}});
 }
 
 void validate_user_source(const Program& program, const std::set<std::string>& public_names)
@@ -6920,14 +6925,14 @@ std::vector<Expr*> selected_stdlib(const Program& unit, const Program& library)
 				});
 			const bool referenced_value = std::any_of(values.begin(), values.end(), [&](const FunctionKey& value)
 			{
-				return value.name == key.name && (value.parameter_types.empty() || value.parameter_types.size() == key.parameter_types.size());
+				return value.name == key.name && (value.parameter_types.empty() || value.parameter_types == key.parameter_types);
 			});
 			if (!called && !referenced_value)
 				continue;
 			if (selected.insert(function).second)
 			{
 				changed = true;
-				collect_stdlib_demand(function->body, calls, values, scopes);
+				collect_stdlib_demand(function, calls, values, scopes);
 			}
 		}
 	}

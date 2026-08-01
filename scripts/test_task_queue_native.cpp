@@ -16,8 +16,14 @@ static bool state(const Result&r,const String&s,bool done) { const DValue* actua
 static u64 task_files(const String& dir) { DIR*d=opendir(dir.c_str());if(!d)return 0;u64 n=0;while(dirent*e=readdir(d))if(String(e->d_name).ends_with(".task"))++n;closedir(d);return n; }
 int main(int argc,char** argv) {
 	if(argc==4&&String(argv[1])=="--submit") { DValue props;props["child"]=argv[3];return submit(argv[2],limits(),"TASK:CHILD",props).ok()?0:1; }
-	bool ok=true;char root_template[]="/tmp/capy-task-queue.XXXXXX";char* made=mkdtemp(root_template);if(!made)return 2;String root=made;
-	DValue props;props["name"]="first";props["nested"]["value"]="copied";Result first=submit(root,limits(),"TASK:ONE",props);need(first.ok()&&id_ok(first.task.id),"exact opaque ID",ok);need(state(status(root,limits(),first.task.id),"queued",false),"queued taxonomy and done",ok);
+	bool ok=true;
+	DValue decoded;String decode_error;
+	String overlong("BRRB\2",5);overlong.push_back(0);overlong.push_back('S');overlong.push_back((char)0x80);overlong.push_back(0);
+	need(!brb_decode(overlong,decoded,&decode_error)&&decode_error!="","reject noncanonical BRRB varint",ok);
+	String too_many("BRRB\2",5);too_many.push_back(0);too_many.push_back('M');too_many.push_back(0);too_many.push_back((char)0x80);too_many.push_back((char)0x80);too_many.push_back((char)0x10);
+	need(!brb_decode(too_many,decoded,&decode_error)&&decode_error=="BRRB2 node limit exceeded","reject excessive BRRB nodes",ok);
+	char root_template[]="/tmp/capy-task-queue.XXXXXX";char* made=mkdtemp(root_template);if(!made)return 2;String root=made;
+	DValue props;props["name"]="first";props["nested"]["value"]="copied";Result first=submit(root,limits(),"TASK:ONE",props);need(first.ok()&&id_ok(first.task.id),"exact opaque ID",ok);for(int n=0;n<33;n++){String junk=root+"/pending/junk-"+std::to_string(n)+".task";int fd=open(junk.c_str(),O_WRONLY|O_CREAT|O_TRUNC,0600);if(fd>=0)close(fd);}need(state(status(root,limits(),first.task.id),"queued",false),"indexed status avoids a full queue scan",ok);for(int n=0;n<33;n++)unlink((root+"/pending/junk-"+std::to_string(n)+".task").c_str());need(state(status(root,limits(),first.task.id),"queued",false),"queued taxonomy and done",ok);
 	Result claimed=claim(root,limits(),lease('a'));need(claimed.ok()&&claimed.task.id==first.task.id&&claimed.task.props["name"].to_string()=="first"&&claimed.task.props["nested"]["value"].to_string()=="copied","claim copies nested props once",ok);need(state(status(root,limits(),first.task.id),"running",false),"running taxonomy",ok);
 	need(cancel(root,limits(),first.task.id).ok(),"cancel running request",ok);Result requests=cancellation_requests(root,limits(),1);need(requests.ok()&&requests.count==1&&requests.status["requests"][first.task.id].to_string()==lease('a'),"bounded cancellation enumeration",ok);need(succeed(root,limits(),first.task.id,lease('a')).ok()&&state(status(root,limits(),first.task.id),"canceled",true),"cancel race resolves canceled",ok);
 	Result missing=status(root,limits(),lease('9'));need(state(missing,"missing",false),"missing taxonomy is status not error",ok);

@@ -21,8 +21,10 @@ s32 usleep(u32 usec);
 #else
 #include <sys/file.h>
 #include <signal.h>
+inline constexpr u64 PROCESS_OUTPUT_LIMIT_DEFAULT = 16ull * 1024 * 1024;
 unsigned int child_exit_status_snapshot();
 bool child_exit_status_take(pid_t pid, int& status, unsigned int since);
+void reap_child_exits();
 #endif
 #include <ctime>
 #include <sstream>
@@ -31,7 +33,8 @@ struct DValue;
 
 String shell_exec(String cmd);
 #if !defined(__BEARER_WASM_CORE__) && !defined(__BEARER_WASM_UNIT__)
-DValue process_exec(String cmd, String input, StringMap env, u64 timeout_ms, u64 output_limit = 0);
+String process_identity_start_ticks(pid_t pid);
+DValue process_exec(String cmd, String input, StringMap env, u64 timeout_ms, u64 output_limit = PROCESS_OUTPUT_LIMIT_DEFAULT);
 #endif
 DValue http_request(DValue req);
 u64 http_request_async(DValue req);

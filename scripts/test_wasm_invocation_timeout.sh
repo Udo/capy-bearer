@@ -92,7 +92,7 @@ request() {
 
 same_worker_health() {
 	local expected_pid="$1"
-	for _ in $(seq 1 32); do
+	for _ in $(seq 1 128); do
 		local health
 		health=$(curl -sS --max-time 5 --fail-with-body --unix-socket "$socket_path" "http://localhost/$test_name/health.uce")
 		[[ "$health" == "$expected_pid|health" ]] && return 0

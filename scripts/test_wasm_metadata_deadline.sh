@@ -29,7 +29,7 @@ cleanup() {
 }
 trap cleanup EXIT
 mkdir -p "$site/components" "$work" "$root/run" "$root/session" "$root/upload"
-sed -E '/^[[:space:]]*(BIN_DIRECTORY|PRECOMPILE_FILES_IN|SITE_DIRECTORY|FCGI_SOCKET_PATH|FCGI_PORT|CLI_SOCKET_PATH|WS_BROKER_SOCKET_PATH|HTTP_PORT|HTTP_DOCUMENT_ROOT|SESSION_PATH|TMP_UPLOAD_PATH|WASM_CORE_PATH|WASM_INVOCATION_TIMEOUT_MS|WASM_EPOCH_PERIOD_MS|PROACTIVE_COMPILE_ENABLED|SERVE_LAST_KNOWN_GOOD|SHOW_DYNAMIC_COMPILE_ERRORS|WORKER_COUNT)[[:space:]]*=/d' \
+sed -E '/^[[:space:]]*(BIN_DIRECTORY|PRECOMPILE_FILES_IN|SITE_DIRECTORY|FCGI_SOCKET_PATH|FCGI_PORT|CLI_SOCKET_PATH|WS_BROKER_SOCKET_PATH|HTTP_SOCKET_PATH|HTTP_SOCKET_MODE|HTTP_PORT|HTTP_BIND_ADDRESS|HTTP_DOCUMENT_ROOT|SESSION_PATH|TMP_UPLOAD_PATH|WASM_CORE_PATH|WASM_INVOCATION_TIMEOUT_MS|WASM_EPOCH_PERIOD_MS|PROACTIVE_COMPILE_ENABLED|SERVE_LAST_KNOWN_GOOD|SHOW_DYNAMIC_COMPILE_ERRORS|WORKER_COUNT)[[:space:]]*=/d' \
 	/etc/bearer/settings.cfg >"$settings"
 cat >>"$settings" <<CFG
 BIN_DIRECTORY=$work
@@ -39,6 +39,7 @@ FCGI_SOCKET_PATH=$root/run/fastcgi.sock
 FCGI_PORT=
 CLI_SOCKET_PATH=$socket
 WS_BROKER_SOCKET_PATH=$root/run/ws.sock
+HTTP_SOCKET_PATH=
 HTTP_PORT=
 HTTP_DOCUMENT_ROOT=$site
 SESSION_PATH=$root/session
@@ -331,7 +332,7 @@ PY
 touch "$mutation_release"
 wait "$request_pid"
 [[ $(<"$root/mutation.status") -ne 0 ]]
-grep -q '\[wasm\] component load failed: wasm artifact changed while loading metadata' "$log"
+grep -Eq '\[wasm\] component load failed: wasm artifact changed while loading( metadata)?$' "$log"
 ! grep -q 'mutation-component' "$root/mutation.output"
 rm -f "$control"
 [[ "$(request health=1)" == "$worker_pid|health" ]]
@@ -353,7 +354,7 @@ PY
 set +e
 uleb_output=$(request target=components/uleb.uce 2>&1)
 set -e
-grep -q '\[wasm\] component load failed: malformed wasm section header' "$log"
+grep -Eq '\[wasm\] component load failed: .*malformed wasm section header' "$log"
 [[ "$uleb_output" != *uleb-component* ]]
 [[ "$(request health=1)" == "$worker_pid|health" ]]
 restore uleb
@@ -381,7 +382,7 @@ PY
 set +e
 duplicate_output=$(request target=components/duplicate.uce 2>&1)
 set -e
-grep -q '\[wasm\] component load failed: duplicate bearer.module metadata section' "$log"
+grep -Eq '\[wasm\] component load failed: .*duplicate bearer.module metadata section' "$log"
 [[ "$duplicate_output" != *duplicate-component* ]]
 [[ "$(request health=1)" == "$worker_pid|health" ]]
 restore duplicate

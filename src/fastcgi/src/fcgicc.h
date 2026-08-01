@@ -36,6 +36,7 @@
 #define FCGICC_H
 
 #include <map>
+#include <poll.h>
 #include <string>
 #include <vector>
 
@@ -54,6 +55,7 @@ struct FastCGIServer {
 	int listen(unsigned tcp_port, const std::string& bind_address);
 	int listen_http(unsigned tcp_port);
 	int listen_http(unsigned tcp_port, const std::string& bind_address);
+	int listen_http(const std::string& local_path);
 	int listen_cli(const std::string& local_path);
 	int listen(const std::string& local_path);
 	int adopt_listener(int socket_handle, char type = 'F');
@@ -93,6 +95,7 @@ struct FastCGIServer {
 
 	std::map<int, char> server_socket_types;
 	std::map<int, Connection*> client_sockets;
+	std::vector<struct pollfd> poll_descriptors;
 
 	void close_http_listeners();
 	void read_fgci(Connection&);

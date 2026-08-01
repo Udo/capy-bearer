@@ -205,10 +205,12 @@ WASM_INVOCATION_TIMEOUT_MS=30000
 MYSQL_PERSISTENT_POOL_SIZE=8
 
 WORKER_COUNT=4
-MAX_MEMORY=16777216
 SESSION_TIME=2592000
 
-HTTP_PORT=8080
+HTTP_SOCKET_PATH=/run/bearer/http.sock
+HTTP_SOCKET_MODE=0666
+HTTP_PORT=
+HTTP_BIND_ADDRESS=
 WS_BROKER_OUTBOUND_TIMEOUT_SECONDS=30
 ```
 
@@ -225,7 +227,7 @@ Important settings:
 - `TMP_UPLOAD_PATH` and `SESSION_PATH` must be writable by the runtime.
 - `SESSION_COOKIE_SECURE=1` adds the `Secure` attribute to BEARER-managed session cookies and should be used for HTTPS-only deployments. Leave it `0` only for local/plain-HTTP development.
 - `MYSQL_PERSISTENT_POOL_SIZE` caps credential-keyed connections retained by each Wasm worker. The default `8` is clamped to `64`; set it to `0` to restore request-lifetime connections. Cached sessions are reset before reuse.
-- `HTTP_PORT` is the built-in HTTP/WebSocket listener used for WebSocket upgrade traffic and direct local probes. Bind/firewall it for local access only; nginx/Apache should be the public entry point.
+- `HTTP_SOCKET_PATH` is the built-in HTTP and WebSocket listener for nginx proxying and local probes. TCP HTTP is disabled by default. To enable it, set both `HTTP_PORT` and `HTTP_BIND_ADDRESS`. Use `HTTP_BIND_ADDRESS=127.0.0.1` for a local proxy.
 - `WS_BROKER_OUTBOUND_TIMEOUT_SECONDS` controls how long a forwarded WS message can remain queued in the broker before being dropped (default `30`). Set to `0` to disable the timeout.
 - `WASM_COMPILE_SCRIPT` must point to `scripts/compile_wasm_unit` unless you provide an equivalent compiler. Relative paths are resolved from the runtime root/`COMPILER_SYS_PATH`. That script calls `scripts/check_unit_wasm.py` after linking each unit and uses the pinned WASI SDK on every deployment host.
 - `SHOW_DYNAMIC_COMPILE_ERRORS=1` makes a failed dynamic `component()`, `unit_render()`, or `unit_call()` show the bounded compiler diagnostic instead of only a generic missing-handler message. Set it to `0` on deployments where source paths and compiler output must not reach HTTP responses.
@@ -457,7 +459,7 @@ The nginx and Apache examples below split traffic by checking for a WebSocket up
 Routing split:
 
 - Plain `GET /demo/chat.uce` should use FastCGI, just like any other page render.
-- WebSocket upgrade requests for `/demo/chat.uce` should proxy to the BEARER built-in HTTP/WebSocket listener at `HTTP_PORT`.
+- WebSocket upgrade requests for `/demo/chat.uce` should proxy to the Bearer HTTP/WebSocket listener at `HTTP_SOCKET_PATH`. An explicitly configured TCP listener is also supported.
 
 The built-in listener owns the socket lifecycle. When a message arrives, the broker forwards a render-style invocation back to the worker pool so `WS(Request& context)` runs inside the same wasm runtime model as normal pages.
 
@@ -538,7 +540,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://unix:/run/bearer/http.sock:;
     }
 
     # Defense in depth if the root is changed later.
@@ -551,7 +553,7 @@ server {
 Notes:
 
 - `fastcgi_pass` must match `FCGI_SOCKET_PATH`.
-- `proxy_pass` must match `HTTP_PORT`.
+- `proxy_pass` must match `HTTP_SOCKET_PATH`.
 - The example routes WebSocket upgrades for `.uce` paths to the HTTP/WebSocket listener.
 - The built-in HTTP/WebSocket listener resolves scripts from `HTTP_DOCUMENT_ROOT`; do not depend on client-supplied or proxied `Script-Filename` headers for routing.
 - Ordinary `.uce` page loads continue to use FastCGI.
@@ -607,7 +609,7 @@ systemctl restart apache2
 
     RewriteEngine On
 
-    # WebSocket upgrade traffic for any .uce unit goes to BEARER's built-in HTTP listener.
+    # Apache WebSocket proxying uses an explicit loopback TCP listener.
     RewriteCond %{HTTP:Upgrade} =websocket [NC]
     RewriteCond %{REQUEST_URI} \.uce(?:\?|$) [NC]
     RewriteRule ^/(.*)$ ws://127.0.0.1:8080/$1 [P,L]
@@ -625,6 +627,7 @@ systemctl restart apache2
 
 Apache notes:
 
+- For the WebSocket rewrite example, set `HTTP_BIND_ADDRESS=127.0.0.1` and `HTTP_PORT=8080`. The default HTTP Unix socket remains suitable for nginx.
 - `SetHandler "proxy:unix:/run/bearer/fastcgi.sock|fcgi://localhost/"` must use the same socket path as `FCGI_SOCKET_PATH`.
 - The WebSocket rewrite rule must run before the FastCGI handler.
 - Plain `.uce` page loads should not be proxied as WebSockets unless the client sends `Upgrade: websocket`.
@@ -726,7 +729,7 @@ if(valid && password_needs_rehash(encoded))
 - Keep the FastCGI socket path consistent: `FCGI_SOCKET_PATH` and the web-server `fastcgi_pass` must match exactly. The reference config uses `/run/bearer/fastcgi.sock`; if you choose `/run/bearer.sock`, use it in both places.
 - Keep the public web root separate from the runtime source tree. Replace `/opt/bearer` with your actual checkout path in local examples (for example `/opt/bearer` or `/Code/bearer.openfu.com/bearer`), and keep public files under `/var/www/html`.
 - Set `HTTP_DOCUMENT_ROOT` when the web root is outside the runtime working directory. The built-in HTTP/WebSocket listener resolves upgrade paths from this setting.
-- Do not expose `CLI_SOCKET_PATH` or `HTTP_PORT` as public entry points. The public path should be nginx/Apache.
+- Do not expose `CLI_SOCKET_PATH` or an optional HTTP TCP listener as a public entry point. The public path should be nginx or Apache.
 - Do not trust `Script-Filename` request headers from direct HTTP clients. The built-in HTTP listener resolves from `HTTP_DOCUMENT_ROOT` and rejects `..` path segments.
 - WASI SDK is a deployment/runtime dependency, not just a developer build tool. BEARER compiles units to wasm on demand during requests and during proactive startup scans, so each host must use the pinned SDK version documented in `docs/wasi-sdk-toolchain.md`.
 - After toolchain or compile-script fixes, clear stale failed artifacts under `BIN_DIRECTORY`; otherwise a later request may report an old compile failure.
@@ -756,10 +759,10 @@ Confirm the web server `root`/`DocumentRoot` is `/var/www/html` or your chosen w
 Check:
 
 - the client sends `Upgrade: websocket`
-- `.uce` upgrade traffic reaches `HTTP_PORT`
-- nginx/Apache preserves `Upgrade` and `Connection` headers
+- `.uce` upgrade traffic reaches `HTTP_SOCKET_PATH` or the explicitly configured TCP listener
+- nginx or Apache preserves `Upgrade` and `Connection` headers
 - `HTTP_DOCUMENT_ROOT` matches the web-server root; if it points at the runtime tree while files live in `/var/www/html`, the built-in listener will return `404 script not found`
-- firewall/network policy allows localhost access to `HTTP_PORT`
+- socket permissions allow the web server to connect, or the firewall allows the explicitly configured local TCP listener
 
 ### Page compiles fail
 

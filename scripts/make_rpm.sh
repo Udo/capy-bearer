@@ -18,6 +18,7 @@ Environment:
   BEARER_RPM_RELEASE             Override RPM release suffix (default: RELEASE from version.txt)
   BEARER_RPM_ARCH                Override RPM architecture
   BEARER_RPM_WEBROOT             Public web root staged into the package (default: /var/www/html)
+  BEARER_RPM_INCLUDE_TESTS       Include site/tests in the public web root (default: 0)
   BEARER_RPM_BUNDLE_WASI_SDK     Bundle pinned /opt/wasi-sdk into the package (default: 1)
   BEARER_RPM_BUNDLE_WASMTIME     Bundle /opt/wasmtime into the package (default: 1)
 EOF
@@ -57,6 +58,11 @@ copy_payload() {
 	mkdir -p "$destination/etc" "$stage_dir$webroot"
 	cp -a "$REPO_ROOT/etc/bearer" "$destination/etc/"
 	cp -a "$REPO_ROOT/site/." "$stage_dir$webroot/"
+	if [[ "${BEARER_RPM_INCLUDE_TESTS:-0}" != "1" ]]; then
+		rm -rf -- "$stage_dir$webroot/tests"
+	fi
+	find "$destination" "$stage_dir$webroot" -type d -name __pycache__ -exec rm -rf -- {} +
+	find "$destination" "$stage_dir$webroot" -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
 }
 
 write_packaged_settings() {
@@ -169,7 +175,7 @@ INSTALL_ROOT="$STAGE_DIR/usr/lib/bearer"
 SPEC_FILE="$RPMBUILD_DIR/SPECS/$PACKAGE_NAME.spec"
 DIST_DIR="$REPO_ROOT/dist"
 
-bash "$REPO_ROOT/scripts/build_linux.sh"
+bash "$REPO_ROOT/scripts/build_linux.sh" release
 
 rm -rf -- "$BUILD_ROOT"
 mkdir -p "$INSTALL_ROOT" "$STAGE_DIR/etc/bearer" "$STAGE_DIR/usr/lib/systemd/system" "$STAGE_DIR/var/cache/bearer" "$STAGE_DIR/var/lib/bearer" "$RPMBUILD_DIR"/{BUILD,RPMS,SOURCES,SPECS,SRPMS} "$DIST_DIR"
@@ -180,6 +186,9 @@ bundle_wasmtime "$STAGE_DIR"
 write_packaged_settings "$STAGE_DIR/etc/bearer/settings.cfg" "$WEBROOT"
 install -m 0644 "$REPO_ROOT/scripts/deb/bearer.service" "$STAGE_DIR/usr/lib/systemd/system/bearer.service"
 install -m 0644 "$REPO_ROOT/scripts/deb/bearer.socket" "$STAGE_DIR/usr/lib/systemd/system/bearer.socket"
+
+OPT_FILES=""
+[[ ! -d "$STAGE_DIR/opt" ]] || OPT_FILES="/opt/*"
 
 (
 	cd "$STAGE_DIR"
@@ -242,16 +251,18 @@ if command -v systemctl >/dev/null 2>&1; then
 fi
 
 %files
+/usr/lib/bearer
+%exclude /usr/lib/bearer/LICENSE
+%exclude /usr/lib/bearer/README.md
 %license /usr/lib/bearer/LICENSE
 %doc /usr/lib/bearer/README.md
 %config(noreplace) /etc/bearer/settings.cfg
-/usr/lib/bearer
 /usr/lib/systemd/system/bearer.service
 /usr/lib/systemd/system/bearer.socket
 $WEBROOT
 %dir /var/cache/bearer
 %dir /var/lib/bearer
-/opt/*
+$OPT_FILES
 
 %changelog
 * Mon Jun 15 2026 BEARER Packager <root@localhost> - $PACKAGE_VERSION

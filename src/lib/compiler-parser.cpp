@@ -486,12 +486,12 @@ bool compiler_rewrite_named_entrypoint_line(String& line, String macro_prefix, S
 		return(true);
 	}
 	u32 depth = 0;
-	u32 close_paren_pos = String::npos;
-	for(u32 i = 0; i < handler_signature.length(); i++)
+	size_t close_paren_pos = String::npos;
+	for(size_t i = 0; i < handler_signature.length(); i++)
 	{
 		if(handler_signature[i] == '(')
 			depth += 1;
-		else if(handler_signature[i] == ')' && --depth == 0)
+		else if(handler_signature[i] == ')' && depth > 0 && --depth == 0)
 		{
 			close_paren_pos = i;
 			break;

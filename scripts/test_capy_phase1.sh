@@ -213,7 +213,7 @@ archive_trap_status=$?
 set -e
 [[ $archive_trap_status -ne 0 && "$archive_trap_output" == *"capy-archive-trap.capy:1:22"* && "$archive_trap_output" != *"capy://stdlib.capy"* ]]
 expect_equal "archive recovery" "3|heXYZ|Ada:admin|archive data|true2truetruetrue|9|0|true" "$(scripts/bearer-cli /tests/capy-final-parity.capy)"
-expect_equal "live MySQL stdlib adapters" "truetrue|'a\\'b'|7|true|0:0|truetruetrue|0" "$(scripts/bearer-cli /tests/capy-mysql.capy)"
+expect_equal "live MySQL stdlib adapters" "truetrue|'a\\'b'|7|true|0:0|truetruetrue|true|truetruetrue|0" "$(scripts/bearer-cli /tests/capy-mysql.capy)"
 expect_equal "memcache stdlib adapters" "a_b|line_key|down|live|0" "$(scripts/bearer-cli /tests/capy-memcache.capy)"
 expect_equal "job/process stdlib adapters" "shell|spawned|done|done|done|cancel|cancelled|tasks|cwd|server|0" "$(scripts/bearer-cli /tests/capy-jobs.capy)"
 expect_equal "named task worker cancellation/failure/recovery" "canceled|stopped|failed:handler_trap|failed:missing_handler|succeeded:recovered" "$(scripts/bearer-cli /tests/capy-task-runtime.capy)"
@@ -547,8 +547,11 @@ render_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.
 }
 
 cache="$(scripts/unit_cache_directory "$bin_directory")$site_directory/tests/capy-phase1.capy"
-[[ -s "$cache.wasm" && -s "$cache.cwasm" && -s "$cache.wasm.source-map" && -s "$cache.meta.txt" ]]
-grep -qx 'format=bearer-unit-metadata-v2' "$cache.meta.txt"
+[[ -s "$cache.wasm" && -s "$cache.cwasm" && -s "$cache.cwasm.manifest" && -s "$cache.wasm.source-map" && -s "$cache.meta.txt" ]]
+[[ $(sed -n '1p' "$cache.cwasm.manifest") == "$(sha256sum "$cache.wasm" | awk '{print $1}')" ]]
+[[ $(sed -n '2p' "$cache.cwasm.manifest") == "$(sha256sum "$cache.cwasm" | awk '{print $1}')" ]]
+grep -qx 'format=bearer-unit-metadata-v3' "$cache.meta.txt"
+grep -Eq '^source_map_sha256=[0-9a-f]{64}$' "$cache.meta.txt"
 grep -qx "wasm_core_abi_version=$(awk '/BEARER_WASM_CORE_ABI_VERSION/ {print $3; exit}' src/wasm/abi.h)" "$cache.meta.txt"
 grep -qx "wasm_sha256=$(sha256sum "$cache.wasm" | awk '{print $1}')" "$cache.meta.txt"
 grep -qx "exports_sha256=$(sha256sum "$cache.exports.txt" | awk '{print $1}')" "$cache.meta.txt"

@@ -1,8 +1,13 @@
 #include "uri.h"
 
+#include <algorithm>
 #include <cctype>
 #include <fcntl.h>
 #include <unistd.h>
+#ifndef __BEARER_WASM_CORE__
+#include <dirent.h>
+#include <sys/stat.h>
+#endif
 
 #ifdef __BEARER_WASM_CORE__
 extern "C" size_t bearer_host_random(char* buf, size_t len);
@@ -781,8 +786,122 @@ String session_load_serialized(String session_path)
 {
 	if(session_path == "" || !file_exists(session_path))
 		return("");
+#ifndef __BEARER_WASM_CORE__
+	if(chmod(session_path.c_str(), S_IRUSR | S_IWUSR) != 0)
+		return("");
+#endif
 	return(file_get_contents(session_path));
 }
+
+bool session_file_expired(String session_path, u64 now)
+{
+	u64 session_time = int_val(context->server->config["SESSION_TIME"]);
+	u64 modified = file_mtime(session_path);
+	return(session_time > 0 && modified > 0 && now >= modified && now - modified >= session_time);
+}
+
+#ifndef __BEARER_WASM_CORE__
+
+bool session_ensure_directory()
+{
+	String path = context->server->config["SESSION_PATH"];
+	if(path == "")
+		return(false);
+	if(::mkdir(path.c_str(), S_IRWXU) != 0 && errno != EEXIST)
+		return(false);
+	return(chmod(path.c_str(), S_IRWXU) == 0);
+}
+
+bool session_write_all(int fd, const String& content)
+{
+	const char* data = content.data();
+	size_t remaining = content.size();
+	while(remaining > 0)
+	{
+		ssize_t written = write(fd, data, remaining);
+		if(written < 0 && errno == EINTR)
+			continue;
+		if(written <= 0)
+			return(false);
+		data += written;
+		remaining -= written;
+	}
+	return(true);
+}
+
+bool session_write_atomic(String session_path, const String& content)
+{
+	if(!session_ensure_directory())
+		return(false);
+	String pattern = session_path + ".tmp.XXXXXX";
+	std::vector<char> temporary_name(pattern.begin(), pattern.end());
+	temporary_name.push_back('\0');
+	int fd = mkstemp(temporary_name.data());
+	if(fd == -1)
+		return(false);
+	fcntl(fd, F_SETFD, FD_CLOEXEC);
+	bool ok = fchmod(fd, S_IRUSR | S_IWUSR) == 0 && session_write_all(fd, content) && fsync(fd) == 0;
+	if(close(fd) != 0)
+		ok = false;
+	if(ok)
+		ok = rename(temporary_name.data(), session_path.c_str()) == 0;
+	if(!ok)
+	{
+		unlink(temporary_name.data());
+		return(false);
+	}
+	int directory = open(context->server->config["SESSION_PATH"].c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+	if(directory == -1)
+		return(false);
+	ok = fsync(directory) == 0;
+	close(directory);
+	return(ok);
+}
+
+void session_cleanup_expired()
+{
+	static DIR* directory = 0;
+	static String directory_path;
+	static u64 cleanup_after = 0;
+	const u64 now = time();
+	if(now < cleanup_after)
+		return;
+	u64 session_time = int_val(context->server->config["SESSION_TIME"]);
+	cleanup_after = now + std::min<u64>(60, session_time > 0 ? session_time : 60);
+	String path = context->server->config["SESSION_PATH"];
+	if(!session_ensure_directory())
+		return;
+	if(directory && directory_path != path)
+	{
+		closedir(directory);
+		directory = 0;
+	}
+	if(!directory)
+	{
+		directory = opendir(path.c_str());
+		directory_path = path;
+	}
+	if(!directory)
+		return;
+	for(u32 scanned = 0; scanned < 16; scanned++)
+	{
+		dirent* entry = readdir(directory);
+		if(!entry)
+		{
+			rewinddir(directory);
+			break;
+		}
+		String session_id = entry->d_name;
+		if(!is_valid_session_id(session_id))
+			continue;
+		String session_path = path + "/" + session_id;
+		struct stat status;
+		if(lstat(session_path.c_str(), &status) == 0 && S_ISREG(status.st_mode) && session_file_expired(session_path, now))
+			unlink(session_path.c_str());
+	}
+}
+
+#endif
 
 }
 
@@ -806,11 +925,18 @@ void save_session_data(String session_id, StringMap data)
 	}
 	if(context && encoded_hash == context->session_loaded_hash)
 		return;
+#ifndef __BEARER_WASM_CORE__
+	if(!session_write_atomic(session_path, encoded))
+#else
 	if(!file_put_contents(session_path, encoded))
+#endif
 	{
 		printf("(!) Refusing to save session file %s\n", session_path.c_str());
 		return;
 	}
+#ifndef __BEARER_WASM_CORE__
+	session_cleanup_expired();
+#endif
 	if(context)
 		context->session_loaded_hash = encoded_hash;
 }
@@ -825,8 +951,16 @@ String session_start(String session_name)
 	context->session_name = "";
 
 	String session_id = context->cookies[session_name];
-	if(!is_valid_session_id(session_id) || !file_exists(session_file_path(session_id)))
+	bool valid_session = is_valid_session_id(session_id);
+	String existing_session_path = valid_session ? session_file_path(session_id) : String("");
+	bool existing_session = valid_session && file_exists(existing_session_path);
+	bool expired = existing_session && session_file_expired(existing_session_path, time());
+	if(!existing_session || expired)
+	{
+		if(expired)
+			file_unlink(existing_session_path);
 		session_id = "";
+	}
 
 	if(session_id.length() == 0)
 	{

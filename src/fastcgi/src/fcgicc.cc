@@ -42,7 +42,7 @@
 #include <unistd.h> // read, write, close, unlink
 #include <arpa/inet.h> // hton*
 #include <netinet/in.h> // sockaddr_in, INADDR_*
-#include <sys/select.h> // select, fd_set, FD_*, timeval
+#include <poll.h>
 #include <sys/socket.h> // socket, bind, accept, listen, sockaddr, AF_*, SOCK_*
 #include <sys/stat.h> // mkdir
 #include <sys/un.h> // sockaddr_un
@@ -59,6 +59,8 @@ struct TransportLimits {
 	u64 max_websocket_message_bytes = 1024 * 1024;
 	u64 max_websocket_output_bytes = 4 * 1024 * 1024;
 	u64 max_response_bytes = 8 * 1024 * 1024;
+	u64 max_fastcgi_requests_per_connection = 16;
+	u64 max_fastcgi_output_bytes = 16 * 1024 * 1024;
 	f64 http_request_timeout_seconds = 15.0;
 	f64 connection_idle_timeout_seconds = 120.0;
 
@@ -83,9 +85,41 @@ TransportLimits transport_limits()
 	limits.max_websocket_message_bytes = to_u64(server_state.config["TRANSPORT_MAX_WEBSOCKET_MESSAGE_BYTES"], limits.max_websocket_message_bytes);
 	limits.max_websocket_output_bytes = to_u64(server_state.config["TRANSPORT_MAX_WEBSOCKET_OUTPUT_BYTES"], limits.max_websocket_output_bytes);
 	limits.max_response_bytes = to_u64(server_state.config["TRANSPORT_MAX_RESPONSE_BYTES"], limits.max_response_bytes);
+	limits.max_fastcgi_requests_per_connection = std::max<u64>(1, to_u64(server_state.config["TRANSPORT_MAX_FASTCGI_REQUESTS_PER_CONNECTION"], limits.max_fastcgi_requests_per_connection));
+	limits.max_fastcgi_output_bytes = std::max<u64>(FCGI_HEADER_LEN + sizeof(FCGI_EndRequestBody), to_u64(server_state.config["TRANSPORT_MAX_FASTCGI_OUTPUT_BYTES"], limits.max_fastcgi_output_bytes));
 	limits.http_request_timeout_seconds = to_f64(server_state.config["TRANSPORT_HTTP_REQUEST_TIMEOUT_SECONDS"], limits.http_request_timeout_seconds);
 	limits.connection_idle_timeout_seconds = to_f64(server_state.config["TRANSPORT_CONNECTION_IDLE_TIMEOUT_SECONDS"], limits.connection_idle_timeout_seconds);
 	return(limits);
+}
+
+bool fastcgi_output_fits(const FastCGIServer::Connection& connection, size_t additional)
+{
+	const u64 limit = transport_limits().max_fastcgi_output_bytes;
+	return(connection.output_buffer.size() <= limit && additional <= limit - connection.output_buffer.size());
+}
+
+size_t fastcgi_data_record_bytes(size_t input_size)
+{
+	size_t total = 0;
+	for(size_t offset = 0;;)
+	{
+		size_t content = std::min(input_size - offset, (size_t)0xffffu);
+		total += FCGI_HEADER_LEN + content + (8 - (content % 8)) % 8;
+		offset += content;
+		if(offset == input_size)
+			return(total);
+	}
+}
+
+bool fastcgi_append_fixed(FastCGIServer::Connection& connection, const void* record, size_t size)
+{
+	if(!fastcgi_output_fits(connection, size))
+	{
+		connection.close_socket = true;
+		return(false);
+	}
+	connection.output_buffer.append((const char*)record, size);
+	return(true);
 }
 
 }
@@ -243,6 +277,14 @@ int
 FastCGIServer::listen_http(unsigned tcp_port, const std::string& bind_address)
 {
 	int server_socket = listen(tcp_port, bind_address);
+	server_socket_types[server_socket] = 'H';
+	return server_socket;
+}
+
+int
+FastCGIServer::listen_http(const std::string& local_path)
+{
+	int server_socket = listen(local_path);
 	server_socket_types[server_socket] = 'H';
 	return server_socket;
 }
@@ -456,6 +498,16 @@ FastCGIServer::enforce_connection_timeouts(Connection& connection)
 			return;
 		}
 	}
+	else if(connection.type == 'F')
+		for(const auto& [request_id, request] : connection.requests)
+		{
+			(void)request_id;
+			if(!request->flags.input_closed && now - request->stats.time_init > limits.http_request_timeout_seconds)
+			{
+				connection.close_socket = true;
+				return;
+			}
+		}
 	if(now - connection.last_activity_at > limits.connection_idle_timeout_seconds)
 		connection.close_socket = true;
 }
@@ -528,45 +580,31 @@ void
 FastCGIServer::process(int timeout_ms)
 {
 	char buffer[64*1024];
-	fd_set fs_read;
-	fd_set fs_write;
-	int nfd = 0;
-	struct timeval tv = { timeout_ms / 1000, (timeout_ms % 1000) * 1000 };
-
-	FD_ZERO(&fs_read);
-	FD_ZERO(&fs_write);
-
-	for(auto socket_handle : server_sockets)
+	poll_descriptors.clear();
+	poll_descriptors.reserve(server_sockets.size() + client_sockets.size());
+	for(int socket_handle : server_sockets)
+		poll_descriptors.push_back({socket_handle, POLLIN, 0});
+	const size_t listener_count = poll_descriptors.size();
+	for(const auto& item : client_sockets)
 	{
-		FD_SET(socket_handle, &fs_read);
-		nfd = std::max(nfd, socket_handle);
+		short events = POLLIN;
+		if(!item.second->output_buffer.empty() || item.second->close_socket)
+			events |= POLLOUT;
+		poll_descriptors.push_back({item.first, events, 0});
 	}
-
-	for(auto con : client_sockets)
-	{
-		FD_SET(con.first, &fs_read);
-		if(!con.second->output_buffer.empty() || con.second->close_socket)
-			FD_SET(con.first, &fs_write);
-		nfd = std::max(nfd, con.first);
-	}
-
-	int select_result = select(
-		nfd + 1,
-		&fs_read,
-		&fs_write,
-		NULL,
-		timeout_ms < 0 ? NULL : &tv
-	);
-	if(select_result == -1)
+	int poll_result = poll(poll_descriptors.data(), poll_descriptors.size(), timeout_ms);
+	if(poll_result == -1)
 	{
 		if(errno == EINTR)
 			return;
-		throw std::runtime_error("select() failed");
+		throw std::runtime_error("poll() failed");
 	}
 
-	for(auto socket_handle : server_sockets)
+	std::vector<std::pair<int, int>> accepted_connections;
+	size_t listener_index = 0;
+	for(int socket_handle : server_sockets)
 	{
-		if(!FD_ISSET(socket_handle, &fs_read))
+		if(!(poll_descriptors[listener_index++].revents & POLLIN))
 			continue;
 
 		for(;;)
@@ -581,25 +619,28 @@ FastCGIServer::process(int timeout_ms)
 				throw std::runtime_error("accept() failed");
 			}
 
-			if(client_sockets.size() >= transport_limits().max_client_connections)
+			if(client_sockets.size() + accepted_connections.size() >= transport_limits().max_client_connections)
 			{
 				printf("(!) rejecting socket %i: too many clients\n", client_socket);
 				close(client_socket);
 				continue;
 			}
-
-			open_client_connection(socket_handle, client_socket);
+			accepted_connections.push_back({socket_handle, client_socket});
 		}
 	}
 
+	size_t client_index = listener_count;
 	for(std::map<int, Connection*>::iterator it = client_sockets.begin();
 		it != client_sockets.end();)
 	{
 		int read_socket = it->first;
 		Connection* connection = it->second;
+		short events = poll_descriptors[client_index++].revents;
 		enforce_connection_timeouts(*connection);
 
-		if(FD_ISSET(read_socket, &fs_read))
+		if(events & POLLNVAL)
+			connection->close_socket = true;
+		else if(events & (POLLIN | POLLHUP | POLLERR))
 		{
 			int read_result = read(read_socket, buffer, sizeof(buffer));
 			if(read_result == -1)
@@ -651,7 +692,7 @@ FastCGIServer::process(int timeout_ms)
 		if(connection->is_websocket && connection->output_buffer.length() > transport_limits().max_websocket_output_bytes)
 			fail_websocket_connection(*connection, 1013, "websocket output queue is full");
 
-		if(!connection->output_buffer.empty() && FD_ISSET(read_socket, &fs_write))
+		if(!connection->output_buffer.empty() && (events & POLLOUT))
 		{
 			if(connection->type == 'F')
 				write_fgci(*connection);
@@ -684,6 +725,8 @@ FastCGIServer::process(int timeout_ms)
 			++it;
 		}
 	}
+	for(const auto& accepted : accepted_connections)
+		open_client_connection(accepted.first, accepted.second);
 }
 
 bool
@@ -866,7 +909,7 @@ FastCGIServer::process_http_request(FastCGIRequest& request, String& data)
 			request,
 			client_sockets[request.resources.client_socket]);
 
-		printf("data written: %i bytes\n",
+		printf("data written: %zu bytes\n",
 			client_sockets[request.resources.client_socket]->output_buffer.size());
 
 		client_sockets[request.resources.client_socket]->close_socket = true;
@@ -1123,6 +1166,7 @@ FastCGIServer::read_fgci(Connection& connection)
 			Pairs pairs = parse_pairs_fcgi(content, content_length);
 
 			std::string::size_type base = connection.output_buffer.size();
+			TransportLimits limits = transport_limits();
 			connection.output_buffer.push_back(FCGI_VERSION_1);
 			connection.output_buffer.push_back(FCGI_GET_VALUES_RESULT);
 			connection.output_buffer.append(FCGI_HEADER_LEN - 2, 0);
@@ -1130,15 +1174,21 @@ FastCGIServer::read_fgci(Connection& connection)
 			for (Pairs::iterator it = pairs.begin(); it != pairs.end(); ++it)
 				if (it->first == FCGI_MAX_CONNS)
 				write_pair_fcgi(connection.output_buffer,
-							it->first, std::string("100"));
+							it->first, std::to_string(limits.max_client_connections));
 				else if (it->first == FCGI_MAX_REQS)
 				write_pair_fcgi(connection.output_buffer,
-							it->first, std::string("1000"));
+							it->first, std::to_string(limits.max_fastcgi_requests_per_connection));
 				else if (it->first == FCGI_MPXS_CONNS)
 				write_pair_fcgi(connection.output_buffer,
-							it->first, std::string("1"));
+							it->first, limits.max_fastcgi_requests_per_connection > 1 ? "1" : "0");
 
-			std::string::size_type len = connection.output_buffer.size() - base;
+			std::string::size_type len = connection.output_buffer.size() - base - FCGI_HEADER_LEN;
+			if(connection.output_buffer.size() > limits.max_fastcgi_output_bytes || len > 0xffff)
+			{
+				connection.output_buffer.resize(base);
+				connection.close_socket = true;
+				break;
+			}
 			connection.output_buffer[base + 4] = (len >> 8) & 0xff;
 			connection.output_buffer[base + 5] = len & 0xff;
 			break;
@@ -1160,30 +1210,34 @@ FastCGIServer::read_fgci(Connection& connection)
 				bzero(&unknown, sizeof(unknown));
 				unknown.header.version = FCGI_VERSION_1;
 				unknown.header.type = FCGI_END_REQUEST;
+				unknown.header.requestIdB1 = (request_id >> 8) & 0xff;
+				unknown.header.requestIdB0 = request_id & 0xff;
 				unknown.header.contentLengthB0 = sizeof(unknown.body);
 				unknown.body.protocolStatus = FCGI_UNKNOWN_ROLE;
-				connection.output_buffer.append(
-				reinterpret_cast<const char*>(&unknown), sizeof(unknown));
+				fastcgi_append_fixed(connection, &unknown, sizeof(unknown));
 				if (connection.close_responsibility)
 					connection.close_socket = true;
 				break;
 			}
 
+			if(request_id == 0 || connection.requests.find(request_id) != connection.requests.end() ||
+				connection.requests.size() >= transport_limits().max_fastcgi_requests_per_connection)
 			{
-				RequestList::iterator it = connection.requests.find(request_id);
-				if (it != connection.requests.end())
-				{
-					//printf("- delete request object\n");
-					//switch_to_arena(it->second->mem);
-					delete it->second;
-					//switch_to_system_alloc();
-					connection.requests.erase(it);
-				}
+				FCGI_EndRequestRecord overloaded;
+				bzero(&overloaded, sizeof(overloaded));
+				overloaded.header.version = FCGI_VERSION_1;
+				overloaded.header.type = FCGI_END_REQUEST;
+				overloaded.header.requestIdB1 = (request_id >> 8) & 0xff;
+				overloaded.header.requestIdB0 = request_id & 0xff;
+				overloaded.header.contentLengthB0 = sizeof(overloaded.body);
+				overloaded.body.protocolStatus = FCGI_OVERLOADED;
+				fastcgi_append_fixed(connection, &overloaded, sizeof(overloaded));
+				break;
 			}
 
 			if(connection.requests.size() > 1)
 			{
-				printf("(!) %i requests in flight at the same time!\n", connection.requests.size());
+				printf("(!) %zu requests in flight at the same time!\n", connection.requests.size());
 			}
 
 			FastCGIRequest* new_request = new FastCGIRequest();
@@ -1204,11 +1258,12 @@ FastCGIServer::read_fgci(Connection& connection)
 			bzero(&aborted, sizeof(aborted));
 			aborted.header.version = FCGI_VERSION_1;
 			aborted.header.type = FCGI_END_REQUEST;
+			aborted.header.requestIdB1 = (request_id >> 8) & 0xff;
+			aborted.header.requestIdB0 = request_id & 0xff;
 			aborted.header.contentLengthB0 = sizeof(aborted.body);
 			aborted.body.appStatusB0 = 1;
 			aborted.body.protocolStatus = FCGI_REQUEST_COMPLETE;
-			connection.output_buffer.append(
-				reinterpret_cast<const char*>(&aborted), sizeof(aborted));
+			fastcgi_append_fixed(connection, &aborted, sizeof(aborted));
 			if (connection.close_responsibility)
 				connection.close_socket = true;
 
@@ -1225,6 +1280,7 @@ FastCGIServer::read_fgci(Connection& connection)
 			FastCGIRequest& request = *it->second;
 			//switch_to_arena(it->second->mem);
 			if (!request.flags.params_closed)
+			{
 				if (content_length != 0) {
 					if(request.resources.params_buffer.size() + content_length > transport_limits().max_http_header_bytes)
 					{
@@ -1251,6 +1307,7 @@ FastCGIServer::read_fgci(Connection& connection)
 					}
 					request_write_fgci(connection, request_id, request);
 				}
+			}
 			//switch_to_system_alloc();
 			break;
 		}
@@ -1263,6 +1320,7 @@ FastCGIServer::read_fgci(Connection& connection)
 			FastCGIRequest& request = *it->second;
 			//switch_to_arena(it->second->mem);
 			if (!request.flags.input_closed)
+			{
 				if (content_length != 0) {
 					if(request.in.size() + content_length > transport_limits().max_http_body_bytes)
 					{
@@ -1284,6 +1342,7 @@ FastCGIServer::read_fgci(Connection& connection)
 								request_write_fgci(connection, request_id, request);
 					}
 				}
+			}
 			//switch_to_system_alloc();
 			break;
 		}
@@ -1297,8 +1356,7 @@ FastCGIServer::read_fgci(Connection& connection)
 			unknown.header.type = FCGI_UNKNOWN_TYPE;
 			unknown.header.contentLengthB0 = sizeof(unknown.body);
 			unknown.body.type = header.type;
-			connection.output_buffer.append(
-				reinterpret_cast<const char*>(&unknown), sizeof(unknown));
+			fastcgi_append_fixed(connection, &unknown, sizeof(unknown));
 		}
 	}
 
@@ -1317,12 +1375,21 @@ FastCGIServer::assemble_output_buffer(FastCGIRequest& request, Connection* conne
 		render_set_cookie_headers(request.set_cookies) +
 		"\r\n";
 
+	bool response_too_large = request.out.length() > transport_limits().max_response_bytes;
 	for(auto obs : request.ob_stack)
 	{
-		request.out += obs->str();
+		if(!response_too_large)
+		{
+			std::string buffered = obs->str();
+			u64 remaining = transport_limits().max_response_bytes - request.out.length();
+			if(buffered.length() <= remaining)
+				request.out += buffered;
+			else
+				response_too_large = true;
+		}
 		delete obs;
 	}
-	if(request.out.length() > transport_limits().max_response_bytes)
+	if(response_too_large)
 	{
 		request.set_status(500, "Response Too Large");
 		request.header.clear();
@@ -1371,20 +1438,22 @@ void
 FastCGIServer::request_write_fgci(Connection& connection, RequestID id,
 												FastCGIRequest& request)
 {
-	if (!request.out.empty())
-	{
-		write_data_fcgi(connection.output_buffer, id, request.out, FCGI_STDOUT);
-		//switch_to_arena(request.mem);
-		request.out.clear();
-		//switch_to_system_alloc();
-	}
-	if (!request.err.empty())
-	{
-		write_data_fcgi(connection.output_buffer, id, request.err, FCGI_STDERR);
-		//switch_to_arena(request.mem);
-		request.err.clear();
-		//switch_to_system_alloc();
-	}
+	auto queue_data = [&](std::string& data, unsigned char type) {
+		size_t encoded_size = fastcgi_data_record_bytes(data.size());
+		if(!fastcgi_output_fits(connection, encoded_size))
+		{
+			data.clear();
+			connection.close_socket = true;
+			return(false);
+		}
+		write_data_fcgi(connection.output_buffer, id, data, type);
+		data.clear();
+		return(true);
+	};
+	if (!request.out.empty() && !queue_data(request.out, FCGI_STDOUT))
+		return;
+	if (!request.err.empty() && !queue_data(request.err, FCGI_STDERR))
+		return;
 	if ((request.flags.input_closed || request.flags.status != 0) &&
 		!request.flags.output_closed)
 	{
@@ -1392,10 +1461,8 @@ FastCGIServer::request_write_fgci(Connection& connection, RequestID id,
 		assemble_output_buffer(request);
 
 		//switch_to_system_alloc();
-		write_data_fcgi(connection.output_buffer, id, request.out, FCGI_STDOUT);
-		write_data_fcgi(connection.output_buffer, id, request.err, FCGI_STDERR);
-		request.out.clear();
-		request.err.clear();
+		if(!queue_data(request.out, FCGI_STDOUT) || !queue_data(request.err, FCGI_STDERR))
+			return;
 
 		FCGI_EndRequestRecord complete;
 		bzero(&complete, sizeof(complete));
@@ -1409,8 +1476,8 @@ FastCGIServer::request_write_fgci(Connection& connection, RequestID id,
 		complete.body.appStatusB1 = (request.flags.status >> 8) & 0xff;
 		complete.body.appStatusB0 = request.flags.status & 0xff;
 		complete.body.protocolStatus = FCGI_REQUEST_COMPLETE;
-		connection.output_buffer.append(
-					reinterpret_cast<const char*>(&complete), sizeof(complete));
+		if(!fastcgi_append_fixed(connection, &complete, sizeof(complete)))
+			return;
 		if (connection.close_responsibility)
 					connection.close_socket = true;
 

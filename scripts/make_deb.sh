@@ -18,6 +18,7 @@ Environment:
   BEARER_DEB_REVISION             Optional Debian package revision suffix
   BEARER_DEB_ARCH                 Override package architecture
   BEARER_DEB_WEBROOT              Public web root staged into the package (default: /var/www/html)
+  BEARER_DEB_INCLUDE_TESTS        Include site/tests in the public web root (default: 0)
   BEARER_DEB_BUNDLE_WASI_SDK      Bundle pinned /opt/wasi-sdk into the package (default: 1)
   BEARER_DEB_BUNDLE_WASMTIME      Bundle /opt/wasmtime into the package (default: 1)
 EOF
@@ -61,6 +62,11 @@ copy_payload() {
 	mkdir -p "$destination/etc" "$stage_dir$webroot"
 	cp -a "$REPO_ROOT/etc/bearer" "$destination/etc/"
 	cp -a "$REPO_ROOT/site/." "$stage_dir$webroot/"
+	if [[ "${BEARER_DEB_INCLUDE_TESTS:-0}" != "1" ]]; then
+		rm -rf -- "$stage_dir$webroot/tests"
+	fi
+	find "$destination" "$stage_dir$webroot" -type d -name __pycache__ -exec rm -rf -- {} +
+	find "$destination" "$stage_dir$webroot" -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
 }
 
 write_packaged_settings() {
@@ -141,7 +147,9 @@ write_md5sums() {
 	local stage_dir="$1"
 	(
 		cd "$stage_dir"
-		find usr etc lib opt -type f -print0 2>/dev/null | sort -z | xargs -0 --no-run-if-empty md5sum > DEBIAN/md5sums
+		roots=(usr etc lib)
+		[[ ! -d opt ]] || roots+=(opt)
+		find "${roots[@]}" -type f -print0 | sort -z | xargs -0 --no-run-if-empty md5sum > DEBIAN/md5sums
 	)
 }
 
@@ -194,7 +202,7 @@ OUTPUT_DEB="$DIST_DIR/$PACKAGE_BASENAME.deb"
 echo "Making package $PACKAGE_BASENAME"
 echo "==================================="
 
-bash "$REPO_ROOT/scripts/build_linux.sh"
+bash "$REPO_ROOT/scripts/build_linux.sh" release
 
 rm -rf -- "$STAGE_DIR"
 mkdir -p "$DEBIAN_DIR" "$INSTALL_ROOT" "$STAGE_DIR/etc/bearer" "$STAGE_DIR/lib/systemd/system" "$DIST_DIR"

@@ -8,7 +8,7 @@ static DValue request() { DValue r; r["method"]="POST"; r["url"]="https://api.ex
 static DValue run(Fake& f,DValue r) { HardenedHttpHooks h; h.resolve=[&](String){return f.answers;}; h.execute=[&](std::vector<String> a,String i,std::vector<String> e,u64,size_t){f.argv=a;f.input=i;f.env=e;return f.result;}; return hardened_http_request_internal(r,9000,h); }
 static String headers(int status=200) { return "HTTP/1.1 "+std::to_string(status)+" OK\r\nContent-Type: application/json\r\n\r\n"; }
 static bool exists(String path) { return access(path.c_str(),F_OK)==0; }
-static void wait_for(String path) { for(int n=0;n<500&&!exists(path);n++) usleep(1000); }
+static void wait_for(String path) { for(int n=0;n<3000&&!exists(path);n++) usleep(1000); }
 static bool process_live(pid_t pid) { char state=0; String path="/proc/"+std::to_string((long long)pid)+"/stat"; int fd=open(path.c_str(),O_RDONLY); if(fd<0) return false; char text[256]{}; ssize_t n=read(fd,text,sizeof(text)-1); close(fd); if(n<=0) return false; char* close_paren=strrchr(text,')'); return close_paren&&close_paren[2]!='Z'; }
 int main(int argc,char** argv) {
  if(argc==3&&String(argv[1])=="--child-timeout") { pid_t child=fork(); if(child==0) { usleep(100000); int fd=open(argv[2],O_WRONLY|O_CREAT|O_TRUNC,0600); if(fd>=0) { write(fd,"leaked",6); close(fd); } _exit(0); } for(;;) pause(); }

@@ -2,11 +2,19 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+http_socket="${BEARER_RAW_HTTP_TEST_SOCKET:-}"
 http_port="${BEARER_RAW_HTTP_TEST_PORT:-}"
-if [[ -z "$http_port" && -r /etc/bearer/settings.cfg ]]; then
-	http_port=$(awk -F= '/^[[:space:]]*HTTP_PORT[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
+if [[ -r /etc/bearer/settings.cfg ]]; then
+	[[ -n "$http_socket" ]] || http_socket=$(awk -F= '/^[[:space:]]*HTTP_SOCKET_PATH[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
+	[[ -n "$http_port" ]] || http_port=$(awk -F= '/^[[:space:]]*HTTP_PORT[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
 fi
-http_port="${http_port:-8080}"
+if [[ -n "$http_socket" ]]; then
+	[[ -S "$http_socket" ]] || { echo "raw HTTP Unix socket is not ready: $http_socket" >&2; exit 1; }
+	transport=(--unix-socket "$http_socket" "http://localhost")
+else
+	http_port="${http_port:-8080}"
+	transport=("http://127.0.0.1:${http_port}")
+fi
 request_path="${BEARER_RAW_HTTP_TEST_PATH:-/info/index.uce}"
 marker="raw-http-log-$$-$(date +%s%N)"
 separator="?"
@@ -15,7 +23,9 @@ if [[ "$request_path" == *\?* ]]; then
 fi
 started_at=$(date '+%Y-%m-%d %H:%M:%S')
 
-response=$(curl -fsS --max-time 15 "http://127.0.0.1:${http_port}${request_path}${separator}__bearer_log_probe=${marker}")
+base=${transport[-1]}
+unset 'transport[-1]'
+response=$(curl -fsS --max-time 15 "${transport[@]}" "${base}${request_path}${separator}__bearer_log_probe=${marker}")
 if [[ -z "$response" ]]; then
 	echo "raw HTTP probe returned an empty response" >&2
 	exit 1

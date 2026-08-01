@@ -20,6 +20,9 @@ String wasm_backend_start(Request& request);
 bool wasm_serialized_module_needs_refresh(const String& wasm_path);
 String wasm_serialize_module_artifact(const String& wasm_path);
 
+// Execute one file-backed asynchronous job in a dedicated helper process.
+int wasm_job_worker_main(u64 id);
+
 // Serve a request through a wasm workspace by invoking a named unit handler —
 // "render", "cli", "websocket", "serve_http", "serve_http:named" — and populate
 // the native Request. Returns "" on success or a collapsed error. The handler is

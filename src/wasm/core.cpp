@@ -212,7 +212,22 @@ String MySQL::error()
 	return(result);
 }
 
-String MySQL::escape(String raw, char quote_char) { return(mysql_escape(raw, quote_char)); }
+String MySQL::escape(String raw, char quote_char)
+{
+	if(!connection)
+		return(mysql_escape(raw, quote_char));
+	DValue request;
+	request["op"] = "escape";
+	request["handle"] = std::to_string((u64)(uintptr_t)connection);
+	request["raw"] = raw;
+	request["quote_char"] = String(quote_char > 0 ? 1 : 0, quote_char);
+	DValue response = wasm_mysql_call(request);
+	_preload_next_error_code = (u32)response["error_code"].to_u64();
+	statement_info = response["statement_info"].to_string();
+	parameter_error = _preload_next_error_code != 0;
+	DValue* result = response.key("result");
+	return(result ? result->to_string() : String(""));
+}
 
 String mysql_escape(String raw, char quote_char)
 {
@@ -258,7 +273,8 @@ String MySQL::parse_query_parameters(String query, StringMap map)
 				identifier.append(1, c);
 			else if(c == '!' && query[i + 1] != '=')
 			{
-				String value = map[identifier];
+				auto parameter = map.find(identifier);
+				String value = parameter == map.end() ? String("") : parameter->second;
 				bool valid = identifier != "" && value != "";
 				for(char digit : value)
 					if(!isdigit((unsigned char)digit)) valid = false;
@@ -273,7 +289,15 @@ String MySQL::parse_query_parameters(String query, StringMap map)
 			}
 			else
 			{
-				result.append(escape(map[identifier]));
+				auto parameter = map.find(identifier);
+				if(identifier == "" || parameter == map.end())
+				{
+					parameter_error = true;
+					statement_info = "mysql named parameter :" + identifier + " is missing";
+					return("");
+				}
+				result.append(escape(parameter->second));
+				if(parameter_error) return("");
 				result.append(1, c);
 				mode = 0;
 			}
@@ -291,36 +315,24 @@ String MySQL::parse_query_parameters(String query, StringMap map)
 
 static bool wasm_mysql_has_unquoted_positional_placeholder(String query)
 {
-	bool quoted = false;
 	char quote = 0;
-	bool escaped = false;
-	for(u32 i = 0; i < query.length(); i++)
+	bool line_comment = false, block_comment = false;
+	for(size_t i = 0; i < query.size(); i++)
 	{
-		char c = query[i];
-		if(quoted)
+		char c = query[i], next = i + 1 < query.size() ? query[i + 1] : 0;
+		if(line_comment) { if(c == '\n' || c == '\r') line_comment = false; continue; }
+		if(block_comment) { if(c == '*' && next == '/') { block_comment = false; i++; } continue; }
+		if(quote)
 		{
-			if(escaped)
-			{
-				escaped = false;
-				continue;
-			}
-			if(c == '\\')
-			{
-				escaped = true;
-				continue;
-			}
-			if(c == quote)
-				quoted = false;
+			if(c == '\\') { if(next) i++; continue; }
+			if(c == quote) { if(next == quote) i++; else quote = 0; }
 			continue;
 		}
-		if(c == '\'' || c == '"')
-		{
-			quoted = true;
-			quote = c;
-			continue;
-		}
-		if(c == '?')
-			return(true);
+		if(c == '\'' || c == '"' || c == '`') { quote = c; continue; }
+		if(c == '#') { line_comment = true; continue; }
+		if(c == '-' && next == '-' && (i + 2 >= query.size() || isspace((unsigned char)query[i + 2]))) { line_comment = true; i++; continue; }
+		if(c == '/' && next == '*') { block_comment = true; i++; continue; }
+		if(c == '?') return(true);
 	}
 	return(false);
 }
@@ -328,7 +340,7 @@ static bool wasm_mysql_has_unquoted_positional_placeholder(String query)
 DValue MySQL::query(String q)
 {
 	affected_rows = 0;
-	if(wasm_mysql_has_unquoted_positional_placeholder(q))
+	if(!connection && wasm_mysql_has_unquoted_positional_placeholder(q))
 	{
 		_preload_next_error_code = 2000;
 		statement_info = "mysql positional ? placeholders are not supported; use named :name placeholders";
@@ -357,14 +369,31 @@ DValue MySQL::query(String q)
 
 DValue MySQL::query(String q, StringMap params)
 {
-	parameter_error = false;
-	String parsed = parse_query_parameters(q, params);
-	if(parameter_error)
+	if(!connection && wasm_mysql_has_unquoted_positional_placeholder(q))
 	{
 		_preload_next_error_code = 2000;
+		statement_info = "mysql positional ? placeholders are not supported; use named :name placeholders";
 		return(DValue());
 	}
-	return(query(parsed));
+	if(!connection)
+	{
+		_preload_next_error_code = 2000;
+		statement_info = "mysql connection is not open";
+		return(DValue());
+	}
+	DValue request;
+	request["op"] = "query";
+	request["handle"] = std::to_string((u64)(uintptr_t)connection);
+	request["query"] = q;
+	for(auto& parameter : params)
+		request["params"][parameter.first] = parameter.second;
+	DValue response = wasm_mysql_call(request);
+	insert_id = response["insert_id"].to_u64();
+	affected_rows = (u32)response["affected"].to_u64();
+	_preload_next_error_code = (u32)response["error_code"].to_u64();
+	statement_info = response["statement_info"].to_string();
+	DValue* result = response.key("result");
+	return(result ? *result : DValue());
 }
 DValue MySQL::get_pending_result() { return(DValue()); }
 

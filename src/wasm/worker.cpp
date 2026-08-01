@@ -59,10 +59,14 @@
 #include <dirent.h>
 #include <cerrno>
 #include <sys/wait.h>
+#include <sys/syscall.h>
 #include <signal.h>
+#include <spawn.h>
 #include <poll.h>
 #include "hardened_http_internal.h"
 #include "capy_backtrace.h"
+
+extern char** environ;
 
 struct WasmDylinkInfo
 {
@@ -311,6 +315,7 @@ struct WasmSigchldBlock
 	bool blocked = false;
 	WasmSigchldBlock()
 	{
+		sigemptyset(&previous);
 		sigset_t mask;
 		sigemptyset(&mask);
 		sigaddset(&mask, SIGCHLD);
@@ -512,7 +517,30 @@ static String bearer_job_root()
 
 static String bearer_job_path(u64 id) { return(bearer_job_root() + "/" + std::to_string(id)); }
 static String bearer_read_text(const String& path) { std::ifstream in(path, std::ios::binary); if(!in) return(""); std::ostringstream ss; ss << in.rdbuf(); return(ss.str()); }
-static void bearer_write_text(const String& path, const String& data) { std::ofstream out(path, std::ios::binary|std::ios::trunc); out.write(data.data(), (std::streamsize)data.size()); }
+static bool bearer_write_text(const String& path, const String& data) { std::ofstream out(path, std::ios::binary|std::ios::trunc); if(!out) return(false); out.write(data.data(), (std::streamsize)data.size()); out.flush(); return(out.good()); }
+static bool bearer_publish_text(const String& path, const String& data)
+{
+	String temporary = path + ".tmp." + std::to_string((long long)getpid()) + "." + std::to_string((unsigned long long)wasm_monotonic_ms());
+	int fd = open(temporary.c_str(), O_WRONLY|O_CREAT|O_EXCL|O_CLOEXEC, 0600);
+	if(fd < 0) return(false);
+	size_t offset = 0;
+	while(offset < data.size())
+	{
+		ssize_t written = write(fd, data.data() + offset, data.size() - offset);
+		if(written < 0 && errno == EINTR) continue;
+		if(written <= 0) { close(fd); unlink(temporary.c_str()); return(false); }
+		offset += (size_t)written;
+	}
+	bool ok = fsync(fd) == 0;
+	if(close(fd) != 0) ok = false;
+	if(ok) ok = rename(temporary.c_str(), path.c_str()) == 0;
+	if(!ok) { unlink(temporary.c_str()); return(false); }
+	String directory = std::filesystem::path(path).parent_path().string();
+	int directory_fd = open(directory.c_str(), O_RDONLY|O_DIRECTORY|O_CLOEXEC);
+	ok = directory_fd >= 0 && fsync(directory_fd) == 0;
+	if(directory_fd >= 0) close(directory_fd);
+	return(ok);
+}
 
 static u64 bearer_job_new(const String& kind)
 {
@@ -526,13 +554,72 @@ static u64 bearer_job_new(const String& kind)
 		String dir = root + "/" + std::to_string(id);
 		if(mkdir(dir.c_str(), 0700) == 0)
 		{
-			bearer_write_text(dir + "/kind", kind);
-			bearer_write_text(dir + "/created", std::to_string((u64)time(0)));
-			bearer_write_text(dir + "/state", "pending");
-			return(id);
+			if(bearer_write_text(dir + "/kind", kind) && bearer_write_text(dir + "/created", std::to_string((u64)time(0))) &&
+				bearer_write_text(dir + "/state", "pending"))
+				return(id);
+			std::filesystem::remove_all(dir, ec);
 		}
 	}
 	return(0);
+}
+
+static DValue bearer_shell_exec_spec(const DValue& spec)
+{
+	return(process_exec(spec.key("cmd") ? spec.key("cmd")->to_string() : String(""), spec.key("stdin") ? spec.key("stdin")->to_string() : String(""), spec.key("env") ? spec.key("env")->to_stringmap() : StringMap(), spec.key("timeout_ms") ? spec.key("timeout_ms")->to_u64(5000) : 5000));
+}
+
+static bool bearer_job_completion(String dir, String& final_state, DValue& result)
+{
+	DValue completion; String error;
+	if(!brb_decode(bearer_read_text(dir + "/completion"), completion, &error) || completion.type != 'M') return(false);
+	final_state = completion["state"].to_string();
+	DValue* stored_result = completion.key("result");
+	if((final_state != "done" && final_state != "failed" && final_state != "cancelled") || !stored_result) return(false);
+	result = *stored_result;
+	return(true);
+}
+
+static bool bearer_job_finish(u64 id, DValue result, String final_state="done")
+{
+	String dir = bearer_job_path(id);
+	int lock_fd = open((dir + "/lock").c_str(), O_CREAT|O_RDWR|O_CLOEXEC, 0600);
+	if(lock_fd < 0 || flock(lock_fd, LOCK_EX) != 0)
+	{
+		if(lock_fd >= 0) close(lock_fd);
+		return(false);
+	}
+	String state = trim(bearer_read_text(dir + "/state"));
+	String completed_state; DValue completed_result;
+	if(state == "done" || state == "failed" || state == "cancelled" || bearer_job_completion(dir, completed_state, completed_result))
+	{
+		flock(lock_fd, LOCK_UN);
+		close(lock_fd);
+		return(false);
+	}
+	DValue completion; completion["state"] = final_state; completion["result"] = result;
+	bool written = bearer_publish_text(dir + "/completion", brb_encode(completion)) &&
+		bearer_publish_text(dir + "/result", brb_encode(result)) && bearer_publish_text(dir + "/state", final_state);
+	flock(lock_fd, LOCK_UN);
+	close(lock_fd);
+	return(written);
+}
+
+static String bearer_process_start_ticks(pid_t pid)
+{
+	String raw = bearer_read_text("/proc/" + std::to_string((long long)pid) + "/stat");
+	size_t close = raw.rfind(')');
+	if(close == String::npos || close + 2 >= raw.size())
+		return("");
+	std::istringstream fields(raw.substr(close + 2));
+	String value;
+	for(int field = 3; field <= 22; field++)
+	{
+		if(!(fields >> value))
+			return("");
+		if(field == 22)
+			return(value);
+	}
+	return("");
 }
 
 static void bearer_job_reap()
@@ -542,85 +629,180 @@ static void bearer_job_reap()
 	u64 ttl = 3600;
 	if(const char* raw = getenv("BEARER_JOB_TTL_SECONDS")) { char* e=0; unsigned long long v=strtoull(raw,&e,10); if(e!=raw && v>0) ttl=(u64)v; }
 	std::error_code ec;
-	for(auto& e : std::filesystem::directory_iterator(root, ec))
+	for(auto& entry : std::filesystem::directory_iterator(root, ec))
 	{
-		if(!e.is_directory()) continue;
-		u64 created = strtoull(bearer_read_text(e.path().string()+"/created").c_str(), 0, 10);
-		if(created > 0 && now > created + ttl)
-			std::filesystem::remove_all(e.path(), ec);
+		if(!entry.is_directory()) continue;
+		String dir = entry.path().string();
+		String state = trim(bearer_read_text(dir + "/state")), completed_state; DValue completed_result;
+		if(bearer_job_completion(dir, completed_state, completed_result))
+		{
+			state = completed_state;
+			bearer_publish_text(dir + "/result", brb_encode(completed_result));
+			bearer_publish_text(dir + "/state", state);
+		}
+		if(state == "done" || state == "failed" || state == "cancelled")
+		{
+			u64 created = strtoull(bearer_read_text(dir + "/created").c_str(), 0, 10);
+			if(created > 0 && now > created + ttl)
+				std::filesystem::remove_all(entry.path(), ec);
+			continue;
+		}
+		pid_t pid = (pid_t)to_u64(trim(bearer_read_text(dir + "/worker_pid")), 0);
+		String expected_start = trim(bearer_read_text(dir + "/worker_start_ticks"));
+		if(pid > 0 && expected_start != "" && bearer_process_start_ticks(pid) == expected_start)
+			continue;
+		u64 created = strtoull(bearer_read_text(dir + "/created").c_str(), 0, 10);
+		bool abandoned_start = state == "pending" && pid == 0 && expected_start == "" && created > 0 && now > created + 5;
+		if(pid > 0 || expected_start != "" || abandoned_start)
+		{
+			DValue result; result["error"] = abandoned_start ? "async job worker did not start" : "async job worker exited before publishing a result";
+			u64 id = to_u64(entry.path().filename().string(), 0);
+			if(id > 0) bearer_job_finish(id, result, "failed");
+		}
 	}
 }
 
-static DValue bearer_shell_exec_spec(const DValue& spec)
+static u64 bearer_job_start(const String& kind, const DValue& spec)
 {
-	return(process_exec(spec.key("cmd") ? spec.key("cmd")->to_string() : String(""), spec.key("stdin") ? spec.key("stdin")->to_string() : String(""), spec.key("env") ? spec.key("env")->to_stringmap() : StringMap(), spec.key("timeout_ms") ? spec.key("timeout_ms")->to_u64(5000) : 5000));
-}
-
-static void bearer_job_finish(u64 id, DValue result, String final_state="done")
-{
+	constexpr size_t job_spec_limit = 1024 * 1024;
+	bearer_job_reap();
+	u64 id = bearer_job_new(kind);
+	if(!id)
+		return(0);
 	String dir = bearer_job_path(id);
-	bearer_write_text(dir + "/result.tmp", brb_encode(result));
-	rename((dir + "/result.tmp").c_str(), (dir + "/result").c_str());
-	bearer_write_text(dir + "/state", final_state);
+	String encoded = brb_encode(spec);
+	if(encoded.size() > job_spec_limit || !bearer_write_text(dir + "/spec", encoded))
+	{
+		DValue result; result["error"] = encoded.size() > job_spec_limit ? "async job specification is too large" : "cannot write async job specification";
+		bearer_job_finish(id, result, "failed");
+		return(id);
+	}
+	int start_gate[2];
+	if(pipe(start_gate) != 0)
+	{
+		DValue result; result["error"] = "cannot create async job start gate";
+		bearer_job_finish(id, result, "failed");
+		return(id);
+	}
+	WasmSigchldBlock sigchld;
+	posix_spawn_file_actions_t actions;
+	posix_spawnattr_t attributes;
+	int spawn_error = posix_spawn_file_actions_init(&actions);
+	bool actions_ready = spawn_error == 0;
+	if(spawn_error == 0) spawn_error = posix_spawn_file_actions_addclose(&actions, start_gate[1]);
+	if(spawn_error == 0) spawn_error = posix_spawnattr_init(&attributes);
+	bool attributes_ready = spawn_error == 0;
+	if(spawn_error == 0) spawn_error = posix_spawnattr_setflags(&attributes, POSIX_SPAWN_SETPGROUP|POSIX_SPAWN_SETSIGMASK);
+	if(spawn_error == 0) spawn_error = posix_spawnattr_setpgroup(&attributes, 0);
+	if(spawn_error == 0) spawn_error = posix_spawnattr_setsigmask(&attributes, &sigchld.previous);
+	String parent_text = std::to_string((long long)getpid());
+	String id_text = std::to_string(id);
+	String gate_text = std::to_string(start_gate[0]);
+	char* arguments[] = {(char*)"bearer_fastcgi", (char*)"--job-worker", parent_text.data(), id_text.data(), gate_text.data(), dir.data(), 0};
+	pid_t pid = -1;
+	if(spawn_error == 0) spawn_error = posix_spawn(&pid, "/proc/self/exe", &actions, &attributes, arguments, environ);
+	if(actions_ready) posix_spawn_file_actions_destroy(&actions);
+	if(attributes_ready) posix_spawnattr_destroy(&attributes);
+	close(start_gate[0]);
+	String start_ticks = pid > 0 ? bearer_process_start_ticks(pid) : String("");
+	bool ready = spawn_error == 0 && pid > 0 && start_ticks != "" &&
+		bearer_write_text(dir + "/worker_pid", std::to_string((long long)pid)) && bearer_write_text(dir + "/worker_start_ticks", start_ticks);
+	char start = '1';
+	if(!ready || write(start_gate[1], &start, 1) != 1)
+	{
+		if(pid > 0) kill(pid, SIGKILL);
+		DValue result; result["error"] = "cannot start async job worker";
+		bearer_job_finish(id, result, "failed");
+	}
+	close(start_gate[1]);
+	return(id);
 }
 
 static u64 bearer_shell_spawn_spec(const DValue& spec)
 {
-	bearer_job_reap();
-	u64 id = bearer_job_new("shell");
-	if(!id) return(0);
-	pid_t pid = fork();
-	if(pid == 0)
-	{
-		setsid();
-		bearer_write_text(bearer_job_path(id) + "/worker_pid", std::to_string((long long)getpid()));
-		bearer_write_text(bearer_job_path(id) + "/state", "running");
-		DValue result = bearer_shell_exec_spec(spec);
-		bearer_job_finish(id, result, "done");
-		_exit(0);
-	}
-	if(pid < 0) { DValue r; r["error"]="fork failed"; bearer_job_finish(id,r,"failed"); return(id); }
-	bearer_write_text(bearer_job_path(id) + "/worker_pid", std::to_string((long long)pid));
-	bearer_write_text(bearer_job_path(id) + "/state", "running");
-	return(id);
+	return(bearer_job_start("shell", spec));
 }
 
 
-static DValue bearer_exec_argv_capture(std::vector<String> argv, String input, u64 timeout_ms)
+static DValue bearer_exec_argv_capture(std::vector<String> argv, String input, u64 timeout_ms, u64 output_limit = PROCESS_OUTPUT_LIMIT_DEFAULT)
 {
-	DValue r; r["exit_code"]=(f64)-1; r["stdout"]=""; r["stderr"]=""; r["timed_out"].set_bool(false);
+	DValue r; r["exit_code"]=(f64)-1; r["stdout"]=""; r["stderr"]=""; r["timed_out"].set_bool(false); r["output_truncated"].set_bool(false);
 	if(argv.empty()) { r["stderr"]="empty argv"; return(r); }
 	if(timeout_ms == 0) timeout_ms = 5000;
 	int inpipe[2], outpipe[2], errpipe[2];
 	if(pipe(inpipe)||pipe(outpipe)||pipe(errpipe)) { r["stderr"]="pipe failed"; return(r); }
 	WasmSigchldBlock sigchld;
 	unsigned int child_status_snapshot=child_exit_status_snapshot();
-	pid_t pid=fork();
-	if(pid==0)
+	String parent_pid = std::to_string((long long)getpid());
+	std::vector<char*> arguments = {(char*)"bearer_fastcgi", (char*)"--exec-argv", parent_pid.data()}; for(String& value: argv) arguments.push_back(value.data()); arguments.push_back(0);
+	posix_spawn_file_actions_t actions;
+	posix_spawnattr_t attributes;
+	int spawn_error = posix_spawn_file_actions_init(&actions);
+	bool actions_ready = spawn_error == 0;
+	if(spawn_error == 0) spawn_error = posix_spawn_file_actions_adddup2(&actions,inpipe[0],0);
+	if(spawn_error == 0) spawn_error = posix_spawn_file_actions_adddup2(&actions,outpipe[1],1);
+	if(spawn_error == 0) spawn_error = posix_spawn_file_actions_adddup2(&actions,errpipe[1],2);
+	for(int fd:{inpipe[0],inpipe[1],outpipe[0],outpipe[1],errpipe[0],errpipe[1]}) if(spawn_error==0) spawn_error=posix_spawn_file_actions_addclose(&actions,fd);
+	if(spawn_error == 0) spawn_error = posix_spawnattr_init(&attributes);
+	bool attributes_ready = spawn_error == 0;
+	if(spawn_error == 0) spawn_error = posix_spawnattr_setflags(&attributes,POSIX_SPAWN_SETPGROUP|POSIX_SPAWN_SETSIGMASK);
+	if(spawn_error == 0) spawn_error = posix_spawnattr_setpgroup(&attributes,0);
+	if(spawn_error == 0) spawn_error = posix_spawnattr_setsigmask(&attributes,&sigchld.previous);
+	pid_t pid=-1;
+	if(spawn_error == 0) spawn_error=posix_spawn(&pid,"/proc/self/exe",&actions,&attributes,arguments.data(),environ);
+	if(actions_ready) posix_spawn_file_actions_destroy(&actions);
+	if(attributes_ready) posix_spawnattr_destroy(&attributes);
+	if(spawn_error != 0)
 	{
-		sigchld.restore();
-		setpgid(0,0);
-		dup2(inpipe[0],0); dup2(outpipe[1],1); dup2(errpipe[1],2);
 		close(inpipe[0]); close(inpipe[1]); close(outpipe[0]); close(outpipe[1]); close(errpipe[0]); close(errpipe[1]);
-		std::vector<char*> args; for(auto& a: argv) args.push_back((char*)a.c_str()); args.push_back(0);
-		execvp(args[0], args.data()); _exit(127);
-	}
-	if(pid < 0)
-	{
-		close(inpipe[0]); close(inpipe[1]); close(outpipe[0]); close(outpipe[1]); close(errpipe[0]); close(errpipe[1]);
-		r["stderr"] = "fork failed";
+		r["stderr"] = "posix_spawn failed: " + String(strerror(spawn_error));
 		return(r);
 	}
-	setpgid(pid,pid);
+	int start_status = 0;
+	pid_t stopped;
+	do { stopped = waitpid(pid, &start_status, WUNTRACED); } while(stopped < 0 && errno == EINTR);
+	if(stopped != pid || !WIFSTOPPED(start_status))
+	{
+		kill(pid, SIGKILL);
+		close(inpipe[0]); close(inpipe[1]); close(outpipe[0]); close(outpipe[1]); close(errpipe[0]); close(errpipe[1]);
+		r["stderr"] = "process helper did not enter its start gate";
+		return(r);
+	}
+	if(const char* job_directory = getenv("BEARER_JOB_DIRECTORY"))
+	{
+		String start_ticks = process_identity_start_ticks(pid);
+		if(start_ticks != "")
+		{
+			bearer_write_text(path_join(job_directory, "command_pid"), std::to_string((long long)pid));
+			bearer_write_text(path_join(job_directory, "command_start_ticks"), start_ticks);
+		}
+	}
+	if(kill(pid, SIGCONT) != 0)
+	{
+		kill(pid, SIGKILL);
+		waitpid(pid, 0, 0);
+		close(inpipe[0]); close(inpipe[1]); close(outpipe[0]); close(outpipe[1]); close(errpipe[0]); close(errpipe[1]);
+		r["stderr"] = "process helper start failed";
+		return(r);
+	}
 	close(inpipe[0]); close(outpipe[1]); close(errpipe[1]);
 	fcntl(inpipe[1], F_SETFL, fcntl(inpipe[1], F_GETFL, 0)|O_NONBLOCK); fcntl(outpipe[0], F_SETFL, fcntl(outpipe[0], F_GETFL, 0)|O_NONBLOCK); fcntl(errpipe[0], F_SETFL, fcntl(errpipe[0], F_GETFL, 0)|O_NONBLOCK);
 	size_t input_off=0; bool in_open=true,out_open=true,err_open=true,exited=false,status_valid=false; int status=0; u64 deadline=wasm_monotonic_ms()+timeout_ms;
+	auto append_output = [&](String key, const char* data, size_t length) {
+		u64 captured = r["stdout"].to_string().size() + r["stderr"].to_string().size();
+		u64 available = captured < output_limit ? output_limit - captured : 0;
+		size_t accepted = std::min<size_t>(length, (size_t)available);
+		if(accepted > 0)
+			r[key] = r[key].to_string() + String(data, accepted);
+		if(accepted < length)
+			r["output_truncated"].set_bool(true);
+	};
 	while(out_open || err_open || !exited)
 	{
 		if(!exited) { pid_t w=waitpid(pid,&status,WNOHANG); if(w==pid) { exited=true; status_valid=true; } else if(w<0&&errno==ECHILD) { u64 transfer_deadline=wasm_deadline_after_ms(50); do { status_valid=child_exit_status_take(pid,status,child_status_snapshot); if(!status_valid)sched_yield(); } while(!status_valid&&wasm_monotonic_ms()<transfer_deadline); exited=true; if(!status_valid)r["stderr"]=r["stderr"].to_string()+"lost child exit status"; } }
 		if(in_open) { if(input_off<input.size()) { ssize_t n=write(inpipe[1], input.data()+input_off, input.size()-input_off); if(n>0) input_off+=(size_t)n; else if(n<0 && errno!=EINTR && errno!=EAGAIN && errno!=EWOULDBLOCK) { close(inpipe[1]); in_open=false; } } else { close(inpipe[1]); in_open=false; } }
-		char buf[4096]; ssize_t n; while((n=read(outpipe[0],buf,sizeof(buf)))>0) r["stdout"] = r["stdout"].to_string()+String(buf,n); if(n==0&&out_open){close(outpipe[0]);out_open=false;}
-		while((n=read(errpipe[0],buf,sizeof(buf)))>0) r["stderr"] = r["stderr"].to_string()+String(buf,n); if(n==0&&err_open){close(errpipe[0]);err_open=false;}
+		char buf[4096]; ssize_t n; while((n=read(outpipe[0],buf,sizeof(buf)))>0) append_output("stdout",buf,(size_t)n); if(n==0&&out_open){close(outpipe[0]);out_open=false;}
+		while((n=read(errpipe[0],buf,sizeof(buf)))>0) append_output("stderr",buf,(size_t)n); if(n==0&&err_open){close(errpipe[0]);err_open=false;}
 		if((out_open || err_open || !exited) && wasm_monotonic_ms() >= deadline) { r["timed_out"].set_bool(true); kill(-pid,SIGKILL); kill(pid,SIGKILL); if(!exited) status_valid=waitpid(pid,&status,0)==pid; exited=true; if(in_open){close(inpipe[1]);in_open=false;} if(out_open){close(outpipe[0]);out_open=false;} if(err_open){close(errpipe[0]);err_open=false;} }
 		if(out_open || err_open || !exited) usleep(10000);
 	}
@@ -635,11 +817,11 @@ static bool bearer_header_name_safe(String name)
 	return(true);
 }
 
-static DValue bearer_hardened_http_request_value(const DValue& req, u64 timeout_ms, bool keep_worker_process_group=false)
+static DValue bearer_hardened_http_request_value(const DValue& req, u64 timeout_ms, bool=false)
 {
 	HardenedHttpHooks hooks;
 	hooks.resolve=[](String host) { std::vector<String> answers; addrinfo hints{}; hints.ai_socktype=SOCK_STREAM; hints.ai_family=AF_UNSPEC; addrinfo* result=0; if(getaddrinfo(host.c_str(), "443", &hints, &result)!=0) return answers; for(addrinfo* p=result;p;p=p->ai_next) { char text[INET6_ADDRSTRLEN]; if(p->ai_family==AF_INET && inet_ntop(AF_INET,&((sockaddr_in*)p->ai_addr)->sin_addr,text,sizeof(text))) answers.push_back(text); else if(p->ai_family==AF_INET6 && inet_ntop(AF_INET6,&((sockaddr_in6*)p->ai_addr)->sin6_addr,text,sizeof(text))) answers.push_back(text); else answers.push_back(""); } freeaddrinfo(result); return answers; };
-	hooks.execute=[keep_worker_process_group](std::vector<String> argv, String input, std::vector<String>, u64 deadline, size_t limit) { return hardened_http_exec_argv_capture(argv,input,deadline,limit,true,!keep_worker_process_group); };
+	hooks.execute=[](std::vector<String> argv, String input, std::vector<String>, u64 deadline, size_t limit) { return hardened_http_exec_argv_capture(argv,input,deadline,limit,true,true,"/proc/self/exe"); };
 	return hardened_http_request_internal(req,timeout_ms,hooks);
 }
 
@@ -666,6 +848,7 @@ static DValue bearer_http_request_value(const DValue& req)
 	argv.push_back(url);
 	if(access("/usr/bin/curl", X_OK)!=0 && access("/bin/curl", X_OK)!=0) { r["error"]="curl binary not found in runtime PATH"; return(r); }
 	DValue pr = bearer_exec_argv_capture(argv, body, timeout_ms);
+	if(pr["output_truncated"].to_bool()) { r["error"]="response_too_large"; return(r); }
 	String out = pr["stdout"].to_string();
 	String marker="\nBEARER_HTTP_STATUS:"; size_t mp=out.rfind(marker);
 	if(mp!=String::npos) { r["status"]=(f64)strtoull(out.c_str()+mp+marker.size(),0,10); out=out.substr(0,mp); }
@@ -681,21 +864,75 @@ static DValue bearer_http_request_value(const DValue& req)
 
 static u64 bearer_http_spawn_spec(const DValue& req)
 {
-	bearer_job_reap(); u64 id=bearer_job_new("http"); if(!id) return(0);
-	int ready[2]; if(pipe(ready)) { DValue r; r["error"]="pipe failed"; bearer_job_finish(id,r,"failed"); return(id); }
-	pid_t pid=fork();
-	if(pid==0) { close(ready[0]); if(setsid()<0) _exit(127); char ok='1'; if(write(ready[1],&ok,1)!=1) _exit(127); close(ready[1]); bearer_write_text(bearer_job_path(id)+"/worker_pid", std::to_string((long long)getpid())); bearer_write_text(bearer_job_path(id)+"/state", "running"); const DValue* security=req.key("security"); bool hardened=hardened_http_security_requested(security); DValue result=hardened ? bearer_hardened_http_request_value(req,req.key("timeout_ms")?std::max<u64>(1,req.key("timeout_ms")->to_u64(5000)):5000,true) : bearer_http_request_value(req); bearer_job_finish(id,result,result["error"].to_string()==""?"done":"failed"); _exit(0); }
-	close(ready[1]); char ok=0; ssize_t started; do { started=read(ready[0],&ok,1); } while(started<0&&errno==EINTR); close(ready[0]);
-	if(pid<0 || started!=1 || ok!='1') { DValue r; r["error"]="async worker start failed"; bearer_job_finish(id,r,"failed"); return(id); }
-	bearer_write_text(bearer_job_path(id)+"/worker_pid", std::to_string((long long)pid)); bearer_write_text(bearer_job_path(id)+"/state", "running"); return(id);
+	return(bearer_job_start("http", req));
+}
+
+int wasm_job_worker_main(u64 id)
+{
+	String dir = bearer_job_path(id);
+	if(id == 0 || !std::filesystem::is_directory(dir))
+		return(2);
+	int lock_fd = open((dir + "/lock").c_str(), O_CREAT|O_RDWR|O_CLOEXEC, 0600);
+	if(lock_fd < 0 || flock(lock_fd, LOCK_EX) != 0)
+	{
+		if(lock_fd >= 0) close(lock_fd);
+		return(3);
+	}
+	String state = trim(bearer_read_text(dir + "/state"));
+	bool started = state == "pending" && bearer_write_text(dir + "/state", "running");
+	flock(lock_fd, LOCK_UN);
+	close(lock_fd);
+	if(!started)
+		return(4);
+	String encoded = bearer_read_text(dir + "/spec");
+	DValue spec;
+	String decode_error;
+	if(encoded.size() > 1024 * 1024 || !brb_decode(encoded, spec, &decode_error))
+	{
+		DValue result; result["error"] = "cannot decode async job specification";
+		bearer_job_finish(id, result, "failed");
+		return(5);
+	}
+	String kind = trim(bearer_read_text(dir + "/kind"));
+	DValue result;
+	if(kind == "shell")
+		result = bearer_shell_exec_spec(spec);
+	else if(kind == "http")
+	{
+		const DValue* security = spec.key("security");
+		bool hardened = hardened_http_security_requested(security);
+		result = hardened ? bearer_hardened_http_request_value(spec,
+			spec.key("timeout_ms") ? std::max<u64>(1, spec.key("timeout_ms")->to_u64(5000)) : 5000, true) :
+			bearer_http_request_value(spec);
+	}
+	else
+	{
+		result["error"] = "unknown async job kind";
+		bearer_job_finish(id, result, "failed");
+		return(6);
+	}
+	bearer_job_finish(id, result, result["error"].to_string() == "" ? "done" : "failed");
+	return(0);
 }
 
 static DValue bearer_job_status_value(u64 id)
 {
 	DValue r; String dir=bearer_job_path(id); r["job_id"]=(f64)id;
 	if(id==0 || !std::filesystem::is_directory(dir)) { r["state"]="missing"; return(r); }
-	String state=trim(bearer_read_text(dir+"/state")); if(state=="") state="pending"; r["state"]=state;
-	r["kind"]=trim(bearer_read_text(dir+"/kind")); r["pid"]=(f64)strtoull(bearer_read_text(dir+"/worker_pid").c_str(),0,10);
+	String state=trim(bearer_read_text(dir+"/state")), completed_state; DValue completed_result;
+	if(bearer_job_completion(dir,completed_state,completed_result)) { state=completed_state; bearer_publish_text(dir+"/result",brb_encode(completed_result)); bearer_publish_text(dir+"/state",state); }
+	if(state=="") state="pending";
+	pid_t pid=(pid_t)strtoull(bearer_read_text(dir+"/worker_pid").c_str(),0,10);
+	String expected_start=trim(bearer_read_text(dir+"/worker_start_ticks"));
+	if((state=="pending"||state=="running")&&pid>0&&expected_start!=""&&bearer_process_start_ticks(pid)!=expected_start) {
+		DValue result;result["error"]="async job worker exited before publishing a result";bearer_job_finish(id,result,"failed");state=trim(bearer_read_text(dir+"/state"));
+	}
+	else if(state=="pending"&&pid==0&&expected_start=="") {
+		u64 created=strtoull(bearer_read_text(dir+"/created").c_str(),0,10),now=(u64)time(0);
+		if(created>0&&now>created+5) { DValue result;result["error"]="async job worker did not start";bearer_job_finish(id,result,"failed");state=trim(bearer_read_text(dir+"/state")); }
+	}
+	r["state"]=state;
+	r["kind"]=trim(bearer_read_text(dir+"/kind")); r["pid"]=(f64)pid;
 	r["done"].set_bool(state=="done"||state=="failed"||state=="cancelled");
 	return(r);
 }
@@ -710,8 +947,9 @@ static DValue bearer_job_result_value(u64 id, u64 timeout_ms)
 		usleep(10000);
 	}
 	DValue r = bearer_job_status_value(id);
-	String encoded = bearer_read_text(bearer_job_path(id)+"/result");
-	if(encoded != "") { DValue decoded; String err; if(brb_decode(encoded, decoded, &err)) r["result"] = decoded; }
+	String completed_state; DValue completed_result;
+	if(bearer_job_completion(bearer_job_path(id),completed_state,completed_result)) r["result"] = completed_result;
+	else { String encoded = bearer_read_text(bearer_job_path(id)+"/result"); if(encoded != "") { DValue decoded; String err; if(brb_decode(encoded, decoded, &err)) r["result"] = decoded; } }
 	return(r);
 }
 
@@ -723,10 +961,37 @@ static bool bearer_job_cancel_value(u64 id)
 	if(state == "done" || state == "failed" || state == "cancelled")
 		return(false);
 	pid_t pid = (pid_t)st["pid"].to_u64(0);
-	if(pid > 0) kill(-pid, SIGKILL);
+	if(pid > 0)
+	{
+		String expected_start = trim(bearer_read_text(bearer_job_path(id) + "/worker_start_ticks"));
+		if(expected_start == "" || bearer_process_start_ticks(pid) != expected_start)
+			return(false);
+#if defined(SYS_pidfd_open) && defined(SYS_pidfd_send_signal)
+		int pid_fd = (int)syscall(SYS_pidfd_open, pid, 0);
+		if(pid_fd < 0)
+			return(false);
+		pid_t command_pid = (pid_t)to_u64(trim(bearer_read_text(bearer_job_path(id) + "/command_pid")), 0);
+		String command_start = trim(bearer_read_text(bearer_job_path(id) + "/command_start_ticks"));
+		if(command_pid > 0 && command_start != "" && process_identity_start_ticks(command_pid) == command_start)
+			kill(-command_pid, SIGKILL);
+		if(syscall(SYS_pidfd_send_signal, pid_fd, SIGKILL, 0, 0) != 0)
+		{
+			close(pid_fd);
+			return(false);
+		}
+		pollfd wait_for_exit{pid_fd, POLLIN, 0};
+		int poll_result;
+		do { poll_result = poll(&wait_for_exit, 1, 5000); } while(poll_result < 0 && errno == EINTR);
+		close(pid_fd);
+		if(poll_result <= 0)
+			return(false);
+#else
+		if(kill(pid, SIGKILL) != 0)
+			return(false);
+#endif
+	}
 	DValue result; result["cancelled"].set_bool(true);
-	bearer_job_finish(id, result, "cancelled");
-	return(true);
+	return(bearer_job_finish(id, result, "cancelled"));
 }
 
 // ---- module byte parsing (hardened; carried from the phase 3 spike) -------
@@ -1012,50 +1277,89 @@ static bool wasm_read_file_deadline(const String& path, std::vector<u8>& out, St
 
 static bool wasm_source_map_load(const String& path, WasmSourceMap& map)
 {
-	std::ifstream input(path);
-	if(!input)
+	constexpr u64 max_source_map_bytes = 16 * 1024 * 1024;
+	constexpr size_t max_source_map_files = 65536;
+	constexpr size_t max_source_map_rows = 1024 * 1024;
+	struct stat info;
+	if(stat(path.c_str(), &info) != 0 || !S_ISREG(info.st_mode) || info.st_size <= 0 || (u64)info.st_size > max_source_map_bytes)
 		return(false);
+	String content = file_get_contents(path);
+	if(content == "")
+		return(false);
+	const String suffix = ".wasm.source-map";
+	if(path.size() <= suffix.size() || path.substr(path.size() - suffix.size()) != suffix)
+		return(false);
+	String metadata = file_get_contents(path.substr(0, path.size() - suffix.size()) + ".meta.txt");
+	String expected_hash;
+	for(const String& metadata_line : split_strings(metadata, "\n"))
+		if(metadata_line.rfind("source_map_sha256=", 0) == 0)
+			expected_hash = metadata_line.substr(18);
+	if(expected_hash.size() != 64 || sha256_hex_native(content) != expected_hash)
+		return(false);
+	std::istringstream input(content);
+	map = WasmSourceMap();
 	String line;
 	const String prefix = "BEARER_SOURCE_MAP_V1\t";
 	if(!std::getline(input, line) || line.rfind(prefix, 0) != 0)
 		return(false);
 	map.module_name = line.substr(prefix.size());
+	auto number = [](const String& text, int base, u64 maximum, u64& out) {
+		if(text == "")
+			return(false);
+		errno = 0;
+		char* end = 0;
+		unsigned long long value = strtoull(text.c_str(), &end, base);
+		if(errno != 0 || end == text.c_str() || *end != '\0' || value > maximum)
+			return(false);
+		out = (u64)value;
+		return(true);
+	};
+	u64 previous_address = 0;
+	bool first_row = true;
 	while(std::getline(input, line))
 	{
 		auto fields = split_strings(line, "\t");
 		if(fields.size() == 3 && fields[0] == "F")
-			map.files[(u32)strtoul(fields[1].c_str(), 0, 10)] = fields[2];
+		{
+			u64 file = 0;
+			if(map.files.size() >= max_source_map_files || !number(fields[1], 10, UINT32_MAX, file) || fields[2] == "" || map.files.contains((u32)file))
+				return(false);
+			map.files[(u32)file] = fields[2];
+		}
 		else if(fields.size() == 5 && fields[0] == "L")
 		{
-			WasmSourceMap::Row row;
-			row.address = strtoull(fields[1].c_str(), 0, 16);
-			row.file = (u32)strtoul(fields[2].c_str(), 0, 10);
-			row.line = (u32)strtoul(fields[3].c_str(), 0, 10);
-			row.column = (u32)strtoul(fields[4].c_str(), 0, 10);
-			map.rows.push_back(row);
+			u64 address = 0, file = 0, source_line = 0, column = 0;
+			if(map.rows.size() >= max_source_map_rows || !number(fields[1], 16, UINT64_MAX, address) ||
+				!number(fields[2], 10, UINT32_MAX, file) || !number(fields[3], 10, UINT32_MAX, source_line) ||
+				!number(fields[4], 10, UINT32_MAX, column) || (!first_row && address < previous_address))
+				return(false);
+			map.rows.push_back({address, (u32)file, (u32)source_line, (u32)column});
+			previous_address = address;
+			first_row = false;
 		}
+		else
+			return(false);
 	}
 	return(!map.rows.empty());
 }
 
 static String wasm_source_map_lookup(const WasmSourceMap& map, u64 address, const String& preferred_file = "")
 {
-	const WasmSourceMap::Row* found = 0;
-	for(auto& row : map.rows)
+	auto end = std::upper_bound(map.rows.begin(), map.rows.end(), address,
+		[](u64 target, const WasmSourceMap::Row& row) { return(target < row.address); });
+	while(end != map.rows.begin())
 	{
-		if(row.address > address)
-			break;
+		const auto& row = *--end;
 		auto file = map.files.find(row.file);
 		if(row.line != 0 && file != map.files.end() && (preferred_file == "" || file->second == preferred_file))
-			found = &row;
+		{
+			String result = file->second + ":" + std::to_string(row.line);
+			if(row.column)
+				result += ":" + std::to_string(row.column);
+			return(result);
+		}
 	}
-	if(!found)
-		return("");
-	auto file = map.files.find(found->file);
-	String result = file->second + ":" + std::to_string(found->line);
-	if(found->column)
-		result += ":" + std::to_string(found->column);
-	return(result);
+	return("");
 }
 
 struct WasmMetadataReader
@@ -1445,29 +1749,34 @@ struct WasmWorker
 	bool verify_unit_generation(const WasmUnitModule& unit, std::set<String>& exports, String& error) const
 	{
 		const String exports_path = unit_exports_path(unit.source_path), metadata_path = unit_metadata_path(unit.source_path);
+		const String source_map_path = unit.wasm_path + ".source-map";
 		auto identity_matches = [](const struct stat& a, const struct stat& b) {
 			return(a.st_mtim.tv_sec == b.st_mtim.tv_sec && a.st_mtim.tv_nsec == b.st_mtim.tv_nsec &&
 				a.st_ctim.tv_sec == b.st_ctim.tv_sec && a.st_ctim.tv_nsec == b.st_ctim.tv_nsec && a.st_size == b.st_size);
 		};
 		for(int attempt = 0; attempt < 3; ++attempt)
 		{
-			struct stat wasm_before, exports_before, metadata_before_stat;
+			struct stat wasm_before, exports_before, metadata_before_stat, source_map_before;
 			if(stat(unit.wasm_path.c_str(), &wasm_before) != 0 || !S_ISREG(wasm_before.st_mode) ||
 				stat(exports_path.c_str(), &exports_before) != 0 || !S_ISREG(exports_before.st_mode) ||
-				stat(metadata_path.c_str(), &metadata_before_stat) != 0 || !S_ISREG(metadata_before_stat.st_mode))
+				stat(metadata_path.c_str(), &metadata_before_stat) != 0 || !S_ISREG(metadata_before_stat.st_mode) ||
+				stat(source_map_path.c_str(), &source_map_before) != 0 || !S_ISREG(source_map_before.st_mode) ||
+				metadata_before_stat.st_size > 65536 || exports_before.st_size > 16 * 1024 * 1024 || source_map_before.st_size > 16 * 1024 * 1024)
 			{
 				error = "missing unit artifact metadata";
 				return(false);
 			}
 			String metadata_before = file_get_contents(metadata_path);
 			String exports_text = file_get_contents(exports_path);
+			String source_map_text = file_get_contents(source_map_path);
 			String wasm_bytes = file_get_contents(unit.wasm_path);
 			String metadata_after = file_get_contents(metadata_path);
-			struct stat wasm_after, exports_after, metadata_after_stat;
+			struct stat wasm_after, exports_after, metadata_after_stat, source_map_after;
 			if(stat(unit.wasm_path.c_str(), &wasm_after) != 0 || stat(exports_path.c_str(), &exports_after) != 0 ||
-				stat(metadata_path.c_str(), &metadata_after_stat) != 0 || metadata_before == "" || wasm_bytes == "" ||
-				metadata_before != metadata_after || !identity_matches(exports_before, exports_after) ||
-				!identity_matches(metadata_before_stat, metadata_after_stat))
+				stat(metadata_path.c_str(), &metadata_after_stat) != 0 || stat(source_map_path.c_str(), &source_map_after) != 0 ||
+				metadata_before == "" || wasm_bytes == "" || source_map_text == "" || metadata_before != metadata_after ||
+				!identity_matches(exports_before, exports_after) || !identity_matches(metadata_before_stat, metadata_after_stat) ||
+				!identity_matches(source_map_before, source_map_after))
 				continue;
 			if(wasm_after.st_mtim.tv_sec != (time_t)(unit.modified_ns / 1000000000ull) ||
 				wasm_after.st_mtim.tv_nsec != (long)(unit.modified_ns % 1000000000ull) ||
@@ -1491,11 +1800,12 @@ struct WasmWorker
 				}
 			}
 			auto numeric = [](const String& value) { return(value != "" && std::all_of(value.begin(), value.end(), [](unsigned char c) { return isdigit(c); })); };
-			if(fields.size() != 8 || fields["format"] != "bearer-unit-metadata-v2" || fields["source_path"] != unit.source_path ||
+			if(fields.size() != 9 || fields["format"] != "bearer-unit-metadata-v3" || fields["source_path"] != unit.source_path ||
 				!numeric(fields["unit_abi_version"]) || !numeric(fields["wasm_core_abi_version"]) ||
-				fields["input_signature"] == "" || fields["build_token"] == "" ||
-				fields["wasm_sha256"].size() != 64 || fields["exports_sha256"].size() != 64 ||
-				sha256_hex_native(wasm_bytes) != fields["wasm_sha256"] || sha256_hex_native(exports_text) != fields["exports_sha256"])
+				fields["input_signature"] == "" || fields["build_token"] == "" || fields["wasm_sha256"].size() != 64 ||
+				fields["exports_sha256"].size() != 64 || fields["source_map_sha256"].size() != 64 ||
+				sha256_hex_native(wasm_bytes) != fields["wasm_sha256"] || sha256_hex_native(exports_text) != fields["exports_sha256"] ||
+				sha256_hex_native(source_map_text) != fields["source_map_sha256"])
 			{
 				error = "unit artifact metadata does not match Wasm and exports";
 				return(false);
@@ -1661,17 +1971,29 @@ struct WasmWorker
 		return(unit);
 	}
 
+	static String serialized_module_manifest_path(const String& cached_path)
+	{
+		return(cached_path + ".manifest");
+	}
+
+	static bool serialized_module_manifest(const String& cached_path, String& wasm_hash, String& cached_hash)
+	{
+		auto fields = split_strings(file_get_contents(serialized_module_manifest_path(cached_path)), "\n");
+		if(fields.size() < 2 || fields[0].size() != 64 || fields[1].size() != 64)
+			return(false);
+		wasm_hash = fields[0];
+		cached_hash = fields[1];
+		return(true);
+	}
+
 	static bool serialized_module_needs_refresh(const String& wasm_path)
 	{
-		struct stat wasm_stat;
-		struct stat cached_stat;
-		String cached_path = cached_wasm_path(wasm_path);
-		if(stat(wasm_path.c_str(), &wasm_stat) != 0)
+		String cached_path = cached_wasm_path(wasm_path), expected_wasm_hash, cached_hash;
+		if(!file_exists(wasm_path))
 			return(false);
-		if(stat(cached_path.c_str(), &cached_stat) != 0)
+		if(!file_exists(cached_path) || !serialized_module_manifest(cached_path, expected_wasm_hash, cached_hash))
 			return(true);
-		return(cached_stat.st_mtim.tv_sec < wasm_stat.st_mtim.tv_sec ||
-			(cached_stat.st_mtim.tv_sec == wasm_stat.st_mtim.tv_sec && cached_stat.st_mtim.tv_nsec <= wasm_stat.st_mtim.tv_nsec));
+		return(sha256_hex_native(file_get_contents(wasm_path)) != expected_wasm_hash);
 	}
 
 	static String serialize_module_artifact(const String& wasm_path)
@@ -1715,18 +2037,17 @@ struct WasmWorker
 
 	static std::optional<wasmtime::Module> load_current_serialized_module(wasmtime::Engine& engine, const String& cached_path, const String& wasm_path)
 	{
-		struct stat wasm_stat;
-		struct stat cached_stat;
-		if(stat(cached_path.c_str(), &cached_stat) == 0 && stat(wasm_path.c_str(), &wasm_stat) == 0)
-		{
-			if(cached_stat.st_mtim.tv_sec > wasm_stat.st_mtim.tv_sec ||
-				(cached_stat.st_mtim.tv_sec == wasm_stat.st_mtim.tv_sec && cached_stat.st_mtim.tv_nsec > wasm_stat.st_mtim.tv_nsec))
-			{
-				auto deserialized = wasmtime::Module::deserialize_file(engine, cached_path);
-				if(deserialized)
-					return(deserialized.ok());
-			}
-		}
+		String expected_wasm_hash, expected_cached_hash;
+		if(!serialized_module_manifest(cached_path, expected_wasm_hash, expected_cached_hash))
+			return(std::nullopt);
+		String wasm_bytes = file_get_contents(wasm_path), cached_bytes = file_get_contents(cached_path);
+		if(wasm_bytes == "" || cached_bytes == "" || sha256_hex_native(wasm_bytes) != expected_wasm_hash ||
+			sha256_hex_native(cached_bytes) != expected_cached_hash)
+			return(std::nullopt);
+		auto deserialized = wasmtime::Module::deserialize(engine,
+			wasmtime::Span<uint8_t>((uint8_t*)cached_bytes.data(), cached_bytes.size()));
+		if(deserialized)
+			return(deserialized.ok());
 		return(std::nullopt);
 	}
 
@@ -1743,23 +2064,35 @@ struct WasmWorker
 		auto serialized = result.serialize();
 		if(serialized)
 		{
-			String tmp = cached_path + "." + std::to_string((long long)getpid()) + ".tmp";
+			String nonce = "." + std::to_string((long long)getpid()) + "." + std::to_string((unsigned long long)wasm_monotonic_ms()) + ".tmp";
+			String tmp = cached_path + nonce, manifest_path = serialized_module_manifest_path(cached_path), manifest_tmp = manifest_path + nonce;
 			auto data = serialized.ok();
+			String serialized_bytes((const char*)data.data(), data.size());
+			String manifest = sha256_hex_native(String((const char*)bytes.data(), bytes.size())) + "\n" + sha256_hex_native(serialized_bytes) + "\n";
 			{
 				std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
-				if(out)
+				std::ofstream manifest_out(manifest_tmp, std::ios::binary | std::ios::trunc);
+				if(out && manifest_out)
 				{
-					out.write((const char*)data.data(), (std::streamsize)data.size());
-					if(out)
+					out.write(serialized_bytes.data(), (std::streamsize)serialized_bytes.size());
+					manifest_out.write(manifest.data(), (std::streamsize)manifest.size());
+					if(out && manifest_out)
 					{
-						out.flush();
-						out.close();
-						if(std::rename(tmp.c_str(), cached_path.c_str()) != 0)
+						out.flush(); manifest_out.flush();
+						out.close(); manifest_out.close();
+						if(std::rename(tmp.c_str(), cached_path.c_str()) != 0 || std::rename(manifest_tmp.c_str(), manifest_path.c_str()) != 0)
+						{
 							(void)std::remove(tmp.c_str());
+							(void)std::remove(manifest_tmp.c_str());
+							(void)std::remove(manifest_path.c_str());
+						}
 					}
 				}
 				else
+				{
 					(void)std::remove(tmp.c_str());
+					(void)std::remove(manifest_tmp.c_str());
+				}
 			}
 		}
 		return(result);
@@ -2665,6 +2998,8 @@ struct WasmWorkspace : public WasmRequestProfile
 		}
 		if(!locations.empty())
 			result += "\nsource locations:\n  " + join_strings(locations, "\n  ");
+		else if(units.size() == 1)
+			result += "\nguest source: " + units[0].mod->source_path;
 		return(result);
 	}
 
@@ -4676,7 +5011,15 @@ struct WasmWorkspace : public WasmRequestProfile
 						else if(op == "escape")
 						{
 							String quote = request["quote_char"].to_string();
-							response["result"] = mysql_escape(request["raw"].to_string(), quote.size() ? quote[0] : 0);
+							u64 handle = to_u64(request["handle"].to_string(), 0);
+							MySQL* db = (handle >= 1 && handle <= self->mysql_handles.size()) ? self->mysql_handles[(size_t)handle - 1] : 0;
+							response["result"] = db ? db->escape(request["raw"].to_string(), quote.size() ? quote[0] : 0) :
+								mysql_escape(request["raw"].to_string(), quote.size() ? quote[0] : 0);
+							if(db)
+							{
+								response["error_code"] = (f64)db->_preload_next_error_code;
+								response["statement_info"] = db->error();
+							}
 						}
 						else
 						{
@@ -4685,7 +5028,11 @@ struct WasmWorkspace : public WasmRequestProfile
 								? self->mysql_handles[(size_t)handle - 1] : 0;
 							if(op == "query" && db)
 							{
-								response["result"] = db->query(request["query"].to_string());
+								StringMap params;
+								DValue* parameter_values = request.key("params");
+								if(parameter_values)
+									parameter_values->each([&](const DValue& value, String key) { params[key] = value.to_string(); });
+								response["result"] = parameter_values ? db->query(request["query"].to_string(), params) : db->query(request["query"].to_string());
 								response["insert_id"] = (f64)db->insert_id;
 								response["affected"] = (f64)db->affected_rows;
 								response["error_code"] = (f64)db->_preload_next_error_code;
@@ -4839,12 +5186,12 @@ struct WasmWorkspace : public WasmRequestProfile
 				else
 				{
 					DValue request, response;
-					String error;
+					String error, operation;
 					if(!brb_decode(encoded, request, &error) || request.type != 'M')
 						response["error"] = "invalid_input";
 					else
 					{
-						String operation = request["op"].to_string();
+						operation = request["op"].to_string();
 						task_queue::Result result;
 						if(operation == "submit")
 						{
@@ -4866,13 +5213,17 @@ struct WasmWorkspace : public WasmRequestProfile
 						else if(operation == "cancel") result = task_workers::cancel(request["id"].to_string());
 						else response["error"] = "invalid_operation";
 						if(operation == "submit" || operation == "status" || operation == "await" || operation == "cancel")
+						{
 							if(result.ok()) { if(operation == "submit") response["id"] = result.task.id; else response = result.status; }
 							else
 							{
 								fprintf(stderr, "[wasm task] %s failed: %s\n", operation.c_str(), result.code.c_str());
 								response["error"] = result.code;
 							}
+						}
 					}
+					if(operation == "submit" && response["error"].to_string() != "")
+						return(Trap("task: " + response["error"].to_string()));
 					out = brb_encode(response);
 					if(buf == 0) self->hostcall_stage(stage_key, out);
 				}

@@ -18,6 +18,7 @@ sed -E -i \
 	-e "s|^[[:space:]]*FCGI_SOCKET_PATH[[:space:]]*=.*|FCGI_SOCKET_PATH=|" \
 	-e "s|^[[:space:]]*FCGI_PORT[[:space:]]*=.*|FCGI_PORT=|" \
 	-e "s|^[[:space:]]*CLI_SOCKET_PATH[[:space:]]*=.*|CLI_SOCKET_PATH=$socket_path|" \
+	-e "s|^[[:space:]]*HTTP_SOCKET_PATH[[:space:]]*=.*|HTTP_SOCKET_PATH=|" \
 	-e "s|^[[:space:]]*HTTP_PORT[[:space:]]*=.*|HTTP_PORT=|" \
 	-e "s|^[[:space:]]*PROACTIVE_COMPILE_ENABLED[[:space:]]*=.*|PROACTIVE_COMPILE_ENABLED=false|" \
 	-e "s|^[[:space:]]*WORKER_COUNT[[:space:]]*=.*|WORKER_COUNT=1|" \

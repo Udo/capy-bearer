@@ -238,16 +238,23 @@ struct RegexCode {
 
 struct RegexMatchData {
 	pcre2_match_data* data = 0;
+	pcre2_match_context* context = 0;
 
 	RegexMatchData(pcre2_code* code)
 	{
 		data = pcre2_match_data_create_from_pattern(code, 0);
-		if(!data)
-			regex_throw("regex", "could not allocate match data");
+		context = pcre2_match_context_create(0);
+		if(!data || !context)
+			regex_throw("regex", "could not allocate match state");
+		pcre2_set_match_limit(context, 1000000);
+		pcre2_set_depth_limit(context, 500);
+		pcre2_set_heap_limit(context, 65536);
 	}
 
 	~RegexMatchData()
 	{
+		if(context)
+			pcre2_match_context_free(context);
 		if(data)
 			pcre2_match_data_free(data);
 	}
@@ -360,7 +367,7 @@ int regex_match_at(RegexCode& regex, RegexMatchData& match_data, String subject,
 		offset,
 		options,
 		match_data.data,
-		0
+		match_data.context
 	);
 
 	if(rc == PCRE2_ERROR_NOMATCH)
@@ -390,6 +397,7 @@ DValue regex_search(String pattern, String subject, String flags)
 
 DValue regex_search_all(String pattern, String subject, String flags)
 {
+	constexpr size_t maximum_matches = 1024;
 	RegexCode regex(pattern, flags, "regex_search_all");
 	RegexMatchData match_data(regex.code);
 	DValue result;
@@ -404,12 +412,13 @@ DValue regex_search_all(String pattern, String subject, String flags)
 		if(rc == PCRE2_ERROR_NOMATCH)
 			break;
 
+		if(result["matches"].deref()._map.size() >= maximum_matches)
+			regex_throw("regex_search_all", "result limit exceeded");
 		DValue match = regex_build_match_tree(pattern, flags, subject, regex.code, match_data.data, rc);
 		result["matches"].push(match);
 		result["matched"].set_bool(true);
 
 		PCRE2_SIZE* ovector = pcre2_get_ovector_pointer(match_data.data);
-		size_t start = ovector[0];
 		size_t end = ovector[1];
 		if(end > offset)
 			offset = end;
@@ -424,6 +433,7 @@ DValue regex_search_all(String pattern, String subject, String flags)
 String regex_replace(String pattern, String replacement, String subject, String flags)
 {
 	RegexCode regex(pattern, flags, "regex_replace");
+	RegexMatchData match_data(regex.code);
 	PCRE2_SIZE output_length = 0;
 	uint32_t options = PCRE2_SUBSTITUTE_GLOBAL | PCRE2_SUBSTITUTE_OVERFLOW_LENGTH;
 
@@ -434,7 +444,7 @@ String regex_replace(String pattern, String replacement, String subject, String 
 		0,
 		options,
 		0,
-		0,
+		match_data.context,
 		reinterpret_cast<PCRE2_SPTR>(replacement.c_str()),
 		replacement.length(),
 		0,
@@ -443,6 +453,8 @@ String regex_replace(String pattern, String replacement, String subject, String 
 
 	if(rc != PCRE2_ERROR_NOMEMORY && rc < 0)
 		regex_throw("regex_replace", "substitution failed: " + regex_pcre2_error(rc));
+	if(output_length > 64 * 1024 * 1024)
+		regex_throw("regex_replace", "result limit exceeded");
 
 	String output;
 	output.resize(output_length);
@@ -453,7 +465,7 @@ String regex_replace(String pattern, String replacement, String subject, String 
 		0,
 		PCRE2_SUBSTITUTE_GLOBAL,
 		0,
-		0,
+		match_data.context,
 		reinterpret_cast<PCRE2_SPTR>(replacement.c_str()),
 		replacement.length(),
 		reinterpret_cast<PCRE2_UCHAR*>(&output[0]),
@@ -469,6 +481,7 @@ String regex_replace(String pattern, String replacement, String subject, String 
 
 std::vector<String> regex_split_strings(String pattern, String subject, String flags)
 {
+	constexpr size_t maximum_parts = 1024;
 	RegexCode regex(pattern, flags, "regex_split_strings");
 	RegexMatchData match_data(regex.code);
 	std::vector<String> result;
@@ -480,6 +493,8 @@ std::vector<String> regex_split_strings(String pattern, String subject, String f
 		int rc = regex_match_at(regex, match_data, subject, offset, 0, "regex_split_strings");
 		if(rc == PCRE2_ERROR_NOMATCH)
 			break;
+		if(result.size() >= maximum_parts)
+			regex_throw("regex_split_strings", "result limit exceeded");
 
 		PCRE2_SIZE* ovector = pcre2_get_ovector_pointer(match_data.data);
 		size_t start = ovector[0];
@@ -787,32 +802,32 @@ DValue array_merge(DValue a, DValue b)
 std::vector<String> split_utf8_strings(String s, bool compound_characters)
 {
 	std::vector<String> result;
-	auto len = s.size();
-	String codepoint = "";
-	for(s64 i = 0; i < len; i++)
+	for(size_t i = 0; i < s.size();)
 	{
-		u8 c = s[i];
-		if(is_bit_set(c, 7))
+		u8 first = (u8)s[i];
+		size_t length = 1;
+		if(first >= 0xc2 && first <= 0xdf)
+			length = 2;
+		else if(first >= 0xe0 && first <= 0xef)
+			length = 3;
+		else if(first >= 0xf0 && first <= 0xf4)
+			length = 4;
+		bool valid = i + length <= s.size();
+		for(size_t j = 1; valid && j < length; j++)
+			valid = ((u8)s[i + j] & 0xc0) == 0x80;
+		if(valid && length == 3)
+			valid = !(first == 0xe0 && (u8)s[i + 1] < 0xa0) && !(first == 0xed && (u8)s[i + 1] > 0x9f);
+		if(valid && length == 4)
+			valid = !(first == 0xf0 && (u8)s[i + 1] < 0x90) && !(first == 0xf4 && (u8)s[i + 1] > 0x8f);
+		if(valid && length > 1)
 		{
-			codepoint = "";
-			codepoint.append(1, c);
-			if(is_bit_set(c, 6))
-			{
-				codepoint.append(1, s[++i]);
-				if(is_bit_set(c, 5))
-				{
-					codepoint.append(1, s[++i]);
-					if(is_bit_set(c, 4))
-					{
-						codepoint.append(1, s[++i]);
-					}
-				}
-			}
-			result.push_back(codepoint);
+			result.push_back(s.substr(i, length));
+			i += length;
 		}
 		else
 		{
-			result.push_back(String().append(1, c));
+			result.push_back(s.substr(i, 1));
+			i++;
 		}
 	}
 	if(compound_characters)
@@ -824,20 +839,25 @@ std::vector<String> split_utf8_strings(String s, bool compound_characters)
 		{
 			if(join_next)
 			{
-				compound_result[compound_result.size()-1] += s;
+				compound_result.back() += s;
 				join_next = false;
 			}
 			else if(s == "\xE2" "\x80" "\x8D") // ZWJ
 			{
-				compound_result[compound_result.size()-1] += s;
-				join_next = true;
+				if(compound_result.empty())
+					compound_result.push_back(s);
+				else
+				{
+					compound_result.back() += s;
+					join_next = true;
+				}
 				last_was_regional = false;
 			}
-			else if(s[0] == '\xF0' && s[1] == '\x9F' && s[2] == '\x87' && s[3] >= '\xA6' && s[3] <= '\xBF') // Regional indicator letters
+			else if(s.size() == 4 && s[0] == '\xF0' && s[1] == '\x9F' && s[2] == '\x87' && s[3] >= '\xA6' && s[3] <= '\xBF') // Regional indicator letters
 			{
 				if(last_was_regional)
 				{
-					compound_result[compound_result.size()-1] += s;
+					compound_result.back() += s;
 					last_was_regional = false;
 				}
 				else
@@ -846,9 +866,12 @@ std::vector<String> split_utf8_strings(String s, bool compound_characters)
 					last_was_regional = true;
 				}
 			}
-			else if(s[0] == '\xEF' && s[1] == '\xB8' && s[2] >= '\x80' && s[2] <= '\x8F') // Variation selector
+			else if(s.size() == 3 && s[0] == '\xEF' && s[1] == '\xB8' && s[2] >= '\x80' && s[2] <= '\x8F') // Variation selector
 			{
-				compound_result[compound_result.size()-1] += s;
+				if(compound_result.empty())
+					compound_result.push_back(s);
+				else
+					compound_result.back() += s;
 				last_was_regional = false;
 			}
 			else

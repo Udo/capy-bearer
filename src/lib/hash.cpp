@@ -738,7 +738,7 @@ static bool uce_cbor_read(const String& in,size_t& p,UceCbor& out,size_t depth,s
 	u8 h=(u8)in[p++], major=h>>5, ai=h&31; u64 n=0; if(ai==31||!uce_cbor_uint(in,p,ai,n)) return false;
 	if(major==0||major==1) { out.kind=major?UceCborKind::Negative:UceCborKind::Unsigned; out.number=n; return true; }
 	if(major==2||major==3) { if(n>UCE_CBOR_MAX_BYTES||n>in.size()-p||(major==3&&!uce_crypto_utf8_string(String(in.data()+p,(size_t)n)))) return false; out.kind=major==2?UceCborKind::Bytes:UceCborKind::Text; out.bytes.assign(in.data()+p,(size_t)n); p+=(size_t)n; return true; }
-	if(major!=4&&major!=5||n>UCE_CBOR_MAX_NODES) return false;
+	if((major!=4&&major!=5)||n>UCE_CBOR_MAX_NODES) return false;
 	out.kind=major==4?UceCborKind::Array:UceCborKind::Map; if(n>(UCE_CBOR_MAX_NODES-nodes)/(major==5?2:1)) return false; out.items.reserve((size_t)n*(major==5?2:1));
 	for(u64 i=0;i<n*(major==5?2:1);i++) { UceCbor child; if(!uce_cbor_read(in,p,child,depth+1,nodes)) return false; if(major==5&&!(i&1)) for(size_t previous=0;previous<out.items.size();previous+=2) if(uce_cbor_equal(out.items[previous],child)) return false; out.items.push_back(std::move(child)); }
 	return true;

@@ -36,6 +36,7 @@ FCGI_SOCKET_PATH=$root/run/fastcgi.sock
 FCGI_PORT=
 CLI_SOCKET_PATH=$root/run/cli.sock
 WS_BROKER_SOCKET_PATH=$root/run/ws.sock
+HTTP_SOCKET_PATH=$root/run/http.sock
 HTTP_PORT=
 HTTP_DOCUMENT_ROOT=$site
 SESSION_PATH=$root/session
@@ -201,5 +202,39 @@ while [[ ! -s "$artifacts/priority.uce.cwasm" ]] && (( SECONDS < deadline )); do
 [[ -s "$artifacts/priority.uce.cwasm" ]] || { echo "priority compiler did not publish requested unit" >&2; cat "$log" >&2; exit 1; }
 priority_nice=$(awk -F '\t' -v path="$site/priority.uce" '$3 == path { print $2; exit }' "$shim_log")
 [[ "$priority_nice" == "5" ]] || { echo "priority queue was not owned by the nice-5 compiler: $priority_nice" >&2; cat "$shim_log" >&2; exit 1; }
+
+# Each proactive worker must reject a #load cycle before it waits for a
+# recursive unit lock held by another worker.
+printf '%s\n' '#load "cycle-b.uce"' 'CLI(Request& context) { print("cycle-a"); }' >"$site/cycle-a.uce"
+printf '%s\n' '#load "cycle-a.uce"' >"$site/cycle-b.uce"
+if cycle_cli_output=$(BEARER_CLI_SOCKET="$root/run/cli.sock" timeout 20s scripts/bearer-cli /cycle-a.uce 2>&1); then
+	echo "bounded #load cycle unexpectedly compiled: $cycle_cli_output" >&2
+	exit 1
+fi
+[[ "$cycle_cli_output" == *"#load dependency cycle: $site/cycle-a.uce -> $site/cycle-b.uce -> $site/cycle-a.uce"* ]] || {
+	echo "bounded #load cycle did not report its complete path: $cycle_cli_output" >&2
+	exit 1
+}
+deadline=$((SECONDS + 15))
+while ! grep -Fq "#load dependency cycle: $site/cycle-a.uce -> $site/cycle-b.uce -> $site/cycle-a.uce" "$log" && (( SECONDS < deadline )); do sleep 0.1; done
+grep -Fq "#load dependency cycle: $site/cycle-a.uce -> $site/cycle-b.uce -> $site/cycle-a.uce" "$log" || {
+	echo "proactive #load cycle did not report its complete path" >&2
+	cat "$log" >&2
+	exit 1
+}
+[[ ! -e "$artifacts/cycle-a.uce.wasm" && ! -e "$artifacts/cycle-b.uce.wasm" ]] || {
+	echo "proactive #load cycle published an artifact" >&2
+	exit 1
+}
+printf '%s\n' 'CLI(Request& context) { print("cycle-recovered"); }' >"$site/cycle-a.uce"
+printf '%s\n' 'String cycle_dependency() { return("cycle-recovered"); }' >"$site/cycle-b.uce"
+deadline=$((SECONDS + 15))
+cycle_output=""
+while (( SECONDS < deadline )); do
+	cycle_output=$(BEARER_CLI_SOCKET="$root/run/cli.sock" timeout 20s scripts/bearer-cli /cycle-a.uce 2>&1 || true)
+	[[ "$cycle_output" == *"cycle-recovered"* ]] && break
+	sleep 0.1
+done
+[[ "$cycle_output" == *"cycle-recovered"* ]] || { echo "proactive #load cycle did not recover: $cycle_output" >&2; exit 1; }
 
 printf '%s\n' 'parallel proactive compile passed'

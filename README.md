@@ -321,7 +321,8 @@ SESSION_COOKIE_SECURE=1
 
 FCGI_SOCKET_PATH=/run/bearer/fastcgi.sock
 FCGI_SOCKET_MODE=0666
-FCGI_PORT=9993
+FCGI_PORT=
+FCGI_BIND_ADDRESS=
 CLI_SOCKET_PATH=/run/bearer/cli.sock
 CLI_SOCKET_MODE=0600
 
@@ -330,7 +331,6 @@ SITE_DIRECTORY=/var/www/html
 PROACTIVE_COMPILE_CHECK_INTERVAL=60
 
 WORKER_COUNT=4
-MAX_MEMORY=16777216
 SESSION_TIME=2592000
 ```
 
@@ -340,12 +340,15 @@ For nginx deployments, the most important setting is:
 
 That is the Unix socket nginx should use for normal `.uce` requests. `CLI_SOCKET_PATH` is for local admin/test execution through `scripts/bearer-cli`; keep `CLI_SOCKET_MODE=0600` unless a trusted Unix group explicitly needs access.
 
-`FCGI_PORT` is optional if nginx is talking to the Unix socket. Leave it set if you also want a TCP FastCGI listener, or remove it if you want the socket to be the only FastCGI entry point.
+`FCGI_PORT` is optional. Leave it empty when nginx uses the Unix socket. To enable TCP FastCGI, set both `FCGI_PORT` and `FCGI_BIND_ADDRESS` explicitly.
 
-If you want WebSocket support through nginx, also make sure the built-in HTTP listener is available. The runtime currently defaults `HTTP_PORT` to `8080` even if it is not present in the config file, but it is clearer to set it explicitly:
+The built-in HTTP and WebSocket listener also uses a Unix socket by default:
 
 ```ini
-HTTP_PORT=8080
+HTTP_SOCKET_PATH=/run/bearer/http.sock
+HTTP_SOCKET_MODE=0666
+HTTP_PORT=
+HTTP_BIND_ADDRESS=
 ```
 
 Proactive compilation settings:
@@ -358,7 +361,7 @@ The runtime keeps a shared known-file registry under `BIN_DIRECTORY` and updates
 
 Recommended deployment notes:
 
-- keep `HTTP_PORT` bound to localhost only at the firewall or by network policy; nginx should be the public entry point
+- use `HTTP_SOCKET_PATH` for nginx. If TCP HTTP is necessary, set `HTTP_BIND_ADDRESS=127.0.0.1` and an explicit `HTTP_PORT`
 - keep `BIN_DIRECTORY`, `TMP_UPLOAD_PATH`, and `SESSION_PATH` on writable local storage
 - use `SESSION_COOKIE_SECURE=1` for HTTPS-only deployments; leave it `0` only for local/plain-HTTP development
 - after editing `/etc/bearer/settings.cfg`, restart `bearer.service`
@@ -472,7 +475,7 @@ server {
 		proxy_set_header X-Forwarded-Proto $scheme;
 		proxy_set_header Upgrade $http_upgrade;
 		proxy_set_header Connection $connection_upgrade;
-		proxy_pass http://127.0.0.1:8080;
+		proxy_pass http://unix:/run/bearer/http.sock:;
 	}
 }
 ```
@@ -480,7 +483,7 @@ server {
 Important details:
 
 - `fastcgi_pass` should point at the same socket path as `FCGI_SOCKET_PATH`
-- `proxy_pass` should point at the runtime's `HTTP_PORT`
+- `proxy_pass` should point at the same Unix socket as `HTTP_SOCKET_PATH`
 - ordinary `GET /page.uce` page renders should stay on FastCGI
 - only upgrade requests for `/page.uce` should go through the HTTP/WebSocket listener
 - `SCRIPT_FILENAME` should resolve to the requested `.uce` file on disk
@@ -529,7 +532,7 @@ Common failure modes:
 - `502 Bad Gateway`
   Usually means `bearer.service` is down, the Unix socket path does not match, or the request crashed before sending a valid response.
 - WebSocket upgrade fails
-  Check that nginx is routing WebSocket upgrade requests to `proxy_pass`, not `fastcgi_pass`, and that `HTTP_PORT` is reachable on localhost.
+  Check that nginx routes WebSocket upgrade requests to `proxy_pass`, not `fastcgi_pass`. Confirm that its upstream matches `HTTP_SOCKET_PATH` or the explicitly configured TCP listener.
 - Requests compile but immediately crash
   Check `journalctl -u bearer.service`. Generated units carry an ABI metadata sidecar and should be recompiled automatically after runtime ABI changes, but clearing stale artifacts under `BIN_DIRECTORY` is still a useful last-resort recovery step if the cache has been damaged manually.
 - nginx serves raw source or internal files

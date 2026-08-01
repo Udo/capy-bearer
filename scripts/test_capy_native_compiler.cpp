@@ -427,9 +427,24 @@ int main()
 	const auto parsed_function_value = capy::parse(function_value_source, options.source_path);
 	const auto parsed_result = capy::compile_bearer_unit(parsed_function_value, options.source_path, options.module_name, options.abi_version);
 	assert(function_value.wasm == parsed_result.wasm && function_value.source_map == parsed_result.source_map);
+	const auto scoped_stdlib_parameter = capy::compile_bearer_unit(
+		"function CLI { print(encode_query(dval({\"name\": \"Ada\"}))) }\n", options);
+	assert(scoped_stdlib_parameter.source_map.find("\t340\t") == std::string::npos);
+	const auto bare_stdlib_function_value = capy::compile_bearer_unit("function CLI { map(dval([\"X\"]), lower) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(bare_stdlib_function_value.wasm, {.bearer_abi_version = "11"}).valid);
+	assert(std::string(bare_stdlib_function_value.wasm.begin(), bare_stdlib_function_value.wasm.end()).find("bearer_string_lower") != std::string::npos);
+	const auto overloaded_stdlib_function_value = capy::compile_bearer_unit(
+		"function CLI { var slice : function(value : string, start : s64) string = substr; print(slice(\"Ada\", 1s64)) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(overloaded_stdlib_function_value.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto returned_stdlib_function_value = capy::compile_bearer_unit(
+		"function lower_callback() (function(value : string) string) { return lower }\nfunction CLI { map(dval([\"X\"]), lower_callback()) }\n", options);
+	assert(std::string(returned_stdlib_function_value.wasm.begin(), returned_stdlib_function_value.wasm.end()).find("bearer_string_lower") != std::string::npos);
 	const auto shadowed_stdlib = capy::compile_bearer_unit(
 		"function CLI { var sqlite_connect : function(path : string) u64 = function(path : string) u64 { 1u64 }; print(sqlite_connect(\"x\")) }\n", options);
 	assert(std::string(shadowed_stdlib.wasm.begin(), shadowed_stdlib.wasm.end()).find("bearer_sqlite_") == std::string::npos);
+	const auto shadowed_function_value = capy::compile_bearer_unit(
+		"function CLI { var lower : function(value : string) string = function(value : string) string { value }; map(dval([\"X\"]), lower) }\n", options);
+	assert(std::string(shadowed_function_value.wasm.begin(), shadowed_function_value.wasm.end()).find("bearer_string_lower") == std::string::npos);
 	for (const auto& [source, expected] : {
 			 std::pair{"host function __bearer_trace() string\nfunction CLI {}\n", "host declarations are available only in the embedded Capy standard library"},
 			 std::pair{"trace host function __bearer_trace() string\nfunction CLI {}\n", "host declarations are available only in the embedded Capy standard library"},

@@ -18,6 +18,9 @@ for source in "${fixtures[@]}"; do
 	name=${source//\//_}
 	artifact="$output_dir/$name.wasm"
 	"$capyc" "$source" -o "$artifact" --source-map "$artifact.source-map" --abi-version "$abi_version"
+	if command -v wasm-validate >/dev/null 2>&1; then
+		wasm-validate "$artifact"
+	fi
 	printf '%s  %s.wasm\n' "$(sha256sum "$artifact" | cut -d' ' -f1)" "$name" >>"$actual"
 	printf '%s  %s.wasm.source-map\n' "$(sha256sum "$artifact.source-map" | cut -d' ' -f1)" "$name" >>"$actual"
 done

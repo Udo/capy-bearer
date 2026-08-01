@@ -40,12 +40,16 @@ std::vector<TaskWorkerProcess> task_worker_processes;
 struct WsBrokerOutbound
 {
 	String pending;
-	f64 started_at;
+	String connection_id;
+	u64 pending_bytes = 0;
+	f64 started_at = 0;
 };
 
 FastCGIServer ws_broker;
 pid_t ws_broker_pid = 0;
 std::map<int, WsBrokerOutbound> ws_broker_outbound;
+std::map<String, u64> ws_broker_outbound_per_connection;
+u64 ws_broker_outbound_bytes = 0;
 static sigjmp_buf request_fault_jmp;
 static volatile sig_atomic_t request_fault_active = 0;
 static volatile sig_atomic_t request_fault_signal = 0;
@@ -57,6 +61,7 @@ static volatile sig_atomic_t request_fault_frame_count = 0;
 
 void close_inherited_server_sockets();
 void custom_server_http_dispatcher_loop(String key);
+void chmod_configured_socket(String path, String mode_value, mode_t fallback);
 u64 request_seed_from_time(f64 time_value);
 
 using WasmInvocationClock = std::chrono::steady_clock;
@@ -883,13 +888,29 @@ String custom_server_pid_file(const String& key)
 	return(path_join(server_state.config["BIN_DIRECTORY"], "custom-server-" + custom_server_safe_key(key) + ".pid"));
 }
 
+String custom_server_start_file(const String& key)
+{
+	return(custom_server_pid_file(key) + ".start");
+}
+
 pid_t custom_server_pid(const String& key)
 {
 	String file = custom_server_pid_file(key);
 	pid_t pid = (pid_t)to_u64(trim(file_get_contents(file)), 0);
-	if(pid > 0 && kill(pid, 0) == 0)
-		return(pid);
+	String expected_start = trim(file_get_contents(custom_server_start_file(key)));
+	if(pid > 0 && expected_start != "" && process_identity_start_ticks(pid) == expected_start)
+	{
+		int status = 0;
+		if(waitpid(pid, &status, WNOHANG) == pid)
+		{
+			file_unlink(file);
+			return(0);
+		}
+		if(kill(pid, 0) == 0)
+			return(pid);
+	}
 	file_unlink(file);
+	file_unlink(custom_server_start_file(key));
 	return(0);
 }
 
@@ -907,22 +928,38 @@ bool custom_server_wait_for_stop(const String& key, f64 timeout_seconds = 2.0)
 
 pid_t spawn_custom_server(const String& key)
 {
-	pid_t pid = fork();
-	if(pid < 0)
-		return(0);
-	if(pid == 0)
+	sigset_t child_mask, previous_mask;
+	sigemptyset(&child_mask);
+	sigaddset(&child_mask, SIGCHLD);
+	bool signal_blocked = pthread_sigmask(SIG_BLOCK, &child_mask, &previous_mask) == 0;
+	if(!signal_blocked) sigemptyset(&previous_mask);
+	posix_spawnattr_t attributes;
+	int spawn_error = posix_spawnattr_init(&attributes);
+	bool attributes_ready = spawn_error == 0;
+	if(spawn_error == 0) spawn_error = posix_spawnattr_setflags(&attributes, POSIX_SPAWN_SETSIGMASK);
+	if(spawn_error == 0) spawn_error = posix_spawnattr_setsigmask(&attributes, &previous_mask);
+	String argument_key = key;
+	String parent_pid = std::to_string((long long)getpid());
+	char* arguments[] = {(char*)"bearer_fastcgi", (char*)"--custom-server", parent_pid.data(), argument_key.data(), 0};
+	pid_t pid = -1;
+	if(spawn_error == 0) spawn_error = posix_spawn(&pid, "/proc/self/exe", 0, &attributes, arguments, environ);
+	if(attributes_ready) posix_spawnattr_destroy(&attributes);
+	if(spawn_error != 0 || pid <= 0)
 	{
-		prctl(PR_SET_PDEATHSIG, SIGHUP);
-		signal(SIGTERM, SIG_DFL);
-		signal(SIGHUP, SIG_DFL);
-		custom_server_http_dispatcher_loop(key);
-		_exit(0);
+		if(signal_blocked) pthread_sigmask(SIG_SETMASK, &previous_mask, 0);
+		return(0);
 	}
-	if(!file_put_contents(custom_server_pid_file(key), std::to_string(pid)))
+	String start_ticks = process_identity_start_ticks(pid);
+	if(start_ticks == "" || !file_put_contents(custom_server_pid_file(key), std::to_string(pid)) ||
+		!file_put_contents(custom_server_start_file(key), start_ticks))
 	{
 		kill(pid, SIGTERM);
+		file_unlink(custom_server_pid_file(key));
+		file_unlink(custom_server_start_file(key));
+		if(signal_blocked) pthread_sigmask(SIG_SETMASK, &previous_mask, 0);
 		return(0);
 	}
+	if(signal_blocked) pthread_sigmask(SIG_SETMASK, &previous_mask, 0);
 	return(pid);
 }
 
@@ -972,7 +1009,8 @@ int forward_request_to_worker(FastCGIRequest& request, u32 timeout_seconds = 30)
 	// reply parser correctly treats as body; the broker would then wrap that
 	// complete response in a second HTTP response.
 	forward_params["GATEWAY_INTERFACE"] = "CGI/1.1";
-	FcgiForwardResult fwd = fcgi_forward_request(fcgi_socket, forward_params, request.in, timeout_seconds);
+	u64 output_limit = to_u64(server_state.config["TRANSPORT_MAX_RESPONSE_BYTES"], 8 * 1024 * 1024);
+	FcgiForwardResult fwd = fcgi_forward_request(fcgi_socket, forward_params, request.in, timeout_seconds, output_limit);
 	request.ob_start();
 	if(!fwd.ok)
 	{
@@ -1109,10 +1147,30 @@ int ws_broker_ws_message(FastCGIRequest& request, const String& message, u8 opco
 	if(request.resources.websocket_connection_state)
 		params["BEARER_WS_STATE"] = base64_encode(brb_encode(*request.resources.websocket_connection_state));
 
+	String pending = fcgi_build_request(params, "");
+	String connection_id = request.resources.websocket_connection_id;
+	u64 max_forwards = std::max<u64>(1, to_u64(server_state.config["WS_BROKER_MAX_OUTBOUND_FORWARDS"], 64));
+	u64 max_per_connection = std::max<u64>(1, to_u64(server_state.config["WS_BROKER_MAX_OUTBOUND_PER_CONNECTION"], 1));
+	u64 max_bytes = std::max<u64>(1, to_u64(server_state.config["WS_BROKER_MAX_OUTBOUND_BYTES"], 4 * 1024 * 1024));
+	u64 connection_forwards = 0;
+	if(auto found = ws_broker_outbound_per_connection.find(connection_id); found != ws_broker_outbound_per_connection.end())
+		connection_forwards = found->second;
+	if(ws_broker_outbound.size() >= max_forwards || connection_forwards >= max_per_connection ||
+		ws_broker_outbound_bytes > max_bytes || pending.size() > max_bytes - ws_broker_outbound_bytes)
+	{
+		ws_broker.websocket_close(connection_id, 1013, "websocket worker queue is full");
+		return(0);
+	}
 	int fd = ws_broker_connect_unix(first(server_state.config["FCGI_SOCKET_PATH"], "/run/bearer.sock"));
 	if(fd < 0)
+	{
+		ws_broker.websocket_close(connection_id, 1013, "websocket worker is unavailable");
 		return(0);
-	ws_broker_outbound[fd] = {fcgi_build_request(params, ""), time_precise()};
+	}
+	u64 pending_bytes = pending.size();
+	ws_broker_outbound_bytes += pending_bytes;
+	ws_broker_outbound_per_connection[connection_id] = connection_forwards + 1;
+	ws_broker_outbound[fd] = {std::move(pending), connection_id, pending_bytes, time_precise()};
 	return(0);
 }
 
@@ -1137,7 +1195,12 @@ void ws_broker_drain_outbound(u64 timeout_seconds)
 		{
 			ssize_t n = ::send(fd, pending.data(), pending.size(), MSG_NOSIGNAL | MSG_DONTWAIT);
 			if(n > 0)
+			{
 				pending.erase(0, n);
+				u64 sent = std::min<u64>((u64)n, outbound.pending_bytes);
+				outbound.pending_bytes -= sent;
+				ws_broker_outbound_bytes -= std::min<u64>(sent, ws_broker_outbound_bytes);
+			}
 			else if(n < 0 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR)
 				done = true;
 		}
@@ -1152,6 +1215,15 @@ void ws_broker_drain_outbound(u64 timeout_seconds)
 		}
 		if(done)
 		{
+			ws_broker_outbound_bytes -= std::min<u64>(outbound.pending_bytes, ws_broker_outbound_bytes);
+			auto count = ws_broker_outbound_per_connection.find(outbound.connection_id);
+			if(count != ws_broker_outbound_per_connection.end())
+			{
+				if(count->second <= 1)
+					ws_broker_outbound_per_connection.erase(count);
+				else
+					count->second--;
+			}
 			::close(fd);
 			it = ws_broker_outbound.erase(it);
 		}
@@ -1173,8 +1245,13 @@ void run_ws_broker()
 	ws_broker.on_data = [](FastCGIRequest&) { return 0; };
 	ws_broker.on_complete = &ws_broker_complete;
 	ws_broker.on_websocket_message = &ws_broker_ws_message;
+	if(server_state.config["HTTP_SOCKET_PATH"] != "")
+	{
+		ws_broker.listen_http(server_state.config["HTTP_SOCKET_PATH"]);
+		chmod_configured_socket(server_state.config["HTTP_SOCKET_PATH"], server_state.config["HTTP_SOCKET_MODE"], 0666);
+	}
 	if(server_state.config["HTTP_PORT"] != "")
-		ws_broker.listen_http(int_val(server_state.config["HTTP_PORT"]));
+		ws_broker.listen_http(int_val(server_state.config["HTTP_PORT"]), server_state.config["HTTP_BIND_ADDRESS"]);
 	u64 ws_broker_outbound_timeout_seconds = to_u64(server_state.config["WS_BROKER_OUTBOUND_TIMEOUT_SECONDS"], 30);
 	if(server_state.config["WS_BROKER_SOCKET_PATH"] != "")
 	{
@@ -1184,6 +1261,7 @@ void run_ws_broker()
 	while(!termination_signal_received)
 	{
 		ws_broker.process(50);
+		reap_child_exits();
 		ws_broker_drain_outbound(ws_broker_outbound_timeout_seconds);
 	}
 }
@@ -1197,6 +1275,7 @@ void ensure_ws_broker()
 {
 	if(ws_broker_alive())
 		return;
+	pid_t expected_parent = getpid();
 	pid_t p = fork();
 	if(p < 0)
 	{
@@ -1205,6 +1284,7 @@ void ensure_ws_broker()
 	}
 	if(p == 0)
 	{
+		if(prctl(PR_SET_PDEATHSIG, SIGHUP) != 0 || getppid() != expected_parent) _exit(1);
 		run_ws_broker();
 		exit(0);
 	}
@@ -1552,6 +1632,7 @@ bool proactive_compiler_alive(pid_t pid)
 
 pid_t spawn_compiler(const char* label, void (*runner)())
 {
+	pid_t expected_parent = getpid();
 	pid_t p = fork();
 	if(p < 0)
 	{
@@ -1560,7 +1641,7 @@ pid_t spawn_compiler(const char* label, void (*runner)())
 	}
 	if(p == 0)
 	{
-		prctl(PR_SET_PDEATHSIG, SIGHUP);
+		if(prctl(PR_SET_PDEATHSIG, SIGHUP) != 0 || getppid() != expected_parent) _exit(1);
 		runner();
 		exit(0);
 	}
@@ -1570,6 +1651,7 @@ pid_t spawn_compiler(const char* label, void (*runner)())
 
 pid_t spawn_proactive_compiler(u64 worker, u64 jobs)
 {
+	pid_t expected_parent = getpid();
 	pid_t p = fork();
 	if(p < 0)
 	{
@@ -1578,7 +1660,7 @@ pid_t spawn_proactive_compiler(u64 worker, u64 jobs)
 	}
 	if(p == 0)
 	{
-		prctl(PR_SET_PDEATHSIG, SIGHUP);
+		if(prctl(PR_SET_PDEATHSIG, SIGHUP) != 0 || getppid() != expected_parent) _exit(1);
 		run_proactive_compiler(worker, jobs);
 		exit(0);
 	}
@@ -1679,10 +1761,10 @@ String task_failure_code(const String& error, bool missing)
 	return("handler_trap");
 }
 
-void run_task_worker(String lease_id, int startup_fd)
+void run_task_worker(String lease_id, int startup_fd, pid_t expected_parent)
 {
 	my_pid = getpid();
-	prctl(PR_SET_PDEATHSIG, SIGHUP);
+	if(prctl(PR_SET_PDEATHSIG, SIGHUP) != 0 || getppid() != expected_parent) _exit(1);
 	close_inherited_server_sockets();
 	// A supervised cancellation terminates this process; do not inherit the
 	// parent drain handler and accidentally continue the claimed invocation.
@@ -1964,6 +2046,7 @@ void ensure_task_workers()
 			worker.lease_id.clear();
 			return;
 		}
+		pid_t expected_parent = getpid();
 		pid_t pid = fork();
 		if(pid < 0)
 		{
@@ -1977,7 +2060,7 @@ void ensure_task_workers()
 		if(pid == 0)
 		{
 			close(startup_pipe[0]);
-			run_task_worker(worker.lease_id, startup_pipe[1]);
+			run_task_worker(worker.lease_id, startup_pipe[1], expected_parent);
 			_exit(0);
 		}
 		close(startup_pipe[1]);
@@ -2057,11 +2140,15 @@ void listen_for_connections()
 	while(!termination_signal_received)
 	{
 		server.process(-1);
+		reap_child_exits();
 	}
 	close_inherited_server_sockets();
 	f64 drain_deadline = time_precise() + (f64)to_u64(server_state.config["WORKER_DRAIN_TIMEOUT_SECONDS"], 10);
 	while(!server.client_sockets.empty() && time_precise() < drain_deadline)
+	{
 		server.process(100);
+		reap_child_exits();
+	}
 	if(!server.client_sockets.empty())
 		fprintf(stderr, "(!) worker PID %i drain deadline reached with %zu client connections\n",
 			getpid(), server.client_sockets.size());
@@ -2130,12 +2217,16 @@ void init_base_process()
 	server_state.config = make_server_settings();
 	server_state.config["COMPILER_SYS_PATH"] = cwd_get();
 	printf("Compiler base path: %s\n", server_state.config["COMPILER_SYS_PATH"].c_str());
+	if(server_state.config["FCGI_PORT"] != "" && server_state.config["FCGI_BIND_ADDRESS"] == "")
+		throw std::runtime_error("FCGI_BIND_ADDRESS is required when FCGI_PORT is configured");
+	if(server_state.config["HTTP_PORT"] != "" && server_state.config["HTTP_BIND_ADDRESS"] == "")
+		throw std::runtime_error("HTTP_BIND_ADDRESS is required when HTTP_PORT is configured");
 	int inherited_fastcgi = systemd_fastcgi_listener();
 	if(inherited_fastcgi >= 0)
 		server.adopt_listener(inherited_fastcgi, 'F');
 
 	if(server_state.config["FCGI_PORT"] != "")
-		server.listen(int_val(server_state.config["FCGI_PORT"]));
+		server.listen(int_val(server_state.config["FCGI_PORT"]), server_state.config["FCGI_BIND_ADDRESS"]);
 
 	printf("%s\n", var_dump(redacted_server_config_for_log(server_state.config)).c_str());
 
@@ -2158,7 +2249,12 @@ void init_base_process()
 	mkdir(server_state.config["TMP_UPLOAD_PATH"]);
 	mkdir(server_state.config["SESSION_PATH"]);
 
-	signal(SIGCHLD, on_child_exit);
+	struct sigaction child_action = {};
+	child_action.sa_handler = on_child_exit;
+	sigemptyset(&child_action.sa_mask);
+	child_action.sa_flags = SA_NOCLDSTOP;
+	if(sigaction(SIGCHLD, &child_action, 0) != 0)
+		throw std::runtime_error("could not install SIGCHLD handler");
 	signal(SIGTERM, on_terminate);
 	signal(SIGINT, on_terminate);
 	signal(SIGHUP, on_terminate);
@@ -2351,6 +2447,80 @@ void print_fastcgi_usage(FILE* stream)
 
 int main(int argc, char** argv)
 {
+	if(argc == 4 && String(argv[1]) == "--exec-shell")
+	{
+		pid_t expected_parent = (pid_t)to_u64(argv[2], 0);
+		if(expected_parent <= 0 || getppid() != expected_parent || prctl(PR_SET_PDEATHSIG, SIGKILL) != 0 || getppid() != expected_parent)
+			return(127);
+		raise(SIGSTOP);
+#ifdef SYS_close_range
+		if(syscall(SYS_close_range, 3u, ~0u, 0u) != 0)
+#endif
+		{
+			long maximum = sysconf(_SC_OPEN_MAX);
+			for(int fd = 3; fd < maximum; fd++) close(fd);
+		}
+		execl("/bin/sh", "sh", "-c", argv[3], (char*)0);
+		return(127);
+	}
+	if(argc >= 4 && (String(argv[1]) == "--exec-argv" || String(argv[1]) == "--exec-clean-argv"))
+	{
+		pid_t expected_parent = (pid_t)to_u64(argv[2], 0);
+		if(expected_parent <= 0 || getppid() != expected_parent || prctl(PR_SET_PDEATHSIG, SIGKILL) != 0 || getppid() != expected_parent)
+			return(127);
+		raise(SIGSTOP);
+		int first_closed_fd = String(argv[1]) == "--exec-clean-argv" ? 4 : 3;
+#ifdef SYS_close_range
+		if(syscall(SYS_close_range, (unsigned int)first_closed_fd, ~0u, 0u) != 0)
+#endif
+		{
+			long maximum = sysconf(_SC_OPEN_MAX);
+			for(int fd = first_closed_fd; fd < maximum; fd++) close(fd);
+		}
+		execvp(argv[3], argv + 3);
+		return(127);
+	}
+	if(argc == 6 && String(argv[1]) == "--job-worker")
+	{
+		pid_t expected_parent = (pid_t)to_u64(argv[2], 0);
+		if(expected_parent <= 0 || getppid() != expected_parent || prctl(PR_SET_PDEATHSIG, SIGKILL) != 0 || getppid() != expected_parent)
+			return(127);
+		char* end = 0;
+		errno = 0;
+		unsigned long long id = strtoull(argv[3], &end, 10);
+		u64 gate_value = to_u64(argv[4], UINT64_MAX);
+		if(errno != 0 || end == argv[3] || *end != '\0' || id == 0 || gate_value > INT_MAX)
+			return(2);
+		int gate = (int)gate_value;
+		char start = 0;
+		ssize_t received;
+		do { received = read(gate, &start, 1); } while(received < 0 && errno == EINTR);
+		close(gate);
+		if(received != 1 || start != '1')
+			return(3);
+#ifdef SYS_close_range
+		if(syscall(SYS_close_range, 3u, ~0u, 0u) != 0)
+#endif
+		{
+			long maximum = sysconf(_SC_OPEN_MAX);
+			for(int fd = 3; fd < maximum; fd++) close(fd);
+		}
+		if(setenv("BEARER_JOB_DIRECTORY", argv[5], 1) != 0)
+			return(4);
+		process_start_directory();
+		return(wasm_job_worker_main((u64)id));
+	}
+	if(argc == 4 && String(argv[1]) == "--custom-server")
+	{
+		pid_t expected_parent = (pid_t)to_u64(argv[2], 0);
+		if(expected_parent <= 0 || getppid() != expected_parent || prctl(PR_SET_PDEATHSIG, SIGHUP) != 0 || getppid() != expected_parent)
+			return(127);
+		process_start_directory();
+		server_state.config = make_server_settings();
+		server_state.config["COMPILER_SYS_PATH"] = cwd_get();
+		custom_server_http_dispatcher_loop(argv[3]);
+		return(0);
+	}
 	// systemd connects stdout to a pipe, which otherwise block-buffers child
 	// diagnostics and assigns stale failures a misleading later journal time.
 	setvbuf(stdout, 0, _IOLBF, 0);
@@ -2381,6 +2551,7 @@ int main(int argc, char** argv)
 
 	while(!termination_signal_received)
 	{
+		reap_child_exits();
 		for(auto& pid : proactive_compiler_pids)
 			if(!proactive_compiler_alive(pid))
 				pid = 0;
@@ -2431,7 +2602,7 @@ int main(int argc, char** argv)
 	};
 	while((!workers.empty() || background_children_alive()) && time_precise() < drain_deadline)
 	{
-		on_child_exit(0);
+		reap_child_exits();
 		usleep(10000);
 	}
 	for(auto& worker : workers)

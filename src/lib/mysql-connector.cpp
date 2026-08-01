@@ -1,6 +1,7 @@
 #include "../3rdparty/mysql/mysql.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <climits>
 #include "mysql-connector.h"
 
 // Same-target mysql_connect() calls lease one request-local connection.
@@ -88,7 +89,49 @@ bool MySQL::reset_connection()
 
 String MySQL::escape(String raw, char quote_char)
 {
-	return(mysql_escape(raw, quote_char));
+	if(!connection)
+		return(mysql_escape(raw, quote_char));
+	if(raw.size() > ULONG_MAX / 2)
+	{
+		_preload_next_error_code = CR_UNKNOWN_ERROR;
+		parameter_error = true;
+		statement_info = "mysql parameter is too large";
+		return("");
+	}
+	char quote = quote_char > 0 ? quote_char : '\'';
+	auto escape_without_backslashes = [&]() {
+		if(raw.find('\0') != String::npos)
+		{
+			_preload_next_error_code = CR_UNKNOWN_ERROR;
+			parameter_error = true;
+			statement_info = "mysql text parameters cannot contain NUL when NO_BACKSLASH_ESCAPES is active";
+			return(String(""));
+		}
+		String escaped;
+		escaped.reserve(raw.size() * 2);
+		for(char value : raw)
+		{
+			escaped.push_back(value);
+			if(value == quote) escaped.push_back(value);
+		}
+		return(quote_char > 0 ? String(1, quote_char) + escaped + String(1, quote_char) : escaped);
+	};
+	if(((MYSQL*)connection)->server_status & SERVER_STATUS_NO_BACKSLASH_ESCAPES)
+		return(escape_without_backslashes());
+	String escaped(raw.size() * 2 + 1, '\0');
+	unsigned long length = mysql_real_escape_string_quote((MYSQL*)connection, escaped.data(), raw.data(), (unsigned long)raw.size(), quote);
+	if(length == (unsigned long)-1)
+	{
+		unsigned int escape_error = mysql_errno((MYSQL*)connection);
+		if(escape_error == 0)
+			return(escape_without_backslashes());
+		_preload_next_error_code = escape_error;
+		parameter_error = true;
+		statement_info = mysql_error((MYSQL*)connection);
+		return("");
+	}
+	escaped.resize(length);
+	return(quote_char > 0 ? String(1, quote_char) + escaped + String(1, quote_char) : escaped);
 }
 
 String mysql_escape(String raw, char quote_char)
@@ -227,12 +270,13 @@ DValue MySQL::get_pending_result()
     return(result_data);
 }
 
-static bool mysql_has_unquoted_positional_placeholder(String query);
+static bool mysql_has_unquoted_positional_placeholder(String query, bool no_backslash_escapes);
 
 DValue MySQL::query(String q)
 {
 	affected_rows = 0;
-	if(mysql_has_unquoted_positional_placeholder(q))
+	bool no_backslash_escapes = connection && (((MYSQL*)connection)->server_status & SERVER_STATUS_NO_BACKSLASH_ESCAPES);
+	if(mysql_has_unquoted_positional_placeholder(q, no_backslash_escapes))
 	{
 		_preload_next_error_code = CR_UNKNOWN_ERROR;
 		statement_info = "mysql positional ? placeholders are not supported; use named :name placeholders";
@@ -246,45 +290,36 @@ DValue MySQL::query(String q)
 			statement_info = "mysql connection is not open";
 		return(DValue());
 	}
+	statement_info = "";
 	_preload_next_error_code = mysql_query((MYSQL*)connection, q.c_str());
 	DValue result;
 	if(_preload_next_error_code == 0)
 		result = get_pending_result();
+	else
+		statement_info = mysql_error((MYSQL*)connection);
 	return(result);
 }
 
-static bool mysql_has_unquoted_positional_placeholder(String query)
+static bool mysql_has_unquoted_positional_placeholder(String query, bool no_backslash_escapes)
 {
-	bool quoted = false;
 	char quote = 0;
-	bool escaped = false;
-	for(u32 i = 0; i < query.length(); i++)
+	bool line_comment = false, block_comment = false;
+	for(size_t i = 0; i < query.size(); i++)
 	{
-		char c = query[i];
-		if(quoted)
+		char c = query[i], next = i + 1 < query.size() ? query[i + 1] : 0;
+		if(line_comment) { if(c == '\n' || c == '\r') line_comment = false; continue; }
+		if(block_comment) { if(c == '*' && next == '/') { block_comment = false; i++; } continue; }
+		if(quote)
 		{
-			if(escaped)
-			{
-				escaped = false;
-				continue;
-			}
-			if(c == '\\')
-			{
-				escaped = true;
-				continue;
-			}
-			if(c == quote)
-				quoted = false;
+			if(!no_backslash_escapes && c == '\\') { if(next) i++; continue; }
+			if(c == quote) { if(next == quote) i++; else quote = 0; }
 			continue;
 		}
-		if(c == '\'' || c == '"')
-		{
-			quoted = true;
-			quote = c;
-			continue;
-		}
-		if(c == '?')
-			return(true);
+		if(c == '\'' || c == '"' || c == '`') { quote = c; continue; }
+		if(c == '#') { line_comment = true; continue; }
+		if(c == '-' && next == '-' && (i + 2 >= query.size() || isspace((unsigned char)query[i + 2]))) { line_comment = true; i++; continue; }
+		if(c == '/' && next == '*') { block_comment = true; i++; continue; }
+		if(c == '?') return(true);
 	}
 	return(false);
 }
@@ -304,72 +339,71 @@ DValue MySQL::query(String q, StringMap params)
 }
 
 String MySQL::parse_query_parameters(String query, StringMap map)
- {
+{
 	String result;
-	query.append(1, ' ');
-
-	u8 mode = 0;
-	char quote;
-	String identifier;
-	for(u32 i = 0; i < query.length(); i++)
+	bool no_backslash_escapes = connection && (((MYSQL*)connection)->server_status & SERVER_STATUS_NO_BACKSLASH_ESCAPES);
+	char quote = 0;
+	bool line_comment = false, block_comment = false;
+	for(size_t i = 0; i < query.size(); i++)
 	{
-		char c = query[i];
-		if(mode == 0) // normal, unquoted mode
+		char c = query[i], next = i + 1 < query.size() ? query[i + 1] : 0;
+		if(line_comment)
 		{
-			if(c == ':')
-			{
-				mode = 1;
-				identifier = "";
-			}
-			else if(c == '"' || c == '\'')
-			{
-				result.append(1, c);
-				mode = 2;
-				quote = c;
-			}
-			else
-			{
-				result.append(1, c);
-			}
+			result.push_back(c);
+			if(c == '\n' || c == '\r') line_comment = false;
+			continue;
 		}
-		else if(mode == 1) // identifier mode
+		if(block_comment)
 		{
-			if(isalnum((unsigned char)c) || c == '_')
-			{
-				identifier.append(1, c);
-			}
-			else if(c == '!' && query[i + 1] != '=')
-			{
-				String value = map[identifier];
-				bool valid = identifier != "" && value != "";
-				for(char digit : value)
-					if(!isdigit((unsigned char)digit)) valid = false;
-				if(!valid)
-				{
-					parameter_error = true;
-					statement_info = "mysql unsigned parameter :" + identifier + "! must contain only decimal digits";
-					return("");
-				}
-				result.append(value);
-				mode = 0;
-			}
-			else
-			{
-				result.append(escape(map[identifier]));
-				result.append(1, c);
-				mode = 0;
-			}
+			result.push_back(c);
+			if(c == '*' && next == '/') { result.push_back(next); i++; block_comment = false; }
+			continue;
 		}
-		else if(mode == 2) // quoted mode
+		if(quote)
 		{
-			if(c == quote)
-				mode = 0;
-			result.append(1, c);
+			result.push_back(c);
+			if(!no_backslash_escapes && c == '\\') { if(next) { result.push_back(next); i++; } continue; }
+			if(c == quote) { if(next == quote) { result.push_back(next); i++; } else quote = 0; }
+			continue;
 		}
-	}
+		if(c == '\'' || c == '"' || c == '`') { quote = c; result.push_back(c); continue; }
+		if(c == '#') { line_comment = true; result.push_back(c); continue; }
+		if(c == '-' && next == '-' && (i + 2 >= query.size() || isspace((unsigned char)query[i + 2]))) { line_comment = true; result.append("--"); i++; continue; }
+		if(c == '/' && next == '*') { block_comment = true; result.append("/*"); i++; continue; }
+		if(c != ':') { result.push_back(c); continue; }
 
+		size_t end = i + 1;
+		while(end < query.size() && (isalnum((unsigned char)query[end]) || query[end] == '_')) end++;
+		String identifier = query.substr(i + 1, end - i - 1);
+		auto parameter = map.find(identifier);
+		bool unsigned_value = end < query.size() && query[end] == '!' && (end + 1 >= query.size() || query[end + 1] != '=');
+		if(unsigned_value)
+		{
+			String value = parameter == map.end() ? String("") : parameter->second;
+			bool valid = identifier != "" && value != "";
+			for(char digit : value) if(!isdigit((unsigned char)digit)) valid = false;
+			if(!valid)
+			{
+				parameter_error = true;
+				statement_info = "mysql unsigned parameter :" + identifier + "! must contain only decimal digits";
+				return("");
+			}
+			result.append(value);
+			i = end;
+			continue;
+		}
+		if(identifier == "" || parameter == map.end())
+		{
+			parameter_error = true;
+			statement_info = "mysql named parameter :" + identifier + " is missing";
+			return("");
+		}
+		result.append(escape(parameter->second));
+		if(parameter_error) return("");
+		i = end - 1;
+	}
 	return(result);
- }
+}
 
 void MySQL::disconnect()
 {

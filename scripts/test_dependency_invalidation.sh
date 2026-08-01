@@ -40,7 +40,8 @@ cleanup() {
 }
 trap cleanup EXIT
 mkdir -p "$source_dir"
-cache_dir="$(scripts/unit_cache_directory "$bin_directory")$(realpath "$source_dir")"
+absolute_source_dir=$(realpath "$source_dir")
+cache_dir="$(scripts/unit_cache_directory "$bin_directory")$absolute_source_dir"
 
 printf '%s\n' \
 	'#ifndef BEARER_DEPENDENCY_CACHE_CHILD' \
@@ -92,6 +93,23 @@ printf '%s\n' '#load "diamond-left.uce"' '#load "diamond-right.uce"' 'CLI(Reques
 assert_marker diamond-parent diamond-a
 sed -i 's/diamond-a/diamond-b/' "$source_dir/diamond-common.uce"
 assert_marker diamond-parent diamond-b
+
+# A bounded CLI compile must reject a complete #load cycle before it tries to
+# acquire a recursive unit lock. The diagnostic must show the full cycle.
+printf '%s\n' '#load "cycle-b.uce"' 'CLI(Request& context) { print("cycle-a"); }' >"$source_dir/cycle-a.uce"
+printf '%s\n' '#load "cycle-a.uce"' >"$source_dir/cycle-b.uce"
+if cycle_output=$(timeout 20s scripts/bearer-cli "/$test_name/cycle-a.uce" 2>&1); then
+	echo "bounded #load cycle unexpectedly compiled: $cycle_output" >&2
+	exit 1
+fi
+if [[ "$cycle_output" != *"#load dependency cycle: $absolute_source_dir/cycle-a.uce -> $absolute_source_dir/cycle-b.uce -> $absolute_source_dir/cycle-a.uce"* ]]; then
+	echo "bounded #load cycle did not report its complete path: $cycle_output" >&2
+	exit 1
+fi
+[[ ! -e "$cache_dir/cycle-a.uce.wasm" && ! -e "$cache_dir/cycle-b.uce.wasm" ]] || {
+	echo "bounded #load cycle published an artifact" >&2
+	exit 1
+}
 
 # HTTP entry units can resolve route/components dynamically. A changed dynamic
 # component must enter the demand-priority queue just like a changed entry unit;
@@ -394,9 +412,11 @@ alternate_wasm="$cache_dir/alternate.uce.wasm"
 parent_mtime=$(stat -c %Y "$parent_wasm")
 cp "$alternate_wasm" "$parent_wasm"
 cp "$cache_dir/alternate.uce.exports.txt" "$cache_dir/parent.uce.exports.txt"
+cp "$cache_dir/alternate.uce.wasm.source-map" "$cache_dir/parent.uce.wasm.source-map"
 wasm_sha=$(sha256sum "$parent_wasm" | awk '{print $1}')
 exports_sha=$(sha256sum "$cache_dir/parent.uce.exports.txt" | awk '{print $1}')
-sed -i "s/^wasm_sha256=.*/wasm_sha256=$wasm_sha/; s/^exports_sha256=.*/exports_sha256=$exports_sha/" "$cache_dir/parent.uce.meta.txt"
+source_map_sha=$(sha256sum "$cache_dir/parent.uce.wasm.source-map" | awk '{print $1}')
+sed -i "s/^wasm_sha256=.*/wasm_sha256=$wasm_sha/; s/^exports_sha256=.*/exports_sha256=$exports_sha/; s/^source_map_sha256=.*/source_map_sha256=$source_map_sha/" "$cache_dir/parent.uce.meta.txt"
 touch -d "@$parent_mtime" "$parent_wasm"
 rm -f "$cache_dir/parent.uce.cwasm"
 for _ in {1..16}; do assert_marker parent dependency-marker-c; done

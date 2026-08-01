@@ -18,6 +18,10 @@ Restart=always
 RestartSec=2
 TimeoutStopSec=30
 KillMode=mixed
+MemoryMax=4G
+TasksMax=512
+LimitNOFILE=65536
+OOMPolicy=stop
 StandardOutput=journal
 StandardError=journal
 

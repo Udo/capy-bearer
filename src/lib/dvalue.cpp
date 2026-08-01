@@ -984,6 +984,7 @@ const char* BRRB_MAGIC = "BRRB";
 const u8 BRRB_VERSION = 2;
 const u8 BRRB_FLAG_LIST = 1;
 const u32 BRRB_MAX_NESTING_DEPTH = 64;
+const u32 BRRB_MAX_NODES = 262144;
 
 thread_local String bearer_dv_last_error_text;
 thread_local String bearer_dv_value_result;
@@ -1004,12 +1005,17 @@ bool brb_read_varint(const char* src, size_t src_size, size_t& offset, u64& valu
 {
 	value_out = 0;
 	u32 shift = 0;
+	u32 bytes = 0;
 	while(offset < src_size && shift <= 63)
 	{
 		u8 byte = (u8)src[offset++];
-		value_out |= ((u64)(byte & 0x7f) << shift);
+		u8 payload = byte & 0x7f;
+		bytes++;
+		if(shift == 63 && payload > 1)
+			return(false);
+		value_out |= ((u64)payload << shift);
 		if((byte & 0x80) == 0)
-			return(true);
+			return(bytes == 1 || payload != 0);
 		shift += 7;
 	}
 	return(false);
@@ -1120,8 +1126,14 @@ void brb_encode_node(String& out, const DValue& value)
 	});
 }
 
-bool brb_decode_node(const String& src, size_t& offset, DValue& out, String& error, u32 depth = 0)
+bool brb_decode_node(const String& src, size_t& offset, DValue& out, String& error, u32& remaining_nodes, u32 depth = 0)
 {
+	if(remaining_nodes == 0)
+	{
+		error = "BRRB2 node limit exceeded";
+		return(false);
+	}
+	remaining_nodes--;
 	if(depth >= BRRB_MAX_NESTING_DEPTH)
 	{
 		error = "BRRB2 nesting limit exceeded";
@@ -1173,6 +1185,11 @@ bool brb_decode_node(const String& src, size_t& offset, DValue& out, String& err
 	if((flags & BRRB_FLAG_LIST) != 0)
 		out.set_array();
 
+	if(child_count > remaining_nodes)
+	{
+		error = "BRRB2 node limit exceeded";
+		return(false);
+	}
 	for(u64 i = 0; i < child_count; i++)
 	{
 		u64 key_len = 0;
@@ -1194,7 +1211,7 @@ bool brb_decode_node(const String& src, size_t& offset, DValue& out, String& err
 			return(false);
 		}
 		DValue child;
-		if(!brb_decode_node(src, offset, child, error, depth + 1))
+		if(!brb_decode_node(src, offset, child, error, remaining_nodes, depth + 1))
 			return(false);
 		out[key] = std::move(child);
 	}
@@ -1268,7 +1285,8 @@ bool brb_decode(const String& encoded, DValue& out, String* error_out)
 	{
 		size_t offset = 5;
 		DValue decoded;
-		if(brb_decode_node(encoded, offset, decoded, error) && offset == encoded.size())
+		u32 remaining_nodes = BRRB_MAX_NODES;
+		if(brb_decode_node(encoded, offset, decoded, error, remaining_nodes) && offset == encoded.size())
 		{
 			out = std::move(decoded);
 			if(error_out)
@@ -1313,6 +1331,8 @@ static bool brb_decode_flat_string_map(const char* encoded, size_t encoded_size,
 				fail("BRRB2 string map root must have no scalar");
 			else if(!brb_read_varint(encoded, encoded_size, offset, child_count))
 				fail("invalid BRRB2 string map child count");
+			else if(child_count >= BRRB_MAX_NODES)
+				fail("BRRB2 node limit exceeded");
 			else
 			{
 				for(u64 i = 0; error == "" && i < child_count; i++)

@@ -9,8 +9,12 @@ function CLI {
     var stored := job_result(job)
     var failed_job := shell_spawn(dval({"cmd": "exit 7", "timeout_ms": 1000}))
     var failed := job_await(failed_job, 3000)
-    var cancelling := shell_spawn(dval({"cmd": "sleep 5", "timeout_ms": 10000}))
+    file_unlink("/tmp/bearer-job-descendant.pid")
+    var cancelling := shell_spawn(dval({"cmd": "sleep 30 & echo $! > /tmp/bearer-job-descendant.pid; wait", "timeout_ms": 60000}))
+    var descendant_ready := shell_exec("for i in $(seq 1 100); do test -s /tmp/bearer-job-descendant.pid && exit 0; sleep .01; done; exit 1")
+    var descendant := trim(file_get_contents("/tmp/bearer-job-descendant.pid"))
     var cancelled := job_cancel(cancelling)
+    var descendant_gone := shell_exec("kill -0 " + shell_escape(descendant) + " 2>/dev/null; printf %s $?") == "1"
     var cancelled_status := job_await(cancelling, 5000)
     file_unlink("/tmp/bearer-task-cpp.txt")
     file_unlink("/tmp/bearer-task-cpp-named.txt")
@@ -34,7 +38,7 @@ function CLI {
     var shell_status := "bad-shell"
     if shell == "a'b; echo injected" { shell_status = "shell" }
     var cancel_status := "no-cancel"
-    if cancelled { cancel_status = "cancel" }
+    if cancelled && descendant_gone { cancel_status = "cancel" }
     var task_status_value := "bad-task"
     if dval_to_string(cpp_status["id"]) == cpp_task && dval_to_string(cpp_done["state"]) == "succeeded" && dval_to_string(cpp_named_done["state"]) == "succeeded" && dval_to_string(capy_done["state"]) == "succeeded" && dval_to_string(capy_named_done["state"]) == "succeeded" && file_get_contents("/tmp/bearer-task-cpp.txt") == "capy-caller" && file_get_contents("/tmp/bearer-task-cpp-named.txt") == "capy-caller" && file_get_contents("/tmp/bearer-task-capy.txt") == "capy-caller" && file_get_contents("/tmp/bearer-task-capy-named.txt") == "capy-caller" { task_status_value = "tasks" }
     if dval_to_string(task_cancelled["id"]) != cancel_task || (dval_to_string(cancel_done["state"]) != "canceled" && dval_to_string(cancel_done["state"]) != "succeeded") { task_status_value = "bad-cancel" }

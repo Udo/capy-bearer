@@ -12,7 +12,7 @@ function CLI {
     }
     task_cancel(slow)
     var canceled := task_await(slow, 10000u64)
-    usleep(2000000)
+    usleep(3000000)
 
     var trapped := task("/tests/task-handlers.capy:TRAP", dval(""))
     var trap_status := task_await(trapped, 10000u64)

@@ -32,7 +32,7 @@ gets invoked*.
                                         │ forward render (FastCGI, FCGI_SOCKET_PATH)
                                         │
    browser ──raw HTTP / WS──►  ┌────────┴─────────┐
-        (HTTP_PORT 8080)       │   WS broker      │  owns HTTP_PORT + every
+   (HTTP_SOCKET_PATH via proxy)│   WS broker      │  owns HTTP ingress + every
                                │  (1 process)     │  WS connection; renders
                                └────────▲─────────┘  nothing itself
                                         │ ws_* command flush
@@ -49,7 +49,7 @@ gets invoked*.
 |---|---|---|---|
 | **Parent** | nothing; supervises children | no | `main()`, `init_base_process()` |
 | **Worker** (×`WORKER_COUNT`) | `FCGI_SOCKET_PATH` (configured socket path; example `/run/bearer/fastcgi.sock`) + `CLI_SOCKET_PATH` | **yes** — the only processes that run wasm | `listen_for_connections()` |
-| **WS broker** (×1) | `HTTP_PORT` + every live WS connection + `WS_BROKER_SOCKET_PATH` | no — forwards to the pool | `run_ws_broker()` |
+| **WS broker** (×1) | `HTTP_SOCKET_PATH`, optional explicit `HTTP_PORT`, every live WS connection, and `WS_BROKER_SOCKET_PATH` | no — forwards to the pool | `run_ws_broker()` |
 | **serve_http dispatcher** (×bind) | one custom-server bind address | no — forwards to the pool | `custom_server_http_dispatcher_loop()` |
 | **Proactive compiler** | nothing; pre-compiles units | no | `run_proactive_compiler()` |
 
@@ -299,7 +299,9 @@ opts ordinary read-only HTTP requests into using the last complete,
 ABI-compatible artifact while requesting that stale unit at the head of the
 compiler queue. The proactive compiler must be enabled for this mode. Failed
 background builds preserve that artifact and its source map and serialized
-module until a later successful atomic publication replaces them. Missing
+module until a later successful atomic publication replaces them. A serialized
+module manifest binds both the Wasm hash and serialized-module hash, so a late
+serializer cannot publish old native code for a newer Wasm generation. Missing
 source, incompatible ABI generations, CLI, WebSocket dispatch, and mutation
 requests never use last-known-good code. A stale mutation returns `503 Service
 Unavailable` with `Retry-After: 1`; CLI and explicit compile paths remain
@@ -319,10 +321,10 @@ preserving the failing compile result and diagnostic artifacts.
 Unit linking retains DWARF only long enough for
 `scripts/build_unit_source_map.py` to extract a compact address/file/line table.
 The published `.wasm` is debug-stripped and the table is stored beside it as
-`.wasm.source-map`, keyed to the exact temporary module identity recorded in
-the wasm's `bearer.module` custom section. Normal module loading never reads this
-sidecar. On a Wasmtime trap, the worker uses structured frame module offsets to
-load only the matching map and appends source locations to the error. A missing,
+`.wasm.source-map`. Unit metadata binds the Wasm, exports, and source map by
+SHA-256. Normal execution does not parse this sidecar. On a Wasmtime trap, the
+worker verifies the map hash, uses structured frame module offsets, and appends
+source locations to the error. A missing,
 stale, or malformed map is deliberately non-fatal: the ordinary named wasm
 backtrace remains available. Generated C++ uses a `#line` directive naming the
 original `.uce` file, so application frames resolve to application source rather
@@ -499,11 +501,13 @@ serve_http dispatcher uses, so there is no duplicated request-forwarding code.
 (`close_inherited_server_sockets`), installs permissive `on_request`/`on_data`
 handlers (it renders nothing, so it accepts every request straight through to
 `on_complete`), wires `on_complete=ws_broker_complete` and
-`on_websocket_message=ws_broker_ws_message`, listens on `HTTP_PORT` and the
-command socket, and loops `process(50)` + `drain_outbound(timeout)`. The
+`on_websocket_message=ws_broker_ws_message`, listens on `HTTP_SOCKET_PATH`, any
+explicit optional `HTTP_PORT`, and the command socket, then loops
+`process(50)` + `drain_outbound(timeout)`. The
 `timeout` comes from `WS_BROKER_OUTBOUND_TIMEOUT_SECONDS` (default `30`). The
-design is **non-blocking outbound dispatch + async command-socket flush, all in
-the broker's single epoll loop** — the broker never blocks on a worker.
+design uses bounded forwarding and asynchronous command-socket flush in the
+broker's single `poll()` loop. Each worker forward has one absolute connect,
+send, and receive deadline.
 
 The parent respawns the broker if it dies (`ws_broker_alive` / `ensure_ws_broker`
 in `main()`). 
@@ -553,7 +557,8 @@ header free-functions are `inline`. The wasm backend exposes only declarations
 | `CLI_SOCKET_PATH` | `/run/bearer/cli.sock` | Worker CLI/admin socket. Keep private; reference `CLI_SOCKET_MODE` is `0600`. |
 | `FCGI_SOCKET_MODE` | `0666` | Permission mode applied to `FCGI_SOCKET_PATH` after bind; set tighter if nginx/Apache can use a trusted group. |
 | `CLI_SOCKET_MODE` | `0600` | Permission mode applied to `CLI_SOCKET_PATH`; set `0660` only for a trusted admin group. |
-| `HTTP_PORT` | `8080` | Raw HTTP + WebSocket port — owned by the WS broker. |
+| `HTTP_SOCKET_PATH` | empty in code, `/run/bearer/http.sock` in the reference config | Raw HTTP and WebSocket Unix socket owned by the WS broker. |
+| `HTTP_PORT` | empty | Optional TCP HTTP and WebSocket port. `HTTP_BIND_ADDRESS` is required when set. |
 | `WS_BROKER_SOCKET_PATH` | `/run/bearer/ws-broker.sock` | Broker command socket for `ws_*` flushes. |
 | `WS_BROKER_OUTBOUND_TIMEOUT_SECONDS` | `30` | Max lifetime in seconds for queued WS broker forwards before drop. |
 | `WORKER_COUNT` | `4` | Number of uniform worker processes. |
@@ -650,7 +655,7 @@ header free-functions are `inline`. The wasm backend exposes only declarations
   `BEARER expected compile error`; public and unmarked CLI compilation failures
   retain the ordinary `BEARER compile error` operator signal.
 
-- **WebSocket end-to-end**: a headless client performs a raw WS handshake to
-  `:HTTP_PORT` with path `/site/tests/websockets.ws.uce` (self-resolving
+- **WebSocket end-to-end**: a headless client performs a raw WS handshake through
+  `HTTP_SOCKET_PATH` or an explicitly configured `HTTP_PORT`, with path `/site/tests/websockets.ws.uce` (self-resolving
   `SCRIPT_FILENAME`) and asserts the `hello-ack` frame — exercising the full
   broker → worker → broker → client chain across process boundaries.
