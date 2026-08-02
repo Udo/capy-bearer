@@ -114,6 +114,18 @@ for source in "$test_directory"/*.capy; do
 			"$slug" "$expected_size" "$expected_sha" "$actual_size" "$actual_sha" >&2
 		exit 1
 	fi
+	page="$test_directory/$slug.page"
+	if ! curl -fsS --max-time "$http_timeout" -H "Host: $http_host" "$http_base/doc/?p=capy-$slug" -o "$page"; then
+		echo "Capy documentation application failed to render $slug" >&2
+		exit 1
+	fi
+	if grep -qE 'DOC EXAMPLE ERROR|Compile-only: WS' "$page" ||
+		! grep -q '<h3>Example: RENDER</h3>' "$page" ||
+		! grep -q 'class="example-source">[^<]' "$page" ||
+		! grep -q '<div class="example-output">' "$page"; then
+		echo "Capy documentation application omitted the source or output for $slug" >&2
+		exit 1
+	fi
 	((count += 1))
 done
 [[ "$count" -eq 12 ]] || {

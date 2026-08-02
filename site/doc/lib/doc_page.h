@@ -290,7 +290,7 @@ void doc_add_example(DocPage& result, String page, String language, String entry
 			DValue example;
 			example["entry"] = entry;
 			example["body"] = body;
-			result.guide_examples.push_back(example);
+			result.guide_examples.push(example);
 		}
 		else if(language == "cpp" && result.capy_status != "")
 		{

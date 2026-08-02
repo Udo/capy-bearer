@@ -1,6 +1,6 @@
 #include "lib/doc_page.h"
 
-// doc_page.h supplies current compiler-generated API signatures.
+// doc_page.h supplies generated API signatures and parsed guide examples.
 void render_doc_page_link(String page, String label = "")
 {
 	page = doc_canonical_page(trim(page));
@@ -84,7 +84,7 @@ bool doc_write_if_changed(String path, String content)
 	return(file_put_contents(path, content));
 }
 
-DValue doc_compile_example(Request& context, String page, u64 idx, String language, String entry, String body)
+DValue doc_compile_example(Request& context, String page, u64 idx, String language, String entry, String body, bool complete_unit)
 {
 	DValue result;
 	String path = doc_example_path(context, page, idx, language);
@@ -93,7 +93,8 @@ DValue doc_compile_example(Request& context, String page, u64 idx, String langua
 		result["error"] = "DOC EXAMPLE ERROR: invalid example artifact path";
 		return(result);
 	}
-	if(!doc_write_if_changed(path, doc_example_unit_source(language, entry, body)))
+	String source = complete_unit ? body + "\n" : doc_example_unit_source(language, entry, body);
+	if(!doc_write_if_changed(path, source))
 	{
 		result["error"] = "DOC EXAMPLE ERROR: could not write " + path;
 		return(result);
@@ -107,9 +108,9 @@ DValue doc_compile_example(Request& context, String page, u64 idx, String langua
 	return(result);
 }
 
-DValue doc_render_example(Request& context, String page, u64 idx, String language, String entry, String body)
+DValue doc_render_example(Request& context, String page, u64 idx, String language, String entry, String body, bool complete_unit)
 {
-	DValue result = doc_compile_example(context, page, idx, language, entry, body);
+	DValue result = doc_compile_example(context, page, idx, language, entry, body, complete_unit);
 	if(result["error"].to_string() != "" || entry != "render")
 		return(result);
 	ob_start();
@@ -176,7 +177,7 @@ void render_doc_examples(Request& context, String page, DocPage doc_page)
 		String entry = example["entry"].to_string();
 		String body = example["body"].to_string();
 		String expected = example["output"].to_string();
-		DValue capy = doc_render_example(context, page, idx, "capy", entry, body);
+		DValue capy = doc_render_example(context, page, idx, "capy", entry, body, true);
 		?><div class="doc-section example guide-example"><h3>Example: <?= doc_example_handler_name(entry) ?></h3><?
 			render_doc_example_result("capy", entry, body, capy);
 			if(entry == "render" && capy["error"].to_string() == "" && capy["output"].to_string() != expected)
@@ -191,8 +192,8 @@ void render_doc_examples(Request& context, String page, DocPage doc_page)
 		String entry = pair["entry"].to_string();
 		String capy_body = pair["capy_body"].to_string();
 		String cpp_body = pair["cpp_body"].to_string();
-		DValue capy = doc_render_example(context, page, idx, "capy", entry, capy_body);
-		DValue cpp = doc_render_example(context, page, idx, "cpp", entry, cpp_body);
+		DValue capy = doc_render_example(context, page, idx, "capy", entry, capy_body, false);
+		DValue cpp = doc_render_example(context, page, idx, "cpp", entry, cpp_body, false);
 		bool equal = entry != "render" || (capy["error"].to_string() == "" && cpp["error"].to_string() == "" && capy["output"].to_string() == cpp["output"].to_string());
 		?><div class="doc-section example paired-example">
 			<h3>Example: <?= doc_example_handler_name(entry) ?></h3><?
@@ -210,7 +211,7 @@ void render_doc_examples(Request& context, String page, DocPage doc_page)
 		String entry = example["entry"].to_string();
 		String body = example["body"].to_string();
 		u64 artifact_idx = doc_page.guide_examples.size() + doc_page.example_pairs.size() + idx;
-		DValue cpp = doc_render_example(context, page, artifact_idx, "cpp", entry, body);
+		DValue cpp = doc_render_example(context, page, artifact_idx, "cpp", entry, body, false);
 		?><div class="doc-section example cpp-only-example"><h3>C++ example: <?= doc_example_handler_name(entry) ?></h3><?
 			render_doc_example_result("cpp", entry, body, cpp);
 		?></div><?
@@ -218,7 +219,7 @@ void render_doc_examples(Request& context, String page, DocPage doc_page)
 	for(u64 idx = 0; idx < doc_page.example_blocks.size(); idx++)
 	{
 		u64 artifact_idx = doc_page.guide_examples.size() + doc_page.example_pairs.size() + doc_page.cpp_only_examples.size() + idx;
-		DValue cpp = doc_render_example(context, page, artifact_idx, "cpp", "render", doc_page.example_blocks[idx]);
+		DValue cpp = doc_render_example(context, page, artifact_idx, "cpp", "render", doc_page.example_blocks[idx], false);
 		?><div class="doc-section example legacy-example"><h3>Legacy C++ example</h3><?
 		render_doc_example_result("cpp", "render", doc_page.example_blocks[idx], cpp);
 		?></div><?

@@ -25,10 +25,10 @@ An empty string, a map, or an unsupported value returns the fallback. Ordinary `
 C++ `DValue::to_string()` returns `(true)` or `(false)` for boolean values. This differs from Capy boolean text.
 
 :example capy render
-var user := dval({"active": true})
-print(user.active, "\n")
+var user := {"name": "Ada"}
+print(user.name, "\n")
 
 :example cpp render
 DValue user;
-user["active"].set_bool(true);
-print(user["active"].to_string(), "\n");
+user["name"] = "Ada";
+print(user["name"].to_string(), "\n");

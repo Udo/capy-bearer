@@ -1,6 +1,6 @@
 #include "lib/doc_page.h"
 
-// Keep current generated Capy and source C++ signatures distinct in the combined view.
+// Render generated Capy signatures, C++ signatures, and parsed guide examples as distinct sections.
 StringMap* already_shown_items;
 
 void render_doc_params(DValue param_lines)
@@ -32,22 +32,25 @@ void render_doc_example_sources(DocPage doc_page)
 		?><div class="example error"><h3>Example format error</h3><pre><?= doc_page.example_parse_error ?></pre></div><?
 		return;
 	}
-	for(DValue example : doc_page.guide_examples)
+	for(u64 idx = 0; idx < doc_page.guide_examples.size(); idx++)
 	{
+		DValue example = doc_page.guide_examples[idx];
 		?><div class="example guide-example"><h3>Example: <?= doc_example_handler_name(example["entry"].to_string()) ?></h3>
 		<div class="example-language capy"><h4><?= doc_example_language_label("capy") ?></h4><pre class="example-source"><?= example["body"].to_string() ?></pre><div class="example-output"><div class="example-output-label">Output</div><pre><?= example["output"].to_string() ?></pre></div></div>
 		</div><?
 	}
-	for(DValue pair : doc_page.example_pairs)
+	for(u64 idx = 0; idx < doc_page.example_pairs.size(); idx++)
 	{
+		DValue pair = doc_page.example_pairs[idx];
 		String entry = pair["entry"].to_string();
 		?><div class="example paired-example"><h3>Example: <?= doc_example_handler_name(entry) ?></h3>
 		<div class="example-language capy"><h4><?= doc_example_language_label("capy") ?></h4><pre class="example-source"><?= pair["capy_body"].to_string() ?></pre></div>
 		<div class="example-language cpp"><h4><?= doc_example_language_label("cpp") ?></h4><pre class="example-source"><?= pair["cpp_body"].to_string() ?></pre></div>
 		</div><?
 	}
-	for(DValue example : doc_page.cpp_only_examples)
+	for(u64 idx = 0; idx < doc_page.cpp_only_examples.size(); idx++)
 	{
+		DValue example = doc_page.cpp_only_examples[idx];
 		?><div class="example cpp-only-example"><h3>C++ example: <?= doc_example_handler_name(example["entry"].to_string()) ?></h3><pre class="example-source"><?= example["body"].to_string() ?></pre></div><?
 	}
 	for(String body : doc_page.example_blocks)

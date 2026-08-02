@@ -35,21 +35,33 @@ guide=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=capy-08-dynamic-va
 	echo "Capy guide page did not render through the documentation application" >&2
 	exit 1
 }
-[[ "$guide" == *"8. Dynamic values"* && "$guide" == *"Nested assignment updates a declared local DValue root"* ]] || {
-	echo "Capy guide page omitted its title or nested-assignment content" >&2
+[[ "$guide" == *"8. Dynamic values"* && "$guide" == *"Nested assignment updates a declared local DValue root"* &&
+	"$guide" == *"var profile :="* && "$guide" == *"false|false"* && "$guide" != *"Compile-only: WS"* ]] || {
+	echo "Capy guide page omitted its title, content, source, or output" >&2
 	exit 1
 }
 constructor=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=2_DValue_to_string") || {
 	echo "Capy constructor API page did not render" >&2
 	exit 1
 }
-[[ "$constructor" == *"DValue::to_string"* && "$constructor" == *"function string(value : dval"* ]] || {
+[[ "$constructor" == *"DValue::to_string"* && "$constructor" == *"function string(value : dval"* &&
+	"$constructor" != *"DOC EXAMPLE ERROR"* ]] || {
 	echo "Capy constructor API page omitted its C++ or Capy signature" >&2
 	exit 1
 }
 legacy_headers=$(curl -fsS --max-time 30 -o /dev/null -D - -H "Host: $host" "$doc_base?p=capy-10-dvalues" | tr -d '\r')
 [[ "$legacy_headers" == *"HTTP/1.1 302"* && "$legacy_headers" == *"Location: /doc/?p=capy-08-dynamic-values"* ]] || {
 	echo "Legacy Capy guide URL did not redirect to its canonical page" >&2
+	exit 1
+}
+singlepage=$(curl -fsS --max-time 180 -H "Host: $host" "${doc_base}singlepage.uce") || {
+	echo "Combined documentation page did not render" >&2
+	exit 1
+}
+[[ "$singlepage" == *'<div class="example guide-example"><h3>Example: RENDER</h3>'* &&
+	"$singlepage" == *"function RENDER"* &&
+	"$singlepage" != *'<div class="example guide-example"><h3>Example: WS</h3>'* ]] || {
+	echo "Combined documentation page omitted parsed guide examples" >&2
 	exit 1
 }
 
