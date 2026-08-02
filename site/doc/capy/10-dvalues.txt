@@ -6,29 +6,32 @@ A `dval` is a dynamic value for Bearer APIs. It can hold an empty value, string,
 
 ## Creating DValues
 
-Use `dval(...)` with a string, `s32`, `u64`, `f64`, `bool`, existing DValue, map literal, or list literal:
+A map literal creates a DValue directly:
 
 ```capy
-var profile := dval({
+var profile := {
     name: "Ada",
     "active": true,
     tags: ["math", "logic"]
-})
-var empty_map := dval({:})
+}
+var empty_map := {:}
 ```
 
-A map key can be an identifier or a quoted string. A list literal inside `dval(...)` becomes a dynamic DValue list, not a typed `[T]` array.
+A map key can be an identifier or a quoted string. The `dval({...})` compatibility spelling remains valid.
+
+Use `dval(...)` to create a DValue from a string, `s32`, `u64`, `f64`, `bool`, existing DValue, or list literal. A list inside `dval(...)` becomes a dynamic DValue list. A bare list remains a typed `[T]` array.
 
 ## Reading values
 
-Use a string key to index a map. Use an integer to index a list:
+Use member syntax for an identifier key. Use brackets for other string keys, dynamic keys, and list indexes:
 
 ```capy
-var name := dval_string(profile["name"])
-var first_tag := dval_string(profile["tags"][0])
+var name := dval_string(profile.name)
+var first_tag := dval_string(profile.tags[0])
+var display_name := dval_string(profile["display-name"])
 ```
 
-Indexing is strict. A missing key, wrong container type, or invalid list index traps. Check optional data before you read it:
+Member access and indexing are strict. A missing key, wrong container type, or invalid list index traps. Check optional data before you read it:
 
 ```capy
 if dval_has(profile, "nickname") {
@@ -62,7 +65,14 @@ items = dval_push(items, dval("first"))
 items = dval_push(items, dval("second"))
 ```
 
-This rule also applies to `dval_set`, `dval_remove`, `dval_clear`, and related functions. The `dval_map` and `dval_filter` functions apply a Capy function to copied child values.
+This rule also applies to `dval_set`, `dval_remove`, `dval_clear`, and related functions. Arbitrary child-value parameters accept one DValue construction, so scalar children do not need a wrapper:
+
+```capy
+items = dval_push(items, "first")
+profile = dval_put(profile, "age", 42)
+```
+
+Container and schema-specific DValue parameters remain exact. The `dval_map` and `dval_filter` functions apply a Capy function to copied child values.
 
 `dval_key`, `dval_keys`, and `dval_values` return copied values. `dval_get_by_path` reads nested paths, `array_merge` applies Bearer's map/list merge rules, and `dval_to_json` serializes a copied value. The DValue API pages describe each shape and fallback.
 

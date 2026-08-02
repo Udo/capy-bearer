@@ -473,7 +473,7 @@ set +e
 dval_trap_output=$(scripts/bearer-cli /tests/capy-dval-missing-trap.capy 2>&1)
 dval_trap_status=$?
 set -e
-[[ $dval_trap_status -ne 0 && "$dval_trap_output" == *'wasm `unreachable` instruction executed'* && "$dval_trap_output" == *'capy-dval-missing-trap.capy:3:29'* ]] || {
+[[ $dval_trap_status -ne 0 && "$dval_trap_output" == *'wasm `unreachable` instruction executed'* && "$dval_trap_output" == *'capy-dval-missing-trap.capy:3:28'* ]] || {
 	echo "Capy missing DValue trap mismatch: status=$dval_trap_status output=$dval_trap_output" >&2
 	exit 1
 }
@@ -602,7 +602,7 @@ expect_equal "INIT/ONCE lifecycle in a later request workspace" \
 	"entry-init;entry-once;child-init;child-once;child-component;child-component;render" \
 	"$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-lifecycle-parity.capy)"
 component_parity_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-component-parity.capy)
-expect_equal "component/unit convenience APIs" "Capy|1|Capy|1|unit|true" "$component_parity_output"
+expect_equal "component/unit DValue conversions" "Capy|1|Capy|1|scalar|render|unit|true" "$component_parity_output"
 expect_equal "general methods receiver order/overload/generic/local shadow/function fields" "receiver;argument;method;10|s32|string|9|shadow;5|field;5|extension;6" "$(scripts/bearer-cli /tests/capy-methods.capy)"
 module_output=$(scripts/bearer-cli /tests/capy-module-caller.capy)
 expect_equal "Capy module capability/default input/nested BRRB/C++/legacy/handler/ARC" "counted;handler-once;handler-render;default|nested|once|cpp|legacy|0" "$module_output"

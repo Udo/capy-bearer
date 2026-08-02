@@ -15,7 +15,7 @@ unit_render("/shared/header.capy")
 Use components for reusable rendered content:
 
 ```capy
-var props := dval({"title": "Account"})
+var props := {title: "Account"}
 component_render("/components/card.capy:CARD", props)
 ```
 
@@ -31,7 +31,7 @@ Bearer copies component properties into the called handler's request context. Af
 EXPORTS lookup
 
 function lookup(input : dval) dval {
-    dval({"found": true, "query": input})
+    {found: true, query: input}
 }
 ```
 
@@ -43,7 +43,7 @@ Only the names in `EXPORTS` are public. Each exported function must have the exa
 
 ```capy
 var users := unit_load("/services/users.capy")
-var result := users.call("lookup", dval({"id": "42"}))
+var result := users.call("lookup", {id: "42"})
 ```
 
 A module stays tied to the current request and loaded unit version. You can assign it and pass or return it through typed Capy functions during that request.

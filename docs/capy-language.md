@@ -192,7 +192,13 @@ struct Sample {
 
 Tuples, structs, and closure environments support `s32`, `s64`, `u64`, `f64`, and managed fields. Their source semantics do not expose byte offsets or padding.
 
-A map literal or list passed to `dval(...)` creates copied dynamic data. DValue indexing is strict and traps on an invalid key, index, or container. Use `dval_has` for a non-trapping key check.
+A map literal creates a copied `dval`. Use `{:}` for an empty DValue map. `{}` remains an empty block. The `dval({...})` compatibility spelling has the same result.
+
+A list passed to `dval(...)` creates a dynamic DValue list. A bare list remains a typed copy-on-write array.
+
+DValue indexing is strict and traps on an invalid key, index, or container. For an identifier key, `value.name` is equivalent to `value["name"]` when `value` has static type `dval`. Use bracket indexing for dynamic, numeric, or non-identifier keys. A member followed by `()` remains a receiver-first method call.
+
+Use `dval_has` for a non-trapping key check. Selected standard-library value parameters use `as dval`. They can insert one DValue construction from `string`, `s32`, `u64`, `f64`, or `bool`. Parameters that require a specific map, list, or opaque DValue shape remain exact.
 
 ## 10. Strings, markup, and ownership
 

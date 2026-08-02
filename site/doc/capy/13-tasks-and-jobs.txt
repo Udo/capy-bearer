@@ -11,7 +11,7 @@ A task calls a durable named Bearer handler later. Each task handler has the for
 ```capy
 function TASK:SEND_EMAIL(request : request) {
     var context := request_context(request)
-    var address := dval_string(context["props"]["address"])
+    var address := dval_string(context.props.address)
     // Send or persist the email here.
 }
 ```
@@ -21,7 +21,7 @@ Submit the task with a serializable DValue:
 ```capy
 var id := task(
     "/tasks/email.capy:SEND_EMAIL",
-    dval({"address": "ada@example.test"})
+    {address: "ada@example.test"}
 )
 ```
 
@@ -31,7 +31,7 @@ Use `task_status(id)` or `task_await(id, timeout_ms)` to get a status DValue. Re
 
 ```capy
 var status := task_await(id, 5000u64)
-print(dval_string(status["state"]))
+print(dval_string(status.state))
 ```
 
 The states are `queued`, `running`, `succeeded`, `failed`, `canceled`, and `missing`. A failed status can also include a failure code and message. `task_cancel(id)` requests cancellation and returns a status DValue; a task that already finished may keep its terminal state.

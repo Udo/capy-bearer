@@ -10,6 +10,10 @@ function COMPONENT {
     print(dval_string(request["props"]["name"]), "|", arc_live())
 }
 
+function COMPONENT:SCALAR {
+    print(dval_string(request_context().props))
+}
+
 function COMPONENT:TRAP {
     print("must-not-leak")
     trap()

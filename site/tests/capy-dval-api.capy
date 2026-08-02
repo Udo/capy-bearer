@@ -3,30 +3,30 @@ function RENDER { var ignored := dval_api_run() }
 
 function dval_api_run() s32 {
     {
-    var value := dval({"name": "Ada", "drop": "x"})
-    value = dval_put(value, "age", dval(42))
+    var value := {name: "Ada", drop: "x"}
+    value = dval_put(value, "age", 42)
     value = dval_remove(value, "drop")
-    value = dval_push(value, dval("tail"))
-    print(dval_is_array(value), dval_is_list(value), dval_to_string(value["name"]), dval_s32(value["age"]), dval_to_string(value["0"]), "|")
+    value = dval_push(value, "tail")
+    print(dval_is_array(value), dval_is_list(value), dval_to_string(value.name), dval_s32(value.age), dval_to_string(value["0"]), "|")
     var list := dval_set_array(dval("ignored"))
-    list = dval_push(list, dval("one"))
-    list = dval_push(list, dval("two"))
+    list = dval_push(list, "one")
+    list = dval_push(list, "two")
     list = dval_pop(list)
     print(dval_is_list(list), dval_to_string(list[0]), "|")
-    var nested := dval({"site": {"title": "Bearer"}})
-    print(dval_to_string(dval_get_by_path(nested, "site/title")), dval_has(dval_get_by_path(nested, "none"), "x"), "|")
+    var nested := {site: {title: "Bearer"}}
+    print(dval_to_string(nested.site.title), dval_has(dval_get_by_path(nested, "none"), "x"), "|")
     var typed := dval_set_type(dval("scalar"), "M")
-    var empty := dval_get_or_create(dval({:}), "created")
+    var empty := dval_get_or_create({:}, "created")
     print(dval_has(empty, "created"), dval_get_type_name(empty), dval_to_json(dval("A")), "|")
     if dval_to_f64(dval("1.5")) == 1.5 { print("f") }
-    print(dval_to_bool(dval("yes")), dval_to_string(dval_to_stringmap(dval({"x": "y"}))["x"]), "|")
-    var assigned := dval_assign(dval("old"), dval("new"))
+    print(dval_to_bool(dval("yes")), dval_to_string(dval_to_stringmap({x: "y"}).x), "|")
+    var assigned := dval_assign(dval("old"), "new")
     assigned = dval_set_bool(assigned, true)
-    var cleared := dval_clear(dval({"gone": "yes"}))
-    var fields := dval({"name": "Ada", "role": "engineer"})
+    var cleared := dval_clear({gone: "yes"})
+    var fields := {name: "Ada", role: "engineer"}
     print(dval_to_bool(assigned), dval_has(cleared, "gone"), dval_to_string(dval_key(fields, "name")), dval_to_string(dval_keys(fields)[0]), dval_to_string(dval_values(fields)[1]), "|")
     var mapped := dval_map(dval([1, 2]), function(item : dval, key : string) dval { return dval(dval_s32(item) + 1) })
-    var filtered := dval_filter(dval({"keep": 2, "drop": 1}), function(item : dval, key : string) bool { return dval_s32(item) == 2 })
+    var filtered := dval_filter({keep: 2, drop: 1}, function(item : dval, key : string) bool { return dval_s32(item) == 2 })
     print(dval_s32(mapped[0]), dval_s32(mapped[1]), dval_has(filtered, "keep"), dval_has(filtered, "drop"), "|")
     print(dval_to_s64(dval("-42")), dval_to_u64(dval("42")), dval_to_s64(dval("bad"), -9s64), dval_to_u64(dval("bad"), 18446744073709551615u64), "|")
     }

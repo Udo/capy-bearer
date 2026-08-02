@@ -286,9 +286,9 @@ function substr(value : string, start : s32, length : s32) string { __bearer_str
 function substr(value : string, start : s64, length : s64) string { __bearer_string_substr(value, start, length) }
 function strpos(haystack : string, needle : string) s64 { __bearer_string_strpos(haystack, needle, 0s64) }
 function strpos(haystack : string, needle : string, offset : s64) s64 { __bearer_string_strpos(haystack, needle, offset) }
-function dval_set(value : dval, source : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set(), value, "", source) }
-function dval_assign(value : dval, source : dval) dval { dval_set(value, source) }
-function dval_push(value : dval, child : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_push(), value, "", child) }
+function dval_set(value : dval, source : as dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set(), value, "", source) }
+function dval_assign(value : dval, source : as dval) dval { dval_set(value, source) }
+function dval_push(value : dval, child : as dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_push(), value, "", child) }
 function dval_pop(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_pop(), value, "", dval("")) }
 function dval_remove(value : dval, key : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_remove(), value, key, dval("")) }
 function dval_clear(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_clear(), value, "", dval("")) }
@@ -306,7 +306,7 @@ function dval_values(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_d
 function dval_to_json(value : dval) string { dval_string(__bearer_dv_apply_brrb(__bearer_dval_dval_to_json(), value, "", dval(""))) }
 function dval_to_json(value : dval, quote : string) string { dval_string(__bearer_dv_apply_brrb(__bearer_dval_dval_to_json(), value, quote, dval(""))) }
 function dval_to_stringmap(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_to_stringmap(), value, "", dval("")) }
-function dval_put(value : dval, key : string, child : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_put(), value, key, child) }
+function dval_put(value : dval, key : string, child : as dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_put(), value, key, child) }
 function dval_to_string(value : dval) string { dval_string(__bearer_dv_apply_brrb(__bearer_dval_dval_to_string(), value, "", dval(""))) }
 function dval_to_string(value : dval, fallback : string) string { dval_string(__bearer_dv_apply_brrb(__bearer_dval_dval_to_string(), value, "", dval(fallback))) }
 function dval_to_f64(value : dval) f64 { dval_f64(__bearer_dv_apply_brrb(__bearer_dval_dval_to_f64(), value, "", dval(0.0))) }
@@ -621,7 +621,7 @@ function process_start_directory() string { dval_string(__bearer_process_jobs_br
 function server_start_http(key : string, bind : string, file : string) s32 { server_start_http(key, bind, file, "") }
 function server_start_http(key : string, bind : string, file : string, callback : string) s32 { dval_s32(__bearer_process_jobs_brrb(__bearer_process_server_start_http(), dval(key), bind, dval({"file": file, "function": callback}))) }
 function server_stop(key : string) bool { dval_bool(__bearer_process_jobs_brrb(__bearer_process_server_stop(), dval(key), "", dval(""))) }
-function task(target : string, props : dval) string { dval_string(__bearer_process_jobs_brrb(__bearer_process_task_submit(), dval(target), "", props)) }
+function task(target : string, props : as dval) string { dval_string(__bearer_process_jobs_brrb(__bearer_process_task_submit(), dval(target), "", props)) }
 function task_status(id : string) dval { __bearer_process_jobs_brrb(__bearer_process_task_status(), dval(id), "", dval("")) }
 function task_await(id : string, timeout_ms : u64) dval { __bearer_process_jobs_brrb(__bearer_process_task_await(), dval(id), "", dval(timeout_ms)) }
 function task_cancel(id : string) dval { __bearer_process_jobs_brrb(__bearer_process_task_cancel(), dval(id), "", dval("")) }
@@ -639,7 +639,7 @@ function http_request_async(request : dval) u64 { __bearer_dv_u64_brrb(__bearer_
 
 // C++ unit/component policy remains in the existing workspace dispatcher.
 function component(name : string) string { component_capture(name) }
-function component(name : string, props : dval) string { component_capture(name, props) }
+function component(name : string, props : as dval) string { component_capture(name, props) }
 function unit_call(file_name : string, function_name : string) dval { unit_call(file_name, function_name, dval("")) }
 
 // Time parsing/formatting stays in sys.cpp; u64 values cross BRRB as exact text.
@@ -684,16 +684,16 @@ function ws_close() bool { __bearer_ws_close("") }
 function ws_close(connection_id : string) bool { __bearer_ws_close(connection_id) }
 
 function component_capture(name : string) string { __bearer_component_capture(name) }
-function component_capture(name : string, props : dval) string { __bearer_component_capture_props_brrb(name, props) }
+function component_capture(name : string, props : as dval) string { __bearer_component_capture_props_brrb(name, props) }
 function component_render(name : string) { __bearer_component_render_bytes(name) }
-function component_render(name : string, props : dval) { __bearer_component_render_props_brrb(name, props) }
+function component_render(name : string, props : as dval) { __bearer_component_render_props_brrb(name, props) }
 function component_exists(name : string) bool { __bearer_component_exists(name) }
 function component_resolve(name : string) string { __bearer_component_resolve(name) }
 function unit_render(name : string) { __bearer_unit_render_bytes(name) }
 function unit_load(path : string) module { __bearer_unit_load(path) }
 function call(handle : module, name : string) dval { call(handle, name, dval({:})) }
-function call(handle : module, name : string, input : dval) dval { __bearer_module_call_brrb(handle, name, input) }
-function unit_call(file_name : string, function_name : string, props : dval) dval { __bearer_unit_call_brrb(file_name, function_name, props) }
+function call(handle : module, name : string, input : as dval) dval { __bearer_module_call_brrb(handle, name, input) }
+function unit_call(file_name : string, function_name : string, props : as dval) dval { __bearer_unit_call_brrb(file_name, function_name, props) }
 function unit_info() dval { __bearer_unit_info_brrb("") }
 function unit_info(path : string) dval { __bearer_unit_info_brrb(path) }
 function units_list() dval { __bearer_units_list_brrb() }

@@ -83,6 +83,13 @@ int main(int argc, char** argv)
 		assert(static_cast<For*>(p.items[1])->names.size() == 2);
 	}
 	{
+		Program p = parse("var value := {name: \"Ada\"}\nvar empty := {:}\nfunction CLI { value.name }\n", "bare-map.capy");
+		assert(static_cast<MapLiteral*>(static_cast<Variable*>(p.items[0])->value)->entries.size() == 1);
+		assert(static_cast<MapLiteral*>(static_cast<Variable*>(p.items[1])->value)->entries.empty());
+		auto* member = static_cast<Member*>(static_cast<Function*>(p.items[2])->body->items[0]);
+		assert(member->member == "name" && member->location.file == "bare-map.capy" && member->location.line == 3 && member->location.column == 21);
+	}
+	{
 		Program p = parse("0..10\n", "range.capy");
 		assert(static_cast<Binary*>(p.items[0])->operator_ == "..");
 	}

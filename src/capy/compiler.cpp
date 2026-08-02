@@ -1291,7 +1291,7 @@ bool FunctionLowerer::expression_is_owned(const Expr* value)
 		return managed_type(infer(const_cast<Index*>(index))) && expression_is_owned(index->value);
 	}
 	if (auto member = dynamic_cast<const Member*>(value))
-		return managed_type(infer(member->value)) && expression_is_owned(member->value);
+		return infer(member->value) == "dval" || (managed_type(infer(member->value)) && expression_is_owned(member->value));
 	if (auto binary = dynamic_cast<const Binary*>(value))
 		return binary->operator_ == "+" && infer(binary->left) == "string" && infer(binary->right) == "string";
 	if (auto call = dynamic_cast<const Call*>(value))
@@ -1658,7 +1658,7 @@ std::string FunctionLowerer::infer(Expr* value)
 		throw Error(spread->location, "spread requires an array or tuple");
 	}
 	if (dynamic_cast<MapLiteral*>(value))
-		throw Error(value->location, "map literals must be wrapped in dval(...)");
+		return "dval";
 	if (auto array = dynamic_cast<ArrayLiteral*>(value))
 	{
 		if (array->items.empty() && !array->explicit_element_type)
@@ -1686,6 +1686,8 @@ std::string FunctionLowerer::infer(Expr* value)
 	if (auto member = dynamic_cast<Member*>(value))
 	{
 		const std::string object = infer(member->value);
+		if (object == "dval")
+			return "dval";
 		if (object.rfind("struct:", 0) != 0)
 			throw Error(member->location, "member access requires a struct");
 		for (const auto& field : module_.struct_type(object.substr(7), member->location).fields)
@@ -3060,6 +3062,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		wasm::append_uleb(code, pointer);
 		return {code, type};
 	}
+	if (auto map = dynamic_cast<MapLiteral*>(value))
+		return dval_value(map);
 	if (auto array = dynamic_cast<ArrayLiteral*>(value))
 	{
 		if (array->items.empty() && !array->explicit_element_type)
@@ -3347,6 +3351,11 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 	}
 	if (auto member = dynamic_cast<Member*>(value))
 	{
+		if (infer(member->value) == "dval")
+		{
+			String key(member->location, member->member);
+			return dval_lookup(member->value, &key, true);
+		}
 		auto [object_code, object_type] = expression(member->value);
 		if (object_type.rfind("struct:", 0) != 0)
 			throw Error(member->location, "member access requires a struct");
@@ -5815,6 +5824,8 @@ Module::Capabilities Module::discover_capabilities()
 		}
 		if (auto variable = dynamic_cast<Variable*>(e))
 			return variable->annotation ? value_type(variable->annotation) : scan_value_type(variable->value);
+		if (dynamic_cast<MapLiteral*>(e))
+			return "dval";
 		if (auto index = dynamic_cast<Index*>(e))
 		{
 			const std::string source = scan_value_type(index->value);
@@ -5831,6 +5842,7 @@ Module::Capabilities Module::discover_capabilities()
 		if (auto member = dynamic_cast<Member*>(e))
 		{
 			const std::string receiver = scan_value_type(member->value);
+			if (receiver == "dval") return "dval";
 			if (receiver.rfind("struct:", 0) == 0)
 				for (const auto& field : struct_type(receiver.substr(7), member->location).fields)
 					if (field.first == member->member) return field.second;
@@ -5991,8 +6003,17 @@ Module::Capabilities Module::discover_capabilities()
 				if (const Definition* converted = converted_definition(callee, host_arguments, c->location))
 				{
 					for (std::size_t i = 0; i < host_arguments.size(); ++i)
+					{
 						if (converted->parameters[i] == "string" && host_arguments[i] != "string" && host_arguments[i] != "bool")
 							scan_string_construction(host_arguments[i]);
+						if (converted->parameters[i] == "dval" && host_arguments[i] != "dval")
+						{
+							Expr* argument = member ? (i == 0 ? member->value : c->arguments.at(i - 1)) : c->arguments.at(i);
+							dval_ = true;
+							scan_alloc = scan_retain = scan_release = true;
+							scan_dval(argument);
+						}
+					}
 				}
 				if (const Definition* variadic = variadic_definition(callee, host_arguments, c->location))
 				{
@@ -6183,6 +6204,16 @@ Module::Capabilities Module::discover_capabilities()
 			for (auto item : a->items)
 				scan(item);
 		}
+		else if (auto m = dynamic_cast<MapLiteral*>(e))
+		{
+			dval_ = true;
+			scan_alloc = true;
+			scan_retain = true;
+			scan_release = true;
+			scan_dval(m);
+			for (const auto& [key, item] : m->entries)
+				scan(item);
+		}
 		else if (auto spread = dynamic_cast<Spread*>(e))
 			scan(spread->value);
 		else if (auto i = dynamic_cast<Index*>(e))
@@ -6193,7 +6224,17 @@ Module::Capabilities Module::discover_capabilities()
 			scan(i->index);
 		}
 		else if (auto m = dynamic_cast<Member*>(e))
+		{
+			if (scan_value_type(m->value) == "dval")
+			{
+				dval_ = true;
+				scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
+				runtime_imports_.insert("bearer_dv_get_brrb");
+			}
 			scan(m->value);
+		}
 		else if (auto m = dynamic_cast<Markup*>(e))
 		{
 			scan_alloc = true;

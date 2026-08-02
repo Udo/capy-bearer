@@ -2,12 +2,12 @@ function CLI {
     {
         var capy := unit_load("/tests/capy-module-target.capy")
         var empty := capy.call("default_input")
-        var nested := capy.call("echo", dval({"nested": {"value": "nested"}}))
-        var once := unit_call("/tests/capy-module-target.capy", "counted", dval("once"))
+        var nested := capy.call("echo", {nested: {value: "nested"}})
+        var once := unit_call("/tests/capy-module-target.capy", "counted", "once")
         unit_call("/tests/capy-module-target.capy", "RENDER")
-        var cpp := unit_load("/tests/capy-cross-target.uce").call("structured", dval({"user": {"name": "Ada"}, "items": [4, 9]}))
-        var legacy := unit_call("/tests/capy-cross-target.uce", "echo", dval("legacy"))
-        print(dval_string(empty), "|", dval_string(nested["nested"]["value"]), "|", dval_string(once), "|", dval_string(cpp["source"]), "|", dval_string(legacy))
+        var cpp := unit_load("/tests/capy-cross-target.uce").call("structured", {user: {name: "Ada"}, items: [4, 9]})
+        var legacy := unit_call("/tests/capy-cross-target.uce", "echo", "legacy")
+        print(dval_string(empty), "|", dval_string(nested.nested.value), "|", dval_string(once), "|", dval_string(cpp.source), "|", dval_string(legacy))
     }
     print("|", arc_live())
 }

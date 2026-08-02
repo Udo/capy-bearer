@@ -6,6 +6,10 @@ function TASK:CAPY(request : request) {
     file_put_contents("/tmp/bearer-task-capy-named.txt", dval_to_string(dval_get_by_path(request_context(request), "props/nested/value"), ""))
 }
 
+function TASK:SCALAR(request : request) {
+    file_put_contents("/tmp/bearer-task-capy.txt", dval_string(request_context(request).props))
+}
+
 function TASK:SLOW(request : request) {
     usleep(5000000)
     file_put_contents("/tmp/bearer-task-slow-finished.txt", "finished")

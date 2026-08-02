@@ -20,7 +20,7 @@ function CLI {
     var missing := task("/tests/task-handlers.capy:MISSING", dval(""))
     var missing_status := task_await(missing, 10000u64)
 
-    var recovered := task("/tests/task-handlers.capy", dval({"nested": {"value": "recovered"}}))
+    var recovered := task("/tests/task-handlers.capy:SCALAR", "recovered")
     var recovered_status := task_await(recovered, 10000u64)
 
     var slow_result := "stopped"
