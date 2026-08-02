@@ -261,7 +261,20 @@ void doc_flush_section(DocPage& result, String page, String section, DValue& sec
 		if(result.guide_examples.size() == 0)
 			result.example_parse_error = "output must follow a Capy guide example";
 		else
-			result.guide_examples[result.guide_examples.size() - 1]["output"] = join(section_lines, "\n");
+		{
+			String output = join(section_lines, "\n");
+			result.guide_examples[result.guide_examples.size() - 1]["output"] = output;
+			if(page.rfind("capy-", 0) == 0)
+			{
+				content_lines.push_back("**Output**");
+				content_lines.push_back("");
+				content_lines.push_back("```text");
+				for(String line : split(output, "\n"))
+					content_lines.push_back(line);
+				content_lines.push_back("```");
+				content_lines.push_back("");
+			}
+		}
 	}
 	else
 	{
@@ -322,6 +335,17 @@ void doc_add_example(DocPage& result, String page, String language, String entry
 	pending_body = "";
 }
 
+void doc_append_guide_example(String page, String language, String body, DValue& content_lines)
+{
+	if(page.rfind("capy-", 0) != 0 || language != "capy")
+		return;
+	content_lines.push_back("```capy");
+	for(String line : split(body, "\n"))
+		content_lines.push_back(line);
+	content_lines.push_back("```");
+	content_lines.push_back("");
+}
+
 DocPage load_doc_page(String page)
 {
 	page = doc_canonical_page(page);
@@ -352,7 +376,10 @@ DocPage load_doc_page(String page)
 				if(trim(example_body) == "")
 					result.example_parse_error = "empty example block";
 				else
+				{
 					doc_add_example(result, page, example_language, example_entry, example_body, pending_entry, pending_body);
+					doc_append_guide_example(page, example_language, example_body, content_lines);
+				}
 			}
 			else
 				doc_flush_section(result, page, current_section, current_lines, content_lines);
@@ -425,7 +452,10 @@ DocPage load_doc_page(String page)
 		if(trim(example_body) == "")
 			result.example_parse_error = "empty example block";
 		else
+		{
 			doc_add_example(result, page, example_language, example_entry, example_body, pending_entry, pending_body);
+			doc_append_guide_example(page, example_language, example_body, content_lines);
+		}
 	}
 	else
 		doc_flush_section(result, page, current_section, current_lines, content_lines);

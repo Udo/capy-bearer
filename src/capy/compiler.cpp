@@ -6198,6 +6198,8 @@ Module::Capabilities Module::discover_capabilities()
 				(member->member == "push" || member->member == "pop" || member->member == "insert" || member->member == "remove" ||
 				 member->member == "clear" || member->member == "reserve" || member->member == "resize"))
 				scan_alloc = scan_retain = scan_release = true;
+			if (named_call && has_struct(named_callee))
+				scan_alloc = scan_retain = scan_release = true;
 			if (auto n = dynamic_cast<Name*>(c->function); n || member)
 			{
 				std::vector<std::string> host_arguments;

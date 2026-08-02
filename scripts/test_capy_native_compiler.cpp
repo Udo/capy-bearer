@@ -390,6 +390,12 @@ int main()
 	const auto inferred_managed_local = capy::compile_bearer_unit(
 		"function CLI { var greeting := \"Hello\" }\n", options);
 	assert(capy::wasm::validate_bearer_unit(inferred_managed_local.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto standalone_struct = capy::compile_bearer_unit(
+		"struct Point { x : s32; y : s32 }\nfunction CLI { var point := Point(3, 4); print(point.x) }\n", options);
+	const auto standalone_struct_validation = capy::wasm::validate_bearer_unit(standalone_struct.wasm, {.bearer_abi_version = "11"});
+	assert(standalone_struct_validation.valid);
+	assert(std::any_of(standalone_struct_validation.imports.begin(), standalone_struct_validation.imports.end(),
+		[](const auto& imported) { return imported.name == "bearer_alloc"; }));
 	const auto unused_conversion = capy::compile_bearer_unit(
 		"function text(value : as string) string { value }\nfunction CLI {}\n", options);
 	const auto unused_conversion_validation = capy::wasm::validate_bearer_unit(unused_conversion.wasm, {.bearer_abi_version = "11"});

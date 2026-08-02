@@ -1,12 +1,12 @@
 :title
-1. Install and first program
+1. Getting started
 
 :content
-## Purpose
+Capy programs run as Bearer units. A source file uses the `.capy` suffix. Bearer compiles the file when a request first uses it.
 
-Use this page to run one local Capy program. Capy source files use the `.capy` suffix.
+## Your first page
 
-## Minimal executable example
+Create `site/hello.capy`:
 
 :example capy render
 function RENDER {
@@ -16,54 +16,52 @@ function RENDER {
 :output
 Hello, Capy!
 
-## Output
+:content
+`RENDER` is the entry point for a web request. `print` adds text to the response. The `\n` escape adds a newline.
 
-The program writes:
-
-```text
-Hello, Capy!
-```
-
-## Explanation
-
-`RENDER` is the page handler. Bearer runs it for a normal request. `print` adds bytes to the response body.
-
-Install Bearer and start its local service. Keep the `scripts/bearer-cli` helper in the project checkout. The helper sends a local request to Bearer.
-
-Save the example as `site/hello.capy`. Run it from the project directory:
+Request the page through Bearer's local CLI socket:
 
 ```text
 scripts/bearer-cli /hello.capy
 ```
 
-The command requests the unit through Bearer's local CLI socket. The source must be below Bearer's configured site directory.
+The command prints the response body. It also reports compiler or runtime errors in the terminal.
 
-## Common variants
+## Add a value
 
-Use `CLI` when a program exists only for local command use:
+A local declaration uses `:=`. Capy infers the type from the value:
 
 ```capy
-function CLI {
-    print("Hello, Capy!\n")
+function RENDER {
+    var name := "Ada"
+    print("Hello, ", name, "!\n")
 }
 ```
 
-Result: compiles.
+`print` accepts several arguments and writes them in order.
 
-Use markup when a page must produce HTML. The markup guide explains escaped fields.
+## Write HTML
 
-## Edge cases
+A markup expression produces escaped HTML:
 
-A source file cannot contain executable expressions at the top level. Put executable code in a function or handler.
+```capy
+function RENDER {
+    var name := "Ada"
+    <><h1>Hello, <?= name ?>!</h1></>
+}
+```
 
-A missing service or wrong socket path prevents the helper from reaching Bearer. Start the service first. Check the configured CLI socket path.
+Bearer writes top-level markup from `RENDER` to the response. The markup chapter explains escaping and trusted markup.
 
-## Related reference
+## If it does not run
 
-Read the `CLI` and `RENDER` handler pages for handler rules. Read the next page for source structure.
+Confirm that `bearer.service` is active. The source file must be below the configured site directory. The CLI helper must use the configured local socket.
+
+Continue with basic source syntax before you add request data or application APIs.
 
 :see
-1_CLI
 1_RENDER
+1_CLI
+print
 capy-02-source-structure-and-syntax
 capy-06-strings-and-markup

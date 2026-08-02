@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_ENTRIES = {"render", "cli", "component", "init", "once", "ws"}
 PAGE_SECTIONS = {"title", "sig", "params", "content", "see", "output"}
-GUIDE_HEADINGS = {"purpose", "minimal executable example", "output", "explanation", "common variants", "edge cases", "related reference"}
+LEGACY_GUIDE_HEADINGS = {"purpose", "minimal executable example", "explanation", "common variants", "edge cases", "related reference"}
 CANONICAL_GUIDES = {
     "01-install-and-first-program", "02-source-structure-and-syntax", "03-values-and-types",
     "04-expressions-and-control-flow", "05-functions-and-closures", "06-strings-and-markup",
@@ -195,14 +195,16 @@ def check_language_guides(guides: Path, pages: Path, redirect_header: Path) -> l
             continue
         sections = parse_sections(page)
         headers = [header for _, header, _ in sections]
-        if headers.count("title") != 1 or headers.count("content") != 1:
-            errors.append(f"{page.name}: guide needs one :title and one :content")
+        if headers.count("title") != 1 or headers.count("content") < 1:
+            errors.append(f"{page.name}: guide needs one :title and at least one :content")
         unknown = [header for header in headers if header not in PAGE_SECTIONS and not re.fullmatch(r"example\s+capy\s+[a-z]+", header)]
         if unknown:
             errors.append(f"{page.name}: unsupported directive: :{unknown[0]}")
         headings = {heading.strip().lower() for heading in re.findall(r"^##\s+(.+)$", page.read_text(), re.M)}
-        for heading in sorted(GUIDE_HEADINGS - headings):
-            errors.append(f"{page.name}: missing section: {heading}")
+        if len(headings) < 2:
+            errors.append(f"{page.name}: guide needs at least two descriptive sections")
+        for heading in sorted(LEGACY_GUIDE_HEADINGS & headings):
+            errors.append(f"{page.name}: remove legacy template section: {heading}")
         examples = [(line, header, body) for line, header, body in sections if header.startswith("example")]
         render_examples = []
         for line, header, body in examples:
@@ -218,6 +220,10 @@ def check_language_guides(guides: Path, pages: Path, redirect_header: Path) -> l
                 render_examples.append((line, body))
         if len(render_examples) != 1:
             errors.append(f"{page.name}: guide needs one :example capy render")
+        else:
+            render_index = next(index for index, (_line, header, _body) in enumerate(sections) if header == "example capy render")
+            if render_index + 1 >= len(sections) or sections[render_index + 1][1] != "output":
+                errors.append(f"{page.name}: :output must immediately follow :example capy render")
         output_sections = [(line, body) for line, header, body in sections if header == "output"]
         if len(output_sections) != 1 or not output_sections[0][1]:
             errors.append(f"{page.name}: guide needs one exact nonempty :output")
@@ -255,7 +261,7 @@ def self_test() -> int:
         for index, canonical in enumerate(canonical_sources + canonical_sources[3:5], 1):
             old = f"{index:02d}-old"
             pairs.append(f'\tredirects["{old}"] = "{canonical}";')
-            (guides / canonical).with_suffix('.txt').write_text(':title\nGuide\n:content\n## Purpose\ntext\n## Minimal executable example\ntext\n:example capy render\nprint("ok")\n:output\nok\n## Output\ntext\n## Explanation\ntext\n## Common variants\ntext\n## Edge cases\ntext\n## Related reference\ntext\n:see\nok\n')
+            (guides / canonical).with_suffix('.txt').write_text(':title\nGuide\n:content\n## First step\ntext\n:example capy render\nprint("ok")\n:output\nok\n:content\n## Next step\ntext\n:see\nok\n')
         header.write_text('\n'.join(pairs))
         guide_errors = check_language_guides(guides, pages, header)
         if guide_errors:

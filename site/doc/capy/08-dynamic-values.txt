@@ -2,95 +2,112 @@
 8. Dynamic values
 
 :content
-## Purpose
+A `dval` holds data whose shape is known only at run time. JSON, YAML, request data, task props, and unit calls use DValues.
 
-Use a `dval` for decoded input, dynamic records, and values that cross a Bearer boundary. A DValue is copied at that boundary.
-
-## Input
-
-This JSON input has a map, a list, and a scalar:
-
-```text
-{"name":"Ada","tags":["math"],"status":"old"}
-```
-
-## Minimal executable example
-
-## Code
+## Read decoded data
 
 :example capy render
 function RENDER {
-    var profile := json_decode("{\"name\":\"Ada\",\"tags\":[\"math\"],\"status\":\"old\"}")
-    print(profile.nickname?, "|", profile.tags[2]?, "\n")
-
-    var optional := {nickname: none}
-    print(dval_has(optional, "nickname"), "|", optional.nickname?, "\n")
-
-    profile.contact.email = "ada@example.test"
-    profile.status.detail = "new"
-    profile.tags[0] = "logic"
-    print(profile.contact.email, "|", profile.status.detail, "|", profile.tags[0], "\n")
-
-    print(dval_require(profile, "name"), "|", string(profile.missing, "guest"), "\n")
-
-    var copied := profile
-    profile.nickname = "Ada Lovelace"
-    print(copied.nickname?, "|")
-    print(profile.nickname, "\n")
+    var profile := json_decode("{\"name\":\"Ada\"}")
+    print(profile.name, "\n")
 }
 
 :output
-false|false
-true|false
-ada@example.test|new|logic
-Ada|guest
-false|Ada Lovelace
+Ada
 
-## Output
+:content
+`json_decode` returns a DValue. Member syntax reads a map key. Bracket syntax also works:
 
-The program writes the five lines shown above. The final line ends with a newline.
+```capy
+function RENDER {
+    var profile := {name: "Ada"}
+    print(profile["name"], "\n")
+}
+```
 
-## Explanation
+Use brackets for a dynamic key, a key that is not an identifier, or a list index.
 
-A bare map literal, such as `{name: "Ada"}`, creates a DValue map. Use `{:}` for an empty DValue map. `{}` is an empty block. Use `dval([value])` to make a dynamic DValue list. A bare list is a typed array instead.
+## Missing data
 
-`none` is an explicit DValue value. It differs from an empty string, `false`, an empty map, and an empty list. `value?` returns `false` only for `none`. It binds after member and index access.
+A missing read returns `none` instead of changing the map or trapping:
 
-Member and index reads are safe. A missing key, a scalar intermediate, a negative list index, and an out-of-range list index return `none`. These reads do not change the receiver. The first output line checks a missing member and an out-of-range list item.
+```capy
+function RENDER {
+    var profile := {name: "Ada"}
+    var nickname := profile.nickname
+    if nickname? {
+        print(nickname)
+    } else {
+        print("guest")
+    }
+}
+```
 
-`dval_has(map, key)` checks whether a map contains the key. A key can exist and contain `none`. The second output line shows this distinction.
+`value?` is false only when the DValue is `none`. An empty string, `false`, an empty map, and an empty list are present values.
 
-DValue constructors use their default when conversion fails or the value is `none`. `string(profile.missing, "guest")` returns `"guest"`. Use `dval_require` when a missing or unusable member must trap. The example requires an existing `name` key.
+A key can exist and contain `none`. Use `dval_has(profile, "nickname")` when that distinction matters.
 
-Nested assignment updates a declared local DValue root. It evaluates the root, selectors, and right side once from left to right. Missing, `none`, and scalar intermediate values become maps. Thus `profile.status.detail` replaces the scalar `status` with a map.
+## Convert a scalar
 
-An existing list accepts only an in-range nonnegative numeric selector. Capy does not create sparse lists. The assignment to `profile.tags[0]` is valid because item zero exists.
+DValue constructors convert a scalar to a static Capy type:
 
-DValue assignment uses copy-on-write value semantics. The update to `profile` does not change `copied`. DValues also cross units, components, tasks, and host calls as copied BRRB values.
+```capy
+function RENDER {
+    var profile := {name: "Ada"}
+    var name := string(profile.name)
+    var visits := s32(profile.visits, 0)
+    print(name, " ", visits, "\n")
+}
+```
 
-## Common variants
+The second argument is a fallback. Capy uses it when the value is `none` or cannot convert to the requested type.
 
-Use brackets for a non-identifier key, a dynamic key, or a list index. For example, use `profile["display-name"]` and `profile.tags[0]`.
+Use `dval_require(profile, "name")` when a missing value is an error. It traps instead of returning `none`.
 
-Use `json_decode` for JSON input and `yaml_decode` for YAML input. JSON `null`, YAML `null`, and YAML `~` decode as `none`. JSON and YAML encode `none` as `null`.
+## Create dynamic data
 
-Use `dval_put`, `dval_push`, `dval_remove`, and related functions when a program needs a replacement value. Assign their returned DValue to the local root.
+A map literal creates a DValue map:
 
-## Edge cases
+```capy
+function RENDER {
+    var user := {name: "Ada", active: true}
+    var empty := {:}
+    print(user.name, " ", empty?, "\n")
+}
+```
 
-Only a declared local DValue can start a nested assignment. Parameters, captures, loop items, fields, indexes, calls, and temporary roots cannot start one. For example, `dval({:}).profile.nickname = "Ada"` is an error.
+A bare list is a typed array. Wrap it with `dval` when it must be a dynamic list:
 
-An existing-list write with a negative or out-of-range index traps. A missing intermediate before a numeric selector becomes a map with the decimal selector as its key. It does not create a list.
+```capy
+function RENDER {
+    var tags := dval(["math", "logic"])
+    print(tags[0], "\n")
+}
+```
 
-XML has no distinct `none` value. XML encoding writes `none` as empty text, so XML does not preserve the distinction. BRRB preserves `none` across copied boundaries.
+## Update a local DValue
 
-## Related reference
+Nested assignment creates missing maps:
 
-`0_DValue`, `json_decode`, `yaml_decode`, `xml_encode`, `capy-07-collections-and-records`
+```capy
+function RENDER {
+    var profile := {:}
+    profile.contact.email = "ada@example.test"
+    print(profile.contact.email, "\n")
+}
+```
+
+The root must be a declared local DValue. Assignment uses copy-on-write semantics, so changing a copy does not change the original.
+
+An existing list accepts only an in-range nonnegative index. Capy does not create sparse lists.
+
+## Boundaries
+
+DValues cross units, components, tasks, and host calls as copied BRRB values. Host object identity does not cross the boundary. JSON and YAML preserve `none` as `null`. XML has no distinct missing value and writes it as empty text.
 
 :see
 0_DValue
 json_decode
 yaml_decode
-xml_encode
 capy-07-collections-and-records
+capy-09-web-handlers-and-requests

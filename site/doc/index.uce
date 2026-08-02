@@ -1,6 +1,6 @@
 #include "lib/doc_page.h"
 
-// doc_page.h supplies generated API signatures and parsed guide examples.
+// doc_page.h supplies generated API signatures and inline guide examples.
 void render_doc_page_link(String page, String label = "")
 {
 	page = doc_canonical_page(trim(page));
@@ -178,13 +178,14 @@ void render_doc_examples(Request& context, String page, DocPage doc_page)
 		String body = example["body"].to_string();
 		String expected = example["output"].to_string();
 		DValue capy = doc_render_example(context, page, idx, "capy", entry, body, true);
-		?><div class="doc-section example guide-example"><h3>Example: <?= doc_example_handler_name(entry) ?></h3><?
-			render_doc_example_result("capy", entry, body, capy);
-			if(entry == "render" && capy["error"].to_string() == "" && capy["output"].to_string() != expected)
-			{
-				?><div class="example-output error"><div class="example-output-label">Output error</div><pre>DOC EXAMPLE ERROR: output differs from :output</pre></div><?
-			}
-		?></div><?
+		if(capy["error"].to_string() != "")
+		{
+			?><div class="doc-section example-output error"><div class="example-output-label">Error</div><pre><?= capy["error"].to_string() ?></pre></div><?
+		}
+		else if(entry == "render" && capy["output"].to_string() != expected)
+		{
+			?><div class="doc-section example-output error"><div class="example-output-label">Output error</div><pre>DOC EXAMPLE ERROR: output differs from :output</pre></div><?
+		}
 	}
 	for(u64 idx = 0; idx < doc_page.example_pairs.size(); idx++)
 	{

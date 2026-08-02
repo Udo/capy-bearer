@@ -35,8 +35,9 @@ guide=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=capy-08-dynamic-va
 	echo "Capy guide page did not render through the documentation application" >&2
 	exit 1
 }
-[[ "$guide" == *"8. Dynamic values"* && "$guide" == *"Nested assignment updates a declared local DValue root"* &&
-	"$guide" == *"var profile :="* && "$guide" == *"false|false"* && "$guide" != *"Compile-only: WS"* ]] || {
+[[ "$guide" == *"8. Dynamic values"* && "$guide" == *"Nested assignment creates missing maps"* &&
+	"$guide" == *"var profile :="* && "$guide" == *"<strong>Output</strong>"* &&
+	"$guide" != *"Minimal executable example"* && "$guide" != *"Compile-only: WS"* ]] || {
 	echo "Capy guide page omitted its title, content, source, or output" >&2
 	exit 1
 }
@@ -58,10 +59,10 @@ singlepage=$(curl -fsS --max-time 180 -H "Host: $host" "${doc_base}singlepage.uc
 	echo "Combined documentation page did not render" >&2
 	exit 1
 }
-[[ "$singlepage" == *'<div class="example guide-example"><h3>Example: RENDER</h3>'* &&
-	"$singlepage" == *"function RENDER"* &&
-	"$singlepage" != *'<div class="example guide-example"><h3>Example: WS</h3>'* ]] || {
-	echo "Combined documentation page omitted parsed guide examples" >&2
+[[ "$singlepage" == *'<pre><code class="language-capy">'* &&
+	"$singlepage" == *"function RENDER"* && "$singlepage" == *"<strong>Output</strong>"* &&
+	"$singlepage" != *"Minimal executable example"* && "$singlepage" != *"guide-example"* ]] || {
+	echo "Combined documentation page misplaced parsed guide examples" >&2
 	exit 1
 }
 

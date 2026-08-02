@@ -73,6 +73,8 @@ if errors:
 articles = {path.stem: path for path in guides.glob("*.txt")}
 if set(articles) != checker.CANONICAL_GUIDES:
     raise SystemExit("Capy guide test found a guide set that differs from the checker canonical set")
+snippet_directory = Path(sys.argv[1]) / "snippets"
+snippet_directory.mkdir()
 unsafe = re.compile(r"\b(?:component_(?:capture|render)|file_[a-z_]+|job_[a-z_]+|mysql_[a-z_]+|server_[a-z_]+|shell_(?:exec|spawn)|sqlite_[a-z_]+|task(?:_[a-z_]+)?|unit_(?:call|compile|load)|ws_[a-z_]+)\s*\(")
 for slug in sorted(checker.CANONICAL_GUIDES):
     page = articles[slug]
@@ -91,7 +93,24 @@ for slug in sorted(checker.CANONICAL_GUIDES):
     source_path.write_text(source + "\n")
     source_path.chmod(0o644)
     (Path(sys.argv[1]) / f"{slug}.expected").write_text(output[0][1] + "\n")
+    for index, snippet in enumerate(re.findall(r"```capy\n(.*?)```", page.read_text(), re.S), 1):
+        if re.search(r"^function\s+(?:RENDER|CLI|WS|ONCE|INIT)\b", snippet, re.M) is None:
+            snippet = snippet.rstrip() + "\n\nfunction RENDER {}\n"
+        snippet_path = snippet_directory / f"{slug}-{index}.capy"
+        snippet_path.write_text(snippet.rstrip() + "\n")
 PY
+
+snippet_build="$test_directory/snippet-build"
+mkdir -p "$snippet_build"
+snippet_count=0
+for snippet in "$test_directory"/snippets/*.capy; do
+	snippet_name=${snippet##*/}
+	if ! scripts/compile_wasm_unit "$test_directory/snippets" "$snippet_build" "$snippet" unused.cpp "$snippet_name.wasm" "$snippet_build"; then
+		echo "Capy guide snippet failed to compile: $snippet_name" >&2
+		exit 1
+	fi
+	((snippet_count += 1))
+done
 
 cache_directory="$(scripts/unit_cache_directory "$bin_directory")$test_directory"
 test_name=${test_directory##*/}
@@ -119,17 +138,27 @@ for source in "$test_directory"/*.capy; do
 		echo "Capy documentation application failed to render $slug" >&2
 		exit 1
 	fi
-	if grep -qE 'DOC EXAMPLE ERROR|Compile-only: WS' "$page" ||
-		! grep -q '<h3>Example: RENDER</h3>' "$page" ||
-		! grep -q 'class="example-source">[^<]' "$page" ||
-		! grep -q '<div class="example-output">' "$page"; then
-		echo "Capy documentation application omitted the source or output for $slug" >&2
+	if grep -qE 'DOC EXAMPLE ERROR|Compile-only: WS|guide-example|Minimal executable example|Common variants' "$page" ||
+		! grep -q '<pre><code class="language-capy">' "$page" ||
+		! grep -q '<strong>Output</strong>' "$page" ||
+		! grep -q '<pre><code class="language-text">' "$page"; then
+		echo "Capy documentation application misplaced the source or output for $slug" >&2
 		exit 1
 	fi
+	python3 - "$page" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+html = Path(sys.argv[1]).read_text()
+pattern = r'<pre><code class="language-capy">.*?</code></pre><p><strong>Output</strong></p><pre><code class="language-text">.*?</code></pre>'
+if re.search(pattern, html, re.S) is None:
+    raise SystemExit("Capy documentation source and output are not adjacent")
+PY
 	((count += 1))
 done
 [[ "$count" -eq 12 ]] || {
 	echo "Capy guide test expected 12 canonical examples, ran $count" >&2
 	exit 1
 }
-echo "Capy guide HTTP examples passed for $count pages"
+echo "Capy guide HTTP examples passed for $count pages; $snippet_count additional snippets compiled"

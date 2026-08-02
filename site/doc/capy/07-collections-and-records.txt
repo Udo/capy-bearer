@@ -1,79 +1,129 @@
 :title
-7. Collections and records
+7. Arrays, tuples, and structs
 
 :content
-## Purpose
+Use an array for an ordered collection of one type. Use a tuple for a short fixed group. Use a struct when fields need names.
 
-Use typed arrays for ordered values of one type. Use tuples and structs for fixed layouts. Use DValue lists for dynamic boundary data.
-
-## Minimal executable example
+## Arrays
 
 :example capy render
+function RENDER {
+    var names := ["Ada", "Grace"]
+    print(names[0], "\n")
+}
+
+:output
+Ada
+
+:content
+Array indexes start at zero. An invalid index traps.
+
+Declare the item type when an array starts empty:
+
+```capy
+function RENDER {
+    var names : [string] = []
+    names.push("Ada")
+    print(names[0], "\n")
+}
+```
+
+`push`, `pop`, `insert`, `remove`, `clear`, `reserve`, and `resize` change an array.
+
+## Array values
+
+Arrays use copy-on-write value semantics:
+
+```capy
+function RENDER {
+    var first := [1, 2]
+    var second := first
+    second.push(3)
+    print(first[0], " ", second[2], "\n")
+}
+```
+
+`first` still has two items. Capy shares storage until one copy changes.
+
+A `for` loop reads array items in order:
+
+```capy
+function RENDER {
+    var names := ["Ada", "Grace"]
+    for name = names {
+        print(name, "\n")
+    }
+}
+```
+
+The loop item is a value, not an assignable array position. Use an index to replace an item.
+
+## Tuples
+
+A tuple has fixed positions and can contain different types:
+
+```capy
+function RENDER {
+    var result := (200, "ok")
+    print(result[0], " ", result[1], "\n")
+}
+```
+
+`(value)` only groups an expression. It does not create a one-item tuple.
+
+A tuple can spread into matching function parameters:
+
+```capy
+function add(left : s32, right : s32) s32 { left + right }
+
+function RENDER {
+    var pair := (20, 22)
+    var answer := add(...pair)
+    print(answer, "\n")
+}
+```
+
+## Structs
+
+A struct defines a named fixed layout:
+
+```capy
 struct Point {
     x : s32
     y : s32
 }
 
-function sum(left : s32, right : s32) s32 { left + right }
+function RENDER {
+    var point := Point(3, 4)
+    print(point.x, " ", point.y, "\n")
+}
+```
+
+The generated constructor takes fields in declaration order.
+
+A receiver-first function can use method syntax:
+
+```capy
+struct Point {
+    x : s32
+    y : s32
+}
+
 function total(point : Point) s32 { point.x + point.y }
 
 function RENDER {
-    var values : [s32] = [1, 2]
-    var copy := values
-    copy.push(3)
-    values[0] = 4
-
-    var loop_total := 0
-    for value = values { loop_total = loop_total + value }
-
-    var pair := (3, 4)
     var point := Point(3, 4)
-    var dynamic := dval(["one", "two"])
-
-    print(values[0], "|", copy[2], "|", loop_total, "\n")
-    print(sum(...pair), "|", point.total(), "\n")
-    print(dynamic[0], "\n")
+    print(point.total(), "\n")
 }
+```
 
-:output
-4|3|6
-7|7
-one
+This is the same call as `label(user)`.
 
-## Output
+## Choose the right shape
 
-The program writes the three lines shown above. The final line ends with a newline.
-
-## Explanation
-
-An array has one static item type. `[s32]` is an array of signed 32-bit integers. Array indexes start at zero. `push`, `pop`, `insert`, `remove`, `clear`, `reserve`, and `resize` change an array.
-
-Arrays have copy-on-write value semantics. The assignment to `copy` does not make later mutations visible through `values`. Capy delays a physical copy until a mutation needs one.
-
-A `for` loop reads each range or array item in order. The loop item is not an assignable array slot. Assign through an index when the program must replace an item.
-
-A comma expression creates a tuple. A tuple has a fixed number of fields and static field types. `(value)` groups an expression. It does not create a one-item tuple.
-
-A struct has a nominal name and fields in declaration order. Its generated constructor and struct spread use that order. Receiver-first functions, such as `total(point)`, also support method syntax as `point.total()`.
-
-Prefix `...` spreads a tuple or struct into fixed call parameters. It spreads an array only into a variadic tail.
-
-`dval(["one", "two"])` creates a dynamic DValue list. It is not a `[string]` array. DValue lists cross Bearer boundaries as copied values and use safe dynamic access rules.
-
-## Common variants
-
-Use an empty typed declaration such as `var names : [string] = []` before adding items. Use a tuple for a short fixed result. Use a struct when field names make the layout clear. Use a DValue list for decoded input or a unit call.
-
-## Edge cases
-
-An array index outside its bounds traps. Empty `pop` and invalid `insert` or `remove` also trap. Tuples and structs do not expose padding or byte offsets. A struct field that stores a function value takes priority over receiver-first method lookup.
-
-## Related reference
-
-`capy-03-values-and-types`, `capy-05-functions-and-closures`, `capy-08-dynamic-values`, `0_DValue`
+Use an array when every item has one static type. Use a tuple for a small fixed return value. Use a struct for application data with a stable shape. Use a DValue map or list for decoded input and data that crosses a Bearer boundary.
 
 :see
 capy-03-values-and-types
 capy-05-functions-and-closures
 capy-08-dynamic-values
-0_DValue

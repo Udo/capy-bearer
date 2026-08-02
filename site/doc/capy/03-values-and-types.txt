@@ -1,102 +1,127 @@
 :title
-3. Values and types
+3. Types
 
 :content
-## Purpose
+Every Capy value has a type. The compiler checks types before the program runs. It usually infers the type of a local value.
 
-Use types to describe each value before the program runs. Capy checks types when it compiles a source file.
+## Integers
 
-## Minimal executable example
+An integer literal has type `s32` unless a suffix selects a wider type:
 
 :example capy render
-struct User {
-    name : string
-    active : bool
-}
-
-type Count = s64
-
 function RENDER {
-    var title := "Capy"
-    var enabled := true
-    var small := 7
-    var signed : Count = 8s64
-    var unsigned := 9u64
-    var ratio := 2.5
-    var empty := ""
-    var missing := none
-    var tags := ["guide", "types"]
-    var point := (3, 4)
-    var user := User("Ada", enabled)
-    var profile := {nickname: "Ada"}
-
-    print(title, "|", small, "|", signed, "|", unsigned, "|", ratio, "|")
-    print(tags[0], "|", point[1], "|", user.name, "|", profile.nickname, "|")
-    print(empty == "", "|", missing?, "\n")
+    var answer := 42
+    print(answer, "\n")
 }
 
 :output
-Capy|7|8|9|2.5|guide|4|Ada|Ada|true|false
+42
 
-## Output
-
-The program writes:
-
-```text
-Capy|7|8|9|2.5|guide|4|Ada|Ada|true|false
-```
-
-## Explanation
-
-`string` stores bytes. `bool` has the values `true` and `false`. An integer literal has type `s32` by default.
-
-Use `s64` and `u64` suffixes for wide integer literals. A decimal point or exponent makes an `f64` literal. The compiler rejects a literal outside its selected type range.
-
-`dval` is a copied dynamic value. `none` has type `dval` and represents missing data. An empty string is a present string value. It is not `none`.
-
-`missing?` is false because `missing` is `none`. The empty string comparison is true because `empty` has a string value.
-
-`[T]` is an array of one item type. A tuple has fixed positions and can use different types. A struct is a named value with declared fields.
-
-A `type` alias is a compile-time spelling for another type. `Count` has the same type identity as `s64`. It creates no runtime value or tag.
-
-## Common variants
-
-State a local type when inference is not clear:
+:content
+Use `s64` for a signed 64-bit integer and `u64` for an unsigned 64-bit integer:
 
 ```capy
-var total : u64 = 12u64
+function RENDER {
+    var signed := 8s64
+    var unsigned := 9u64
+    print(signed, " ", unsigned, "\n")
+}
 ```
 
-Result: compiles.
+Arithmetic requires operands of the same type. Use a constructor when a value must change type.
 
-Use a DValue list when data must cross a Bearer boundary:
+## Booleans and floating-point numbers
+
+A `bool` is either `true` or `false`. Conditions require a boolean value.
 
 ```capy
-var items := dval(["one", "two"])
+function RENDER {
+    var enabled := true
+    var ratio := 2.5
+    print(enabled, " ", ratio, "\n")
+}
 ```
 
-Result: compiles.
+A decimal point or exponent makes an `f64` literal.
 
-Use a map literal for a dynamic record:
+## Strings
+
+A `string` stores bytes:
 
 ```capy
-var settings := {theme: "dark", alerts: true}
+function RENDER {
+    var name := "Ada"
+    var empty := ""
+    print(name, empty, "\n")
+}
 ```
 
-Result: compiles.
+An empty string is still a string value. It is not missing data.
 
-## Edge cases
+## Arrays, tuples, and structs
 
-A bare list is a typed array. A list inside `dval(...)` becomes a DValue list. Arrays and DValue lists are different value types.
+An array contains values of one type:
 
-Use bracket indexing for DValue keys that are dynamic, numeric, or not identifiers. Use member syntax for an identifier key.
+```capy
+function RENDER {
+    var names := ["Ada", "Grace"]
+    print(names[0], "\n")
+}
+```
 
-`void` is a function result type. It is not a local value or array item type. `module` is opaque and cannot enter an aggregate or DValue.
+A tuple has a fixed number of positions, which can have different types:
 
-## Related reference
+```capy
+function RENDER {
+    var point := (3, 4)
+    print(point[0], " ", point[1], "\n")
+}
+```
 
-Read the aggregate guide for array and struct operations. Read the DValue reference for conversion and container functions.
+A struct gives names to fixed fields:
+
+```capy
+struct Point {
+    x : s32
+    y : s32
+}
+
+function RENDER {
+    var point := Point(3, 4)
+    print(point.x, " ", point.y, "\n")
+}
+```
+
+The collections chapter covers these types in detail.
+
+## Dynamic values and none
+
+A `dval` holds data whose shape is known only at run time. The `none` value represents missing dynamic data:
+
+```capy
+function RENDER {
+    var profile := {name: "Ada"}
+    var missing := none
+    print(profile.name, " ", missing?, "\n")
+}
+```
+
+`none` is different from `""`, `false`, an empty map, and an empty list. The dynamic-values chapter explains safe reads and conversions.
+
+## Type aliases
+
+A type alias gives another name to a type:
+
+```capy
+type Count = s64
+
+function RENDER {
+    var total : Count = 12s64
+    print(total, "\n")
+}
+```
+
+An alias does not create a new runtime type.
 
 :see
 capy-04-expressions-and-control-flow

@@ -1,67 +1,92 @@
 :title
-9. Web handlers and requests
+9. Handling a web request
 
 :content
-## Purpose
+A `RENDER` handler receives a web request and writes its response. Bearer creates a new request workspace for each invocation.
 
-Use handlers to receive a Bearer request and write its response. Each handler has a fixed name and no result value.
-
-## Minimal executable example
+## Read a request value
 
 :example capy render
 function RENDER {
-    var input := {user: {name: "Ada"}}
-    var nickname := input.user.nickname
-    if nickname? {
-        print(string(nickname), "\n")
-    } else {
-        print(string(input.user.name), "\n")
+    var name := request_param("name")
+    if name == "" {
+        name = "guest"
     }
+    response_header("Content-Type", "text/plain; charset=utf-8")
+    print("Hello, ", name, "!\n")
 }
 
 :output
-Ada
+Hello, guest!
 
-## Output
+:content
+Open the page with `?name=Ada` to change the response. `request_param` reads a query or form parameter and returns an empty string when it is absent.
 
-The page writes `Ada` and a newline.
+## Request input
 
-## Explanation
+Use the narrow request functions when the program needs one value:
 
-`RENDER` handles a normal HTTP page request. `CLI` handles a local CLI request. The default CLI socket is `/run/bearer/cli.sock`.
+```capy
+function RENDER {
+    var query := request_get("q")
+    var token := request_cookie("token")
+    var body := request_body()
+    print(query, token, body)
+}
+```
 
-A request handler can have no parameter or one `request` parameter. A handler cannot return a value, overload, use `any`, use a variadic parameter, or use coercion.
+Use `request_context()` when code needs a copied dynamic snapshot of the request:
 
-Use `request_context()` for a copied DValue request snapshot. Use `request_context(request)` when a handler received the opaque request value. Read optional input with safe member or index access.
+```capy
+function RENDER {
+    var context := request_context()
+    var name := string(context.params.name, "guest")
+    print(name, "\n")
+}
+```
 
-A missing key, an unusable intermediate value, and an invalid list index produce `none`. Use `value?` to test for `none`. Use a scalar constructor fallback such as `string(value, "guest")` when text must always exist.
+Safe DValue reads return `none` for missing data. Validate all request input before use.
 
-Use `request_get`, `request_post`, `request_cookie`, `request_session`, `request_param`, and `request_body` for direct request reads. These string functions return an empty string when their key is absent.
-
-Call `session_start` before session use. It restores a valid named session or creates one. Use `session_set`, `session_remove`, and `session_destroy` to change that session.
-
-Use `response_status`, `response_header`, `response_cookie`, `redirect`, and `print` to form a response. Bearer validates response status codes and header names.
-
-`INIT` runs after Bearer materializes a unit in a request workspace. `ONCE` runs before the first entry or component call for that resolved unit in that request. Both can run again in another request.
-
-Bearer creates a new workspace for each request. Locals, copied DValues, module handles, and request state do not cross that boundary. A named session is separate server-side state.
-
-## Common variants
-
-Use a request parameter and a fallback for a normal page:
+A handler can also receive the opaque request value:
 
 ```capy
 function RENDER(request : request) {
     var context := request_context(request)
-    var name := string(context.params.name, "guest")
-    response_header("Content-Type", "text/plain; charset=utf-8")
-    print("Hello, ", name, "\n")
+    print(string(context.params.name, "guest"))
 }
 ```
 
-Result: compiles. The response depends on the request.
+## Form a response
 
-Use a local administration handler:
+`print` appends bytes to the response body. Set status and headers before the response is sent:
+
+```capy
+function RENDER {
+    response_status(404, "Not Found")
+    response_header("Content-Type", "text/plain; charset=utf-8")
+    print("not found\n")
+}
+```
+
+Use `response_cookie` for a cookie and `redirect` for a redirect response.
+
+## Sessions
+
+Call `session_start` before session access. Then use `session_set`, `session_remove`, and `session_destroy` to change server-side session data.
+
+```capy
+function RENDER {
+    session_start("account")
+    session_set("theme", "dark")
+    print("saved\n")
+}
+```
+
+A session persists separately from the request workspace.
+
+## Other handlers
+
+`CLI` handles a local CLI request. `INIT` runs when Bearer materializes a unit in a request workspace. `ONCE` runs before the first entry or component call for that unit in the request.
 
 ```capy
 function CLI {
@@ -69,39 +94,11 @@ function CLI {
 }
 ```
 
-Result: compiles. Bearer does not call `CLI` for a public HTTP request.
-
-## Edge cases
-
-This is a compile-only lifecycle example:
-
-```capy
-function INIT {
-    print("unit setup\n")
-}
-
-function ONCE {
-    print("request setup\n")
-}
-
-function RENDER {
-    print("page\n")
-}
-```
-
-Do not use `INIT` or `ONCE` for worker-local persistent state. A trap stops the current invocation. The next request starts with a new workspace.
-
-Use `dval_require(context, "params")` only when missing input is an error. It traps for a missing key or unusable access.
-
-## Related reference
-
-Read the handler, request, session, and response reference pages for each API contract.
+Handlers do not return application values. A trap stops the current invocation. The next request starts with a new workspace.
 
 :see
-1_CLI
-1_RENDER
-1_INIT
-1_ONCE
 0_Request
+1_RENDER
+1_CLI
 session_start
-capy-07-collections-and-records
+capy-08-dynamic-values

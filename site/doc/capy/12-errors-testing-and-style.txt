@@ -1,87 +1,89 @@
 :title
-12. Errors, testing, and style
+12. Errors and testing
 
 :content
-## Purpose
+Capy reports type and syntax errors before a unit runs. Runtime failures include the original Capy source location.
 
-Use compiler diagnostics and focused tests to find faults before deployment. Use strict DValue reads only for required schema fields.
+## Handle expected missing data
 
-## Minimal executable example
+Use a fallback when absence is valid:
 
 :example capy render
+function display_name(profile : dval) string {
+    string(profile.name, "guest")
+}
+
 function RENDER {
-    var profile := {name: "Ada"}
-    var nickname := profile.nickname
-    print(string(nickname, "none"), "\n")
+    print(display_name({:}), "\n")
 }
 
 :output
-none
+guest
 
-## Output
+:content
+The fallback handles both `none` and failed string conversion. It does not hide a compiler error or an unrelated runtime trap.
 
-The page writes `none` and a newline.
+## Compiler errors
 
-## Explanation
+The compiler rejects invalid syntax, unknown names, and incompatible types. For example, this assignment is invalid:
 
-Syntax, type, scope, overload, handler, and unsupported-operation faults are compiler diagnostics. Fix the first reported fault before you inspect later diagnostics.
-
-Invalid array indexes, failed checked conversions, allocation faults, explicit `trap`, and strict DValue reads are runtime traps. Bearer reports the source location for a trapping user expression. Function entries provide a fallback location.
-
-Safe DValue member and index reads return `none`. They do not mutate the DValue. Use `value?` and a constructor fallback for optional input.
-
-Use `dval_require(value, key)` or `dval_require(value, index)` when a schema requires a child. It traps for missing or unusable access. Do not use it for ordinary optional input.
-
-Source maps keep user source locations connected to generated artifacts. Standard-library implementation frames do not replace the user call location.
-
-Capy uses request-local ARC for managed values. Assignment, calls, returns, and block exits must release each owned temporary exactly once. Strong cycles remain until request teardown.
-
-The same source, compiler identity, ABI, and options produce deterministic compilation and artifact generation. A source or ABI change produces a new valid generation. Do not depend on stale generated output.
-
-Capy does not sandbox an application. Treat request data, session values, database text, files, commands, and remote content as untrusted at their boundaries. Keep markup escaped unless you explicitly trust it. Validate paths, command input, and external permissions.
-
-## Common variants
-
-Use a strict schema check when a required field is absent:
-
-```capy
+```capy-error
 function RENDER {
-    var input := {name: "Ada"}
-    var name := string(dval_require(input, "name"))
-    print(name, "\n")
+    var count := 1
+    count = "one"
 }
 ```
 
-Result: writes `Ada`. The same code traps when `name` is absent.
+`count` has type `s32`. Assignment cannot change its type to `string`.
 
-Use a safe optional read when a field can be absent:
+Read the first diagnostic and its source location. Later messages can be consequences of the first error.
+
+## Runtime traps
+
+Use strict access when missing data violates the program contract:
 
 ```capy
-var nickname := string(profile.nickname, "guest")
+function RENDER {
+    var profile := {:}
+    var name := dval_require(profile, "name")
+    print(name)
+}
 ```
 
-Result: compiles. It uses `guest` when the read returns `none` or conversion fails.
+This traps if `name` is missing or the access path is unusable. Other traps include division by zero, invalid typed-array indexes, failed host operations, and an explicit `trap()`.
 
-Test code through its real handler. Use `CLI` for local pure behavior. Use `RENDER` or `COMPONENT` for HTTP output. Test exports and components through their real unit boundaries. Check `arc_live()` at focused request exits when ownership changes.
+Do not use a fallback for data that the program requires. A clear trap at the boundary is safer than incorrect work with a fabricated value.
 
-## Edge cases
+## Test through Bearer
 
-Include absent and malformed DValue input in each boundary test. Also test zero, negative, and wide integers, repeated requests, cancellation, timeouts, and untrusted markup.
+Run one page through the local CLI socket:
 
-After a trap, the current request stops. Do not use a trap for normal control flow. The next request starts with a new request workspace.
+```text
+scripts/bearer-cli /path/to/page.capy
+```
 
-Keep functions small. Keep parsing and response changes near the handler. Use explicit types at boundaries and inference for obvious locals.
+A test should check the exact response body and the expected status. Include failure cases for missing input, invalid conversions, and boundary errors.
 
-Use strings for text, markup for HTML, structs for stable records, arrays for typed sequences, and DValues for dynamic boundary data. Use explicit constructors instead of conversion chains.
+The repository test suites exercise the compiler, Wasm runtime, source maps, components, units, tasks, and documentation examples:
 
-## Related reference
+```text
+scripts/test_capy_native.sh
+scripts/test_capy_phase1.sh
+scripts/test_capy_reference.sh
+```
 
-Read the DValue, handler, and source-language reference pages for complete rules.
+Run the focused test while editing. Run the broader gate before deployment.
+
+## Keep code direct
+
+Prefer a small typed helper over repeated dynamic conversion. Keep request parsing near the request boundary. Convert a DValue to a static type once the required shape is known.
+
+Use one name for one thing. Remove wrappers that only rename another function. Keep comments for behavior that the code cannot make clear.
+
+## Find API details
+
+The language guide explains how Capy code fits together. The API reference gives exact signatures and failure behavior for standard-library functions. Use the generated Capy signature on each API page rather than translating a C++ signature by hand.
 
 :see
+capy-08-dynamic-values
 capy-09-web-handlers-and-requests
-capy-10-units-components-and-exports
-capy-11-tasks-and-jobs
-0_DValue
-2_DValue_has
-1_RENDER

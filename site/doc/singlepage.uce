@@ -1,6 +1,6 @@
 #include "lib/doc_page.h"
 
-// Render generated Capy signatures, C++ signatures, and parsed guide examples as distinct sections.
+// Render generated signatures and inline guide examples in one document.
 StringMap* already_shown_items;
 
 void render_doc_params(DValue param_lines)
@@ -31,13 +31,6 @@ void render_doc_example_sources(DocPage doc_page)
 	{
 		?><div class="example error"><h3>Example format error</h3><pre><?= doc_page.example_parse_error ?></pre></div><?
 		return;
-	}
-	for(u64 idx = 0; idx < doc_page.guide_examples.size(); idx++)
-	{
-		DValue example = doc_page.guide_examples[idx];
-		?><div class="example guide-example"><h3>Example: <?= doc_example_handler_name(example["entry"].to_string()) ?></h3>
-		<div class="example-language capy"><h4><?= doc_example_language_label("capy") ?></h4><pre class="example-source"><?= example["body"].to_string() ?></pre><div class="example-output"><div class="example-output-label">Output</div><pre><?= example["output"].to_string() ?></pre></div></div>
-		</div><?
 	}
 	for(u64 idx = 0; idx < doc_page.example_pairs.size(); idx++)
 	{

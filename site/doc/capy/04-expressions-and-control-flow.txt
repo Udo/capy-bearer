@@ -2,110 +2,114 @@
 4. Expressions and control flow
 
 :content
-## Purpose
+An expression produces a value or performs an action. Capy evaluates listed expressions from left to right.
 
-Use expressions to calculate values and control program flow. Capy evaluates expressions from left to right where the syntax lists values.
-
-## Minimal executable example
+## Calculate a value
 
 :example capy render
 function RENDER {
-    var profile := {nickname: "Ada"}
-    var total := {
-        var price := 4
-        var quantity := 3
-        price * quantity
-    }
-    total = total + 1
-
-    var label := if total > 10 && profile.nickname? {
-        "ready"
-    } else {
-        "waiting"
-    }
-
-    var index := 0
-    while index < 2 {
-        print(index)
-        index = index + 1
-    }
-    for number = 2..4 {
-        print(number)
-    }
-    print("|", label, "|", total, "|", profile.nickname, "|", profile.missing?, "\n")
+    var price := 6
+    var quantity := 2
+    var total := price * quantity
+    print(total, "\n")
 }
 
 :output
-0123|ready|13|Ada|false
+12
 
-## Output
+:content
+`*` runs before `+` and `-`. Parentheses make the intended order explicit.
 
-The program writes:
+## Declare and assign locals
 
-```text
-0123|ready|13|Ada|false
-```
-
-## Explanation
-
-A declaration uses `:=`. Assignment uses `=` and replaces an existing local. Both expressions evaluate their right side once.
-
-A block runs its expressions in order. Its final reachable expression is its value. The `total` block returns `price * quantity`.
-
-An `if` with `else` returns the selected branch value. Both branches must have the same type when both can finish. An `if` without `else` has type `void`.
-
-`while` repeats while its condition is true. `for` reads each value from an array or range. The range `2..4` is half-open. It contains `2` and `3`.
-
-`*` runs before `+`. Comparisons produce `bool`. `&&` and `||` short-circuit, so Capy runs their right side only when needed.
-
-Calls, indexes, and member reads bind before prefix and binary operators. `profile.nickname?` tests presence after the member read. It is true for every DValue value except `none`.
-
-DValue reads are safe. A missing key, unusable intermediate value, negative list index, or out-of-range list index produces `none`. Reads do not change the DValue.
-
-## Common variants
-
-Use `break` to leave the nearest loop. Use `continue` to start its next iteration:
+`:=` declares a local and infers its type. `=` replaces its value:
 
 ```capy
-while true {
-    break
+function RENDER {
+    var count := 1
+    count = count + 1
+    print(count, "\n")
 }
 ```
 
-Result: compiles.
+A local exists until the end of its block. An inner block can declare a new local with the same name without changing the outer local.
 
-Use brackets for a dynamic DValue key:
+## Conditions
 
-```capy
-var key := "nickname"
-print(profile[key])
-```
-
-Result: compiles.
-
-Use `dval_require` when missing data is an error:
+Use `if` to select code:
 
 ```capy
-var nickname := dval_require(profile, "nickname")
+function RENDER {
+    var total := 12
+    if total > 10 {
+        print("large\n")
+    } else {
+        print("small\n")
+    }
+}
 ```
 
-Result: compiles.
+The condition must have type `bool`. `&&` and `||` stop as soon as the result is known.
 
-## Edge cases
+An `if` with `else` can also produce a value:
 
-A condition must have type `bool`. Capy does not treat numbers, strings, or handles as conditions.
+```capy
+function RENDER {
+    var total := 12
+    var label := if total > 10 {
+        "large"
+    } else {
+        "small"
+    }
+    print(label, "\n")
+}
+```
 
-Arithmetic and comparisons require equal operand types. Integer division by zero traps.
+Both branches must produce the same type.
 
-`value?` requires a DValue. It returns false only for `none`. A key that contains `none` still exists. Use `dval_has` when you must distinguish a missing key from a present key with `none`.
+## Loops
 
-Only a declared local DValue root supports nested DValue assignment. Missing, `none`, and scalar intermediate values become maps during such an assignment. An existing list accepts only an in-range nonnegative numeric selector.
+A `while` loop repeats while its condition is true:
 
-## Related reference
+```capy
+function RENDER {
+    var index := 0
+    while index < 3 {
+        print(index, "\n")
+        index = index + 1
+    }
+}
+```
 
-Read the function guide for return behavior. Read the DValue reference for strict reads and update functions.
+A `for` loop reads each value from an array or range:
+
+```capy
+function RENDER {
+    for number = 1..4 {
+        print(number, "\n")
+    }
+}
+```
+
+The range is half-open. `1..4` contains `1`, `2`, and `3`. Use `break` to leave the nearest loop. Use `continue` to start its next iteration.
+
+## Blocks
+
+A block produces its final reachable expression:
+
+```capy
+function RENDER {
+    var total := {
+        var subtotal := 10
+        subtotal + 2
+    }
+    print(total, "\n")
+}
+```
+
+This makes `total` equal to `12`. A block can keep temporary locals close to the calculation that uses them.
 
 :see
+capy-03-values-and-types
 capy-05-functions-and-closures
-capy-08-dynamic-values
-2_DValue_has
+capy-07-collections-and-records
