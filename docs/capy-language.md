@@ -14,7 +14,9 @@ An identifier starts with a letter or underscore. Later characters can also be d
 
 String literals use double quotes. The lexer accepts the documented byte escapes. Markup uses `<>...</>`. An escaped markup field uses `<?= expression ?>`. A raw markup field uses `<?: expression ?>` and requires `markup`.
 
-Integer literals have type `s32` by default. The suffixes `s64` and `u64` select the wide integer types. A decimal point or exponent selects `f64`. The compiler rejects literals outside the selected type range.
+Integer literals have type `s32` when no expected integer type is present. A stated local type, parameter, function result, assignment target, typed array, struct field, or other binary operand can supply an expected integer type. An integer constructor also selects a wide type. For example, `var count : s64 = 8` and `var count := s64(8)` both produce `s64`. Numeric suffixes are not part of Capy. A decimal point or exponent selects `f64`. The compiler rejects literals outside the selected type range.
+
+An unconstrained literal prefers an exact `s32` overload. If no `s32` overload matches, one unambiguous integer parameter type can supply the context. Equal `s64` and `u64` candidates are ambiguous. Capy does not use a result type to select an overload.
 
 `none` is a reserved literal. It has type `dval`.
 
@@ -192,8 +194,8 @@ A type name is a constructor overload set. Built-in constructors convert scalar 
 string(value : dval, fallback : string = "")
 bool(value : dval, fallback : bool = false)
 s32(value : dval, fallback : s32 = 0)
-s64(value : dval, fallback : s64 = 0s64)
-u64(value : dval, fallback : u64 = 0u64)
+s64(value : dval, fallback : s64 = 0)
+u64(value : dval, fallback : u64 = 0)
 f64(value : dval, fallback : f64 = 0.0)
 ```
 

@@ -11,7 +11,7 @@ return value : last modification time as a Unix timestamp, or 0 when unavailable
 :example capy render
 file_put_contents("/tmp/doc-mtime.txt", "x")
 var result := "missing"
-if file_mtime("/tmp/doc-mtime.txt") > 0u64 { result = "has a modification time" }
+if file_mtime("/tmp/doc-mtime.txt") > 0 { result = "has a modification time" }
 print(result, "\n")
 
 :example cpp render

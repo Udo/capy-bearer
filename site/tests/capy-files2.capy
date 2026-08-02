@@ -11,7 +11,7 @@ function CLI {
         var appended := file_append(source, "c", "")
         var copied_ok := file_copy(source, copied)
         var renamed_ok := file_rename(copied, renamed)
-        var truncated := file_truncate(renamed, 2u64)
+        var truncated := file_truncate(renamed, u64(2))
         var chmodded := file_chmod(source, 384)
         var linked := file_symlink(source, link)
         var st := file_stat(source)
@@ -30,7 +30,7 @@ function CLI {
         var source_contents := file_get_contents(source)
         var renamed_contents := file_get_contents(renamed)
         var link_contents := file_get_contents(link)
-        var has_mtime := file_mtime(source) > 0u64
+        var has_mtime := file_mtime(source) > u64(0)
         var old_cwd := cwd_get()
         cwd_set(root)
         var cwd_changed := cwd_get() == root

@@ -42,11 +42,11 @@ function capture(value : u64, decimal : f64, text : string) (function(add : u64)
 function CLI {
     {
         var counts : Counts = [Count(-2)]
-        var tuple : WideTuple = (1, counts[0], 3u64, 4.5, clone("x"))
+        var tuple : WideTuple = (1, counts[0], u64(3), 4.5, clone("x"))
         var wide := Wide(...tuple)
         var closure := capture(wide.unsigned, wide.decimal, wide.text)
         var output : Printer = print
-        output(wide.narrow, "|", wide.signed, "|", wide.unsigned, "|", wide.decimal, "|", wide.text, "|", closure(2u64), "|")
+        output(wide.narrow, "|", wide.signed, "|", wide.unsigned, "|", wide.decimal, "|", wide.text, "|", closure(u64(2)), "|")
     }
     print(choose(true), "|", choose(false), "|", choose_text(true), "|", choose_text(false), "|", early(true), "|", early(false), "|", arc_live())
 }

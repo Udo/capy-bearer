@@ -1,6 +1,6 @@
 function CLI {
     var epoch := time_parse("1970-01-01 00:00:05 UTC")
-    print(epoch, "|", time_parse(""), "|", time_format_utc("%Y", 5u64), "|", length(time_format_local("%Y", 5u64)) > 0, "|", contains(time_format_relative(time(), "now", 90u64, "medium", 5400u64, "old"), "now"), "|")
+    print(epoch, "|", time_parse(""), "|", time_format_utc("%Y", u64(5)), "|", length(time_format_local("%Y", u64(5))) > 0, "|", contains(time_format_relative(time(), "now", u64(90), "medium", u64(5400), "old"), "now"), "|")
     usleep(1)
     print(arc_live())
 }

@@ -18,7 +18,7 @@ Use the same inputs to reproduce procedural values. Capy calls the optional fift
 
 
 :example capy render
-var generated := gen_float(1.0, 0.0, 1u64)
+var generated := gen_float(1.0, 0.0, 1)
 print("float\n")
 
 :example cpp render

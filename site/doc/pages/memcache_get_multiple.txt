@@ -18,7 +18,7 @@ The C++ API returns `StringMap` instead.
 
 :example capy render
 var conn := memcache_connect()
-if conn != 0u64 {
+if conn != 0 {
     memcache_set(conn, "doc_k1", "v1")
     memcache_set(conn, "doc_k2", "v2")
     var values := memcache_get_multiple(conn, dval(["doc_k1", "doc_k2"]))

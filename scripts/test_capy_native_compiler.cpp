@@ -144,13 +144,40 @@ int main()
 		"function add(left : s32, right : s32 = 2) s32 { left + right }\n"
 		"function suffix(value : string, tail : string = \"!\") string { value + tail }\n"
 		"function text(value : as string, suffix : string = \"!\") string { value + suffix }\n"
-		"function s64(value : s32, extra : s32 = 0) s64 { 3s64 }\n"
-		"function literals(a : s32 = 1, b : s64 = 2s64, c : u64 = 3u64, d : f64 = 4.5, e : bool = false, f : string = \"x\") {}\n"
+		"function s64(value : s32, extra : s32 = 0) s64 { s64(3) }\n"
+		"function literals(a : s32 = 1, b : s64 = 2, c : u64 = 3, d : f64 = 4.5, e : bool = false, f : string = \"x\") {}\n"
 		"function next(value : s32) s32 { value }\n"
 		"function ordered(first : s32, second : s32 = 2) s32 { first + second }\n"
 		"function CLI { var first := add(1); var second := \"x\".suffix(); var converted := text(1); var count : Count = Count(3); literals(); print(ordered(next(1)), first, second, converted, count) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(defaults.wasm, {.bearer_abi_version = "11"}).valid);
 	assert(defaults.source_map.find("\t5\t") != std::string::npos);
+	const auto contextual_integers = capy::compile_bearer_unit(
+		"struct WideValue { value : u64 }\n"
+		"function parameter(value : s64) s64 { value }\n"
+		"function returned() u64 { return 18446744073709551615 }\n"
+		"function implicit() s64 { 8 }\n"
+		"function pick(value : s32) s32 { 1 }\nfunction pick(value : s64) s32 { 2 }\n"
+		"function CLI { var a : s64 = 8; var b := s64(8); var c : u64 = 9; var d := u64(9); "
+		"var minimum : s64 = -9223372036854775808; var minimum_inferred := s64(-9223372036854775808); "
+		"var maximum : u64 = 18446744073709551615; var maximum_inferred := u64(18446744073709551615); "
+		"var values : [u64] = [18446744073709551615]; values.push(1); values.insert(0, 2); values.resize(4, 3); var field := WideValue(18446744073709551615); "
+		"var callback : function(value : s64) s64 = parameter; "
+		"a = 9223372036854775807; print(callback(8) + s64(1), parameter(8), returned(), implicit(), maximum == 18446744073709551615, pick(8), "
+		"a, b, c, d, minimum, minimum_inferred, maximum, maximum_inferred, values[0], field.value) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(contextual_integers.wasm, {.bearer_abi_version = "11"}).valid);
+	for (const auto& [source, expected] : {
+			 std::pair{"function CLI { var value := 2147483648 }\n", "outside the s32 range"},
+			 std::pair{"function CLI { var value : s64 = 9223372036854775808 }\n", "outside the s64 range"},
+			 std::pair{"function CLI { var value : u64 = -1 }\n", "outside the u64 range"},
+			 std::pair{"function CLI { var value := u64(18446744073709551616) }\n", "outside the u64 range"},
+			 std::pair{"function CLI { var value := s64(-9223372036854775809) }\n", "outside the s64 range"},
+			 std::pair{"function pick(value : s64) s32 { 1 }\nfunction pick(value : u64) s32 { 2 }\nfunction CLI { pick(8) }\n", "ambiguous contextual integer overload"},
+			 std::pair{"function CLI { var value := 1s64 }\n", "numeric suffixes were removed"},
+		 })
+	{
+		try { capy::compile_bearer_unit(source, options); assert(false); }
+		catch (const capy::Error& error) { assert(error.message.find(expected) != std::string::npos); }
+	}
 	const auto default_string_arc = capy::compile_bearer_unit(
 		"function echo(value : string = \"x\") string { value }\nfunction CLI { var value := echo(); print(arc_live()) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(default_string_arc.wasm, {.bearer_abi_version = "11"}).valid);
@@ -162,7 +189,7 @@ int main()
 		"function show(value : as Text) string { value }\n"
 		"function next_value() dval { dval(\"7\") }\n"
 		"function next_fallback() string { \"fallback\" }\n"
-		"function CLI { var value := next_value(); print(string(value), string(value, next_fallback()), bool(value), bool(value, true), s32(value), s32(value, 7), s64(value), s64(value, 7s64), u64(value), u64(value, 7u64), f64(value), f64(value, 7.0), show(value), arc_live()) }\n", options);
+		"function CLI { var value := next_value(); print(string(value), string(value, next_fallback()), bool(value), bool(value, true), s32(value), s32(value, 7), s64(value), s64(value, s64(7)), u64(value), u64(value, u64(7)), f64(value), f64(value, 7.0), show(value), arc_live()) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(dval_constructors.wasm, {.bearer_abi_version = "11"}).valid);
 	const std::string dval_constructor_bytes(dval_constructors.wasm.begin(), dval_constructors.wasm.end());
 	for (const char* import : {"bearer_dv_extract_string", "bearer_dv_extract_bool", "bearer_dv_extract_s32", "bearer_dv_extract_s64", "bearer_dv_extract_u64", "bearer_dv_extract_f64"})
@@ -178,7 +205,7 @@ int main()
 			 std::pair{"function sum(left : s32, right : s32 = 1) s32 { left + right }\nfunction CLI { var value : function(left : s32, right : s32) s32 = sum; value(1) }\n", "function value argument count"},
 			 std::pair{"host function __bearer_bad(value : s32 = 1)\nfunction CLI {}\n", "host declarations are available only"},
 			 std::pair{"function RENDER(value : s32 = 1) {}\n", "Bearer handlers cannot use default parameters"},
-			 std::pair{"function wrong(value : s32 = 1s64) {}\nfunction CLI {}\n", "default parameter literal must have type s32"},
+			 std::pair{"function wrong(value : s32 = 1.5) {}\nfunction CLI {}\n", "default parameter literal must have type s32"},
 			 std::pair{"function generic(value : any = 1) value::type { value }\nfunction CLI {}\n", "generic functions cannot use default parameters"},
 			 std::pair{"function values(...value : s32 = 1) {}\nfunction CLI {}\n", "variadic parameter cannot have a default value"},
 			 std::pair{"function CLI { var value := function(input : s32 = 1) s32 { input } }\n", "anonymous functions cannot use default parameters"},
@@ -299,12 +326,12 @@ int main()
 	catch (const capy::Error& error) { assert(error.message.find("member access requires a struct") != std::string::npos); }
 	const auto converted_dvals = capy::compile_bearer_unit(
 		"function accept(value : as dval) dval { value }\n"
-		"function CLI { var a := accept(\"x\"); var b := accept(2); var c := accept(-3s64); var d := accept(4u64); var e := accept(5.5); var f := accept(true) }\n", options);
+		"function CLI { var a := accept(\"x\"); var b := accept(2); var c := accept(s64(-3)); var d := accept(u64(4)); var e := accept(5.5); var f := accept(true) }\n", options);
 	const std::string converted_dval_bytes(converted_dvals.wasm.begin(), converted_dvals.wasm.end());
 	for (const std::string& import : {"bearer_dv_string_to_brrb", "bearer_dv_s32_to_brrb", "bearer_dv_s64_to_brrb", "bearer_dv_u64_to_brrb", "bearer_dv_f64_to_brrb", "bearer_dv_bool_to_brrb"})
 		assert(converted_dval_bytes.find(import) != std::string::npos);
 	const auto stdlib_converted_dvals = capy::compile_bearer_unit(
-		"function CLI { var a := dval_set(dval(0), \"x\"); var b := dval_assign(a, 1); var c := dval_push(dval([]), 2u64); var d := dval_put({:}, \"ok\", true); "
+		"function CLI { var a := dval_set(dval(0), \"x\"); var b := dval_assign(a, 1); var c := dval_push(dval([]), u64(2)); var d := dval_put({:}, \"ok\", true); "
 		"var task_id := task(\"/task\", 3.5); var output := component_capture(\"/component\", false); component_render(\"/component\", \"props\"); "
 		"var loaded := unit_load(\"/unit\"); var called := loaded.call(\"echo\", 4); var direct := unit_call(\"/unit\", \"echo\", \"input\") }\n", options);
 	assert(capy::wasm::validate_bearer_unit(stdlib_converted_dvals.wasm, {.bearer_abi_version = "11"}).valid);
@@ -336,7 +363,7 @@ int main()
 	assert(generic_method.source_map.find("F\t1\tnative-test.capy\n") != std::string::npos);
 	const auto converted_parameters = capy::compile_bearer_unit(
 		"function text(value : as string) string { value }\nfunction wide(value : as s64) s64 { value }\n"
-		"function CLI { print(text(42), text(false), text([1][0]), wide(7u64), string(8)) }\n", options);
+		"function CLI { print(text(42), text(false), text([1][0]), wide(u64(7)), string(8)) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(converted_parameters.wasm, {.bearer_abi_version = "11"}).valid);
 	const auto converted_dval_parameters = capy::compile_bearer_unit(
 		"type Text = string\nfunction text(value : as Text) string { value }\nfunction truth(value : as bool) bool { value }\n"
@@ -575,13 +602,13 @@ int main()
 	const std::string mysql_bytes(ordinary_mysql.wasm.begin(), ordinary_mysql.wasm.end());
 	assert(mysql_bytes.find("bearer_mysql_escape") != std::string::npos);
 	const auto typed_sized_hosts = capy::compile_bearer_unit(
-		"function CLI { var params := dval({:}); mysql_query(0u64, \"select 1\", params); sqlite_query(0u64, \"select 1\", params); regex_search(\"x\", \"x\"); regex_replace(\"x\", \"y\", \"x\"); unit_call(\"/x\", \"CLI\", params); json_decode(\"{}\"); base64_encode(\"x\") }\n", options);
+		"function CLI { var params := dval({:}); mysql_query(u64(0), \"select 1\", params); sqlite_query(u64(0), \"select 1\", params); regex_search(\"x\", \"x\"); regex_replace(\"x\", \"y\", \"x\"); unit_call(\"/x\", \"CLI\", params); json_decode(\"{}\"); base64_encode(\"x\") }\n", options);
 	assert(capy::wasm::validate_bearer_unit(typed_sized_hosts.wasm, {.bearer_abi_version = "11"}).valid);
 	const std::string typed_sized_host_bytes(typed_sized_hosts.wasm.begin(), typed_sized_hosts.wasm.end());
 	for (const auto& import : {"bearer_mysql_query", "bearer_sqlite_query", "bearer_regex_dval", "bearer_regex_text", "bearer_unit_call_brrb", "bearer_codec_dval", "bearer_codec_text"})
 		assert(typed_sized_host_bytes.find(import) != std::string::npos);
 	const auto owned_sized_host = capy::compile_bearer_unit(
-		"function CLI { sqlite_query(0u64, clone(\"select 1\"), dval({\"owned\": clone(\"value\")})) }\n", options);
+		"function CLI { sqlite_query(u64(0), clone(\"select 1\"), dval({\"owned\": clone(\"value\")})) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(owned_sized_host.wasm, {.bearer_abi_version = "11"}).valid);
 	const std::string sizing_release = "release_inputs(); append(code, module_.marker(value->location));";
 	const std::size_t first_sizing_release = compiler_text.find(sizing_release);
@@ -600,13 +627,13 @@ int main()
 	assert(capy::wasm::validate_bearer_unit(bare_stdlib_function_value.wasm, {.bearer_abi_version = "11"}).valid);
 	assert(std::string(bare_stdlib_function_value.wasm.begin(), bare_stdlib_function_value.wasm.end()).find("bearer_string_lower") != std::string::npos);
 	const auto overloaded_stdlib_function_value = capy::compile_bearer_unit(
-		"function CLI { var slice : function(value : string, start : s64) string = substr; print(slice(\"Ada\", 1s64)) }\n", options);
+		"function CLI { var slice : function(value : string, start : s64) string = substr; print(slice(\"Ada\", s64(1))) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(overloaded_stdlib_function_value.wasm, {.bearer_abi_version = "11"}).valid);
 	const auto returned_stdlib_function_value = capy::compile_bearer_unit(
 		"function lower_callback() (function(value : string) string) { return lower }\nfunction CLI { map(dval([\"X\"]), lower_callback()) }\n", options);
 	assert(std::string(returned_stdlib_function_value.wasm.begin(), returned_stdlib_function_value.wasm.end()).find("bearer_string_lower") != std::string::npos);
 	const auto shadowed_stdlib = capy::compile_bearer_unit(
-		"function CLI { var sqlite_connect : function(path : string) u64 = function(path : string) u64 { 1u64 }; print(sqlite_connect(\"x\")) }\n", options);
+		"function CLI { var sqlite_connect : function(path : string) u64 = function(path : string) u64 { u64(1) }; print(sqlite_connect(\"x\")) }\n", options);
 	assert(std::string(shadowed_stdlib.wasm.begin(), shadowed_stdlib.wasm.end()).find("bearer_sqlite_") == std::string::npos);
 	const auto shadowed_function_value = capy::compile_bearer_unit(
 		"function CLI { var lower : function(value : string) string = function(value : string) string { value }; map(dval([\"X\"]), lower) }\n", options);
@@ -614,9 +641,9 @@ int main()
 	for (const auto& [source, expected] : {
 			 std::pair{"host function __bearer_trace() string\nfunction CLI {}\n", "host declarations are available only in the embedded Capy standard library"},
 			 std::pair{"trace host function __bearer_trace() string\nfunction CLI {}\n", "host declarations are available only in the embedded Capy standard library"},
-			 std::pair{"function __bearer_sqlite_connect(path : string) u64 { 0u64 }\nfunction CLI {}\n", "reserved for the Capy standard library"},
+			 std::pair{"function __bearer_sqlite_connect(path : string) u64 { u64(0) }\nfunction CLI {}\n", "reserved for the Capy standard library"},
 			 std::pair{"function CLI { __bearer_sqlite_connect(\":memory:\") }\n", "reserved for the Capy standard library"},
-			 std::pair{"function sqlite_connect(path : string) u64 { 0u64 }\nfunction CLI {}\n", "reserved by the Capy standard library"},
+			 std::pair{"function sqlite_connect(path : string) u64 { u64(0) }\nfunction CLI {}\n", "reserved by the Capy standard library"},
 			 std::pair{"function CLI { var callback : function(__bearer_value : s32) s32 = function(__bearer_value : s32) s32 { __bearer_value } }\n", "__bearer_* names are reserved for the Capy standard library"},
 			 std::pair{"function CLI { for __bearer_key, value = dval({:}) { value } }\n", "__bearer_* names are reserved for the Capy standard library"},
 			 std::pair{"function duplicate(value : any) value::type { value }\nfunction duplicate(value : any) value::type { value }\nfunction CLI {}\n", "duplicate overload duplicate(any)"},
@@ -633,8 +660,8 @@ int main()
 		}
 	}
 	const auto wide =
-		capy::compile_bearer_unit("function next(value : u64) u64 { value + 1u64 }\nfunction half(value : f64) f64 { value / 2.0 }\n"
-								  "function CLI { var fn : function(value : u64) u64 = next; print(fn(4u64), half(3.0), u64(-1), s32(9.0)) }\n",
+		capy::compile_bearer_unit("function next(value : u64) u64 { value + u64(1) }\nfunction half(value : f64) f64 { value / 2.0 }\n"
+								  "function CLI { var fn : function(value : u64) u64 = next; print(fn(u64(4)), half(3.0), u64(-1), s32(9.0)) }\n",
 								  options);
 	assert(capy::wasm::validate_bearer_unit(wide.wasm, {.bearer_abi_version = "11"}).valid);
 	const auto marker_collision = capy::compile_bearer_unit("function CLI { 1509949440; print([1][1]) }\n", options);
@@ -669,7 +696,7 @@ int main()
 	const auto wide_aggregates = capy::compile_bearer_unit(
 		"struct Wide { narrow : s32; signed : s64; unsigned : u64; decimal : f64; text : string }\n"
 		"function capture(value : u64, decimal : f64, text : string) (function(add : u64) f64) { function(add : u64) f64 { f64(value + add) + decimal + f64(length(text)) } }\n"
-		"function CLI { var tuple := (1, -2s64, 3u64, 4.5, clone(\"x\")); var wide := Wide(tuple[0], tuple[1], tuple[2], tuple[3], tuple[4]); var fn := capture(wide.unsigned, wide.decimal, wide.text); print(wide.signed, fn(2u64), arc_live()) }\n", options);
+		"function CLI { var tuple := (1, s64(-2), u64(3), 4.5, clone(\"x\")); var wide := Wide(tuple[0], tuple[1], tuple[2], tuple[3], tuple[4]); var fn := capture(wide.unsigned, wide.decimal, wide.text); print(wide.signed, fn(u64(2)), arc_live()) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(wide_aggregates.wasm, {.bearer_abi_version = "11"}).valid);
 	const auto value_expressions = capy::compile_bearer_unit(
 		"function choose(flag : bool) string { { var prefix := clone(\"p\"); if flag { prefix + \"a\" } else { return clone(\"b\") } } }\n"
@@ -679,7 +706,7 @@ int main()
 			 std::pair{"function CLI { (1 + 2) := 3 }\n", "inferred declaration target must be a local name"},
 			 std::pair{"function CLI { print(1 && true) }\n", "logical operators require bool operands"},
 			 std::pair{"function CLI { if 1 { print(\"bad\") } }\n", "if condition must be bool"},
-			 std::pair{"function CLI { while 1u64 { break } }\n", "while condition must be bool"},
+			 std::pair{"function CLI { while u64(1) { break } }\n", "while condition must be bool"},
 			 std::pair{"function CLI { var held := clone(\"old\"); var replace := function() { held = clone(\"new\") } }\n", "unknown local 'held'"},
 			 std::pair{"function CLI { var value := if true { 1 } else { \"x\" } }\n", "if branches produce s32 and string"},
 			 std::pair{"function CLI { print(first(\"ok\", 1)) }\n", "no overload first(string, s32)"},

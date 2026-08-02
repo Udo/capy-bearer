@@ -16,7 +16,7 @@ Use it for repeatable integer noise. C++ `.uce` returns the `u32` value shown ab
 
 
 :example capy render
-var generated := gen_noise32(1u64, 2u64)
+var generated := gen_noise32(1, 2)
 print("noise32\n")
 
 :example cpp render

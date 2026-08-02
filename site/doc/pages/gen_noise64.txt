@@ -16,7 +16,7 @@ Use it for repeatable 64-bit integer noise. The C++ `.uce` call uses the declara
 
 
 :example capy render
-var generated := gen_noise64(1u64, 2u64)
+var generated := gen_noise64(1, 2)
 print("noise64\n")
 
 :example cpp render

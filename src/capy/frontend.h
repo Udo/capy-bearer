@@ -34,8 +34,6 @@ enum struct TokenKind
 {
 	identifier,
 	integer,
-	uinteger,
-	sinteger,
 	floating,
 	string,
 	markup,
@@ -130,8 +128,10 @@ struct Name : Expr
 };
 struct Integer : Expr
 {
-	long long value;
-	Integer(Location l, long long v);
+	std::uint64_t magnitude;
+	bool negative;
+	Integer(Location l, std::uint64_t magnitude, bool negative);
+	Integer(Location l, long long value);
 };
 struct UnsignedInteger : Expr
 {

@@ -2,7 +2,7 @@ function CLI {
     {
         var db := mysql_connect("localhost", "root", "", "mysql")
         var rows := mysql_query(db, "SELECT 7 AS value")
-        print(db != 0u64, mysql_connected(db), "|", mysql_escape("a'b"), "|", f64(rows[0]["value"]), "|", mysql_error(db) == "", "|", mysql_insert_id(db), ":", mysql_affected_rows(db))
+        print(db != u64(0), mysql_connected(db), "|", mysql_escape("a'b"), "|", f64(rows[0]["value"]), "|", mysql_error(db) == "", "|", mysql_insert_id(db), ":", mysql_affected_rows(db))
         var mode := mysql_query(db, "SET SESSION sql_mode = 'NO_BACKSLASH_ESCAPES'")
         var bound := mysql_query(db, "SELECT :value AS value", dval({"value": "a'b"}))
         var lexical := mysql_query(db, "SELECT ':missing ?' AS literal, :value AS value /* :missing ? */", dval({"value": "bound"}))
@@ -12,7 +12,7 @@ function CLI {
         var reset_mode := mysql_query(db, "SET SESSION sql_mode = DEFAULT")
         mysql_disconnect(db)
         var unavailable := mysql_connect("localhost", "root", "", "__capy_missing_database__")
-        print("|", unavailable != 0u64, !mysql_connected(unavailable), mysql_error(unavailable) != "")
+        print("|", unavailable != u64(0), !mysql_connected(unavailable), mysql_error(unavailable) != "")
         mysql_disconnect(unavailable)
     }
     print("|", arc_live())

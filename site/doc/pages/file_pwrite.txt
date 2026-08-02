@@ -10,14 +10,14 @@ return value : number of bytes written
 :content
 In Capy, `file_pwrite()` writes `string` bytes at an absolute offset without changing the handle position.
 
-Use a writable handle, such as one opened with `"r+"`, for an in-place edit. It returns `0u64` for an invalid, closed, or non-writable handle.
+Use a writable handle, such as one opened with `"r+"`, for an in-place edit. It returns zero for an invalid, closed, or non-writable handle.
 
 :example capy render
 var handle := file_open("/tmp/doc-pwrite.txt", "w")
 file_write(handle, "hello world")
 file_close(handle)
 var editor := file_open("/tmp/doc-pwrite.txt", "r+")
-file_pwrite(editor, 6u64, "earth")
+file_pwrite(editor, 6, "earth")
 file_close(editor)
 print(file_get_contents("/tmp/doc-pwrite.txt"), "\n")
 

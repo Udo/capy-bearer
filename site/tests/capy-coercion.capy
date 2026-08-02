@@ -3,16 +3,16 @@ function text(value : as string) string { value }
 function select(value : s32) s32 { 1 }
 function select(value : as s64) s32 { 2 }
 function choose(value : any) value::type { value }
-function choose(value : as s64) s64 { value + 100s64 }
+function choose(value : as s64) s64 { value + s64(100) }
 function widen(value : as s64) s64 { value }
 function ranked(left : as s64, right : as s64) s32 { 4 }
 function ranked(left : as u64, right : as f64) s32 { 5 }
 
 function CLI {
     print(
-        scalar(7), "|", scalar(8u64), "|",
-        text([42][0]), "|", text(-9s64), "|", text(10u64), "|", text(4.25), "|", text(true), "|", text(false), "|",
+        scalar(7), "|", scalar(u64(8)), "|",
+        text([42][0]), "|", text(s64(-9)), "|", text(u64(10)), "|", text(4.25), "|", text(true), "|", text(false), "|",
         string(12), "|", string(false), "|",
-        select(1), "|", select(1u64), "|", choose(3), "|", (9u64).widen(), "|", ranked(1, 2s64), "|", arc_live()
+        select(1), "|", select(u64(1)), "|", choose(3), "|", (u64(9)).widen(), "|", ranked(1, s64(2)), "|", arc_live()
     )
 }

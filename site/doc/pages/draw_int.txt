@@ -19,6 +19,6 @@ Use it when one request needs repeatable integer noise values from its random se
 The C++ `.uce` call has the same arguments.
 
 :example capy render
-if draw_int(1u64, 10u64) >= 1u64 { print("int\n") } else { print("bad\n") }
+if draw_int(1, 10) >= 1 { print("int\n") } else { print("bad\n") }
 :example cpp render
 print(draw_int(1, 10) >= 1 ? "int\n" : "bad\n");

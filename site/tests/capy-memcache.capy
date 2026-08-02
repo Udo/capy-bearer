@@ -4,9 +4,9 @@ function CLI {
     var unreachable := memcache_connect("127.0.0.1", 1)
     var live := memcache_connect()
     var result := "skip"
-    if live != 0u64 {
+    if live != u64(0) {
         var prefix := "capy-parity-memcache"
-        var stored := memcache_set(live, prefix + "-one", "v1", 60u64)
+        var stored := memcache_set(live, prefix + "-one", "v1", u64(60))
         var second := memcache_set(live, prefix + "-two", "v2")
         var raw := memcache_command(live, "get " + prefix + "-one")
         var value := memcache_get(live, prefix + "-one", "missing")
@@ -18,7 +18,7 @@ function CLI {
         else { result = "failed" }
     }
     var unreachable_status := "up"
-    if unreachable == 0u64 { unreachable_status = "down" }
+    if unreachable == u64(0) { unreachable_status = "down" }
     print(memcache_escape_key("a b"), "|", escaped[1], "|", unreachable_status, "|", result, "|")
     }
     print(arc_live())

@@ -17,7 +17,7 @@ This function distinguishes a failed connection wrapper from a live server conne
 var db := mysql_connect("localhost", "root", "", "")
 if !mysql_connected(db) { print("database unavailable: ", mysql_error(db), "\n") }
 else { print("database connected\n") }
-if db != 0u64 { mysql_disconnect(db) }
+if db != 0 { mysql_disconnect(db) }
 
 :example cpp render
 MySQL* db = mysql_connect();

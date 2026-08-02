@@ -110,15 +110,15 @@ int main(int argc, char** argv)
 	}
 	{
 		Program p = parse("-2147483648\n2147483647\n", "integers.capy");
-		assert(static_cast<Integer*>(p.items[0])->value == -2147483648LL);
-		assert(static_cast<Integer*>(p.items[1])->value == 2147483647LL);
+		assert(static_cast<Integer*>(p.items[0])->negative && static_cast<Integer*>(p.items[0])->magnitude == 2147483648ULL);
+		assert(!static_cast<Integer*>(p.items[1])->negative && static_cast<Integer*>(p.items[1])->magnitude == 2147483647ULL);
 	}
 	{
-		Program p = parse("0u64; 18446744073709551615u64; -9223372036854775808s64; 9223372036854775807s64; 1.5; 2e3; 1..3", "wide.capy");
-		assert(static_cast<UnsignedInteger*>(p.items[0])->value == 0);
-		assert(static_cast<UnsignedInteger*>(p.items[1])->value == std::numeric_limits<std::uint64_t>::max());
-		assert(static_cast<SignedInteger*>(p.items[2])->value == std::numeric_limits<std::int64_t>::min());
-		assert(static_cast<SignedInteger*>(p.items[3])->value == std::numeric_limits<std::int64_t>::max());
+		Program p = parse("0; 18446744073709551615; -9223372036854775808; 9223372036854775807; 1.5; 2e3; 1..3", "wide.capy");
+		assert(!static_cast<Integer*>(p.items[0])->negative && static_cast<Integer*>(p.items[0])->magnitude == 0);
+		assert(!static_cast<Integer*>(p.items[1])->negative && static_cast<Integer*>(p.items[1])->magnitude == std::numeric_limits<std::uint64_t>::max());
+		assert(static_cast<Integer*>(p.items[2])->negative && static_cast<Integer*>(p.items[2])->magnitude == (std::uint64_t{1} << 63));
+		assert(!static_cast<Integer*>(p.items[3])->negative && static_cast<Integer*>(p.items[3])->magnitude == static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()));
 		assert(static_cast<Float*>(p.items[4])->value == 1.5 && static_cast<Float*>(p.items[5])->value == 2000.0);
 		assert(static_cast<Binary*>(p.items[6])->operator_ == "..");
 	}
@@ -212,14 +212,13 @@ int main(int argc, char** argv)
 	expect_error("function meta(x : any) { #compile { emit(x) } }\n", "#compile compile-time metaprogramming is deferred beyond Capy phase 3");
 	expect_error("#wat", "unknown compiler directive #wat");
 	expect_error("@", "unexpected character '@'");
-	expect_error("18446744073709551616u64", "outside the u64 range");
-	expect_error("9223372036854775808s64", "outside the s64 range");
-	expect_error("-9223372036854775809s64", "outside the s64 range");
-	expect_error("1u64x", "invalid numeric suffix");
+	expect_error("1s32", "numeric suffixes were removed");
+	expect_error("1s64", "numeric suffixes were removed");
+	expect_error("1u64", "numeric suffixes were removed");
+	expect_error("1u64x", "numeric suffixes were removed");
 	expect_error("1e", "invalid f64 exponent");
-	expect_error("2147483648", "outside the s32 range");
-	expect_error("-2147483649", "outside the s32 range");
-	expect_error("999999999999999999999999999999", "outside the s32 range");
+	expect_error("18446744073709551616", "outside the u64 range");
+	expect_error("999999999999999999999999999999", "outside the u64 range");
 	try
 	{
 		Parser({}).token();

@@ -25,8 +25,8 @@ function CLI {
         print("[", string(none), "]", "[", string(none, "string"), "]|")
         print(bool(none), "|", bool(none, true), "|")
         print(s32(none), "|", s32(none, 32), "|")
-        print(s64(none), "|", s64(none, -64s64), "|")
-        print(u64(none), "|", u64(none, 64u64), "|")
+        print(s64(none), "|", s64(none, s64(-64)), "|")
+        print(u64(none), "|", u64(none, u64(64)), "|")
         print(f64(none), "|", f64(none, 6.5), "|")
 
         var json_none := json_decode("null")

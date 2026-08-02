@@ -18,7 +18,7 @@ Use the same inputs to reproduce procedural integer values. The C++ `.uce` call 
 
 
 :example capy render
-var generated := gen_int(1u64, 1u64, 10u64)
+var generated := gen_int(1, 1, 10)
 print("int\n")
 
 :example cpp render

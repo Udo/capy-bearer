@@ -446,6 +446,31 @@ std::string type_of_expression(const Expr* expression, bool allow_void = false)
 	return "struct:" + name;
 }
 
+bool integer_type(const std::string& type)
+{
+	return type == "s32" || type == "s64" || type == "u64";
+}
+
+bool integer_fits(const Integer& literal, const std::string& type)
+{
+	if (type == "s32")
+		return literal.magnitude <= (literal.negative ? std::uint64_t{1} << 31 : static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max()));
+	if (type == "s64")
+		return literal.magnitude <= (literal.negative ? std::uint64_t{1} << 63 : static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()));
+	if (type == "u64")
+		return !literal.negative;
+	return false;
+}
+
+std::int64_t signed_integer_value(const Integer& literal)
+{
+	if (!literal.negative)
+		return static_cast<std::int64_t>(literal.magnitude);
+	if (literal.magnitude == (std::uint64_t{1} << 63))
+		return std::numeric_limits<std::int64_t>::min();
+	return -static_cast<std::int64_t>(literal.magnitude);
+}
+
 std::string literal_type(const Expr* expression)
 {
 	if (dynamic_cast<const Integer*>(expression)) return "s32";
@@ -457,9 +482,27 @@ std::string literal_type(const Expr* expression)
 	return "";
 }
 
-std::unique_ptr<Expr> callsite_default_literal(const Expr* value, const Location& location)
+std::string literal_type(const Expr* expression, const std::string& expected)
 {
-	if (auto literal = dynamic_cast<const Integer*>(value)) return std::make_unique<Integer>(location, literal->value);
+	if (auto integer = dynamic_cast<const Integer*>(expression); integer && (expected == "s32" || expected == "s64" || expected == "u64"))
+	{
+		if (!integer_fits(*integer, expected))
+			throw Error(integer->location, "integer literal is outside the " + expected + " range");
+		return expected;
+	}
+	return literal_type(expression);
+}
+
+std::unique_ptr<Expr> callsite_default_literal(const Expr* value, const Location& location, const std::string& expected)
+{
+	if (auto literal = dynamic_cast<const Integer*>(value))
+	{
+		if (!integer_fits(*literal, expected))
+			throw Error(literal->location, "integer literal is outside the " + expected + " range");
+		if (expected == "s64") return std::make_unique<SignedInteger>(location, signed_integer_value(*literal));
+		if (expected == "u64") return std::make_unique<UnsignedInteger>(location, literal->magnitude);
+		return std::make_unique<Integer>(location, literal->magnitude, literal->negative);
+	}
 	if (auto literal = dynamic_cast<const SignedInteger*>(value)) return std::make_unique<SignedInteger>(location, literal->value);
 	if (auto literal = dynamic_cast<const UnsignedInteger*>(value)) return std::make_unique<UnsignedInteger>(location, literal->value);
 	if (auto literal = dynamic_cast<const Float*>(value)) return std::make_unique<Float>(location, literal->value);
@@ -589,6 +632,8 @@ struct FunctionLowerer
 	std::pair<Bytes, std::string> expression(Expr* value, bool value_required = true);
 	std::pair<Bytes, std::string> conversion(Bytes code, const std::string& source, const std::string& target, const Location& location, bool source_owned = false);
 	std::string infer(Expr* value);
+	std::string infer_integer(Integer* value, const std::string& expected = "") const;
+	std::pair<Bytes, std::string> integer_expression(Integer* value, const std::string& expected = "") const;
 	std::optional<std::pair<unsigned, std::string>> compatible_local_callable(const std::string& name, const std::vector<std::string>& arguments) const;
 	std::vector<std::pair<std::string, std::string>> lambda_captures(Lambda* value) const;
 	std::tuple<std::string, unsigned, unsigned, Definition*, std::vector<std::pair<std::string, std::string>>> register_lambda(Lambda* value);
@@ -809,6 +854,62 @@ struct Module
 	{
 		auto found = hosts_.find(key(name, types));
 		return found == hosts_.end() ? nullptr : &found->second;
+	}
+	std::optional<std::vector<std::string>> contextual_argument_types(const std::string& name, const std::vector<Expr*>& arguments,
+		const std::vector<std::string>& inferred, const Location& location) const
+	{
+		struct Candidate { std::vector<std::string> types; unsigned rank; };
+		std::vector<Candidate> candidates;
+		auto add = [&](const std::vector<std::string>& parameters, bool variadic, const std::string& element,
+			const std::vector<Expr*>& defaults)
+		{
+			const std::size_t fixed = variadic ? parameters.size() - 1 : parameters.size();
+			if ((!variadic && arguments.size() > parameters.size()) || (variadic && arguments.size() < fixed))
+				return;
+			if (!variadic && arguments.size() < parameters.size())
+				for (std::size_t i = arguments.size(); i < parameters.size(); ++i)
+					if (i >= defaults.size() || !defaults[i]) return;
+			std::vector<std::string> types;
+			for (std::size_t i = 0; i < arguments.size(); ++i)
+			{
+				const std::string expected = variadic && i >= fixed ? element : parameters[i];
+				if (auto integer = dynamic_cast<Integer*>(arguments[i]))
+				{
+					if ((expected != "s32" && expected != "s64" && expected != "u64") || !integer_fits(*integer, expected)) return;
+					types.push_back(expected);
+				}
+				else
+				{
+					if (inferred[i] != expected) return;
+					types.push_back(inferred[i]);
+				}
+			}
+			const unsigned rank = variadic ? 2 : arguments.size() == parameters.size() ? 0 : 1;
+			candidates.push_back({std::move(types), rank});
+		};
+		for (const auto& entry : hosts_)
+		{
+			const HostDeclaration& declaration = entry.second;
+			if (declaration.function && declaration.function->name == name && declaration.parameters.size() == arguments.size())
+				add(declaration.parameters, false, "", {});
+		}
+		for (const Definition& definition : definitions_)
+			if (definition.function && definition.function->name == name)
+				add(definition.parameters, definition.variadic, definition.variadic_element, definition.default_values);
+		if (candidates.empty()) return std::nullopt;
+		const unsigned rank = std::min_element(candidates.begin(), candidates.end(), [](const Candidate& left, const Candidate& right)
+		{
+			return left.rank < right.rank;
+		})->rank;
+		std::vector<std::string> selected;
+		for (const Candidate& candidate : candidates)
+			if (candidate.rank == rank)
+			{
+				if (selected.empty()) selected = candidate.types;
+				else if (selected != candidate.types)
+					throw Error(location, "ambiguous contextual integer overload " + name);
+			}
+		return selected;
 	}
 	const HostDeclaration* fused_variadic_sink(const Definition& target) const
 	{
@@ -1624,10 +1725,35 @@ std::string FunctionLowerer::infer_block(Block* block_value)
 	return result;
 }
 
+std::string FunctionLowerer::infer_integer(Integer* value, const std::string& expected) const
+{
+	const std::string type = expected.empty() ? "s32" : expected;
+	if (!integer_type(type))
+		throw Error(value->location, "expected " + type + ", found s32");
+	if (!integer_fits(*value, type))
+		throw Error(value->location, "integer literal is outside the " + type + " range");
+	return type;
+}
+
+std::pair<Bytes, std::string> FunctionLowerer::integer_expression(Integer* value, const std::string& expected) const
+{
+	const std::string type = infer_integer(value, expected);
+	if (type == "s32")
+	{
+		Bytes code{0x41};
+		wasm::append_sleb32(code, static_cast<std::int32_t>(signed_integer_value(*value)));
+		return {code, type};
+	}
+	Bytes code{0x42};
+	const std::int64_t encoded = type == "u64" ? std::bit_cast<std::int64_t>(value->magnitude) : signed_integer_value(*value);
+	wasm::append_sleb64(code, encoded);
+	return {code, type};
+}
+
 std::string FunctionLowerer::infer(Expr* value)
 {
-	if (dynamic_cast<Integer*>(value))
-		return "s32";
+	if (auto integer = dynamic_cast<Integer*>(value))
+		return infer_integer(integer);
 	if (dynamic_cast<UnsignedInteger*>(value))
 		return "u64";
 	if (dynamic_cast<SignedInteger*>(value))
@@ -1698,9 +1824,20 @@ std::string FunctionLowerer::infer(Expr* value)
 	if (auto variable = dynamic_cast<Variable*>(value))
 	{
 		const std::string declared = variable->annotation ? module_.value_type(variable->annotation) : "";
-		const bool typed_empty_array = variable->annotation && dynamic_cast<ArrayLiteral*>(variable->value) &&
-			static_cast<ArrayLiteral*>(variable->value)->items.empty() && declared.rfind("array<", 0) == 0;
-		const std::string actual = typed_empty_array ? declared : infer(variable->value);
+		std::string actual;
+		if (variable->annotation && dynamic_cast<ArrayLiteral*>(variable->value) && declared.rfind("array<", 0) == 0)
+		{
+			const std::string element = declared.substr(6, declared.size() - 7);
+			for (Expr* item : static_cast<ArrayLiteral*>(variable->value)->items)
+			{
+				const std::string item_type = dynamic_cast<Integer*>(item) ? infer_integer(static_cast<Integer*>(item), element) : infer(item);
+				if (item_type != element) throw Error(item->location, "array literal elements must have one type");
+			}
+			actual = declared;
+		}
+		else
+			actual = variable->annotation && dynamic_cast<Integer*>(variable->value)
+				? infer_integer(static_cast<Integer*>(variable->value), declared) : infer(variable->value);
 		const std::string resolved = variable->annotation ? declared : actual;
 		if (resolved != actual)
 			throw Error(value->location, "expected " + resolved + ", found " + actual);
@@ -1732,6 +1869,8 @@ std::string FunctionLowerer::infer(Expr* value)
 					throw Error(spread->location, "array literal spread requires an array");
 				item_type = spread->target_element_type ? module_.value_type(spread->target_element_type) : source.substr(6, source.size() - 7);
 			}
+			else if (auto integer = dynamic_cast<Integer*>(item); integer && !element.empty())
+				item_type = infer_integer(integer, element);
 			else
 				item_type = infer(item);
 			if (element.empty()) element = item_type;
@@ -1769,9 +1908,9 @@ std::string FunctionLowerer::infer(Expr* value)
 		{
 			auto integer = dynamic_cast<Integer*>(index->index);
 			auto elements = aggregate_elements(object);
-			if (!integer || integer->value < 0 || static_cast<std::size_t>(integer->value) >= elements.size())
+			if (!integer || integer->negative || integer->magnitude >= elements.size())
 				throw Error(index->index->location, "tuple index is out of bounds");
-			return elements[integer->value];
+			return elements[static_cast<std::size_t>(integer->magnitude)];
 		}
 		throw Error(index->location, "indexing requires an array or tuple");
 	}
@@ -1784,6 +1923,11 @@ std::string FunctionLowerer::infer(Expr* value)
 			{
 				const std::string element = receiver.substr(6, receiver.size() - 7);
 				const std::size_t count = call->arguments.size();
+				auto argument_type = [&](std::size_t index, const std::string& expected)
+				{
+					if (auto integer = dynamic_cast<Integer*>(call->arguments[index]); integer && integer_type(expected)) return infer_integer(integer, expected);
+					return infer(call->arguments[index]);
+				};
 				if (member->member == "capacity")
 				{
 					if (count != 0) throw Error(call->location, "array capacity expects no arguments");
@@ -1791,7 +1935,7 @@ std::string FunctionLowerer::infer(Expr* value)
 				}
 				if (member->member == "push")
 				{
-					if (count != 1 || infer(call->arguments[0]) != element) throw Error(call->location, "array push expects one " + element + " value");
+					if (count != 1 || argument_type(0, element) != element) throw Error(call->location, "array push expects one " + element + " value");
 					return "void";
 				}
 				if (member->member == "pop")
@@ -1801,7 +1945,7 @@ std::string FunctionLowerer::infer(Expr* value)
 				}
 				if (member->member == "insert")
 				{
-					if (count != 2 || infer(call->arguments[0]) != "s32" || infer(call->arguments[1]) != element)
+					if (count != 2 || argument_type(0, "s32") != "s32" || argument_type(1, element) != element)
 						throw Error(call->location, "array insert expects an s32 index and " + element + " value");
 					return "void";
 				}
@@ -1818,7 +1962,7 @@ std::string FunctionLowerer::infer(Expr* value)
 				}
 				if (member->member == "resize")
 				{
-					if (count != 2 || infer(call->arguments[0]) != "s32" || infer(call->arguments[1]) != element)
+					if (count != 2 || argument_type(0, "s32") != "s32" || argument_type(1, element) != element)
 						throw Error(call->location, "array resize expects an s32 length and " + element + " fill value");
 					return "void";
 				}
@@ -1853,6 +1997,15 @@ std::string FunctionLowerer::infer(Expr* value)
 				else
 					argument_types.push_back({infer(argument), argument->location});
 			auto variadic = module_.variadic_function_types_.find(type);
+			if (call->arguments.size() == argument_types.size())
+				for (std::size_t i = 0; i < call->arguments.size(); ++i)
+					if (auto integer = dynamic_cast<Integer*>(call->arguments[i]))
+					{
+						if (variadic == module_.variadic_function_types_.end() && i + 1 >= signature.first.size()) continue;
+						const std::string expected = variadic == module_.variadic_function_types_.end() || i < variadic->second.fixed
+							? signature.first[i + 1] : variadic->second.element;
+						if (integer_type(expected)) argument_types[i].first = infer_integer(integer, expected);
+					}
 			if (variadic == module_.variadic_function_types_.end())
 			{
 				if (signature.first.size() != argument_types.size() + 1) throw Error(call->location, "function value argument count does not match signature");
@@ -1907,12 +2060,19 @@ std::string FunctionLowerer::infer(Expr* value)
 				else
 					for (const std::string& field : aggregate_elements(infer(spread->value))) arguments.push_back(field);
 			}
+			else if (auto integer = dynamic_cast<Integer*>(argument); integer && primitive_constructor_name(type_callee) && call->arguments.size() == 1 &&
+				(type_callee == "s32" || type_callee == "s64" || type_callee == "u64") && !integer_fits(*integer, "s32"))
+				arguments.push_back(infer_integer(integer, type_callee));
+			else if (dynamic_cast<Integer*>(argument))
+				arguments.push_back("s32");
 			else
 				arguments.push_back(infer(argument));
 		if (primitive_constructor_name(type_callee) && arguments.size() == 1)
 		{
 			if (Definition* exact = module_.exact_definition(type_callee, arguments))
 				return exact->result;
+			if (arguments[0] == type_callee)
+				return type_callee;
 			if (can_convert(arguments[0], type_callee))
 				return type_callee;
 			return module_.resolve(type_callee, arguments, call->location).result;
@@ -1922,7 +2082,12 @@ std::string FunctionLowerer::infer(Expr* value)
 			std::vector<std::string> fields;
 			for (const auto& field : module_.struct_type(type_callee, call->location).fields)
 				fields.push_back(field.second);
-			if (arguments == fields)
+			std::vector<std::string> contextual = arguments;
+			if (contextual.size() == fields.size() && call->arguments.size() == fields.size())
+				for (std::size_t i = 0; i < contextual.size(); ++i)
+					if (auto integer = dynamic_cast<Integer*>(call->arguments[i]); integer && integer_fits(*integer, fields[i]))
+						contextual[i] = fields[i];
+			if (contextual == fields)
 				return "struct:" + type_callee;
 			return module_.resolve(type_callee, arguments, call->location).result;
 		}
@@ -1935,6 +2100,14 @@ std::string FunctionLowerer::infer(Expr* value)
 			return "void";
 		if (const Module::HostDeclaration* declaration = module_.host(name->value, arguments))
 			return declaration->result;
+		if (Definition* definition = module_.compatible_definition(name->value, arguments, call->location))
+			return definition->result;
+		if (auto contextual = module_.contextual_argument_types(name->value, call->arguments, arguments, call->location))
+		{
+			if (const Module::HostDeclaration* declaration = module_.host(name->value, *contextual))
+				return declaration->result;
+			return module_.resolve(name->value, *contextual, call->location).result;
+		}
 		return module_.resolve(name->value, arguments, call->location).result;
 	}
 	if (auto binary = dynamic_cast<Binary*>(value))
@@ -1948,16 +2121,23 @@ std::string FunctionLowerer::infer(Expr* value)
 		if (binary->operator_ == "..")
 			return "range";
 		if (binary->operator_ == "=" || binary->operator_ == ":=")
+		{
+			if (binary->operator_ == "=")
+				if (auto target = dynamic_cast<Name*>(binary->left); target && dynamic_cast<Integer*>(binary->right))
+					return infer_integer(static_cast<Integer*>(binary->right), lookup(target).second);
 			return infer(binary->right);
+		}
 		if (binary->operator_ == "&&" || binary->operator_ == "||" || binary->operator_ == "unary!")
 		{
 			if (infer(binary->right) != "bool" || (binary->operator_ != "unary!" && infer(binary->left) != "bool"))
 				throw Error(binary->location, "logical operators require bool operands");
 			return "bool";
 		}
-		if (infer(binary->left) == "string" || infer(binary->right) == "string")
+		const std::string inferred_left = dynamic_cast<Integer*>(binary->left) ? "s32" : infer(binary->left);
+		const std::string inferred_right = dynamic_cast<Integer*>(binary->right) ? "s32" : infer(binary->right);
+		if (inferred_left == "string" || inferred_right == "string")
 		{
-			if (infer(binary->left) != "string" || infer(binary->right) != "string")
+			if (inferred_left != "string" || inferred_right != "string")
 				throw Error(binary->location, "string operators require string operands");
 			if (binary->operator_ == "+") return "string";
 			if (binary->operator_ == "==" || binary->operator_ == "!=") return "bool";
@@ -1970,7 +2150,10 @@ std::string FunctionLowerer::infer(Expr* value)
 				throw Error(binary->location, "unary - requires an s32, s64, or f64 operand");
 			return operand;
 		}
-		const std::string left = infer(binary->left), right = infer(binary->right);
+		const std::string left = dynamic_cast<Integer*>(binary->left) && !dynamic_cast<Integer*>(binary->right)
+			? infer_integer(static_cast<Integer*>(binary->left), inferred_right) : infer(binary->left);
+		const std::string right = dynamic_cast<Integer*>(binary->right) && !dynamic_cast<Integer*>(binary->left)
+			? infer_integer(static_cast<Integer*>(binary->right), inferred_left) : infer(binary->right);
 		if (left != right)
 			throw Error(binary->location, "expected " + left + ", found " + right);
 		const bool equality = binary->operator_ == "==" || binary->operator_ == "!=";
@@ -2710,7 +2893,10 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 	};
 	if (member->member == "push")
 	{
-		auto [value_code, value_type] = expression(call->arguments[0]);
+		auto compiled = dynamic_cast<Integer*>(call->arguments[0]) && integer_type(element)
+			? integer_expression(static_cast<Integer*>(call->arguments[0]), element) : expression(call->arguments[0]);
+		auto value_code = std::move(compiled.first);
+		const std::string value_type = std::move(compiled.second);
 		const unsigned item = add_local("", element, call->arguments[0]->location), length = add_local("", "s32", call->location), required = add_local("", "s32", call->location);
 		Bytes code = std::move(value_code); code.push_back(0x21); wasm::append_uleb(code, item); load_length(code, length);
 		code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x41, 0x01, 0x6a, 0x22}); wasm::append_uleb(code, required);
@@ -2767,7 +2953,9 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 		bool item_owned = false;
 		if (insert)
 		{
-			auto value = expression(call->arguments[1]); append(code, value.first); code.push_back(0x21); wasm::append_uleb(code, item); item_owned = expression_is_owned(call->arguments[1]);
+			auto value = dynamic_cast<Integer*>(call->arguments[1]) && integer_type(element)
+				? integer_expression(static_cast<Integer*>(call->arguments[1]), element) : expression(call->arguments[1]);
+			append(code, value.first); code.push_back(0x21); wasm::append_uleb(code, item); item_owned = expression_is_owned(call->arguments[1]);
 		}
 		load_length(code, length); code.push_back(0x20); wasm::append_uleb(code, index); code.push_back(0x20); wasm::append_uleb(code, length); code.push_back(insert ? 0x4b : 0x4f);
 		code.insert(code.end(), {0x04, 0x40}); append(code, module_.marker(call->arguments[0]->location)); code.insert(code.end(), {0x00, 0x0b});
@@ -2798,7 +2986,11 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 	}
 	if (member->member == "resize")
 	{
-		auto [size_code, size_type] = expression(call->arguments[0]); auto [fill_code, fill_type] = expression(call->arguments[1]);
+		auto [size_code, size_type] = expression(call->arguments[0]);
+		auto fill_result = dynamic_cast<Integer*>(call->arguments[1]) && integer_type(element)
+			? integer_expression(static_cast<Integer*>(call->arguments[1]), element) : expression(call->arguments[1]);
+		auto fill_code = std::move(fill_result.first);
+		const std::string fill_type = std::move(fill_result.second);
 		const unsigned desired = add_local("", "s32", call->arguments[0]->location), fill = add_local("", element, call->arguments[1]->location);
 		const unsigned length = add_local("", "s32", call->location), index = add_local("", "s32", call->location);
 		Bytes code = std::move(size_code); code.push_back(0x21); wasm::append_uleb(code, desired); append(code, fill_code); code.push_back(0x21); wasm::append_uleb(code, fill);
@@ -3021,13 +3213,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 {
 	module_.check_cancelled();
 	if (auto integer = dynamic_cast<Integer*>(value))
-	{
-		if (integer->value < std::numeric_limits<std::int32_t>::min() || integer->value > std::numeric_limits<std::int32_t>::max())
-			throw Error(integer->location, "integer literal is outside the s32 range");
-		Bytes code{0x41};
-		wasm::append_sleb32(code, static_cast<std::int32_t>(integer->value));
-		return {code, "s32"};
-	}
+		return integer_expression(integer);
 	if (auto integer = dynamic_cast<UnsignedInteger*>(value))
 	{
 		Bytes code{0x42};
@@ -3298,7 +3484,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		}
 		for (Expr* item : array->items)
 		{
-			auto compiled = expression(item);
+			auto compiled = dynamic_cast<Integer*>(item) && !element_type.empty()
+				? integer_expression(static_cast<Integer*>(item), element_type) : expression(item);
 			if (element_type.empty())
 				element_type = compiled.second;
 			if (compiled.second != element_type)
@@ -3381,9 +3568,10 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		{
 			auto item = dynamic_cast<Integer*>(index->index);
 			auto fields = aggregate_elements(array_type);
-			if (!item || item->value < 0 || static_cast<std::size_t>(item->value) >= fields.size())
+			if (!item || item->negative || item->magnitude >= fields.size())
 				throw Error(index->index->location, "tuple index is out of bounds");
-			const std::string result_type = fields[item->value];
+			const std::size_t field = static_cast<std::size_t>(item->magnitude);
+			const std::string result_type = fields[field];
 			const AggregateLayout layout = aggregate_layout(fields, 16);
 			const unsigned object = add_local("", array_type, index->value->location);
 			Bytes code = std::move(array_code);
@@ -3391,7 +3579,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			wasm::append_uleb(code, object);
 			code.push_back(0x20);
 			wasm::append_uleb(code, object);
-			load_field(code, result_type, layout.offsets[item->value]);
+			load_field(code, result_type, layout.offsets[field]);
 			if (expression_is_owned(index->value))
 			{
 				const unsigned result = add_local("", result_type, value->location);
@@ -3752,17 +3940,23 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 	}
 	if (auto variable = dynamic_cast<Variable*>(value))
 	{
-		ArrayLiteral typed_empty(variable->value->location);
+		ArrayLiteral typed_array(variable->value->location);
 		Expr* initializer = variable->value;
 		if (variable->annotation)
-			if (auto value_array = dynamic_cast<ArrayLiteral*>(variable->value); value_array && value_array->items.empty())
+			if (auto value_array = dynamic_cast<ArrayLiteral*>(variable->value))
 				if (auto type_array = dynamic_cast<ArrayLiteral*>(variable->annotation); type_array && type_array->items.size() == 1)
 				{
-					typed_empty.explicit_element_type = type_array->items[0];
-					initializer = &typed_empty;
+					typed_array.items = value_array->items;
+					typed_array.explicit_element_type = type_array->items[0];
+					initializer = &typed_array;
 				}
-		auto [code, type] = expression(initializer);
-		std::string declared = variable->annotation ? module_.value_type(variable->annotation) : type;
+		std::string declared = variable->annotation ? module_.value_type(variable->annotation) : "";
+		auto initialized = variable->annotation && dynamic_cast<Integer*>(initializer)
+			? integer_expression(static_cast<Integer*>(initializer), declared) : expression(initializer);
+		auto code = std::move(initialized.first);
+		std::string type = std::move(initialized.second);
+		if (!variable->annotation)
+			declared = type;
 		if (declared != type)
 			throw Error(value->location, "expected " + declared + ", found " + type);
 		unsigned slot = add_local(variable->name, declared, value->location);
@@ -3861,7 +4055,10 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				const unsigned element_size = array_element_size(element);
 				auto [index_code, index_type] = expression(target_index->index);
 				if (index_type != "s32") throw Error(target_index->index->location, "array index must be s32");
-				auto [replacement_code, replacement_type] = expression(binary->right);
+				auto replacement_result = dynamic_cast<Integer*>(binary->right)
+					? integer_expression(static_cast<Integer*>(binary->right), element) : expression(binary->right);
+				auto replacement_code = std::move(replacement_result.first);
+				const std::string replacement_type = std::move(replacement_result.second);
 				if (replacement_type != element) throw Error(binary->right->location, "expected " + element + ", found " + replacement_type);
 				const unsigned index = add_local("", "s32", target_index->index->location), replacement = add_local("", element, binary->right->location), length = add_local("", "s32", binary->location);
 				Bytes code = std::move(index_code); code.push_back(0x21); wasm::append_uleb(code, index); append(code, replacement_code); code.push_back(0x21); wasm::append_uleb(code, replacement);
@@ -3883,7 +4080,10 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			if (!target)
 				throw Error(binary->left->location, "assignment target must be a local name or array element");
 			auto [slot, expected] = lookup(target);
-			auto [code, actual] = expression(binary->right);
+			auto replacement = dynamic_cast<Integer*>(binary->right)
+				? integer_expression(static_cast<Integer*>(binary->right), expected) : expression(binary->right);
+			auto code = std::move(replacement.first);
+			const std::string actual = std::move(replacement.second);
 			if (actual != expected)
 				throw Error(value->location, "expected " + expected + ", found " + actual);
 			if (managed_type(expected))
@@ -3999,7 +4199,9 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			right.push_back(0x45);
 			return {right, "bool"};
 		}
-		if (infer(binary->left) == "string" || infer(binary->right) == "string")
+		const std::string inferred_left = dynamic_cast<Integer*>(binary->left) ? "s32" : infer(binary->left);
+		const std::string inferred_right = dynamic_cast<Integer*>(binary->right) ? "s32" : infer(binary->right);
+		if (inferred_left == "string" || inferred_right == "string")
 		{
 			auto [left_code, left_type] = expression(binary->left);
 			auto [right_code, right_type] = expression(binary->right);
@@ -4114,8 +4316,14 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			wasm::append_uleb(code, result);
 			return {code, binary->operator_ == "+" ? "string" : "bool"};
 		}
-		auto [left, left_type] = expression(binary->left);
-		auto [right, right_type] = expression(binary->right);
+		auto left_result = dynamic_cast<Integer*>(binary->left) && !dynamic_cast<Integer*>(binary->right)
+			? integer_expression(static_cast<Integer*>(binary->left), inferred_right) : expression(binary->left);
+		auto right_result = dynamic_cast<Integer*>(binary->right) && !dynamic_cast<Integer*>(binary->left)
+			? integer_expression(static_cast<Integer*>(binary->right), inferred_left) : expression(binary->right);
+		auto left = std::move(left_result.first);
+		const std::string left_type = std::move(left_result.second);
+		auto right = std::move(right_result.first);
+		const std::string right_type = std::move(right_result.second);
 		if (left_type != right_type)
 			throw Error(value->location, "expected " + left_type + ", found " + right_type);
 		static const std::map<std::string, std::map<std::string, std::uint8_t>> ops = {
@@ -4283,7 +4491,10 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			std::vector<unsigned> owned_arguments;
 			for (std::size_t i = 0; i < indirect->size(); ++i)
 			{
-				auto [argument, actual] = expression((*indirect)[i]);
+				auto compiled = dynamic_cast<Integer*>((*indirect)[i]) && integer_type(signature.first[i + 1])
+					? integer_expression(static_cast<Integer*>((*indirect)[i]), signature.first[i + 1]) : expression((*indirect)[i]);
+				auto argument = std::move(compiled.first);
+				const std::string actual = std::move(compiled.second);
 				if (actual != signature.first[i + 1])
 					throw Error((*indirect)[i]->location, "function value argument type does not match signature");
 				if (managed_type(actual) && expression_is_owned((*indirect)[i]))
@@ -4363,7 +4574,10 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				std::vector<unsigned> owned_arguments;
 				for (std::size_t i = 0; i < arguments->size(); ++i)
 				{
-					auto [argument, actual] = expression((*arguments)[i]);
+					auto compiled = dynamic_cast<Integer*>((*arguments)[i]) && integer_type(signature.first[i + 1])
+						? integer_expression(static_cast<Integer*>((*arguments)[i]), signature.first[i + 1]) : expression((*arguments)[i]);
+					auto argument = std::move(compiled.first);
+					const std::string actual = std::move(compiled.second);
 					if (actual != signature.first[i + 1])
 						throw Error((*arguments)[i]->location, "function value argument type does not match signature");
 					if (managed_type(actual) && expression_is_owned((*arguments)[i]))
@@ -4413,7 +4627,17 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			callee = module_.constructor_name(callee, call->location);
 		if (!member && primitive_constructor_name(callee) && call->arguments.size() == 1)
 		{
-			const std::string source = infer(call->arguments[0]);
+			std::string source;
+			if (auto integer = dynamic_cast<Integer*>(call->arguments[0]); integer && (callee == "s32" || callee == "s64" || callee == "u64") && !integer_fits(*integer, "s32"))
+				source = infer_integer(integer, callee);
+			else
+				source = infer(call->arguments[0]);
+			if (source == callee)
+			{
+				if (auto integer = dynamic_cast<Integer*>(call->arguments[0]))
+					return integer_expression(integer, callee);
+				return expression(call->arguments[0]);
+			}
 			if (!module_.exact_definition(callee, {source}) && !module_.default_definition(callee, {source}, call->location) && can_convert(source, callee))
 			{
 				auto argument = expression(call->arguments[0]);
@@ -4426,8 +4650,11 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			if (arguments->size() != fields.size())
 				return false;
 			for (std::size_t i = 0; i < fields.size(); ++i)
-				if (infer((*arguments)[i]) != fields[i].second)
-					return false;
+			{
+				const bool contextual_integer = dynamic_cast<Integer*>((*arguments)[i]) && (fields[i].second == "s32" || fields[i].second == "s64" || fields[i].second == "u64");
+				const std::string actual = contextual_integer ? infer_integer(static_cast<Integer*>((*arguments)[i]), fields[i].second) : infer((*arguments)[i]);
+				if (actual != fields[i].second) return false;
+			}
 			return true;
 		}();
 		if (generated_struct)
@@ -4463,7 +4690,9 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01});
 			for (std::size_t i = 0; i < arguments->size(); ++i)
 			{
-				auto [field, actual] = expression((*arguments)[i]);
+				auto compiled = dynamic_cast<Integer*>((*arguments)[i]) ? integer_expression(static_cast<Integer*>((*arguments)[i]), aggregate.fields[i].second) : expression((*arguments)[i]);
+				auto field = std::move(compiled.first);
+				const std::string actual = std::move(compiled.second);
 				if (actual != aggregate.fields[i].second)
 					throw Error((*arguments)[i]->location, "expected " + aggregate.fields[i].second + ", found " + actual);
 				const unsigned temporary = add_local("", actual, (*arguments)[i]->location);
@@ -4556,12 +4785,22 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		}
 		std::vector<std::string> types;
 		for (Expr* argument : *arguments)
-			types.push_back(infer(argument));
-		if (const Module::HostDeclaration* host = member ? method_host : module_.host(callee, types))
+			types.push_back(dynamic_cast<Integer*>(argument) ? "s32" : infer(argument));
+		const Module::HostDeclaration* selected_host = member ? method_host : module_.host(callee, types);
+		Definition* selected_definition = member ? method_definition : module_.compatible_definition(callee, types, call->location);
+		if (!selected_host && !selected_definition)
+			if (auto contextual = module_.contextual_argument_types(callee, *arguments, types, call->location))
+			{
+				types = *contextual;
+				selected_host = module_.host(callee, types);
+				selected_definition = module_.compatible_definition(callee, types, call->location);
+			}
+		if (const Module::HostDeclaration* host = selected_host)
 		{
 			std::vector<Bytes> argument_code;
-			for (Expr* argument : *arguments)
-				argument_code.push_back(expression(argument).first);
+			for (std::size_t i = 0; i < arguments->size(); ++i)
+				if (auto integer = dynamic_cast<Integer*>((*arguments)[i])) argument_code.push_back(integer_expression(integer, types[i]).first);
+				else argument_code.push_back(expression((*arguments)[i]).first);
 			Bytes code;
 			std::vector<unsigned> locals, owned_arguments;
 			for (std::size_t i = 0; i < argument_code.size(); ++i)
@@ -4637,7 +4876,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			code.push_back(0x20); wasm::append_uleb(code, result);
 			return {code, host->result};
 		}
-		Definition& target = member ? *method_definition : module_.resolve(callee, types, value->location);
+		Definition& target = selected_definition ? *selected_definition : module_.resolve(callee, types, value->location);
 		std::vector<Expr*> default_arguments;
 		std::vector<std::unique_ptr<Expr>> default_synthetic;
 		if (arguments->size() < target.parameters.size())
@@ -4647,7 +4886,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			{
 				if (i >= target.default_values.size() || !target.default_values[i])
 					throw std::runtime_error("resolved Capy call omits a required parameter");
-				auto default_value = callsite_default_literal(target.default_values[i], value->location);
+				auto default_value = callsite_default_literal(target.default_values[i], value->location, target.parameters[i]);
 				types.push_back(literal_type(default_value.get()));
 				default_arguments.push_back(default_value.get());
 				default_synthetic.push_back(std::move(default_value));
@@ -4715,7 +4954,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				const std::string source_type = types[i];
 				if (source_type == "s32" || source_type == "s64" || source_type == "u64" || source_type == "f64")
 				{
-					auto compiled = expression(argument);
+					auto compiled = dynamic_cast<Integer*>(argument) ? integer_expression(static_cast<Integer*>(argument), source_type) : expression(argument);
 					const unsigned item = add_local("", source_type, argument->location);
 					append(code, compiled.first); code.push_back(0x21); wasm::append_uleb(code, item); emit_formatted_sink(item, source_type);
 					continue;
@@ -4784,7 +5023,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		{
 			if (types[i] == target.parameters[i])
 			{
-				argument_code.push_back(expression((*arguments)[i]).first);
+				if (auto integer = dynamic_cast<Integer*>((*arguments)[i])) argument_code.push_back(integer_expression(integer, types[i]).first);
+				else argument_code.push_back(expression((*arguments)[i]).first);
 				continue;
 			}
 			if (i >= target.convert.size() || !target.convert[i])
@@ -4852,7 +5092,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		std::string type = "void";
 		if (returned->value)
 		{
-			auto result = expression(returned->value);
+			auto result = dynamic_cast<Integer*>(returned->value)
+				? integer_expression(static_cast<Integer*>(returned->value), definition_.result) : expression(returned->value);
 			code = std::move(result.first);
 			type = result.second;
 		}
@@ -5265,7 +5506,10 @@ Bytes FunctionLowerer::block(Block* block_value, bool new_scope)
 		const auto variable = dynamic_cast<Variable*>(item);
 		const bool final_result = !new_scope && i + 1 == block_value->items.size() && definition_.result != "void";
 		const bool declaration_result = variable && final_result && infer(variable) == definition_.result;
-		auto [part, type] = expression(item, declaration_result || (!variable && final_result));
+		auto compiled = final_result && dynamic_cast<Integer*>(item)
+			? integer_expression(static_cast<Integer*>(item), definition_.result) : expression(item, declaration_result || (!variable && final_result));
+		auto part = std::move(compiled.first);
+		const std::string type = std::move(compiled.second);
 		append(code, part);
 		const bool implicit_result = declaration_result || (!variable && !new_scope && i + 1 == block_value->items.size() && type == definition_.result && type != "void");
 		if (implicit_result)
@@ -5828,7 +6072,7 @@ void Module::collect()
 			if (generic)
 				throw Error(function->location, "generic functions cannot use default parameters");
 			for (std::size_t i = 0; i < default_values.size(); ++i)
-				if (default_values[i] && literal_type(default_values[i]) != parameters[i])
+				if (default_values[i] && literal_type(default_values[i], parameters[i]) != parameters[i])
 					throw Error(default_values[i]->location, "default parameter literal must have type " + parameters[i]);
 		}
 		if (variadic && function->host)
@@ -6051,10 +6295,10 @@ Module::Capabilities Module::discover_capabilities()
 			const std::string source = scan_value_type(index->value);
 			if (source.rfind("array<", 0) == 0) return source.substr(6, source.size() - 7);
 			if (source.rfind("tuple<", 0) == 0)
-				if (auto literal = dynamic_cast<Integer*>(index->index); literal && literal->value >= 0)
+				if (auto literal = dynamic_cast<Integer*>(index->index); literal && !literal->negative)
 				{
 					const auto fields = aggregate_elements(source);
-					if (static_cast<std::size_t>(literal->value) < fields.size()) return fields[static_cast<std::size_t>(literal->value)];
+					if (literal->magnitude < fields.size()) return fields[static_cast<std::size_t>(literal->magnitude)];
 				}
 			if (source == "dval") return "dval";
 		}

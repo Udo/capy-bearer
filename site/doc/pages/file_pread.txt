@@ -17,7 +17,7 @@ var writer := file_open("/tmp/doc-pread.txt", "w")
 file_write(writer, "hello world")
 file_close(writer)
 var reader := file_open("/tmp/doc-pread.txt", "r")
-print(file_pread(reader, 6u64, 5u64), "\n")
+print(file_pread(reader, 6, 5), "\n")
 file_close(reader)
 
 :example cpp render

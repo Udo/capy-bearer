@@ -18,7 +18,7 @@ This function stores `value` under `key`. It sends the value length in bytes. It
 
 :example capy render
 var conn := memcache_connect()
-if conn != 0u64 { if memcache_set(conn, "doc_set_key", "value") { print("stored\n") } else { print("store failed\n") } }
+if conn != 0 { if memcache_set(conn, "doc_set_key", "value") { print("stored\n") } else { print("store failed\n") } }
 else { print("(requires a reachable memcached server)\n") }
 
 :example cpp render

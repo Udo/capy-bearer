@@ -19,7 +19,7 @@ The C++ API returns `u32`. Capy returns `u64`.
 
 :example capy render
 var db := mysql_connect("localhost", "root", "", "")
-if db != 0u64 {
+if db != 0 {
     mysql_query(db, "update users set active=1 where active=0")
     print("rows updated: ", mysql_affected_rows(db), "\n")
     mysql_disconnect(db)

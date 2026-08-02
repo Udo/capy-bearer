@@ -14,7 +14,7 @@ Call it after you finish reading or writing the socket. Do not use the handle af
 
 :example capy render
 var fd := socket_connect("127.0.0.1", 80)
-if fd != 0u64 { print("opened a socket") } else { print("open failed") }
+if fd != 0 { print("opened a socket") } else { print("open failed") }
 print(", now closing it\n")
 socket_close(fd)
 

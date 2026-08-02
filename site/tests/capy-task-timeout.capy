@@ -1,5 +1,5 @@
 function CLI {
     var id := task("/tests/task-handlers.capy:SLOW", "")
-    var status := task_await(id, 5000u64)
+    var status := task_await(id, u64(5000))
     print(status["state"], ":", status["failure_code"])
 }

@@ -18,9 +18,9 @@ float_val
 
 :example capy render
 var decimal := "0"
-if int_val("42") == 42u64 { decimal = "42" }
+if int_val("42") == 42 { decimal = "42" }
 var hexadecimal := "0"
-if int_val("ff", 16) == 255u64 { hexadecimal = "255" }
+if int_val("ff", 16) == 255 { hexadecimal = "255" }
 print(decimal, " / ", hexadecimal, "\n")
 
 :example cpp render

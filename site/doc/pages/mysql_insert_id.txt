@@ -15,7 +15,7 @@ Call this after an `INSERT` into a table with an `AUTO_INCREMENT` column.
 
 :example capy render
 var db := mysql_connect("localhost", "root", "", "")
-if db != 0u64 {
+if db != 0 {
     mysql_query(db, "select last_insert_id() as id")
     print("mysql_insert_id() returns the last AUTO_INCREMENT id for this connection (currently ", mysql_insert_id(db), ")\n")
     mysql_disconnect(db)

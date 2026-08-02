@@ -49,7 +49,7 @@ function CLI {
         values.clear()
         print(removed, "|", last, "|", resized, "|", length(values), "|", copied.capacity(), "|")
 
-        var wide := [1s64, 2s64]
+        var wide := [s64(1), s64(2)]
         var decimals := [1.5, 2.5]
         var combined := [...copied, "c"]
         var converted := collect(...[1, 2])

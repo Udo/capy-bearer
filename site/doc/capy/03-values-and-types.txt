@@ -6,7 +6,7 @@ Every Capy value has a type. The compiler checks types before the program runs. 
 
 ## Integers
 
-An integer literal has type `s32` unless a suffix selects a wider type:
+An integer literal has type `s32` when no other type is stated:
 
 :example capy render
 function RENDER {
@@ -18,17 +18,23 @@ function RENDER {
 42
 
 :content
-Use `s64` for a signed 64-bit integer and `u64` for an unsigned 64-bit integer:
+State a wider type on the local, or construct the value explicitly:
 
 ```capy
 function RENDER {
-    var signed := 8s64
-    var unsigned := 9u64
-    print(signed, " ", unsigned, "\n")
+    var signed : s64 = 8
+    var inferred_signed := s64(9)
+    var unsigned : u64 = 10
+    var inferred_unsigned := u64(11)
+    print(signed, " ", inferred_signed, " ", unsigned, " ", inferred_unsigned, "\n")
 }
 ```
 
-Arithmetic requires operands of the same type. Use a constructor when a value must change type.
+Both forms produce the stated wide integer type. `var signed : s64 = s64(8)` also compiles, but the constructor repeats information already supplied by the annotation.
+
+Parameters, function results, assignments, typed arrays, struct fields, and the other operand in an expression can also state the integer type. Thus, a function that accepts `u64` can receive the plain literal `8`. An unconstrained literal remains `s32`.
+
+Arithmetic requires operands of the same type. Use a constructor when the surrounding code does not state the required type.
 
 ## Booleans and floating-point numbers
 
@@ -116,7 +122,7 @@ A type alias gives another name to a type:
 type Count = s64
 
 function RENDER {
-    var total : Count = 12s64
+    var total : Count = 12
     print(total, "\n")
 }
 ```

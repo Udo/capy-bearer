@@ -13,7 +13,7 @@ Use `time` to get the current Capy Unix timestamp. The function takes no input. 
 Capy and C++ `.uce` both return `u64`, as the signature shows.
 
 :example capy render
-if time() > 0u64 { print("timestamp\n") } else { print("no timestamp\n") }
+if time() > 0 { print("timestamp\n") } else { print("no timestamp\n") }
 
 :example cpp render
 print(time() > 0 ? "timestamp\n" : "no timestamp\n");

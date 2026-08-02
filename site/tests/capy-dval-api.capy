@@ -29,7 +29,7 @@ function dval_api_run() s32 {
     var mapped := dval_map(dval([1, 2]), function(item : dval, key : string) dval { return dval(s32(item) + 1) })
     var filtered := dval_filter({keep: 2, drop: 1}, function(item : dval, key : string) bool { return s32(item) == 2 })
     print(s32(mapped[0]), s32(mapped[1]), dval_has(filtered, "keep"), dval_has(filtered, "drop"), "|")
-    print(s64(dval("-42")), u64(dval("42")), s64(dval("bad"), -9s64), u64(dval("bad"), 18446744073709551615u64), "|")
+    print(s64(dval("-42")), u64(dval("42")), s64(dval("bad"), s64(-9)), u64(dval("bad"), u64(18446744073709551615)), "|")
     }
     print(arc_live())
     return 0

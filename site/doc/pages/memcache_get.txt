@@ -17,7 +17,7 @@ This function returns the stored value for `key`. It returns `default_value` for
 
 :example capy render
 var conn := memcache_connect()
-if conn != 0u64 { memcache_set(conn, "doc_get_key", "stored value"); print(memcache_get(conn, "doc_get_key"), "\n") }
+if conn != 0 { memcache_set(conn, "doc_get_key", "stored value"); print(memcache_get(conn, "doc_get_key"), "\n") }
 else { print("(requires a reachable memcached server)\n") }
 
 :example cpp render

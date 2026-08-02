@@ -55,7 +55,7 @@ Use `task_status(id)` to poll. Use `task_await(id, timeout_ms)` to wait for a st
 
 ```capy
 function show_failure(id : string) {
-    var status := task_await(id, 5000u64)
+    var status := task_await(id, 5000)
     if string(status.state, "") == "failed" {
         print(string(status.failure_code, "unknown"))
     }

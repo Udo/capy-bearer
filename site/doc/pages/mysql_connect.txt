@@ -23,7 +23,7 @@ The C++ API returns `MySQL*` instead.
 :example capy render
 var db := mysql_connect("localhost", "root", "", "")
 if mysql_connected(db) { print("connected to MySQL\n") } else { print("no MySQL server reachable with these credentials\n") }
-if db != 0u64 { mysql_disconnect(db) }
+if db != 0 { mysql_disconnect(db) }
 
 :example cpp render
 MySQL* db = mysql_connect();

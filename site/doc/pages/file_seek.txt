@@ -15,8 +15,8 @@ var writer := file_open("/tmp/doc-seek.txt", "w")
 file_write(writer, "hello world")
 file_close(writer)
 var reader := file_open("/tmp/doc-seek.txt", "r")
-file_seek(reader, 6s64, 0s64)
-print(file_read(reader, 5u64), "\n")
+file_seek(reader, 6, 0)
+print(file_read(reader, 5), "\n")
 file_close(reader)
 
 :example cpp render

@@ -184,7 +184,7 @@ dval_return_output=$(scripts/bearer-cli /tests/capy-dval-return.capy)
 	exit 1
 }
 wide_output=$(scripts/bearer-cli /tests/capy-wide-scalars.capy)
-[[ "$wide_output" == "18446744073709551615|-9223372036854775808|-1|-3|-1|true|true|3|2|true|125|-1.5|5|3.5|18446744073709551615|9|-1|true|truetrue|inf|falsetrue|-0|0" ]] || {
+[[ "$wide_output" == "8|8|9|9|18446744073709551615|-9223372036854775808|-1|-3|-1|true|true|3|2|true|125|-1.5|5|3.5|18446744073709551615|9|-1|true|truetrue|inf|falsetrue|-0|0" ]] || {
 	echo "Capy wide scalar operations mismatch: $wide_output" >&2
 	exit 1
 }

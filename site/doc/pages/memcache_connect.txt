@@ -4,7 +4,7 @@ u64 memcache_connect(String host = "127.0.0.1", u16 port = 11211)
 :params
 host : server host name. The default is `127.0.0.1`
 port : server port. The default is `11211`
-return value : connection handle, or `0u64` on failure
+return value : connection handle, or zero on failure
 
 :see
 >memcache
@@ -12,13 +12,13 @@ return value : connection handle, or `0u64` on failure
 :content
 In Capy, this function returns a `u64` connection handle.
 
-It returns `0u64` when it cannot connect. Do not use a zero handle with another Memcache function.
+It returns zero when it cannot connect. Do not use a zero handle with another Memcache function.
 
 The C++ API also returns zero on failure. Capy exposes `port` as `s32`. The C++ declaration uses `u16`.
 
 :example capy render
 var conn := memcache_connect()
-if conn != 0u64 { print("connected to memcached\n") } else { print("no memcached server reachable\n") }
+if conn != 0 { print("connected to memcached\n") } else { print("no memcached server reachable\n") }
 
 :example cpp render
 u64 conn = memcache_connect();

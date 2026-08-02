@@ -18,6 +18,10 @@ else
 	echo "Reusing $BUILD_DIR/capyc"
 fi
 "$BUILD_DIR/capyc" --check-stdlib src/capy/stdlib.capy src/capy/stdlib.embedded.h
+if git grep -nE '[0-9](s32|s64|u64)\b' -- src/capy/stdlib.capy 'site/**/*.capy' 'site/doc/**/*.txt' docs/capy-language.md; then
+	echo "Capy source or documentation still uses a removed numeric suffix" >&2
+	exit 1
+fi
 python3 scripts/generate_capy_doc_signatures.py --capyc "$BUILD_DIR/capyc" --check
 python3 - <<'PY'
 from pathlib import Path

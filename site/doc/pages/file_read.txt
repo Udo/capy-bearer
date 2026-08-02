@@ -16,7 +16,7 @@ var writer := file_open("/tmp/doc-read.txt", "w")
 file_write(writer, "hello world")
 file_close(writer)
 var reader := file_open("/tmp/doc-read.txt", "r")
-print(file_read(reader, 5u64), "\n")
+print(file_read(reader, 5), "\n")
 file_close(reader)
 
 :example cpp render

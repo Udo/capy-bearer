@@ -99,8 +99,8 @@ host function __bearer_codec_dval(operation : s32, value : string) dval
 function string(value : dval, fallback : string = "") string { __bearer_dv_extract_string(value, fallback) }
 function bool(value : dval, fallback : bool = false) bool { __bearer_dv_extract_bool(value, fallback) }
 function s32(value : dval, fallback : s32 = 0) s32 { __bearer_dv_extract_s32(value, fallback) }
-function s64(value : dval, fallback : s64 = 0s64) s64 { __bearer_dv_extract_s64(value, fallback) }
-function u64(value : dval, fallback : u64 = 0u64) u64 { __bearer_dv_extract_u64(value, fallback) }
+function s64(value : dval, fallback : s64 = 0) s64 { __bearer_dv_extract_s64(value, fallback) }
+function u64(value : dval, fallback : u64 = 0) u64 { __bearer_dv_extract_u64(value, fallback) }
 function f64(value : dval, fallback : f64 = 0.0) f64 { __bearer_dv_extract_f64(value, fallback) }
 
 function __bearer_dval_dval_set() s32 { 0 }
@@ -296,7 +296,7 @@ function substr(value : string, start : s32) string { __bearer_string_substr(val
 function substr(value : string, start : s64) string { __bearer_string_substr(value, start, s64(length(value))) }
 function substr(value : string, start : s32, length : s32) string { __bearer_string_substr(value, s64(start), s64(length)) }
 function substr(value : string, start : s64, length : s64) string { __bearer_string_substr(value, start, length) }
-function strpos(haystack : string, needle : string, offset : s64 = 0s64) s64 { __bearer_string_strpos(haystack, needle, offset) }
+function strpos(haystack : string, needle : string, offset : s64 = 0) s64 { __bearer_string_strpos(haystack, needle, offset) }
 function dval_set(value : dval, source : as dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set(), value, "", source) }
 function dval_assign(value : dval, source : as dval) dval { dval_set(value, source) }
 function dval_push(value : dval, child : as dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_push(), value, "", child) }
@@ -397,12 +397,12 @@ function ascii_safe_name(raw : string) string { string(__bearer_text_parsing_brr
 function safe_name(raw : string) string { string(__bearer_text_parsing_brrb(__bearer_text_safe_name(), dval(raw), "", dval(""))) }
 function trim(raw : string) string { string(__bearer_text_parsing_brrb(__bearer_text_trim(), dval(raw), "", dval(""))) }
 function float_val(raw : string) f64 { f64(__bearer_text_parsing_brrb(__bearer_text_float_val(), dval(raw), "", dval(0.0))) }
-function int_val(raw : string) u64 { u64(__bearer_text_parsing_brrb(__bearer_text_int_val(), dval(raw), "", dval(10.0)), 0u64) }
-function int_val(raw : string, base : s32) u64 { u64(__bearer_text_parsing_brrb(__bearer_text_int_val(), dval(raw), "", dval(base)), 0u64) }
+function int_val(raw : string) u64 { u64(__bearer_text_parsing_brrb(__bearer_text_int_val(), dval(raw), "", dval(10.0)), 0) }
+function int_val(raw : string, base : s32) u64 { u64(__bearer_text_parsing_brrb(__bearer_text_int_val(), dval(raw), "", dval(base)), 0) }
 function to_bool(raw : string, fallback : bool = false) bool { bool(__bearer_text_parsing_brrb(__bearer_text_to_bool(), dval(raw), "", dval(fallback))) }
 function to_f64(raw : string, fallback : f64 = 0.0) f64 { f64(dval(trim(raw)), fallback) }
-function to_s64(raw : string, fallback : s64 = 0s64) s64 { s64(dval(trim(raw)), fallback) }
-function to_u64(raw : string, fallback : u64 = 0u64) u64 { u64(dval(trim(raw)), fallback) }
+function to_s64(raw : string, fallback : s64 = 0) s64 { s64(dval(trim(raw)), fallback) }
+function to_u64(raw : string, fallback : u64 = 0) u64 { u64(dval(trim(raw)), fallback) }
 function str_starts_with(haystack : string, needle : string) bool { bool(__bearer_text_parsing_brrb(__bearer_text_str_starts_with(), dval(haystack), needle, dval(false))) }
 function str_ends_with(haystack : string, needle : string) bool { bool(__bearer_text_parsing_brrb(__bearer_text_str_ends_with(), dval(haystack), needle, dval(false))) }
 function encode_query(map : dval) string { string(__bearer_text_parsing_brrb(__bearer_text_encode_query(), map, "", dval(""))) }
@@ -477,7 +477,7 @@ function file_pwrite(handle : u64, offset : u64, data : string) u64 { __bearer_f
 function file_copy(from : string, to : string) bool { bool(__bearer_filesystem_brrb(__bearer_filesystem_file_copy(), dval(from), to, dval(false))) }
 function file_rename(from : string, to : string) bool { bool(__bearer_filesystem_brrb(__bearer_filesystem_file_rename(), dval(from), to, dval(false))) }
 function file_stat(path : string) dval { __bearer_filesystem_brrb(__bearer_filesystem_file_stat(), dval(path), "", dval("")) }
-function file_mtime(path : string) u64 { u64(__bearer_filesystem_brrb(__bearer_filesystem_file_mtime(), dval(path), "", dval("")), 0u64) }
+function file_mtime(path : string) u64 { u64(__bearer_filesystem_brrb(__bearer_filesystem_file_mtime(), dval(path), "", dval("")), 0) }
 function file_exists(path : string) bool { bool(__bearer_filesystem_brrb(__bearer_filesystem_file_exists(), dval(path), "", dval(false))) }
 function file_truncate(path : string, size : u64) bool { bool(__bearer_filesystem_brrb(__bearer_filesystem_file_truncate(), dval(path), "", dval(size))) }
 function file_chmod(path : string, mode : s32) bool { bool(__bearer_filesystem_brrb(__bearer_filesystem_file_chmod(), dval(path), "", dval(mode))) }
@@ -547,18 +547,18 @@ function mysql_insert_id(handle : u64) u64 { __bearer_mysql_insert_id(handle) }
 function mysql_affected_rows(handle : u64) u64 { __bearer_mysql_affected_rows(handle) }
 
 function random_bytes(count : u64) string { __bearer_random_bytes(count) }
-function gen_noise32(index : u64, seed : u64 = 0u64) u64 { __bearer_noise32(index, seed) }
-function gen_noise64(index : u64, seed : u64 = 0u64) u64 { __bearer_noise_u64(__bearer_noise_gen_noise64(), index, seed, 0u64, 0u64) }
-function gen_noise01(index : u64, seed : u64 = 0u64) f64 { __bearer_noise_f64(__bearer_noise_gen_noise01(), 0.0, 0.0, index, seed, 0.0) }
-function gen_int(from : u64, to : u64, index : u64, seed : u64 = 0u64) u64 { __bearer_noise_u64(__bearer_noise_gen_int(), from, to, index, seed) }
-function gen_float(from : f64, to : f64, index : u64, seed : u64 = 0u64, precision : f64 = 0.000000000001) f64 { __bearer_noise_f64(__bearer_noise_gen_float(), from, to, index, seed, precision) }
-function draw_int(from : u64, to : u64) u64 { __bearer_noise_u64(__bearer_noise_draw_int(), from, to, 0u64, 0u64) }
-function draw_float(from : f64, to : f64, precision : f64 = 0.000000000001) f64 { __bearer_noise_f64(__bearer_noise_draw_float(), from, to, 0u64, 0u64, precision) }
+function gen_noise32(index : u64, seed : u64 = 0) u64 { __bearer_noise32(index, seed) }
+function gen_noise64(index : u64, seed : u64 = 0) u64 { __bearer_noise_u64(__bearer_noise_gen_noise64(), index, seed, 0, 0) }
+function gen_noise01(index : u64, seed : u64 = 0) f64 { __bearer_noise_f64(__bearer_noise_gen_noise01(), 0.0, 0.0, index, seed, 0.0) }
+function gen_int(from : u64, to : u64, index : u64, seed : u64 = 0) u64 { __bearer_noise_u64(__bearer_noise_gen_int(), from, to, index, seed) }
+function gen_float(from : f64, to : f64, index : u64, seed : u64 = 0, precision : f64 = 0.000000000001) f64 { __bearer_noise_f64(__bearer_noise_gen_float(), from, to, index, seed, precision) }
+function draw_int(from : u64, to : u64) u64 { __bearer_noise_u64(__bearer_noise_draw_int(), from, to, 0, 0) }
+function draw_float(from : f64, to : f64, precision : f64 = 0.000000000001) f64 { __bearer_noise_f64(__bearer_noise_draw_float(), from, to, 0, 0, precision) }
 
 // Cache and process policy remains in sys.cpp/worker; Capy passes copied values.
-function memcache_connect(host : string = "127.0.0.1", port : s32 = 11211) u64 { u64(__bearer_cache_brrb(__bearer_cache_memcache_connect(), dval(host), "", dval(port)), 0u64) }
+function memcache_connect(host : string = "127.0.0.1", port : s32 = 11211) u64 { u64(__bearer_cache_brrb(__bearer_cache_memcache_connect(), dval(host), "", dval(port)), 0) }
 function memcache_command(connection : u64, command : string) string { string(__bearer_cache_brrb(__bearer_cache_memcache_command(), dval(connection), command, dval(""))) }
-function memcache_set(connection : u64, key : string, value : string, expires_in : u64 = 3600u64) bool { bool(__bearer_cache_brrb(__bearer_cache_memcache_set(), dval(connection), key, dval({"value": value, "expires": expires_in}))) }
+function memcache_set(connection : u64, key : string, value : string, expires_in : u64 = 3600) bool { bool(__bearer_cache_brrb(__bearer_cache_memcache_set(), dval(connection), key, dval({"value": value, "expires": expires_in}))) }
 function memcache_delete(connection : u64, key : string) bool { bool(__bearer_cache_brrb(__bearer_cache_memcache_delete(), dval(connection), key, dval(""))) }
 function memcache_get(connection : u64, key : string, default_value : string = "") string { string(__bearer_cache_brrb(__bearer_cache_memcache_get(), dval(connection), key, dval(default_value))) }
 function memcache_get_multiple(connection : u64, keys : dval) dval { __bearer_cache_brrb(__bearer_cache_memcache_get_multiple(), dval(connection), "", keys) }
@@ -584,12 +584,12 @@ function task_cancel(id : string) dval { __bearer_process_jobs_brrb(__bearer_pro
 
 // Network resources remain request-owned by the workspace. Handles are encoded
 // as decimal DValues at the BRRB boundary, then parsed exactly as u64 values.
-function socket_connect(host : string, port : s32) u64 { u64(__bearer_network_http_brrb(__bearer_network_socket_connect(), dval(host), "", dval(port)), 0u64) }
+function socket_connect(host : string, port : s32) u64 { u64(__bearer_network_http_brrb(__bearer_network_socket_connect(), dval(host), "", dval(port)), 0) }
 function socket_close(handle : u64) { var ignored := __bearer_network_http_brrb(__bearer_network_socket_close(), dval(handle), "", dval("")) }
 function socket_write(handle : u64, data : string) bool { bool(__bearer_network_http_brrb(__bearer_network_socket_write(), dval(handle), data, dval(""))) }
 function socket_read(handle : u64, max_length : s32 = 131072, timeout : s32 = 1) string { string(__bearer_network_http_brrb(__bearer_network_socket_read(), dval(handle), "", dval({"max_length": max_length, "timeout": timeout}))) }
 function http_request(request : dval) dval { __bearer_network_http_brrb(__bearer_network_http_request(), request, "", dval("")) }
-function http_request_async(request : dval) u64 { u64(__bearer_network_http_brrb(__bearer_network_http_request_async(), request, "", dval("")), 0u64) }
+function http_request_async(request : dval) u64 { u64(__bearer_network_http_brrb(__bearer_network_http_request_async(), request, "", dval("")), 0) }
 
 // C++ unit/component policy remains in the existing workspace dispatcher.
 function component(name : string) string { component_capture(name) }
@@ -597,13 +597,13 @@ function component(name : string, props : as dval) string { component_capture(na
 function unit_call(file_name : string, function_name : string) dval { unit_call(file_name, function_name, "") }
 
 // Time parsing/formatting stays in sys.cpp; u64 values cross BRRB as exact text.
-function time_parse(value : string) u64 { u64(__bearer_time_format_brrb(__bearer_time_time_parse(), dval(value), "", dval("")), 0u64) }
-function time_format_local(format : string = "", timestamp : u64 = 0u64) string { string(__bearer_time_format_brrb(__bearer_time_time_format_local(), dval(format), "", dval(timestamp))) }
-function time_format_utc(format : string = "", timestamp : u64 = 0u64) string { string(__bearer_time_format_brrb(__bearer_time_time_format_utc(), dval(format), "", dval(timestamp))) }
-function time_format_relative(timestamp : u64, very_recent : string = "", medium_seconds : u64 = 0u64, medium_recent : string = "", not_recent_seconds : u64 = 0u64, not_recent : string = "") string { string(__bearer_time_format_brrb(__bearer_time_time_format_relative(), dval(timestamp), very_recent, dval({"medium_seconds": medium_seconds, "medium_recent": medium_recent, "not_recent_seconds": not_recent_seconds, "not_recent": not_recent}))) }
+function time_parse(value : string) u64 { u64(__bearer_time_format_brrb(__bearer_time_time_parse(), dval(value), "", dval("")), 0) }
+function time_format_local(format : string = "", timestamp : u64 = 0) string { string(__bearer_time_format_brrb(__bearer_time_time_format_local(), dval(format), "", dval(timestamp))) }
+function time_format_utc(format : string = "", timestamp : u64 = 0) string { string(__bearer_time_format_brrb(__bearer_time_time_format_utc(), dval(format), "", dval(timestamp))) }
+function time_format_relative(timestamp : u64, very_recent : string = "", medium_seconds : u64 = 0, medium_recent : string = "", not_recent_seconds : u64 = 0, not_recent : string = "") string { string(__bearer_time_format_brrb(__bearer_time_time_format_relative(), dval(timestamp), very_recent, dval({"medium_seconds": medium_seconds, "medium_recent": medium_recent, "not_recent_seconds": not_recent_seconds, "not_recent": not_recent}))) }
 
 function ws_connections(scope : string = "") dval { __bearer_websocket_registry_brrb(__bearer_websocket_ws_connections(), dval(scope), "", dval("")) }
-function ws_connection_count(scope : string = "") u64 { u64(__bearer_websocket_registry_brrb(__bearer_websocket_ws_connection_count(), dval(scope), "", dval("")), 0u64) }
+function ws_connection_count(scope : string = "") u64 { u64(__bearer_websocket_registry_brrb(__bearer_websocket_ws_connection_count(), dval(scope), "", dval("")), 0) }
 
 // Direct byte-span adapters remain private; public names below this boundary are
 // ordinary declarations selected from this source with user-call provenance.
