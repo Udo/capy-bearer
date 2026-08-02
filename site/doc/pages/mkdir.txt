@@ -14,7 +14,7 @@ Use it when the parent directory already exists. It does not create missing pare
 var root := file_temp("/tmp/doc-mkdir-")
 file_unlink(root)
 mkdir(root)
-if dval_bool(file_stat(root)["is_dir"]) { print("created\n") } else { print("not created\n") }
+if bool(file_stat(root)["is_dir"]) { print("created\n") } else { print("not created\n") }
 dir_remove(root, true)
 
 :example cpp render

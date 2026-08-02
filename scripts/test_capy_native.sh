@@ -31,6 +31,7 @@ assert "function request_apply" not in stdlib and not re.search(r"\bglobal\s*>\s
 PY
 scripts/test_hardened_http_native.sh
 scripts/test_crypto_operation_native.sh
+scripts/test_dvalue_none_native.sh
 scripts/test_capy_exact_handle_native.sh
 "$BUILD_DIR/capyc" --parity-manifest "$PARITY_MANIFEST"
 cmp "$PARITY_MANIFEST" docs/capy-uce-parity.md
@@ -107,7 +108,9 @@ grep -q 'env.bearer_string_strpos' "$BUILD_DIR/strings.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-codecs.capy.wasm" >"$BUILD_DIR/codecs.objdump"
 grep -q 'env.bearer_codec' "$BUILD_DIR/codecs.objdump"
 grep -q 'env.bearer_dv_f64_to_brrb' "$BUILD_DIR/codecs.objdump"
-grep -q 'env.bearer_dv_f64_brrb' "$BUILD_DIR/codecs.objdump"
+grep -q 'env.bearer_dv_extract_f64' "$BUILD_DIR/codecs.objdump"
+grep -q 'env.bearer_dv_extract_bool' "$BUILD_DIR/codecs.objdump"
+! grep -q 'env.bearer_dv_f64_brrb\|env.bearer_dv_bool_brrb' "$BUILD_DIR/codecs.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-regex.capy.wasm" >"$BUILD_DIR/regex.objdump"
 grep -q 'env.bearer_regex_match' "$BUILD_DIR/regex.objdump"
 grep -q 'env.bearer_regex_dval' "$BUILD_DIR/regex.objdump"

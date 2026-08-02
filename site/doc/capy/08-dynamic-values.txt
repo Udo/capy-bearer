@@ -1,0 +1,96 @@
+:title
+8. Dynamic values
+
+:content
+## Purpose
+
+Use a `dval` for decoded input, dynamic records, and values that cross a Bearer boundary. A DValue is copied at that boundary.
+
+## Input
+
+This JSON input has a map, a list, and a scalar:
+
+```text
+{"name":"Ada","tags":["math"],"status":"old"}
+```
+
+## Minimal executable example
+
+## Code
+
+:example capy render
+function RENDER {
+    var profile := json_decode("{\"name\":\"Ada\",\"tags\":[\"math\"],\"status\":\"old\"}")
+    print(profile.nickname?, "|", profile.tags[2]?, "\n")
+
+    var optional := {nickname: none}
+    print(dval_has(optional, "nickname"), "|", optional.nickname?, "\n")
+
+    profile.contact.email = "ada@example.test"
+    profile.status.detail = "new"
+    profile.tags[0] = "logic"
+    print(profile.contact.email, "|", profile.status.detail, "|", profile.tags[0], "\n")
+
+    print(dval_require(profile, "name"), "|", string(profile.missing, "guest"), "\n")
+
+    var copied := profile
+    profile.nickname = "Ada Lovelace"
+    print(copied.nickname?, "|")
+    print(profile.nickname, "\n")
+}
+
+:output
+false|false
+true|false
+ada@example.test|new|logic
+Ada|guest
+false|Ada Lovelace
+
+## Output
+
+The program writes the five lines shown above. The final line ends with a newline.
+
+## Explanation
+
+A bare map literal, such as `{name: "Ada"}`, creates a DValue map. Use `{:}` for an empty DValue map. `{}` is an empty block. Use `dval([value])` to make a dynamic DValue list. A bare list is a typed array instead.
+
+`none` is an explicit DValue value. It differs from an empty string, `false`, an empty map, and an empty list. `value?` returns `false` only for `none`. It binds after member and index access.
+
+Member and index reads are safe. A missing key, a scalar intermediate, a negative list index, and an out-of-range list index return `none`. These reads do not change the receiver. The first output line checks a missing member and an out-of-range list item.
+
+`dval_has(map, key)` checks whether a map contains the key. A key can exist and contain `none`. The second output line shows this distinction.
+
+DValue constructors use their default when conversion fails or the value is `none`. `string(profile.missing, "guest")` returns `"guest"`. Use `dval_require` when a missing or unusable member must trap. The example requires an existing `name` key.
+
+Nested assignment updates a declared local DValue root. It evaluates the root, selectors, and right side once from left to right. Missing, `none`, and scalar intermediate values become maps. Thus `profile.status.detail` replaces the scalar `status` with a map.
+
+An existing list accepts only an in-range nonnegative numeric selector. Capy does not create sparse lists. The assignment to `profile.tags[0]` is valid because item zero exists.
+
+DValue assignment uses copy-on-write value semantics. The update to `profile` does not change `copied`. DValues also cross units, components, tasks, and host calls as copied BRRB values.
+
+## Common variants
+
+Use brackets for a non-identifier key, a dynamic key, or a list index. For example, use `profile["display-name"]` and `profile.tags[0]`.
+
+Use `json_decode` for JSON input and `yaml_decode` for YAML input. JSON `null`, YAML `null`, and YAML `~` decode as `none`. JSON and YAML encode `none` as `null`.
+
+Use `dval_put`, `dval_push`, `dval_remove`, and related functions when a program needs a replacement value. Assign their returned DValue to the local root.
+
+## Edge cases
+
+Only a declared local DValue can start a nested assignment. Parameters, captures, loop items, fields, indexes, calls, and temporary roots cannot start one. For example, `dval({:}).profile.nickname = "Ada"` is an error.
+
+An existing-list write with a negative or out-of-range index traps. A missing intermediate before a numeric selector becomes a map with the decimal selector as its key. It does not create a list.
+
+XML has no distinct `none` value. XML encoding writes `none` as empty text, so XML does not preserve the distinction. BRRB preserves `none` across copied boundaries.
+
+## Related reference
+
+`0_DValue`, `json_decode`, `yaml_decode`, `xml_encode`, `capy-07-collections-and-records`
+
+:see
+0_DValue
+json_decode
+yaml_decode
+xml_encode
+capy-07-collections-and-records

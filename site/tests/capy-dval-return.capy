@@ -32,7 +32,7 @@ function continue_owned_dval() s32 {
 
 function exhaust_owned_dval() s32 {
     for value = dval([1]) {
-        dval_s32(value)
+        s32(value)
     }
     return arc_live()
 }
@@ -41,12 +41,12 @@ function CLI {
     print(leave_dval_loop(), "|", arc_live(), "|")
     {
         var result := first_dval_value()
-        print(dval_s32(result), "|", arc_live(), "|")
+        print(s32(result), "|", arc_live(), "|")
     }
     print(arc_live(), "|", break_owned_dval(), continue_owned_dval(), exhaust_owned_dval(), "|", arc_live(), "|")
     {
         var result := implicit_dval_value()
-        print(dval_s32(result), "|", arc_live(), "|")
+        print(s32(result), "|", arc_live(), "|")
     }
     print(arc_live())
 }

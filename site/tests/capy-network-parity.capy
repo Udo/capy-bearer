@@ -8,5 +8,5 @@ function CLI {
     var job := http_request_async(request)
     var done := job_await(dval(job), 3000)
     var hardened := http_request(dval({"method": "GET", "url": "http://127.0.0.1/", "security": {"https_only": true}}))
-    print(socket > 0u64, "|", sent, "|", contains(chunk, "HTTP/"), "|", dval_to_u64(response["status"]), "|", job > 0u64, ":", dval_to_bool(done["done"]), ":", dval_to_u64(dval_get_by_path(done, "result/status")), "|", dval_to_string(hardened["error"]), "|", arc_live())
+    print(socket > 0u64, "|", sent, "|", contains(chunk, "HTTP/"), "|", u64(response["status"]), "|", job > 0u64, ":", bool(done["done"]), ":", u64(dval_get_by_path(done, "result/status")), "|", hardened["error"], "|", arc_live())
 }

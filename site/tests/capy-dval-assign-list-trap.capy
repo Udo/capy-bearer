@@ -1,0 +1,4 @@
+function CLI {
+    var values := dval(["only"])
+    values[1] = "two"
+}

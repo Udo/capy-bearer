@@ -1696,6 +1696,8 @@ String yaml_scalar_to_string(DValue t)
 		}
 		case('P'):
 			return(std::to_string((u64)target._ptr));
+		case('N'):
+			return("null");
 		default:
 			return(t.to_string());
 	}
@@ -1705,6 +1707,8 @@ String yaml_encode_scalar(DValue t, u32 indent)
 {
 	String raw = yaml_scalar_to_string(t);
 	const DValue& target = t.deref();
+	if(target.type == 'N')
+		return("null");
 	if(target.type == 'B' || target.type == 'F')
 		return(raw);
 	if(raw.find("\n") != String::npos)
@@ -1969,7 +1973,7 @@ struct YamlParser
 		}
 		if(lower == "null" || lower == "~")
 		{
-			result = "";
+			result.set_none();
 			return(result);
 		}
 		result = value;
@@ -2433,7 +2437,7 @@ DValue json_decode_value(String s, u32& i)
 		else if(value == "false")
 			result.set_bool(false);
 		else if(value == "null")
-			result.set("");
+			result.set_none();
 		return(result);
 	}
 	return(result);

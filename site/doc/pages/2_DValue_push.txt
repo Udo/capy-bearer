@@ -20,7 +20,7 @@ An empty value becomes a list. A contiguous list adds the child after its last i
 `DValue::push()` changes the object in place.
 
 :example capy render
-var list := dval_push(dval_push(dval([]), dval("x")), dval("y"))
+var list := dval_push(dval_push(dval([]), "x"), "y")
 if dval_has(list, "1") { print("count: 2\n") } else { print("count: 1\n") }
 
 :example cpp render

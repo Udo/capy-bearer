@@ -21,7 +21,7 @@ function CLI {
         var listed := join(sort(ls(root)), ",")
         var found := false
         for key, item = dir_list(root) {
-            if dval_string(dval_key(item, "name")) == "b.txt" { found = true }
+            if string(dval_key(item, "name")) == "b.txt" { found = true }
         }
         var nonrecursive := dir_remove(root)
         var real := path_real(source)
@@ -36,7 +36,7 @@ function CLI {
         var cwd_changed := cwd_get() == root
         cwd_set(old_cwd)
         var removed := dir_remove(root, true)
-        print(basename(source), "|", dirname(source) == root, "|", made, put, appended, copied_ok, renamed_ok, truncated, chmodded, linked, "|", source_contents, "|", renamed_contents, "|", link_contents, "|", dval_bool(st_exists), dval_bool(st_is_file), dval_to_u64(st_size), "|", has_mtime, "|", listed, "|", found, nonrecursive, within, expanded == source, real == source, cwd_changed, removed)
+        print(basename(source), "|", dirname(source) == root, "|", made, put, appended, copied_ok, renamed_ok, truncated, chmodded, linked, "|", source_contents, "|", renamed_contents, "|", link_contents, "|", bool(st_exists), bool(st_is_file), u64(st_size), "|", has_mtime, "|", listed, "|", found, nonrecursive, within, expanded == source, real == source, cwd_changed, removed)
     }
     print("|", !file_exists("/definitely-not-a-capy-files2-file"), "|", file_get_contents("/definitely-not-a-capy-files2-file") == "", "|", !file_put_contents("/definitely-not-a-capy-files2-file", "x"), "|", !mkdir("/definitely-not-a-capy-files2-dir"))
 }

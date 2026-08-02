@@ -18,8 +18,8 @@ C++ `get_or_create(key)` returns a pointer to the child. It creates the child wh
 
 :example capy render
 var config := dval_get_or_create(dval({:}), "host")
-config = dval_put(config, "host", dval("localhost"))
-if dval_has(config, "host") { print(dval_to_string(config["host"]), "\n") } else { print("missing\n") }
+config = dval_put(config, "host", "localhost")
+if dval_has(config, "host") { print(config["host"], "\n") } else { print("missing\n") }
 
 :example cpp render
 DValue config;

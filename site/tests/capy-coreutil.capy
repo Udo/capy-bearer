@@ -20,9 +20,9 @@ function coreutil_output() string {
             float_val(" 3.5x"), ":", int_val("ff", 16), ":", to_bool("YES"), to_bool("unknown", true), "|",
             to_f64(" 1.5 "), ":", to_s64("-9"), ":", to_u64("42"), "|",
             str_starts_with("docs/index", "docs"), str_ends_with("docs/index", "index"), "|",
-            encode_query(parsed), ":", dval_string(parsed["b"]), dval_string(parsed["flag"]), ":", dval_string(uri["parts"]["host"]), ":", dval_string(uri["parts"]["path"]), ":", dval_string(uri["query"]["b"]), "|",
+            encode_query(parsed), ":", parsed["b"], parsed["flag"], ":", uri["parts"]["host"], ":", uri["parts"]["path"], ":", uri["query"]["b"], "|",
             route_path_normalize(" /docs/index/ "), ":", route_path_is_safe("docs/index"), ":", route_path_sanitize("../secret", "index"), "|",
-            join(split_space("one  two\tthree"), ","), ":", join(utf8, ","), ":", dval_string(headers["HTTP_HOST"]), "|",
+            join(split_space("one  two\tthree"), ","), ":", join(utf8, ","), ":", headers["HTTP_HOST"], "|",
             join(sorted, ","), ":", contains(dump, "name: Ada"), ":", signal_name(11), ":", usleep(0), ":", contains(backtrace_capture(), ""), ":", length(runtime_safe_key(" core task ")), "|")
     }
     print(arc_live())

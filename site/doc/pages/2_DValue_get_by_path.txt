@@ -4,22 +4,25 @@ DValue DValue::get_by_path(String path, String delim = "/") const
 :params
 path : delimited child path to traverse
 delim : path separator string
-return value : resolved child as a `dval`, or an empty `dval` when traversal fails
+return value : resolved child as a `dval`, or an empty string value when traversal fails
 
 :see
 >types
 0_DValue
-2_DValue_has
+2_DValue_key
 2_DValue_to_string
+2_DValue_require
 
 :content
-Use `dval_get_by_path(value, path)` in Capy to get a copied nested child. Pass a copied `dval` and a slash-separated path. The function does not create nodes. It returns an empty `dval` when a segment is missing or an intermediate value is not map-shaped. Empty path segments have no effect.
+Use `dval_get_by_path(value, path)` in Capy to get a copied nested child. Pass a slash-separated path. The function does not create nodes.
+
+It returns an empty string value when a segment is missing or an intermediate value is not map-shaped. It does not return `none` for a failed path. Empty path segments have no effect.
 
 C++ `get_by_path(path, delim)` also accepts a custom separator. Its default separator is `/`.
 
 :example capy render
-var cfg := dval({"site": {"title": "BEARER"}})
-print(dval_to_string(dval_get_by_path(cfg, "site/title")), "\n")
+var cfg := {"site": {"title": "BEARER"}}
+print(dval_get_by_path(cfg, "site/title"), "\n")
 
 :example cpp render
 DValue cfg;

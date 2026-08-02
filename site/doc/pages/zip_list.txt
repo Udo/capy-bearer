@@ -27,7 +27,7 @@ var archive := "/tmp/capy-doc-ziplist.zip"
 zip_create(archive, dval({"a.txt": "alpha", "b.txt": "beta"}))
 var listing := zip_list(archive)
 var entries := listing["entries"]
-print(dval_s32(listing["count"]), " entries: ", dval_string(entries[0]["name"]), ", ", dval_string(entries[1]["name"]), "\n")
+print(s32(listing["count"]), " entries: ", entries[0]["name"], ", ", entries[1]["name"], "\n")
 file_unlink(archive)
 
 :example cpp render

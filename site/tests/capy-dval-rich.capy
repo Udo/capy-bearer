@@ -5,10 +5,10 @@ function EXPORT_enrich (input : dval) dval {
 
 function CLI {
     {
-        var cpp := unit_call("/tests/capy-cross-target.uce", "structured", dval({"user": {"name": "Ada"}, "items": [4, 9]}))
-        print(dval_string(cpp["source"]), "|", dval_string(cpp["name"]), "|", dval_s32(cpp["second"]), "|")
-        var capy := unit_call("/tests/capy-dval-rich.capy", "enrich", dval({"origin": "capy"}))
-        print(dval_string(capy["language"]), "|", dval_string(capy["input"]["origin"]), "|")
+        var cpp := unit_call("/tests/capy-cross-target.uce", "structured", {"user": {"name": "Ada"}, "items": [4, 9]})
+        print(cpp["source"], "|", cpp["name"], "|", s32(cpp["second"]), "|")
+        var capy := unit_call("/tests/capy-dval-rich.capy", "enrich", {"origin": "capy"})
+        print(capy["language"], "|", capy["input"]["origin"], "|")
         var profile := dval({
             "name": "Ada",
             "age": 42,
@@ -16,10 +16,10 @@ function CLI {
             "tags": ["math", "logic"]
         })
         print(
-            dval_string(profile["name"]), "|",
-            dval_s32(profile["age"]), "|",
-            dval_bool(profile["active"]), "|",
-            dval_string(profile["tags"][1]), "|",
+            profile["name"], "|",
+            s32(profile["age"]), "|",
+            bool(profile["active"]), "|",
+            profile["tags"][1], "|",
             dval_has(profile, "name"), dval_has(profile, "missing"), "|",
             arc_live(), "|"
         )
@@ -28,15 +28,15 @@ function CLI {
         }
         print("|")
         for key, value = profile["tags"] {
-            print(key, "=", dval_string(value), ";")
+            print(key, "=", value, ";")
         }
         print("|")
         for key, value = dval([1, 2, 3]) {
-            if dval_s32(value) == 1 {
+            if s32(value) == 1 {
                 continue
             }
-            print(dval_s32(value), ";")
-            if dval_s32(value) == 2 {
+            print(s32(value), ";")
+            if s32(value) == 2 {
                 break
             }
         }

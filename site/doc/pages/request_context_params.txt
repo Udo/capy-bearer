@@ -31,7 +31,7 @@ This supports URLs such as `/?dashboard` and `/?workspace/projects`. Named query
 
 :example capy render
 var snapshot := request_context()
-if dval_to_string(dval_get_by_path(snapshot, "params/SCRIPT_URL")) != "" { print("has script url\n") } else { print("request params available\n") }
+if string(dval_get_by_path(snapshot, "params/SCRIPT_URL")) != "" { print("has script url\n") } else { print("request params available\n") }
 
 :example cpp render
 print(context.params["SCRIPT_URL"] != "" ? "has script url\n" : "request params available\n");

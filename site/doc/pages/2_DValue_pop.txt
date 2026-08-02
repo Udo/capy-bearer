@@ -19,10 +19,10 @@ For a list, it removes the last numeric child and resets the next list index. Fo
 
 
 :example capy render
-var list := dval_push(dval_push(dval([]), dval("first")), dval("last"))
+var list := dval_push(dval_push(dval([]), "first"), "last")
 var popped := list[1]
 list = dval_pop(list)
-if dval_has(list, "0") { print("popped ", dval_to_string(popped), ", remaining 1\n") } else { print("popped ", dval_to_string(popped), ", remaining 0\n") }
+if dval_has(list, "0") { print("popped ", popped, ", remaining 1\n") } else { print("popped ", popped, ", remaining 0\n") }
 
 :example cpp render
 DValue list;

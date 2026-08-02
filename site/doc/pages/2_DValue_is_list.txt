@@ -16,7 +16,7 @@ Use `dval_is_list(value)` in Capy to test whether a copied `dval` is a list. It 
 C++ `is_list()` applies the same rules after it dereferences the value.
 
 :example capy render
-var list := dval_push(dval([]), dval("Ada"))
+var list := dval_push(dval([]), "Ada")
 if dval_is_list(list) { print("list\n") } else { print("map\n") }
 
 :example cpp render

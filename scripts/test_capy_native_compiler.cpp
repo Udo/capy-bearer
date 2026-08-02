@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <mutex>
+#include <set>
 #include <sstream>
 #include <string_view>
 #include <thread>
@@ -138,6 +139,55 @@ int main()
 	assert(validated.valid);
 	assert(validated.bearer_module == "native-test.wasm");
 	assert(result.source_map.starts_with("BEARER_SOURCE_MAP_V1\tnative-test.wasm\n"));
+	const auto defaults = capy::compile_bearer_unit(
+		"type Count = s64\n"
+		"function add(left : s32, right : s32 = 2) s32 { left + right }\n"
+		"function suffix(value : string, tail : string = \"!\") string { value + tail }\n"
+		"function text(value : as string, suffix : string = \"!\") string { value + suffix }\n"
+		"function s64(value : s32, extra : s32 = 0) s64 { 3s64 }\n"
+		"function literals(a : s32 = 1, b : s64 = 2s64, c : u64 = 3u64, d : f64 = 4.5, e : bool = false, f : string = \"x\") {}\n"
+		"function next(value : s32) s32 { value }\n"
+		"function ordered(first : s32, second : s32 = 2) s32 { first + second }\n"
+		"function CLI { var first := add(1); var second := \"x\".suffix(); var converted := text(1); var count : Count = Count(3); literals(); print(ordered(next(1)), first, second, converted, count) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(defaults.wasm, {.bearer_abi_version = "11"}).valid);
+	assert(defaults.source_map.find("\t5\t") != std::string::npos);
+	const auto default_string_arc = capy::compile_bearer_unit(
+		"function echo(value : string = \"x\") string { value }\nfunction CLI { var value := echo(); print(arc_live()) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(default_string_arc.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto exact_before_default = capy::compile_bearer_unit(
+		"function select(value : s32) s32 { 1 }\nfunction select(value : s32, suffix : string = \"x\") s32 { 2 }\nfunction CLI { print(select(1)) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(exact_before_default.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto dval_constructors = capy::compile_bearer_unit(
+		"type Text = string\n"
+		"function show(value : as Text) string { value }\n"
+		"function next_value() dval { dval(\"7\") }\n"
+		"function next_fallback() string { \"fallback\" }\n"
+		"function CLI { var value := next_value(); print(string(value), string(value, next_fallback()), bool(value), bool(value, true), s32(value), s32(value, 7), s64(value), s64(value, 7s64), u64(value), u64(value, 7u64), f64(value), f64(value, 7.0), show(value), arc_live()) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(dval_constructors.wasm, {.bearer_abi_version = "11"}).valid);
+	const std::string dval_constructor_bytes(dval_constructors.wasm.begin(), dval_constructors.wasm.end());
+	for (const char* import : {"bearer_dv_extract_string", "bearer_dv_extract_bool", "bearer_dv_extract_s32", "bearer_dv_extract_s64", "bearer_dv_extract_u64", "bearer_dv_extract_f64"})
+		assert(dval_constructor_bytes.find(import) != std::string::npos);
+	const auto unrelated_dval_imports = capy::compile_bearer_unit("function CLI { print(\"plain\") }\n", options);
+	const std::string unrelated_dval_bytes(unrelated_dval_imports.wasm.begin(), unrelated_dval_imports.wasm.end());
+	assert(unrelated_dval_bytes.find("bearer_dv_extract_") == std::string::npos);
+	for (const char* old_name : {"dval_string", "dval_bool", "dval_s32", "dval_f64", "dval_to_string", "dval_to_bool", "dval_to_f64", "dval_to_s64", "dval_to_u64"})
+		try { capy::compile_bearer_unit(std::string("function CLI { ") + old_name + "(dval(\"x\")) }\n", options); assert(false); }
+		catch (const capy::Error& error) { assert(error.message.find("no overload") != std::string::npos); }
+	for (const auto& [source, expected] : {
+			 std::pair{"function ambiguous(value : s32, suffix : string = \"x\") {}\nfunction ambiguous(value : s32, enabled : bool = true) {}\nfunction CLI { ambiguous(1) }\n", "ambiguous default overload"},
+			 std::pair{"function sum(left : s32, right : s32 = 1) s32 { left + right }\nfunction CLI { var value : function(left : s32, right : s32) s32 = sum; value(1) }\n", "function value argument count"},
+			 std::pair{"host function __bearer_bad(value : s32 = 1)\nfunction CLI {}\n", "host declarations are available only"},
+			 std::pair{"function RENDER(value : s32 = 1) {}\n", "Bearer handlers cannot use default parameters"},
+			 std::pair{"function wrong(value : s32 = 1s64) {}\nfunction CLI {}\n", "default parameter literal must have type s32"},
+			 std::pair{"function generic(value : any = 1) value::type { value }\nfunction CLI {}\n", "generic functions cannot use default parameters"},
+			 std::pair{"function values(...value : s32 = 1) {}\nfunction CLI {}\n", "variadic parameter cannot have a default value"},
+			 std::pair{"function CLI { var value := function(input : s32 = 1) s32 { input } }\n", "anonymous functions cannot use default parameters"},
+			 std::pair{"function CLI { var value : function(input : s32 = 1) s32 = function(input : s32) s32 { input } }\n", "function types cannot use default parameters"},
+		 })
+	{
+		try { capy::compile_bearer_unit(source, options); assert(false); }
+		catch (const capy::Error& error) { assert(error.message.find(expected) != std::string::npos); }
+	}
 	const auto tasks = capy::compile_bearer_unit(
 		"function TASK(request : request) {}\nfunction TASK:NAME(request : request) {}\n", options);
 	const auto tasks_repeat = capy::compile_bearer_unit(
@@ -196,7 +246,7 @@ int main()
 	const std::string bare_dval_source =
 		"function CLI {\n"
 		"var value := {name: clone(\"Ada\"), nested: {answer: 42}, values: dval([3])}\n"
-		"print(dval_string(value.name), dval_s32(value.nested.answer), dval_s32(value.values[0]), arc_live())\n"
+		"print(value.name, s32(value.nested.answer), s32(value.values[0]), arc_live())\n"
 		"}\n";
 	const auto bare_dval = capy::compile_bearer_unit(bare_dval_source, options);
 	const auto bare_dval_repeat = capy::compile_bearer_unit(bare_dval_source, options);
@@ -204,8 +254,38 @@ int main()
 	assert(bare_dval.wasm == bare_dval_repeat.wasm && bare_dval.source_map == bare_dval_repeat.source_map);
 	const std::string bare_dval_bytes(bare_dval.wasm.begin(), bare_dval.wasm.end());
 	assert(bare_dval_bytes.find("bearer_dv_build_brrb") != std::string::npos);
-	assert(bare_dval_bytes.find("bearer_dv_get_brrb") != std::string::npos);
-	assert(bare_dval.source_map.find("\t3\t24\n") != std::string::npos);
+	assert(bare_dval_bytes.find("bearer_dv_read_brrb") != std::string::npos);
+	assert(bare_dval_bytes.find("bearer_dv_get_brrb") == std::string::npos);
+	assert(bare_dval.source_map.find("\t3\t19\n") != std::string::npos);
+	const auto dval_has_only = capy::compile_bearer_unit("function CLI { var value := {:}; print(dval_has(value, \"key\")) }\n", options);
+	const std::string dval_has_only_bytes(dval_has_only.wasm.begin(), dval_has_only.wasm.end());
+	assert(dval_has_only_bytes.find("bearer_dv_get_brrb") != std::string::npos);
+	assert(dval_has_only_bytes.find("bearer_dv_read_brrb") == std::string::npos);
+	const auto dval_none_and_paths = capy::compile_bearer_unit(
+		"function selector() string { \"key\" }\nfunction replacement() string { \"value\" }\n"
+		"function CLI { var value := {items: [{:}]}; var missing := value.missing; var absent := missing?; value.items[0][selector()].name = replacement(); print(value.items[0][\"key\"].name, absent, arc_live()) }\n", options);
+	const auto dval_none_and_paths_repeat = capy::compile_bearer_unit(
+		"function selector() string { \"key\" }\nfunction replacement() string { \"value\" }\n"
+		"function CLI { var value := {items: [{:}]}; var missing := value.missing; var absent := missing?; value.items[0][selector()].name = replacement(); print(value.items[0][\"key\"].name, absent, arc_live()) }\n", options);
+	const auto dval_none_and_paths_validation = capy::wasm::validate_bearer_unit(dval_none_and_paths.wasm, {.bearer_abi_version = "11"});
+	assert(dval_none_and_paths_validation.valid && dval_none_and_paths.wasm == dval_none_and_paths_repeat.wasm && dval_none_and_paths.source_map == dval_none_and_paths_repeat.source_map);
+	std::set<std::string> dval_path_imports;
+	for (const auto& imported : dval_none_and_paths_validation.imports) dval_path_imports.insert(imported.name);
+	for (const char* name : {"bearer_dv_read_brrb", "bearer_dv_is_none_brrb", "bearer_dv_set_path_brrb", "bearer_dv_string_to_brrb", "bearer_dv_s32_to_brrb"}) assert(dval_path_imports.contains(name));
+	const auto none_literal = capy::compile_bearer_unit("function CLI { var value := none; print(value?) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(none_literal.wasm, {.bearer_abi_version = "11"}).valid);
+	const std::string none_literal_bytes(none_literal.wasm.begin(), none_literal.wasm.end());
+	assert(none_literal_bytes.find("bearer_dv_none_brrb") != std::string::npos);
+	for (const char* unrelated : {"bearer_dv_get_brrb", "bearer_dv_read_brrb", "bearer_dv_string_to_brrb", "bearer_dv_s32_to_brrb"})
+		assert(none_literal_bytes.find(unrelated) == std::string::npos);
+	for (const char* source : {
+			"function write(value : dval) { value.key = 1 }\nfunction CLI {}\n",
+			"function CLI { dval({:}).key = 1 }\n",
+			"function CLI { var values : [dval] = [dval({:})]; values[0].key = 1 }\n",
+			"function CLI { var value := {:}; value.key = 1; value[true] = 2 }\n",
+		})
+		try { capy::compile_bearer_unit(source, options); assert(false); }
+		catch (const capy::Error& error) { assert(error.message.find("nested DValue assignment requires an owned local dval root") != std::string::npos || error.message.find("dval index must be string or s32") != std::string::npos); }
 	const auto empty_bare_dval = capy::compile_bearer_unit("function CLI { var value := {:}; dval({:}); {} }\n", options);
 	assert(capy::wasm::validate_bearer_unit(empty_bare_dval.wasm, {.bearer_abi_version = "11"}).valid);
 	const std::string empty_bare_dval_bytes(empty_bare_dval.wasm.begin(), empty_bare_dval.wasm.end());
@@ -213,15 +293,15 @@ int main()
 	const auto dval_member_method = capy::compile_bearer_unit(
 		"function take(receiver : dval) dval { receiver }\nfunction CLI { var value := {:}; value.take() }\n", options);
 	assert(capy::wasm::validate_bearer_unit(dval_member_method.wasm, {.bearer_abi_version = "11"}).valid);
-	const auto missing_member = capy::compile_bearer_unit("function CLI {\nvar value := {:}\ndval_string(value.missing)\n}\n", options);
-	assert(missing_member.source_map.find("\t3\t18\n") != std::string::npos);
+	const auto missing_member = capy::compile_bearer_unit("function CLI {\nvar value := {:}\nstring(value.missing)\n}\n", options);
+	assert(missing_member.source_map.find("\t3\t13\n") != std::string::npos);
 	try { capy::compile_bearer_unit("function CLI { var value := {}.missing }\n", options); assert(false); }
 	catch (const capy::Error& error) { assert(error.message.find("member access requires a struct") != std::string::npos); }
 	const auto converted_dvals = capy::compile_bearer_unit(
 		"function accept(value : as dval) dval { value }\n"
-		"function CLI { var a := accept(\"x\"); var b := accept(2); var c := accept(3u64); var d := accept(4.5); var e := accept(true) }\n", options);
+		"function CLI { var a := accept(\"x\"); var b := accept(2); var c := accept(-3s64); var d := accept(4u64); var e := accept(5.5); var f := accept(true) }\n", options);
 	const std::string converted_dval_bytes(converted_dvals.wasm.begin(), converted_dvals.wasm.end());
-	for (const std::string& import : {"bearer_dv_string_to_brrb", "bearer_dv_s32_to_brrb", "bearer_dv_u64_to_brrb", "bearer_dv_f64_to_brrb", "bearer_dv_bool_to_brrb"})
+	for (const std::string& import : {"bearer_dv_string_to_brrb", "bearer_dv_s32_to_brrb", "bearer_dv_s64_to_brrb", "bearer_dv_u64_to_brrb", "bearer_dv_f64_to_brrb", "bearer_dv_bool_to_brrb"})
 		assert(converted_dval_bytes.find(import) != std::string::npos);
 	const auto stdlib_converted_dvals = capy::compile_bearer_unit(
 		"function CLI { var a := dval_set(dval(0), \"x\"); var b := dval_assign(a, 1); var c := dval_push(dval([]), 2u64); var d := dval_put({:}, \"ok\", true); "
@@ -233,7 +313,6 @@ int main()
 	const std::string generic_before_dval_bytes(generic_before_dval.wasm.begin(), generic_before_dval.wasm.end());
 	assert(generic_before_dval_bytes.find("bearer_dv_s32_to_brrb") == std::string::npos);
 	for (const char* source : {
-		"function accept(value : as dval) dval { value }\nfunction CLI { accept(1s64) }\n",
 		"function accept(value : as dval) dval { value }\nfunction CLI { accept([1]) }\n",
 		"struct Value { item : s32 }\nfunction accept(value : as dval) dval { value }\nfunction CLI { accept(Value(1)) }\n",
 	})
@@ -259,6 +338,33 @@ int main()
 		"function text(value : as string) string { value }\nfunction wide(value : as s64) s64 { value }\n"
 		"function CLI { print(text(42), text(false), text([1][0]), wide(7u64), string(8)) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(converted_parameters.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto converted_dval_parameters = capy::compile_bearer_unit(
+		"type Text = string\nfunction text(value : as Text) string { value }\nfunction truth(value : as bool) bool { value }\n"
+		"function narrow(value : as s32) s32 { value }\nfunction signed(value : as s64) s64 { value }\n"
+		"function unsigned(value : as u64) u64 { value }\nfunction decimal(value : as f64) f64 { value }\n"
+		"function CLI { var value := dval(\"1\"); print(text(value), truth(value), narrow(value), signed(value), unsigned(value), decimal(value)) }\n", options);
+	const auto converted_dval_validation = capy::wasm::validate_bearer_unit(converted_dval_parameters.wasm, {.bearer_abi_version = "11"});
+	assert(converted_dval_validation.valid);
+	std::set<std::string> converted_dval_imports;
+	for (const auto& imported : converted_dval_validation.imports)
+		converted_dval_imports.insert(imported.name);
+	for (const std::string& target : {"string", "bool", "s32", "s64", "u64", "f64"})
+		assert(converted_dval_imports.contains("bearer_dv_extract_" + target));
+	const auto direct_dval_print = capy::compile_bearer_unit(
+		"function CLI { var profile := {nickname: clone(\"Capy\")}; print(profile[\"nickname\"]); "
+		"var printer : function(...values : as string) void = print; printer(dval(clone(\"again\"))) }\n", options);
+	const auto direct_dval_print_validation = capy::wasm::validate_bearer_unit(direct_dval_print.wasm, {.bearer_abi_version = "11"});
+	assert(direct_dval_print_validation.valid);
+	assert(std::any_of(direct_dval_print_validation.imports.begin(), direct_dval_print_validation.imports.end(),
+		[](const auto& imported) { return imported.name == "bearer_dv_extract_string"; }));
+	const auto mixed_dval_print = capy::compile_bearer_unit(
+		"function CLI { var pair := (1, \"x\"); var profile := {name: \"Ada\"}; print(pair[1], profile.name) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(mixed_dval_print.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto scalar_print = capy::compile_bearer_unit("function CLI { print(\"ok\", 1, true) }\n", options);
+	const auto scalar_print_validation = capy::wasm::validate_bearer_unit(scalar_print.wasm, {.bearer_abi_version = "11"});
+	assert(scalar_print_validation.valid);
+	for (const auto& imported : scalar_print_validation.imports)
+		assert(imported.name.rfind("bearer_dv_extract_", 0) != 0);
 	const auto constructors_and_variadics = capy::compile_bearer_unit(
 		"struct Token { value : string }\n"
 		"struct Pair { left : s32; right : string }\n"
@@ -281,6 +387,9 @@ int main()
 		assert(imported.name != "bearer_format_u64" && imported.name != "bearer_format_f64");
 	}
 	assert(field_formats_s64);
+	const auto inferred_managed_local = capy::compile_bearer_unit(
+		"function CLI { var greeting := \"Hello\" }\n", options);
+	assert(capy::wasm::validate_bearer_unit(inferred_managed_local.wasm, {.bearer_abi_version = "11"}).valid);
 	const auto unused_conversion = capy::compile_bearer_unit(
 		"function text(value : as string) string { value }\nfunction CLI {}\n", options);
 	const auto unused_conversion_validation = capy::wasm::validate_bearer_unit(unused_conversion.wasm, {.bearer_abi_version = "11"});
@@ -335,13 +444,14 @@ int main()
 		"type User = Person\ntype Json = dval\nstruct Person { value : s32 }\n"
 		"function take(value : Count) Count { value }\nfunction CLI { var values : Counts = [Count(4)]; var pair : Pair = (values[0], \"x\"); "
 		"var user : User = User(7); var json : Json = Json({value: user.value}); var output : Printer = print; "
-		"output(take(pair[0]), pair[1], dval_s32(json[\"value\"])) }\n";
+		"output(take(pair[0]), pair[1], s32(json[\"value\"])) }\n";
 	const auto aliases = capy::compile_bearer_unit(aliases_source, options);
 	const auto aliases_repeat = capy::compile_bearer_unit(aliases_source, options);
 	assert(capy::wasm::validate_bearer_unit(aliases.wasm, {.bearer_abi_version = "11"}).valid);
 	assert(aliases.wasm == aliases_repeat.wasm && aliases.source_map == aliases_repeat.source_map);
 	for (const auto& [source, expected] : {
 			 std::pair{"const x : s32 = 1\nfunction CLI {}\n", "const declarations were removed"},
+			 std::pair{"function CLI { var none := dval(\"x\") }\n", "'none' is a reserved literal"},
 			 std::pair{"type A = B\ntype B = A\nfunction CLI {}\n", "cyclic type alias"},
 			 std::pair{"type MissingAlias = Missing\nfunction CLI {}\n", "unknown type 'Missing'"},
 			 std::pair{"type s32 = u64\nfunction CLI {}\n", "is reserved"},
@@ -443,9 +553,11 @@ int main()
 	assert(compiler_text.find("named->value == \"__bearer_codec") == std::string::npos);
 	assert(compiler_text.find("named->value == \"unit_load\"") == std::string::npos);
 	assert(compiler_text.find("named->value == \"call\"") == std::string::npos);
+	for (const char* old_name : {"dval_string", "dval_bool", "dval_s32", "dval_f64", "dval_to_string", "dval_to_bool", "dval_to_f64", "dval_to_s64", "dval_to_u64"})
+		assert(compiler_text.find(old_name) == std::string::npos);
 	for (const auto& public_name : {"array_merge", "dval_set", "dval_assign", "dval_push", "dval_pop", "dval_remove", "dval_clear", "dval_get_by_path", "dval_get_or_create",
 			 "dval_set_array", "dval_set_bool", "dval_set_type", "dval_get_type_name", "dval_key", "dval_keys", "dval_values", "dval_to_json", "dval_to_stringmap", "dval_put",
-			 "dval_to_s64", "dval_to_u64", "request_param", "request_get", "request_post", "request_cookie", "request_session", "request_body", "response_header", "request_context",
+			 "request_param", "request_get", "request_post", "request_cookie", "request_session", "request_body", "response_header", "request_context",
 			 "session_start", "session_set", "session_remove", "session_destroy", "session_id_create", "response_cookie", "redirect", "csrf_token", "csrf_valid", "csrf_rotate", "csrf_field",
 			 "ws_message", "ws_connection_id", "ws_scope", "ws_opcode", "ws_is_binary", "ws_send", "ws_send_to", "ws_close", "component", "component_capture", "component_render",
 			 "component_exists", "component_resolve", "unit_render", "unit_call", "unit_info", "units_list", "unit_compile", "regex_match", "regex_search", "regex_search_all", "regex_replace",

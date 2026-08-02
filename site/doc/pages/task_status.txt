@@ -19,10 +19,10 @@ The `state` value is `queued`, `running`, `succeeded`, `failed`, `canceled`, or 
 Capy task IDs are `string` values. C++ `.uce` uses `String` and `DValue`, as the signature shows.
 
 :example capy render
-var id := task("/doc/examples/task_worker.capy:STORE", dval({"message": "status"}))
+var id := task("/doc/examples/task_worker.capy:STORE", {"message": "status"})
 var status := task_status(id)
 var result := "missing"
-if dval_to_string(status["id"]) == id { result = "known" }
+if string(status["id"]) == id { result = "known" }
 print(result, "\n")
 
 :example cpp render

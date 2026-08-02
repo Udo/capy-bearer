@@ -1,0 +1,98 @@
+:title
+10. Units, components, and exports
+
+:content
+## Purpose
+
+Use units to separate application code into independent source files. Use components for response content. Use exports for copied DValue calls.
+
+## Minimal executable example
+
+:example capy render
+EXPORTS echo
+
+function echo(input : dval) dval {
+    input
+}
+
+function RENDER {
+    print(string(echo({message: "ready"}).message), "\n")
+}
+
+:output
+ready
+
+## Output
+
+The page writes `ready` and a newline.
+
+## Explanation
+
+Each source file is an independent unit. A unit has private helpers, handlers, and selected exports. It does not textually include another source file.
+
+`EXPORTS echo` makes `echo` callable by another unit. Each exported function must have the exact `(dval) dval` signature. The declaration does not call the function.
+
+`unit_load(path)` returns a request-local `module` handle. Call an export with `handle.call(name, input)`. The call copies the input DValue and result DValue.
+
+`handle.call(name)` supplies an empty DValue map. Test optional data with `input?` or use a fallback. Do not treat an omitted input as an application value.
+
+A module handle is a verified request-local capability. It can pass through typed locals, parameters, and results during that request. It cannot enter an aggregate, closure, DValue, condition, arithmetic expression, or serialized boundary.
+
+Use `unit_call(path, name, input)` for one call. Use a module handle for several calls to one unit. A missing unit or export is an error.
+
+Use `component_render(name, props)` to write component output. Use `component_capture(name, props)` to get component output as a string. Bearer copies component props into the component request context and restores earlier props after the call.
+
+Relative unit and component paths resolve from the calling unit directory. Bearer includes the calling unit in its lookup key. Equal relative names from different directories do not alias.
+
+After a unit passes freshness checks, Bearer uses one immutable request-local instance for later lookups. A request does not change to a new source generation partway through execution. A later request can use a newer valid generation.
+
+## Common variants
+
+This pair of source files is compile-only. Save `service.capy` beside `page.capy`.
+
+```capy
+// service.capy
+EXPORTS version
+
+function version(input : dval) dval {
+    {name: "Capy"}
+}
+```
+
+```capy
+// page.capy
+function RENDER {
+    var service := unit_load("service.capy")
+    var version := service.call("version")
+    print(string(version.name), "\n")
+}
+```
+
+The no-input call supplies an empty DValue map:
+
+```capy
+var settings := unit_load("settings.capy")
+var result := settings.call("defaults")
+```
+
+Result: compiles when the target unit exports `defaults(dval) dval`.
+
+## Edge cases
+
+Use an absolute site path when the target must not depend on the calling unit directory. Use a relative path when the source relationship is intentional.
+
+Do not retain a module handle for another request. Do not use a textual include to share source. Move shared behavior into an export, a component, or a normal helper in the same unit.
+
+A copied DValue has value semantics. A target cannot mutate the caller value through an export or component call.
+
+## Related reference
+
+Read the unit and component reference pages for target syntax and error behavior.
+
+:see
+unit_load
+unit_call
+component_render
+component_exists
+1_COMPONENT
+capy-09-web-handlers-and-requests

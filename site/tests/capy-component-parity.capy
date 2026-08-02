@@ -1,9 +1,9 @@
 function RENDER {
-    var props := {name: "Capy"}
+    var props := {name: "Capy", missing: none}
     var known := units_list()
     print(component("/tests/capy-request-context.capy", props), "|")
     component_render("/tests/capy-request-context.capy", props)
     print("|", component("/tests/capy-request-context.capy:SCALAR", "scalar"), "|")
     component_render("/tests/capy-request-context.capy:SCALAR", "render")
-    print("|", dval_string(unit_call("/tests/capy-cross-target.uce", "echo", "unit")), "|", dval_string(known[0]) != "")
+    print("|", unit_call("/tests/capy-cross-target.uce", "echo", "unit"), "|", string(known[0]) != "")
 }

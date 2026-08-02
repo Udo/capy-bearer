@@ -120,6 +120,7 @@ struct Parameter
 {
 	std::string name;
 	Expr* type_expr;
+	Expr* default_value = nullptr;
 	bool variadic = false, convert = false;
 };
 struct Name : Expr

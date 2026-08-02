@@ -22,7 +22,7 @@ An empty string returns an empty map. Capy has no separate `StringMap` type. Use
 :example capy render
 var user := dval({"name": "Ada"})
 var fields := dval_to_stringmap(user)
-print(dval_to_string(fields["name"]), "\n")
+print(fields["name"], "\n")
 
 :example cpp render
 DValue user;

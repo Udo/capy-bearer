@@ -216,7 +216,7 @@ expect_equal "archive recovery" "3|heXYZ|Ada:admin|archive data|true2truetruetru
 expect_equal "live MySQL stdlib adapters" "truetrue|'a\\'b'|7|true|0:0|truetruetrue|true|truetruetrue|0" "$(scripts/bearer-cli /tests/capy-mysql.capy)"
 expect_equal "memcache stdlib adapters" "a_b|line_key|down|live|0" "$(scripts/bearer-cli /tests/capy-memcache.capy)"
 expect_equal "job/process stdlib adapters" "shell|spawned|done|done|done|cancel|cancelled|tasks|cwd|server|0" "$(scripts/bearer-cli /tests/capy-jobs.capy)"
-expect_equal "named task worker cancellation/failure/recovery" "canceled|stopped|failed:handler_trap|failed:missing_handler|succeeded:recovered" "$(scripts/bearer-cli /tests/capy-task-runtime.capy)"
+expect_equal "named task worker cancellation/failure/recovery" "canceled|stopped|failed:handler_trap|failed:missing_handler|succeeded:none" "$(scripts/bearer-cli /tests/capy-task-runtime.capy)"
 expect_equal "unit administration" "true|true|true|2|0" "$(scripts/bearer-cli /tests/capy-unit-admin.capy)"
 expect_equal "DValue array merge" "rightyesnewright|abcd|valueitem|right|value|z|oddkeep|map|unicode|9|0" "$(scripts/bearer-cli /tests/capy-dval-merge.capy)"
 expect_equal "DValue value API" 'truefalseAda42tail|trueone|Bearerfalse|truearray"A"|ftruey|truefalseAdanameengineer|23truefalse|-4242-918446744073709551615|0' "$(scripts/bearer-cli /tests/capy-dval-api.capy)"
@@ -256,11 +256,7 @@ codec_output=$(scripts/bearer-cli /tests/capy-codecs.capy)
 	echo "Capy codec/JSON/ARC mismatch: $codec_output" >&2
 	exit 1
 }
-set +e
-codec_trap_output=$(scripts/bearer-cli /tests/capy-dval-f64-trap.capy 2>&1)
-codec_trap_status=$?
-set -e
-[[ $codec_trap_status -ne 0 && "$codec_trap_output" == *"capy-dval-f64-trap.capy:2:11"* ]]
+expect_equal "invalid f64 constructor fallback" "0" "$(scripts/bearer-cli /tests/capy-dval-f64-trap.capy)"
 expect_equal "codec recovery" "$codec_output" "$(scripts/bearer-cli /tests/capy-codecs.capy)"
 expect_equal "codec/text stdlib adapters" 'Ada|Ada|6|Ada|10|document|<p><strong>bold</strong></p>|3|"x"|{"name": "Ada"}|&lt;&amp;&gt;&quot;|8|0' "$(scripts/bearer-cli /tests/capy-codecs-text.capy)"
 set +e
@@ -306,13 +302,12 @@ string_list_output=$(scripts/bearer-cli /tests/capy-string-lists.capy)
 	echo "Capy split/join/ARC mismatch: $string_list_output" >&2
 	exit 1
 }
-for string_list_trap in capy-string-list-trap capy-string-list-scalar-trap; do
-	set +e
-	string_list_trap_output=$(scripts/bearer-cli "/tests/$string_list_trap.capy" 2>&1)
-	string_list_trap_status=$?
-	set -e
-	[[ $string_list_trap_status -ne 0 && "$string_list_trap_output" == *"$string_list_trap.capy:2:11"* ]]
-done
+expect_equal "numeric DValue list join conversion" "1" "$(scripts/bearer-cli /tests/capy-string-list-trap.capy)"
+set +e
+string_list_trap_output=$(scripts/bearer-cli /tests/capy-string-list-scalar-trap.capy 2>&1)
+string_list_trap_status=$?
+set -e
+[[ $string_list_trap_status -ne 0 && "$string_list_trap_output" == *"capy-string-list-scalar-trap.capy:2:11"* ]]
 expect_equal "split/join recovery" "$string_list_output" "$(scripts/bearer-cli /tests/capy-string-lists.capy)"
 expect_equal "core utility value adapters" "falsetruefalseBETA,ALPHA,BETA|alpha|beta,alpha|truetrue|alpha|0,1,2|bearer:BEARER|Caffile1:Caffile1:core|3.5:255:truetrue|1.5:-9:42|truetrue|a=one&b=last&flag=:last:example.test:docs:two|docs/index:true:|one,two,three:A,é:example.test|alpha,beta,beta:true:SIGSEGV:0:true:40|0" "$(scripts/bearer-cli /tests/capy-coreutil.capy)"
 set +e
@@ -359,12 +354,12 @@ wasm-validate "$phase3_cache.wasm"
 	exit 1
 }
 request_component_output=$(scripts/bearer-cli /tests/capy-request-context-caller.uce)
-[[ "$request_component_output" == "component-prop|1|handle|1" ]] || {
+[[ "$request_component_output" == "component-prop|false|1|handle|1" ]] || {
 	echo "Capy request props snapshot mismatch: $request_component_output" >&2
 	exit 1
 }
 component_props_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=FromCapy')
-[[ "$component_props_output" == "truetrue|FromCapy|1|FromCapy|1|2" ]] || {
+[[ "$component_props_output" == "truetrue|FromCapy|false|1|FromCapy|false|1|2" ]] || {
 	echo "Capy component props dispatch mismatch: $component_props_output" >&2
 	exit 1
 }
@@ -372,7 +367,7 @@ component_trap_body=$(mktemp)
 component_trap_status=$(curl -sS --max-time 30 -o "$component_trap_body" -w '%{http_code}' -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=FromCapy&trap=1')
 [[ "$component_trap_status" == "500" ]] && ! grep -q 'must-not-leak' "$component_trap_body"
 rm -f "$component_trap_body"
-[[ "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=Recovered')" == "truetrue|Recovered|1|Recovered|1|2" ]]
+[[ "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=Recovered')" == "truetrue|Recovered|false|1|Recovered|false|1|2" ]]
 request_headers=$(mktemp)
 request_http_output=$(curl -fsS --max-time 30 -D "$request_headers" -H 'Host: bearer.openfu.com' -d 'answer=42' 'http://127.0.0.1/tests/capy-request-context.capy?name=Ada')
 [[ "$request_http_output" == "POST|Ada|42|answer=42|0" ]] || {
@@ -469,22 +464,25 @@ rich_dval_output=$(scripts/bearer-cli /tests/capy-dval-rich.capy)
 	echo "C++-to-Capy custom DValue export failed" >&2
 	exit 1
 }
+none_output=$(scripts/bearer-cli /tests/capy-dval-none.capy)
+expect_equal "DValue none, safe read, conversion, codec, path update, and ARC contract" \
+	"false|true|true|true|true|false|false|false|false|false|Ada|[][string]|false|true|0|32|0|-64|0|64|0|6.5|false|false|false|null|true|false|true|false|false|created|replaced|old|kept|updated|old|changed|ABR|done|false|0" "$none_output"
 set +e
 dval_trap_output=$(scripts/bearer-cli /tests/capy-dval-missing-trap.capy 2>&1)
 dval_trap_status=$?
 set -e
-[[ $dval_trap_status -ne 0 && "$dval_trap_output" == *'wasm `unreachable` instruction executed'* && "$dval_trap_output" == *'capy-dval-missing-trap.capy:3:28'* ]] || {
-	echo "Capy missing DValue trap mismatch: status=$dval_trap_status output=$dval_trap_output" >&2
+[[ $dval_trap_status -ne 0 && "$dval_trap_output" == *'wasm `unreachable` instruction executed'* && "$dval_trap_output" == *'capy-dval-missing-trap.capy:3:11'* && "$dval_trap_output" != *"capy://stdlib.capy"* ]] || {
+	echo "Capy strict missing DValue trap/source mapping mismatch: status=$dval_trap_status output=$dval_trap_output" >&2
 	exit 1
 }
 [[ "$(scripts/bearer-cli /tests/capy-dval-rich.capy)" == "$rich_dval_output" ]] || {
-	echo "Capy DValue workspace did not reset after trap" >&2
+	echo "Capy DValue workspace did not reset after strict trap" >&2
 	exit 1
 }
 for fixture_and_location in \
-	"capy-dval-negative-trap:3:32" \
-	"capy-dval-range-trap:3:30" \
-	"capy-dval-scalar-trap:3:29"; do
+	"capy-dval-negative-trap:3:11" \
+	"capy-dval-range-trap:3:11" \
+	"capy-dval-scalar-trap:3:11"; do
 	fixture=${fixture_and_location%%:*}
 	location=${fixture_and_location#*:}
 	set +e
@@ -499,6 +497,20 @@ for fixture_and_location in \
 		echo "Capy DValue workspace did not reset after $fixture" >&2
 		exit 1
 	}
+done
+for fixture_and_location in \
+	"capy-dval-assign-list-trap:3:"; do
+	fixture=${fixture_and_location%%:*}
+	location=${fixture_and_location#*:}
+	set +e
+	assignment_trap_output=$(scripts/bearer-cli "/tests/$fixture.capy" 2>&1)
+	assignment_trap_status=$?
+	set -e
+	[[ $assignment_trap_status -ne 0 && "$assignment_trap_output" == *"$fixture.capy:$location"* && "$assignment_trap_output" != *"capy://stdlib.capy"* ]] || {
+		echo "Capy nested DValue assignment trap/source mapping mismatch: fixture=$fixture output=$assignment_trap_output" >&2
+		exit 1
+	}
+	expect_equal "DValue none recovery after $fixture" "$none_output" "$(scripts/bearer-cli /tests/capy-dval-none.capy)"
 done
 arc_output=$(scripts/bearer-cli /tests/capy-arc.capy)
 expected_arc='first|0|alphaalpha|1|1|1|789|1|8|2|4|1|12|3|ownedtwo|4|temp|1|picked|1|4|2|pair42|3|pair|6|inside|9|field|1|betaalpha|2|betaalphaalphabeta|3|tempz|4|double|5|nested|6|5|0'
@@ -602,10 +614,10 @@ expect_equal "INIT/ONCE lifecycle in a later request workspace" \
 	"entry-init;entry-once;child-init;child-once;child-component;child-component;render" \
 	"$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-lifecycle-parity.capy)"
 component_parity_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-component-parity.capy)
-expect_equal "component/unit DValue conversions" "Capy|1|Capy|1|scalar|render|unit|true" "$component_parity_output"
+expect_equal "component/unit DValue conversions" "Capy|false|1|Capy|false|1|scalar|render|unit|true" "$component_parity_output"
 expect_equal "general methods receiver order/overload/generic/local shadow/function fields" "receiver;argument;method;10|s32|string|9|shadow;5|field;5|extension;6" "$(scripts/bearer-cli /tests/capy-methods.capy)"
 module_output=$(scripts/bearer-cli /tests/capy-module-caller.capy)
-expect_equal "Capy module capability/default input/nested BRRB/C++/legacy/handler/ARC" "counted;handler-once;handler-render;default|nested|once|cpp|legacy|0" "$module_output"
+expect_equal "Capy module capability/default input/nested BRRB/C++/legacy/none/handler/ARC" "counted;handler-once;handler-render;default|nested|once|cpp|legacy|false|0" "$module_output"
 module_exports="$(scripts/unit_cache_directory "$bin_directory")$site_directory/tests/capy-module-target.capy.exports.txt"
 grep -qx 'DValue\* echo(DValue\*);' "$module_exports"
 grep -qx 'DValue\* counted(DValue\*);' "$module_exports"
@@ -625,18 +637,18 @@ grep -qx 'DValue\* counted(DValue\*);' "$module_exports"
 			echo "Capy module $name trap/source mapping mismatch: $output" >&2
 			exit 1
 		}
-		expect_equal "Capy module $name recovery" "counted;handler-once;handler-render;default|nested|once|cpp|legacy|0" "$(scripts/bearer-cli /tests/capy-module-caller.capy)"
+		expect_equal "Capy module $name recovery" "counted;handler-once;handler-render;default|nested|once|cpp|legacy|false|0" "$(scripts/bearer-cli /tests/capy-module-caller.capy)"
 	}
 	check_module_trap missing 'function CLI { var module := unit_load("missing.capy") }'
 	check_module_trap unauthorized 'function CLI { var module := unit_load("/etc/passwd") }'
-	check_module_trap undeclared $'function CLI {\n    unit_call("/tests/capy-module-target.capy", "hidden", dval(""))\n}'
+	check_module_trap undeclared $'function CLI {\n    unit_call("/tests/capy-module-target.capy", "hidden", "")\n}'
 	check_module_trap wrong_target $'function CLI {\n    var module := unit_load("/tests/capy-module-caller.capy")\n    module.call("CLI")\n}'
 	external_unit=$(mktemp /tmp/capy-module-external.XXXXXX.capy)
 	trap 'rm -f -- "$external_unit"; rm -rf -- "$module_test_dir"' EXIT
 	printf '%s\n' 'EXPORTS echo' 'function echo(input : dval) dval { dval("external") }' >"$external_unit"
-	check_module_trap external_source "function CLI { var module := unit_load(\"$external_unit\"); print(dval_string(module.call(\"echo\"))) }"
+	check_module_trap external_source "function CLI { var module := unit_load(\"$external_unit\"); print(string(module.call(\"echo\"), \"\")) }"
 	ln -s "$external_unit" "$module_test_dir/escape.capy"
-	check_module_trap source_symlink 'function CLI { var module := unit_load("escape.capy"); print(dval_string(module.call("echo"))) }'
+	check_module_trap source_symlink 'function CLI { var module := unit_load("escape.capy"); print(string(module.call("echo"), "")) }'
 	printf '%s\n' 'CLI(Request& request) {}' 'EXPORT void wrong() {}' >"$module_test_dir/wrong.uce"
 	check_module_trap wrong_abi_undeclared $'function CLI {\n    var module := unit_load("wrong.uce")\n    module.call("wrong")\n}'
 	wrong_artifacts="$(scripts/unit_cache_directory "$bin_directory")$module_test_dir/wrong.uce"
@@ -651,10 +663,10 @@ grep -qx 'DValue\* counted(DValue\*);' "$module_exports"
 function CLI {
     var module := unit_load("target.capy")
     file_put_contents("target.capy", "EXPORTS echo\nfunction echo(input : dval) dval { dval(\"v2\") }\n")
-    print(dval_string(module.call("echo", dval(""))))
+    print(string(module.call("echo", ""), ""))
 }
 EOF
-	printf '%s\n' 'function CLI { print(dval_string(unit_load("target.capy").call("echo", dval("")))) }' >"$module_test_dir/fresh.capy"
+	printf '%s\n' 'function CLI { print(string(unit_load("target.capy").call("echo", ""), "")) }' >"$module_test_dir/fresh.capy"
 	expect_equal "Capy module request pin" "v1" "$(scripts/bearer-cli "/tests/$module_test_name/pinned.capy")"
 	expect_equal "Capy module next-request reload" "v2" "$(scripts/bearer-cli "/tests/$module_test_name/fresh.capy")"
 	printf '%s\n' 'function CLI { print(not_a_constant) }' >"$module_test_dir/target.capy"
@@ -663,11 +675,11 @@ EOF
 	expect_equal "Capy module failed-compile recovery" "v3" "$(scripts/bearer-cli "/tests/$module_test_name/fresh.capy")"
 	module_artifacts="$(scripts/unit_cache_directory "$bin_directory")$module_test_dir/target.capy"
 	printf '\377' | dd of="$module_artifacts.wasm" bs=1 seek=8 conv=notrunc status=none
-	check_module_trap wasm_tamper 'function CLI { unit_call("target.capy", "echo", dval("")) }'
+	check_module_trap wasm_tamper 'function CLI { unit_call("target.capy", "echo", "") }'
 	printf '%s\n' 'DValue* echo(DValue*);' 'not an export declaration' >"$module_artifacts.exports.txt"
-	check_module_trap exports_tamper 'function CLI { unit_call("target.capy", "echo", dval("")) }'
+	check_module_trap exports_tamper 'function CLI { unit_call("target.capy", "echo", "") }'
 	sed -i 's/^wasm_sha256=.*/wasm_sha256=0000000000000000000000000000000000000000000000000000000000000000/' "$module_artifacts.meta.txt"
-	check_module_trap metadata_tamper 'function CLI { unit_call("target.capy", "echo", dval("")) }'
+	check_module_trap metadata_tamper 'function CLI { unit_call("target.capy", "echo", "") }'
 	printf '%s\n' 'EXPORTS echo, nested, file_relative, boom' \
 		'function echo(input : dval) dval { dval("v4") }' \
 		'function nested(input : dval) dval { unit_load("nested.capy").call("echo", input) }' \
@@ -678,11 +690,11 @@ EOF
 	cat >"$module_test_dir/provenance.capy" <<'EOF'
 function CLI {
     var target := unit_load("target.capy")
-    print(dval_string(target.call("nested", dval(""))), "|", dval_string(target.call("file_relative", dval(""))))
+    print(string(target.call("nested", ""), ""), "|", string(target.call("file_relative", ""), ""))
 }
 EOF
 	expect_equal "Capy module target provenance" "nested|target-file" "$(scripts/bearer-cli "/tests/$module_test_name/provenance.capy")"
-	printf '%s\n' 'function CLI {' '    unit_load("target.capy").call("boom", dval(""))' '}' >"$module_test_dir/caller.capy"
+	printf '%s\n' 'function CLI {' '    unit_load("target.capy").call("boom", "")' '}' >"$module_test_dir/caller.capy"
 	set +e
 	target_trap_output=$(scripts/bearer-cli "/tests/$module_test_name/caller.capy" 2>&1)
 	target_trap_status=$?

@@ -6,11 +6,13 @@ DValue
 
 :see
 >types
+2_DValue_to_string
+2_DValue_require
 2_DValue_get_by_path
 json_decode
 
 :content
-`dval` is Capy's structured value type. Use `dval(...)` to create a value from a scalar, a map, or a list.
+`dval` is Capy's structured value type. It stores scalars, maps, lists, and `none`.
 
 A `dval` owns its data. Values that cross the Bearer boundary are copies. Capy has no DValue pointer, reference, or alias identity.
 
@@ -18,20 +20,29 @@ A `dval` owns its data. Values that cross the Bearer boundary are copies. Capy h
 
 Use a map-shaped `dval` for named fields. Use a list-shaped `dval` for ordered values.
 
-- `dval({"name": "Ada"})` creates named fields.
+- `{"name": "Ada"}` creates named fields.
 - `dval(["Ada", "Lin"])` creates an ordered list.
-- `value["name"]` reads a named child.
+- `value["name"]` and `value.name` read a named child.
 - `value[0]` reads a list child.
-- The `dval_to_*` functions convert scalar values and accept optional fallbacks.
-- `dval_has(value, key)` tests for a child.
+- `string`, `bool`, `s32`, `s64`, `u64`, and `f64` are scalar constructors.
+- `dval_has(value, key)` tests whether a key exists.
+- `dval_key(value, key)` reads one named child.
 - `dval_get_by_path(value, "a/b/c")` reads a nested child.
-- `dval_to_json(value)` returns JSON text.
+- `dval_require(value, key)` makes a strict read.
 
-`dval_get_by_path` does not create missing path entries. Conversion functions return the fallback when conversion cannot produce the requested value.
+Use `T(value)` to convert a `dval`. Use `T(value, fallback)` when `none` or a failed conversion needs a fallback.
+
+`none` is not an empty string. A child can exist and contain `none`. `dval_has` returns true for that child.
+
+Member and index reads are safe. A missing child, unusable intermediate value, negative list index, or out-of-range list index returns `none`. These reads do not change the value.
+
+`dval_key` returns `none` for a missing key or a scalar value. `dval_get_by_path` returns an empty string value when traversal fails. It does not return `none` for that case.
+
+Use `dval_require` when a missing value is an error. It traps for a missing or unusable key or index.
 
 ## Updates
 
-Capy update functions return a replacement value. Assign the result back to retain the update.
+Capy update functions return a replacement value. Assign the result back to keep the update.
 
 - `value = dval_put(value, key, child)` sets a named child.
 - `value = dval_push(value, child)` adds a list child.
@@ -41,24 +52,21 @@ Capy update functions return a replacement value. Assign the result back to reta
 - `value = dval_set_array(value)` makes a list-shaped value.
 - `value = dval_assign(value, source)` replaces the value.
 
-Use `dval_map` and `dval_filter` when callbacks need each child as a `dval`. Use `map`, `filter`, `keys`, `unique`, `sort`, `some`, `every`, and `string_list_find` for list-shaped string values.
+Nested assignment updates a declared local `dval` root. It creates missing, `none`, and scalar intermediate maps.
 
-## Capy Limit
-
-Capy does not support the C++ DValue reference APIs. It cannot preserve pointer identity, aliases, or references across a Bearer boundary.
+Use `dval_map` and `dval_filter` when callbacks need each child as a `dval`. Use list functions for list-shaped string values.
 
 ## C++ API
 
-C++ uses the `DValue` class. It supports method calls such as `set`, `push`, `get_by_path`, and `to_string`.
+C++ uses the `DValue` class. It supports calls such as `set`, `push`, `get_by_path`, and `to_string`.
 
 C++ `operator[]` can create a missing child. Use `has`, `key`, or `get_by_path` when you must not create a child.
 
-## Examples
-
+C++ `key` returns a pointer or `0`. C++ `get_by_path` returns an empty string value when traversal fails.
 
 :example capy render
-var user := dval({"name": "Ada", "active": true})
-print(dval_to_string(user["name"]), "\n")
+var user := {"name": "Ada", "active": true}
+print(user.name, "\n")
 
 :example cpp render
 DValue user;

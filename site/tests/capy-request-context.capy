@@ -7,11 +7,11 @@ function RENDER {
 
 function COMPONENT {
     var request := request_context()
-    print(dval_string(request["props"]["name"]), "|", arc_live())
+    print(request["props"]["name"], "|", request["props"]["missing"]?, "|", arc_live())
 }
 
 function COMPONENT:SCALAR {
-    print(dval_string(request_context().props))
+    print(request_context().props)
 }
 
 function COMPONENT:TRAP {
@@ -21,7 +21,7 @@ function COMPONENT:TRAP {
 
 function COMPONENT:HANDLE (request : request) {
     var snapshot := request_context(request)
-    if length(dval_string(snapshot["current_unit"])) > 0 {
+    if length(string(snapshot["current_unit"])) > 0 {
         print("handle|", arc_live())
     }
 }

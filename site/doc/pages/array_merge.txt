@@ -22,7 +22,7 @@ Use it to combine request, configuration, or JSON-shaped values. The C++ API als
 
 :example capy render
 var merged := array_merge(dval({"name": "Ada"}), dval({"role": "admin"}))
-print(dval_string(merged["name"]), " ", dval_string(merged["role"]), "\n")
+print(merged["name"], " ", merged["role"], "\n")
 :example cpp render
 StringMap left;
 left["name"] = "Ada";

@@ -20,7 +20,7 @@ C++ `each(f)` does not modify the `DValue`. Its callback receives the child and 
 :example capy render
 var user := dval({"name": "Ada", "role": "admin"})
 var keys := dval([])
-for key, item = user { keys = dval_push(keys, dval(key)) }
+for key, item = user { keys = dval_push(keys, key) }
 print(join(sort(keys), ","), "\n")
 
 :example cpp render

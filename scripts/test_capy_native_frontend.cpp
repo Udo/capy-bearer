@@ -40,6 +40,12 @@ int main(int argc, char** argv)
 		assert(f->parameters.size() == 1 && type_name(*f->parameters[0].type_expr) == "s32" && type_name(*f->return_type) == "(s32,string)");
 	}
 	{
+		Program p = parse("function value(a : s32, b : string = \"x\", c : bool = true) string { b }\n", "defaults.capy");
+		auto* f = static_cast<Function*>(p.items[0]);
+		assert(f->parameters.size() == 3 && !f->parameters[0].default_value && static_cast<String*>(f->parameters[1].default_value)->value == "x" &&
+			static_cast<Name*>(f->parameters[2].default_value)->value == "true");
+	}
+	{
 		Program p = parse("function pair (s32, string) { return (1, \"x\") }\n", "test.capy");
 		auto* f = static_cast<Function*>(p.items[0]);
 		assert(f->parameters.empty() && type_name(*f->return_type) == "(s32,string)");
@@ -88,6 +94,15 @@ int main(int argc, char** argv)
 		assert(static_cast<MapLiteral*>(static_cast<Variable*>(p.items[1])->value)->entries.empty());
 		auto* member = static_cast<Member*>(static_cast<Function*>(p.items[2])->body->items[0]);
 		assert(member->member == "name" && member->location.file == "bare-map.capy" && member->location.line == 3 && member->location.column == 21);
+	}
+	{
+		Program p = parse("function CLI { var value := none; value.a[1]?; value.a?[1] }\n", "presence.capy");
+		auto* body = static_cast<Function*>(p.items[0])->body;
+		auto* presence = static_cast<Binary*>(body->items[1]);
+		auto* indexed_presence = static_cast<Index*>(body->items[2]);
+		assert(static_cast<Name*>(static_cast<Variable*>(body->items[0])->value)->value == "none" && presence->operator_ == "postfix?" &&
+			static_cast<Index*>(presence->left)->value->kind == ExprKind::Member && static_cast<Binary*>(indexed_presence->value)->operator_ == "postfix?" &&
+			static_cast<Member*>(static_cast<Binary*>(indexed_presence->value)->left)->member == "a" && presence->location.column == 45);
 	}
 	{
 		Program p = parse("0..10\n", "range.capy");
@@ -168,6 +183,12 @@ int main(int argc, char** argv)
 	expect_error("function CLI { type Count = s64 }\n", "type aliases are top-level only");
 	expect_error("function bad(s32) s32 { return 1 }\n", "name:type annotations");
 	expect_error("function bad(...values : string, tail : string) {}\n", "variadic parameter must be last");
+	expect_error("function bad(first : s32 = 1, second : s32) {}\n", "default parameters must be trailing");
+	expect_error("function bad(...values : s32 = 1) {}\n", "variadic parameter cannot have a default value");
+	expect_error("function bad(value : s32 = other) {}\n", "default parameter value must be a literal");
+	expect_error("function bad(value : s32 = next()) {}\n", "default parameter value must be a literal");
+	expect_error("function bad(value : s32 = [1]) {}\n", "default parameter value must be a literal");
+	expect_error("function bad(value : s32 = value = 1) {}\n", "default parameter value must be a literal");
 	expect_error("function CLI { var value := 1 as s64 }\n", "call the target type constructor instead");
 	expect_error("trace function bad() string {}\n", "trace modifier applies only to host function declarations");
 	expect_error("function bad(value : any, value : any) value::type { value }\n", "function parameter 'value' is already declared");

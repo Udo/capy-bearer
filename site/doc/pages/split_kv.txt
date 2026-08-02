@@ -24,7 +24,7 @@ The C++ API accepts a `char` separator and returns `StringMap`. Capy accepts a s
 
 :example capy render
 var values := split_kv("name=Ada\nrole=admin")
-print(dval_string(values["name"]), "\n")
+print(values["name"], "\n")
 
 :example cpp render
 StringMap values = split_kv("name=Ada\nrole=admin");

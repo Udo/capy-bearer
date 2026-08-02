@@ -1,0 +1,93 @@
+:title
+5. Functions and closures
+
+:content
+## Purpose
+
+Use functions to name work and return typed results. Use function values when code must select behavior at run time.
+
+## Minimal executable example
+
+:example capy render
+function ranked(value : s32) string { "exact" }
+function ranked(value : any) string { "generic" }
+
+function text(value : as string) string { value }
+
+function label(value : string, suffix : string = "!") string {
+    value + suffix
+}
+
+function doubled(value : s32) s32 { value * 2 }
+
+function total(...values : s32) s32 {
+    var result := 0
+    for value = values { result = result + value }
+    result
+}
+
+function make_prefix(prefix : string) (function(value : string) string) {
+    function(value : string) string { prefix + value }
+}
+
+function RENDER {
+    var tag : function(value : string, suffix : string) string = label
+    var add_one : function(value : s32) s32 = function(value : s32) s32 {
+        value + 1
+    }
+    var values := [2, 3]
+    var greet := make_prefix("Hello, ")
+
+    print(ranked(4), "\n")
+    print(ranked(true), "\n")
+    print(text(4), "|", label("Capy"), "|", tag("Capy", "?"), "\n")
+    print((4).doubled(), "|", total(...values), "|", add_one(4), "|", greet("Ada"), "\n")
+}
+
+:output
+exact
+generic
+4|Capy!|Capy?
+8|5|5|Hello, Ada
+
+## Output
+
+The program writes the four lines shown above. The final line ends with a newline.
+
+## Explanation
+
+Capy infers a return from the final reachable expression. The declared result type must match that expression. Use `return` when a path must leave early. A bare `return` is valid only in a `void` function.
+
+Capy evaluates call arguments once from left to right. A trailing default must be a literal of the exact parameter type. The call to `label("Capy")` uses `"!"`.
+
+A parameter declared `as T` accepts `T` or one `T(value)` construction. The `text(4)` call inserts `string(4)`. Do not add that constructor when the parameter already uses `as string`.
+
+The compiler first selects an exact concrete overload. It then selects a matching `any` specialization. It next selects a fixed coercive overload. It selects a variadic overload last. Fewer inserted constructors win within a coercive rank. A longer fixed prefix wins within a variadic rank.
+
+A receiver-first call such as `(4).doubled()` passes the receiver as the first argument. A callable struct field takes priority over this method lookup.
+
+`any` is compile-time generic code. `value::type` names the concrete type for an `any` parameter. A generic declaration needs a concrete function type before it becomes a function value.
+
+A variadic parameter receives a typed array. Prefix `...` spreads an array into a variadic tail. A tuple or struct can spread into fixed parameters when its layout is known.
+
+A function value keeps its full parameter arity. Defaults do not shorten its function type. Therefore `tag` has two required arguments, even though direct calls to `label` can omit `suffix`.
+
+A lambda can capture outer values. Scalar captures copy. Managed captures retain ownership until the closure releases them. A closure cannot assign an outer binding or capture `module`.
+
+## Common variants
+
+Use an explicit result type on each public function. Use a function type to select one overload. Use a named function when several call sites need the same behavior. Use a lambda when its capture is local and small.
+
+## Edge cases
+
+Equal best overloads are ambiguous. Return types do not select an overload. Capy does not backtrack after a selected generic specialization fails. Defaults are not valid on lambdas, handlers, generic functions, variadic functions, or function types.
+
+## Related reference
+
+`capy-03-values-and-types`, `capy-04-expressions-and-control-flow`, `capy-07-collections-and-records`, `capy-12-errors-testing-and-style`
+
+:see
+capy-03-values-and-types
+capy-04-expressions-and-control-flow
+capy-07-collections-and-records
+capy-12-errors-testing-and-style

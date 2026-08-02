@@ -1,7 +1,7 @@
 function CLI {
     {
         var mapped := map(dval(["beta", "alpha"]), function(value : string) string { return to_upper(value) })
-        print(dval_to_string(mapped[0]), "|", dval_to_string(mapped[1]), "|")
+        print(mapped[0], "|", mapped[1], "|")
     }
     print(arc_live())
 }

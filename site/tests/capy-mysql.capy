@@ -2,11 +2,11 @@ function CLI {
     {
         var db := mysql_connect("localhost", "root", "", "mysql")
         var rows := mysql_query(db, "SELECT 7 AS value")
-        print(db != 0u64, mysql_connected(db), "|", mysql_escape("a'b"), "|", dval_f64(rows[0]["value"]), "|", mysql_error(db) == "", "|", mysql_insert_id(db), ":", mysql_affected_rows(db))
+        print(db != 0u64, mysql_connected(db), "|", mysql_escape("a'b"), "|", f64(rows[0]["value"]), "|", mysql_error(db) == "", "|", mysql_insert_id(db), ":", mysql_affected_rows(db))
         var mode := mysql_query(db, "SET SESSION sql_mode = 'NO_BACKSLASH_ESCAPES'")
         var bound := mysql_query(db, "SELECT :value AS value", dval({"value": "a'b"}))
         var lexical := mysql_query(db, "SELECT ':missing ?' AS literal, :value AS value /* :missing ? */", dval({"value": "bound"}))
-        print("|", dval_string(bound[0]["value"]) == "a'b", dval_string(lexical[0]["literal"]) == ":missing ?", dval_string(lexical[0]["value"]) == "bound")
+        print("|", string(bound[0]["value"]) == "a'b", string(lexical[0]["literal"]) == ":missing ?", string(lexical[0]["value"]) == "bound")
         var missing := mysql_query(db, "SELECT :missing AS value", dval({:}))
         print("|", mysql_error(db) != "")
         var reset_mode := mysql_query(db, "SET SESSION sql_mode = DEFAULT")

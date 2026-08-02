@@ -1,0 +1,101 @@
+:title
+11. Tasks and jobs
+
+:content
+## Purpose
+
+Use a task for durable Capy work after the current request. Use a job for an operating-system command.
+
+## Minimal executable example
+
+:example capy render
+function RENDER {
+    var optional_result := none
+    if optional_result? {
+        print("result\n")
+    } else {
+        print("no result\n")
+    }
+}
+
+:output
+no result
+
+## Output
+
+The page writes `no result` and a newline.
+
+## Explanation
+
+A task submits copied DValue props to a durable named task handler. `task` returns an opaque string ID. A task handler has the form `TASK` or `TASK:NAME` and has exactly one `request` parameter.
+
+The task worker creates a new request workspace. It receives copied props at `request_context(request).props`. It does not receive the caller request, session, connection, open handles, or memory state.
+
+Use `task_status(id)` to poll. Use `task_await(id, timeout_ms)` to wait for a status. The wait timeout does not cancel a task that remains active.
+
+A task state is `queued`, `running`, `succeeded`, `failed`, `canceled`, or `missing`. A status can include `id`, `attempt`, and `failure_code`.
+
+Use `task_cancel(id)` to request cancellation. A queued task becomes canceled. A running task can finish before cancellation takes effect. Cancellation does not roll back an external effect.
+
+A successful task means that its handler finished. It does not return an application result through the task status. Store a result in application-owned persistent storage. Use `none` for missing optional result data.
+
+Bearer does not retry a failed task automatically. If a retry is safe, submit a new task under an idempotent application policy. A later task can run after an earlier task fails.
+
+A job runs an operating-system command. `shell_spawn(spec)` returns a DValue job handle. Use `job_status`, `job_await`, `job_result`, and `job_cancel` with that handle.
+
+## Common variants
+
+This named task handler is compile-only:
+
+```capy
+function TASK:STORE(request : request) {
+    var props := request_context(request).props
+    var key := string(props.key, "")
+    if key == "" { trap() }
+    // Store the application result by key.
+}
+```
+
+Submit and wait for the task from a request handler:
+
+```capy
+function RENDER {
+    var id := task("/tasks/store.capy:STORE", {key: "report-42"})
+    var status := task_await(id, 5000u64)
+    print(string(status.state), "\n")
+}
+```
+
+Result: compiles. The state depends on queue timing and the task handler.
+
+Start a bounded operating-system job:
+
+```capy
+var job := shell_spawn({cmd: "printf ready", timeout_ms: 1000})
+var status := job_await(job, 3000)
+```
+
+Result: compiles. Check the returned status before you use result data.
+
+## Edge cases
+
+Do not wait for long work in a page request unless the response requires it. Always set a deliberate job timeout.
+
+Treat task IDs and job handles as opaque. Do not parse, forge, or reuse them as application data.
+
+A missing status or absent optional result must remain `none`. Test it with `value?` before conversion or access.
+
+## Related reference
+
+Read the task and job reference pages for status fields and command specifications.
+
+:see
+task
+task_status
+task_await
+task_cancel
+shell_spawn
+job_status
+job_await
+job_result
+capy-10-units-components-and-exports

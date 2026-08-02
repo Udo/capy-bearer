@@ -1,10 +1,10 @@
 function CLI {
     var started := time_precise()
-    var first := task("/tests/task-handlers.capy:SLOW", dval(""))
-    var second := task("/tests/task-handlers.capy:SLOW", dval(""))
+    var first := task("/tests/task-handlers.capy:SLOW", "")
+    var second := task("/tests/task-handlers.capy:SLOW", "")
     var first_done := task_await(first, 15000u64)
     var second_done := task_await(second, 15000u64)
     var mode := "serial"
     if time_precise() - started < 8.0 { mode = "parallel" }
-    print(dval_to_string(first_done["state"]), "|", dval_to_string(second_done["state"]), "|", mode)
+    print(first_done["state"], "|", second_done["state"], "|", mode)
 }

@@ -18,7 +18,7 @@ The C++ API returns a `u64` job ID. Capy uses a `dval` job ID instead.
 var spec := dval({"cmd": "printf 'spawned in the background'", "timeout_ms": 1000})
 var job := shell_spawn(spec)
 var done := job_await(job, 3000)
-print(dval_to_string(dval_get_by_path(done, "result/stdout")), "\n")
+print(dval_get_by_path(done, "result/stdout"), "\n")
 
 :example cpp render
 DValue spec; spec["cmd"] = "printf 'spawned in the background'"; spec["timeout_ms"] = (f64)1000;

@@ -22,8 +22,8 @@ A list stays a list and uses consecutive numeric keys. A map keeps its keys. A s
 
 :example capy render
 var names := dval(["ada", "grace"])
-var upper := dval_map(names, function(item : dval, key : string) dval { return dval(to_upper(dval_to_string(item))) })
-print(dval_to_string(upper[0]), ",", dval_to_string(upper[1]), "\n")
+var upper := dval_map(names, function(item : dval, key : string) dval { return dval(to_upper(string(item))) })
+print(upper[0], ",", upper[1], "\n")
 
 :example cpp render
 DValue names;

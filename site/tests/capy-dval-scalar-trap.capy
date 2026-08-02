@@ -1,4 +1,4 @@
 function CLI {
     var value := dval("scalar")
-    print(dval_string(value["key"]))
+    print(dval_require(value, "key"))
 }

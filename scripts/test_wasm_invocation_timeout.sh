@@ -77,7 +77,7 @@ cat >"$source_dir/sqlite-recover.capy" <<'EOF'
 function CLI {
     var db := sqlite_connect(":memory:")
     var rows := sqlite_query(db, "select 7 as value")
-    print(dval_s32(rows[0]["value"]))
+    print(s32(rows[0]["value"], 0))
     sqlite_disconnect(db)
 }
 EOF

@@ -2,6 +2,7 @@
 
 void render_hit(String ft, String name, String snippet)
 {
+	ft = doc_canonical_page(ft);
 	<><div class="search-hit">
 		<a href="./?p=<?= uri_encode(ft) ?>"><?= name ?></a><?
 		if(snippet != "") { ?><span class="search-snippet"><?= snippet ?></span><? } ?>

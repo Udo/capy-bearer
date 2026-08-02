@@ -26,8 +26,8 @@ Capy does not accept a C++ pointer or `StringMap` overload. Use `dval(...)` to c
 `DValue::set()` changes the object in place. C++ overloads accept a string, pointer, f64, `DValue`, or `StringMap`.
 
 :example capy render
-var value := dval_set(dval(""), dval("hello"))
-print(dval_to_string(value), "\n")
+var value := dval_set(dval(""), "hello")
+print(value, "\n")
 
 :example cpp render
 DValue v;

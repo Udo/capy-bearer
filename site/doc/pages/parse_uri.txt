@@ -22,7 +22,7 @@ Use `parse_uri()` for a complete URL. Use `parse_query()` for query text only.
 
 :example capy render
 var uri := parse_uri("https://example.test/docs?name=Ada")
-print(dval_string(uri["parts"]["path"]), " ", dval_string(uri["query"]["name"]), "\n")
+print(uri["parts"]["path"], " ", uri["query"]["name"], "\n")
 
 :example cpp render
 URI uri = parse_uri("https://example.test/docs?name=Ada");

@@ -7,7 +7,8 @@ function CLI {
         unit_call("/tests/capy-module-target.capy", "RENDER")
         var cpp := unit_load("/tests/capy-cross-target.uce").call("structured", {user: {name: "Ada"}, items: [4, 9]})
         var legacy := unit_call("/tests/capy-cross-target.uce", "echo", "legacy")
-        print(dval_string(empty), "|", dval_string(nested.nested.value), "|", dval_string(once), "|", dval_string(cpp.source), "|", dval_string(legacy))
+        var absent := capy.call("echo", none)
+        print(empty, "|", nested.nested.value, "|", once, "|", cpp.source, "|", legacy, "|", absent?)
     }
     print("|", arc_live())
 }

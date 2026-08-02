@@ -1,4 +1,4 @@
 function CLI {
     var value := {present: "yes"}
-    print(dval_string(value.missing))
+    print(dval_require(value, "missing"))
 }

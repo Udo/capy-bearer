@@ -30,7 +30,7 @@ var db := sqlite_connect(":memory:")
 sqlite_query(db, "create table users(id integer primary key, email text)")
 sqlite_query(db, "insert into users(email) values(:email)", dval({"email": "ada@example.test"}))
 var rows := sqlite_query(db, "select email from users")
-print(dval_string(rows[0]["email"]), "\n")
+print(rows[0]["email"], "\n")
 sqlite_disconnect(db)
 
 :example cpp render

@@ -11,7 +11,7 @@ array_merge
 :content
 Use a map-shaped `dval` for string-keyed values in Capy. Create one with `dval({"key": "value"})`.
 
-Use `value["key"]` to read a child. Use `dval_has(value, "key")` to test for a child. Use `dval_put(value, "key", dval("value"))` to return a map with a set child.
+Use `value["key"]` to read a child. Use `dval_has(value, "key")` to test for a child. Use `dval_put(value, "key", "value")` to return a map with a set child.
 
 `parse_query(query)` returns a map-shaped `dval`. `encode_query(map)` returns a query string. `array_merge(left, right)` returns a merged `dval`.
 
@@ -25,7 +25,7 @@ C++ `StringMap` is `std::map<String, String>`. C++ `map["key"]` creates an empty
 
 :example capy render
 var params := dval({"page": "docs"})
-print(dval_to_string(params["page"]), "\n")
+print(params["page"], "\n")
 
 :example cpp render
 StringMap params;

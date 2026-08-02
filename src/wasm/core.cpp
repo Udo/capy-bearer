@@ -158,6 +158,10 @@ static String wasm_crypto_result;
 static String wasm_regex_result;
 static String wasm_string_list_result;
 static String wasm_dval_merge_result;
+static String wasm_dval_extract_string_result;
+static String wasm_dval_read_result;
+static String wasm_dval_require_result;
+static String wasm_dval_path_result;
 static String wasm_sqlite_result;
 static std::vector<SQLite*> wasm_capy_sqlite_handles;
 static String wasm_mysql_result;
@@ -1188,6 +1192,10 @@ void bearer_wasm_core_reset_request()
 	wasm_regex_result.clear();
 	wasm_string_list_result.clear();
 	wasm_dval_merge_result.clear();
+	wasm_dval_extract_string_result.clear();
+	wasm_dval_read_result.clear();
+	wasm_dval_require_result.clear();
+	wasm_dval_path_result.clear();
 	wasm_sqlite_result.clear();
 	wasm_mysql_result.clear();
 	for(MySQL* db : wasm_capy_mysql_handles)
@@ -1844,17 +1852,7 @@ size_t bearer_dv_string_to_brrb(const char* value, size_t value_len, char* out, 
 	return(encoded.size());
 }
 
-size_t bearer_dv_brrb_to_string(const char* value, size_t value_len, char* out, size_t cap)
-{
-	DValue decoded;
-	String error;
-	if(!brb_decode(String(value ? value : "", value ? value_len : 0), decoded, &error))
-		return(0);
-	String result = decoded.to_string();
-	if(out && cap >= result.size())
-		memcpy(out, result.data(), result.size());
-	return(result.size());
-}
+
 
 struct BearerDValueEntry
 {
@@ -2135,6 +2133,13 @@ size_t bearer_dv_s32_to_brrb(s32 value, char* out, size_t cap)
 	return(bearer_copy_bytes(brb_encode(encoded), out, cap));
 }
 
+size_t bearer_dv_s64_to_brrb(s64 value, char* out, size_t cap)
+{
+	DValue encoded;
+	encoded.set(std::to_string(value));
+	return(bearer_copy_bytes(brb_encode(encoded), out, cap));
+}
+
 size_t bearer_dv_u64_to_brrb(u64 value, char* out, size_t cap)
 {
 	DValue encoded;
@@ -2231,7 +2236,7 @@ size_t bearer_dv_apply_brrb(s32 operation, const char* value, size_t value_len, 
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class DValueOperation { dval_dval_set = 0, dval_dval_push = 1, dval_dval_pop = 2, dval_dval_remove = 3, dval_dval_clear = 4, dval_dval_get_by_path = 5, dval_dval_get_or_create = 6, dval_dval_set_array = 7, dval_dval_set_bool = 8, dval_dval_set_type = 9, dval_dval_get_type_name = 10, dval_dval_is_array = 11, dval_dval_is_list = 12, dval_dval_key = 13, dval_dval_keys = 14, dval_dval_values = 15, dval_dval_to_json = 16, dval_dval_to_stringmap = 17, dval_dval_put = 18, dval_dval_to_string = 19, dval_dval_to_f64 = 20, dval_dval_to_bool = 21 };
+	enum class DValueOperation { dval_dval_set = 0, dval_dval_push = 1, dval_dval_pop = 2, dval_dval_remove = 3, dval_dval_clear = 4, dval_dval_get_by_path = 5, dval_dval_get_or_create = 6, dval_dval_set_array = 7, dval_dval_set_bool = 8, dval_dval_set_type = 9, dval_dval_get_type_name = 10, dval_dval_is_array = 11, dval_dval_is_list = 12, dval_dval_key = 13, dval_dval_keys = 14, dval_dval_values = 15, dval_dval_to_json = 16, dval_dval_to_stringmap = 17, dval_dval_put = 18 };
 	switch(static_cast<DValueOperation>(operation))
 	{
 		case DValueOperation::dval_dval_set: result.set(supplied); break;
@@ -2247,15 +2252,12 @@ size_t bearer_dv_apply_brrb(s32 operation, const char* value, size_t value_len, 
 		case DValueOperation::dval_dval_get_type_name: result.set(result.get_type_name()); break;
 		case DValueOperation::dval_dval_is_array: result.set_bool(result.is_array()); break;
 		case DValueOperation::dval_dval_is_list: result.set_bool(result.is_list()); break;
-		case DValueOperation::dval_dval_key: { const DValue* child = result.key(text); result = child ? *child : DValue(); break; }
+		case DValueOperation::dval_dval_key: { const DValue* child = result.key(text); if(child) result = *child; else result.set_none(); break; }
 		case DValueOperation::dval_dval_keys: { result = result.keys(); break; }
 		case DValueOperation::dval_dval_values: result = result.values(); break;
 		case DValueOperation::dval_dval_to_json: result.set(result.to_json(text.empty() ? '"' : text[0])); break;
 		case DValueOperation::dval_dval_to_stringmap: result.set(result.to_stringmap()); break;
 		case DValueOperation::dval_dval_put: result[text] = supplied; break;
-		case DValueOperation::dval_dval_to_string: result.set(result.to_string(supplied.to_string())); break;
-		case DValueOperation::dval_dval_to_f64: result.set(result.to_f64(supplied.to_f64())); break;
-		case DValueOperation::dval_dval_to_bool: result.set_bool(result.to_bool(supplied.to_bool())); break;
 			// Core utility adapters use copied BRRB values so the native helpers remain
 			// the only implementation of parsing, routing, and diagnostic policy.
 		default: return(std::numeric_limits<size_t>::max());
@@ -2670,6 +2672,140 @@ size_t bearer_websocket_registry_brrb(s32 operation, const char* value, size_t v
 }
 
 
+size_t bearer_dv_none_brrb(char* out, size_t cap)
+{
+	DValue value;
+	value.set_none();
+	return(bearer_copy_bytes(brb_encode(value), out, cap));
+}
+
+static const DValue* bearer_dv_lookup(const DValue& value, s32 index_mode, const char* key, size_t key_len, s32 index)
+{
+	if(!value.is_array() || (index_mode && index < 0))
+		return(0);
+	String lookup = index_mode ? std::to_string(index) : String(key ? key : "", key ? key_len : 0);
+	return(value.key(lookup));
+}
+
+s32 bearer_dv_read_brrb(const char* value, size_t value_len, s32 index_mode,
+	const char* key, size_t key_len, s32 index, char* out, size_t cap)
+{
+	if(out)
+		return((s32)bearer_copy_staged(wasm_dval_read_result, out, cap));
+	wasm_dval_read_result.clear();
+	DValue decoded;
+	if(!bearer_decode_brrb_span(value, value_len, decoded))
+		return(-2);
+	const DValue* child = bearer_dv_lookup(decoded, index_mode, key, key_len, index);
+	if(child)
+		wasm_dval_read_result = brb_encode(*child);
+	else
+	{
+		DValue none;
+		none.set_none();
+		wasm_dval_read_result = brb_encode(none);
+	}
+	return((s32)wasm_dval_read_result.size());
+}
+
+s32 bearer_dv_is_none_brrb(const char* value, size_t value_len)
+{
+	DValue decoded;
+	if(!bearer_decode_brrb_span(value, value_len, decoded))
+		return(-1);
+	return(decoded.is_none() ? 1 : 0);
+}
+
+static bool bearer_dv_path_key(const DValue& segment, String& key)
+{
+	const DValue& value = segment.deref();
+	if(value.type == 'S')
+	{
+		key = value._String;
+		return(true);
+	}
+	if(value.type != 'F' || !std::isfinite(value._float) || value._float < (f64)std::numeric_limits<s32>::min() ||
+		value._float > (f64)std::numeric_limits<s32>::max() || std::trunc(value._float) != value._float)
+		return(false);
+	key = std::to_string((s32)value._float);
+	return(true);
+}
+
+size_t bearer_dv_require_brrb(const char* value, size_t value_len, const char* selector, size_t selector_len, char* out, size_t cap)
+{
+	if(out)
+		return(bearer_copy_staged(wasm_dval_require_result, out, cap));
+	wasm_dval_require_result.clear();
+	DValue decoded, segment;
+	String key;
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || !bearer_decode_brrb_span(selector, selector_len, segment) ||
+		!decoded.is_array() || !bearer_dv_path_key(segment, key) ||
+		(decoded.is_list() && segment.deref().type == 'F' && segment.deref()._float < 0))
+		return(std::numeric_limits<size_t>::max());
+	const DValue* child = decoded.key(key);
+	if(!child)
+		return(std::numeric_limits<size_t>::max());
+	wasm_dval_require_result = brb_encode(*child);
+	return(wasm_dval_require_result.size());
+}
+
+size_t bearer_dv_set_path_brrb(const char* root, size_t root_len, const char* path, size_t path_len,
+	const char* replacement, size_t replacement_len, char* out, size_t cap)
+{
+	if(out)
+		return(bearer_copy_staged(wasm_dval_path_result, out, cap));
+	wasm_dval_path_result.clear();
+	DValue result, selectors, supplied;
+	if(!bearer_decode_brrb_span(root, root_len, result) || !bearer_decode_brrb_span(path, path_len, selectors) ||
+		!bearer_decode_brrb_span(replacement, replacement_len, supplied) || !selectors.is_list() || selectors._map.empty())
+		return(std::numeric_limits<size_t>::max());
+	DValue* current = &result;
+	for(size_t position = 0; position < selectors._map.size(); position++)
+	{
+		const DValue* segment = selectors.key(std::to_string(position));
+		String key;
+		if(!segment || !bearer_dv_path_key(*segment, key))
+			return(std::numeric_limits<size_t>::max());
+		bool last = position + 1 == selectors._map.size();
+		if(current->type != 'M')
+			current->set_type('M');
+		if(current->is_list())
+		{
+			const DValue& selector = segment->deref();
+			if(selector.type != 'F' || selector._float < 0)
+				return(std::numeric_limits<size_t>::max());
+			auto child = current->_map.find(key);
+			if(child == current->_map.end())
+				return(std::numeric_limits<size_t>::max());
+			if(last)
+			{
+				child->second = supplied;
+				break;
+			}
+			current = &child->second;
+			continue;
+		}
+		auto child = current->_map.find(key);
+		if(last)
+		{
+			if(child == current->_map.end())
+				current->_map[key] = supplied;
+			else
+				child->second = supplied;
+			break;
+		}
+		if(child == current->_map.end())
+		{
+			DValue map;
+			map.set_type('M');
+			child = current->_map.emplace(key, std::move(map)).first;
+		}
+		current = &child->second;
+	}
+	wasm_dval_path_result = brb_encode(result);
+	return(wasm_dval_path_result.size());
+}
+
 s32 bearer_dv_get_brrb(const char* value, size_t value_len, s32 index_mode,
 	const char* key, size_t key_len, s32 index, char* out, size_t cap)
 {
@@ -2731,77 +2867,128 @@ s32 bearer_dv_entry_value_brrb(const char* value, size_t value_len, size_t ordin
 	return((s32)encoded.size());
 }
 
-s32 bearer_dv_scalar_type_brrb(const char* value, size_t value_len)
+static bool bearer_dv_scalar(const DValue& value, const DValue*& scalar)
 {
-	DValue decoded;
-	if(!bearer_decode_brrb_span(value, value_len, decoded))
-		return(-1);
-	return((s32)decoded.deref().type);
+	scalar = &value.deref();
+	return(scalar->type == 'S' || scalar->type == 'F' || scalar->type == 'B');
 }
 
-s32 bearer_dv_s32_brrb(const char* value, size_t value_len, s32* out)
+static bool bearer_dv_decimal_s32(const String& text, s32& result)
 {
-	DValue decoded;
-	if(!bearer_decode_brrb_span(value, value_len, decoded) || decoded.deref().type != 'F' || !out)
-		return(0);
-	f64 number = decoded.deref()._float;
-	if(number < (f64)std::numeric_limits<s32>::min() || number > (f64)std::numeric_limits<s32>::max() || std::floor(number) != number)
-		return(0);
-	*out = (s32)number;
-	return(1);
+	if(text.empty()) return(false);
+	const char* begin = text.data();
+	const char* end = begin + text.size();
+	if(*begin == '+') ++begin;
+	if(begin == end) return(false);
+	auto parsed = std::from_chars(begin, end, result, 10);
+	return(parsed.ec == std::errc() && parsed.ptr == end);
 }
 
-s64 bearer_dv_s64_brrb(const char* value, size_t value_len, s64 fallback)
+static bool bearer_dv_decimal_s64(const String& text, s64& result)
 {
-	DValue decoded;
-	return(bearer_decode_brrb_span(value, value_len, decoded) ? decoded.to_s64(fallback) : fallback);
+	if(text.empty()) return(false);
+	const char* begin = text.data();
+	const char* end = begin + text.size();
+	if(*begin == '+') ++begin;
+	if(begin == end) return(false);
+	auto parsed = std::from_chars(begin, end, result, 10);
+	return(parsed.ec == std::errc() && parsed.ptr == end);
 }
 
-u64 bearer_dv_u64_brrb(const char* value, size_t value_len, u64 fallback)
+static bool bearer_dv_decimal_u64(const String& text, u64& result)
 {
-	DValue decoded;
-	if(!bearer_decode_brrb_span(value, value_len, decoded))
-		return(fallback);
-	const DValue& scalar = decoded.deref();
-	// Wide Capy values are decimal strings and need exact parsing; ordinary
-	// numeric/bool DValues may use their native scalar conversion.
-	if(scalar.type == 'S')
-		return(to_u64(scalar.to_string(), fallback));
-	if(scalar.type == 'F' || scalar.type == 'B')
-		return(scalar.to_u64(fallback));
-	return(fallback);
+	if(text.empty()) return(false);
+	const char* begin = text.data();
+	const char* end = begin + text.size();
+	if(*begin == '-') return(false);
+	if(*begin == '+') ++begin;
+	if(begin == end) return(false);
+	auto parsed = std::from_chars(begin, end, result, 10);
+	return(parsed.ec == std::errc() && parsed.ptr == end);
 }
 
-s32 bearer_dv_f64_brrb(const char* value, size_t value_len, f64* out)
+static String bearer_dv_extract_string_value(const char* value, size_t value_len, const char* fallback, size_t fallback_len)
 {
 	DValue decoded;
-	if(!bearer_decode_brrb_span(value, value_len, decoded) || !out)
-		return(0);
-	const DValue& scalar = decoded.deref();
-	if(scalar.type == 'F')
+	const DValue* scalar = 0;
+	const String otherwise(fallback ? fallback : "", fallback ? fallback_len : 0);
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || !bearer_dv_scalar(decoded, scalar)) return(otherwise);
+	if(scalar->type == 'S') return(scalar->_String.empty() ? otherwise : scalar->_String);
+	if(scalar->type == 'F') return(std::isfinite(scalar->_float) ? bearer_format_f64_value(scalar->_float) : otherwise);
+	return(scalar->_bool ? "true" : "false");
+}
+
+size_t bearer_dv_extract_string(const char* value, size_t value_len, const char* fallback, size_t fallback_len, char* out, size_t cap)
+{
+	if(!out)
 	{
-		*out = scalar._float;
-		return(1);
+		wasm_dval_extract_string_result = bearer_dv_extract_string_value(value, value_len, fallback, fallback_len);
+		if(wasm_dval_extract_string_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
+		{
+			wasm_dval_extract_string_result.clear();
+			return(std::numeric_limits<size_t>::max());
+		}
+		return(wasm_dval_extract_string_result.size());
 	}
-	if(scalar.type != 'S' || scalar._String.empty())
-		return(0);
-	f64 parsed = 0;
-	const char* begin = scalar._String.data();
-	const char* end = begin + scalar._String.size();
-	auto converted = std::from_chars(begin, end, parsed, std::chars_format::general);
-	if(converted.ec != std::errc() || converted.ptr != end || !std::isfinite(parsed))
-		return(0);
-	*out = parsed;
-	return(1);
+	return(bearer_copy_staged(wasm_dval_extract_string_result, out, cap));
 }
 
-s32 bearer_dv_bool_brrb(const char* value, size_t value_len, s32* out)
+s32 bearer_dv_extract_bool(const char* value, size_t value_len, s32 fallback)
 {
 	DValue decoded;
-	if(!bearer_decode_brrb_span(value, value_len, decoded) || decoded.deref().type != 'B' || !out)
-		return(0);
-	*out = decoded.to_bool() ? 1 : 0;
-	return(1);
+	const DValue* scalar = 0;
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || !bearer_dv_scalar(decoded, scalar)) return(fallback);
+	if(scalar->type == 'B') return(scalar->_bool ? 1 : 0);
+	if(scalar->type == 'F') return(std::isfinite(scalar->_float) ? (scalar->_float == 0 ? 0 : 1) : fallback);
+	return(to_bool(scalar->_String, fallback != 0) ? 1 : 0);
+}
+
+s32 bearer_dv_extract_s32(const char* value, size_t value_len, s32 fallback)
+{
+	DValue decoded;
+	const DValue* scalar = 0;
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || !bearer_dv_scalar(decoded, scalar)) return(fallback);
+	if(scalar->type == 'B') return(scalar->_bool ? 1 : 0);
+	if(scalar->type == 'S') { s32 result = 0; return(bearer_dv_decimal_s32(scalar->_String, result) ? result : fallback); }
+	if(!std::isfinite(scalar->_float) || scalar->_float < (f64)std::numeric_limits<s32>::min() || scalar->_float > (f64)std::numeric_limits<s32>::max()) return(fallback);
+	return((s32)std::trunc(scalar->_float));
+}
+
+s64 bearer_dv_extract_s64(const char* value, size_t value_len, s64 fallback)
+{
+	DValue decoded;
+	const DValue* scalar = 0;
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || !bearer_dv_scalar(decoded, scalar)) return(fallback);
+	if(scalar->type == 'B') return(scalar->_bool ? 1 : 0);
+	if(scalar->type == 'S') { s64 result = 0; return(bearer_dv_decimal_s64(scalar->_String, result) ? result : fallback); }
+	if(!std::isfinite(scalar->_float) || scalar->_float < -9223372036854775808.0 || scalar->_float >= 9223372036854775808.0) return(fallback);
+	return((s64)std::trunc(scalar->_float));
+}
+
+u64 bearer_dv_extract_u64(const char* value, size_t value_len, u64 fallback)
+{
+	DValue decoded;
+	const DValue* scalar = 0;
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || !bearer_dv_scalar(decoded, scalar)) return(fallback);
+	if(scalar->type == 'B') return(scalar->_bool ? 1 : 0);
+	if(scalar->type == 'S') { u64 result = 0; return(bearer_dv_decimal_u64(scalar->_String, result) ? result : fallback); }
+	if(!std::isfinite(scalar->_float) || scalar->_float < 0 || scalar->_float >= 18446744073709551616.0) return(fallback);
+	return((u64)std::trunc(scalar->_float));
+}
+
+f64 bearer_dv_extract_f64(const char* value, size_t value_len, f64 fallback)
+{
+	DValue decoded;
+	const DValue* scalar = 0;
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || !bearer_dv_scalar(decoded, scalar)) return(fallback);
+	if(scalar->type == 'B') return(scalar->_bool ? 1.0 : 0.0);
+	if(scalar->type == 'F') return(std::isfinite(scalar->_float) ? scalar->_float : fallback);
+	if(scalar->_String.empty()) return(fallback);
+	f64 result = 0;
+	const char* begin = scalar->_String.data();
+	const char* end = begin + scalar->_String.size();
+	auto parsed = std::from_chars(begin, end, result, std::chars_format::general);
+	return(parsed.ec == std::errc() && parsed.ptr == end && std::isfinite(result) ? result : fallback);
 }
 
 size_t bearer_dv_ptr_to_brrb(DValue* value, char* out, size_t cap)

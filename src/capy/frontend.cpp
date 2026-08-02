@@ -117,6 +117,13 @@ long long parse_integer(const Token& token, bool negative = false)
 	throw Error(std::move(location), std::move(message));
 }
 
+bool default_parameter_literal(const Expr* value)
+{
+	return dynamic_cast<const Integer*>(value) || dynamic_cast<const SignedInteger*>(value) || dynamic_cast<const UnsignedInteger*>(value) ||
+		dynamic_cast<const Float*>(value) || dynamic_cast<const String*>(value) ||
+		(dynamic_cast<const Name*>(value) && (static_cast<const Name*>(value)->value == "true" || static_cast<const Name*>(value)->value == "false"));
+}
+
 } // namespace
 
 std::string format_location(const Location& location)
@@ -350,7 +357,7 @@ Token Lexer::markup_token()
 std::vector<Token> Lexer::tokens()
 {
 	static const std::unordered_set<std::string> two = {"::", ":=", "..", "==", "!=", "<=", ">=", "&&", "||"};
-	static const std::string one = "(){}[],:=+-*/%<>.!;";
+	static const std::string one = "(){}[],:=+-*/%<>.!?;";
 	std::vector<Token> result;
 	while (byte_ < source_.size())
 	{
@@ -599,6 +606,14 @@ Expr* Parser::expression(int minimum, bool stop_at_newline)
 			left = finish_call(left);
 			continue;
 		}
+		if (next.text == "?")
+		{
+			if (80 < minimum)
+				break;
+			Token question = take();
+			left = program_.make<Binary>(question.location, "postfix?", left, program_.make<Integer>(question.location, 0));
+			continue;
+		}
 		if (next.text == "[")
 		{
 			if (80 < minimum)
@@ -632,7 +647,10 @@ Expr* Parser::expression(int minimum, bool stop_at_newline)
 		if (op.text == ":")
 		{
 			bool convert = match("as");
-			return program_.make<Annotation>(op.location, left, expression(81), convert);
+			Annotation* annotation = program_.make<Annotation>(op.location, left, expression(81), convert);
+			if (minimum == 0 && match("="))
+				return program_.make<Binary>(annotation->location, "=", annotation, expression(5));
+			return annotation;
 		}
 		if (op.text == "as")
 			fail(op.location, "'as' is only valid on coercive parameters; call the target type constructor instead");
@@ -923,6 +941,8 @@ bool Parser::is_parameter_expression(Expr* expression_value) const
 		expression_value->kind == ExprKind::Tuple ? static_cast<TupleExpr*>(expression_value)->items : std::vector<Expr*>{expression_value};
 	return std::all_of(values.begin(), values.end(), [](Expr* value)
 	{
+		if (auto assignment = dynamic_cast<Binary*>(value); assignment && assignment->operator_ == "=")
+			value = assignment->left;
 		if (value->kind != ExprKind::Annotation)
 			return false;
 		Expr* binding = static_cast<Annotation*>(value)->value;
@@ -940,6 +960,14 @@ std::vector<Parameter> Parser::parameters(Expr* expression_value)
 	for (std::size_t i = 0; i < values.size(); ++i)
 	{
 		Expr* value = values[i];
+		Expr* default_value = nullptr;
+		if (auto assignment = dynamic_cast<Binary*>(value); assignment && assignment->operator_ == "=")
+		{
+			value = assignment->left;
+			default_value = assignment->right;
+			if (!default_parameter_literal(default_value))
+				fail(default_value->location, "default parameter value must be a literal");
+		}
 		if (value->kind != ExprKind::Annotation)
 			fail(value->location, "function parameter expression must contain name:type annotations");
 		Annotation* annotation = static_cast<Annotation*>(value);
@@ -954,10 +982,14 @@ std::vector<Parameter> Parser::parameters(Expr* expression_value)
 			fail(value->location, "function parameter expression must contain name:type annotations");
 		if (variadic && i + 1 != values.size())
 			fail(value->location, "variadic parameter must be last");
+		if (variadic && default_value)
+			fail(value->location, "variadic parameter cannot have a default value");
+		if (!default_value && !result.empty() && result.back().default_value)
+			fail(value->location, "default parameters must be trailing");
 		std::string name = static_cast<Name*>(binding)->value;
 		if (!names.insert(name).second)
 			fail(value->location, "function parameter '" + name + "' is already declared");
-		result.push_back({std::move(name), annotation->type_expr, variadic, annotation->convert});
+		result.push_back({std::move(name), annotation->type_expr, default_value, variadic, annotation->convert});
 	}
 	return result;
 }

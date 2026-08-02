@@ -7,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PAGE_SYMBOLS = {
     "2_DValue_set": ["dval_set"],
+    "2_DValue_to_s64": ["s32", "s64"],
     "request_context_params": [
         "request_context", "request_script_url", "request_base_url", "request_query_path", "request_query_route",
     ],

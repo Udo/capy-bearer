@@ -9,23 +9,23 @@ return value : YAML string
 >markup
 yaml_decode
 json_encode
-xml_encode
 0_DValue
 
 :content
 In Capy, `yaml_encode(value)` accepts a `dval` and returns YAML as a `string`.
 
-Use it to write configuration data. It writes nested maps, lists, strings, booleans, and numeric `f64` values.
+Use it to write configuration data. It writes nested maps, lists, strings, booleans, numeric f64 values, and `none`.
 
-It does not write YAML tags, anchors, aliases, or custom schema features. The declaration has no error return.
+`none` encodes as YAML `null`. It does not write YAML tags, anchors, aliases, or custom schema features.
 
 C++ uses `DValue` and `String` values through the signature above.
 
 :example capy render
-var value := dval({"name": "Ada"})
-if yaml_encode(value) != "" { print("yaml\n") } else { print("empty\n") }
+var value := dval({"name": "Ada", "middle": none})
+print(yaml_encode(value))
 
 :example cpp render
 DValue value;
 value["name"] = "Ada";
-print(yaml_encode(value) != "" ? "yaml\n" : "empty\n");
+value["middle"].set_none();
+print(yaml_encode(value));

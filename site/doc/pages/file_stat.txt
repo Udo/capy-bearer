@@ -8,14 +8,14 @@ return value : a `dval` map with `exists`, `is_file`, `is_dir`, `is_symlink`, `s
 :content
 In Capy, `file_stat()` returns file metadata in a map-shaped `dval`. Use it to test a path type or read its size and times.
 
-The `exists` field is `false` when the path does not exist. Read fields with functions such as `dval_to_bool()`.
+The `exists` field is `false` when the path does not exist. Read fields with functions such as `bool()`.
 
 :example capy render
 file_put_contents("/tmp/doc-stat.txt", "12345")
 var stat := file_stat("/tmp/doc-stat.txt")
 var type_status := "no"
-if dval_to_bool(stat["is_file"]) { type_status = "yes" }
-print("size=", dval_s32(stat["size"]), " is_file=", type_status, "\n")
+if bool(stat["is_file"]) { type_status = "yes" }
+print("size=", s32(stat["size"]), " is_file=", type_status, "\n")
 
 :example cpp render
 file_put_contents("/tmp/doc-stat.txt", "12345");

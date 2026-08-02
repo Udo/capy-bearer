@@ -3,7 +3,7 @@
 #include <string_view>
 namespace capy::parity {
 struct Evidence { std::string_view name, path, marker; };
-inline constexpr std::array<Evidence, 259> supported{{
+inline constexpr std::array<Evidence, 260> supported{{
     {"3_Documentation format","site/doc/pages/3_Documentation format.txt",":example capy render"},
     {"1_INIT","site/tests/capy-lifecycle-parity.capy","function INIT"},
     {"1_ONCE","site/tests/capy-lifecycle-parity.capy","function ONCE"},
@@ -19,6 +19,7 @@ inline constexpr std::array<Evidence, 259> supported{{
     {"2_DValue_each","site/tests/capy-dval-rich.capy","for key, value"},
     {"2_DValue_filter","site/tests/capy-dval-api.capy","dval_filter("},
     {"2_DValue_has","site/tests/capy-dval-rich.capy","dval_has("},
+    {"2_DValue_require","site/tests/capy-dval-api.capy","dval_require("},
     {"2_DValue_operator_index","site/tests/capy-dval-rich.capy","profile["},
     {"2_DValue_push","site/tests/capy-dval-api.capy","dval_push("},
     {"2_DValue_pop","site/tests/capy-dval-api.capy","dval_pop("},
@@ -35,13 +36,13 @@ inline constexpr std::array<Evidence, 259> supported{{
     {"2_DValue_key","site/tests/capy-dval-api.capy","dval_key("},
     {"2_DValue_keys","site/tests/capy-dval-api.capy","dval_keys("},
     {"2_DValue_map","site/tests/capy-dval-api.capy","dval_map("},
-    {"2_DValue_to_bool","site/tests/capy-dval-api.capy","dval_to_bool("},
-    {"2_DValue_to_f64","site/tests/capy-dval-api.capy","dval_to_f64("},
+    {"2_DValue_to_bool","site/tests/capy-dval-api.capy","bool("},
+    {"2_DValue_to_f64","site/tests/capy-dval-api.capy","f64("},
     {"2_DValue_to_json","site/tests/capy-dval-api.capy","dval_to_json("},
-    {"2_DValue_to_s64","site/tests/capy-dval-api.capy","dval_to_s64("},
-    {"2_DValue_to_string","site/tests/capy-dval-api.capy","dval_to_string("},
+    {"2_DValue_to_s64","site/tests/capy-dval-api.capy","s64("},
+    {"2_DValue_to_string","site/tests/capy-dval-api.capy","string("},
     {"2_DValue_to_stringmap","site/tests/capy-dval-api.capy","dval_to_stringmap("},
-    {"2_DValue_to_u64","site/tests/capy-dval-api.capy","dval_to_u64("},
+    {"2_DValue_to_u64","site/tests/capy-dval-api.capy","u64("},
     {"2_DValue_values","site/tests/capy-dval-api.capy","dval_values("},
     {"component","site/tests/capy-component-parity.capy","component("},
     {"component_render","site/tests/capy-component-parity.capy","component_render("},

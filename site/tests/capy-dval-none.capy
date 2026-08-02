@@ -1,0 +1,60 @@
+type Optional = dval
+
+function selector(marker : string, value : string) string {
+    print(marker)
+    value
+}
+
+function replacement(marker : string, value : string) dval {
+    print(marker)
+    dval(value)
+}
+
+function CLI {
+    {
+        var empty := dval("")
+        var false_value := dval(false)
+        var map := dval({:})
+        var list := dval([])
+        print(none?, "|", empty?, "|", false_value?, "|", map?, "|", list?, "|")
+
+        var profile := dval({nickname: "Ada", scalar: "plain", list: ["one"]})
+        print(profile["missing"]?, "|", profile.missing?, "|", profile.scalar.member?, "|", profile.list[-1]?, "|", profile.list[1]?, "|")
+        print(profile.nickname, "|")
+
+        print("[", string(none), "]", "[", string(none, "string"), "]|")
+        print(bool(none), "|", bool(none, true), "|")
+        print(s32(none), "|", s32(none, 32), "|")
+        print(s64(none), "|", s64(none, -64s64), "|")
+        print(u64(none), "|", u64(none, 64u64), "|")
+        print(f64(none), "|", f64(none, 6.5), "|")
+
+        var json_none := json_decode("null")
+        var yaml_null := yaml_decode("null\n")
+        var yaml_tilde := yaml_decode("~\n")
+        print(json_none?, "|", yaml_null?, "|", yaml_tilde?, "|", json_encode(none), "|", yaml_encode(none) == "null\n", "|")
+        print(brb_decode(brb_encode(none))?, "|")
+
+        var keyed := dval({empty: none})
+        print(dval_has(keyed, "empty"), "|", keyed.empty?, "|", keyed.missing?, "|")
+
+        var nested := dval({keep: {value: "old"}, scalar: "old", list: ["old"]})
+        nested.created.child = "created"
+        nested.scalar.child = "replaced"
+        nested.keep.added = "kept"
+        nested.list[0] = "updated"
+        print(nested.created.child, "|", nested.scalar.child, "|", nested.keep.value, "|", nested.keep.added, "|", nested.list[0], "|")
+
+        var copied := nested
+        nested.keep.value = "changed"
+        print(copied.keep.value, "|", nested.keep.value, "|")
+
+        var ordered := dval({:})
+        ordered[selector("A", "first")][selector("B", "second")] = replacement("R", "done")
+        print("|", ordered.first.second, "|")
+
+        var alias : Optional = none
+        print(alias?, "|")
+    }
+    print(arc_live())
+}

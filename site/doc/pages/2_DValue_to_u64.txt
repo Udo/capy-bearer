@@ -8,20 +8,21 @@ return value : converted value or the fallback
 :see
 >types
 0_DValue
-2_DValue_get_by_path
+2_DValue_to_string
+2_DValue_require
 
 :content
-`dval_to_u64(value, fallback)` takes a `dval` and an optional u64 fallback. It returns an unsigned integer. Use it to read an unsigned value from structured data.
+`u64(value)` is Capy's unsigned integer constructor for a `dval`. `u64(value, fallback)` returns the fallback for `none` or a failed conversion.
 
-Strings, f64 values, booleans, and one-child maps can convert. Empty or invalid strings return the fallback. Negative values clamp to zero. Oversized values clamp to `u64` maximum.
+Exact decimal strings, in-range nonnegative finite f64 values, and booleans can convert. An f64 conversion truncates toward zero. Empty or invalid strings, negative values, overflow, maps, and lists return the fallback.
 
 ## C++ API
 
-`DValue::to_u64()` also converts C++ pointers and resolved references.
+`DValue::to_u64()` also converts C++ pointers, resolved references, and one-child maps. It can clamp values outside its range. These C++ rules do not change the Capy constructor rules.
 
 :example capy render
 var value := dval("42")
-print(dval_to_u64(value), "\n")
+print(u64(value), "\n")
 
 :example cpp render
 DValue value;

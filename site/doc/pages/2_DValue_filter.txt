@@ -21,7 +21,7 @@ C++ also provides `filter(keys)`, which copies named children into a map. Its ca
 :example capy render
 var user := dval({"name": "Ada", "email": "ada@example.test"})
 var public_user := dval_filter(user, function(item : dval, key : string) bool { return key == "name" })
-print(dval_to_string(public_user["name"]), "\n")
+print(public_user["name"], "\n")
 
 :example cpp render
 DValue user;

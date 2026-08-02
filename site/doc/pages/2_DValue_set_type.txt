@@ -22,7 +22,7 @@ Use `dval_set`, `dval_set_bool`, or `dval_set_array` for normal Capy code. Setti
 
 :example capy render
 var value := dval_set_type(dval(""), "M")
-value = dval_push(value, dval("x"))
+value = dval_push(value, "x")
 print("type after set_array: ", dval_get_type_name(value), "\n")
 
 :example cpp render

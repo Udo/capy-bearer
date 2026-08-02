@@ -24,7 +24,7 @@ After an insert, update, or delete, call `mysql_affected_rows()`.
 var db := mysql_connect("localhost", "root", "", "")
 if db != 0u64 {
     var rows := mysql_query(db, "select 'ada@example.test' as email, 1 + 1 as total limit :limit!", dval({limit: "1"}))
-    print(dval_string(rows[0]["email"]), " / total=", dval_string(rows[0]["total"]), "\n")
+    print(rows[0]["email"], " / total=", rows[0]["total"], "\n")
     mysql_disconnect(db)
 } else { print("(requires a reachable MySQL server)\n") }
 

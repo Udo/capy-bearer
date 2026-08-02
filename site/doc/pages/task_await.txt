@@ -20,10 +20,10 @@ This call does not run the task in the caller. If the task remains nonterminal a
 Capy task IDs are `string` values, and task status is a `dval` value. C++ `.uce` uses `String`, `u64`, and `DValue`, as the signature shows.
 
 :example capy render
-var id := task("/doc/examples/task_worker.capy:STORE", dval({"message": "await"}))
+var id := task("/doc/examples/task_worker.capy:STORE", {"message": "await"})
 var status := task_await(id, 5000u64)
 var result := "not done"
-if dval_to_string(status["state"]) == "succeeded" { result = "done" }
+if string(status["state"]) == "succeeded" { result = "done" }
 print(result, "\n")
 
 :example cpp render

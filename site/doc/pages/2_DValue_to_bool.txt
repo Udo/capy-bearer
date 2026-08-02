@@ -8,20 +8,23 @@ return value : converted value or the fallback
 :see
 >types
 0_DValue
-2_DValue_get_by_path
+2_DValue_to_string
+2_DValue_require
 
 :content
-`dval_to_bool(value, fallback)` takes a `dval` and an optional boolean fallback. It returns a boolean. Use it to read a boolean from request or structured data.
+`bool(value)` is Capy's boolean constructor for a `dval`. `bool(value, fallback)` returns the fallback for `none` or a failed conversion.
 
-It recognizes `true`, `yes`, `on`, `1`, `false`, `no`, `off`, `0`, and `null`. A nonempty unrecognized string is true. An empty string returns the fallback. A multi-child map is true when nonempty.
+It recognizes the string values `true`, `yes`, `on`, `1`, `false`, `no`, `off`, and `0`. It also converts booleans and finite f64 values. An empty or unrecognized string, a non-finite number, a map, and a list return the fallback.
+
+Capy boolean text is `true` or `false`. Use `bool(value)` for a typed boolean. Do not use boolean text as a data test.
 
 ## C++ API
 
-`DValue::to_bool()` also converts C++ pointers and references.
+`DValue::to_bool()` also converts C++ pointers, references, maps, lists, and other nonempty strings. These C++ rules do not change the Capy constructor rules.
 
 :example capy render
 var value := dval("true")
-if dval_to_bool(value) { print("true\n") } else { print("false\n") }
+print(bool(value), "\n")
 
 :example cpp render
 DValue value;

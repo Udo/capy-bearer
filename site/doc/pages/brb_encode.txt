@@ -7,18 +7,20 @@ brb_decode
 json_encode
 
 :content
-`brb_encode()` converts a Capy `dval` into a BRRB1 byte string.
+`brb_encode()` converts a Capy `dval` into a BRRB2 byte string.
 
-Pass a `dval` that you will later decode with `brb_decode()`. The returned string can contain any byte, including NUL. BRRB1 keeps scalar bytes, nested maps, lists, and empty lists.
+Pass a `dval` that you will later decode with `brb_decode()`. The returned string can contain any byte, including NUL. BRRB preserves scalars, nested maps, lists, empty lists, and the `N` tag for `none`.
 
-Use this function for Bearer DValue data. Use JSON, YAML, or XML functions for text formats that people read.
+Use this function for Bearer DValue data. Use JSON or YAML for text formats that people read.
 
 :example capy render
-var original := dval({"msg": "hello"})
+var original := dval({"msg": "hello", "missing": none})
 var packed := brb_encode(original)
-print("encoded ", length(packed), " bytes; round-trips to: ", dval_string(brb_decode(packed)["msg"]), "\n")
+print("encoded ", length(packed), " bytes. ", brb_decode(packed).msg, "\n")
+
 :example cpp render
 DValue original;
 original["msg"] = "hello";
+original["missing"].set_none();
 String packed = brb_encode(original);
-print("encoded ", packed.length(), " bytes; round-trips to: ", brb_decode(packed)["msg"].to_string(), "\n");
+print("encoded ", packed.length(), " bytes. ", brb_decode(packed)["msg"].to_string(), "\n");

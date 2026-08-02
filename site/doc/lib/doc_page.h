@@ -10,6 +10,7 @@ struct DocPage {
 	DValue example_blocks;
 	DValue example_pairs;
 	DValue cpp_only_examples;
+	DValue guide_examples;
 	String capy_status;
 	bool has_legacy_examples = false;
 	String example_parse_error;
@@ -80,13 +81,51 @@ bool doc_page_name_is_safe(String name)
 	return(true);
 }
 
+DValue doc_guide_redirects()
+{
+	DValue redirects;
+	redirects["01-getting-started"] = "01-install-and-first-program";
+	redirects["02-basic-syntax"] = "02-source-structure-and-syntax";
+	redirects["03-types"] = "03-values-and-types";
+	redirects["04-variables-scope-and-expressions"] = "04-expressions-and-control-flow";
+	redirects["05-operators-and-control-flow"] = "04-expressions-and-control-flow";
+	redirects["06-functions"] = "05-functions-and-closures";
+	redirects["07-strings-and-markup"] = "06-strings-and-markup";
+	redirects["08-arrays-tuples-and-structs"] = "07-collections-and-records";
+	redirects["09-function-values-closures-and-memory"] = "05-functions-and-closures";
+	redirects["10-dvalues"] = "08-dynamic-values";
+	redirects["11-web-handlers"] = "09-web-handlers-and-requests";
+	redirects["12-components-and-units"] = "10-units-components-and-exports";
+	redirects["13-tasks-and-jobs"] = "11-tasks-and-jobs";
+	redirects["14-errors-debugging-and-style"] = "12-errors-testing-and-style";
+	return(redirects);
+}
+
+String doc_canonical_page(String page)
+{
+	if(page.rfind("capy-", 0) != 0)
+		return(page);
+	String target = doc_guide_redirects()[page.substr(5)].to_string();
+	return(target == "" ? page : "capy-" + target);
+}
+
 String doc_page_path(String name)
 {
 	if(!doc_page_name_is_safe(name))
 		return("");
-	if(name.rfind("capy-", 0) == 0)
-		return("capy/" + name.substr(5) + ".txt");
-	return("pages/" + name + ".txt");
+	name = doc_canonical_page(name);
+	if(name.rfind("capy-", 0) != 0)
+		return("pages/" + name + ".txt");
+	String canonical_path = "capy/" + name.substr(5) + ".txt";
+	if(file_exists(canonical_path))
+		return(canonical_path);
+	for(String file_name : ls("capy/"))
+	{
+		String source = nibble(file_name, ".");
+		if(doc_canonical_page("capy-" + source) == name)
+			return("capy/" + source + ".txt");
+	}
+	return("");
 }
 
 String doc_page_source(String name)
@@ -113,10 +152,16 @@ DValue doc_page_names()
 		String remaining = file_name;
 		names.push(nibble(remaining, "."));
 	}
+	DValue canonical_guides;
 	for(String file_name : ls("capy/").sort())
 	{
 		String remaining = file_name;
-		names.push("capy-" + nibble(remaining, "."));
+		String guide = doc_canonical_page("capy-" + nibble(remaining, "."));
+		if(canonical_guides[guide].to_string() == "")
+		{
+			canonical_guides[guide] = "Y";
+			names.push(guide);
+		}
 	}
 	return(names);
 }
@@ -211,6 +256,13 @@ void doc_flush_section(DocPage& result, String page, String section, DValue& sec
 		if(trim(example) != "")
 			result.example_blocks.push_back(example);
 	}
+	else if(section == "output")
+	{
+		if(result.guide_examples.size() == 0)
+			result.example_parse_error = "output must follow a Capy guide example";
+		else
+			result.guide_examples[result.guide_examples.size() - 1]["output"] = join(section_lines, "\n");
+	}
 	else
 	{
 		for(String line : section_lines)
@@ -218,7 +270,7 @@ void doc_flush_section(DocPage& result, String page, String section, DValue& sec
 	}
 }
 
-void doc_add_example(DocPage& result, String language, String entry, String body, String& pending_entry, String& pending_body)
+void doc_add_example(DocPage& result, String page, String language, String entry, String body, String& pending_entry, String& pending_body)
 {
 	if(language == "legacy")
 	{
@@ -233,7 +285,14 @@ void doc_add_example(DocPage& result, String language, String entry, String body
 	}
 	if(pending_entry == "")
 	{
-		if(language == "cpp" && result.capy_status != "")
+		if(page.rfind("capy-", 0) == 0 && language == "capy")
+		{
+			DValue example;
+			example["entry"] = entry;
+			example["body"] = body;
+			result.guide_examples.push_back(example);
+		}
+		else if(language == "cpp" && result.capy_status != "")
 		{
 			DValue example;
 			example["entry"] = entry;
@@ -265,6 +324,7 @@ void doc_add_example(DocPage& result, String language, String entry, String body
 
 DocPage load_doc_page(String page)
 {
+	page = doc_canonical_page(page);
 	DocPage result;
 	DValue lines = split(doc_page_source(page), "\n");
 	String current_section = "";
@@ -278,6 +338,12 @@ DocPage load_doc_page(String page)
 
 	for(auto line : lines)
 	{
+		if(current_section == "output" && line.rfind("## ", 0) == 0)
+		{
+			doc_flush_section(result, page, current_section, current_lines, content_lines);
+			current_lines.clear();
+			current_section = "content";
+		}
 		if(line != "" && line.substr(0, 1) == ":")
 		{
 			if(current_section == "example")
@@ -286,7 +352,7 @@ DocPage load_doc_page(String page)
 				if(trim(example_body) == "")
 					result.example_parse_error = "empty example block";
 				else
-					doc_add_example(result, example_language, example_entry, example_body, pending_entry, pending_body);
+					doc_add_example(result, page, example_language, example_entry, example_body, pending_entry, pending_body);
 			}
 			else
 				doc_flush_section(result, page, current_section, current_lines, content_lines);
@@ -332,7 +398,7 @@ DocPage load_doc_page(String page)
 				current_section = "";
 				continue;
 			}
-			if(section == "title" || section == "sig" || section == "params" || section == "content" || section == "see")
+			if(section == "title" || section == "sig" || section == "params" || section == "content" || section == "see" || section == "output")
 			{
 				current_section = section;
 				continue;
@@ -359,7 +425,7 @@ DocPage load_doc_page(String page)
 		if(trim(example_body) == "")
 			result.example_parse_error = "empty example block";
 		else
-			doc_add_example(result, example_language, example_entry, example_body, pending_entry, pending_body);
+			doc_add_example(result, page, example_language, example_entry, example_body, pending_entry, pending_body);
 	}
 	else
 		doc_flush_section(result, page, current_section, current_lines, content_lines);

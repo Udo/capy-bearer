@@ -3,7 +3,7 @@
 // doc_page.h supplies current compiler-generated API signatures.
 void render_doc_page_link(String page, String label = "")
 {
-	page = trim(page);
+	page = doc_canonical_page(trim(page));
 	if(page == "")
 		return;
 	if(label == "")
@@ -170,6 +170,21 @@ void render_doc_examples(Request& context, String page, DocPage doc_page)
 		?><div class="doc-section example error"><h3>Example format error</h3><pre><?= doc_page.example_parse_error ?></pre></div><?
 		return;
 	}
+	for(u64 idx = 0; idx < doc_page.guide_examples.size(); idx++)
+	{
+		DValue example = doc_page.guide_examples[idx];
+		String entry = example["entry"].to_string();
+		String body = example["body"].to_string();
+		String expected = example["output"].to_string();
+		DValue capy = doc_render_example(context, page, idx, "capy", entry, body);
+		?><div class="doc-section example guide-example"><h3>Example: <?= doc_example_handler_name(entry) ?></h3><?
+			render_doc_example_result("capy", entry, body, capy);
+			if(entry == "render" && capy["error"].to_string() == "" && capy["output"].to_string() != expected)
+			{
+				?><div class="example-output error"><div class="example-output-label">Output error</div><pre>DOC EXAMPLE ERROR: output differs from :output</pre></div><?
+			}
+		?></div><?
+	}
 	for(u64 idx = 0; idx < doc_page.example_pairs.size(); idx++)
 	{
 		DValue pair = doc_page.example_pairs[idx];
@@ -194,7 +209,7 @@ void render_doc_examples(Request& context, String page, DocPage doc_page)
 		DValue example = doc_page.cpp_only_examples[idx];
 		String entry = example["entry"].to_string();
 		String body = example["body"].to_string();
-		u64 artifact_idx = doc_page.example_pairs.size() + idx;
+		u64 artifact_idx = doc_page.guide_examples.size() + doc_page.example_pairs.size() + idx;
 		DValue cpp = doc_render_example(context, page, artifact_idx, "cpp", entry, body);
 		?><div class="doc-section example cpp-only-example"><h3>C++ example: <?= doc_example_handler_name(entry) ?></h3><?
 			render_doc_example_result("cpp", entry, body, cpp);
@@ -202,7 +217,7 @@ void render_doc_examples(Request& context, String page, DocPage doc_page)
 	}
 	for(u64 idx = 0; idx < doc_page.example_blocks.size(); idx++)
 	{
-		u64 artifact_idx = doc_page.example_pairs.size() + doc_page.cpp_only_examples.size() + idx;
+		u64 artifact_idx = doc_page.guide_examples.size() + doc_page.example_pairs.size() + doc_page.cpp_only_examples.size() + idx;
 		DValue cpp = doc_render_example(context, page, artifact_idx, "cpp", "render", doc_page.example_blocks[idx]);
 		?><div class="doc-section example legacy-example"><h3>Legacy C++ example</h3><?
 		render_doc_example_result("cpp", "render", doc_page.example_blocks[idx], cpp);
@@ -282,7 +297,13 @@ void render_doc_see_links(DValue see_lines)
 
 RENDER(Request& context)
 {
-	String page = first(context.get["p"], "index");
+	String requested_page = first(context.get["p"], "index");
+	String page = doc_canonical_page(requested_page);
+	if(requested_page != page)
+	{
+		redirect("/doc/?p=" + uri_encode(page));
+		return;
+	}
 	DocPage doc_page;
 	String page_title = doc_default_title(page);
 	if(page != "index")
@@ -314,10 +335,10 @@ RENDER(Request& context)
 			?><section class="capy-guide-index">
 				<h2>Learn Capy</h2>
 				<div class="capy-guide-grid"><?
-				for(auto file_name : ls("capy/").sort())
+				for(String target : doc_page_names())
 				{
-					String article = nibble(file_name, ".");
-					String target = "capy-" + article;
+					if(target.rfind("capy-", 0) != 0)
+						continue;
 					DocPage guide = load_doc_page(target);
 					?><div class="capy-guide-card"><? render_doc_page_link(target, first(guide.title, doc_default_title(target))); ?></div><?
 				}

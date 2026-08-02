@@ -1,0 +1,77 @@
+:title
+2. Source structure and syntax
+
+:content
+## Purpose
+
+Use this page to organize a Capy source file. A file contains top-level declarations. Function bodies contain executable expressions.
+
+## Minimal executable example
+
+:example capy render
+// A line comment ends at the next newline.
+function RENDER {
+    var greeting := "Hello"
+    print(greeting, ", Capy!\n")
+}
+
+:output
+Hello, Capy!
+
+## Output
+
+The program writes:
+
+```text
+Hello, Capy!
+```
+
+## Explanation
+
+A comment starts with `//`. It ends at the next newline.
+
+A function declaration has a name, optional parameters, an optional result type, and a block. The final reachable expression supplies a non-`void` function result.
+
+Names are case-sensitive. `greeting` and `Greeting` are different names. An identifier starts with a letter or underscore. Later characters can include decimal digits.
+
+Spaces, tabs, and newlines are whitespace. A newline does not end an expression. Commas separate items and call arguments. Use a semicolon only when adjacent expressions would otherwise be ambiguous.
+
+## Common variants
+
+Declare parameters and a result type when a function returns a value:
+
+```capy
+function add(left : s32, right : s32) s32 {
+    left + right
+}
+```
+
+Result: compiles.
+
+A named handler uses a colon. This declaration only previews handlers:
+
+```capy
+function COMPONENT:CARD(request : request) {
+    print("card")
+}
+```
+
+Result: compiles.
+
+## Edge cases
+
+Application code cannot declare host functions. Names that start with `__bearer_` are reserved. Public standard-library names are also reserved.
+
+A second declaration in one scope is an error. A nested block can shadow an outer name.
+
+Do not use a newline as a separator when the grammar needs a delimiter. Use commas for collection items and arguments.
+
+## Related reference
+
+Read the language specification for the complete source grammar. Read the handler reference before you add a request handler.
+
+:see
+capy-03-values-and-types
+capy-04-expressions-and-control-flow
+1_RENDER
+1_COMPONENT

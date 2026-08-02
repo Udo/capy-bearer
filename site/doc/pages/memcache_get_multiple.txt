@@ -22,7 +22,7 @@ if conn != 0u64 {
     memcache_set(conn, "doc_k1", "v1")
     memcache_set(conn, "doc_k2", "v2")
     var values := memcache_get_multiple(conn, dval(["doc_k1", "doc_k2"]))
-    print(dval_string(values["doc_k1"]), " / ", dval_string(values["doc_k2"]), "\n")
+    print(values["doc_k1"], " / ", values["doc_k2"], "\n")
 } else { print("(requires a reachable memcached server)\n") }
 
 :example cpp render

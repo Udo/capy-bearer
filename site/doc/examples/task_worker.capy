@@ -1,4 +1,4 @@
 function TASK:STORE(request : request) {
     var context := request_context(request)
-    file_put_contents("/tmp/bearer-doc-task.txt", dval_to_string(context["props"]["message"]))
+    file_put_contents("/tmp/bearer-doc-task.txt", string(context["props"]["message"]))
 }

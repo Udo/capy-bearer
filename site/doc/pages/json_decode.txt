@@ -15,13 +15,15 @@ json_encode
 :content
 In Capy, this function decodes JSON text into `dval` data.
 
-JSON objects become map-shaped values. JSON arrays become list-shaped values. JSON booleans become `bool` values. JSON strings become `string` values. JSON numbers become string values, so use a typed conversion to read them.
+JSON objects become map-shaped values. JSON arrays become list-shaped values. JSON booleans become bool values. JSON strings and numbers become string values.
 
-JSON `null` becomes an empty string value. Malformed JSON returns empty or partial data without an error. Use `dval` accessors to read the result.
+JSON `null` becomes `none` in Capy and C++. Use a constructor fallback when you read it as a scalar.
+
+Malformed JSON returns empty or partial data without an error. Use safe reads or constructors to read the result.
 
 :example capy render
 var data := json_decode("{\"name\": \"Ada\", \"tags\": [\"x\", \"y\"]}")
-print(dval_string(data["name"]), " has 2 tags\n")
+print(data.name, " has 2 tags\n")
 
 :example cpp render
 DValue data = json_decode("{\"name\": \"Ada\", \"tags\": [\"x\", \"y\"]}");

@@ -1,0 +1,69 @@
+:title
+1. Install and first program
+
+:content
+## Purpose
+
+Use this page to run one local Capy program. Capy source files use the `.capy` suffix.
+
+## Minimal executable example
+
+:example capy render
+function RENDER {
+    print("Hello, Capy!\n")
+}
+
+:output
+Hello, Capy!
+
+## Output
+
+The program writes:
+
+```text
+Hello, Capy!
+```
+
+## Explanation
+
+`RENDER` is the page handler. Bearer runs it for a normal request. `print` adds bytes to the response body.
+
+Install Bearer and start its local service. Keep the `scripts/bearer-cli` helper in the project checkout. The helper sends a local request to Bearer.
+
+Save the example as `site/hello.capy`. Run it from the project directory:
+
+```text
+scripts/bearer-cli /hello.capy
+```
+
+The command requests the unit through Bearer's local CLI socket. The source must be below Bearer's configured site directory.
+
+## Common variants
+
+Use `CLI` when a program exists only for local command use:
+
+```capy
+function CLI {
+    print("Hello, Capy!\n")
+}
+```
+
+Result: compiles.
+
+Use markup when a page must produce HTML. The markup guide explains escaped fields.
+
+## Edge cases
+
+A source file cannot contain executable expressions at the top level. Put executable code in a function or handler.
+
+A missing service or wrong socket path prevents the helper from reaching Bearer. Start the service first. Check the configured CLI socket path.
+
+## Related reference
+
+Read the `CLI` and `RENDER` handler pages for handler rules. Read the next page for source structure.
+
+:see
+1_CLI
+1_RENDER
+capy-02-source-structure-and-syntax
+capy-06-strings-and-markup

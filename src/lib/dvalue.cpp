@@ -191,6 +191,8 @@ void DValue::each(std::function <void (const DValue& t, String key)> f) const
 				f(it->second, it->first);
 			}
 			break;
+		case('N'):
+			break;
 		default:
 			f(*this, "");
 			break;
@@ -307,6 +309,11 @@ bool DValue::is_list() const
 	return(max_index == (s64)target._map.size() - 1);
 }
 
+bool DValue::is_none() const
+{
+	return(deref().type == 'N');
+}
+
 String DValue::to_string(String default_value) const
 {
 	const DValue& target = deref();
@@ -321,6 +328,8 @@ String DValue::to_string(String default_value) const
 		case('B'):
 			return(target._bool ? "(true)" : "(false)");
 		case('M'):
+			return(default_value);
+		case('N'):
 			return(default_value);
 		case('P'):
 			return(std::to_string((u64)target._ptr));
@@ -353,6 +362,8 @@ s64 DValue::to_s64(s64 default_value) const
 				return(item->to_s64(default_value));
 			return(default_value);
 		}
+		case('N'):
+			return(default_value);
 		case('P'):
 			return(dv_clamp_to_s64_range((long double)(u64)target._ptr));
 		case('R'):
@@ -384,6 +395,8 @@ u64 DValue::to_u64(u64 default_value) const
 				return(item->to_u64(default_value));
 			return(default_value);
 		}
+		case('N'):
+			return(default_value);
 		case('P'):
 			return((u64)target._ptr);
 		case('R'):
@@ -415,6 +428,8 @@ f64 DValue::to_f64(f64 default_value) const
 				return(item->to_f64(default_value));
 			return(default_value);
 		}
+		case('N'):
+			return(default_value);
 		case('P'):
 			return(dv_clamp_to_f64_range((long double)(u64)target._ptr));
 		case('R'):
@@ -453,6 +468,8 @@ bool DValue::to_bool(bool default_value) const
 				return(item->to_bool(default_value));
 			return(target._map.size() > 0);
 		}
+		case('N'):
+			return(default_value);
 		case('P'):
 			return(target._ptr != 0);
 		case('R'):
@@ -480,6 +497,7 @@ StringMap DValue::to_stringmap() const
 		case('P'):
 			result["value"] = target.to_string();
 			break;
+		case('N'):
 		case('R'):
 			break;
 	}
@@ -502,6 +520,9 @@ String DValue::to_json(char quote_char) const
 			break;
 		case('M'):
 			return("\"(array)\"");
+			break;
+		case('N'):
+			return("null");
 			break;
 		case('P'):
 			return("\"(pointer)\"");
@@ -529,6 +550,9 @@ String DValue::get_type_name() const
 			break;
 		case('M'):
 			return("array");
+			break;
+		case('N'):
+			return("none");
 			break;
 		case('P'):
 			return("pointer");
@@ -627,15 +651,32 @@ void DValue::set_type(char t)
 	if(type != t)
 	{
 		type = t;
-		switch(type)
-		{
-			case('M'):
-				_map.clear();
-				_array_index = 0;
-				_list_mode = false;
-				break;
-		}
+		_String.clear();
+		_float = 0;
+		_array_index = 0;
+		_bool = false;
+		_list_mode = false;
+		_ptr = 0;
+		_map.clear();
 	}
+}
+
+void DValue::set_none()
+{
+	DValue* target = reference_target();
+	if(target)
+	{
+		target->set_none();
+		return;
+	}
+	type = 'N';
+	_String.clear();
+	_float = 0;
+	_array_index = 0;
+	_bool = false;
+	_list_mode = false;
+	_ptr = 0;
+	_map.clear();
 }
 
 void DValue::set(String s)
@@ -726,6 +767,9 @@ void DValue::set(const DValue& source)
 			_ptr = source._ptr;
 			_list_mode = false;
 			break;
+		case('N'):
+			set_none();
+			break;
 	}
 }
 
@@ -761,6 +805,9 @@ void DValue::set(DValue&& source)
 		case('R'):
 			_ptr = source._ptr;
 			_list_mode = false;
+			break;
+		case('N'):
+			set_none();
 			break;
 	}
 }
@@ -1035,6 +1082,7 @@ char brb_node_type(const DValue& value)
 		case('S'):
 		case('F'):
 		case('B'):
+		case('N'):
 			return(target.type);
 		default:
 			// Raw pointers/references are not meaningful across the native/wasm
@@ -1059,6 +1107,8 @@ String brb_node_scalar(const DValue& value)
 		case('B'):
 			return(target._bool ? "1" : "0");
 		case('P'):
+			return("");
+		case('N'):
 			return("");
 		default:
 			return("");
@@ -1085,6 +1135,14 @@ bool brb_decode_scalar(char node_type, const String& scalar, DValue& out, String
 			out = value;
 			return(true);
 		}
+		case('N'):
+			if(scalar == "")
+			{
+				out.set_none();
+				return(true);
+			}
+			error = "invalid BRRB2 none scalar";
+			return(false);
 		case('B'):
 			if(scalar == "1" || scalar == "true" || scalar == "(true)")
 			{
@@ -1146,7 +1204,7 @@ bool brb_decode_node(const String& src, size_t& offset, DValue& out, String& err
 	}
 	u8 flags = (u8)src[offset++];
 	char node_type = src[offset++];
-	if(node_type != 'M' && node_type != 'S' && node_type != 'F' && node_type != 'B')
+	if(node_type != 'M' && node_type != 'S' && node_type != 'F' && node_type != 'B' && node_type != 'N')
 	{
 		error = "invalid BRRB2 node type tag";
 		return(false);
@@ -1175,6 +1233,11 @@ bool brb_decode_node(const String& src, size_t& offset, DValue& out, String& err
 	out.clear();
 	if(node_type != 'M')
 	{
+		if(node_type == 'N' && (scalar != "" || child_count != 0 || flags != 0))
+		{
+			error = "invalid BRRB2 none node";
+			return(false);
+		}
 		if(child_count != 0 || (flags & BRRB_FLAG_LIST) != 0)
 		{
 			error = "BRRB2 scalar node cannot have children or list flag";

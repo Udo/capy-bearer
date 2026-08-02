@@ -21,7 +21,7 @@ The `error` value can report `invalid_request`, `unsafe_dns`, `timeout`, `respon
 :example capy cli
 var request := dval({"method": "GET", "url": "http://127.0.0.1/doc/", "headers": {"Host": "uce.openfu.com"}, "timeout_ms": 2000})
 var response := http_request(request)
-print("HTTP ", dval_s32(response["status"]), ", ", length(dval_to_string(response["body"])), " bytes returned\n")
+print("HTTP ", s32(response["status"]), ", ", length(string(response["body"])), " bytes returned\n")
 
 :example cpp cli
 DValue req; req["method"] = "GET"; req["url"] = "http://127.0.0.1/doc/";
@@ -37,7 +37,7 @@ var client_secret := "example-secret"
 var code := "example-code"
 var token := dval({"method": "POST", "url": "https://github.com/login/oauth/access_token", "headers": {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}, "body": "client_id=" + uri_encode(client_id) + "&client_secret=" + uri_encode(client_secret) + "&code=" + uri_encode(code), "security": {"https_only": true, "public_dns_only": true, "pin_dns": true, "isolated_curl": true, "no_redirects": true}})
 var token_response := http_request(token)
-print("hardened token exchange composed; status=", dval_s32(token_response["status"]), " error=", dval_to_string(token_response["error"]), "\n")
+print("hardened token exchange composed; status=", s32(token_response["status"]), " error=", token_response["error"], "\n")
 
 :example cpp cli
 // GitHub token exchange: client_secret stays in stdin body, not argv.
@@ -55,7 +55,7 @@ print("hardened token exchange composed; status=", token_response["status"].to_u
 var issuer_host := "example.com"
 var metadata_request := dval({"method": "GET", "url": "https://" + issuer_host + "/.well-known/oauth-authorization-server", "headers": {"Accept": "application/json"}, "security": {"https_only": true, "public_dns_only": true, "pin_dns": true, "isolated_curl": true, "no_redirects": true}})
 var metadata := http_request(metadata_request)
-print("hardened metadata discovery composed; error=", dval_to_string(metadata["error"]), "\n")
+print("hardened metadata discovery composed; error=", metadata["error"], "\n")
 
 :example cpp cli
 // ATProto metadata discovery uses the same generic policy; no provider operation name.

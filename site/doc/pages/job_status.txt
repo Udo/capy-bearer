@@ -18,7 +18,7 @@ In Capy, pass the job ID as `dval`. In C++ `.uce`, pass the `u64` job ID shown a
 var spec := dval({"cmd": "printf x", "timeout_ms": 1000})
 var job := shell_spawn(spec)
 job_await(job, 3000)
-print("state: ", dval_to_string(job_status(job)["state"]), "\n")
+print("state: ", job_status(job)["state"], "\n")
 
 :example cpp render
 DValue spec; spec["cmd"] = "printf x"; spec["timeout_ms"] = (f64)1000;

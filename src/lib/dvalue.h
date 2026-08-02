@@ -62,6 +62,7 @@ struct DValue {
 	String back(String fallback = "") const;
 	bool is_array() const;
 	bool is_list() const;
+	bool is_none() const;
 	String to_string(String default_value = "") const;
 	s64 to_s64(s64 default_value = 0) const;
 	u64 to_u64(u64 default_value = 0) const;
@@ -77,6 +78,7 @@ struct DValue {
 	DValue& deref();
 	const DValue& deref() const;
 	void set_type(char t);
+	void set_none();
 	void set(String s);
 	void set(void* p);
 	void set(f64 f);

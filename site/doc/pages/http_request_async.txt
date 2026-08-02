@@ -20,7 +20,7 @@ The `security` map follows `http_request()` rules. Any recognized hardening fiel
 var request := dval({"method": "GET", "url": "http://127.0.0.1/doc/", "headers": {"Host": "bearer.openfu.com"}, "timeout_ms": 2000})
 var job := http_request_async(request)
 var done := job_await(dval(job), 3000)
-print("async HTTP ", dval_s32(dval_get_by_path(done, "result/status")), "\n")
+print("async HTTP ", s32(dval_get_by_path(done, "result/status")), "\n")
 
 :example cpp render
 DValue req; req["method"] = "GET"; req["url"] = "http://127.0.0.1/doc/";

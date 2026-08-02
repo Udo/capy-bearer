@@ -22,7 +22,7 @@ C++ cannot use a Capy `module` value. Use `unit_call()` with the `DValue*` API i
 
 :example capy cli
 var module := unit_load("examples/sample_unit.capy")
-var output := module.call("echo", dval("hello"))
+var output := module.call("echo", "hello")
 
 :example cpp cli
 DValue input; input = "hello";

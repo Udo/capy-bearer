@@ -14,7 +14,7 @@ function CLI {
         var listed := zip_list(archive)
         var extracted := zip_extract(archive, destination)
         var content := zip_read(archive, "hello.txt")
-        print(pwrite, "|", pread, "|", dval_string(kv["NAME"]), ":", dval_string(kv["ROLE"]), "|", unpacked, "|", created, dval_s32(listed["count"]), extracted, content == "Hello ZIP", file_get_contents(destination + "/nested/value.txt") == "42", "|", arc_live())
+        print(pwrite, "|", pread, "|", kv["NAME"], ":", kv["ROLE"], "|", unpacked, "|", created, s32(listed["count"]), extracted, content == "Hello ZIP", file_get_contents(destination + "/nested/value.txt") == "42", "|", arc_live())
         file_close(handle)
         file_unlink(path)
         file_unlink(archive)

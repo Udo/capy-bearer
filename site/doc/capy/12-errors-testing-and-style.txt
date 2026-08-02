@@ -1,0 +1,87 @@
+:title
+12. Errors, testing, and style
+
+:content
+## Purpose
+
+Use compiler diagnostics and focused tests to find faults before deployment. Use strict DValue reads only for required schema fields.
+
+## Minimal executable example
+
+:example capy render
+function RENDER {
+    var profile := {name: "Ada"}
+    var nickname := profile.nickname
+    print(string(nickname, "none"), "\n")
+}
+
+:output
+none
+
+## Output
+
+The page writes `none` and a newline.
+
+## Explanation
+
+Syntax, type, scope, overload, handler, and unsupported-operation faults are compiler diagnostics. Fix the first reported fault before you inspect later diagnostics.
+
+Invalid array indexes, failed checked conversions, allocation faults, explicit `trap`, and strict DValue reads are runtime traps. Bearer reports the source location for a trapping user expression. Function entries provide a fallback location.
+
+Safe DValue member and index reads return `none`. They do not mutate the DValue. Use `value?` and a constructor fallback for optional input.
+
+Use `dval_require(value, key)` or `dval_require(value, index)` when a schema requires a child. It traps for missing or unusable access. Do not use it for ordinary optional input.
+
+Source maps keep user source locations connected to generated artifacts. Standard-library implementation frames do not replace the user call location.
+
+Capy uses request-local ARC for managed values. Assignment, calls, returns, and block exits must release each owned temporary exactly once. Strong cycles remain until request teardown.
+
+The same source, compiler identity, ABI, and options produce deterministic compilation and artifact generation. A source or ABI change produces a new valid generation. Do not depend on stale generated output.
+
+Capy does not sandbox an application. Treat request data, session values, database text, files, commands, and remote content as untrusted at their boundaries. Keep markup escaped unless you explicitly trust it. Validate paths, command input, and external permissions.
+
+## Common variants
+
+Use a strict schema check when a required field is absent:
+
+```capy
+function RENDER {
+    var input := {name: "Ada"}
+    var name := string(dval_require(input, "name"))
+    print(name, "\n")
+}
+```
+
+Result: writes `Ada`. The same code traps when `name` is absent.
+
+Use a safe optional read when a field can be absent:
+
+```capy
+var nickname := string(profile.nickname, "guest")
+```
+
+Result: compiles. It uses `guest` when the read returns `none` or conversion fails.
+
+Test code through its real handler. Use `CLI` for local pure behavior. Use `RENDER` or `COMPONENT` for HTTP output. Test exports and components through their real unit boundaries. Check `arc_live()` at focused request exits when ownership changes.
+
+## Edge cases
+
+Include absent and malformed DValue input in each boundary test. Also test zero, negative, and wide integers, repeated requests, cancellation, timeouts, and untrusted markup.
+
+After a trap, the current request stops. Do not use a trap for normal control flow. The next request starts with a new request workspace.
+
+Keep functions small. Keep parsing and response changes near the handler. Use explicit types at boundaries and inference for obvious locals.
+
+Use strings for text, markup for HTML, structs for stable records, arrays for typed sequences, and DValues for dynamic boundary data. Use explicit constructors instead of conversion chains.
+
+## Related reference
+
+Read the DValue, handler, and source-language reference pages for complete rules.
+
+:see
+capy-09-web-handlers-and-requests
+capy-10-units-components-and-exports
+capy-11-tasks-and-jobs
+0_DValue
+2_DValue_has
+1_RENDER

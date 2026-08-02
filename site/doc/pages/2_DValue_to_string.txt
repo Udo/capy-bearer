@@ -8,22 +8,27 @@ return value : converted value or the fallback
 :see
 >types
 0_DValue
-2_DValue_get_by_path
+2_DValue_to_bool
+2_DValue_require
 
 :content
-`dval_to_string(value, fallback)` takes a `dval` and an optional string fallback. It returns stored text or converted f64 and boolean text. Boolean text is `(true)` or `(false)`.
+`string(value)` is Capy's string constructor for a `dval`. `string(value, fallback)` returns the fallback for `none` or a failed conversion.
 
-An empty string, a map, or an unsupported value returns the fallback. Use it for normal Capy reads.
+It returns stored text, f64 text, and boolean text. Capy boolean text is `true` or `false`.
+
+An empty string, a map, or an unsupported value returns the fallback. Ordinary `print(value.member)` uses `as string` and has the same conversion.
 
 ## C++ API
 
 `DValue::to_string()` also converts pointers. It returns the fallback for an unresolved reference or an unknown type.
 
+C++ `DValue::to_string()` returns `(true)` or `(false)` for boolean values. This differs from Capy boolean text.
+
 :example capy render
-var value := dval(true)
-print(dval_to_string(value), "\n")
+var user := dval({"active": true})
+print(user.active, "\n")
 
 :example cpp render
-DValue value;
-value.set_bool(true);
-print(value.to_string(), "\n");
+DValue user;
+user["active"].set_bool(true);
+print(user["active"].to_string(), "\n");

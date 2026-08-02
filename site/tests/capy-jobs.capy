@@ -40,13 +40,13 @@ function CLI {
     var cancel_status := "no-cancel"
     if cancelled && descendant_gone { cancel_status = "cancel" }
     var task_status_value := "bad-task"
-    if dval_to_string(cpp_status["id"]) == cpp_task && dval_to_string(cpp_done["state"]) == "succeeded" && dval_to_string(cpp_named_done["state"]) == "succeeded" && dval_to_string(capy_done["state"]) == "succeeded" && dval_to_string(capy_named_done["state"]) == "succeeded" && file_get_contents("/tmp/bearer-task-cpp.txt") == "capy-caller" && file_get_contents("/tmp/bearer-task-cpp-named.txt") == "capy-caller" && file_get_contents("/tmp/bearer-task-capy.txt") == "capy-caller" && file_get_contents("/tmp/bearer-task-capy-named.txt") == "capy-caller" { task_status_value = "tasks" }
-    if dval_to_string(task_cancelled["id"]) != cancel_task || (dval_to_string(cancel_done["state"]) != "canceled" && dval_to_string(cancel_done["state"]) != "succeeded") { task_status_value = "bad-cancel" }
+    if string(cpp_status["id"]) == cpp_task && string(cpp_done["state"]) == "succeeded" && string(cpp_named_done["state"]) == "succeeded" && string(capy_done["state"]) == "succeeded" && string(capy_named_done["state"]) == "succeeded" && file_get_contents("/tmp/bearer-task-cpp.txt") == "capy-caller" && file_get_contents("/tmp/bearer-task-cpp-named.txt") == "capy-caller" && file_get_contents("/tmp/bearer-task-capy.txt") == "capy-caller" && file_get_contents("/tmp/bearer-task-capy-named.txt") == "capy-caller" { task_status_value = "tasks" }
+    if string(task_cancelled["id"]) != cancel_task || (string(cancel_done["state"]) != "canceled" && string(cancel_done["state"]) != "succeeded") { task_status_value = "bad-cancel" }
     var cwd_status := "no-cwd"
     if process_start_directory() != "" { cwd_status = "cwd" }
     var server_status := "no-server"
     if server > 0 && stopped { server_status = "server" }
-    print(shell_status, "|", dval_to_string(dval_get_by_path(done, "result/stdout"), "missing"), "|", dval_to_string(dval_get_by_path(status, "state"), "missing"), "|", dval_to_string(dval_get_by_path(stored, "state"), "missing"), "|", dval_to_string(dval_get_by_path(failed, "state"), "missing"), "|", cancel_status, "|", dval_to_string(dval_get_by_path(cancelled_status, "state"), "missing"), "|", task_status_value, "|", cwd_status, "|", server_status, "|")
+    print(shell_status, "|", string(dval_get_by_path(done, "result/stdout"), "missing"), "|", string(dval_get_by_path(status, "state"), "missing"), "|", string(dval_get_by_path(stored, "state"), "missing"), "|", string(dval_get_by_path(failed, "state"), "missing"), "|", cancel_status, "|", string(dval_get_by_path(cancelled_status, "state"), "missing"), "|", task_status_value, "|", cwd_status, "|", server_status, "|")
     }
     print(arc_live())
 }

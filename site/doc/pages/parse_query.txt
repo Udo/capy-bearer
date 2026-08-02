@@ -25,7 +25,7 @@ Use this API for query text outside normal request parsing.
 
 :example capy render
 var query := parse_query("name=Ada&role=admin")
-print(dval_string(query["name"]), "\n")
+print(query["name"], "\n")
 
 :example cpp render
 StringMap q = parse_query("name=Ada&role=admin");

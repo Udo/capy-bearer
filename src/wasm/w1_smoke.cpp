@@ -249,6 +249,39 @@ static uint32_t read_u32(wasm_memory_t* memory, uint32_t ptr)
 	return((uint32_t)mem[ptr] | ((uint32_t)mem[ptr + 1] << 8) | ((uint32_t)mem[ptr + 2] << 16) | ((uint32_t)mem[ptr + 3] << 24));
 }
 
+static void append_varint(std::string& out, size_t value)
+{
+	do
+	{
+		uint8_t byte = value & 0x7f;
+		value >>= 7;
+		out.push_back((char)(byte | (value ? 0x80 : 0)));
+	}
+	while(value);
+}
+
+static std::string brrb_node(char type, const std::string& scalar = "", const std::vector<std::pair<std::string, std::string>>& children = {}, bool list = false)
+{
+	std::string out;
+	out.push_back(list ? 1 : 0);
+	out.push_back(type);
+	append_varint(out, scalar.size());
+	out += scalar;
+	append_varint(out, children.size());
+	for(const auto& child : children)
+	{
+		append_varint(out, child.first.size());
+		out += child.first;
+		out += child.second;
+	}
+	return(out);
+}
+
+static std::string brrb_document(const std::string& node)
+{
+	return(std::string("BRRB\x02", 5) + node);
+}
+
 int main(int argc, char** argv)
 {
 	const char* core_path = argc > 1 ? argv[1] : "/tmp/bearer/wasm-w1/core.wasm";
@@ -316,6 +349,11 @@ int main(int argc, char** argv)
 	CHECK(call_i32(core, "bearer_wasm_core_abi_version") == BEARER_WASM_CORE_ABI_VERSION, "unexpected ABI version");
 	CHECK(core.func("bearer_unit_load"), "core does not export bearer_unit_load");
 	CHECK(core.func("bearer_module_call_brrb"), "core does not export bearer_module_call_brrb");
+	CHECK(core.func("bearer_dv_none_brrb"), "core does not export bearer_dv_none_brrb");
+	CHECK(core.func("bearer_dv_read_brrb"), "core does not export bearer_dv_read_brrb");
+	CHECK(core.func("bearer_dv_is_none_brrb"), "core does not export bearer_dv_is_none_brrb");
+	CHECK(core.func("bearer_dv_require_brrb"), "core does not export bearer_dv_require_brrb");
+	CHECK(core.func("bearer_dv_set_path_brrb"), "core does not export bearer_dv_set_path_brrb");
 
 	wasm_memory_t* memory = core.memory();
 	int32_t root = call_i32(core, "bearer_dv_root");
@@ -386,6 +424,96 @@ int main(int argc, char** argv)
 	CHECK(merge_len > 0, "valid merge did not recover after request reset");
 	CHECK(call_i32(core, "bearer_dv_merge_brrb", { encoded_ptr, encoded_len, encoded_ptr, encoded_len, merge_ptr, merge_len }) == merge_len,
 		"valid merge copy did not recover after request reset");
+
+	auto put_brrb = [&](const std::string& bytes) {
+		int32_t ptr = call_i32(core, "bearer_alloc", { (int32_t)bytes.size() });
+		write_bytes(memory, ptr, bytes);
+		return(ptr);
+	};
+	auto copied_brrb = [&](const char* name, std::vector<int32_t> args) {
+		args.insert(args.end(), { 0, 0 });
+		int32_t len = call_i32(core, name, args);
+		CHECK(len >= 0, "%s sizing failed", name);
+		int32_t ptr = call_i32(core, "bearer_alloc", { len });
+		args[args.size() - 2] = ptr;
+		args.back() = len;
+		CHECK(call_i32(core, name, args) == len, "%s copy failed", name);
+		return(read_bytes(memory, ptr, len));
+	};
+	std::string none = copied_brrb("bearer_dv_none_brrb", {});
+	CHECK(none == brrb_document(brrb_node('N')), "none BRRB is not deterministic N");
+	int32_t none_ptr = put_brrb(none);
+	CHECK(call_i32(core, "bearer_dv_is_none_brrb", { none_ptr, (int32_t)none.size() }) == 1, "none presence test failed");
+	CHECK(call_i32(core, "bearer_dv_is_none_brrb", { encoded_ptr, encoded_len }) == 0, "map is none");
+	CHECK(call_i32(core, "bearer_dv_is_none_brrb", { bad_ptr, (int32_t)bad.size() }) == -1, "malformed none test did not fail");
+	CHECK(call_i32(core, "bearer_dv_extract_s32", { none_ptr, (int32_t)none.size(), 37 }) == 37, "none ignored extraction fallback");
+
+	std::string original = brrb_document(brrb_node('M'));
+	std::string path = brrb_document(brrb_node('M', "", {{ "0", brrb_node('S', "profile") }, { "1", brrb_node('S', "name") }}, true));
+	std::string replacement = brrb_document(brrb_node('S', "copied"));
+	std::string profile_selector = brrb_document(brrb_node('S', "profile"));
+	std::string negative_selector = brrb_document(brrb_node('F', "-1"));
+	std::string one_selector = brrb_document(brrb_node('F', "1"));
+	int32_t original_ptr = put_brrb(original);
+	int32_t path_ptr = put_brrb(path);
+	int32_t replacement_ptr = put_brrb(replacement);
+	int32_t extract_len = call_i32(core, "bearer_dv_extract_string", { replacement_ptr, (int32_t)replacement.size(), 0, 0, 0, 0 });
+	CHECK(extract_len == 6, "string extraction staging failed");
+	call_i32(core, "bearer_wasm_core_reset_request");
+	int32_t extract_ptr = call_i32(core, "bearer_alloc", { extract_len });
+	CHECK(call_i32(core, "bearer_dv_extract_string", { replacement_ptr, (int32_t)replacement.size(), 0, 0, extract_ptr, extract_len }) == 0,
+		"request reset leaked staged string extraction bytes");
+	CHECK(call_i32(core, "bearer_dv_extract_string", { replacement_ptr, (int32_t)replacement.size(), 0, 0, 0, 0 }) == extract_len,
+		"string extraction did not recover after request reset");
+	CHECK(call_i32(core, "bearer_dv_extract_string", { replacement_ptr, (int32_t)replacement.size(), 0, 0, extract_ptr, extract_len }) == extract_len &&
+		read_bytes(memory, extract_ptr, extract_len) == "copied", "string extraction copy failed after request reset");
+	int32_t profile_selector_ptr = put_brrb(profile_selector);
+	int32_t negative_selector_ptr = put_brrb(negative_selector);
+	int32_t one_selector_ptr = put_brrb(one_selector);
+	std::string updated = copied_brrb("bearer_dv_set_path_brrb", { original_ptr, (int32_t)original.size(), path_ptr, (int32_t)path.size(), replacement_ptr, (int32_t)replacement.size() });
+	int32_t updated_ptr = put_brrb(updated);
+	std::string profile = copied_brrb("bearer_dv_read_brrb", { updated_ptr, (int32_t)updated.size(), 0, put_brrb("profile"), 7, 0 });
+	int32_t profile_ptr = put_brrb(profile);
+	CHECK(copied_brrb("bearer_dv_read_brrb", { profile_ptr, (int32_t)profile.size(), 0, put_brrb("name"), 4, 0 }) == replacement, "path update did not write replacement");
+	CHECK(copied_brrb("bearer_dv_read_brrb", { original_ptr, (int32_t)original.size(), 0, put_brrb("profile"), 7, 0 }) == none, "path update mutated source value");
+	CHECK(call_i32(core, "bearer_dv_read_brrb", { bad_ptr, (int32_t)bad.size(), 0, 0, 0, 0, 0, 0 }) == -2, "malformed safe read did not fail");
+	CHECK(copied_brrb("bearer_dv_read_brrb", { replacement_ptr, (int32_t)replacement.size(), 0, put_brrb("x"), 1, 0 }) == none, "scalar safe read is not none");
+	CHECK(copied_brrb("bearer_dv_read_brrb", { updated_ptr, (int32_t)updated.size(), 1, 0, 0, -1 }) == none, "negative safe index is not none");
+	CHECK(copied_brrb("bearer_dv_require_brrb", { updated_ptr, (int32_t)updated.size(), profile_selector_ptr, (int32_t)profile_selector.size() }) == profile,
+		"strict read did not return the present child");
+	CHECK(call_i32(core, "bearer_dv_require_brrb", { bad_ptr, (int32_t)bad.size(), profile_selector_ptr, (int32_t)profile_selector.size(), 0, 0 }) == -1, "malformed strict read did not fail");
+	CHECK(call_i32(core, "bearer_dv_require_brrb", { replacement_ptr, (int32_t)replacement.size(), profile_selector_ptr, (int32_t)profile_selector.size(), 0, 0 }) == -1, "scalar strict read did not fail");
+
+	std::string list = brrb_document(brrb_node('M', "", {{ "0", brrb_node('S', "old") }}, true));
+	std::string index_zero = brrb_document(brrb_node('M', "", {{ "0", brrb_node('F', "0") }}, true));
+	int32_t list_ptr = put_brrb(list);
+	int32_t index_zero_ptr = put_brrb(index_zero);
+	std::string list_updated = copied_brrb("bearer_dv_set_path_brrb", { list_ptr, (int32_t)list.size(), index_zero_ptr, (int32_t)index_zero.size(), replacement_ptr, (int32_t)replacement.size() });
+	CHECK(copied_brrb("bearer_dv_read_brrb", { put_brrb(list_updated), (int32_t)list_updated.size(), 1, 0, 0, 0 }) == replacement, "list update failed");
+	for(const std::string& invalid : { brrb_node('B', "true"), brrb_node('N'), brrb_node('M'), brrb_node('F', "1.5"), brrb_node('F', "2147483648") })
+	{
+		std::string invalid_path = brrb_document(brrb_node('M', "", {{ "0", invalid }}, true));
+		CHECK(call_i32(core, "bearer_dv_set_path_brrb", { original_ptr, (int32_t)original.size(), put_brrb(invalid_path), (int32_t)invalid_path.size(), replacement_ptr, (int32_t)replacement.size(), 0, 0 }) == -1,
+			"invalid path segment was accepted");
+	}
+	std::string out_of_range = brrb_document(brrb_node('M', "", {{ "0", brrb_node('F', "1") }}, true));
+	CHECK(call_i32(core, "bearer_dv_set_path_brrb", { list_ptr, (int32_t)list.size(), put_brrb(out_of_range), (int32_t)out_of_range.size(), replacement_ptr, (int32_t)replacement.size(), 0, 0 }) == -1,
+		"sparse list write was accepted");
+	std::vector<std::pair<std::string, std::string>> deep_segments;
+	for(int i = 0; i < 60; ++i) deep_segments.push_back({ std::to_string(i), brrb_node('S', "k") });
+	std::string deep_path = brrb_document(brrb_node('M', "", deep_segments, true));
+	std::string deep = copied_brrb("bearer_dv_set_path_brrb", { original_ptr, (int32_t)original.size(), put_brrb(deep_path), (int32_t)deep_path.size(), replacement_ptr, (int32_t)replacement.size() });
+	CHECK(call_i32(core, "bearer_dv_decode", { put_brrb(deep), (int32_t)deep.size() }) != 0, "bounded deep path did not decode");
+	CHECK(call_i32(core, "bearer_dv_require_brrb", { list_ptr, (int32_t)list.size(), negative_selector_ptr, (int32_t)negative_selector.size(), 0, 0 }) == -1,
+		"negative strict index did not fail");
+	CHECK(call_i32(core, "bearer_dv_require_brrb", { list_ptr, (int32_t)list.size(), one_selector_ptr, (int32_t)one_selector.size(), 0, 0 }) == -1,
+		"out-of-range strict index did not fail");
+	CHECK(call_i32(core, "bearer_dv_set_path_brrb", { bad_ptr, (int32_t)bad.size(), path_ptr, (int32_t)path.size(), replacement_ptr, (int32_t)replacement.size(), 0, 0 }) == -1,
+		"malformed path root did not fail");
+	CHECK(call_i32(core, "bearer_dv_set_path_brrb", { original_ptr, (int32_t)original.size(), bad_ptr, (int32_t)bad.size(), replacement_ptr, (int32_t)replacement.size(), 0, 0 }) == -1,
+		"malformed path selector did not fail");
+	CHECK(call_i32(core, "bearer_dv_set_path_brrb", { original_ptr, (int32_t)original.size(), path_ptr, (int32_t)path.size(), bad_ptr, (int32_t)bad.size(), 0, 0 }) == -1,
+		"malformed path replacement did not fail");
 
 	std::string out = "W1 output";
 	int32_t out_ptr = call_i32(core, "bearer_alloc", { (int32_t)out.size() });

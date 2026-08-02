@@ -16,6 +16,8 @@ String literals use double quotes. The lexer accepts the documented byte escapes
 
 Integer literals have type `s32` by default. The suffixes `s64` and `u64` select the wide integer types. A decimal point or exponent selects `f64`. The compiler rejects literals outside the selected type range.
 
+`none` is a reserved literal. It has type `dval`.
+
 The directives `#compile`, `#callsite`, and `emit` are reserved. They are not part of executable Capy.
 
 ## 2. Program structure
@@ -96,7 +98,7 @@ A declaration in an `if` or `while` condition occurs in the surrounding function
 
 From highest precedence to lowest, Capy parses:
 
-1. calls, indexing, member access, and `::` lookup;
+1. calls, indexing, member access, postfix `?`, and `::` lookup;
 2. prefix `!`, prefix `-`, and spread `...`;
 3. `*`, `/`, `%`;
 4. `+`, `-`;
@@ -112,7 +114,15 @@ Assignment and declaration associate right-to-left. Other binary operators assoc
 
 Capy evaluates call arguments, spread sources, collection items, constructor arguments, and markup fields once from left to right. `&&` and `||` evaluate the right side only when needed.
 
-Arithmetic and comparisons require equal operand types. Boolean operators require `bool`. A condition for `if` or `while` must have type `bool`. Integer division by zero traps. Checked indexing and failed checked conversions trap at their source expression.
+Arithmetic and comparisons require equal operand types. Boolean operators require `bool`. A condition for `if` or `while` must have type `bool`. Integer division by zero traps. Typed-array bounds checks and failed checked conversions trap at their source expression.
+
+Postfix `?` requires `dval` and returns `bool`. It binds after a member or index read. It returns `false` only for `none`.
+
+```capy
+profile.nickname?       // false when nickname is missing
+profile.tags[3]?        // false when item 3 is absent
+none?                   // false
+```
 
 The range `start..end` is a half-open `s32` range. It contains values from `start` up to but not including `end`.
 
@@ -154,22 +164,44 @@ function add(left : s32, right : s32) s32 {
 }
 ```
 
-A missing result type means `void`. A final `...values : Type` parameter is variadic and receives `[Type]`. It must be last. Prefix `...` spreads an array into a variadic tail. A tuple or struct can spread into statically known fixed parameters.
+A missing result type means `void`. A trailing parameter can have a literal default of its exact annotated type. Defaults are valid only on ordinary named, non-generic, non-variadic functions. A final `...values : Type` parameter is variadic and receives `[Type]`. It must be last. Prefix `...` spreads an array into a variadic tail. A tuple or struct can spread into statically known fixed parameters.
 
-Overload identity is the function name plus canonical parameter types and the variadic contract. Return types do not distinguish overloads. Transparent aliases do not distinguish overloads.
+A direct named call can omit only trailing default parameters. The call evaluates supplied arguments once from left to right. It then evaluates omitted defaults in parameter order. A function value has its full parameter arity. Defaults do not shorten its function type. Hosts, handlers, lambdas, and function types cannot declare defaults.
 
-Resolution order is:
+```capy
+function label(text : string, suffix : string = "!") string { text + suffix }
+label("Capy") // "Capy!"
+```
+
+Overload identity is the function name plus canonical parameter types and the variadic contract. Defaults and return types do not distinguish overloads. Transparent aliases do not distinguish overloads.
+
+The compiler ranks matching calls in this order:
 
 1. exact concrete parameters;
 2. an `any` specialization without construction;
 3. fixed parameters with declared construction;
 4. variadic parameters.
 
-Within a coercive rank, fewer constructor calls win. Within a variadic rank, a longer fixed prefix wins. Equal best candidates are ambiguous. The compiler does not backtrack after a selected generic specialization fails.
+The compiler uses defaults only after it matches the supplied parameters. Fewer constructor calls win within a coercive rank. A longer fixed prefix wins within a variadic rank. Equal best candidates are ambiguous. The compiler does not backtrack after a selected generic specialization fails.
 
-A parameter `name : as Type` accepts either `Type` or one inserted `Type(argument)` call. It never inserts a conversion chain.
+A parameter `name : as Type` accepts either `Type` or one inserted `Type(argument)` call. It never inserts a conversion chain. For example, `print(profile.nickname)` inserts `string(profile.nickname)`. Do not write a redundant `string(...)` call for an `as string` parameter.
 
-A type name is a constructor overload set. Built-in constructors convert scalar types and format scalars as strings. A struct receives a generated constructor in field order. User functions can add constructor overloads, but cannot duplicate a built-in conversion or generated field constructor.
+A type name is a constructor overload set. Built-in constructors convert scalar types and format scalars as strings. DValue scalar constructors have these overloads:
+
+```capy
+string(value : dval, fallback : string = "")
+bool(value : dval, fallback : bool = false)
+s32(value : dval, fallback : s32 = 0)
+s64(value : dval, fallback : s64 = 0s64)
+u64(value : dval, fallback : u64 = 0u64)
+f64(value : dval, fallback : f64 = 0.0)
+```
+
+Each constructor uses its stated default when its argument is `none` or conversion fails. An explicit second argument replaces that default. Empty strings also use the fallback. Wrong tags, overflow, and nonfinite numeric input use the fallback. `s64` and `u64` preserve exact in-range wide integer values. A constructor does not change a DValue read into a strict read.
+
+A struct receives a generated constructor in field order. User functions can add constructor overloads. They cannot duplicate a built-in conversion or generated field constructor.
+
+Constructor defaults and omitted call arguments do not change the Wasm call ABI. Copied DValue `none` uses Wasm core ABI 26. Future ABI changes must use a new ABI version.
 
 `any` is compile-time polymorphism. It has no runtime representation. In a generic function, `parameter::type` names the concrete static type bound to that `any` parameter.
 
@@ -194,11 +226,27 @@ Tuples, structs, and closure environments support `s32`, `s64`, `u64`, `f64`, an
 
 A map literal creates a copied `dval`. Use `{:}` for an empty DValue map. `{}` remains an empty block. The `dval({...})` compatibility spelling has the same result.
 
-A list passed to `dval(...)` creates a dynamic DValue list. A bare list remains a typed copy-on-write array.
+`dval(...)` accepts `string`, `s32`, `s64`, `u64`, `f64`, `bool`, an existing DValue, or a list. It preserves in-range `s64` and `u64` values exactly. A list passed to `dval(...)` creates a dynamic DValue list. A bare list remains a typed copy-on-write array.
 
-DValue indexing is strict and traps on an invalid key, index, or container. For an identifier key, `value.name` is equivalent to `value["name"]` when `value` has static type `dval`. Use bracket indexing for dynamic, numeric, or non-identifier keys. A member followed by `()` remains a receiver-first method call.
+`none` is a DValue value. It differs from an empty string, `false`, an empty map, and an empty DValue list. A copied `none` remains `none` in BRRB. JSON and YAML encode it as `null`. JSON `null`, YAML `null`, and YAML `~` decode as `none`. XML encodes it as empty text. XML decode cannot recover the distinction.
 
-Use `dval_has` for a non-trapping key check. Selected standard-library value parameters use `as dval`. They can insert one DValue construction from `string`, `s32`, `u64`, `f64`, or `bool`. Parameters that require a specific map, list, or opaque DValue shape remain exact.
+DValue member and index reads are safe. A missing key, unusable scalar intermediate, negative list index, and out-of-range list index return `none`. Reads do not mutate the receiver. For an identifier key, `value.name` is equivalent to `value["name"]` when `value` has static type `dval`. Use bracket indexing for dynamic, numeric, or non-identifier keys. A member followed by `()` remains a receiver-first method call.
+
+`dval_has(value, key)` tests map-key existence. It returns `true` when the child is `none`. `dval_require(value, key)` and `dval_require(value, index)` are strict reads. They trap for a missing child or unusable access.
+
+Nested DValue assignment requires a declared local `dval` root. Parameters, captures, loop items, fields, indexes, calls, and temporary values cannot be roots. The compiler evaluates selectors once from left to right. It then evaluates the right side once. It updates one copied path and replaces the local root.
+
+Missing, `none`, and scalar intermediate values become maps. Existing maps remain maps. Existing lists accept only in-range, nonnegative numeric selectors. A missing intermediate before a numeric selector becomes a map with its decimal key. Negative and out-of-range existing-list writes trap. Capy does not create sparse lists.
+
+```capy
+var profile := {:}
+profile.contact.email = "ada@example.test"
+print(profile.contact.email) // ada@example.test
+```
+
+DValue updates have copy-on-write value semantics. ARC retains and releases each owned path value exactly once. Diagnostics identify the nested assignment expression.
+
+Selected standard-library value parameters use `as dval`. They can insert one DValue construction from `string`, `s32`, `s64`, `u64`, `f64`, or `bool`. Parameters that require a specific map, list, or opaque DValue shape remain exact. Typed arrays remain strict. They are distinct from DValue lists.
 
 ## 10. Strings, markup, and ownership
 
@@ -241,7 +289,7 @@ Capy and C++ units share no language object layout. DValues cross as copied BRRB
 
 ## 13. Errors, traps, and source locations
 
-Syntax, type, overload, alias-cycle, scope, and unsupported-operation failures are compile errors. Checked conversion, allocation, bounds, DValue, and explicit `trap` failures are runtime traps.
+Syntax, type, overload, alias-cycle, scope, and unsupported-operation failures are compile errors. Checked conversion, allocation, typed-array bounds, strict DValue access, invalid DValue list writes, and explicit `trap` failures are runtime traps.
 
 The compiler emits source locations for function entries and trapping expressions. Standard-library implementation frames do not replace the user call location. Compilation and artifact generation are deterministic for the same source, compiler identity, ABI, and options.
 

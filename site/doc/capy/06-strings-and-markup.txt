@@ -1,0 +1,57 @@
+:title
+6. Strings and markup
+
+:content
+## Purpose
+
+Use strings for byte text. Use markup to create HTML with escaped data and explicit trusted content.
+
+## Minimal executable example
+
+:example capy render
+function RENDER {
+    var source := "<Ada & Co>"
+    var copy := clone(source)
+    var title := "Report " + string(7)
+    var icon := trusted_markup("<strong>ok</strong>")
+
+    print(<><p><?= title ?>: <?= copy ?></p><p><?: icon ?></p></>, "\n")
+}
+
+:output
+<p>Report 7: &lt;Ada &amp; Co&gt;</p><p><strong>ok</strong></p>
+
+## Output
+
+The program writes the HTML shown above and a final newline.
+
+## Explanation
+
+A `string` stores bytes. Use double quotes for string literals. Use `\n`, `\r`, `\t`, `\"`, and `\\` for supported byte escapes.
+
+Use `+` to join strings. Use a type constructor when concatenation needs a scalar as text. A parameter declared `as string`, such as `print`, performs that one conversion itself.
+
+`clone` creates an independent string value when a program needs one. Most code does not need it. Strings use automatic reference counting. Assignment, calls, returns, and block cleanup retain and release the required references.
+
+A markup expression starts with `<>` and ends with `</>`. `<?= expression ?>` escapes a string before it enters HTML. It also formats scalar values as text.
+
+`<?: expression ?>` inserts existing `markup` without escaping it again. `trusted_markup` converts a string at the trust boundary. Pass only reviewed fixed HTML to it. Keep request input, database text, and remote text as strings.
+
+## Common variants
+
+Use `length` for a byte count. Use `substr`, `find`, `contains`, `replace`, `lower`, `upper`, `split`, and `join` for text work. Print markup directly when a handler must add it to the response.
+
+Use `\<>` or `\</>` inside literal markup when the delimiter text must appear in the output.
+
+## Edge cases
+
+String offsets count bytes, not Unicode characters. A normal string does not become trusted markup by assignment or concatenation. ARC does not release a strong ownership cycle before request teardown.
+
+## Related reference
+
+`html_escape`, `trusted_markup`, `capy-05-functions-and-closures`, `capy-09-web-handlers-and-requests`
+
+:see
+html_escape
+capy-05-functions-and-closures
+capy-09-web-handlers-and-requests

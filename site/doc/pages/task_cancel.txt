@@ -19,10 +19,10 @@ A queued task becomes `canceled`. A running task can finish before cancellation 
 Capy task IDs are `string` values, and task status is a `dval` value. C++ `.uce` uses `String` and `DValue`, as the signature shows.
 
 :example capy render
-var id := task("/doc/examples/task_worker.capy:STORE", dval({"message": "cancel"}))
+var id := task("/doc/examples/task_worker.capy:STORE", {"message": "cancel"})
 var status := task_cancel(id)
 var result := "missing"
-if dval_to_string(status["id"]) == id { result = "requested" }
+if string(status["id"]) == id { result = "requested" }
 print(result, "\n")
 
 :example cpp render

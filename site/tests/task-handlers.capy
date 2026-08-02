@@ -1,13 +1,21 @@
 function TASK(request : request) {
-    file_put_contents("/tmp/bearer-task-capy.txt", dval_to_string(dval_get_by_path(request_context(request), "props/nested/value"), ""))
+    file_put_contents("/tmp/bearer-task-capy.txt", string(dval_get_by_path(request_context(request), "props/nested/value"), ""))
 }
 
 function TASK:CAPY(request : request) {
-    file_put_contents("/tmp/bearer-task-capy-named.txt", dval_to_string(dval_get_by_path(request_context(request), "props/nested/value"), ""))
+    file_put_contents("/tmp/bearer-task-capy-named.txt", string(dval_get_by_path(request_context(request), "props/nested/value"), ""))
 }
 
 function TASK:SCALAR(request : request) {
-    file_put_contents("/tmp/bearer-task-capy.txt", dval_string(request_context(request).props))
+    file_put_contents("/tmp/bearer-task-capy.txt", string(request_context(request).props))
+}
+
+function TASK:NONE(request : request) {
+    if request_context(request).props? {
+        file_put_contents("/tmp/bearer-task-capy.txt", "present")
+    } else {
+        file_put_contents("/tmp/bearer-task-capy.txt", "none")
+    }
 }
 
 function TASK:SLOW(request : request) {

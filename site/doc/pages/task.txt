@@ -22,7 +22,7 @@ The call can fail when the queue cannot accept the task. A task can later have a
 Capy handlers use `function TASK(request : request)` or `function TASK:NAME(request : request)`. The C++ `.uce` forms are `TASK(Request& context)` and `TASK:NAME(Request& context)`.
 
 :example capy render
-var id := task("/doc/examples/task_worker.capy:STORE", dval({"message": "hello"}))
+var id := task("/doc/examples/task_worker.capy:STORE", {"message": "hello"})
 var result := "failed"
 if length(id) == 64 { result = "queued" }
 print(result, "\n")

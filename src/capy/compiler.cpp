@@ -238,7 +238,7 @@ bool is_scalar(const std::string& type)
 bool can_convert(const std::string& source, const std::string& target)
 {
 	return source == target || (is_scalar(source) && is_scalar(target)) || (is_scalar(source) && target == "string") ||
-		(source == "markup" && target == "string");
+		(source == "markup" && target == "string") || (source == "dval" && (is_scalar(target) || target == "string"));
 }
 
 bool primitive_constructor_name(const std::string& name)
@@ -457,11 +457,23 @@ std::string literal_type(const Expr* expression)
 	return "";
 }
 
+std::unique_ptr<Expr> callsite_default_literal(const Expr* value, const Location& location)
+{
+	if (auto literal = dynamic_cast<const Integer*>(value)) return std::make_unique<Integer>(location, literal->value);
+	if (auto literal = dynamic_cast<const SignedInteger*>(value)) return std::make_unique<SignedInteger>(location, literal->value);
+	if (auto literal = dynamic_cast<const UnsignedInteger*>(value)) return std::make_unique<UnsignedInteger>(location, literal->value);
+	if (auto literal = dynamic_cast<const Float*>(value)) return std::make_unique<Float>(location, literal->value);
+	if (auto literal = dynamic_cast<const String*>(value)) return std::make_unique<String>(location, literal->value);
+	if (auto literal = dynamic_cast<const Name*>(value); literal && (literal->value == "true" || literal->value == "false")) return std::make_unique<Name>(location, literal->value);
+	throw std::runtime_error("default parameter is not a literal");
+}
+
 struct Definition
 {
 	Function* function = nullptr;
 	std::vector<std::string> parameters;
 	std::vector<bool> convert;
+	std::vector<Expr*> default_values;
 	bool variadic = false;
 	std::string variadic_element;
 	bool variadic_convert = false;
@@ -559,6 +571,7 @@ struct FunctionLowerer
 	std::vector<std::unordered_map<std::string, std::pair<unsigned, std::string>>> scopes_;
 	std::vector<std::vector<std::pair<unsigned, std::string>>> owned_scopes_;
 	std::set<unsigned> borrowed_managed_slots_;
+	std::set<unsigned> owned_local_dval_slots_;
 	std::vector<unsigned> owned_array_parameters_;
 	unsigned local_count_ = 0;
 	std::vector<std::string> local_types_;
@@ -586,7 +599,8 @@ struct FunctionLowerer
 	Bytes markup_write_bytes(unsigned cursor, std::string_view text);
 	std::pair<Bytes, std::string> dval_value(Expr* value);
 	std::pair<Bytes, std::string> dval_lookup(Expr* value, Expr* key, bool require_present);
-	std::pair<Bytes, std::string> dval_scalar(Call* call, const std::string& result);
+	std::pair<Bytes, std::string> dval_presence(Expr* value);
+	std::pair<Bytes, std::string> dval_set_path(unsigned root, const std::vector<Expr*>& selectors, Expr* replacement, const Location& location);
 	std::pair<Bytes, std::string> array_method(Call* call, const Member* member);
 	Bytes array_ensure_unique(unsigned slot, const std::string& array_type, unsigned required, const Location& location);
 	std::pair<Bytes, unsigned> allocate_blob(const std::string& type, unsigned type_id, unsigned length, const Location& location);
@@ -663,7 +677,7 @@ struct Module
 	{
 		auto found = imports_.find(name);
 		if (found == imports_.end())
-			throw std::runtime_error("missing native Capy import " + name);
+			throw std::runtime_error("missing native Capy import " + name + " while compiling " + source_);
 		return found->second;
 	}
 	unsigned helper_index(const std::string& name) const
@@ -827,7 +841,7 @@ struct Module
 		if (can_convert(source, target))
 			return true;
 		const std::string name = target.rfind("struct:", 0) == 0 ? target.substr(7) : target;
-		if (target == "dval" && (source == "string" || source == "s32" || source == "u64" || source == "f64" || source == "bool" || source == "dval"))
+		if (target == "dval" && (source == "string" || source == "s32" || source == "s64" || source == "u64" || source == "f64" || source == "bool" || source == "dval"))
 			return true;
 		if (target.rfind("struct:", 0) == 0)
 		{
@@ -837,6 +851,8 @@ struct Module
 		}
 		if (const Definition* exact = exact_definition(name, {source}))
 			return exact->result == target;
+		if (const Definition* defaulted = default_definition(name, {source}, {}))
+			return defaulted->result == target;
 		if (auto found = generics_.find(name); found != generics_.end())
 			for (const GenericDefinition& generic : found->second)
 				if (generic.patterns.size() == 1 && (generic.patterns[0] == "any" || generic.patterns[0] == source))
@@ -888,6 +904,36 @@ struct Module
 				rendered += (i ? ", " : "") + types[i];
 			throw Error(location, "ambiguous converted overload " + name + "(" + rendered + ")");
 		}
+		return selected;
+	}
+	const Definition* default_definition(const std::string& name, const std::vector<std::string>& types, const Location& location) const
+	{
+		const Definition* selected = nullptr;
+		unsigned best_conversions = std::numeric_limits<unsigned>::max();
+		bool ambiguous = false;
+		for (const Definition& definition : definitions_)
+		{
+			if (!definition.function || definition.function->name != name || definition.variadic || types.size() >= definition.parameters.size() ||
+				definition.default_values.size() != definition.parameters.size())
+				continue;
+			unsigned conversions = 0;
+			bool matches = true;
+			for (std::size_t i = 0; i < types.size(); ++i)
+				if (types[i] != definition.parameters[i])
+				{
+					if (i >= definition.convert.size() || !definition.convert[i] || !constructor_available(types[i], definition.parameters[i])) { matches = false; break; }
+					++conversions;
+				}
+			for (std::size_t i = types.size(); matches && i < definition.parameters.size(); ++i)
+				if (!definition.default_values[i]) matches = false;
+			if (!matches)
+				continue;
+			if (!selected || conversions < best_conversions) { selected = &definition; best_conversions = conversions; ambiguous = false; }
+			else if (conversions == best_conversions)
+				ambiguous = true;
+		}
+		if (ambiguous)
+			throw Error(location, "ambiguous default overload " + name);
 		return selected;
 	}
 	const Definition* variadic_definition(const std::string& name, const std::vector<std::string>& types, const Location& location) const
@@ -979,6 +1025,8 @@ struct Module
 			return converted->result;
 		if (const Definition* variadic = variadic_definition(name, types, location))
 			return variadic->result;
+		if (const Definition* defaulted = default_definition(name, types, location))
+			return defaulted->result;
 		return std::nullopt;
 	}
 	Definition* compatible_definition(const std::string& name, const std::vector<std::string>& types, const Location& location)
@@ -1021,7 +1069,9 @@ struct Module
 		{
 			if (const Definition* converted = converted_definition(name, types, location))
 				return const_cast<Definition*>(converted);
-			return const_cast<Definition*>(variadic_definition(name, types, location));
+			if (const Definition* variadic = variadic_definition(name, types, location))
+				return const_cast<Definition*>(variadic);
+			return const_cast<Definition*>(default_definition(name, types, location));
 		}
 		if (candidates.size() != 1)
 			throw Error(location, "ambiguous generic overload " + name + "(" + rendered + ")");
@@ -1158,6 +1208,8 @@ std::string Module::value_type(const Expr* expression, bool allow_void)
 		std::string element;
 		for (const auto& parameter : function->parameters)
 		{
+			if (parameter.default_value)
+				throw Error(parameter.default_value->location, "function types cannot use default parameters");
 			std::string type = value_type(parameter.type_expr);
 			if (parameter.convert && !parameter.variadic)
 				throw Error(parameter.type_expr->location, "only variadic function-type parameters may request conversion");
@@ -1281,6 +1333,8 @@ bool FunctionLowerer::expression_is_owned(const Expr* value)
 		return true;
 	if (auto lambda = dynamic_cast<const Lambda*>(value))
 		return !std::get<4>(register_lambda(const_cast<Lambda*>(lambda))).empty();
+	if (auto name = dynamic_cast<const Name*>(value); name && name->value == "none")
+		return true;
 	if (dynamic_cast<const ArrayLiteral*>(value) || dynamic_cast<const MapLiteral*>(value) || dynamic_cast<const TupleExpr*>(value) ||
 		dynamic_cast<const Markup*>(value))
 		return true;
@@ -1455,6 +1509,8 @@ std::tuple<std::string, unsigned, unsigned, Definition*, std::vector<std::pair<s
 	std::string variadic_element;
 	for (const auto& parameter : lambda->parameters)
 	{
+		if (parameter.default_value)
+			throw Error(parameter.default_value->location, "anonymous functions cannot use default parameters");
 		if (parameter.convert && !parameter.variadic)
 			throw Error(parameter.type_expr->location, "only variadic anonymous-function parameters may request conversion");
 		std::string type = module_.value_type(parameter.type_expr);
@@ -1621,6 +1677,8 @@ std::string FunctionLowerer::infer(Expr* value)
 		for (auto scope = scopes_.rbegin(); scope != scopes_.rend(); ++scope)
 			if (auto found = scope->find(name->value); found != scope->end())
 				return found->second.second;
+		if (name->value == "none")
+			return "dval";
 		return module_.reference_function(name->value, name->location).first;
 	}
 	if (auto tuple = dynamic_cast<TupleExpr*>(value))
@@ -1836,7 +1894,7 @@ std::string FunctionLowerer::infer(Expr* value)
 			if (dynamic_cast<MapLiteral*>(call->arguments[0]) || dynamic_cast<ArrayLiteral*>(call->arguments[0]))
 				return "dval";
 			const std::string argument = infer(call->arguments[0]);
-			if (argument != "string" && argument != "s32" && argument != "u64" && argument != "f64" && argument != "bool" && argument != "dval")
+			if (argument != "string" && argument != "s32" && argument != "s64" && argument != "u64" && argument != "f64" && argument != "bool" && argument != "dval")
 				throw Error(call->arguments[0]->location, "cannot construct dval from " + argument);
 			return "dval";
 		}
@@ -1872,10 +1930,6 @@ std::string FunctionLowerer::infer(Expr* value)
 			return infer(call->arguments.at(0));
 		if (name->value == "length" || name->value == "arc_live") return "s32";
 		if (name->value == "dval_has") return "bool";
-		if (name->value == "dval_string") return "string";
-		if (name->value == "dval_s32") return "s32";
-		if (name->value == "dval_f64") return "f64";
-		if (name->value == "dval_bool") return "bool";
 		if (name->value == "trusted_markup") return "markup";
 		if (name->value == "trap")
 			return "void";
@@ -1885,6 +1939,12 @@ std::string FunctionLowerer::infer(Expr* value)
 	}
 	if (auto binary = dynamic_cast<Binary*>(value))
 	{
+		if (binary->operator_ == "postfix?")
+		{
+			if (infer(binary->left) != "dval")
+				throw Error(binary->location, "postfix '?' requires dval");
+			return "bool";
+		}
 		if (binary->operator_ == "..")
 			return "range";
 		if (binary->operator_ == "=" || binary->operator_ == ":=")
@@ -2230,7 +2290,7 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_lookup(Expr* value, Expr* ke
 			code.insert(code.end(), {0x41, 0x00, 0x41, 0x00});
 		}
 		code.push_back(0x10);
-		wasm::append_uleb(code, module_.import_index("bearer_dv_get_brrb"));
+		wasm::append_uleb(code, module_.import_index(require_present ? "bearer_dv_read_brrb" : "bearer_dv_get_brrb"));
 	};
 	append_call(false, 0);
 	code.push_back(0x21);
@@ -2260,17 +2320,21 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_lookup(Expr* value, Expr* ke
 		wasm::append_uleb(code, result);
 		return {code, "bool"};
 	}
-	code.push_back(0x20);
-	wasm::append_uleb(code, length);
+	code.push_back(0x20); wasm::append_uleb(code, length);
 	code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40});
-	append(code, module_.marker(key->location));
-	code.insert(code.end(), {0x00, 0x0b});
+	if (expression_is_owned(key)) { code.push_back(0x20); wasm::append_uleb(code, key_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+	if (expression_is_owned(value)) { code.push_back(0x20); wasm::append_uleb(code, object); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+	append(code, module_.marker(key->location)); code.insert(code.end(), {0x00, 0x0b});
 	auto [allocation, pointer] = allocate_blob("dval", 4, length, key->location);
 	append(code, allocation);
 	append_call(true, pointer);
 	code.push_back(0x20);
 	wasm::append_uleb(code, length);
-	code.insert(code.end(), {0x47, 0x04, 0x40, 0x00, 0x0b});
+	code.insert(code.end(), {0x47, 0x04, 0x40});
+	code.push_back(0x20); wasm::append_uleb(code, pointer); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+	if (expression_is_owned(key)) { code.push_back(0x20); wasm::append_uleb(code, key_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+	if (expression_is_owned(value)) { code.push_back(0x20); wasm::append_uleb(code, object); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+	append(code, module_.marker(key->location)); code.insert(code.end(), {0x00, 0x0b});
 	if (expression_is_owned(key))
 	{
 		code.push_back(0x20);
@@ -2290,102 +2354,129 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_lookup(Expr* value, Expr* ke
 	return {code, "dval"};
 }
 
-std::pair<Bytes, std::string> FunctionLowerer::dval_scalar(Call* call, const std::string& result)
+
+std::pair<Bytes, std::string> FunctionLowerer::dval_presence(Expr* value)
 {
-	if (call->arguments.size() != 1)
-		throw Error(call->location, "dval extraction expects one dval");
-	auto [source_code, source_type] = expression(call->arguments[0]);
-	if (source_type != "dval")
-		throw Error(call->arguments[0]->location, "expected dval, found " + source_type);
-	const unsigned source = add_local("", "dval", call->location);
-	Bytes code = std::move(source_code);
+	auto [source, type] = expression(value);
+	if (type != "dval")
+		throw Error(value->location, "postfix '?' requires dval");
+	const unsigned input = add_local("", "dval", value->location);
+	Bytes code = std::move(source);
 	code.push_back(0x21);
-	wasm::append_uleb(code, source);
-	if (result == "string")
+	wasm::append_uleb(code, input);
+	code.push_back(0x20);
+	wasm::append_uleb(code, input);
+	code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+	wasm::append_uleb(code, input);
+	code.insert(code.end(), {0x28, 0x02, 0x10, 0x10});
+	wasm::append_uleb(code, module_.import_index("bearer_dv_is_none_brrb"));
+	const unsigned state = add_local("", "s32", value->location);
+	code.push_back(0x21); wasm::append_uleb(code, state);
+	code.push_back(0x20); wasm::append_uleb(code, state);
+	code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40});
+	if (expression_is_owned(value)) { code.push_back(0x20); wasm::append_uleb(code, input); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+	append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b, 0x20}); wasm::append_uleb(code, state);
+	code.insert(code.end(), {0x45});
+	if (expression_is_owned(value))
 	{
-		code.push_back(0x20);
-		wasm::append_uleb(code, source);
-		code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-		wasm::append_uleb(code, source);
-		code.insert(code.end(), {0x28, 0x02, 0x10, 0x10});
-		wasm::append_uleb(code, module_.import_index("bearer_dv_scalar_type_brrb"));
-		code.push_back(0x41);
-		wasm::append_sleb32(code, 'S');
-		code.insert(code.end(), {0x47, 0x04, 0x40});
-		append(code, module_.marker(call->location));
-		code.insert(code.end(), {0x00, 0x0b});
-		const unsigned length = add_local("", "s32", call->location);
-		code.push_back(0x20);
-		wasm::append_uleb(code, source);
-		code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-		wasm::append_uleb(code, source);
-		code.insert(code.end(), {0x28, 0x02, 0x10, 0x41, 0x00, 0x41, 0x00, 0x10});
-		wasm::append_uleb(code, module_.import_index("bearer_dv_brrb_to_string"));
+		const unsigned result = add_local("", "bool", value->location);
 		code.push_back(0x21);
-		wasm::append_uleb(code, length);
-		auto [allocation, pointer] = allocate_blob("string", 1, length, call->location);
-		append(code, allocation);
+		wasm::append_uleb(code, result);
 		code.push_back(0x20);
-		wasm::append_uleb(code, source);
-		code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-		wasm::append_uleb(code, source);
-		code.insert(code.end(), {0x28, 0x02, 0x10, 0x20});
-		wasm::append_uleb(code, pointer);
-		code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-		wasm::append_uleb(code, length);
-		code.push_back(0x10);
-		wasm::append_uleb(code, module_.import_index("bearer_dv_brrb_to_string"));
-		code.push_back(0x20);
-		wasm::append_uleb(code, length);
-		code.insert(code.end(), {0x47, 0x04, 0x40, 0x00, 0x0b, 0x20});
-		wasm::append_uleb(code, pointer);
-	}
-	else
-	{
-		const unsigned output = add_local("", "s32", call->location), result_local = add_local("", result, call->location);
-		code.push_back(0x41);
-		wasm::append_sleb32(code, result == "f64" ? 8 : 4);
-		code.push_back(0x10);
-		wasm::append_uleb(code, module_.import_index("bearer_alloc"));
-		code.push_back(0x21);
-		wasm::append_uleb(code, output);
-		code.push_back(0x20);
-		wasm::append_uleb(code, output);
-		code.insert(code.end(), {0x45, 0x04, 0x40});
-		append(code, module_.marker(call->location));
-		code.insert(code.end(), {0x00, 0x0b, 0x20});
-		wasm::append_uleb(code, source);
-		code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-		wasm::append_uleb(code, source);
-		code.insert(code.end(), {0x28, 0x02, 0x10, 0x20});
-		wasm::append_uleb(code, output);
-		code.push_back(0x10);
-		wasm::append_uleb(code, module_.import_index(result == "s32" ? "bearer_dv_s32_brrb" : result == "f64" ? "bearer_dv_f64_brrb" : "bearer_dv_bool_brrb"));
-		code.insert(code.end(), {0x45, 0x04, 0x40});
-		append(code, module_.marker(call->location));
-		code.insert(code.end(), {0x00, 0x0b, 0x20});
-		wasm::append_uleb(code, output);
-		if (result == "f64")
-			code.insert(code.end(), {0x2b, 0x03, 0x00});
-		else
-			code.insert(code.end(), {0x28, 0x02, 0x00});
-		code.push_back(0x21);
-		wasm::append_uleb(code, result_local);
-		code.push_back(0x20);
-		wasm::append_uleb(code, output);
-		code.push_back(0x10);
-		wasm::append_uleb(code, module_.import_index("bearer_free"));
-		code.push_back(0x20);
-		wasm::append_uleb(code, result_local);
-	}
-	if (expression_is_owned(call->arguments[0]))
-	{
-		code.push_back(0x20);
-		wasm::append_uleb(code, source);
+		wasm::append_uleb(code, input);
 		code.push_back(0x10);
 		wasm::append_uleb(code, module_.release_index());
+		code.push_back(0x20);
+		wasm::append_uleb(code, result);
 	}
-	return {code, result};
+	return {code, "bool"};
+}
+
+std::pair<Bytes, std::string> FunctionLowerer::dval_set_path(unsigned root, const std::vector<Expr*>& selectors, Expr* replacement, const Location& location)
+{
+	std::vector<std::unique_ptr<Name>> selector_names;
+	std::vector<bool> selector_owned;
+	Bytes code;
+	for (Expr* selector : selectors)
+	{
+		auto [selector_code, selector_type] = expression(selector);
+		if (selector_type != "string" && selector_type != "s32")
+			throw Error(selector->location, "dval index must be string or s32");
+		const unsigned local = add_local("", selector_type, selector->location);
+		append(code, selector_code);
+		code.push_back(0x21);
+		wasm::append_uleb(code, local);
+		const std::string name = std::string(1, '\x1f') + "dval_path_" + std::to_string(local);
+		scopes_.back()[name] = {local, selector_type};
+		selector_names.push_back(std::make_unique<Name>(selector->location, name));
+		selector_owned.push_back(expression_is_owned(selector));
+	}
+	auto [replacement_code, replacement_type] = dval_value(replacement);
+	const bool replacement_owned = infer(replacement) != "dval" || expression_is_owned(replacement);
+	const unsigned replacement_local = add_local("", "dval", replacement->location);
+	append(code, replacement_code);
+	code.push_back(0x21);
+	wasm::append_uleb(code, replacement_local);
+	ArrayLiteral path(location);
+	for (const auto& name : selector_names)
+		path.items.push_back(name.get());
+	auto [path_code, path_type] = dval_value(&path);
+	const unsigned path_local = add_local("", "dval", location);
+	append(code, path_code);
+	code.push_back(0x21);
+	wasm::append_uleb(code, path_local);
+	for (std::size_t index = 0; index < selector_names.size(); ++index)
+	{
+		const auto found = scopes_.back().find(selector_names[index]->value);
+		if (selector_owned[index])
+		{
+			code.push_back(0x20);
+			wasm::append_uleb(code, found->second.first);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.release_index());
+		}
+		scopes_.back().erase(found);
+	}
+	const unsigned length = add_local("", "s32", location);
+	auto append_call = [&](bool output, unsigned pointer)
+	{
+		for (unsigned input : {root, path_local, replacement_local})
+		{
+			code.push_back(0x20); wasm::append_uleb(code, input);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20}); wasm::append_uleb(code, input);
+			code.insert(code.end(), {0x28, 0x02, 0x10});
+		}
+		if (output)
+		{
+			code.push_back(0x20); wasm::append_uleb(code, pointer);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20}); wasm::append_uleb(code, length);
+		}
+		else
+			code.insert(code.end(), {0x41, 0x00, 0x41, 0x00});
+		code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_dv_set_path_brrb"));
+	};
+	append_call(false, 0);
+	code.push_back(0x21); wasm::append_uleb(code, length);
+	code.push_back(0x20); wasm::append_uleb(code, length);
+	code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40});
+	code.push_back(0x20); wasm::append_uleb(code, path_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+	if (replacement_owned) { code.push_back(0x20); wasm::append_uleb(code, replacement_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+	append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b});
+	auto [allocation, result] = allocate_blob("dval", 4, length, location);
+	append(code, allocation);
+	append_call(true, result);
+	code.push_back(0x20); wasm::append_uleb(code, length);
+	code.insert(code.end(), {0x47, 0x04, 0x40});
+	code.push_back(0x20); wasm::append_uleb(code, result); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+	code.push_back(0x20); wasm::append_uleb(code, path_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+	if (replacement_owned) { code.push_back(0x20); wasm::append_uleb(code, replacement_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+	append(code, module_.marker(location));
+	code.insert(code.end(), {0x00, 0x0b});
+	code.push_back(0x20); wasm::append_uleb(code, path_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+	if (replacement_owned) { code.push_back(0x20); wasm::append_uleb(code, replacement_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+	code.push_back(0x20); wasm::append_uleb(code, root); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+	code.push_back(0x20); wasm::append_uleb(code, result); code.push_back(0x22); wasm::append_uleb(code, root);
+	return {code, "dval"};
 }
 
 std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
@@ -2396,11 +2487,12 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 		if (type == "dval")
 			return expression(value);
 		auto [source, actual] = expression(value);
-		if (actual != "string" && actual != "s32" && actual != "u64" && actual != "f64" && actual != "bool")
+		if (actual != "string" && actual != "s32" && actual != "s64" && actual != "u64" && actual != "f64" && actual != "bool")
 			throw Error(value->location, "cannot construct dval from " + actual);
 		const unsigned input = add_local("", actual, value->location), length = add_local("", "s32", value->location);
 		const char* import = actual == "string" ? "bearer_dv_string_to_brrb"
 							 : actual == "s32"	? "bearer_dv_s32_to_brrb"
+							 : actual == "s64"	? "bearer_dv_s64_to_brrb"
 							 : actual == "u64"	? "bearer_dv_u64_to_brrb"
 							 : actual == "f64"	? "bearer_dv_f64_to_brrb"
 												: "bearer_dv_bool_to_brrb";
@@ -2817,6 +2909,36 @@ std::pair<Bytes, std::string> FunctionLowerer::conversion(Bytes code, const std:
 		throw Error(location, "no explicit conversion from " + source + " to " + target);
 	if (source == target || (source == "bool" && target == "s32"))
 		return {std::move(code), target};
+	if (source == "dval")
+	{
+		const unsigned input = add_local("", "dval", location);
+		code.push_back(0x21);
+		wasm::append_uleb(code, input);
+		const std::string input_name = std::string(1, '\x1f') + "dval_conversion_" + std::to_string(input);
+		scopes_.back()[input_name] = {input, "dval"};
+		Name input_value(location, input_name), host_name(location, "__bearer_dv_extract_" + target);
+		std::unique_ptr<Expr> fallback;
+		if (target == "string") fallback = std::make_unique<String>(location, "");
+		else if (target == "bool") fallback = std::make_unique<Name>(location, "false");
+		else if (target == "s32") fallback = std::make_unique<Integer>(location, 0);
+		else if (target == "s64") fallback = std::make_unique<SignedInteger>(location, 0);
+		else if (target == "u64") fallback = std::make_unique<UnsignedInteger>(location, 0);
+		else fallback = std::make_unique<Float>(location, 0.0);
+		Call extraction(location, &host_name);
+		extraction.arguments = {&input_value, fallback.get()};
+		auto converted = expression(&extraction);
+		scopes_.back().erase(input_name);
+		append(code, converted.first);
+		if (source_owned)
+		{
+			const unsigned result = add_local("", target, location);
+			code.push_back(0x21); wasm::append_uleb(code, result);
+			code.push_back(0x20); wasm::append_uleb(code, input);
+			code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+			code.push_back(0x20); wasm::append_uleb(code, result);
+		}
+		return {std::move(code), target};
+	}
 	if (target == "string")
 	{
 		if (source == "markup")
@@ -3595,6 +3717,32 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				wasm::append_uleb(code, found->second.first);
 				return {code, found->second.second};
 			}
+		if (name->value == "none")
+		{
+			const unsigned length = add_local("", "s32", value->location);
+			Bytes code{0x41, 0x00, 0x41, 0x00, 0x10};
+			wasm::append_uleb(code, module_.import_index("bearer_dv_none_brrb"));
+			code.push_back(0x21);
+			wasm::append_uleb(code, length);
+			code.push_back(0x20); wasm::append_uleb(code, length);
+			code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40});
+			append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b});
+			auto [allocation, pointer] = allocate_blob("dval", 4, length, value->location);
+			append(code, allocation);
+			code.push_back(0x20);
+			wasm::append_uleb(code, pointer);
+			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
+			wasm::append_uleb(code, length);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.import_index("bearer_dv_none_brrb"));
+			code.push_back(0x20);
+			wasm::append_uleb(code, length);
+			code.insert(code.end(), {0x47, 0x04, 0x40, 0x20}); wasm::append_uleb(code, pointer);
+			code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+			append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b, 0x20});
+			wasm::append_uleb(code, pointer);
+			return {code, "dval"};
+		}
 		auto [type, slot] = module_.reference_function(name->value, name->location);
 		const unsigned offset = module_.add_static_closure(slot);
 		Bytes code{0x23, 0x00, 0x41};
@@ -3618,6 +3766,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		if (declared != type)
 			throw Error(value->location, "expected " + declared + ", found " + type);
 		unsigned slot = add_local(variable->name, declared, value->location);
+		if (declared == "dval")
+			owned_local_dval_slots_.insert(slot);
 		const bool managed = managed_type(declared);
 		const bool replace = managed && repeated_condition_scope_ && owned_scopes_.size() == *repeated_condition_scope_;
 		if (replace)
@@ -3656,8 +3806,47 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 	}
 	if (auto binary = dynamic_cast<Binary*>(value))
 	{
+		if (binary->operator_ == "postfix?")
+			return dval_presence(binary->left);
 		if (binary->operator_ == "=")
 		{
+			std::vector<std::unique_ptr<String>> member_selectors;
+			std::vector<Expr*> selectors;
+			Expr* root = binary->left;
+			while (true)
+			{
+				if (auto member = dynamic_cast<Member*>(root))
+				{
+					member_selectors.push_back(std::make_unique<String>(member->location, member->member));
+					selectors.push_back(member_selectors.back().get());
+					root = member->value;
+				}
+				else if (auto index = dynamic_cast<Index*>(root))
+				{
+					selectors.push_back(index->index);
+					root = index->value;
+				}
+				else
+					break;
+			}
+			if (!selectors.empty())
+			{
+				std::reverse(selectors.begin(), selectors.end());
+				auto receiver = dynamic_cast<Name*>(root);
+				if (!receiver)
+					throw Error(binary->left->location, "nested DValue assignment requires an owned local dval root. Copy the value into a local first.");
+				auto [slot, type] = lookup(receiver);
+				if (type == "dval")
+				{
+					if (!owned_local_dval_slots_.contains(slot) || borrowed_managed_slots_.contains(slot))
+						throw Error(binary->left->location, "nested DValue assignment requires an owned local dval root. Copy the value into a local first.");
+					return dval_set_path(slot, selectors, binary->right, binary->location);
+				}
+				if (dynamic_cast<Index*>(binary->left) && selectors.size() == 1 && type.rfind("array<", 0) == 0)
+					selectors.clear();
+				else
+					throw Error(binary->left->location, "nested DValue assignment requires an owned local dval root. Copy the value into a local first.");
+			}
 			if (auto target_index = dynamic_cast<Index*>(binary->left))
 			{
 				auto receiver = dynamic_cast<Name*>(target_index->value);
@@ -4225,7 +4414,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		if (!member && primitive_constructor_name(callee) && call->arguments.size() == 1)
 		{
 			const std::string source = infer(call->arguments[0]);
-			if (!module_.exact_definition(callee, {source}) && can_convert(source, callee))
+			if (!module_.exact_definition(callee, {source}) && !module_.default_definition(callee, {source}, call->location) && can_convert(source, callee))
 			{
 				auto argument = expression(call->arguments[0]);
 				return conversion(std::move(argument.first), source, callee, call->location, expression_is_owned(call->arguments[0]));
@@ -4325,10 +4514,6 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				throw Error(value->location, "dval_has expects dval and string/s32 key");
 			return dval_lookup(call->arguments[0], call->arguments[1], false);
 		}
-		if (!member && callee == "dval_string") return dval_scalar(call, "string");
-		if (!member && callee == "dval_s32") return dval_scalar(call, "s32");
-		if (!member && callee == "dval_f64") return dval_scalar(call, "f64");
-		if (!member && callee == "dval_bool") return dval_scalar(call, "bool");
 		if (!member && callee == "trusted_markup")
 		{
 			if (call->arguments.size() != 1) throw Error(value->location, "trusted_markup expects one string");
@@ -4453,6 +4638,22 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			return {code, host->result};
 		}
 		Definition& target = member ? *method_definition : module_.resolve(callee, types, value->location);
+		std::vector<Expr*> default_arguments;
+		std::vector<std::unique_ptr<Expr>> default_synthetic;
+		if (arguments->size() < target.parameters.size())
+		{
+			default_arguments = *arguments;
+			for (std::size_t i = arguments->size(); i < target.parameters.size(); ++i)
+			{
+				if (i >= target.default_values.size() || !target.default_values[i])
+					throw std::runtime_error("resolved Capy call omits a required parameter");
+				auto default_value = callsite_default_literal(target.default_values[i], value->location);
+				types.push_back(literal_type(default_value.get()));
+				default_arguments.push_back(default_value.get());
+				default_synthetic.push_back(std::move(default_value));
+			}
+			arguments = &default_arguments;
+		}
 		if (!member && target.inline_value && arguments->empty())
 			return expression(target.inline_value);
 		auto fused_variadic_sink = [&]() -> std::optional<std::pair<Bytes, std::string>>
@@ -5562,6 +5763,8 @@ void Module::collect()
 			throw Error(function->location, "function name conflicts with type alias");
 		if (function->host)
 		{
+			if (std::any_of(function->parameters.begin(), function->parameters.end(), [](const Parameter& parameter) { return parameter.default_value; }))
+				throw Error(function->location, "host declarations cannot use default parameters");
 			std::vector<std::string> parameters;
 			for (const auto& parameter : function->parameters)
 			{
@@ -5594,6 +5797,7 @@ void Module::collect()
 			throw Error(function->location, "TASK handler suffix must match [A-Za-z_][A-Za-z0-9_]*");
 		std::vector<std::string> parameters;
 		std::vector<bool> conversions;
+		std::vector<Expr*> default_values;
 		bool generic = false;
 		bool variadic = false, variadic_convert = false;
 		std::string variadic_element;
@@ -5610,11 +5814,22 @@ void Module::collect()
 				type = "array<" + type + ">";
 			}
 			parameters.push_back(std::move(type));
+			default_values.push_back(parameter.default_value);
 			conversions.push_back(parameter.variadic ? false : parameter.convert);
 			if (parameter.convert && (any || !dynamic_cast<Name*>(parameter.type_expr)))
 				throw Error(parameter.type_expr->location, "'as' parameter conversion requires a concrete named type constructor");
 			if (parameters.back() == "void")
 				throw Error(parameter.type_expr->location, "function parameters cannot have type void");
+		}
+		if (std::any_of(default_values.begin(), default_values.end(), [](Expr* value) { return value; }))
+		{
+			if (variadic)
+				throw Error(function->location, "variadic functions cannot use default parameters");
+			if (generic)
+				throw Error(function->location, "generic functions cannot use default parameters");
+			for (std::size_t i = 0; i < default_values.size(); ++i)
+				if (default_values[i] && literal_type(default_values[i]) != parameters[i])
+					throw Error(default_values[i]->location, "default parameter literal must have type " + parameters[i]);
 		}
 		if (variadic && function->host)
 			throw Error(function->location, "host declarations cannot use variadic parameters");
@@ -5622,6 +5837,8 @@ void Module::collect()
 			throw Error(function->location, "variadic parameters cannot use any yet");
 		if (handler && variadic)
 			throw Error(function->location, "Bearer handlers cannot use variadic parameters");
+		if (handler && std::any_of(default_values.begin(), default_values.end(), [](Expr* value) { return value; }))
+			throw Error(function->location, "Bearer handlers cannot use default parameters");
 		if (handler && generic)
 			throw Error(function->location, "Bearer handlers cannot use any parameters");
 		if (handler && std::any_of(conversions.begin(), conversions.end(), [](bool value) { return value; }))
@@ -5696,6 +5913,7 @@ void Module::collect()
 			definition.function = function;
 			definition.parameters = parameters;
 			definition.convert = conversions;
+			definition.default_values = default_values;
 			definition.variadic = variadic;
 			definition.variadic_element = variadic_element;
 			definition.variadic_convert = variadic_convert;
@@ -5814,6 +6032,8 @@ Module::Capabilities Module::discover_capabilities()
 				return "bool";
 			if (auto found = scan_value_names.find(name->value); found != scan_value_names.end())
 				return found->second;
+			if (name->value == "none")
+				return "dval";
 		}
 		if (auto spread = dynamic_cast<Spread*>(e))
 		{
@@ -5830,10 +6050,17 @@ Module::Capabilities Module::discover_capabilities()
 		{
 			const std::string source = scan_value_type(index->value);
 			if (source.rfind("array<", 0) == 0) return source.substr(6, source.size() - 7);
+			if (source.rfind("tuple<", 0) == 0)
+				if (auto literal = dynamic_cast<Integer*>(index->index); literal && literal->value >= 0)
+				{
+					const auto fields = aggregate_elements(source);
+					if (static_cast<std::size_t>(literal->value) < fields.size()) return fields[static_cast<std::size_t>(literal->value)];
+				}
 			if (source == "dval") return "dval";
 		}
 		if (auto binary = dynamic_cast<Binary*>(e))
 		{
+			if (binary->operator_ == "postfix?") return "bool";
 			const bool comparison = binary->operator_ == "==" || binary->operator_ == "!=" || binary->operator_ == "<" || binary->operator_ == ">" ||
 									binary->operator_ == "<=" || binary->operator_ == ">=" || binary->operator_ == "&&" || binary->operator_ == "||" ||
 									binary->operator_ == "unary!";
@@ -5883,11 +6110,8 @@ Module::Capabilities Module::discover_capabilities()
 				if (primitive_constructor_name(callee) && call->arguments.size() == 1 && can_convert(scan_value_type(call->arguments[0]), callee)) return callee;
 				if (name->value == "clone") return call->arguments.empty() ? "" : scan_value_type(call->arguments.front());
 				if (name->value == "length" || name->value == "arc_live") return "s32";
-				if (name->value == "dval_has" || name->value == "dval_bool") return "bool";
-				if (name->value == "dval_string") return "string";
-				if (name->value == "dval_s32") return "s32";
-				if (name->value == "dval_f64") return "f64";
-				if (name->value == "trusted_markup") return "markup";
+				if (name->value == "dval_has") return "bool";
+										if (name->value == "trusted_markup") return "markup";
 				std::vector<std::string> arguments;
 				for (Expr* argument : call->arguments)
 					arguments.push_back(scan_value_type(argument));
@@ -5916,6 +6140,7 @@ Module::Capabilities Module::discover_capabilities()
 		const std::string type = scan_value_type(e);
 		if (type == "string") runtime_imports_.insert("bearer_dv_string_to_brrb");
 		else if (type == "s32") runtime_imports_.insert("bearer_dv_s32_to_brrb");
+		else if (type == "s64") runtime_imports_.insert("bearer_dv_s64_to_brrb");
 		else if (type == "u64") runtime_imports_.insert("bearer_dv_u64_to_brrb");
 		else if (type == "f64") runtime_imports_.insert("bearer_dv_f64_to_brrb");
 		else if (type == "bool") runtime_imports_.insert("bearer_dv_bool_to_brrb");
@@ -5939,14 +6164,26 @@ Module::Capabilities Module::discover_capabilities()
 	};
 	auto scan_string_construction = [&](const std::string& source)
 	{
-		if (source == "string" || source == "bool") return;
+		if (source == "string") return;
+		if (source == "bool") { scan_release = true; return; }
 		scan_alloc = scan_retain = scan_release = true;
 		scan_clone = scan_clone || source == "markup";
 		scan_format_s64 = scan_format_s64 || source == "s32" || source == "s64";
 		scan_format_u64 = scan_format_u64 || source == "u64";
 		scan_format_f64 = scan_format_f64 || source == "f64";
-		if (source == "s32" || source == "s64") string_format_types_.insert("s64");
+		if (source == "dval") { dval_ = true; used_hosts_.insert("bearer_dv_extract_string"); }
+		else if (source == "s32" || source == "s64") string_format_types_.insert("s64");
 		else if (source == "u64" || source == "f64") string_format_types_.insert(source);
+	};
+	auto scan_construction = [&](const std::string& source, const std::string& target)
+	{
+		if (target == "string") scan_string_construction(source);
+		else if (source == "dval" && is_scalar(target))
+		{
+			dval_ = true;
+			scan_alloc = scan_retain = scan_release = true;
+			used_hosts_.insert("bearer_dv_extract_" + target);
+		}
 	};
 	std::function<void(Expr*)> scan = [&](Expr* e)
 	{
@@ -5983,14 +6220,18 @@ Module::Capabilities Module::discover_capabilities()
 							if (field.first == member->member && field.second.rfind("function#", 0) == 0)
 							{
 								const unsigned type = static_cast<unsigned>(std::stoul(field.second.substr(9)));
-								if (auto contract = variadic_function_types_.find(type); contract != variadic_function_types_.end())
-								{
-									scan_alloc = scan_retain = scan_release = true;
+								if (auto contract = variadic_function_types_.find(type); contract != variadic_function_types_.end() && contract->second.convert)
 									for (std::size_t i = contract->second.fixed + 1; i < host_arguments.size(); ++i)
-										scan_string_construction(host_arguments[i]);
-								}
+										scan_construction(host_arguments[i], contract->second.element);
 								break;
 							}
+				}
+				else if (auto callable = scan_value_names.find(n->value); callable != scan_value_names.end() && callable->second.rfind("function#", 0) == 0)
+				{
+					const unsigned type = static_cast<unsigned>(std::stoul(callable->second.substr(9)));
+					if (auto contract = variadic_function_types_.find(type); contract != variadic_function_types_.end() && contract->second.convert)
+						for (std::size_t i = contract->second.fixed; i < host_arguments.size(); ++i)
+							scan_construction(host_arguments[i], contract->second.element);
 				}
 				if (const HostDeclaration* host = this->host(callee, host_arguments))
 				{
@@ -6000,12 +6241,15 @@ Module::Capabilities Module::discover_capabilities()
 						if (managed_type(type)) { dval_ = dval_ || type == "dval"; scan_retain = true; scan_release = true; }
 					if (managed_type(host->result)) { dval_ = dval_ || host->result == "dval"; scan_alloc = true; scan_retain = true; scan_release = true; }
 				}
-				if (const Definition* converted = converted_definition(callee, host_arguments, c->location))
+				const Definition* converted = converted_definition(callee, host_arguments, c->location);
+				if (!converted)
+					converted = default_definition(callee, host_arguments, c->location);
+				if (converted)
 				{
 					for (std::size_t i = 0; i < host_arguments.size(); ++i)
 					{
-						if (converted->parameters[i] == "string" && host_arguments[i] != "string" && host_arguments[i] != "bool")
-							scan_string_construction(host_arguments[i]);
+						if (converted->parameters[i] != host_arguments[i])
+							scan_construction(host_arguments[i], converted->parameters[i]);
 						if (converted->parameters[i] == "dval" && host_arguments[i] != "dval")
 						{
 							Expr* argument = member ? (i == 0 ? member->value : c->arguments.at(i - 1)) : c->arguments.at(i);
@@ -6064,7 +6308,7 @@ Module::Capabilities Module::discover_capabilities()
 									}
 						}
 			}
-			if (named_call && (named_callee == "dval" || named_callee == "dval_has" || named_callee == "dval_string" || named_callee == "dval_s32" || named_callee == "dval_f64" || named_callee == "dval_bool"))
+			if (named_call && (named_callee == "dval" || named_callee == "dval_has"))
 			{
 				dval_ = true;
 				scan_alloc = true;
@@ -6075,17 +6319,10 @@ Module::Capabilities Module::discover_capabilities()
 					if (!c->arguments.empty())
 						scan_dval(c->arguments.front());
 				}
-				else if (named_callee == "dval_has") runtime_imports_.insert("bearer_dv_get_brrb");
-				else if (named_callee == "dval_string") { runtime_imports_.insert("bearer_dv_scalar_type_brrb"); runtime_imports_.insert("bearer_dv_brrb_to_string"); }
-				else if (named_callee == "dval_s32") runtime_imports_.insert("bearer_dv_s32_brrb");
-				else if (named_callee == "dval_f64") runtime_imports_.insert("bearer_dv_f64_brrb");
-				else if (named_callee == "dval_bool") runtime_imports_.insert("bearer_dv_bool_brrb");
+				else runtime_imports_.insert("bearer_dv_get_brrb");
 			}
 			if (named_call && primitive_constructor_name(named_callee) && c->arguments.size() == 1)
-			{
-				const std::string source = scan_value_type(c->arguments[0]);
-				if (named_callee == "string" && source != "string" && source != "bool") scan_string_construction(source);
-			}
+				scan_construction(scan_value_type(c->arguments[0]), named_callee);
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "clone")
 			{
 				scan_alloc = true;
@@ -6153,7 +6390,7 @@ Module::Capabilities Module::discover_capabilities()
 			const std::string inferred = annotation.empty() ? scan_value_type(v->value) : annotation;
 			if (!inferred.empty())
 				scan_value_names[v->name] = inferred;
-			if (v->annotation && managed_type(annotation))
+			if (managed_type(inferred))
 			{
 				scan_retain = true;
 				scan_release = true;
@@ -6161,8 +6398,43 @@ Module::Capabilities Module::discover_capabilities()
 		}
 		else if (auto b = dynamic_cast<Binary*>(e))
 		{
-			if (b->operator_ == "=" && dynamic_cast<Index*>(b->left))
+			if (b->operator_ == "postfix?")
+			{
+				dval_ = true;
 				scan_alloc = scan_retain = scan_release = true;
+				runtime_imports_.insert("bearer_dv_is_none_brrb");
+			}
+			if (b->operator_ == "=" && (dynamic_cast<Index*>(b->left) || dynamic_cast<Member*>(b->left)))
+			{
+				const Expr* root = b->left;
+				while (true)
+					if (auto member = dynamic_cast<const Member*>(root)) root = member->value;
+					else if (auto index = dynamic_cast<const Index*>(root)) root = index->value;
+					else break;
+				if (auto name = dynamic_cast<const Name*>(root); name && scan_value_type(const_cast<Name*>(name)) == "dval")
+				{
+					dval_ = true;
+					scan_alloc = scan_retain = scan_release = true;
+					runtime_imports_.insert("bearer_dv_set_path_brrb");
+					scan_dval(b->right);
+					for (const Expr* selector = b->left; selector != root;)
+						if (auto member = dynamic_cast<const Member*>(selector))
+						{
+							runtime_imports_.insert("bearer_dv_string_to_brrb");
+							selector = member->value;
+						}
+						else if (auto index = dynamic_cast<const Index*>(selector))
+						{
+							const std::string type = scan_value_type(index->index);
+							if (type == "string") runtime_imports_.insert("bearer_dv_string_to_brrb");
+							else if (type == "s32") runtime_imports_.insert("bearer_dv_s32_to_brrb");
+							selector = index->value;
+						}
+						else break;
+				}
+				else
+					scan_alloc = scan_retain = scan_release = true;
+			}
 			if (b->operator_ == "+" && (scan_is_string(b->left) || scan_is_string(b->right)))
 			{
 				scan_alloc = true;
@@ -6177,6 +6449,8 @@ Module::Capabilities Module::discover_capabilities()
 					const std::string inferred = scan_value_type(b->right);
 					if (!inferred.empty())
 						scan_value_names[name->value] = inferred;
+					if (managed_type(inferred))
+						scan_retain = scan_release = true;
 				}
 		}
 		else if (auto r = dynamic_cast<Return*>(e))
@@ -6214,24 +6488,32 @@ Module::Capabilities Module::discover_capabilities()
 			for (const auto& [key, item] : m->entries)
 				scan(item);
 		}
+		else if (auto name = dynamic_cast<Name*>(e); name && name->value == "none" && !scan_value_names.contains(name->value))
+		{
+			dval_ = true;
+			scan_alloc = scan_retain = scan_release = true;
+			runtime_imports_.insert("bearer_dv_none_brrb");
+		}
 		else if (auto spread = dynamic_cast<Spread*>(e))
 			scan(spread->value);
 		else if (auto i = dynamic_cast<Index*>(e))
 		{
-			if (scan_value_type(i->value) == "dval")
-				runtime_imports_.insert("bearer_dv_get_brrb");
+			const std::string receiver = scan_value_type(i->value);
+			if (receiver.empty() || receiver == "dval")
+				runtime_imports_.insert("bearer_dv_read_brrb");
 			scan(i->value);
 			scan(i->index);
 		}
 		else if (auto m = dynamic_cast<Member*>(e))
 		{
-			if (scan_value_type(m->value) == "dval")
+			const std::string receiver = scan_value_type(m->value);
+			if (receiver.empty() || receiver == "dval")
 			{
 				dval_ = true;
 				scan_alloc = true;
 				scan_retain = true;
 				scan_release = true;
-				runtime_imports_.insert("bearer_dv_get_brrb");
+				runtime_imports_.insert("bearer_dv_read_brrb");
 			}
 			scan(m->value);
 		}
@@ -6319,8 +6601,6 @@ Module::Capabilities Module::discover_capabilities()
 			scan_string_names = std::move(outer_strings);
 			scan_value_names = std::move(outer_values);
 		}
-	if (dval_)
-		runtime_imports_.insert("bearer_dv_get_brrb");
 	if (!custom_exports_.empty())
 	{
 		dval_ = true;
@@ -6463,6 +6743,7 @@ CompileResult Module::compile()
 	unsigned u64_adapter_type = wasm_type({"u64", "s32", "s32"}, "s32");
 	unsigned build_type = wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32");
 	unsigned get_type = wasm_type({"s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"}, "s32");
+	unsigned set_path_type = wasm_type({"s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"}, "s32");
 	unsigned entry_type = wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32");
 	unsigned count_type = wasm_type({"s32", "s32"}, "s32");
 	auto omitted_body = [](const std::string& result)
@@ -6524,11 +6805,13 @@ CompileResult Module::compile()
 		const unsigned type = host_types_.contains(name) ? host_types_.at(name)
 			: name == "bearer_format_s64" ? format_s64_type : name == "bearer_format_u64" ? format_u64_type : name == "bearer_format_f64" ? format_f64_type
 			: name == "bearer_alloc" ? alloc_type : name == "bearer_free" ? release_type
-			: name == "bearer_dv_string_to_brrb" || name == "bearer_dv_brrb_to_string" ? blob_type
-			: name == "bearer_dv_f64_to_brrb" ? f64_adapter_type : name == "bearer_dv_u64_to_brrb" ? u64_adapter_type
-			: name == "bearer_dv_s32_to_brrb" || name == "bearer_dv_bool_to_brrb" || name == "bearer_dv_s32_brrb" || name == "bearer_dv_f64_brrb" || name == "bearer_dv_bool_brrb" ? scalar_adapter_type
-			: name == "bearer_dv_build_brrb" ? build_type : name == "bearer_dv_get_brrb" ? get_type
-			: name == "bearer_dv_count_brrb" || name == "bearer_dv_scalar_type_brrb" ? count_type
+			: name == "bearer_dv_string_to_brrb" ? blob_type
+			: name == "bearer_dv_f64_to_brrb" ? f64_adapter_type : name == "bearer_dv_s64_to_brrb" || name == "bearer_dv_u64_to_brrb" ? u64_adapter_type
+			: name == "bearer_dv_s32_to_brrb" || name == "bearer_dv_bool_to_brrb" ? scalar_adapter_type
+			: name == "bearer_dv_none_brrb" ? count_type
+			: name == "bearer_dv_build_brrb" ? build_type : name == "bearer_dv_get_brrb" || name == "bearer_dv_read_brrb" ? get_type
+			: name == "bearer_dv_is_none_brrb" ? count_type : name == "bearer_dv_set_path_brrb" ? set_path_type
+			: name == "bearer_dv_count_brrb" ? count_type
 			: name == "bearer_dv_entry_key_brrb" || name == "bearer_dv_entry_value_brrb" ? entry_type
 			: name == "bearer_dv_ptr_to_brrb" ? scalar_adapter_type : name == "bearer_dv_brrb_to_ptr" ? count_type : 0;
 		wasm::append_uleb(imports, type);
@@ -6854,6 +7137,11 @@ void collect_stdlib_demand(Expr* expression, std::set<std::pair<std::string, std
 
 void validate_user_source(const Program& program, const std::set<std::string>& public_names)
 {
+	auto reject_none_name = [](const std::string& name, const Location& location)
+	{
+		if (name == "none")
+			throw Error(location, "'none' is a reserved literal");
+	};
 	std::function<void(Expr*)> reject_reserved_calls = [&](Expr* expression)
 	{
 		if (!expression)
@@ -6870,12 +7158,16 @@ void validate_user_source(const Program& program, const std::set<std::string>& p
 		else if (auto function = dynamic_cast<Function*>(expression))
 		{
 			for (const auto& parameter : function->parameters)
+			{
+				reject_none_name(parameter.name, function->location);
 				if (parameter.name.rfind("__bearer_", 0) == 0)
 					throw Error(function->location, "__bearer_* names are reserved for the Capy standard library");
+			}
 			reject_reserved_calls(function->body);
 		}
 		else if (auto variable = dynamic_cast<Variable*>(expression))
 		{
+			reject_none_name(variable->name, variable->location);
 			if (variable->name.rfind("__bearer_", 0) == 0)
 				throw Error(variable->location, "__bearer_* names are reserved for the Capy standard library");
 			reject_reserved_calls(variable->value);
@@ -6883,8 +7175,12 @@ void validate_user_source(const Program& program, const std::set<std::string>& p
 		else if (auto binary = dynamic_cast<Binary*>(expression))
 		{
 			if (binary->operator_ == ":=")
-				if (auto name = dynamic_cast<Name*>(binary->left); name && name->value.rfind("__bearer_", 0) == 0)
-					throw Error(name->location, "__bearer_* names are reserved for the Capy standard library");
+				if (auto name = dynamic_cast<Name*>(binary->left))
+				{
+					reject_none_name(name->value, name->location);
+					if (name->value.rfind("__bearer_", 0) == 0)
+						throw Error(name->location, "__bearer_* names are reserved for the Capy standard library");
+				}
 			reject_reserved_calls(binary->left); reject_reserved_calls(binary->right);
 		}
 		else if (auto returned = dynamic_cast<Return*>(expression)) reject_reserved_calls(returned->value);
@@ -6893,8 +7189,11 @@ void validate_user_source(const Program& program, const std::set<std::string>& p
 		else if (auto loop = dynamic_cast<For*>(expression))
 		{
 			for (const std::string& name : loop->names)
+			{
+				reject_none_name(name, loop->location);
 				if (name.rfind("__bearer_", 0) == 0)
 					throw Error(loop->location, "__bearer_* names are reserved for the Capy standard library");
+			}
 			reject_reserved_calls(loop->iterable); reject_reserved_calls(loop->body);
 		}
 		else if (auto index = dynamic_cast<Index*>(expression)) { reject_reserved_calls(index->value); reject_reserved_calls(index->index); }
@@ -6908,8 +7207,11 @@ void validate_user_source(const Program& program, const std::set<std::string>& p
 		else if (auto lambda = dynamic_cast<Lambda*>(expression))
 		{
 			for (const auto& parameter : lambda->parameters)
+			{
+				reject_none_name(parameter.name, lambda->location);
 				if (parameter.name.rfind("__bearer_", 0) == 0)
 					throw Error(lambda->location, "__bearer_* names are reserved for the Capy standard library");
+			}
 			reject_reserved_calls(lambda->body);
 		}
 	};
@@ -6918,17 +7220,23 @@ void validate_user_source(const Program& program, const std::set<std::string>& p
 		reject_reserved_calls(item);
 		if (auto function = dynamic_cast<Function*>(item))
 		{
+			reject_none_name(function->name, function->location);
 			if (function->host)
 				throw Error(function->location, "host declarations are available only in the embedded Capy standard library");
 			if (function->name.rfind("__bearer_", 0) == 0)
 				throw Error(function->location, "__bearer_* names are reserved for the Capy standard library");
-			if (public_names.contains(function->name))
+			if (public_names.contains(function->name) && !primitive_constructor_name(function->name))
 				throw Error(function->location, "'" + function->name + "' is reserved by the Capy standard library");
 		}
-		else if (auto structure = dynamic_cast<Struct*>(item); structure && structure->name.rfind("__bearer_", 0) == 0)
-			throw Error(structure->location, "__bearer_* names are reserved for the Capy standard library");
+		else if (auto structure = dynamic_cast<Struct*>(item))
+		{
+			reject_none_name(structure->name, structure->location);
+			if (structure->name.rfind("__bearer_", 0) == 0)
+				throw Error(structure->location, "__bearer_* names are reserved for the Capy standard library");
+		}
 		else if (auto alias = dynamic_cast<TypeAlias*>(item))
 		{
+			reject_none_name(alias->name, alias->location);
 			if (alias->name.rfind("__bearer_", 0) == 0)
 				throw Error(alias->location, "__bearer_* names are reserved for the Capy standard library");
 			if (public_names.contains(alias->name))
@@ -6959,6 +7267,16 @@ std::vector<Expr*> selected_stdlib(const Program& unit, const Program& library)
 			for (const auto& parameter : function->parameters)
 				key.parameter_types.push_back(type_name(*parameter.type_expr));
 			bool called = calls.contains({function->name, function->parameters.size()});
+			if (std::any_of(function->parameters.begin(), function->parameters.end(), [](const Parameter& parameter) { return parameter.default_value; }))
+			{
+				std::size_t required = function->parameters.size();
+				while (required && function->parameters[required - 1].default_value)
+					--required;
+				called = std::any_of(calls.begin(), calls.end(), [&](const auto& call)
+				{
+					return call.first == function->name && call.second >= required && call.second <= function->parameters.size();
+				});
+			}
 			if (!function->parameters.empty() && function->parameters.back().variadic)
 				called = std::any_of(calls.begin(), calls.end(), [&](const auto& call)
 				{

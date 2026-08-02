@@ -8,20 +8,21 @@ return value : converted value or the fallback
 :see
 >types
 0_DValue
-2_DValue_get_by_path
+2_DValue_to_string
+2_DValue_require
 
 :content
-`dval_to_s64(value, fallback)` takes a `dval` and an optional s64 fallback. It returns a signed integer. Use it to read an integer from structured data.
+`s64(value)` is Capy's signed integer constructor for a `dval`. `s64(value, fallback)` returns the fallback for `none` or a failed conversion. `s32(value)` uses the same rules with the s32 range and a default fallback of `0`.
 
-Strings, f64 values, booleans, and one-child maps can convert. Empty or invalid strings return the fallback. Values outside the signed range clamp to its limit.
+Exact decimal strings, in-range finite f64 values, and booleans can convert. An f64 conversion truncates toward zero. Empty or invalid strings, overflow, maps, and lists return the fallback.
 
 ## C++ API
 
-`DValue::to_s64()` also converts C++ pointers and resolved references.
+`DValue::to_s64()` also converts C++ pointers, resolved references, and one-child maps. It can clamp values outside its range. These C++ rules do not change the Capy constructor rules.
 
 :example capy render
 var value := dval("-42")
-print(dval_to_s64(value), "\n")
+print(s64(value), "\n")
 
 :example cpp render
 DValue value;
