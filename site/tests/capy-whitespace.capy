@@ -19,8 +19,7 @@ function no_value_return {
     return
 }
 
-function CLI
-{
+function CLI(request : dval) {
     var first := 1 var second := 2
     var sum := first
     +

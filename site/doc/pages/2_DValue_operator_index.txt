@@ -15,7 +15,7 @@ return value : reference to the child node
 2_DValue_has
 
 :content
-In Capy, use `value[key]` or `value[index]` to read a child from a `dval`. The result is a copied `dval`, not a mutable alias. Use `dval_put` to set a named child and assign its returned replacement value.
+In Capy, use `value[key]` or `value[index]` to read a child from a `dval`. The result is a copied `dval`, not a mutable child alias. `dval_put` mutates its target and returns that same target identity. Assigning the result back remains valid.
 
 A missing child does not give Capy a writable child reference. Use `dval_has` or `dval_get_by_path` when you need to test a read.
 

@@ -11,7 +11,7 @@ html_escape
 :content
 `string` is Capy's text and byte value type. Use string literals, variables, parameters, and return values directly.
 
-String functions take `string` inputs and return `string`, numeric, or boolean values. Common functions include `length`, `find`, `contains`, `replace`, `to_lower`, `to_upper`, `substr`, `split`, and `split_utf8`.
+String functions take `string` inputs and return `string`, numeric, or boolean values. Common functions include `length`, `find`, `contains`, `replace`, `lower`, `upper`, `substr`, `split`, and `split_utf8`.
 
 Capy passes strings by value. A function call does not expose a mutable C++ string reference.
 
@@ -23,7 +23,7 @@ C++ uses `String`, an alias for `std::string`. The same value can hold text or r
 
 :example capy render
 var name := "Ada"
-print(to_upper(name), "\n")
+print(upper(name), "\n")
 
 :example cpp render
 String name = "Ada";

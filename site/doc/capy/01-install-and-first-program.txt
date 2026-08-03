@@ -9,7 +9,7 @@ Capy programs run as Bearer units. A source file uses the `.capy` suffix. Bearer
 Create `site/hello.capy`:
 
 :example capy render
-function RENDER {
+function RENDER(request : dval) {
     print("Hello, Capy!\n")
 }
 
@@ -32,7 +32,7 @@ The command prints the response body. It also reports compiler or runtime errors
 A local declaration uses `:=`. Capy infers the type from the value:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var name := "Ada"
     print("Hello, ", name, "!\n")
 }
@@ -45,7 +45,7 @@ function RENDER {
 A markup expression produces escaped HTML:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var name := "Ada"
     <><h1>Hello, <?= name ?>!</h1></>
 }

@@ -40,7 +40,8 @@ FLAGS="$DEBUG_FLAGS -w -Wall -$OPT_FLAG -std=c++20 -fpermissive -fuse-ld=lld"
 # Wasmtime C++ API — needed only by the wasm backend object (src/wasm).
 WASMTIME_HOME=${WASMTIME_HOME:-/opt/wasmtime}
 WASM_FLAGS="-I$WASMTIME_HOME/include"
-WASM_LIBS="-L$WASMTIME_HOME/lib -Wl,-rpath,$WASMTIME_HOME/lib -lwasmtime"
+PACKAGE_WASMTIME_RPATH='$ORIGIN/../../../../opt/wasmtime/lib'
+WASM_LIBS="-L$WASMTIME_HOME/lib -Wl,-rpath,$WASMTIME_HOME/lib -Wl,-rpath,$PACKAGE_WASMTIME_RPATH -lwasmtime"
 
 LIBS="-ldl -lm -lpthread -lpcre2-8 -lcrypto `mysql_config --cflags --libs` $WASM_LIBS"
 SRCFLAGS="-D EXEC_NAME=\"$GF\" -D PLATFORM_NAME=\"linux\""

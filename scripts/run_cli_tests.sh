@@ -79,6 +79,7 @@ if [[ "$action" == "run" ]]; then
 	done
 	scripts/test_dependency_invalidation.sh
 	scripts/test_abi_generation_rollout.sh
+	scripts/test_running_core_abi_pin.sh
 	scripts/test_wasm_core_smoke.sh
 	scripts/test_capy_phase1.sh
 	timeout --signal=TERM --kill-after=5s 120s scripts/test_task_workers_runtime.sh

@@ -1,9 +1,9 @@
-function CLI {
+function CLI(request : dval) {
     {
         var info := unit_info("capy-files.capy")
         var known := units_list()
         var found := false
-        for item = known {
+        for item := known {
             if find(string(item), "capy-files.capy") >= 0 {
                 found = true
             }

@@ -1,27 +1,50 @@
-function RENDER {
+function RENDER(request : dval) {
     response_status(201)
     response_header("X-Capy-Context", "yes")
     response_header("X-Capy-Clean", "first\r\nX-Injected: bad")
-    print(request_param("REQUEST_METHOD"), "|", request_get("name"), "|", request_post("answer"), "|", request_body(), "|", arc_live())
+    if !request.headers? { trap() }
+    if !request.cookies? { trap() }
+    if !request.files? { trap() }
+    if !request.route? { trap() }
+    if !request.url? { trap() }
+    if !request.server? { trap() }
+    if !request.session? { trap() }
+    if !request.props? { trap() }
+    if !request.config? { trap() }
+    if !request.call? { trap() }
+    if !request.connection? { trap() }
+    if !request.unit? { trap() }
+    if !request.websocket? { trap() }
+    if request.query.upload? {
+        print(string(request.files[0].name, ""), "|", u64(request.files[0].size, 0) > u64(0), "|", length(string(request.files[0].temporary_path, "")) > 0)
+        return
+    }
+    if string(request.method, "") == "POST" {
+        if string(request.headers["x-capy-schema"], "") != "yes" { trap() }
+        if !bool(request.route.valid, false) { trap() }
+        if string(request.url.script, "") == "" { trap() }
+        if string(request.server.QUERY_STRING, "") == "" { trap() }
+        if length(request.files) != 0 { trap() }
+    }
+    print(string(request.method, ""), "|", string(request.query.name, ""), "|", string(request.form.answer, ""), "|", string(request.body, ""), "|", arc_live())
 }
 
-function COMPONENT {
-    var request := request_context()
-    print(request["props"]["name"], "|", request["props"]["missing"]?, "|", arc_live())
+function COMPONENT(request : dval) {
+    print(string(request.props.name, ""), "|", request.props.missing?, "|", arc_live())
+    request.props.name = "child"
 }
 
-function COMPONENT:SCALAR {
-    print(request_context().props)
+function COMPONENT:SCALAR(request : dval) {
+    print(request.props)
 }
 
-function COMPONENT:TRAP {
+function COMPONENT:TRAP(request : dval) {
     print("must-not-leak")
     trap()
 }
 
-function COMPONENT:HANDLE (request : request) {
-    var snapshot := request_context(request)
-    if length(string(snapshot["current_unit"])) > 0 {
+function COMPONENT:HANDLE(request : dval) {
+    if length(string(request.unit, "")) > 0 {
         print("handle|", arc_live())
     }
 }

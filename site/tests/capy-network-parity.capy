@@ -1,11 +1,11 @@
-function CLI {
+function CLI(request : dval) {
     var socket := socket_connect("127.0.0.1", 80)
     var sent := socket_write(socket, "GET /tests/capy-render.capy HTTP/1.0\r\nHost: bearer.openfu.com\r\n\r\n")
     var chunk := socket_read(socket, 4096, 2)
     socket_close(socket)
-    var request := dval({"method": "GET", "url": "http://127.0.0.1/tests/capy-render.capy", "headers": {"Host": "bearer.openfu.com"}, "timeout_ms": 2000})
-    var response := http_request(request)
-    var job := http_request_async(request)
+    var outbound := dval({"method": "GET", "url": "http://127.0.0.1/tests/capy-render.capy", "headers": {"Host": "bearer.openfu.com"}, "timeout_ms": 2000})
+    var response := http_request(outbound)
+    var job := http_request_async(outbound)
     var done := job_await(dval(job), 3000)
     var hardened := http_request(dval({"method": "GET", "url": "http://127.0.0.1/", "security": {"https_only": true}}))
     print(socket > u64(0), "|", sent, "|", contains(chunk, "HTTP/"), "|", u64(response["status"]), "|", job > u64(0), ":", bool(done["done"]), ":", u64(dval_get_by_path(done, "result/status")), "|", hardened["error"], "|", arc_live())

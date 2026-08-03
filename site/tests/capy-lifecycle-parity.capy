@@ -1,6 +1,6 @@
-function INIT { print("entry-init;") }
-function ONCE { print("entry-once;") }
-function RENDER {
+function INIT(request : dval) { print("entry-init;") }
+function ONCE(request : dval) { print("entry-once;") }
+function RENDER(request : dval) {
     component_render("/tests/capy-lifecycle-child.capy")
     component_render("/tests/capy-lifecycle-child.capy")
     print("render")

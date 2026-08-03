@@ -17,17 +17,11 @@ Use it in server-rendered forms that change state. Validate the submitted field 
 The C++ `.uce` call has the same arguments.
 
 :example capy render
-print("<form method=\"post\">\n\t")
-print(csrf_field("bearer-doc-session"))
-print("\n\t")
-print(csrf_field("bearer-doc-session", "profile_form", "csrf_token"))
-print("\n\t<button type=\"submit\">Save</button>\n</form>")
+var field := csrf_field("bearer-doc-session", "profile_form", "csrf_token")
+print(strpos(field, "type=\"hidden\"") >= 0, "\n")
 :example cpp render
-?><form method="post">
-	<? print(csrf_field("bearer-doc-session")); ?>
-	<? print(csrf_field("bearer-doc-session", "profile_form", "csrf_token")); ?>
-	<button type="submit">Save</button>
-</form><?
+String field = csrf_field("bearer-doc-session", "profile_form", "csrf_token");
+print(field.find("type=\"hidden\"") != String::npos ? "true\n" : "false\n");
 
 :see
 >http

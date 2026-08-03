@@ -15,7 +15,7 @@ function echo(input : dval) dval {
     input
 }
 
-function RENDER {
+function RENDER(request : dval) {
     var result := echo({message: "ready"})
     print(result.message, "\n")
 }
@@ -41,14 +41,14 @@ function version(input : dval) dval {
 Load and call it from a neighboring page:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var service := unit_load("service.capy")
     var version := service.call("version")
     print(version.name, "\n")
 }
 ```
 
-`unit_load` returns a request-local `module` handle. The call copies its input and result DValues. `unit_call(path, name, input)` performs the same operation without keeping a handle.
+`unit_load` returns a request-local `module` handle. Module calls copy input and result DValues as BRRB. `unit_call(path, name, input)` performs the same operation without keeping a handle.
 
 Relative paths resolve from the calling unit. Use an absolute site path when the target must not depend on the caller directory.
 
@@ -63,8 +63,8 @@ Do not retain a module handle for another request. A later request can load a ne
 A component writes reusable response content. A named component uses a handler name:
 
 ```capy
-function COMPONENT:CARD(request : request) {
-    var props := request_context(request).props
+function COMPONENT:CARD(request : dval) {
+    var props := request.props
     <><article><?= string(props.title, "Untitled") ?></article></>
 }
 ```
@@ -72,7 +72,7 @@ function COMPONENT:CARD(request : request) {
 Render it into the response:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     component_render("card.capy:CARD", {title: "News"})
 }
 ```
@@ -81,7 +81,9 @@ Use `component_capture` when the caller needs the component output as a string. 
 
 ## Boundary rules
 
-Units and components exchange copied DValues. A target cannot mutate the caller's value through the boundary. Missing units, missing exports, and incompatible exported signatures are errors.
+A DValue shares identity only inside one workspace. Bearer, module, component, task, custom export or C++, codec, request, and serialization boundaries copy BRRB. Identity never crosses a boundary. A target cannot mutate the caller's value through a boundary.
+
+Missing units, missing exports, and incompatible exported signatures are errors.
 
 :see
 unit_load

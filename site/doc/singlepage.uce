@@ -1,3 +1,4 @@
+#include "lib/capy_signatures.generated.h"
 #include "lib/doc_page.h"
 
 // Render generated signatures and inline guide examples in one document.

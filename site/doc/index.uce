@@ -1,3 +1,4 @@
+#include "lib/capy_signatures.generated.h"
 #include "lib/doc_page.h"
 
 // doc_page.h supplies generated API signatures and inline guide examples.
@@ -73,7 +74,7 @@ String doc_example_unit_source(String language, String entry, String body)
 {
 	String handler = doc_example_handler_name(entry);
 	if(language == "capy")
-		return("function " + handler + " {\n" + body + "\n}\n");
+		return("function " + handler + "(request : dval) {\n" + body + "\n}\n");
 	return(handler + "(Request& context)\n{\n" + body + "\n}\n");
 }
 
@@ -108,11 +109,48 @@ DValue doc_compile_example(Request& context, String page, u64 idx, String langua
 	return(result);
 }
 
+struct DocExampleResponseState
+{
+	Request& context;
+	String response_code;
+	StringMap header;
+	std::vector<String> set_cookies;
+	StringMap session;
+	String session_loaded_hash;
+	String session_id;
+	String session_name;
+	s32 status;
+	bool is_finished;
+	bool output_closed;
+
+	DocExampleResponseState(Request& context) : context(context), response_code(context.response_code), header(context.header),
+		set_cookies(context.set_cookies), session(context.session), session_loaded_hash(context.session_loaded_hash),
+		session_id(context.session_id), session_name(context.session_name), status(context.flags.status),
+		is_finished(context.flags.is_finished), output_closed(context.flags.output_closed)
+	{
+	}
+
+	~DocExampleResponseState()
+	{
+		context.response_code = response_code;
+		context.header = header;
+		context.set_cookies = set_cookies;
+		context.session = session;
+		context.session_loaded_hash = session_loaded_hash;
+		context.session_id = session_id;
+		context.session_name = session_name;
+		context.flags.status = status;
+		context.flags.is_finished = is_finished;
+		context.flags.output_closed = output_closed;
+	}
+};
+
 DValue doc_render_example(Request& context, String page, u64 idx, String language, String entry, String body, bool complete_unit)
 {
 	DValue result = doc_compile_example(context, page, idx, language, entry, body, complete_unit);
 	if(result["error"].to_string() != "" || entry != "render")
 		return(result);
+	DocExampleResponseState response_state(context);
 	ob_start();
 	unit_render(result["path"].to_string());
 	result["output"] = ob_get_close();

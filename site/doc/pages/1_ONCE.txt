@@ -5,35 +5,23 @@ ONCE
 ONCE(Request& context)
 
 :see
->1_COMPONENT
->1_INIT
+>0_Request
 >1_RENDER
+>1_COMPONENT
+>1_CLI
 >1_WS
->3_C++ Preprocessor
->unit_call
 
 :content
-`function ONCE` defines the Capy request-local hook for one unit.
+`function ONCE(request : dval)` defines the Capy request-local unit hook.
 
-Use `function ONCE { ... }` for the normal form. You can also declare `function ONCE(request : request) { ... }`. The optional input is an opaque Capy request value.
+Every Capy Bearer handler has exactly one parameter. The parameter name is `request`. Its type is `dval`. The value is a copied request snapshot. Bearer runs this hook before the first unit entry or component call.
 
-The hook accepts no other inputs and returns no value. Bearer runs it before the first render or component call for this resolved unit and request. Later component calls to the same unit in that request do not run it again.
-
-Use `ONCE` to prepare request-local derived data that several component calls need. Do not use it for worker-local state. Capy unit hooks do not provide persistent worker-local state.
-
-The compiler rejects other parameter forms, a return type, and handler overloads. A trap in `ONCE` stops that invocation.
-
-## C++ API
+Read input from the request fields. Use response, session, output, and WebSocket functions for effects. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.
 
 C++ declares `ONCE(Request& context)`. C++ can store request-local data in the live context.
 
-Capy does not expose C++ `Request&`, `context.call`, or mutable `DValue` aliases. Use Capy request functions and copied `dval` values. Capy cannot use C++ references or direct C++ object access.
-
-## Example
-
-
 :example capy render
-print("Declare ONCE as a top-level function.\n")
+print(string(request.method, ""), "\n")
 
 :example cpp render
-print("Declare ONCE as a top-level function.\n");
+print(context.params["REQUEST_METHOD"], "\n");

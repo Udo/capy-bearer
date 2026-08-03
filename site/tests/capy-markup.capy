@@ -10,7 +10,7 @@ function build_page () markup {
     return <><main><?= side_effect() ?><?= dangerous ?><?: nested ?><?: trusted ?><?= <><i><?= dangerous ?></i></> ?><aside><?= 0 - 2147483647 - 1 ?>:<?= 0 ?>:<?= 2147483647 ?>:<?= true ?>:<?= false ?></aside><wide><?= s64(-9223372036854775808) ?>:<?= u64(18446744073709551615) ?>:<?= -1.5 ?></wide></main></>
 }
 
-function CLI {
+function CLI(request : dval) {
     print(<><p>static</p></>, "|")
     print(build_page(), "|", <><?= -2147483648 ?></>, "|", arc_live())
 }

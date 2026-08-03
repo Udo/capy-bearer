@@ -4,7 +4,7 @@ DValue::map(String mapper) (legacy `StringList` page)
 :content
 `map(items, mapper)` takes a list-shaped `dval` and a string mapper. It returns a new list-shaped `dval` of mapped strings in input order.
 
-Capy has no separate `StringList` type. It uses copied `dval` values.
+Capy has no separate `StringList` type. It uses list-shaped DValues. The function returns a new list and does not mutate `items`.
 
 ## C++ API
 
@@ -16,7 +16,7 @@ Capy has no separate `StringList` type. It uses copied `dval` values.
 
 :example capy render
 var items := split("one,two", ",")
-var upper := map(items, function(value : string) string { return to_upper(value) })
+var upper := map(items, function(value : string) string { return upper(value) })
 print(join(upper, ","), "\n")
 :example cpp render
 StringList items = split("one,two", ",");

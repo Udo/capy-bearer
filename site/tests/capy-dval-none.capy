@@ -10,7 +10,7 @@ function replacement(marker : string, value : string) dval {
     dval(value)
 }
 
-function CLI {
+function CLI(request : dval) {
     {
         var empty := dval("")
         var false_value := dval(false)

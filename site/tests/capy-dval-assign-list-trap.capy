@@ -1,4 +1,4 @@
-function CLI {
+function CLI(request : dval) {
     var values := dval(["only"])
     values[1] = "two"
 }

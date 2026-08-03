@@ -1,0 +1,28 @@
+:title
+runtime_perf
+
+:sig
+DValue request_perf()
+
+:params
+return value : performance data for the active request workspace
+
+:see
+>0_Request
+>request_perf
+>time_precise
+
+:content
+`runtime_perf()` returns diagnostic data for an active Capy request workspace. Outside that workspace, it returns an invalid DValue. It does not read request input.
+
+The result can include request, transport, workspace, guest, hostcall, unit-load, component, and connector timing data. The enabled profiling options and completed work control the available fields. `hostcall_cpu_profiled` and `thread_runtime_profiled` show whether optional counters are available.
+
+C++ keeps `request_perf()` with the signature above. Capy uses `runtime_perf()`.
+
+:example capy render
+var perf := runtime_perf()
+print(dval_get_type_name(perf), "\n")
+
+:example cpp render
+DValue perf = request_perf();
+print(perf.get_type_name(), "\n");

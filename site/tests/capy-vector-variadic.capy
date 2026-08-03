@@ -25,11 +25,11 @@ function mutate_copy(values : [string]) string {
 }
 function joined(...values : as string) string {
     var result := ""
-    for value = values { result = result + value }
+    for value := values { result = result + value }
     result
 }
 
-function CLI {
+function CLI(request : dval) {
     {
         print(s32("seven"), "|", show(Token("token")), "|", show(Token(8)), "|")
 
@@ -60,7 +60,7 @@ function CLI {
         var named : function(...values : as string) string = joined
         var anonymous := function(...values : as string) string {
             var result := ""
-            for value = values { result = result + value }
+            for value := values { result = result + value }
             result
         }
         var tuple_args := (4, "c")

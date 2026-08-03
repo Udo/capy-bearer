@@ -10,12 +10,12 @@ session_name : session cookie name
 :content
 In Capy, use this function to end the named session.
 
-It expires the cookie and removes the matching server-side session file. For the active session, a later `request_context()` snapshot has empty `session_id`, `session_name`, and `session` fields.
+It expires the cookie and removes the matching server-side session file. In Capy, `session_destroy` returns `{id, name, values}` for the resulting state. The fields are empty for the destroyed session. C++ keeps its documented `void` behavior.
 
 :example capy render
-var id := session_start("bearer-doc-example-destroy")
-session_destroy("bearer-doc-example-destroy")
-if id != "" { print("destroyed\n") } else { print("empty\n") }
+var session := session_start("bearer-doc-example-destroy")
+session = session_destroy("bearer-doc-example-destroy")
+if string(session.id, "") == "" { print("destroyed\n") } else { print("active\n") }
 
 :example cpp render
 String id = session_start("bearer-doc-example-destroy");

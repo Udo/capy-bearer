@@ -1,4 +1,4 @@
-function CLI {
+function CLI(request : dval) {
     {
         var first := regex_search("(?<word>[a-z]+)", "123 Capy!", "i")
         var all := regex_search_all("[a-z]+", "one TWO three", "i")

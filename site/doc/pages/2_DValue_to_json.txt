@@ -1,27 +1,24 @@
+:title
+DValue to_json
+
 :sig
 String DValue::to_json(char quote_char = '"') const
 
 :params
-quote_char : quote character passed to string escaping
-return value : JSON-ish scalar representation
+quote_char : C++ quote character for string escaping
+return value : C++ JSON-like scalar representation
 
 :see
 >types
 0_DValue
 json_encode
 
+:capy-status cpp-specific
+
 :content
-`dval_to_json(value, quote)` takes a `dval` and an optional quote string. It returns this low-level JSON scalar representation. Strings are escaped and quoted. Numbers use the runtime numeric text. Booleans use `true` or `false`. Maps return `"(array)"`.
+`DValue::to_json()` is a C++ API. It escapes and quotes strings. It writes numbers as runtime numeric text. It writes booleans as `true` or `false`. Maps return `(array)`.
 
-Use `json_encode` for full structured JSON. Capy cannot represent C++ pointer or reference values.
-
-## C++ API
-
-`DValue::to_json()` accepts a quote character. It represents pointers as `"(pointer)"` and references as `"(reference)"`.
-
-:example capy render
-var value := dval("Ada")
-print(dval_to_json(value), "\n")
+C++ represents pointers as `(pointer)` and references as `(reference)`. Capy does not expose `dval_to_json`. Use `json_encode(value)` for JSON.
 
 :example cpp render
 DValue value;

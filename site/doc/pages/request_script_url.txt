@@ -1,18 +1,25 @@
+:title
+request_script_url
+
 :sig
 String request_script_url(Request& context)
+
+:params
+context : live C++ request context
+return value : canonical script URL
 
 :see
 >uri
 request_base_url
 request_query_route
+0_Request
+
+:capy-status cpp-specific
 
 :content
-In Capy, this function reads the current request. Do not pass a `Request` value.
+`request_script_url()` is a C++ API. It returns the script URL from `DOCUMENT_URI` or `SCRIPT_NAME`. For a front controller, it changes a URL that ends in `/index.uce` to the containing directory URL.
 
-It returns the script URL from `DOCUMENT_URI` or `SCRIPT_NAME`. For a front controller, it changes a URL that ends in `/index.uce` to the containing directory URL.
-
-:example capy render
-if request_script_url() != "" { print("script url\n") } else { print("empty\n") }
+Capy does not expose `request_script_url`. In a Capy `RENDER` handler, read `request.url.script`.
 
 :example cpp render
 print(request_script_url(context) != "" ? "script url\n" : "empty\n");

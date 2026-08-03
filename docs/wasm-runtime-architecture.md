@@ -85,13 +85,13 @@ the boundary).
   (`_map`, a `std::map<String,DValue>`). `operator[]` is non-const (creates);
   `.key(k)` is the const probe returning `const DValue*`; `.each(fn)` iterates
   children yielding `const DValue&`.
-- The request context (`params`/`get`/`post`/`cookies`/`session`, the raw body
-  `in`, and—for WS—the connection context) is marshalled into a single `ctx`
-  DValue and BRRB-encoded. Immutable server configuration is BRRB-encoded once
-  per worker as a flat string map; both byte ranges are written into one guest
-  buffer. The guest decodes the flat map directly into its fresh `Server` and
-  the dynamic tree into its fresh `Request`. The response (body, headers,
-  status, and any `meta` such as `ws_commands`) comes back as BRRB.
+- The request envelope carries the request context (`params`/`get`/`post`/
+  `cookies`/`session`), the raw body `in`, uploaded-file metadata, immutable
+  configuration (`cfg`), and—for WS—the connection context. The host
+  BRRB-encodes it into one guest buffer. The guest decodes configuration into a
+  fresh `Server` and the dynamic tree into a fresh `Request`. The response
+  (body, headers, status, and any `meta` such as `ws_commands`) comes back as
+  BRRB.
 
 The wire format details are documented with the BRRB implementation.
 
@@ -219,6 +219,8 @@ compiles require a valid zero child exit, cap captured output, and stage
 generated C++, exports, source maps, Wasm, and metadata. Publication removes
 the prior serialized module and diagnostics inside the same rollback-protected
 generation while repeatedly checking the live request deadline.
+
+C++ uses `request_perf()`. Capy uses `runtime_perf()` for the same request-workspace diagnostics.
 
 `request_perf()` reports worker module-cache hits and misses and divides a miss
 into artifact lookup, wasm read, custom-section parse, serialized-module
@@ -376,13 +378,15 @@ state-changing branch; repeating it immediately after a successful warm check
 adds no freshness guarantee.
 
 The internal request envelope carries application `context.call` and
-`context.props` as BRRB2, each request `StringMap` as a flat BRRB2 map, scalar
-session/input metadata as bounded byte segments, and optional WebSocket state as BRRB2. The guest
-validates the complete envelope before moving those values into a fresh
-`Request`; transport-only params, cookies, session data, and entry metadata no
-longer become duplicate `context.call` children. The historical by-value
+`context.props`, configuration (`cfg`), uploaded-file metadata, each request
+`StringMap`, scalar session/input metadata, and optional WebSocket state. It
+uses BRRB2 values and bounded byte segments. The guest validates the complete
+envelope before moving those values into a fresh `Request`. Transport-only
+params, cookies, session data, and entry metadata no longer become duplicate
+`context.call` children. The historical by-value
 `DValue::operator=(DValue)` symbol remains exported so warmed side-module
-artifacts stay ABI-compatible. `request_perf()` subdivides birth into policy,
+artifacts stay ABI-compatible. C++ calls `request_perf()` for these details. Capy calls `runtime_perf()`.
+`request_perf()` subdivides birth into policy,
 import materialization, core instantiation, export/table lookup, and initialization,
 and context transfer into bytes, host encode, guest allocation/write,
 guest decode/application, and free. The byte profile separately reports the

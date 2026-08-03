@@ -10,7 +10,7 @@ return value : none
 2_DValue_reference_target
 
 :content
-Capy does not support `set_reference`. Capy `dval` values are copies and cannot hold a C++ `DValue*` target.
+Capy does not support `set_reference`. DValues share identity inside a workspace, but they cannot hold a C++ `DValue*` target.
 
 ## C++ API
 
@@ -19,7 +19,7 @@ Capy does not support `set_reference`. Capy `dval` values are copies and cannot 
 
 :capy-status unsupported
 
-Capy passes values by copy and cannot create a DValue reference.
+Capy cannot create a C++ internal reference node.
 
 :example cpp render
 DValue target;

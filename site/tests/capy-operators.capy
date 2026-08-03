@@ -12,7 +12,7 @@ function consume(value : string) bool {
     return true
 }
 
-function CLI {
+function CLI(request : dval) {
     number := 5
     print(false && noisy(), "|", true || noisy(), "|", true && noisy(), "|", make_value(), "|", -number, "|", !false, "|")
     print(false && consume(skipped := clone("skip")), arc_live(), "|")

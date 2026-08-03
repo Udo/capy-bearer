@@ -13,7 +13,7 @@ function display_name(profile : dval) string {
     string(profile.name, "guest")
 }
 
-function RENDER {
+function RENDER(request : dval) {
     print(display_name({:}), "\n")
 }
 
@@ -28,7 +28,7 @@ The fallback handles both `none` and failed string conversion. It does not hide 
 The compiler rejects invalid syntax, unknown names, and incompatible types. For example, this assignment is invalid:
 
 ```capy-error
-function RENDER {
+function RENDER(request : dval) {
     var count := 1
     count = "one"
 }
@@ -43,7 +43,7 @@ Read the first diagnostic and its source location. Later messages can be consequ
 Use strict access when missing data violates the program contract:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var profile := {:}
     var name := dval_require(profile, "name")
     print(name)

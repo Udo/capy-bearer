@@ -13,7 +13,7 @@ In Capy, use this function to test whether route text is safe after normalizatio
 
 A safe route has non-empty segments. Each segment can contain ASCII letters, digits, `_`, and `-`. The function rejects `.` and `..` segments.
 
-For request routes, prefer `request_query_route()` or `ROUTE_PATH`. These APIs also parse and sanitize the request input.
+For handler routes, use `request.route` or `ROUTE_PATH`. These APIs parse and sanitize request input.
 
 :example capy render
 if route_path_is_safe("docs/index") { print("safe\n") } else { print("unsafe\n") }

@@ -1,3 +1,3 @@
-function CLI {
+function CLI(request : dval) {
     print("a" + "b", "|", arc_live())
 }

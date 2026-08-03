@@ -2,16 +2,13 @@
 9. Handling a web request
 
 :content
-A `RENDER` handler receives a web request and writes its response. Bearer creates a new request workspace for each invocation.
+A Capy Bearer handler receives one copied request snapshot. Declare every handler with `request : dval`.
 
-## Read a request value
+## Read the request snapshot
 
 :example capy render
-function RENDER {
-    var name := request_param("name")
-    if name == "" {
-        name = "guest"
-    }
+function RENDER(request : dval) {
+    var name := string(request.query.name, "guest")
     response_header("Content-Type", "text/plain; charset=utf-8")
     print("Hello, ", name, "!\n")
 }
@@ -20,81 +17,31 @@ function RENDER {
 Hello, guest!
 
 :content
-Open the page with `?name=Ada` to change the response. `request_param` reads a query or form parameter and returns an empty string when it is absent.
+The snapshot contains `method`, `query`, `form`, `headers`, `cookies`, `body`, `files`, `route`, `url`, `server`, `session`, `props`, `config`, `call`, `connection`, `unit`, and `websocket`.
 
-## Request input
+`route` contains `path`, `page`, `raw_path`, and `valid`. `url` contains `script` and `base`. `session` contains `id`, `name`, and `values`. `websocket` contains `connection_id`, `scope`, `opcode`, `binary`, and current-scope `connections`.
 
-Use the narrow request functions when the program needs one value:
-
-```capy
-function RENDER {
-    var query := request_get("q")
-    var token := request_cookie("token")
-    var body := request_body()
-    print(query, token, body)
-}
-```
-
-Use `request_context()` when code needs a copied dynamic snapshot of the request:
-
-```capy
-function RENDER {
-    var context := request_context()
-    var name := string(context.params.name, "guest")
-    print(name, "\n")
-}
-```
-
-Safe DValue reads return `none` for missing data. Validate all request input before use.
-
-A handler can also receive the opaque request value:
-
-```capy
-function RENDER(request : request) {
-    var context := request_context(request)
-    print(string(context.params.name, "guest"))
-}
-```
+Missing members are `none`. Use normal conversions for scalar values. For example, use `string(request.form.email, "")`, `s32(request.websocket.opcode, 0)`, and `bool(request.websocket.binary, false)`.
 
 ## Form a response
 
-`print` appends bytes to the response body. Set status and headers before the response is sent:
-
-```capy
-function RENDER {
-    response_status(404, "Not Found")
-    response_header("Content-Type", "text/plain; charset=utf-8")
-    print("not found\n")
-}
-```
-
-Use `response_cookie` for a cookie and `redirect` for a redirect response.
+Use `print`, `response_status`, `response_header`, `response_cookie`, and `redirect` to change the response. Use `ws_send`, `ws_send_to`, and `ws_close` for WebSocket effects. Use `request.websocket.connections` to select current-scope clients.
 
 ## Sessions
 
-Call `session_start` before session access. Then use `session_set`, `session_remove`, and `session_destroy` to change server-side session data.
+Session effects return a state map with `id`, `name`, and `values`. Keep the returned value when later code needs changed session data. The handler request snapshot does not change.
 
 ```capy
-function RENDER {
-    session_start("account")
-    session_set("theme", "dark")
-    print("saved\n")
+function RENDER(request : dval) {
+    var session := session_start("account")
+    session = session_set("theme", "dark")
+    print(string(session.values.theme, ""), "\n")
 }
 ```
-
-A session persists separately from the request workspace.
 
 ## Other handlers
 
-`CLI` handles a local CLI request. `INIT` runs when Bearer materializes a unit in a request workspace. `ONCE` runs before the first entry or component call for that unit in the request.
-
-```capy
-function CLI {
-    print("maintenance complete\n")
-}
-```
-
-Handlers do not return application values. A trap stops the current invocation. The next request starts with a new workspace.
+`RENDER`, named `RENDER`, `COMPONENT`, named `COMPONENT`, `CLI`, `WS`, `TASK`, named `TASK`, `INIT`, `ONCE`, and custom HTTP handlers all use `request : dval`. Handlers do not return application values.
 
 :see
 0_Request

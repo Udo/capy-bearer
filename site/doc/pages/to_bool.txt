@@ -1,26 +1,24 @@
+:title
+to_bool
+
 :sig
 bool to_bool(String s, bool fallback = false)
 
 :params
-s : text to parse
-fallback : value returned for empty or unrecognized text
-return value : parsed `bool`, or `fallback`
+s : C++ text to parse
+fallback : value for empty or unrecognized text
+return value : parsed C++ boolean or `fallback`
 
 :see
 >types
-to_u64
-to_s64
-to_f64
+2_DValue_to_bool
+
+:capy-status cpp-specific
 
 :content
-In Capy, call `to_bool(raw[, fallback])` to convert text to a `bool` value.
+`to_bool()` is a C++ API. It ignores case and surrounding whitespace. It accepts `1`, `true`, `yes`, and `on` as true. It accepts `0`, `false`, `no`, and `off` as false.
 
-Capy ignores case and surrounding whitespace. It accepts `"1"`, `"true"`, `"yes"`, and `"on"` for `true`. It accepts `"0"`, `"false"`, `"no"`, and `"off"` for `false`. Empty or unrecognized text returns `fallback`.
-
-Use this function for boolean configuration or request values. C++ uses the legacy `s` parameter and default shown above. Its accepted values and fallback behavior are the same.
-
-:example capy render
-if to_bool("yes") { print("true\n") } else { print("false\n") }
+Capy does not expose `to_bool`. Use `bool(value, fallback)`.
 
 :example cpp render
 print(to_bool("yes") ? "true\n" : "false\n");

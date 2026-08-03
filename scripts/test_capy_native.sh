@@ -18,6 +18,29 @@ else
 	echo "Reusing $BUILD_DIR/capyc"
 fi
 "$BUILD_DIR/capyc" --check-stdlib src/capy/stdlib.capy src/capy/stdlib.embedded.h
+python3 - <<'STATIC_GATE'
+from pathlib import Path
+import re
+handlers = re.compile(r'^\s*function\s+(?:RENDER|COMPONENT(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)?|CLI|WS|TASK(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)?|INIT|ONCE|SERVE_HTTP(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)?)\s*(?:\(([^)]*)\))?\s*\{', re.M)
+removed = re.compile(r'\b(?:request_context|request_param|request_get|request_post|request_cookie|request_session|request_body|request_base_url|request_script_url|request_query_path|request_query_route|cli_input|cli_arg|ws_message|ws_connection_id|ws_scope|ws_opcode|ws_is_binary|ws_connections|ws_connection_count|to_bool|to_f64|to_s64|to_u64|to_lower|to_upper|dval_to_json|dval_to_stringmap|request_route_from_raw_path|request_perf)\s*\(')
+paths = [Path(line) for line in __import__('subprocess').check_output(['git', 'ls-files', '*.capy'], text=True).splitlines()]
+errors = []
+for path in paths:
+    source = path.read_text()
+    for match in handlers.finditer(source):
+        if match.group(1) != 'request : dval':
+            errors.append(f'{path}:{source.count(chr(10), 0, match.start()) + 1}: handler must use (request : dval)')
+    if re.search(r'\brequest\s*:\s*request\b', source):
+        errors.append(f'{path}: public request type is not allowed')
+    if removed.search(source):
+        errors.append(f'{path}: removed request reader is not allowed')
+fixture = Path('site/tests/capy-request-context.capy').read_text()
+for field in ('method', 'query', 'form', 'headers', 'cookies', 'body', 'files', 'route', 'url', 'server', 'session', 'props', 'config', 'call', 'connection', 'unit', 'websocket'):
+    if f'request.{field}' not in fixture:
+        errors.append(f'site/tests/capy-request-context.capy: missing request schema field {field}')
+if errors:
+    raise SystemExit('\n'.join(errors))
+STATIC_GATE
 if git grep -nE '[0-9](s32|s64|u64)\b' -- src/capy/stdlib.capy 'site/**/*.capy' 'site/doc/**/*.txt' docs/capy-language.md; then
 	echo "Capy source or documentation still uses a removed numeric suffix" >&2
 	exit 1
@@ -43,7 +66,7 @@ cmp "$PARITY_MANIFEST" docs/capy-uce-parity.md
 
 clang++ "${COMMON[@]}" src/capy/frontend.cpp scripts/test_capy_native_frontend.cpp \
 	-o "$BUILD_DIR/frontend"
-mapfile -t fixtures < <(git ls-files 'site/**/*.capy')
+mapfile -t fixtures < <({ git ls-files 'site/**/*.capy'; printf '%s\n' site/tests/capy-mutable-array-struct.capy site/tests/capy-dval-identity.capy; } | sort -u)
 "$BUILD_DIR/frontend" "${fixtures[@]}"
 
 clang++ "${COMMON[@]}" src/capy/wasm.cpp scripts/test_capy_native_wasm.cpp \
@@ -69,7 +92,7 @@ cmp "$BUILD_DIR/phase1.wasm.source-map" "$BUILD_DIR/repeat/phase1.wasm.source-ma
 scripts/compile_wasm_unit . "$BUILD_DIR" site/tests/capy-phase1.capy unused.cpp wrapper.wasm "$BUILD_DIR"
 wasm-validate "$BUILD_DIR/wrapper.wasm"
 
-for fixture in capy-arc capy-loop-control capy-phase3 capy-closures capy-markup capy-dval-rich capy-cross capy-module-target capy-module-caller capy-methods; do
+for fixture in capy-arc capy-loop-control capy-phase3 capy-closures capy-markup capy-dval-rich capy-cross capy-module-target capy-module-caller capy-methods capy-mutable-array-struct capy-dval-identity; do
 	"$BUILD_DIR/capyc" "site/tests/$fixture.capy" \
 		-o "$BUILD_DIR/$fixture.wasm" --source-map "$BUILD_DIR/$fixture.wasm.source-map" --abi-version "$ABI_VERSION"
 	wasm-validate "$BUILD_DIR/$fixture.wasm"
@@ -145,10 +168,8 @@ wasm-objdump -x "$BUILD_DIR/request-parity.wasm" >"$BUILD_DIR/request-parity.obj
 grep -q 'env.bearer_request_workspace_brrb' "$BUILD_DIR/request-parity.objdump"
 ! grep -q 'env.bearer_request_context_brrb\|env.bearer_redirect\|env.bearer_session_start' "$BUILD_DIR/request-parity.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-request-context.capy.wasm" >"$BUILD_DIR/request-context.objdump"
-grep -q 'env.bearer_request_context_brrb' "$BUILD_DIR/request-context.objdump"
-grep -q 'env.bearer_request_context_for_brrb' "$BUILD_DIR/request-context.objdump"
-grep -q 'env.bearer_request_value' "$BUILD_DIR/request-context.objdump"
-grep -q 'env.bearer_request_body' "$BUILD_DIR/request-context.objdump"
+grep -q 'env.bearer_handler_input_brrb' "$BUILD_DIR/request-context.objdump"
+! grep -q 'env.bearer_request_context_brrb\|env.bearer_request_context_for_brrb\|env.bearer_request_value\|env.bearer_request_body' "$BUILD_DIR/request-context.objdump"
 ! grep -q 'env.bearer_response_set_status' "$BUILD_DIR/request-context.objdump"
 grep -q 'env.bearer_response_set_header' "$BUILD_DIR/request-context.objdump"
 CAPYC="$BUILD_DIR/capyc" scripts/test_capy_artifact_golden.sh

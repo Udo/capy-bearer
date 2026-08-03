@@ -12,6 +12,6 @@ function datastar_patch_signals(signals_json : string) string {
     return clone("event: datastar-patch-signals\ndata: signals ") + signals_json + "\n\n"
 }
 
-function CLI {
+function CLI(request : dval) {
     print(datastar_patch_signals("{\"datastar\":true}"))
 }

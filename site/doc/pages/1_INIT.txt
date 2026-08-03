@@ -5,35 +5,23 @@ INIT
 INIT(Request& context)
 
 :see
->1_COMPONENT
->1_ONCE
+>0_Request
 >1_RENDER
+>1_COMPONENT
+>1_CLI
 >1_WS
->3_C++ Preprocessor
->unit_call
 
 :content
-`function INIT` defines the Capy unit-materialization hook.
+`function INIT(request : dval)` defines the Capy unit materialization hook.
 
-Use `function INIT { ... }` for the normal form. You can also declare `function INIT(request : request) { ... }`. The optional input is an opaque Capy request value.
+Every Capy Bearer handler has exactly one parameter. The parameter name is `request`. Its type is `dval`. The value is a copied request snapshot. Bearer runs this hook before dispatch in a request workspace.
 
-The hook accepts no other inputs and returns no value. Bearer runs it after it materializes the unit in a request workspace and binds the current request. It runs before the first dispatch to that unit in the workspace.
-
-Bearer creates a new workspace for each request. `INIT` can therefore run again for the next request. It does not provide persistent worker-local state. Use it only for setup that the materialized unit needs in the current request workspace. Use `ONCE` for request-local preparation that must occur before the first entry or component call.
-
-The compiler rejects other parameter forms, a return type, and handler overloads. A trap in `INIT` stops that request invocation.
-
-## C++ API
+Read input from the request fields. Use response, session, output, and WebSocket functions for effects. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.
 
 C++ declares `INIT(Request& context)`. It receives the live request context after Bearer materializes the unit in that request workspace.
 
-Capy does not expose C++ `Request&` or its mutable fields. Use the opaque `request` value and Capy request functions. Capy cannot use C++ references or direct C++ object access.
-
-## Example
-
-
 :example capy render
-print("Declare INIT as a top-level function.\n")
+print(string(request.method, ""), "\n")
 
 :example cpp render
-print("Declare INIT as a top-level function.\n");
+print(context.params["REQUEST_METHOD"], "\n");

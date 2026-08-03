@@ -8,7 +8,7 @@ function widen(value : as s64) s64 { value }
 function ranked(left : as s64, right : as s64) s32 { 4 }
 function ranked(left : as u64, right : as f64) s32 { 5 }
 
-function CLI {
+function CLI(request : dval) {
     print(
         scalar(7), "|", scalar(u64(8)), "|",
         text([42][0]), "|", text(s64(-9)), "|", text(u64(10)), "|", text(4.25), "|", text(true), "|", text(false), "|",

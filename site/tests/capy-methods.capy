@@ -9,7 +9,7 @@ struct OverrideBox { callback : function(value : s32) s32 }
 function callback(value : string, argument : s32) s32 { 0 }
 function callback(value : OverrideBox, argument : s32) s32 { print("extension;"); argument }
 
-function CLI {
+function CLI(request : dval) {
     var call : function(value : s32) s32 = function(value : s32) s32 { print("shadow;"); value }
     var box := Box(function(value : s32) s32 { print("field;"); value + 1 })
     var overridden := OverrideBox(function(value : s32) s32 { print("wrong-field;"); value })

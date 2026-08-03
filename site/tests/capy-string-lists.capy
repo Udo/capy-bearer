@@ -3,7 +3,7 @@ function observed(value : string, label : string) string {
     value
 }
 
-function CLI {
+function CLI(request : dval) {
     {
         var parts := split("a,,b,", ",")
         var whole := split("Capy", "")

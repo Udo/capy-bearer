@@ -8,7 +8,7 @@ A Capy file contains declarations. Functions, handlers, structs, and type aliase
 
 :example capy render
 // A comment continues to the end of the line.
-function RENDER {
+function RENDER(request : dval) {
     var greeting := "Hello"
     print(greeting, ", Capy!\n")
 }
@@ -28,7 +28,7 @@ function add(left : s32, right : s32) s32 {
     left + right
 }
 
-function RENDER {
+function RENDER(request : dval) {
     print(add(20, 22), "\n")
 }
 ```
@@ -44,7 +44,7 @@ function add(left : s32, right : s32) s32 {
     left + right
 }
 
-function RENDER {
+function RENDER(request : dval) {
     var total := add(
         20,
         22
@@ -60,7 +60,7 @@ A block starts with `{` and ends with `}`. Its expressions run from top to botto
 Use `//` for a line comment:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     // Explain why the next operation is necessary.
     var retries := 3
     print(retries, "\n")

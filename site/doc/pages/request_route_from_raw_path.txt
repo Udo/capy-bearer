@@ -1,26 +1,27 @@
+:title
+request_route_from_raw_path
+
 :sig
 DValue request_route_from_raw_path(String raw_path, String default_path = "index")
 
 :params
 raw_path : route text from a request or query string
 default_path : route for empty input
-return value : route metadata as a `dval`
+return value : C++ route metadata as a `dval`
 
 :see
 >request
 >route_path_sanitize
+>route_from_raw_path
+
+:capy-status cpp-specific
 
 :content
-In Capy, use this function to validate route text before you use it as a file-backed route.
+`request_route_from_raw_path()` is a C++ API. It validates route text without reading the active request.
 
-The result contains `raw_path`, `l_path`, `page`, and `valid`. `raw_path` is normalized input for diagnostics. `l_path` is the safe route, or an empty string when validation fails. `page` is the first route segment. `valid` is true when `l_path` is safe.
+The result contains `raw_path`, `l_path`, `page`, and `valid`. `raw_path` is normalized diagnostic input. `l_path` is the safe route, or an empty string when validation fails. `page` is the first route segment. `valid` is true when `l_path` is safe.
 
-The function uses `default_path` for empty input. Treat only `l_path` as safe to compose below an application-controlled route root.
-
-:example capy render
-var route := request_route_from_raw_path("blog/2024/hello-world")
-print("page=", route["page"], " valid=")
-if bool(route["valid"]) { print("yes\n") } else { print("no\n") }
+Capy does not expose `request_route_from_raw_path`. Use `route_from_raw_path(raw_path, default_path)` in Capy. Use only its `path` below an application-controlled route root.
 
 :example cpp render
 DValue route = request_route_from_raw_path("blog/2024/hello-world");

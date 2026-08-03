@@ -45,8 +45,8 @@ Capy has these built-in types:
 
 - `bool`, `s32`, `s64`, `u64`, and `f64` are scalar types.
 - `string` and `markup` are managed byte values.
-- `dval` is a managed copied dynamic value.
-- `request` and `module` are opaque Bearer values.
+- `dval` is a managed mutable dynamic value.
+- `module` is an opaque Bearer value.
 - `void` means that an expression produces no value.
 
 The following forms compose types:
@@ -82,7 +82,7 @@ type Count = s64
 var count := Count(4)
 ```
 
-An alias to an array, tuple, function type, `request`, `module`, or `void` has no constructor call. `any` and dependent `value::type` expressions require a generic function context and cannot be closed top-level aliases.
+An alias to an array, tuple, function type, `module`, or `void` has no constructor call. `any` and dependent `value::type` expressions require a generic function context and cannot be closed top-level aliases.
 
 An alias cannot conflict with a built-in type, struct, function, handler, public standard-library name, or another alias.
 
@@ -90,7 +90,7 @@ An alias cannot conflict with a built-in type, struct, function, handler, public
 
 Use `var name := value` or `name := value` to declare an inferred local. Use `var name : Type = value` for a stated type. Use `name = value` to replace an existing local.
 
-A declaration introduces its name in the current lexical scope. A second declaration of that name in the same scope is an error. A nested scope can shadow an outer name. Parameters are immutable bindings. Captures are immutable copies or retained values. A closure cannot assign an outer local.
+A declaration introduces its name in the current lexical scope. A second declaration of that name in the same scope is an error. A nested scope can shadow an outer name. Parameters are immutable bindings. Thus, a function cannot assign a new value to a parameter name. Content mutation through an aggregate parameter is valid and affects the caller. Captures keep scalar copies or shared managed values. A closure cannot assign an outer local or a capture binding.
 
 A declaration and an assignment evaluate the right side once. Each expression yields the stored value. For a managed declaration, the local owns the stored reference and the declaration result is a borrow.
 
@@ -150,7 +150,17 @@ Only the selected branch runs. Managed branch results transfer one owned referen
 
 ## 7. Loops and function exit
 
-`while condition { ... }` repeats while its Boolean condition is true. `for value = range_or_array { ... }` iterates a range or array. A DValue loop can bind a value or a key and value.
+`while condition { ... }` repeats while its Boolean condition is true. A `for` loop has these forms:
+
+```capy
+for value := iterable { ... }
+for value, index := array { ... }
+for value, key := dynamic_value { ... }
+```
+
+The optional metadata follows the value. An array index has type `s32`. A DValue key has type `string`. DValue lists use decimal index strings as keys. A range permits only the one-value form. Structs are not iterable. The old `=` and `in` loop forms are invalid.
+
+Array and DValue loops use a live view. Each iteration checks the current count again. Growth can add later iterations, including growth from the loop body. Shrinkage cannot cause an invalid item access. An array loop retains its current managed item before the body runs. A DValue loop copies its current item before the body runs.
 
 Loops have type `void`. `break` leaves the nearest loop. `continue` starts its next iteration. Neither accepts a value.
 
@@ -209,9 +219,9 @@ Constructor defaults and omitted call arguments do not change the Wasm call ABI.
 
 ## 9. Collections and aggregates
 
-An array `[T]` contains one static item type. Arrays have copy-on-write value semantics. Assignment and parameter passing preserve logical independence. Array items can be narrow scalars, wide scalars, or managed values. Indexes start at zero.
+An array `[T]` contains one static item type. An array is a mutable reference value inside one workspace. Assignment, parameter passing, returns, and captures share its identity. Content mutation through one alias is visible through all aliases. Growth preserves the array identity. Array items can be narrow scalars, wide scalars, or managed values. Indexes start at zero.
 
-A comma expression creates a tuple. `()` is the empty tuple. `(value)` is grouping. Tuples have fixed arity and static field types.
+A comma expression creates an immutable tuple. `()` is the empty tuple. `(value)` is grouping. Tuples have fixed arity and static field types.
 
 A struct is nominal and lists fields in declaration order:
 
@@ -224,11 +234,11 @@ struct Sample {
 }
 ```
 
-Tuples, structs, and closure environments support `s32`, `s64`, `u64`, `f64`, and managed fields. Their source semantics do not expose byte offsets or padding.
+Tuples, structs, and closure environments support `s32`, `s64`, `u64`, `f64`, and managed fields. A struct instance is a mutable reference value inside one workspace. Assignment, parameter passing, returns, and captures share its identity. Struct fields are assignable. Their source semantics do not expose byte offsets or padding.
 
-A map literal creates a copied `dval`. Use `{:}` for an empty DValue map. `{}` remains an empty block. The `dval({...})` compatibility spelling has the same result.
+A map literal creates a DValue map. Use `{:}` for an empty DValue map. `{}` remains an empty block. The `dval({...})` compatibility spelling has the same result.
 
-`dval(...)` accepts `string`, `s32`, `s64`, `u64`, `f64`, `bool`, an existing DValue, or a list. It preserves in-range `s64` and `u64` values exactly. A list passed to `dval(...)` creates a dynamic DValue list. A bare list remains a typed copy-on-write array.
+`dval(...)` accepts `string`, `s32`, `s64`, `u64`, `f64`, `bool`, an existing DValue, or a list. It preserves in-range `s64` and `u64` values exactly. A list passed to `dval(...)` creates a dynamic DValue list. A bare list remains a typed mutable array.
 
 `none` is a DValue value. It differs from an empty string, `false`, an empty map, and an empty DValue list. A copied `none` remains `none` in BRRB. JSON and YAML encode it as `null`. JSON `null`, YAML `null`, and YAML `~` decode as `none`. XML encodes it as empty text. XML decode cannot recover the distinction.
 
@@ -236,7 +246,7 @@ DValue member and index reads are safe. A missing key, unusable scalar intermedi
 
 `dval_has(value, key)` tests map-key existence. It returns `true` when the child is `none`. `dval_require(value, key)` and `dval_require(value, index)` are strict reads. They trap for a missing child or unusable access.
 
-Nested DValue assignment requires a declared local `dval` root. Parameters, captures, loop items, fields, indexes, calls, and temporary values cannot be roots. The compiler evaluates selectors once from left to right. It then evaluates the right side once. It updates one copied path and replaces the local root.
+A DValue is a mutable reference value inside one workspace. Assignment, parameter passing, returns, and captures share its identity. Nested assignment mutates the selected path and returns the same root identity. Its root must be a named local, parameter, or captured `dval` binding. Temporary, call, member, array-item, and loop-item roots are invalid. The compiler evaluates selectors once from left to right. It then evaluates the right side once.
 
 Missing, `none`, and scalar intermediate values become maps. Existing maps remain maps. Existing lists accept only in-range, nonnegative numeric selectors. A missing intermediate before a numeric selector becomes a map with its decimal key. Negative and out-of-range existing-list writes trap. Capy does not create sparse lists.
 
@@ -246,7 +256,9 @@ profile.contact.email = "ada@example.test"
 print(profile.contact.email) // ada@example.test
 ```
 
-DValue updates have copy-on-write value semantics. ARC retains and releases each owned path value exactly once. Diagnostics identify the nested assignment expression.
+`dval_set`, `dval_assign`, `dval_push`, `dval_pop`, `dval_remove`, `dval_clear`, `dval_get_or_create`, `dval_set_array`, `dval_set_bool`, `dval_set_type`, and `dval_put` mutate their target. Each function returns that same target identity. Existing code can still assign the returned value back to its target binding.
+
+DValue member and index reads return copied child values. Pure transformations return new values where their API specifies a copy. DValue loop items are also copies. Diagnostics identify the nested assignment expression.
 
 Selected standard-library value parameters use `as dval`. They can insert one DValue construction from `string`, `s32`, `s64`, `u64`, `f64`, or `bool`. Parameters that require a specific map, list, or opaque DValue shape remain exact. Typed arrays remain strict. They are distinct from DValue lists.
 
@@ -256,7 +268,9 @@ Strings preserve bytes. String indexing is not a source-language operation. Stan
 
 Markup escapes ordinary interpolated strings. Raw interpolation requires `markup`. `trusted_markup(string)` is the explicit trust boundary.
 
-Capy uses request-local automatic reference counting for strings, markup, arrays, tuples, structs, closures, and DValues. Managed parameters are borrowed. Managed results are owned. Assignment retains the replacement before it releases the old value. Captures retain managed values. ARC does not collect strong cycles before request teardown. Capy has no weak-reference source type.
+Capy uses request-local automatic reference counting for strings, markup, arrays, tuples, structs, closures, and DValues. Managed parameters are borrowed. Managed results are owned. Assignment retains the replacement before it releases the old value. Captures retain managed values. Strong ARC cycles remain until request teardown. Capy has no weak-reference source type.
+
+Arrays, DValues, and struct instances share identity only inside one workspace. A Bearer, module, component, task, custom export or C++ call, codec, request, or serialization boundary copies BRRB. Identity never crosses these boundaries.
 
 ## 11. Function values and closures
 
@@ -281,13 +295,13 @@ SERVE_HTTP and SERVE_HTTP:NAME
 TASK and TASK:NAME
 ```
 
-A handler cannot be overloaded, generic, variadic, coercive, or value-returning. `TASK` and `TASK:NAME` require one `request` parameter. Other request handlers accept no parameter or one `request` parameter, as defined by their API pages.
+A handler cannot be overloaded, generic, variadic, coercive, or value-returning. Every Bearer handler requires exactly one `request : dval` parameter. This includes named handlers and custom HTTP handlers.
 
 `INIT` runs after Bearer materializes the unit in a request workspace and before its first dispatch. Bearer creates a new workspace for each request, so `INIT` can run again for the next request. It does not provide persistent worker-local state. `ONCE` runs before the first entry or component call for one resolved unit in one request. It runs at most once for that unit in that request.
 
 `EXPORTS name` exposes an ordinary local function with the exact signature `(dval) dval`. It does not execute code. `module.call(name)` supplies an empty DValue. `module.call(name, input)` copies its input and result through the Bearer membrane.
 
-Capy and C++ units share no language object layout. DValues cross as copied BRRB values. Module values are request-local verified capabilities. Components, tasks, jobs, requests, files, databases, and network operations follow their online API pages.
+Capy and C++ units share no language object layout. DValues cross custom export and C++ boundaries as copied BRRB values. Module values are request-local verified capabilities. Components, tasks, jobs, requests, files, databases, codecs, serialization, and network operations follow their online API pages.
 
 ## 13. Errors, traps, and source locations
 

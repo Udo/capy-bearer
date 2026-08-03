@@ -60,6 +60,9 @@ import sys
 from pathlib import Path
 
 root = Path.cwd()
+renderer = (root / "site/doc/index.uce").read_text()
+if 'return("function " + handler + "(request : dval) {\\n" + body + "\\n}\\n");' not in renderer:
+    raise SystemExit("Capy documentation renderer must declare request : dval")
 checker_path = root / "scripts/check_capy_doc_examples.py"
 spec = importlib.util.spec_from_file_location("capy_doc_examples", checker_path)
 if spec is None or spec.loader is None:
@@ -95,7 +98,7 @@ for slug in sorted(checker.CANONICAL_GUIDES):
     (Path(sys.argv[1]) / f"{slug}.expected").write_text(output[0][1] + "\n")
     for index, snippet in enumerate(re.findall(r"```capy\n(.*?)```", page.read_text(), re.S), 1):
         if re.search(r"^function\s+(?:RENDER|CLI|WS|ONCE|INIT)\b", snippet, re.M) is None:
-            snippet = snippet.rstrip() + "\n\nfunction RENDER {}\n"
+            snippet = snippet.rstrip() + "\n\nfunction RENDER(request : dval) {}\n"
         snippet_path = snippet_directory / f"{slug}-{index}.capy"
         snippet_path.write_text(snippet.rstrip() + "\n")
 PY
@@ -115,6 +118,7 @@ done
 cache_directory="$(scripts/unit_cache_directory "$bin_directory")$test_directory"
 test_name=${test_directory##*/}
 count=0
+page_09_checked=false
 for source in "$test_directory"/*.capy; do
 	slug=${source##*/}
 	slug=${slug%.capy}
@@ -134,9 +138,25 @@ for source in "$test_directory"/*.capy; do
 		exit 1
 	fi
 	page="$test_directory/$slug.page"
-	if ! curl -fsS --max-time "$http_timeout" -H "Host: $http_host" "$http_base/doc/?p=capy-$slug" -o "$page"; then
-		echo "Capy documentation application failed to render $slug" >&2
+	page_headers="$test_directory/$slug.headers"
+	if ! page_status=$(curl -sS --max-time "$http_timeout" -D "$page_headers" -o "$page" -w '%{http_code}' -H "Host: $http_host" "$http_base/doc/?p=capy-$slug"); then
+		echo "Capy documentation application failed to request $slug" >&2
 		exit 1
+	fi
+	if [[ ! "$page_status" =~ ^2[0-9][0-9]$ ]]; then
+		echo "Capy documentation application returned HTTP $page_status for $slug" >&2
+		exit 1
+	fi
+	if ! tr -d '\r' <"$page_headers" | grep -qiE '^Content-Type:[[:space:]]*text/html([[:space:]]*;|[[:space:]]*$)'; then
+		if [[ "$slug" == "09-web-handlers-and-requests" ]]; then
+			echo "Capy guide page 09 leaked an example response Content-Type" >&2
+		else
+			echo "Capy documentation application did not return text/html for $slug" >&2
+		fi
+		exit 1
+	fi
+	if [[ "$slug" == "09-web-handlers-and-requests" ]]; then
+		page_09_checked=true
 	fi
 	if grep -qE 'DOC EXAMPLE ERROR|Compile-only: WS|guide-example|Minimal executable example|Common variants' "$page" ||
 		! grep -q '<pre><code class="language-capy">' "$page" ||
@@ -159,6 +179,10 @@ PY
 done
 [[ "$count" -eq 12 ]] || {
 	echo "Capy guide test expected 12 canonical examples, ran $count" >&2
+	exit 1
+}
+[[ "$page_09_checked" == true ]] || {
+	echo "Capy guide test did not request page 09" >&2
 	exit 1
 }
 echo "Capy guide HTTP examples passed for $count pages; $snippet_count additional snippets compiled"

@@ -1,28 +1,28 @@
-function TASK(request : request) {
-    file_put_contents("/tmp/bearer-task-capy.txt", string(dval_get_by_path(request_context(request), "props/nested/value"), ""))
+function TASK(request : dval) {
+    file_put_contents("/tmp/bearer-task-capy.txt", string(dval_get_by_path(request.props, "nested/value"), ""))
 }
 
-function TASK:CAPY(request : request) {
-    file_put_contents("/tmp/bearer-task-capy-named.txt", string(dval_get_by_path(request_context(request), "props/nested/value"), ""))
+function TASK:CAPY(request : dval) {
+    file_put_contents("/tmp/bearer-task-capy-named.txt", string(dval_get_by_path(request.props, "nested/value"), ""))
 }
 
-function TASK:SCALAR(request : request) {
-    file_put_contents("/tmp/bearer-task-capy.txt", string(request_context(request).props))
+function TASK:SCALAR(request : dval) {
+    file_put_contents("/tmp/bearer-task-capy.txt", string(request.props, ""))
 }
 
-function TASK:NONE(request : request) {
-    if request_context(request).props? {
-        file_put_contents("/tmp/bearer-task-capy.txt", "present")
+function TASK:NONE(request : dval) {
+    if request.props? {
+        file_put_contents("/tmp/bearer-task-capy.txt", "unexpected")
     } else {
         file_put_contents("/tmp/bearer-task-capy.txt", "none")
     }
 }
 
-function TASK:SLOW(request : request) {
-    usleep(5000000)
-    file_put_contents("/tmp/bearer-task-slow-finished.txt", "finished")
+function TASK:SLOW(request : dval) {
+    usleep(1000000)
+    file_put_contents("/tmp/bearer-task-capy.txt", "slow")
 }
 
-function TASK:TRAP(request : request) {
+function TASK:TRAP(request : dval) {
     trap()
 }

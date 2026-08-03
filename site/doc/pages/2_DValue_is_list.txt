@@ -11,7 +11,7 @@ return value : true when the value is an array with keys 0..n-1
 2_DValue_push
 
 :content
-Use `dval_is_list(value)` in Capy to test whether a copied `dval` is a list. It returns `true` for a list-shaped map with keys from `0` through `size - 1`. An empty map is a list only after `dval_set_array()` or a list operation.
+Use `dval_is_list(value)` in Capy to test whether a DValue is a list. It returns `true` for a list-shaped map with keys from `0` through `size - 1`. An empty map is a list only after `dval_set_array()` or a list operation.
 
 C++ `is_list()` applies the same rules after it dereferences the value.
 

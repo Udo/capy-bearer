@@ -10,7 +10,7 @@ function half(value : f64) f64 {
     return value / 2.0
 }
 
-function CLI {
+function CLI(request : dval) {
     var annotated_signed : s64 = 8
     var inferred_signed := s64(8)
     var annotated_unsigned : u64 = 9

@@ -9,7 +9,7 @@ return value : removed child as a `dval`, or an empty `dval` when no child exist
 2_DValue_push
 
 :content
-`dval_pop(value)` takes a `dval` and returns the updated value after it removes one child. Assign the result back to retain the change. An empty value becomes an empty map-shaped value.
+`dval_pop(value)` removes one child. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid. An empty value becomes an empty map-shaped value.
 
 For a list, it removes the last numeric child and resets the next list index. For a map, it removes the last key in reverse map order. Capy does not return the removed child.
 

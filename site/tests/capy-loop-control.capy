@@ -1,5 +1,5 @@
 function return_from_range () s32 {
-    for value = 0..3 {
+    for value := 0..3 {
         if value == 1 {
             return 7
         }
@@ -8,13 +8,13 @@ function return_from_range () s32 {
 }
 
 function return_from_owned_array () string {
-    for value = [clone("owned-return")] {
+    for value := [clone("owned-return")] {
         return value
     }
     return clone("fallback")
 }
 
-function CLI {
+function CLI(request : dval) {
     print(return_from_range(), "|", return_from_owned_array(), "|", arc_live(), "|")
     var index := 0
     while index < 5 {
@@ -29,7 +29,7 @@ function CLI {
     }
     print("|", arc_live(), "|")
 
-    for value = 0..6 {
+    for value := 0..6 {
         var temporary := clone("range")
         if value == 1 {
             continue
@@ -42,7 +42,7 @@ function CLI {
     print("|", arc_live(), "|")
 
     var seen := 0
-    for word = [clone("a"), clone("b"), clone("c")] {
+    for word := [clone("a"), clone("b"), clone("c")] {
         var local := clone("array")
         seen = seen + 1
         print(word)
@@ -55,8 +55,8 @@ function CLI {
     }
     print("|", arc_live(), "|")
 
-    for outer = 0..3 {
-        for inner = 0..3 {
+    for outer := 0..3 {
+        for inner := 0..3 {
             if inner == 1 {
                 continue
             }

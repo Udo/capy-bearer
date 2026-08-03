@@ -317,6 +317,29 @@ void store_field(Bytes& code, const std::string& type, unsigned offset)
 	wasm::append_uleb(code, offset);
 }
 
+void managed_payload_pointer(Bytes& code, unsigned local, const std::string& type)
+{
+	code.push_back(0x20);
+	wasm::append_uleb(code, local);
+	if (type == "dval")
+		code.insert(code.end(), {0x28, 0x02, 0x18});
+	else
+		code.insert(code.end(), {0x41, 0x14, 0x6a});
+}
+
+void managed_payload_length(Bytes& code, unsigned local)
+{
+	code.push_back(0x20);
+	wasm::append_uleb(code, local);
+	code.insert(code.end(), {0x28, 0x02, 0x10});
+}
+
+void managed_payload_span(Bytes& code, unsigned local, const std::string& type)
+{
+	managed_payload_pointer(code, local, type);
+	managed_payload_length(code, local);
+}
+
 void append_u32_le(std::string& out, std::uint32_t value)
 {
 	out.push_back(static_cast<char>(value));
@@ -440,8 +463,10 @@ std::string type_of_expression(const Expr* expression, bool allow_void = false)
 	std::string name = type_name(*expression);
 	if (name == "any" || name.find("::type") != std::string::npos)
 		throw Error(expression->location, "compile-time any and dependent result types are only valid in a generic function declaration");
+	if (name == "request")
+		throw Error(expression->location, "type request was removed. Use dval for Bearer handler input.");
 	if (name == "s32" || name == "s64" || name == "u64" || name == "f64" || name == "bool" || name == "string" || name == "markup" || name == "dval" ||
-		name == "request" || name == "module" || name == "void")
+		name == "module" || name == "void")
 		return name;
 	return "struct:" + name;
 }
@@ -525,6 +550,8 @@ struct Definition
 	unsigned index = 0;
 	unsigned type = 0;
 	unsigned thunk_target = 0xffffffffu;
+	bool handler_adapter = false;
+	bool first_parameter_used = false;
 	bool closure_body = false;
 	bool body_omitted = false;
 	bool inline_only = false;
@@ -615,7 +642,6 @@ struct FunctionLowerer
 	std::vector<std::vector<std::pair<unsigned, std::string>>> owned_scopes_;
 	std::set<unsigned> borrowed_managed_slots_;
 	std::set<unsigned> owned_local_dval_slots_;
-	std::vector<unsigned> owned_array_parameters_;
 	unsigned local_count_ = 0;
 	std::vector<std::string> local_types_;
 	bool implicit_result_ = false;
@@ -646,9 +672,12 @@ struct FunctionLowerer
 	std::pair<Bytes, std::string> dval_lookup(Expr* value, Expr* key, bool require_present);
 	std::pair<Bytes, std::string> dval_presence(Expr* value);
 	std::pair<Bytes, std::string> dval_set_path(unsigned root, const std::vector<Expr*>& selectors, Expr* replacement, const Location& location);
+	Bytes dval_replace(unsigned target, unsigned replacement, const Location& location, bool replacement_owned);
 	std::pair<Bytes, std::string> array_method(Call* call, const Member* member);
-	Bytes array_ensure_unique(unsigned slot, const std::string& array_type, unsigned required, const Location& location);
-	std::pair<Bytes, unsigned> allocate_blob(const std::string& type, unsigned type_id, unsigned length, const Location& location);
+	Bytes array_ensure_capacity(unsigned slot, const std::string& array_type, unsigned required, const Location& location, const Bytes& failure_cleanup = {});
+	std::pair<Bytes, unsigned> allocate_array(const std::string& array_type, unsigned length, const Location& location, const Bytes& failure_cleanup = {});
+	std::pair<Bytes, unsigned> allocate_dval(unsigned length, const Location& location, const Bytes& failure_cleanup = {});
+	std::pair<Bytes, unsigned> allocate_blob(const std::string& type, unsigned type_id, unsigned length, const Location& location, const Bytes& failure_cleanup = {});
 	Bytes format_wide_scalar(Bytes code, const std::string& type, const Location& location);
 	struct BlockValue
 	{
@@ -791,8 +820,10 @@ struct Module
 	{
 		if (has_alias(name))
 			return alias_type(name, location);
+		if (name == "request")
+			throw Error(location, "type request was removed. Use dval for Bearer handler input.");
 		if (name == "s32" || name == "s64" || name == "u64" || name == "f64" || name == "bool" || name == "string" || name == "markup" ||
-			name == "dval" || name == "request" || name == "module" || name == "void")
+			name == "dval" || name == "module" || name == "void")
 			return name;
 		if (has_struct(name))
 			return "struct:" + name;
@@ -1102,6 +1133,9 @@ struct Module
 	{
 		if (auto it = definitions_by_key_.find(key(name, types)); it != definitions_by_key_.end())
 			return definitions_[it->second].result;
+		if (const Definition* defaulted = default_definition(name, types, location);
+			defaulted && std::equal(types.begin(), types.end(), defaulted->parameters.begin()))
+			return defaulted->result;
 		std::vector<const GenericDefinition*> candidates;
 		unsigned best = 0;
 		if (auto found = generics_.find(name); found != generics_.end())
@@ -1134,6 +1168,9 @@ struct Module
 	{
 		if (auto it = definitions_by_key_.find(key(name, types)); it != definitions_by_key_.end())
 			return &definitions_[it->second];
+		if (const Definition* defaulted = default_definition(name, types, location);
+			defaulted && std::equal(types.begin(), types.end(), defaulted->parameters.begin()))
+			return const_cast<Definition*>(defaulted);
 		std::vector<const GenericDefinition*> candidates;
 		unsigned best = 0;
 		for (const auto& generic : generics_[name])
@@ -1192,6 +1229,40 @@ struct Module
 	{
 		if (Definition* definition = compatible_definition(name, types, location))
 			return *definition;
+		static const std::map<std::string, std::string> request_migrations{
+			{"request_context", "request_context was removed. Use the handler dval parameter directly."},
+			{"request_param", "request_param was removed. Read the applicable method, headers, route, url, or server field from the handler input."},
+			{"request_get", "request_get was removed. Read the query field from the handler input."},
+			{"request_post", "request_post was removed. Read the form field from the handler input."},
+			{"request_cookie", "request_cookie was removed. Read the cookies field from the handler input."},
+			{"request_session", "request_session was removed. Read the entry session or capture the state returned by a session effect."},
+			{"request_body", "request_body was removed. Read the body field from the handler input."},
+			{"request_base_url", "request_base_url was removed. Read request.url.base from the handler input."},
+			{"request_script_url", "request_script_url was removed. Read request.url.script from the handler input."},
+			{"request_query_path", "request_query_path was removed. Read request.route.path from the handler input."},
+			{"request_query_route", "request_query_route was removed. Read request.route from the handler input."},
+			{"request_route_from_raw_path", "request_route_from_raw_path was renamed to route_from_raw_path."},
+			{"request_perf", "request_perf was renamed to runtime_perf."},
+			{"cli_input", "cli_input was removed. Read query, form, and body from the handler input."},
+			{"cli_arg", "cli_arg was removed. Read query or form from the handler input."},
+			{"ws_message", "ws_message was removed. Read request.body from the handler input."},
+			{"ws_connection_id", "ws_connection_id was removed. Read request.websocket.connection_id from the handler input."},
+			{"ws_scope", "ws_scope was removed. Read request.websocket.scope from the handler input."},
+			{"ws_opcode", "ws_opcode was removed. Read request.websocket.opcode from the handler input."},
+			{"ws_is_binary", "ws_is_binary was removed. Read request.websocket.binary from the handler input."},
+			{"ws_connections", "ws_connections was removed. Read request.websocket.connections from the handler input."},
+			{"ws_connection_count", "ws_connection_count was removed. Use length(request.websocket.connections)."},
+			{"to_bool", "to_bool was removed. Use the bool constructor."},
+			{"to_f64", "to_f64 was removed. Use the f64 constructor."},
+			{"to_s64", "to_s64 was removed. Use the s64 constructor."},
+			{"to_u64", "to_u64 was removed. Use the u64 constructor."},
+			{"to_lower", "to_lower was removed. Use lower."},
+			{"to_upper", "to_upper was removed. Use upper."},
+			{"dval_to_json", "dval_to_json was removed. Use json_encode."},
+			{"dval_to_stringmap", "dval_to_stringmap was removed. Construct a dval map and convert its values with string."},
+		};
+		if (auto migration = request_migrations.find(name); migration != request_migrations.end())
+			throw Error(location, migration->second);
 		std::string rendered;
 		for (std::size_t i = 0; i < types.size(); ++i)
 			rendered += (i ? ", " : "") + types[i];
@@ -1274,7 +1345,7 @@ struct Module
 	}
 	void collect();
 	std::vector<Bytes> runtime_bodies() const;
-	Bytes custom_export_body(const Definition& target) const;
+	Bytes custom_export_body(const Definition& target);
 };
 
 std::string Module::value_type(const Expr* expression, bool allow_void)
@@ -1348,12 +1419,7 @@ FunctionLowerer::FunctionLowerer(Module& module, Definition& definition) : modul
 		{
 			const std::string& type = definition.parameters[parameter];
 			scopes_.back()[value.name] = {parameter, type};
-			if (type.rfind("array<", 0) == 0)
-			{
-				owned_array_parameters_.push_back(parameter);
-				owned_scopes_.front().push_back({parameter, type});
-			}
-			else if (managed_type(type))
+			if (managed_type(type))
 				borrowed_managed_slots_.insert(parameter);
 			++parameter;
 		}
@@ -1369,14 +1435,9 @@ FunctionLowerer::FunctionLowerer(Module& module, Definition& definition) : modul
 		{
 			if (parameter >= definition.parameters.size() && definition.exported.empty())
 				break;
-			const std::string type = definition.exported.empty() ? definition.parameters[parameter] : "request";
+			const std::string type = definition.parameters[parameter];
 			scopes_.back()[value.name] = {parameter, type};
-			if (type.rfind("array<", 0) == 0)
-			{
-				owned_array_parameters_.push_back(parameter);
-				owned_scopes_.front().push_back({parameter, type});
-			}
-			else if (managed_type(type))
+			if (managed_type(type))
 				borrowed_managed_slots_.insert(parameter);
 			++parameter;
 		}
@@ -1450,7 +1511,11 @@ bool FunctionLowerer::expression_is_owned(const Expr* value)
 	if (auto binary = dynamic_cast<const Binary*>(value))
 		return binary->operator_ == "+" && infer(binary->left) == "string" && infer(binary->right) == "string";
 	if (auto call = dynamic_cast<const Call*>(value))
+	{
+		if (auto name = dynamic_cast<const Name*>(call->function); name && name->value == "__bearer_dval_replace")
+			return false;
 		return managed_type(infer(const_cast<Call*>(call)));
+	}
 	return false;
 }
 
@@ -1533,7 +1598,19 @@ std::vector<std::pair<std::string, std::string>> FunctionLowerer::lambda_capture
 					scopes.back().insert(name->value);
 			}
 			else if (binary->operator_ == "=")
+			{
+				if (auto name = dynamic_cast<Name*>(binary->left))
+				{
+					const bool local = std::any_of(scopes.rbegin(), scopes.rend(), [&](const auto& scope) { return scope.contains(name->value); });
+					if (!local)
+						for (auto scope = scopes_.rbegin(); scope != scopes_.rend(); ++scope)
+							if (scope->contains(name->value))
+								throw Error(name->location, "cannot assign to captured binding '" + name->value + "'. Captures are immutable");
+				}
+				else
+					visit(binary->left);
 				visit(binary->right);
+			}
 			else if (binary->operator_ == "&&" || binary->operator_ == "||")
 			{
 				visit(binary->left);
@@ -2122,10 +2199,51 @@ std::string FunctionLowerer::infer(Expr* value)
 			return "range";
 		if (binary->operator_ == "=" || binary->operator_ == ":=")
 		{
-			if (binary->operator_ == "=")
-				if (auto target = dynamic_cast<Name*>(binary->left); target && dynamic_cast<Integer*>(binary->right))
-					return infer_integer(static_cast<Integer*>(binary->right), lookup(target).second);
-			return infer(binary->right);
+			if (binary->operator_ == ":=")
+				return infer(binary->right);
+			std::string target_type;
+			if (auto target = dynamic_cast<Name*>(binary->left))
+				target_type = lookup(target).second;
+			else if (auto member = dynamic_cast<Member*>(binary->left))
+			{
+				const std::string receiver = infer(member->value);
+				if (receiver == "dval")
+					target_type = "dval";
+				else
+				{
+					if (receiver.rfind("struct:", 0) != 0)
+						throw Error(member->location, "member assignment requires a struct or dval receiver");
+					for (const auto& field : module_.struct_type(receiver.substr(7), member->location).fields)
+						if (field.first == member->member) target_type = field.second;
+					if (target_type.empty())
+						throw Error(member->location, "struct has no member '" + member->member + "'");
+				}
+			}
+			else if (auto index = dynamic_cast<Index*>(binary->left))
+			{
+				const std::string receiver = infer(index->value);
+				if (receiver.rfind("array<", 0) == 0)
+					target_type = receiver.substr(6, receiver.size() - 7);
+				else if (receiver.rfind("tuple<", 0) == 0)
+					throw Error(index->location, "tuple elements are immutable");
+				else if (receiver == "dval")
+					target_type = "dval";
+				else
+					throw Error(index->location, "indexed assignment requires an array or dval receiver");
+			}
+			else
+				throw Error(binary->left->location, "assignment target must be a binding, array element, DValue path, or struct field");
+			const std::string actual = dynamic_cast<Integer*>(binary->right) && target_type != "dval"
+				? infer_integer(static_cast<Integer*>(binary->right), target_type) : infer(binary->right);
+			if (target_type == "dval")
+			{
+				if (actual != "dval" && actual != "string" && actual != "s32" && actual != "s64" && actual != "u64" && actual != "f64" && actual != "bool")
+					throw Error(binary->right->location, "cannot construct dval from " + actual);
+				return "dval";
+			}
+			if (actual != target_type)
+				throw Error(binary->right->location, "expected " + target_type + ", found " + actual);
+			return target_type;
 		}
 		if (binary->operator_ == "&&" || binary->operator_ == "||" || binary->operator_ == "unary!")
 		{
@@ -2370,14 +2488,45 @@ Bytes FunctionLowerer::markup_s32_write(unsigned source, unsigned cursor, const 
 	return code;
 }
 
-std::pair<Bytes, unsigned> FunctionLowerer::allocate_blob(const std::string& type, unsigned type_id, unsigned length, const Location& location)
+std::pair<Bytes, unsigned> FunctionLowerer::allocate_dval(unsigned length, const Location& location, const Bytes& failure_cleanup)
 {
+	const unsigned capacity = add_local("", "s32", location), payload = add_local("", "s32", location), handle = add_local("", "dval", location);
+	Bytes code{0x20}; wasm::append_uleb(code, length);
+	code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40}); append(code, failure_cleanup); append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b});
+	code.push_back(0x20); wasm::append_uleb(code, length);
+	code.insert(code.end(), {0x45, 0x04, 0x7f, 0x41, 0x01, 0x05, 0x20}); wasm::append_uleb(code, length);
+	code.insert(code.end(), {0x0b, 0x22}); wasm::append_uleb(code, capacity);
+	code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_alloc"));
+	code.push_back(0x22); wasm::append_uleb(code, payload);
+	code.insert(code.end(), {0x45, 0x04, 0x40}); append(code, failure_cleanup); append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b});
+	code.push_back(0x41); wasm::append_sleb32(code, 28); code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_alloc"));
+	code.push_back(0x22); wasm::append_uleb(code, handle); code.insert(code.end(), {0x45, 0x04, 0x40});
+	code.push_back(0x20); wasm::append_uleb(code, payload); code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_free"));
+	append(code, failure_cleanup); append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b});
+	auto store = [&](unsigned offset, std::optional<std::int32_t> constant, unsigned local)
+	{
+		code.push_back(0x20); wasm::append_uleb(code, handle);
+		if (constant) { code.push_back(0x41); wasm::append_sleb32(code, *constant); }
+		else { code.push_back(0x20); wasm::append_uleb(code, local); }
+		code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset);
+	};
+	store(0, 1, 0); store(4, 1, 0); store(8, 4, 0); store(12, 28, 0);
+	store(16, std::nullopt, length); store(20, std::nullopt, capacity); store(24, std::nullopt, payload);
+	code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01});
+	return {std::move(code), handle};
+}
+
+std::pair<Bytes, unsigned> FunctionLowerer::allocate_blob(const std::string& type, unsigned type_id, unsigned length, const Location& location, const Bytes& failure_cleanup)
+{
+	if (type == "dval")
+		return allocate_dval(length, location, failure_cleanup);
 	const unsigned pointer = add_local("", type, location);
 	Bytes code{0x20};
 	wasm::append_uleb(code, length);
 	code.push_back(0x41);
 	wasm::append_sleb32(code, std::numeric_limits<std::int32_t>::max() - 20);
 	code.insert(code.end(), {0x4b, 0x04, 0x40});
+	append(code, failure_cleanup);
 	append(code, module_.marker(location));
 	code.insert(code.end(), {0x00, 0x0b, 0x20});
 	wasm::append_uleb(code, length);
@@ -2388,6 +2537,7 @@ std::pair<Bytes, unsigned> FunctionLowerer::allocate_blob(const std::string& typ
 	code.push_back(0x20);
 	wasm::append_uleb(code, pointer);
 	code.insert(code.end(), {0x45, 0x04, 0x40});
+	append(code, failure_cleanup);
 	append(code, module_.marker(location));
 	code.insert(code.end(), {0x00, 0x0b});
 	for (const auto [header, offset] : {std::pair<std::int32_t, unsigned>{1, 0}, {1, 4}, {static_cast<std::int32_t>(type_id), 8}})
@@ -2443,11 +2593,7 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_lookup(Expr* value, Expr* ke
 	wasm::append_uleb(code, key_local);
 	auto append_call = [&](bool output, unsigned pointer)
 	{
-		code.push_back(0x20);
-		wasm::append_uleb(code, object);
-		code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-		wasm::append_uleb(code, object);
-		code.insert(code.end(), {0x28, 0x02, 0x10});
+		managed_payload_span(code, object, "dval");
 		if (key_type == "string")
 		{
 			code.insert(code.end(), {0x41, 0x00, 0x20});
@@ -2463,9 +2609,8 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_lookup(Expr* value, Expr* ke
 		}
 		if (output)
 		{
+			managed_payload_pointer(code, pointer, "dval");
 			code.push_back(0x20);
-			wasm::append_uleb(code, pointer);
-			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
 			wasm::append_uleb(code, length);
 		}
 		else
@@ -2508,7 +2653,10 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_lookup(Expr* value, Expr* ke
 	if (expression_is_owned(key)) { code.push_back(0x20); wasm::append_uleb(code, key_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
 	if (expression_is_owned(value)) { code.push_back(0x20); wasm::append_uleb(code, object); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
 	append(code, module_.marker(key->location)); code.insert(code.end(), {0x00, 0x0b});
-	auto [allocation, pointer] = allocate_blob("dval", 4, length, key->location);
+	Bytes allocation_cleanup;
+	if (expression_is_owned(key)) { allocation_cleanup.push_back(0x20); wasm::append_uleb(allocation_cleanup, key_local); allocation_cleanup.push_back(0x10); wasm::append_uleb(allocation_cleanup, module_.release_index()); }
+	if (expression_is_owned(value)) { allocation_cleanup.push_back(0x20); wasm::append_uleb(allocation_cleanup, object); allocation_cleanup.push_back(0x10); wasm::append_uleb(allocation_cleanup, module_.release_index()); }
+	auto [allocation, pointer] = allocate_blob("dval", 4, length, key->location, allocation_cleanup);
 	append(code, allocation);
 	append_call(true, pointer);
 	code.push_back(0x20);
@@ -2547,11 +2695,8 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_presence(Expr* value)
 	Bytes code = std::move(source);
 	code.push_back(0x21);
 	wasm::append_uleb(code, input);
-	code.push_back(0x20);
-	wasm::append_uleb(code, input);
-	code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-	wasm::append_uleb(code, input);
-	code.insert(code.end(), {0x28, 0x02, 0x10, 0x10});
+	managed_payload_span(code, input, "dval");
+	code.push_back(0x10);
 	wasm::append_uleb(code, module_.import_index("bearer_dv_is_none_brrb"));
 	const unsigned state = add_local("", "s32", value->location);
 	code.push_back(0x21); wasm::append_uleb(code, state);
@@ -2575,11 +2720,43 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_presence(Expr* value)
 	return {code, "bool"};
 }
 
+Bytes FunctionLowerer::dval_replace(unsigned target, unsigned replacement, const Location& location, bool replacement_owned)
+{
+	const unsigned old_length = add_local("", "s32", location), old_capacity = add_local("", "s32", location), old_payload = add_local("", "s32", location);
+	Bytes code{0x20}; wasm::append_uleb(code, target); code.push_back(0x20); wasm::append_uleb(code, replacement);
+	code.insert(code.end(), {0x46, 0x04, 0x7f});
+	if (replacement_owned) { code.push_back(0x20); wasm::append_uleb(code, replacement); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+	code.push_back(0x20); wasm::append_uleb(code, target); code.push_back(0x05);
+	auto load = [&](unsigned object, unsigned offset, unsigned local)
+	{
+		code.push_back(0x20); wasm::append_uleb(code, object); code.insert(code.end(), {0x28, 0x02}); wasm::append_uleb(code, offset);
+		code.push_back(0x21); wasm::append_uleb(code, local);
+	};
+	load(target, 16, old_length); load(target, 20, old_capacity); load(target, 24, old_payload);
+	auto copy_field = [&](unsigned destination, unsigned source, unsigned offset)
+	{
+		code.push_back(0x20); wasm::append_uleb(code, destination); code.push_back(0x20); wasm::append_uleb(code, source);
+		code.insert(code.end(), {0x28, 0x02}); wasm::append_uleb(code, offset); code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset);
+	};
+	copy_field(target, replacement, 16); copy_field(target, replacement, 20); copy_field(target, replacement, 24);
+	auto store = [&](unsigned offset, unsigned local)
+	{
+		code.push_back(0x20); wasm::append_uleb(code, replacement); code.push_back(0x20); wasm::append_uleb(code, local);
+		code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset);
+	};
+	store(16, old_length); store(20, old_capacity); store(24, old_payload);
+	code.push_back(0x20); wasm::append_uleb(code, replacement); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+	code.push_back(0x20); wasm::append_uleb(code, target); code.push_back(0x0b);
+	return code;
+}
+
 std::pair<Bytes, std::string> FunctionLowerer::dval_set_path(unsigned root, const std::vector<Expr*>& selectors, Expr* replacement, const Location& location)
 {
 	std::vector<std::unique_ptr<Name>> selector_names;
 	std::vector<bool> selector_owned;
-	Bytes code;
+	const unsigned snapshot = add_local("", "dval", location);
+	Bytes code{0x20}; wasm::append_uleb(code, root); code.push_back(0x21); wasm::append_uleb(code, snapshot);
+	code.push_back(0x20); wasm::append_uleb(code, snapshot); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index());
 	for (Expr* selector : selectors)
 	{
 		auto [selector_code, selector_type] = expression(selector);
@@ -2623,16 +2800,12 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_set_path(unsigned root, cons
 	const unsigned length = add_local("", "s32", location);
 	auto append_call = [&](bool output, unsigned pointer)
 	{
-		for (unsigned input : {root, path_local, replacement_local})
-		{
-			code.push_back(0x20); wasm::append_uleb(code, input);
-			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20}); wasm::append_uleb(code, input);
-			code.insert(code.end(), {0x28, 0x02, 0x10});
-		}
+		for (unsigned input : {snapshot, path_local, replacement_local})
+			managed_payload_span(code, input, "dval");
 		if (output)
 		{
-			code.push_back(0x20); wasm::append_uleb(code, pointer);
-			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20}); wasm::append_uleb(code, length);
+			managed_payload_pointer(code, pointer, "dval");
+			code.push_back(0x20); wasm::append_uleb(code, length);
 		}
 		else
 			code.insert(code.end(), {0x41, 0x00, 0x41, 0x00});
@@ -2644,8 +2817,15 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_set_path(unsigned root, cons
 	code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40});
 	code.push_back(0x20); wasm::append_uleb(code, path_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
 	if (replacement_owned) { code.push_back(0x20); wasm::append_uleb(code, replacement_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+	code.push_back(0x20); wasm::append_uleb(code, snapshot); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
 	append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b});
-	auto [allocation, result] = allocate_blob("dval", 4, length, location);
+	Bytes allocation_cleanup;
+	allocation_cleanup.push_back(0x20); wasm::append_uleb(allocation_cleanup, path_local);
+	allocation_cleanup.push_back(0x10); wasm::append_uleb(allocation_cleanup, module_.release_index());
+	if (replacement_owned) { allocation_cleanup.push_back(0x20); wasm::append_uleb(allocation_cleanup, replacement_local); allocation_cleanup.push_back(0x10); wasm::append_uleb(allocation_cleanup, module_.release_index()); }
+	allocation_cleanup.push_back(0x20); wasm::append_uleb(allocation_cleanup, snapshot);
+	allocation_cleanup.push_back(0x10); wasm::append_uleb(allocation_cleanup, module_.release_index());
+	auto [allocation, result] = allocate_blob("dval", 4, length, location, allocation_cleanup);
 	append(code, allocation);
 	append_call(true, result);
 	code.push_back(0x20); wasm::append_uleb(code, length);
@@ -2653,12 +2833,12 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_set_path(unsigned root, cons
 	code.push_back(0x20); wasm::append_uleb(code, result); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
 	code.push_back(0x20); wasm::append_uleb(code, path_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
 	if (replacement_owned) { code.push_back(0x20); wasm::append_uleb(code, replacement_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+	code.push_back(0x20); wasm::append_uleb(code, snapshot); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
 	append(code, module_.marker(location));
 	code.insert(code.end(), {0x00, 0x0b});
 	code.push_back(0x20); wasm::append_uleb(code, path_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
 	if (replacement_owned) { code.push_back(0x20); wasm::append_uleb(code, replacement_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
-	code.push_back(0x20); wasm::append_uleb(code, root); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
-	code.push_back(0x20); wasm::append_uleb(code, result); code.push_back(0x22); wasm::append_uleb(code, root);
+	append(code, dval_replace(snapshot, result, location, true));
 	return {code, "dval"};
 }
 
@@ -2694,7 +2874,13 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 		wasm::append_uleb(code, module_.import_index(import));
 		code.push_back(0x21);
 		wasm::append_uleb(code, length);
-		auto [allocation, pointer] = allocate_blob("dval", 4, length, value->location);
+		Bytes input_cleanup;
+		if (actual == "string" && expression_is_owned(value))
+		{
+			input_cleanup.push_back(0x20); wasm::append_uleb(input_cleanup, input);
+			input_cleanup.push_back(0x10); wasm::append_uleb(input_cleanup, module_.release_index());
+		}
+		auto [allocation, pointer] = allocate_blob("dval", 4, length, value->location, input_cleanup);
 		append(code, allocation);
 		code.push_back(0x20);
 		wasm::append_uleb(code, input);
@@ -2704,22 +2890,17 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 			wasm::append_uleb(code, input);
 			code.insert(code.end(), {0x28, 0x02, 0x10});
 		}
+		managed_payload_pointer(code, pointer, "dval");
 		code.push_back(0x20);
-		wasm::append_uleb(code, pointer);
-		code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
 		wasm::append_uleb(code, length);
 		code.push_back(0x10);
 		wasm::append_uleb(code, module_.import_index(import));
 		code.push_back(0x20);
 		wasm::append_uleb(code, length);
-		code.insert(code.end(), {0x47, 0x04, 0x40, 0x00, 0x0b});
-		if (actual == "string" && expression_is_owned(value))
-		{
-			code.push_back(0x20);
-			wasm::append_uleb(code, input);
-			code.push_back(0x10);
-			wasm::append_uleb(code, module_.release_index());
-		}
+		code.insert(code.end(), {0x47, 0x04, 0x40, 0x20}); wasm::append_uleb(code, pointer);
+		code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+		append(code, input_cleanup); append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b});
+		append(code, input_cleanup);
 		code.push_back(0x20);
 		wasm::append_uleb(code, pointer);
 		return {code, "dval"};
@@ -2752,14 +2933,25 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 	}
 	const unsigned descriptor = add_local("", "s32", value->location);
 	const unsigned size = static_cast<unsigned>(entries.size() * 16);
+	auto release_values = [&](Bytes& target)
+	{
+		for (auto it = values.rbegin(); it != values.rend(); ++it)
+			if (it->second)
+			{
+				target.push_back(0x20); wasm::append_uleb(target, it->first);
+				target.push_back(0x10); wasm::append_uleb(target, module_.release_index());
+			}
+	};
 	if (size)
 	{
 		code.push_back(0x41);
 		wasm::append_sleb32(code, size);
 		code.push_back(0x10);
 		wasm::append_uleb(code, module_.import_index("bearer_alloc"));
-		code.push_back(0x21);
+		code.push_back(0x22);
 		wasm::append_uleb(code, descriptor);
+		code.insert(code.end(), {0x45, 0x04, 0x40}); release_values(code);
+		append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b});
 	}
 	else
 	{
@@ -2784,15 +2976,13 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 		wasm::append_uleb(code, base + 4);
 		code.push_back(0x20);
 		wasm::append_uleb(code, descriptor);
-		code.push_back(0x20);
-		wasm::append_uleb(code, values[i].first);
-		code.insert(code.end(), {0x41, 0x14, 0x6a, 0x36, 0x02});
+		managed_payload_pointer(code, values[i].first, "dval");
+		code.insert(code.end(), {0x36, 0x02});
 		wasm::append_uleb(code, base + 8);
 		code.push_back(0x20);
 		wasm::append_uleb(code, descriptor);
-		code.push_back(0x20);
-		wasm::append_uleb(code, values[i].first);
-		code.insert(code.end(), {0x28, 0x02, 0x10, 0x36, 0x02});
+		managed_payload_length(code, values[i].first);
+		code.insert(code.end(), {0x36, 0x02});
 		wasm::append_uleb(code, base + 12);
 	}
 	const unsigned length = add_local("", "s32", value->location);
@@ -2806,7 +2996,14 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 	wasm::append_uleb(code, module_.import_index("bearer_dv_build_brrb"));
 	code.push_back(0x21);
 	wasm::append_uleb(code, length);
-	auto [allocation, pointer] = allocate_blob("dval", 4, length, value->location);
+	Bytes build_cleanup;
+	if (size)
+	{
+		build_cleanup.push_back(0x20); wasm::append_uleb(build_cleanup, descriptor);
+		build_cleanup.push_back(0x10); wasm::append_uleb(build_cleanup, module_.import_index("bearer_free"));
+	}
+	release_values(build_cleanup);
+	auto [allocation, pointer] = allocate_blob("dval", 4, length, value->location, build_cleanup);
 	append(code, allocation);
 	code.push_back(0x41);
 	wasm::append_sleb32(code, list);
@@ -2814,33 +3011,49 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 	wasm::append_uleb(code, descriptor);
 	code.push_back(0x41);
 	wasm::append_sleb32(code, entries.size());
+	managed_payload_pointer(code, pointer, "dval");
 	code.push_back(0x20);
-	wasm::append_uleb(code, pointer);
-	code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
 	wasm::append_uleb(code, length);
 	code.push_back(0x10);
 	wasm::append_uleb(code, module_.import_index("bearer_dv_build_brrb"));
 	code.push_back(0x20);
 	wasm::append_uleb(code, length);
-	code.insert(code.end(), {0x47, 0x04, 0x40, 0x00, 0x0b});
-	if (size)
-	{
-		code.push_back(0x20);
-		wasm::append_uleb(code, descriptor);
-		code.push_back(0x10);
-		wasm::append_uleb(code, module_.import_index("bearer_free"));
-	}
-	for (auto it = values.rbegin(); it != values.rend(); ++it)
-		if (it->second)
-		{
-			code.push_back(0x20);
-			wasm::append_uleb(code, it->first);
-			code.push_back(0x10);
-			wasm::append_uleb(code, module_.release_index());
-		}
+	code.insert(code.end(), {0x47, 0x04, 0x40, 0x20}); wasm::append_uleb(code, pointer);
+	code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+	append(code, build_cleanup); append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b});
+	append(code, build_cleanup);
 	code.push_back(0x20);
 	wasm::append_uleb(code, pointer);
 	return {code, "dval"};
+}
+
+std::pair<Bytes, unsigned> FunctionLowerer::allocate_array(const std::string& array_type, unsigned length, const Location& location, const Bytes& failure_cleanup)
+{
+	const std::string element = array_type.substr(6, array_type.size() - 7);
+	const unsigned element_size = array_element_size(element);
+	const unsigned bytes = add_local("", "s32", location), backing = add_local("", "s32", location);
+	const unsigned handle = add_local("", array_type, location);
+	Bytes code{0x20}; wasm::append_uleb(code, length);
+	code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(std::numeric_limits<std::int32_t>::max() / element_size));
+	code.insert(code.end(), {0x4b, 0x04, 0x40}); append(code, failure_cleanup); append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b});
+	code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x45, 0x04, 0x40, 0x05, 0x20}); wasm::append_uleb(code, length);
+	code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size)); code.insert(code.end(), {0x6c, 0x22}); wasm::append_uleb(code, bytes);
+	code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_alloc")); code.push_back(0x22); wasm::append_uleb(code, backing);
+	code.insert(code.end(), {0x45, 0x04, 0x40}); append(code, failure_cleanup); append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b, 0x0b});
+	code.push_back(0x41); wasm::append_sleb32(code, 28); code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_alloc"));
+	code.push_back(0x22); wasm::append_uleb(code, handle); code.insert(code.end(), {0x45, 0x04, 0x40, 0x20}); wasm::append_uleb(code, backing);
+	code.insert(code.end(), {0x45, 0x04, 0x40, 0x05, 0x20}); wasm::append_uleb(code, backing); code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_free")); code.push_back(0x0b);
+	append(code, failure_cleanup); append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b});
+	auto store = [&](unsigned offset, std::optional<std::int32_t> constant, unsigned local)
+	{
+		code.push_back(0x20); wasm::append_uleb(code, handle);
+		if (constant) { code.push_back(0x41); wasm::append_sleb32(code, *constant); } else { code.push_back(0x20); wasm::append_uleb(code, local); }
+		code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset);
+	};
+	store(0, 1, 0); store(4, 1, 0); store(8, managed_type(element) ? 3 : 2, 0); store(12, 28, 0);
+	store(16, std::nullopt, length); store(20, std::nullopt, length); store(24, std::nullopt, backing);
+	code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01});
+	return {code, handle};
 }
 
 std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Member* member)
@@ -2860,20 +3073,25 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 		return {code, "s32"};
 	}
 	infer(call);
-	auto receiver = dynamic_cast<Name*>(member->value);
-	if (!receiver)
-		throw Error(member->value->location, "array mutation requires a local array name");
-	auto [slot, type] = lookup(receiver);
-	if (type != array_type)
+	auto receiver = expression(member->value);
+	if (receiver.second != array_type)
 		throw Error(member->value->location, "array receiver type changed during mutation");
-	if (borrowed_managed_slots_.contains(slot))
-		throw Error(member->value->location, "cannot mutate a borrowed array; copy it into a local first");
+	const bool owned_receiver = expression_is_owned(member->value);
+	const unsigned slot = add_local("", array_type, member->value->location);
+	Bytes receiver_code = std::move(receiver.first); receiver_code.push_back(0x21); wasm::append_uleb(receiver_code, slot);
+	if (!owned_receiver) { receiver_code.push_back(0x20); wasm::append_uleb(receiver_code, slot); receiver_code.push_back(0x10); wasm::append_uleb(receiver_code, module_.retain_index()); }
+	auto release_receiver = [&](Bytes& code)
+	{
+		code.push_back(0x20); wasm::append_uleb(code, slot); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+	};
+	Bytes receiver_cleanup; release_receiver(receiver_cleanup);
 	auto address = [&](Bytes& code, unsigned array, unsigned index)
 	{
 		code.push_back(0x20); wasm::append_uleb(code, array);
+		code.insert(code.end(), {0x28, 0x02, 0x18});
 		code.push_back(0x20); wasm::append_uleb(code, index);
 		code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size));
-		code.insert(code.end(), {0x6c, 0x6a, 0x41, 0x18, 0x6a});
+		code.insert(code.end(), {0x6c, 0x6a});
 	};
 	auto load_length = [&](Bytes& code, unsigned target)
 	{
@@ -2886,10 +3104,10 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 		code.push_back(0x20); wasm::append_uleb(code, source);
 		code.insert(code.end(), {0x36, 0x02, 0x10});
 	};
-	auto require_nonnegative = [&](Bytes& code, unsigned value, const Location& location)
+	auto require_nonnegative = [&](Bytes& code, unsigned value, const Location& location, const Bytes& failure_cleanup = Bytes{})
 	{
 		code.push_back(0x20); wasm::append_uleb(code, value);
-		code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40}); append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b});
+		code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40}); append(code, failure_cleanup); append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b});
 	};
 	if (member->member == "push")
 	{
@@ -2898,41 +3116,41 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 		auto value_code = std::move(compiled.first);
 		const std::string value_type = std::move(compiled.second);
 		const unsigned item = add_local("", element, call->arguments[0]->location), length = add_local("", "s32", call->location), required = add_local("", "s32", call->location);
-		Bytes code = std::move(value_code); code.push_back(0x21); wasm::append_uleb(code, item); load_length(code, length);
+		Bytes code = receiver_code; append(code, value_code); code.push_back(0x21); wasm::append_uleb(code, item); load_length(code, length);
+		Bytes failure_cleanup = receiver_cleanup;
+		if (managed_type(element) && expression_is_owned(call->arguments[0])) { failure_cleanup.push_back(0x20); wasm::append_uleb(failure_cleanup, item); failure_cleanup.push_back(0x10); wasm::append_uleb(failure_cleanup, module_.release_index()); }
 		code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x41, 0x01, 0x6a, 0x22}); wasm::append_uleb(code, required);
-		code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x4d, 0x04, 0x40}); append(code, module_.marker(call->location)); code.insert(code.end(), {0x00, 0x0b});
-		append(code, array_ensure_unique(slot, array_type, required, call->location));
+		code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x4d, 0x04, 0x40}); append(code, failure_cleanup); append(code, module_.marker(call->location)); code.insert(code.end(), {0x00, 0x0b});
+		append(code, array_ensure_capacity(slot, array_type, required, call->location, failure_cleanup));
 		if (managed_type(element) && !expression_is_owned(call->arguments[0])) { code.push_back(0x20); wasm::append_uleb(code, item); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); }
 		address(code, slot, length); code.push_back(0x20); wasm::append_uleb(code, item); code.push_back(array_store_opcode(element)); code.push_back(element_size == 8 ? 3 : 2); code.push_back(0x00);
-		store_length(code, required);
+		store_length(code, required); release_receiver(code);
 		return {code, "void"};
 	}
 	if (member->member == "pop")
 	{
 		const unsigned length = add_local("", "s32", call->location), index = add_local("", "s32", call->location), result = add_local("", element, call->location);
-		Bytes code; load_length(code, length); code.push_back(0x20); wasm::append_uleb(code, length);
-		code.insert(code.end(), {0x45, 0x04, 0x40}); append(code, module_.marker(call->location)); code.insert(code.end(), {0x00, 0x0b});
-		append(code, array_ensure_unique(slot, array_type, length, call->location));
+		Bytes code = receiver_code; load_length(code, length); code.push_back(0x20); wasm::append_uleb(code, length);
+		code.insert(code.end(), {0x45, 0x04, 0x40}); append(code, receiver_cleanup); append(code, module_.marker(call->location)); code.insert(code.end(), {0x00, 0x0b});
 		code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x41, 0x01, 0x6b, 0x21}); wasm::append_uleb(code, index);
 		address(code, slot, index); code.push_back(array_load_opcode(element)); code.push_back(element_size == 8 ? 3 : 2); code.insert(code.end(), {0x00, 0x21}); wasm::append_uleb(code, result);
-		if (managed_type(element)) { code.push_back(0x20); wasm::append_uleb(code, result); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); code.push_back(0x20); wasm::append_uleb(code, result); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
-		store_length(code, index); code.push_back(0x20); wasm::append_uleb(code, result);
+		store_length(code, index); release_receiver(code); code.push_back(0x20); wasm::append_uleb(code, result);
 		return {code, element};
 	}
 	if (member->member == "reserve")
 	{
 		auto [required_code, required_type] = expression(call->arguments[0]);
 		const unsigned required = add_local("", "s32", call->arguments[0]->location), capacity = add_local("", "s32", call->location);
-		Bytes code = std::move(required_code); code.push_back(0x21); wasm::append_uleb(code, required); require_nonnegative(code, required, call->arguments[0]->location);
+		Bytes code = receiver_code; append(code, required_code); code.push_back(0x21); wasm::append_uleb(code, required); require_nonnegative(code, required, call->arguments[0]->location, receiver_cleanup);
 		code.push_back(0x20); wasm::append_uleb(code, slot); code.insert(code.end(), {0x28, 0x02, 0x14, 0x21}); wasm::append_uleb(code, capacity);
 		code.push_back(0x20); wasm::append_uleb(code, required); code.push_back(0x20); wasm::append_uleb(code, capacity); code.insert(code.end(), {0x4b, 0x04, 0x40});
-		append(code, array_ensure_unique(slot, array_type, required, call->location)); code.push_back(0x0b);
+		append(code, array_ensure_capacity(slot, array_type, required, call->location, receiver_cleanup)); code.push_back(0x0b); release_receiver(code);
 		return {code, "void"};
 	}
 	if (member->member == "clear")
 	{
 		const unsigned length = add_local("", "s32", call->location), index = add_local("", "s32", call->location);
-		Bytes code; load_length(code, length); append(code, array_ensure_unique(slot, array_type, length, call->location));
+		Bytes code = receiver_code; load_length(code, length);
 		if (managed_type(element))
 		{
 			code.insert(code.end(), {0x41, 0x00, 0x21}); wasm::append_uleb(code, index);
@@ -2940,7 +3158,7 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 			address(code, slot, index); code.insert(code.end(), {0x28, 0x02, 0x00, 0x10}); wasm::append_uleb(code, module_.release_index());
 			code.push_back(0x20); wasm::append_uleb(code, index); code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21}); wasm::append_uleb(code, index); code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b});
 		}
-		code.insert(code.end(), {0x41, 0x00, 0x21}); wasm::append_uleb(code, length); store_length(code, length);
+		code.insert(code.end(), {0x41, 0x00, 0x21}); wasm::append_uleb(code, length); store_length(code, length); release_receiver(code);
 		return {code, "void"};
 	}
 	if (member->member == "insert" || member->member == "remove")
@@ -2948,7 +3166,7 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 		auto [index_code, index_type] = expression(call->arguments[0]);
 		const unsigned index = add_local("", "s32", call->arguments[0]->location), length = add_local("", "s32", call->location), required = add_local("", "s32", call->location);
 		const unsigned item = add_local("", element, call->location);
-		Bytes code = std::move(index_code); code.push_back(0x21); wasm::append_uleb(code, index); require_nonnegative(code, index, call->arguments[0]->location);
+		Bytes code = receiver_code; append(code, index_code); code.push_back(0x21); wasm::append_uleb(code, index); require_nonnegative(code, index, call->arguments[0]->location, receiver_cleanup);
 		bool insert = member->member == "insert";
 		bool item_owned = false;
 		if (insert)
@@ -2957,20 +3175,21 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 				? integer_expression(static_cast<Integer*>(call->arguments[1]), element) : expression(call->arguments[1]);
 			append(code, value.first); code.push_back(0x21); wasm::append_uleb(code, item); item_owned = expression_is_owned(call->arguments[1]);
 		}
+		Bytes failure_cleanup = receiver_cleanup;
+		if (insert && managed_type(element) && item_owned) { failure_cleanup.push_back(0x20); wasm::append_uleb(failure_cleanup, item); failure_cleanup.push_back(0x10); wasm::append_uleb(failure_cleanup, module_.release_index()); }
 		load_length(code, length); code.push_back(0x20); wasm::append_uleb(code, index); code.push_back(0x20); wasm::append_uleb(code, length); code.push_back(insert ? 0x4b : 0x4f);
-		code.insert(code.end(), {0x04, 0x40}); append(code, module_.marker(call->arguments[0]->location)); code.insert(code.end(), {0x00, 0x0b});
+		code.insert(code.end(), {0x04, 0x40}); append(code, failure_cleanup); append(code, module_.marker(call->arguments[0]->location)); code.insert(code.end(), {0x00, 0x0b});
 		if (insert) { code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21}); wasm::append_uleb(code, required); }
 		else { code.push_back(0x20); wasm::append_uleb(code, length); code.push_back(0x21); wasm::append_uleb(code, required); }
-		append(code, array_ensure_unique(slot, array_type, required, call->location));
+		if (insert) append(code, array_ensure_capacity(slot, array_type, required, call->location, failure_cleanup));
 		if (!insert)
 		{
 			address(code, slot, index); code.push_back(array_load_opcode(element)); code.push_back(element_size == 8 ? 3 : 2); code.insert(code.end(), {0x00, 0x21}); wasm::append_uleb(code, item);
-			if (managed_type(element)) { code.push_back(0x20); wasm::append_uleb(code, item); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); code.push_back(0x20); wasm::append_uleb(code, item); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
 		}
-		code.push_back(0x20); wasm::append_uleb(code, slot); code.push_back(0x41); wasm::append_sleb32(code, 24); code.push_back(0x6a); code.push_back(0x20); wasm::append_uleb(code, index);
+		code.push_back(0x20); wasm::append_uleb(code, slot); code.insert(code.end(), {0x28, 0x02, 0x18}); code.push_back(0x20); wasm::append_uleb(code, index);
 		if (insert) code.insert(code.end(), {0x41, 0x01, 0x6a});
 		code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size)); code.insert(code.end(), {0x6c, 0x6a});
-		code.push_back(0x20); wasm::append_uleb(code, slot); code.push_back(0x41); wasm::append_sleb32(code, 24); code.push_back(0x6a); code.push_back(0x20); wasm::append_uleb(code, index);
+		code.push_back(0x20); wasm::append_uleb(code, slot); code.insert(code.end(), {0x28, 0x02, 0x18}); code.push_back(0x20); wasm::append_uleb(code, index);
 		if (!insert) code.insert(code.end(), {0x41, 0x01, 0x6a});
 		code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size)); code.insert(code.end(), {0x6c, 0x6a, 0x20}); wasm::append_uleb(code, length); code.push_back(0x20); wasm::append_uleb(code, index); code.insert(code.end(), {0x6b});
 		if (!insert) code.insert(code.end(), {0x41, 0x01, 0x6b});
@@ -2978,10 +3197,10 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 		if (insert)
 		{
 			if (managed_type(element) && !item_owned) { code.push_back(0x20); wasm::append_uleb(code, item); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); }
-			address(code, slot, index); code.push_back(0x20); wasm::append_uleb(code, item); code.push_back(array_store_opcode(element)); code.push_back(element_size == 8 ? 3 : 2); code.push_back(0x00); store_length(code, required);
+			address(code, slot, index); code.push_back(0x20); wasm::append_uleb(code, item); code.push_back(array_store_opcode(element)); code.push_back(element_size == 8 ? 3 : 2); code.push_back(0x00); store_length(code, required); release_receiver(code);
 			return {code, "void"};
 		}
-		code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x41, 0x01, 0x6b, 0x21}); wasm::append_uleb(code, required); store_length(code, required); code.push_back(0x20); wasm::append_uleb(code, item);
+		code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x41, 0x01, 0x6b, 0x21}); wasm::append_uleb(code, required); store_length(code, required); release_receiver(code); code.push_back(0x20); wasm::append_uleb(code, item);
 		return {code, element};
 	}
 	if (member->member == "resize")
@@ -2993,10 +3212,11 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 		const std::string fill_type = std::move(fill_result.second);
 		const unsigned desired = add_local("", "s32", call->arguments[0]->location), fill = add_local("", element, call->arguments[1]->location);
 		const unsigned length = add_local("", "s32", call->location), index = add_local("", "s32", call->location);
-		Bytes code = std::move(size_code); code.push_back(0x21); wasm::append_uleb(code, desired); append(code, fill_code); code.push_back(0x21); wasm::append_uleb(code, fill);
-		require_nonnegative(code, desired, call->arguments[0]->location); load_length(code, length);
-		code.push_back(0x20); wasm::append_uleb(code, desired); code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x4b, 0x04, 0x40}); append(code, array_ensure_unique(slot, array_type, desired, call->location));
-		code.push_back(0x05); append(code, array_ensure_unique(slot, array_type, length, call->location)); code.push_back(0x0b);
+		Bytes code = receiver_code; append(code, size_code); code.push_back(0x21); wasm::append_uleb(code, desired); append(code, fill_code); code.push_back(0x21); wasm::append_uleb(code, fill);
+		Bytes failure_cleanup = receiver_cleanup;
+		if (managed_type(element) && expression_is_owned(call->arguments[1])) { failure_cleanup.push_back(0x20); wasm::append_uleb(failure_cleanup, fill); failure_cleanup.push_back(0x10); wasm::append_uleb(failure_cleanup, module_.release_index()); }
+		require_nonnegative(code, desired, call->arguments[0]->location, failure_cleanup); load_length(code, length);
+		code.push_back(0x20); wasm::append_uleb(code, desired); code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x4b, 0x04, 0x40}); append(code, array_ensure_capacity(slot, array_type, desired, call->location, failure_cleanup)); code.push_back(0x0b);
 		code.push_back(0x20); wasm::append_uleb(code, desired); code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x49, 0x04, 0x40});
 		if (managed_type(element))
 		{
@@ -3012,85 +3232,33 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 		code.push_back(0x20); wasm::append_uleb(code, index); code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21}); wasm::append_uleb(code, index); code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b, 0x0b});
 		store_length(code, desired);
 		if (managed_type(element) && expression_is_owned(call->arguments[1])) { code.push_back(0x20); wasm::append_uleb(code, fill); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+		release_receiver(code);
 		return {code, "void"};
 	}
 	throw Error(call->location, "unknown array method '" + member->member + "'");
 }
 
-Bytes FunctionLowerer::array_ensure_unique(unsigned slot, const std::string& array_type, unsigned required, const Location& location)
+Bytes FunctionLowerer::array_ensure_capacity(unsigned slot, const std::string& array_type, unsigned required, const Location& location, const Bytes& failure_cleanup)
 {
-	const std::string element = array_type.substr(6, array_type.size() - 7);
-	const unsigned element_size = array_element_size(element);
-	const unsigned old = add_local("", array_type, location), length = add_local("", "s32", location), capacity = add_local("", "s32", location);
-	const unsigned new_capacity = add_local("", "s32", location), bytes = add_local("", "s32", location), replacement = add_local("", array_type, location);
+	const unsigned element_size = array_element_size(array_type.substr(6, array_type.size() - 7));
+	const unsigned length = add_local("", "s32", location), capacity = add_local("", "s32", location);
+	const unsigned new_capacity = add_local("", "s32", location), bytes = add_local("", "s32", location);
+	const unsigned old_backing = add_local("", "s32", location), new_backing = add_local("", "s32", location);
 	Bytes code{0x20};
-	wasm::append_uleb(code, slot);
-	code.push_back(0x22); wasm::append_uleb(code, old);
-	code.insert(code.end(), {0x28, 0x02, 0x10, 0x21}); wasm::append_uleb(code, length);
-	code.push_back(0x20); wasm::append_uleb(code, old);
-	code.insert(code.end(), {0x28, 0x02, 0x14, 0x21}); wasm::append_uleb(code, capacity);
-	code.push_back(0x20); wasm::append_uleb(code, old);
-	code.insert(code.end(), {0x28, 0x02, 0x00, 0x41, 0x01, 0x46, 0x20}); wasm::append_uleb(code, capacity);
-	code.push_back(0x20); wasm::append_uleb(code, required);
-	code.insert(code.end(), {0x4f, 0x71, 0x04, 0x40, 0x05});
-	code.push_back(0x20); wasm::append_uleb(code, capacity);
-	code.push_back(0x20); wasm::append_uleb(code, required);
-	code.insert(code.end(), {0x49, 0x04, 0x40, 0x20}); wasm::append_uleb(code, capacity);
-	code.insert(code.end(), {0x41, 0x02, 0x6c, 0x22}); wasm::append_uleb(code, new_capacity);
-	code.push_back(0x20); wasm::append_uleb(code, required);
-	code.insert(code.end(), {0x49, 0x04, 0x40, 0x20}); wasm::append_uleb(code, required);
-	code.push_back(0x21); wasm::append_uleb(code, new_capacity);
-	code.push_back(0x0b);
-	code.push_back(0x05);
-	code.push_back(0x20); wasm::append_uleb(code, capacity);
-	code.push_back(0x21); wasm::append_uleb(code, new_capacity);
-	code.push_back(0x0b);
-	code.push_back(0x20); wasm::append_uleb(code, new_capacity);
-	code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>((std::numeric_limits<std::int32_t>::max() - 24) / element_size));
-	code.insert(code.end(), {0x4b, 0x04, 0x40}); append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b});
-	code.push_back(0x20); wasm::append_uleb(code, new_capacity);
-	code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size));
-	code.insert(code.end(), {0x6c, 0x41, 0x18, 0x6a, 0x22}); wasm::append_uleb(code, bytes);
-	code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_alloc"));
-	code.push_back(0x22); wasm::append_uleb(code, replacement);
-	code.insert(code.end(), {0x45, 0x04, 0x40}); append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b});
-	auto store_header = [&](unsigned offset, unsigned local, std::optional<std::int32_t> constant = std::nullopt)
-	{
-		code.push_back(0x20); wasm::append_uleb(code, replacement);
-		if (constant) { code.push_back(0x41); wasm::append_sleb32(code, *constant); }
-		else { code.push_back(0x20); wasm::append_uleb(code, local); }
-		code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset);
-	};
-	store_header(0, 0, 1); store_header(4, 0, 1); store_header(8, 0, managed_type(element) ? 3 : 2);
-	store_header(12, bytes); store_header(16, length); store_header(20, new_capacity);
-	code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01});
-	if (managed_type(element))
-	{
-		const unsigned index = add_local("", "s32", location), item = add_local("", element, location);
-		code.insert(code.end(), {0x41, 0x00, 0x21}); wasm::append_uleb(code, index);
-		code.insert(code.end(), {0x02, 0x40, 0x03, 0x40, 0x20}); wasm::append_uleb(code, index);
-		code.push_back(0x20); wasm::append_uleb(code, length);
-		code.insert(code.end(), {0x4f, 0x0d, 0x01, 0x20}); wasm::append_uleb(code, old);
-		code.push_back(0x20); wasm::append_uleb(code, index);
-		code.insert(code.end(), {0x41, 0x04, 0x6c, 0x6a, 0x28, 0x02, 0x18, 0x22}); wasm::append_uleb(code, item);
-		code.push_back(0x10); wasm::append_uleb(code, module_.retain_index());
-		code.push_back(0x20); wasm::append_uleb(code, replacement);
-		code.push_back(0x20); wasm::append_uleb(code, index);
-		code.insert(code.end(), {0x41, 0x04, 0x6c, 0x6a, 0x20}); wasm::append_uleb(code, item);
-		code.insert(code.end(), {0x36, 0x02, 0x18, 0x20}); wasm::append_uleb(code, index);
-		code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21}); wasm::append_uleb(code, index);
-		code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b});
-	}
-	else
-	{
-		code.push_back(0x20); wasm::append_uleb(code, replacement); code.insert(code.end(), {0x41, 0x18, 0x6a, 0x20}); wasm::append_uleb(code, old);
-		code.insert(code.end(), {0x41, 0x18, 0x6a, 0x20}); wasm::append_uleb(code, length);
-		code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size));
-		code.insert(code.end(), {0x6c, 0xfc, 0x0a, 0x00, 0x00});
-	}
-	code.push_back(0x20); wasm::append_uleb(code, old); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
-	code.push_back(0x20); wasm::append_uleb(code, replacement); code.push_back(0x21); wasm::append_uleb(code, slot);
-	code.push_back(0x0b);
+	wasm::append_uleb(code, slot); code.insert(code.end(), {0x28, 0x02, 0x10, 0x21}); wasm::append_uleb(code, length);
+	code.push_back(0x20); wasm::append_uleb(code, slot); code.insert(code.end(), {0x28, 0x02, 0x14, 0x21}); wasm::append_uleb(code, capacity);
+	code.push_back(0x20); wasm::append_uleb(code, required); code.push_back(0x20); wasm::append_uleb(code, capacity); code.insert(code.end(), {0x4b, 0x04, 0x40});
+	code.push_back(0x20); wasm::append_uleb(code, capacity); code.insert(code.end(), {0x41, 0x02, 0x6c, 0x21}); wasm::append_uleb(code, new_capacity);
+	code.push_back(0x20); wasm::append_uleb(code, required); code.push_back(0x20); wasm::append_uleb(code, new_capacity); code.insert(code.end(), {0x4b, 0x04, 0x40, 0x20}); wasm::append_uleb(code, required); code.push_back(0x21); wasm::append_uleb(code, new_capacity); code.push_back(0x0b);
+	code.push_back(0x20); wasm::append_uleb(code, new_capacity); code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(std::numeric_limits<std::int32_t>::max() / element_size)); code.insert(code.end(), {0x4b, 0x04, 0x40}); append(code, failure_cleanup); append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b});
+	code.push_back(0x20); wasm::append_uleb(code, new_capacity); code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size)); code.insert(code.end(), {0x6c, 0x22}); wasm::append_uleb(code, bytes);
+	code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_alloc")); code.push_back(0x22); wasm::append_uleb(code, new_backing); code.insert(code.end(), {0x45, 0x04, 0x40}); append(code, failure_cleanup); append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b});
+	code.push_back(0x20); wasm::append_uleb(code, slot); code.insert(code.end(), {0x28, 0x02, 0x18, 0x21}); wasm::append_uleb(code, old_backing);
+	code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x45, 0x04, 0x40, 0x05, 0x20}); wasm::append_uleb(code, new_backing);
+	code.push_back(0x20); wasm::append_uleb(code, old_backing); code.push_back(0x20); wasm::append_uleb(code, length); code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size)); code.insert(code.end(), {0x6c, 0xfc, 0x0a, 0x00, 0x00, 0x0b});
+	code.push_back(0x20); wasm::append_uleb(code, slot); code.push_back(0x20); wasm::append_uleb(code, new_backing); code.insert(code.end(), {0x36, 0x02, 0x18});
+	code.push_back(0x20); wasm::append_uleb(code, slot); code.push_back(0x20); wasm::append_uleb(code, new_capacity); code.insert(code.end(), {0x36, 0x02, 0x14});
+	code.push_back(0x20); wasm::append_uleb(code, old_backing); code.insert(code.end(), {0x45, 0x04, 0x40, 0x05, 0x20}); wasm::append_uleb(code, old_backing); code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_free")); code.insert(code.end(), {0x0b, 0x0b});
 	return code;
 }
 
@@ -3383,6 +3551,15 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		{
 			struct Part { bool spread; unsigned local; unsigned length; bool owned; std::string source_element; };
 			std::vector<Part> parts;
+			auto release_parts = [&](Bytes& target)
+			{
+				for (auto it = parts.rbegin(); it != parts.rend(); ++it)
+					if (it->spread || (it->owned && managed_type(it->source_element)))
+					{
+						target.push_back(0x20); wasm::append_uleb(target, it->local);
+						target.push_back(0x10); wasm::append_uleb(target, module_.release_index());
+					}
+			};
 			const unsigned total = add_local("", "s32", value->location), previous = add_local("", "s32", value->location);
 			Bytes code{0x41, 0x00, 0x21}; wasm::append_uleb(code, total);
 			for (Expr* item : array->items)
@@ -3397,10 +3574,38 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 					if (target_element != element_type) throw Error(spread->location, "array literal spread element type does not match");
 					if (source_element != element_type && !module_.constructor_available(source_element, element_type))
 						throw Error(spread->location, "no constructor for converted array spread from " + source_element + " to " + element_type);
-					const unsigned local = add_local("", compiled.second, spread->location), length = add_local("", "s32", spread->location);
-					append(code, compiled.first); code.push_back(0x21); wasm::append_uleb(code, local);
-					code.push_back(0x20); wasm::append_uleb(code, local); code.insert(code.end(), {0x28, 0x02, 0x10, 0x21}); wasm::append_uleb(code, length);
-					parts.push_back({true, local, length, expression_is_owned(spread->value), source_element});
+					const bool owned_source = expression_is_owned(spread->value);
+					const unsigned source = add_local("", compiled.second, spread->location), length = add_local("", "s32", spread->location);
+					append(code, compiled.first); code.push_back(0x21); wasm::append_uleb(code, source);
+					code.push_back(0x20); wasm::append_uleb(code, source); code.insert(code.end(), {0x28, 0x02, 0x10, 0x21}); wasm::append_uleb(code, length);
+					Bytes snapshot_cleanup;
+					if (owned_source) { snapshot_cleanup.push_back(0x20); wasm::append_uleb(snapshot_cleanup, source); snapshot_cleanup.push_back(0x10); wasm::append_uleb(snapshot_cleanup, module_.release_index()); }
+					auto [snapshot_code, snapshot] = allocate_array(compiled.second, length, spread->location, snapshot_cleanup);
+					append(code, snapshot_code);
+					const unsigned source_size = array_element_size(source_element);
+					if (!managed_type(source_element))
+					{
+						code.push_back(0x20); wasm::append_uleb(code, snapshot); code.insert(code.end(), {0x28, 0x02, 0x18, 0x20}); wasm::append_uleb(code, source);
+						code.insert(code.end(), {0x28, 0x02, 0x18, 0x20}); wasm::append_uleb(code, length); code.push_back(0x41);
+						wasm::append_sleb32(code, static_cast<std::int32_t>(source_size)); code.insert(code.end(), {0x6c, 0xfc, 0x0a, 0x00, 0x00});
+					}
+					else
+					{
+						const unsigned copy_index = add_local("", "s32", spread->location), copied = add_local("", source_element, spread->location);
+						code.insert(code.end(), {0x41, 0x00, 0x21}); wasm::append_uleb(code, copy_index);
+						code.insert(code.end(), {0x02, 0x40, 0x03, 0x40, 0x20}); wasm::append_uleb(code, copy_index);
+						code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x4f, 0x0d, 0x01, 0x20}); wasm::append_uleb(code, source);
+						code.insert(code.end(), {0x28, 0x02, 0x18, 0x20}); wasm::append_uleb(code, copy_index); code.push_back(0x41);
+						wasm::append_sleb32(code, static_cast<std::int32_t>(source_size)); code.insert(code.end(), {0x6c, 0x6a});
+						code.push_back(array_load_opcode(source_element)); code.push_back(source_size == 8 ? 3 : 2); code.insert(code.end(), {0x00, 0x22}); wasm::append_uleb(code, copied);
+						code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); code.push_back(0x20); wasm::append_uleb(code, snapshot);
+						code.insert(code.end(), {0x28, 0x02, 0x18, 0x20}); wasm::append_uleb(code, copy_index); code.push_back(0x41);
+						wasm::append_sleb32(code, static_cast<std::int32_t>(source_size)); code.insert(code.end(), {0x6c, 0x6a, 0x20}); wasm::append_uleb(code, copied);
+						code.push_back(array_store_opcode(source_element)); code.push_back(source_size == 8 ? 3 : 2); code.insert(code.end(), {0x00, 0x20}); wasm::append_uleb(code, copy_index);
+						code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21}); wasm::append_uleb(code, copy_index); code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b});
+					}
+					if (owned_source) { code.push_back(0x20); wasm::append_uleb(code, source); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+					parts.push_back({true, snapshot, length, true, source_element});
 				}
 				else
 				{
@@ -3414,40 +3619,30 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				}
 				code.push_back(0x20); wasm::append_uleb(code, total); code.push_back(0x21); wasm::append_uleb(code, previous);
 				code.push_back(0x20); wasm::append_uleb(code, previous); code.push_back(0x20); wasm::append_uleb(code, parts.back().length); code.insert(code.end(), {0x6a, 0x22}); wasm::append_uleb(code, total);
-				code.push_back(0x20); wasm::append_uleb(code, previous); code.insert(code.end(), {0x49, 0x04, 0x40}); append(code, module_.marker(item->location)); code.insert(code.end(), {0x00, 0x0b});
+				code.push_back(0x20); wasm::append_uleb(code, previous); code.insert(code.end(), {0x49, 0x04, 0x40}); release_parts(code); append(code, module_.marker(item->location)); code.insert(code.end(), {0x00, 0x0b});
 			}
 			if (element_type.empty()) throw Error(value->location, "empty array literal needs an explicit element type");
-			const unsigned element_size = array_element_size(element_type), bytes = add_local("", "s32", value->location);
-			const unsigned pointer = add_local("", "array<" + element_type + ">", value->location), cursor = add_local("", "s32", value->location);
-			code.push_back(0x20); wasm::append_uleb(code, total); code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>((std::numeric_limits<std::int32_t>::max() - 24) / element_size));
-			code.insert(code.end(), {0x4b, 0x04, 0x40}); append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b, 0x20}); wasm::append_uleb(code, total);
-			code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size)); code.insert(code.end(), {0x6c, 0x41, 0x18, 0x6a, 0x22}); wasm::append_uleb(code, bytes);
-			code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_alloc")); code.push_back(0x22); wasm::append_uleb(code, pointer);
-			code.insert(code.end(), {0x45, 0x04, 0x40}); append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b});
-			auto header = [&](unsigned offset, std::optional<std::int32_t> constant, unsigned local)
-			{
-				code.push_back(0x20); wasm::append_uleb(code, pointer);
-				if (constant) { code.push_back(0x41); wasm::append_sleb32(code, *constant); } else { code.push_back(0x20); wasm::append_uleb(code, local); }
-				code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset);
-			};
-			header(0, 1, 0); header(4, 1, 0); header(8, managed_type(element_type) ? 3 : 2, 0); header(12, std::nullopt, bytes); header(16, std::nullopt, total); header(20, std::nullopt, total);
-			code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01, 0x41, 0x00, 0x21}); wasm::append_uleb(code, cursor);
+			const unsigned element_size = array_element_size(element_type), cursor = add_local("", "s32", value->location);
+			Bytes allocation_cleanup; release_parts(allocation_cleanup);
+			auto [allocation, pointer] = allocate_array("array<" + element_type + ">", total, value->location, allocation_cleanup);
+			append(code, allocation);
+			code.insert(code.end(), {0x41, 0x00, 0x21}); wasm::append_uleb(code, cursor);
 			for (const Part& part : parts)
 			{
 				if (part.spread && part.source_element == element_type && !managed_type(element_type))
 				{
-					code.push_back(0x20); wasm::append_uleb(code, pointer); code.insert(code.end(), {0x41, 0x18, 0x6a, 0x20}); wasm::append_uleb(code, cursor);
+					code.push_back(0x20); wasm::append_uleb(code, pointer); code.insert(code.end(), {0x28, 0x02, 0x18, 0x20}); wasm::append_uleb(code, cursor);
 					code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size)); code.insert(code.end(), {0x6c, 0x6a, 0x20}); wasm::append_uleb(code, part.local);
-					code.insert(code.end(), {0x41, 0x18, 0x6a, 0x20}); wasm::append_uleb(code, part.length); code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size));
+					code.insert(code.end(), {0x28, 0x02, 0x18, 0x20}); wasm::append_uleb(code, part.length); code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size));
 					code.insert(code.end(), {0x6c, 0xfc, 0x0a, 0x00, 0x00});
 				}
 				else if (part.spread && part.source_element == element_type)
 				{
 					const unsigned index = add_local("", "s32", value->location), copied = add_local("", element_type, value->location);
 					code.insert(code.end(), {0x41, 0x00, 0x21}); wasm::append_uleb(code, index); code.insert(code.end(), {0x02, 0x40, 0x03, 0x40, 0x20}); wasm::append_uleb(code, index);
-					code.push_back(0x20); wasm::append_uleb(code, part.length); code.insert(code.end(), {0x4f, 0x0d, 0x01, 0x20}); wasm::append_uleb(code, part.local); code.push_back(0x20); wasm::append_uleb(code, index);
-					code.insert(code.end(), {0x41, 0x04, 0x6c, 0x6a, 0x28, 0x02, 0x18, 0x22}); wasm::append_uleb(code, copied); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index());
-					code.push_back(0x20); wasm::append_uleb(code, pointer); code.push_back(0x20); wasm::append_uleb(code, cursor); code.push_back(0x20); wasm::append_uleb(code, index); code.insert(code.end(), {0x6a, 0x41, 0x04, 0x6c, 0x6a, 0x20}); wasm::append_uleb(code, copied); code.insert(code.end(), {0x36, 0x02, 0x18, 0x20}); wasm::append_uleb(code, index);
+					code.push_back(0x20); wasm::append_uleb(code, part.length); code.insert(code.end(), {0x4f, 0x0d, 0x01, 0x20}); wasm::append_uleb(code, part.local); code.insert(code.end(), {0x28, 0x02, 0x18}); code.push_back(0x20); wasm::append_uleb(code, index);
+					code.insert(code.end(), {0x41, 0x04, 0x6c, 0x6a, 0x28, 0x02, 0x00, 0x22}); wasm::append_uleb(code, copied); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index());
+					code.push_back(0x20); wasm::append_uleb(code, pointer); code.insert(code.end(), {0x28, 0x02, 0x18}); code.push_back(0x20); wasm::append_uleb(code, cursor); code.push_back(0x20); wasm::append_uleb(code, index); code.insert(code.end(), {0x6a, 0x41, 0x04, 0x6c, 0x6a, 0x20}); wasm::append_uleb(code, copied); code.insert(code.end(), {0x36, 0x02, 0x00, 0x20}); wasm::append_uleb(code, index);
 					code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21}); wasm::append_uleb(code, index); code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b});
 				}
 				else if (part.spread)
@@ -3462,18 +3657,18 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 					auto converted = expression(&conversion_call);
 					scopes_.back().erase(temporary_name);
 					code.insert(code.end(), {0x41, 0x00, 0x21}); wasm::append_uleb(code, index); code.insert(code.end(), {0x02, 0x40, 0x03, 0x40, 0x20}); wasm::append_uleb(code, index);
-					code.push_back(0x20); wasm::append_uleb(code, part.length); code.insert(code.end(), {0x4f, 0x0d, 0x01, 0x20}); wasm::append_uleb(code, part.local); code.push_back(0x20); wasm::append_uleb(code, index);
-					code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(source_size)); code.insert(code.end(), {0x6c, 0x6a, 0x41, 0x18, 0x6a}); code.push_back(array_load_opcode(part.source_element));
+					code.push_back(0x20); wasm::append_uleb(code, part.length); code.insert(code.end(), {0x4f, 0x0d, 0x01, 0x20}); wasm::append_uleb(code, part.local); code.insert(code.end(), {0x28, 0x02, 0x18}); code.push_back(0x20); wasm::append_uleb(code, index);
+					code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(source_size)); code.insert(code.end(), {0x6c, 0x6a}); code.push_back(array_load_opcode(part.source_element));
 					code.push_back(source_size == 8 ? 3 : 2); code.insert(code.end(), {0x00, 0x21}); wasm::append_uleb(code, source_item); append(code, converted.first); code.push_back(0x21); wasm::append_uleb(code, converted_item);
-					code.push_back(0x20); wasm::append_uleb(code, pointer); code.push_back(0x20); wasm::append_uleb(code, cursor); code.push_back(0x20); wasm::append_uleb(code, index); code.insert(code.end(), {0x6a});
-					code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size)); code.insert(code.end(), {0x6c, 0x6a, 0x41, 0x18, 0x6a, 0x20}); wasm::append_uleb(code, converted_item);
+					code.push_back(0x20); wasm::append_uleb(code, pointer); code.insert(code.end(), {0x28, 0x02, 0x18}); code.push_back(0x20); wasm::append_uleb(code, cursor); code.push_back(0x20); wasm::append_uleb(code, index); code.insert(code.end(), {0x6a});
+					code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size)); code.insert(code.end(), {0x6c, 0x6a, 0x20}); wasm::append_uleb(code, converted_item);
 					code.push_back(array_store_opcode(element_type)); code.push_back(element_size == 8 ? 3 : 2); code.insert(code.end(), {0x00, 0x20}); wasm::append_uleb(code, index);
 					code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21}); wasm::append_uleb(code, index); code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b});
 				}
 				else
 				{
 					if (managed_type(element_type) && !part.owned) { code.push_back(0x20); wasm::append_uleb(code, part.local); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); }
-					code.push_back(0x20); wasm::append_uleb(code, pointer); code.push_back(0x20); wasm::append_uleb(code, cursor); code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size)); code.insert(code.end(), {0x6c, 0x6a, 0x41, 0x18, 0x6a, 0x20}); wasm::append_uleb(code, part.local);
+					code.push_back(0x20); wasm::append_uleb(code, pointer); code.insert(code.end(), {0x28, 0x02, 0x18}); code.push_back(0x20); wasm::append_uleb(code, cursor); code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size)); code.insert(code.end(), {0x6c, 0x6a, 0x20}); wasm::append_uleb(code, part.local);
 					code.push_back(array_store_opcode(element_type)); code.push_back(element_size == 8 ? 3 : 2); code.push_back(0x00);
 				}
 				code.push_back(0x20); wasm::append_uleb(code, cursor); code.push_back(0x20); wasm::append_uleb(code, part.length); code.insert(code.end(), {0x6a, 0x21}); wasm::append_uleb(code, cursor);
@@ -3497,34 +3692,10 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			items.push_back({std::move(compiled.first), expression_is_owned(item)});
 		}
 		const unsigned element_size = array_element_size(element_type);
-		const unsigned allocation_size = 24 + element_size * static_cast<unsigned>(items.size());
-		const unsigned pointer = add_local("", "array<" + element_type + ">", value->location);
-		Bytes code{0x41};
-		wasm::append_sleb32(code, static_cast<std::int32_t>(allocation_size));
-		code.push_back(0x10);
-		wasm::append_uleb(code, module_.import_index("bearer_alloc"));
-		code.push_back(0x21);
-		wasm::append_uleb(code, pointer);
-		code.push_back(0x20);
-		wasm::append_uleb(code, pointer);
-		code.insert(code.end(), {0x45, 0x04, 0x40, 0x00, 0x0b});
-		// ARC header: strong, weak, type-id, allocation bytes, element count, capacity.
-		const std::int32_t type_id = managed_type(element_type) ? 3 : 2;
-		for (const auto [header_value, offset] : {std::pair<std::int32_t, unsigned>{1, 0},
-												  {1, 4},
-												  {type_id, 8},
-												  {static_cast<std::int32_t>(allocation_size), 12},
-												  {static_cast<std::int32_t>(items.size()), 16},
-												  {static_cast<std::int32_t>(items.size()), 20}})
-		{
-			code.push_back(0x20);
-			wasm::append_uleb(code, pointer);
-			code.push_back(0x41);
-			wasm::append_sleb32(code, header_value);
-			code.insert(code.end(), {0x36, 0x02});
-			wasm::append_uleb(code, offset);
-		}
-		code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01});
+		const unsigned length = add_local("", "s32", value->location);
+		Bytes code{0x41}; wasm::append_sleb32(code, static_cast<std::int32_t>(items.size())); code.push_back(0x21); wasm::append_uleb(code, length);
+		auto [allocation, pointer] = allocate_array("array<" + element_type + ">", length, value->location);
+		append(code, allocation);
 		for (std::size_t i = 0; i < items.size(); ++i)
 		{
 			if (managed_type(element_type))
@@ -3542,6 +3713,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				}
 				code.push_back(0x20);
 				wasm::append_uleb(code, pointer);
+				code.insert(code.end(), {0x28, 0x02, 0x18});
 				code.push_back(0x20);
 				wasm::append_uleb(code, item);
 			}
@@ -3549,11 +3721,12 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			{
 				code.push_back(0x20);
 				wasm::append_uleb(code, pointer);
+				code.insert(code.end(), {0x28, 0x02, 0x18});
 				append(code, items[i].first);
 			}
 			code.push_back(array_store_opcode(element_type));
 			code.push_back(static_cast<std::uint8_t>(element_size == 8 ? 3 : 2));
-			wasm::append_uleb(code, static_cast<unsigned>(24 + element_size * i));
+			wasm::append_uleb(code, static_cast<unsigned>(element_size * i));
 		}
 		code.push_back(0x20);
 		wasm::append_uleb(code, pointer);
@@ -3630,11 +3803,12 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		const unsigned element_size = array_element_size(element_type);
 		code.push_back(0x20);
 		wasm::append_uleb(code, array_local);
+		code.insert(code.end(), {0x28, 0x02, 0x18});
 		code.push_back(0x20);
 		wasm::append_uleb(code, index_local);
 		code.push_back(0x41);
 		wasm::append_sleb32(code, static_cast<std::int32_t>(element_size));
-		code.insert(code.end(), {0x6c, 0x6a, 0x41, 0x18, 0x6a});
+		code.insert(code.end(), {0x6c, 0x6a});
 		code.push_back(array_load_opcode(element_type));
 		code.push_back(static_cast<std::uint8_t>(element_size == 8 ? 3 : 2));
 		code.push_back(0x00);
@@ -3917,9 +4091,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b});
 			auto [allocation, pointer] = allocate_blob("dval", 4, length, value->location);
 			append(code, allocation);
+			managed_payload_pointer(code, pointer, "dval");
 			code.push_back(0x20);
-			wasm::append_uleb(code, pointer);
-			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
 			wasm::append_uleb(code, length);
 			code.push_back(0x10);
 			wasm::append_uleb(code, module_.import_index("bearer_dv_none_brrb"));
@@ -4004,6 +4177,39 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			return dval_presence(binary->left);
 		if (binary->operator_ == "=")
 		{
+			if (auto target_index = dynamic_cast<Index*>(binary->left); target_index && infer(target_index->value).rfind("tuple<", 0) == 0)
+				throw Error(target_index->location, "tuple elements are immutable");
+			if (auto target_member = dynamic_cast<Member*>(binary->left); target_member && infer(target_member->value).rfind("struct:", 0) == 0)
+			{
+				const std::string object_type = infer(target_member->value);
+				const auto& fields = module_.struct_type(object_type.substr(7), target_member->location).fields;
+				auto found = std::find_if(fields.begin(), fields.end(), [&](const auto& field) { return field.first == target_member->member; });
+				if (found == fields.end()) throw Error(target_member->location, "struct has no member '" + target_member->member + "'");
+				const unsigned field_index = static_cast<unsigned>(found - fields.begin());
+				std::vector<std::string> field_types;
+				for (const auto& field : fields) field_types.push_back(field.second);
+				const AggregateLayout layout = aggregate_layout(field_types, 16);
+				auto receiver = expression(target_member->value);
+				auto replacement = dynamic_cast<Integer*>(binary->right)
+					? integer_expression(static_cast<Integer*>(binary->right), found->second) : expression(binary->right);
+				if (replacement.second != found->second) throw Error(binary->right->location, "expected " + found->second + ", found " + replacement.second);
+				const bool owned_receiver = expression_is_owned(target_member->value);
+				const unsigned object = add_local("", object_type, target_member->value->location);
+				const unsigned value_slot = add_local("", found->second, binary->right->location);
+				Bytes code = std::move(receiver.first); code.push_back(0x21); wasm::append_uleb(code, object);
+				if (!owned_receiver) { code.push_back(0x20); wasm::append_uleb(code, object); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); }
+				append(code, replacement.first); code.push_back(0x21); wasm::append_uleb(code, value_slot);
+				if (managed_type(found->second))
+				{
+					if (!expression_is_owned(binary->right)) { code.push_back(0x20); wasm::append_uleb(code, value_slot); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); }
+					code.push_back(0x20); wasm::append_uleb(code, object); load_field(code, found->second, layout.offsets[field_index]); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+				}
+				code.push_back(0x20); wasm::append_uleb(code, object); code.push_back(0x20); wasm::append_uleb(code, value_slot); store_field(code, found->second, layout.offsets[field_index]);
+				if (managed_type(found->second) && owned_receiver) { code.push_back(0x20); wasm::append_uleb(code, value_slot); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); owned_expression_results_.insert(value); }
+				code.push_back(0x20); wasm::append_uleb(code, object); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+				code.push_back(0x20); wasm::append_uleb(code, value_slot);
+				return {code, found->second};
+			}
 			std::vector<std::unique_ptr<String>> member_selectors;
 			std::vector<Expr*> selectors;
 			Expr* root = binary->left;
@@ -4026,59 +4232,62 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			if (!selectors.empty())
 			{
 				std::reverse(selectors.begin(), selectors.end());
-				auto receiver = dynamic_cast<Name*>(root);
-				if (!receiver)
-					throw Error(binary->left->location, "nested DValue assignment requires an owned local dval root. Copy the value into a local first.");
-				auto [slot, type] = lookup(receiver);
-				if (type == "dval")
-				{
-					if (!owned_local_dval_slots_.contains(slot) || borrowed_managed_slots_.contains(slot))
-						throw Error(binary->left->location, "nested DValue assignment requires an owned local dval root. Copy the value into a local first.");
-					return dval_set_path(slot, selectors, binary->right, binary->location);
-				}
-				if (dynamic_cast<Index*>(binary->left) && selectors.size() == 1 && type.rfind("array<", 0) == 0)
+				if (auto target_index = dynamic_cast<Index*>(binary->left); target_index && infer(target_index->value).rfind("array<", 0) == 0)
 					selectors.clear();
 				else
-					throw Error(binary->left->location, "nested DValue assignment requires an owned local dval root. Copy the value into a local first.");
+				{
+					auto receiver = dynamic_cast<Name*>(root);
+					if (!receiver)
+						throw Error(binary->left->location, "nested DValue assignment requires a local, parameter, or captured dval root");
+					auto [slot, type] = lookup(receiver);
+					if (type != "dval" || (!owned_local_dval_slots_.contains(slot) && !borrowed_managed_slots_.contains(slot)))
+						throw Error(binary->left->location, "nested DValue assignment requires a local, parameter, or captured dval root");
+					auto result = dval_set_path(slot, selectors, binary->right, binary->location);
+					owned_expression_results_.insert(value);
+					return result;
+				}
 			}
 			if (auto target_index = dynamic_cast<Index*>(binary->left))
 			{
-				auto receiver = dynamic_cast<Name*>(target_index->value);
-				if (!receiver)
-					throw Error(target_index->value->location, "array assignment requires a local array name");
-				auto [slot, array_type] = lookup(receiver);
+				const std::string array_type = infer(target_index->value);
 				if (array_type.rfind("array<", 0) != 0)
 					throw Error(target_index->value->location, "indexed assignment requires an array");
-				if (borrowed_managed_slots_.contains(slot))
-					throw Error(target_index->value->location, "cannot mutate a borrowed array; copy it into a local first");
 				const std::string element = array_type.substr(6, array_type.size() - 7);
 				const unsigned element_size = array_element_size(element);
+				auto receiver = expression(target_index->value);
 				auto [index_code, index_type] = expression(target_index->index);
 				if (index_type != "s32") throw Error(target_index->index->location, "array index must be s32");
 				auto replacement_result = dynamic_cast<Integer*>(binary->right)
 					? integer_expression(static_cast<Integer*>(binary->right), element) : expression(binary->right);
-				auto replacement_code = std::move(replacement_result.first);
-				const std::string replacement_type = std::move(replacement_result.second);
-				if (replacement_type != element) throw Error(binary->right->location, "expected " + element + ", found " + replacement_type);
-				const unsigned index = add_local("", "s32", target_index->index->location), replacement = add_local("", element, binary->right->location), length = add_local("", "s32", binary->location);
-				Bytes code = std::move(index_code); code.push_back(0x21); wasm::append_uleb(code, index); append(code, replacement_code); code.push_back(0x21); wasm::append_uleb(code, replacement);
+				if (replacement_result.second != element) throw Error(binary->right->location, "expected " + element + ", found " + replacement_result.second);
+				const bool owned_receiver = expression_is_owned(target_index->value);
+				const unsigned array = add_local("", array_type, target_index->value->location), index = add_local("", "s32", target_index->index->location);
+				const unsigned replacement = add_local("", element, binary->right->location), length = add_local("", "s32", binary->location);
+				Bytes code = std::move(receiver.first); code.push_back(0x21); wasm::append_uleb(code, array);
+				if (!owned_receiver) { code.push_back(0x20); wasm::append_uleb(code, array); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); }
+				append(code, index_code); code.push_back(0x21); wasm::append_uleb(code, index);
+				append(code, replacement_result.first); code.push_back(0x21); wasm::append_uleb(code, replacement);
 				code.push_back(0x20); wasm::append_uleb(code, index); code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40}); append(code, module_.marker(target_index->location)); code.insert(code.end(), {0x00, 0x0b});
-				code.push_back(0x20); wasm::append_uleb(code, slot); code.insert(code.end(), {0x28, 0x02, 0x10, 0x21}); wasm::append_uleb(code, length);
+				code.push_back(0x20); wasm::append_uleb(code, array); code.insert(code.end(), {0x28, 0x02, 0x10, 0x21}); wasm::append_uleb(code, length);
 				code.push_back(0x20); wasm::append_uleb(code, index); code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x4f, 0x04, 0x40}); append(code, module_.marker(target_index->location)); code.insert(code.end(), {0x00, 0x0b});
-				append(code, array_ensure_unique(slot, array_type, length, binary->location));
 				if (managed_type(element))
 				{
 					if (!expression_is_owned(binary->right)) { code.push_back(0x20); wasm::append_uleb(code, replacement); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); }
-					code.push_back(0x20); wasm::append_uleb(code, slot); code.push_back(0x20); wasm::append_uleb(code, index); code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size));
-					code.insert(code.end(), {0x6c, 0x6a, 0x41, 0x18, 0x6a, 0x28, 0x02, 0x00, 0x10}); wasm::append_uleb(code, module_.release_index());
+					code.push_back(0x20); wasm::append_uleb(code, array); code.insert(code.end(), {0x28, 0x02, 0x18}); code.push_back(0x20); wasm::append_uleb(code, index);
+					code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size));
+					code.insert(code.end(), {0x6c, 0x6a, 0x28, 0x02, 0x00, 0x10}); wasm::append_uleb(code, module_.release_index());
 				}
-				code.push_back(0x20); wasm::append_uleb(code, slot); code.push_back(0x20); wasm::append_uleb(code, index); code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size));
-				code.insert(code.end(), {0x6c, 0x6a, 0x41, 0x18, 0x6a, 0x20}); wasm::append_uleb(code, replacement); code.push_back(array_store_opcode(element)); code.push_back(element_size == 8 ? 3 : 2); code.insert(code.end(), {0x00, 0x20}); wasm::append_uleb(code, replacement);
+				code.push_back(0x20); wasm::append_uleb(code, array); code.insert(code.end(), {0x28, 0x02, 0x18}); code.push_back(0x20); wasm::append_uleb(code, index);
+				code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size)); code.insert(code.end(), {0x6c, 0x6a, 0x20}); wasm::append_uleb(code, replacement);
+				code.push_back(array_store_opcode(element)); code.push_back(element_size == 8 ? 3 : 2); code.push_back(0x00);
+				if (managed_type(element) && owned_receiver) { code.push_back(0x20); wasm::append_uleb(code, replacement); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); owned_expression_results_.insert(value); }
+				code.push_back(0x20); wasm::append_uleb(code, array); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+				code.push_back(0x20); wasm::append_uleb(code, replacement);
 				return {code, element};
 			}
 			auto target = dynamic_cast<Name*>(binary->left);
 			if (!target)
-				throw Error(binary->left->location, "assignment target must be a local name or array element");
+				throw Error(binary->left->location, "assignment target must be a binding, array element, DValue path, or struct field");
 			auto [slot, expected] = lookup(target);
 			auto replacement = dynamic_cast<Integer*>(binary->right)
 				? integer_expression(static_cast<Integer*>(binary->right), expected) : expression(binary->right);
@@ -4719,14 +4928,24 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		if (!member && callee == "length")
 		{
 			if (call->arguments.size() != 1)
-				throw Error(value->location, "length expects one string, markup, or array");
+				throw Error(value->location, "length expects one string, markup, array, or dval");
 			auto [code, type] = expression(call->arguments[0]);
-			if (type != "string" && type != "markup" && type.rfind("array<", 0) != 0)
-				throw Error(call->arguments[0]->location, "length expects a string, markup, or array, found " + type);
+			if (type != "string" && type != "markup" && type != "dval" && type.rfind("array<", 0) != 0)
+				throw Error(call->arguments[0]->location, "length expects a string, markup, array, or dval, found " + type);
 			const unsigned source = add_local("", type, call->arguments[0]->location), result = add_local("", "s32", value->location);
 			code.push_back(0x21); wasm::append_uleb(code, source);
-			code.push_back(0x20); wasm::append_uleb(code, source);
-			code.insert(code.end(), {0x28, 0x02, 0x10, 0x21}); wasm::append_uleb(code, result);
+			if (type == "dval")
+			{
+				managed_payload_span(code, source, "dval");
+				code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_dv_count_brrb"));
+				code.push_back(0x22); wasm::append_uleb(code, result);
+				code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40}); append(code, module_.marker(call->arguments[0]->location)); code.insert(code.end(), {0x00, 0x0b});
+			}
+			else
+			{
+				code.push_back(0x20); wasm::append_uleb(code, source);
+				code.insert(code.end(), {0x28, 0x02, 0x10, 0x21}); wasm::append_uleb(code, result);
+			}
 			if (expression_is_owned(call->arguments[0])) { code.push_back(0x20); wasm::append_uleb(code, source); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
 			code.push_back(0x20); wasm::append_uleb(code, result);
 			return {code, "s32"};
@@ -4742,6 +4961,26 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			if (call->arguments.size() != 2)
 				throw Error(value->location, "dval_has expects dval and string/s32 key");
 			return dval_lookup(call->arguments[0], call->arguments[1], false);
+		}
+		if (!member && callee == "__bearer_dval_replace")
+		{
+			if (call->arguments.size() != 2 || infer(call->arguments[0]) != "dval" || infer(call->arguments[1]) != "dval")
+				throw Error(value->location, "__bearer_dval_replace expects two dval values");
+			auto target_code = expression(call->arguments[0]);
+			auto replacement_code = expression(call->arguments[1]);
+			const unsigned target = add_local("", "dval", call->arguments[0]->location);
+			const unsigned replacement = add_local("", "dval", call->arguments[1]->location);
+			Bytes code = std::move(target_code.first); code.push_back(0x21); wasm::append_uleb(code, target);
+			append(code, replacement_code.first); code.push_back(0x21); wasm::append_uleb(code, replacement);
+			if (!expression_is_owned(call->arguments[1]))
+			{
+				code.push_back(0x20); wasm::append_uleb(code, target); code.push_back(0x20); wasm::append_uleb(code, replacement);
+				code.insert(code.end(), {0x47, 0x04, 0x40, 0x20}); wasm::append_uleb(code, replacement);
+				code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); code.push_back(0x0b);
+			}
+			append(code, dval_replace(target, replacement, call->location, expression_is_owned(call->arguments[1])));
+			if (expression_is_owned(call->arguments[0])) owned_expression_results_.insert(value);
+			return {code, "dval"};
 		}
 		if (!member && callee == "trusted_markup")
 		{
@@ -4812,23 +5051,24 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				if (managed_type(types[i]) && expression_is_owned((*arguments)[i]))
 					owned_arguments.push_back(local);
 			}
-			auto release_inputs = [&]
+			auto append_release_inputs = [&](Bytes& target)
 			{
 				for (auto it = owned_arguments.rbegin(); it != owned_arguments.rend(); ++it)
 				{
-					code.push_back(0x20); wasm::append_uleb(code, *it);
-					code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+					target.push_back(0x20); wasm::append_uleb(target, *it);
+					target.push_back(0x10); wasm::append_uleb(target, module_.release_index());
 				}
 			};
+			auto release_inputs = [&] { append_release_inputs(code); };
 			auto inputs = [&]
 			{
 				for (std::size_t i = 0; i < locals.size(); ++i)
 				{
-					code.push_back(0x20); wasm::append_uleb(code, locals[i]);
 					if (types[i] == "string" || types[i] == "dval")
+						managed_payload_span(code, locals[i], types[i]);
+					else
 					{
-						code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20}); wasm::append_uleb(code, locals[i]);
-						code.insert(code.end(), {0x28, 0x02, 0x10});
+						code.push_back(0x20); wasm::append_uleb(code, locals[i]);
 					}
 				}
 				if (host->trace)
@@ -4862,13 +5102,16 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			code.push_back(0x20); wasm::append_uleb(code, length);
 			code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40});
 			release_inputs(); append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b});
-			auto [allocation, pointer] = allocate_blob(host->result, host->result == "string" ? 1 : 4, length, value->location);
+			Bytes allocation_cleanup; append_release_inputs(allocation_cleanup);
+			auto [allocation, pointer] = allocate_blob(host->result, host->result == "string" ? 1 : 4, length, value->location, allocation_cleanup);
 			append(code, allocation); inputs();
-			code.push_back(0x20); wasm::append_uleb(code, pointer);
-			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20}); wasm::append_uleb(code, length);
+			managed_payload_pointer(code, pointer, host->result);
+			code.push_back(0x20); wasm::append_uleb(code, length);
 			code.push_back(0x10); wasm::append_uleb(code, module_.import_index(host->symbol));
 			code.push_back(0x20); wasm::append_uleb(code, length);
-			code.insert(code.end(), {0x47, 0x04, 0x40}); release_inputs(); append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b});
+			code.insert(code.end(), {0x47, 0x04, 0x40, 0x20}); wasm::append_uleb(code, pointer);
+			code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+			release_inputs(); append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b});
 			const unsigned result = add_local("", host->result, value->location);
 			code.push_back(0x20); wasm::append_uleb(code, pointer);
 			code.push_back(0x21); wasm::append_uleb(code, result);
@@ -4928,7 +5171,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 					append(code, source.first); code.push_back(0x21); wasm::append_uleb(code, array); code.push_back(0x20); wasm::append_uleb(code, array);
 					code.insert(code.end(), {0x28, 0x02, 0x10, 0x21}); wasm::append_uleb(code, length); code.insert(code.end(), {0x41, 0x00, 0x21}); wasm::append_uleb(code, index);
 					code.insert(code.end(), {0x02, 0x40, 0x03, 0x40, 0x20}); wasm::append_uleb(code, index); code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x4f, 0x0d, 0x01, 0x20}); wasm::append_uleb(code, array);
-					code.push_back(0x20); wasm::append_uleb(code, index); code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(source_size)); code.insert(code.end(), {0x6c, 0x6a, 0x41, 0x18, 0x6a});
+					code.insert(code.end(), {0x28, 0x02, 0x18}); code.push_back(0x20); wasm::append_uleb(code, index); code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(source_size)); code.insert(code.end(), {0x6c, 0x6a});
 					code.push_back(array_load_opcode(source_element)); code.push_back(source_size == 8 ? 3 : 2); code.insert(code.end(), {0x00, 0x21}); wasm::append_uleb(code, item);
 					if (source_element == "string")
 						emit_sink(item);
@@ -5201,85 +5444,76 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		if (infer(loop->iterable) == "dval")
 		{
 			if (loop->names.empty() || loop->names.size() > 2)
-				throw Error(loop->location, "dval iteration accepts value or key,value bindings");
+				throw Error(loop->location, "DValue iteration accepts one value binding and an optional key binding");
 			auto [iterable_code, iterable_type] = expression(loop->iterable);
 			const unsigned iterable = add_local("", "dval", loop->iterable->location), count = add_local("", "s32", loop->location),
 						   index = add_local("", "s32", loop->location), item = add_local("", "dval", loop->location),
 						   key = loop->names.size() == 2 ? add_local("", "string", loop->location) : 0xffffffffu;
-			borrowed_managed_slots_.insert(item);
-			if (key != 0xffffffffu)
-				borrowed_managed_slots_.insert(key);
 			const bool owned_iterable = expression_is_owned(loop->iterable);
 			Bytes code = std::move(iterable_code);
 			code.push_back(0x21);
 			wasm::append_uleb(code, iterable);
-			code.push_back(0x20);
-			wasm::append_uleb(code, iterable);
-			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-			wasm::append_uleb(code, iterable);
-			code.insert(code.end(), {0x28, 0x02, 0x10, 0x10});
-			wasm::append_uleb(code, module_.import_index("bearer_dv_count_brrb"));
-			code.push_back(0x21);
-			wasm::append_uleb(code, count);
-			code.push_back(0x20);
-			wasm::append_uleb(code, count);
-			code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40});
+			if (!owned_iterable) { code.push_back(0x20); wasm::append_uleb(code, iterable); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); }
+			code.insert(code.end(), {0x41, 0x00, 0x21});
+			wasm::append_uleb(code, index);
+			code.insert(code.end(), {0x02, 0x40, 0x03, 0x40});
+			managed_payload_span(code, iterable, "dval");
+			code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_dv_count_brrb"));
+			code.push_back(0x22); wasm::append_uleb(code, count);
+			code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40, 0x20}); wasm::append_uleb(code, iterable);
+			code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
 			append(code, module_.marker(loop->iterable->location));
-			code.insert(code.end(), {0x00, 0x0b, 0x41, 0x00, 0x21});
-			wasm::append_uleb(code, index);
-			code.insert(code.end(), {0x02, 0x40, 0x03, 0x40, 0x20});
-			wasm::append_uleb(code, index);
-			code.push_back(0x20);
-			wasm::append_uleb(code, count);
+			code.insert(code.end(), {0x00, 0x0b, 0x20}); wasm::append_uleb(code, index);
+			code.push_back(0x20); wasm::append_uleb(code, count);
 			code.insert(code.end(), {0x4f, 0x0d, 0x01});
+			std::vector<unsigned> constructed_entries;
+			auto entry_cleanup = [&]
+			{
+				Bytes cleanup;
+				for (auto it = constructed_entries.rbegin(); it != constructed_entries.rend(); ++it)
+				{
+					cleanup.push_back(0x20); wasm::append_uleb(cleanup, *it);
+					cleanup.push_back(0x10); wasm::append_uleb(cleanup, module_.release_index());
+				}
+				cleanup.push_back(0x20); wasm::append_uleb(cleanup, iterable);
+				cleanup.push_back(0x10); wasm::append_uleb(cleanup, module_.release_index());
+				return cleanup;
+			};
 			auto entry = [&](const char* import, const std::string& type, unsigned target)
 			{
 				const unsigned length = add_local("", "s32", loop->location);
-				code.push_back(0x20);
-				wasm::append_uleb(code, iterable);
-				code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-				wasm::append_uleb(code, iterable);
-				code.insert(code.end(), {0x28, 0x02, 0x10, 0x20});
-				wasm::append_uleb(code, index);
+				managed_payload_span(code, iterable, "dval");
+				code.push_back(0x20); wasm::append_uleb(code, index);
 				code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10});
 				wasm::append_uleb(code, module_.import_index(import));
-				code.push_back(0x21);
-				wasm::append_uleb(code, length);
-				code.push_back(0x20);
-				wasm::append_uleb(code, length);
+				code.push_back(0x22); wasm::append_uleb(code, length);
 				code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40});
-				append(code, module_.marker(loop->location));
+				append(code, entry_cleanup()); append(code, module_.marker(loop->location));
 				code.insert(code.end(), {0x00, 0x0b});
-				auto [allocation, pointer] = allocate_blob(type, type == "string" ? 1 : 4, length, loop->location);
+				const Bytes allocation_cleanup = entry_cleanup();
+				auto [allocation, pointer] = allocate_blob(type, type == "string" ? 1 : 4, length, loop->location, allocation_cleanup);
 				append(code, allocation);
-				code.push_back(0x20);
-				wasm::append_uleb(code, iterable);
-				code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-				wasm::append_uleb(code, iterable);
-				code.insert(code.end(), {0x28, 0x02, 0x10, 0x20});
-				wasm::append_uleb(code, index);
-				code.push_back(0x20);
+				managed_payload_span(code, iterable, "dval");
+				code.push_back(0x20); wasm::append_uleb(code, index);
+				managed_payload_pointer(code, pointer, type);
+				code.push_back(0x20); wasm::append_uleb(code, length);
+				code.push_back(0x10); wasm::append_uleb(code, module_.import_index(import));
+				code.push_back(0x20); wasm::append_uleb(code, length);
+				code.insert(code.end(), {0x47, 0x04, 0x40, 0x20}); wasm::append_uleb(code, pointer);
+				code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+				append(code, entry_cleanup()); append(code, module_.marker(loop->location)); code.insert(code.end(), {0x00, 0x0b, 0x20});
 				wasm::append_uleb(code, pointer);
-				code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-				wasm::append_uleb(code, length);
-				code.push_back(0x10);
-				wasm::append_uleb(code, module_.import_index(import));
-				code.push_back(0x20);
-				wasm::append_uleb(code, length);
-				code.insert(code.end(), {0x47, 0x04, 0x40, 0x00, 0x0b, 0x20});
-				wasm::append_uleb(code, pointer);
-				code.push_back(0x21);
-				wasm::append_uleb(code, target);
+				code.push_back(0x21); wasm::append_uleb(code, target);
+				constructed_entries.push_back(target);
 			};
 			if (key != 0xffffffffu)
 				entry("bearer_dv_entry_key_brrb", "string", key);
 			entry("bearer_dv_entry_value_brrb", "dval", item);
-			std::unordered_map<std::string, std::pair<unsigned, std::string>> scope{{loop->names.back(), {item, "dval"}}};
+			std::unordered_map<std::string, std::pair<unsigned, std::string>> scope{{loop->names.front(), {item, "dval"}}};
 			if (key != 0xffffffffu)
-				scope[loop->names.front()] = {key, "string"};
+				scope[loop->names.back()] = {key, "string"};
 			scopes_.push_back(std::move(scope));
-			if (owned_iterable)
-				owned_scopes_.push_back({{iterable, "dval"}});
+			owned_scopes_.push_back({{iterable, "dval"}});
 			const unsigned boundary = static_cast<unsigned>(owned_scopes_.size());
 			std::vector<std::pair<unsigned, std::string>> iteration_values{{item, "dval"}};
 			if (key != 0xffffffffu)
@@ -5302,28 +5536,26 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			append(code, release);
 			append(code, increment);
 			code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b});
-			if (owned_iterable)
-			{
-				append(code, cleanup_scopes(owned_scopes_.size() - 1));
-				owned_scopes_.pop_back();
-			}
+			append(code, cleanup_scopes(owned_scopes_.size() - 1));
+			owned_scopes_.pop_back();
 			return {code, "void"};
 		}
-		if (loop->names.size() != 1)
-			throw Error(loop->location, "array and range loops require one binding");
 		const unsigned base = control_depth_, boundary = static_cast<unsigned>(owned_scopes_.size());
 		if (auto range = dynamic_cast<Binary*>(loop->iterable); range && range->operator_ == "..")
 		{
+			if (loop->names.size() != 1)
+				throw Error(loop->location, "range iteration accepts exactly one value binding");
 			auto [start, st] = expression(range->left);
 			auto [end, et] = expression(range->right);
 			if (st != "s32" || et != "s32")
 				throw Error(loop->location, "range bounds must be s32");
-			const unsigned index = add_local(loop->names[0], "s32", loop->location), limit = add_local("", "s32", loop->location);
+			const unsigned index = add_local("", "s32", loop->location), limit = add_local("", "s32", loop->location);
+			const unsigned item = add_local("", "s32", loop->location);
 			append(start, Bytes{0x21});
 			wasm::append_uleb(start, index);
 			append(end, Bytes{0x21});
 			wasm::append_uleb(end, limit);
-			scopes_.push_back({{loop->names[0], {index, "s32"}}});
+			scopes_.push_back({{loop->names[0], {item, "s32"}}});
 			owned_scopes_.push_back({});
 			control_depth_ += 3;
 			loops_.push_back({base + 1, base + 3, boundary, {}, {}});
@@ -5338,7 +5570,11 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			wasm::append_uleb(code, index);
 			code.push_back(0x20);
 			wasm::append_uleb(code, limit);
-			code.insert(code.end(), {0x4e, 0x0d, 0x01, 0x02, 0x40});
+			code.insert(code.end(), {0x4e, 0x0d, 0x01, 0x20});
+			wasm::append_uleb(code, index);
+			code.push_back(0x21);
+			wasm::append_uleb(code, item);
+			code.insert(code.end(), {0x02, 0x40});
 			append(code, body);
 			code.push_back(0x0b);
 			code.push_back(0x20);
@@ -5349,62 +5585,52 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			return {code, "void"};
 		}
 		auto [iterable, type] = expression(loop->iterable);
+		if (loop->names.empty() || loop->names.size() > 2)
+			throw Error(loop->location, "array iteration accepts one value binding and an optional index binding");
 		if (type.rfind("array<", 0) != 0)
 			throw Error(loop->iterable->location, "for loop requires an exclusive range or array");
 		const std::string element = type.substr(6, type.size() - 7);
-		const unsigned array = add_local("", type, loop->iterable->location), index = add_local("", "s32", loop->location),
-					   length = add_local("", "s32", loop->location), item = add_local(loop->names[0], element, loop->location);
-		scopes_.push_back({{loop->names[0], {item, element}}});
-		owned_scopes_.push_back(expression_is_owned(loop->iterable) ? std::vector<std::pair<unsigned, std::string>>{{array, type}}
-																	: std::vector<std::pair<unsigned, std::string>>{});
+		const unsigned array = add_local("", type, loop->iterable->location), cursor = add_local("", "s32", loop->location);
+		const unsigned item = add_local("", element, loop->location);
+		const unsigned metadata = loop->names.size() == 2 ? add_local("", "s32", loop->location) : 0xffffffffu;
+		std::unordered_map<std::string, std::pair<unsigned, std::string>> scope{{loop->names[0], {item, element}}};
+		if (metadata != 0xffffffffu) scope[loop->names[1]] = {metadata, "s32"};
+		scopes_.push_back(std::move(scope));
+		owned_scopes_.push_back({{array, type}});
 		const unsigned array_loop_boundary = static_cast<unsigned>(owned_scopes_.size());
-		control_depth_ += 3;
-		loops_.push_back({base + 1, base + 3, array_loop_boundary, {}, {}});
+		owned_scopes_.push_back(managed_type(element) ? std::vector<std::pair<unsigned, std::string>>{{item, element}}
+													 : std::vector<std::pair<unsigned, std::string>>{});
+		Bytes release = cleanup_scopes(array_loop_boundary);
+		Bytes increment{0x20}; wasm::append_uleb(increment, cursor);
+		increment.insert(increment.end(), {0x41, 0x01, 0x6a, 0x21}); wasm::append_uleb(increment, cursor);
+		control_depth_ += 2;
+		loops_.push_back({base + 1, base + 2, array_loop_boundary, {}, increment});
 		Bytes body = block(loop->body);
 		loops_.pop_back();
-		control_depth_ -= 3;
+		control_depth_ -= 2;
+		owned_scopes_.pop_back();
 		owned_scopes_.pop_back();
 		scopes_.pop_back();
+		const bool owned_iterable = expression_is_owned(loop->iterable);
 		Bytes code = std::move(iterable);
-		code.push_back(0x21);
-		wasm::append_uleb(code, array);
-		code.insert(code.end(), {0x41, 0x00, 0x21});
-		wasm::append_uleb(code, index);
-		code.push_back(0x20);
-		wasm::append_uleb(code, array);
-		code.insert(code.end(), {0x28, 0x02, 0x10, 0x21});
-		wasm::append_uleb(code, length);
-		code.insert(code.end(), {0x02, 0x40, 0x03, 0x40, 0x20});
-		wasm::append_uleb(code, index);
-		code.push_back(0x20);
-		wasm::append_uleb(code, length);
-		code.insert(code.end(), {0x4f, 0x0d, 0x01, 0x20});
-		wasm::append_uleb(code, array);
-		code.push_back(0x20);
-		wasm::append_uleb(code, index);
+		code.push_back(0x21); wasm::append_uleb(code, array);
+		if (!owned_iterable) { code.push_back(0x20); wasm::append_uleb(code, array); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); }
+		code.insert(code.end(), {0x41, 0x00, 0x21}); wasm::append_uleb(code, cursor);
+		code.insert(code.end(), {0x02, 0x40, 0x03, 0x40, 0x20}); wasm::append_uleb(code, cursor);
+		code.push_back(0x20); wasm::append_uleb(code, array); code.insert(code.end(), {0x28, 0x02, 0x10, 0x4f, 0x0d, 0x01});
+		code.push_back(0x20); wasm::append_uleb(code, array); code.insert(code.end(), {0x28, 0x02, 0x18});
+		code.push_back(0x20); wasm::append_uleb(code, cursor);
 		const unsigned element_size = array_element_size(element);
-		code.push_back(0x41);
-		wasm::append_sleb32(code, static_cast<std::int32_t>(element_size));
-		code.insert(code.end(), {0x6c, 0x6a, 0x41, 0x18, 0x6a});
-		code.push_back(array_load_opcode(element));
-		code.push_back(static_cast<std::uint8_t>(element_size == 8 ? 3 : 2));
-		code.insert(code.end(), {0x00, 0x21});
-		wasm::append_uleb(code, item);
-		code.insert(code.end(), {0x02, 0x40});
+		code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(element_size)); code.insert(code.end(), {0x6c, 0x6a});
+		code.push_back(array_load_opcode(element)); code.push_back(static_cast<std::uint8_t>(element_size == 8 ? 3 : 2));
+		code.insert(code.end(), {0x00, 0x21}); wasm::append_uleb(code, item);
+		if (managed_type(element)) { code.push_back(0x20); wasm::append_uleb(code, item); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); }
+		if (metadata != 0xffffffffu) { code.push_back(0x20); wasm::append_uleb(code, cursor); code.push_back(0x21); wasm::append_uleb(code, metadata); }
 		append(code, body);
-		code.push_back(0x0b);
-		code.push_back(0x20);
-		wasm::append_uleb(code, index);
-		code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21});
-		wasm::append_uleb(code, index);
+		append(code, release);
+		append(code, increment);
 		code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b});
-		if (expression_is_owned(loop->iterable))
-		{
-			code.push_back(0x20);
-			wasm::append_uleb(code, array);
-			code.push_back(0x10);
-			wasm::append_uleb(code, module_.release_index());
-		}
+		code.push_back(0x20); wasm::append_uleb(code, array); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
 		return {code, "void"};
 	}
 	if (dynamic_cast<Break*>(value) || dynamic_cast<Continue*>(value))
@@ -5554,6 +5780,36 @@ Bytes FunctionLowerer::block(Block* block_value, bool new_scope)
 
 Bytes FunctionLowerer::lower()
 {
+	if (definition_.handler_adapter)
+	{
+		const Definition& target = module_.definitions_[definition_.thunk_target];
+		if (!target.first_parameter_used)
+		{
+			Bytes code{0x41, 0x00, 0x10};
+			wasm::append_uleb(code, target.index);
+			code.push_back(0x0b);
+			Bytes locals{0}, body;
+			wasm::append_uleb(body, static_cast<unsigned>(locals.size() + code.size()));
+			body.insert(body.end(), locals.begin(), locals.end());
+			body.insert(body.end(), code.begin(), code.end());
+			return body;
+		}
+		const unsigned length = 1, capacity = 2, payload = 3, input = 4;
+		Bytes code{0x20, 0x00, 0x41, 0x00, 0x41, 0x00, 0x10};
+		wasm::append_uleb(code, module_.import_index("bearer_handler_input_brrb"));
+		code.push_back(0x22); wasm::append_uleb(code, length);
+		code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40}); append(code, module_.marker(target.function->location)); code.insert(code.end(), {0x00, 0x0b, 0x20}); wasm::append_uleb(code, length);
+		code.insert(code.end(), {0x45, 0x04, 0x7f, 0x41, 0x01, 0x05, 0x20}); wasm::append_uleb(code, length); code.insert(code.end(), {0x0b, 0x22}); wasm::append_uleb(code, capacity);
+		code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_alloc")); code.push_back(0x22); wasm::append_uleb(code, payload);
+		code.insert(code.end(), {0x45, 0x04, 0x40}); append(code, module_.marker(target.function->location)); code.insert(code.end(), {0x00, 0x0b, 0x41, 0x1c, 0x10}); wasm::append_uleb(code, module_.import_index("bearer_alloc"));
+		code.push_back(0x22); wasm::append_uleb(code, input); code.insert(code.end(), {0x45, 0x04, 0x40, 0x20}); wasm::append_uleb(code, payload); code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_free")); append(code, module_.marker(target.function->location)); code.insert(code.end(), {0x00, 0x0b});
+		auto store = [&](unsigned offset, std::int32_t value) { code.push_back(0x20); wasm::append_uleb(code, input); code.push_back(0x41); wasm::append_sleb32(code, value); code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset); };
+		store(0, 1); store(4, 1); store(8, 4); store(12, 28);
+		for (const auto [offset, local] : {std::pair<unsigned, unsigned>{16, length}, {20, capacity}, {24, payload}}) { code.push_back(0x20); wasm::append_uleb(code, input); code.push_back(0x20); wasm::append_uleb(code, local); code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset); }
+		code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01, 0x20, 0x00, 0x20}); wasm::append_uleb(code, payload); code.push_back(0x20); wasm::append_uleb(code, length); code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_handler_input_brrb")); code.push_back(0x20); wasm::append_uleb(code, length);
+		code.insert(code.end(), {0x47, 0x04, 0x40, 0x20}); wasm::append_uleb(code, input); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); append(code, module_.marker(target.function->location)); code.insert(code.end(), {0x00, 0x0b, 0x20}); wasm::append_uleb(code, input); code.push_back(0x10); wasm::append_uleb(code, target.index); code.push_back(0x20); wasm::append_uleb(code, input); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); code.push_back(0x0b);
+		Bytes locals{0x01, 0x04, 0x7f}; Bytes body; wasm::append_uleb(body, static_cast<unsigned>(locals.size() + code.size())); body.insert(body.end(), locals.begin(), locals.end()); body.insert(body.end(), code.begin(), code.end()); return body;
+	}
 	if (definition_.thunk_target != 0xffffffffu)
 	{
 		const Definition& target = module_.definitions_[definition_.thunk_target];
@@ -5613,13 +5869,6 @@ Bytes FunctionLowerer::lower()
 		wasm::append_uleb(code, module_.use_arc_global_ ? 2 : 1);
 		code.insert(code.end(), {0x41, 0x01, 0x6a, 0x24});
 		wasm::append_uleb(code, module_.use_arc_global_ ? 2 : 1);
-	}
-	for (unsigned parameter : owned_array_parameters_)
-	{
-		code.push_back(0x20);
-		wasm::append_uleb(code, parameter);
-		code.push_back(0x10);
-		wasm::append_uleb(code, module_.retain_index());
 	}
 	if (definition_.closure_body)
 	{
@@ -5720,9 +5969,19 @@ std::vector<Bytes> Module::runtime_bodies() const
 		// Type 3 arrays own every element, including nested managed aggregates.
 		code.insert(code.end(),
 					{0x20, 0x00, 0x28, 0x02, 0x08, 0x41, 0x03, 0x46, 0x04, 0x40, 0x20, 0x00, 0x28, 0x02, 0x10, 0x21, 0x02, 0x41, 0x00, 0x21, 0x01, 0x02,
-					 0x40, 0x03, 0x40, 0x20, 0x01, 0x20, 0x02, 0x4f, 0x0d, 0x01, 0x20, 0x00, 0x20, 0x01, 0x41, 0x04, 0x6c, 0x6a, 0x28, 0x02, 0x18, 0x10});
+					 0x40, 0x03, 0x40, 0x20, 0x01, 0x20, 0x02, 0x4f, 0x0d, 0x01, 0x20, 0x00, 0x28, 0x02, 0x18, 0x20, 0x01, 0x41, 0x04, 0x6c, 0x6a, 0x28, 0x02, 0x00, 0x10});
 		wasm::append_uleb(code, release_index());
 		code.insert(code.end(), {0x20, 0x01, 0x41, 0x01, 0x6a, 0x21, 0x01, 0x0c, 0x00, 0x0b, 0x0b, 0x0b});
+		// Both array type IDs own their separate raw backing allocation.
+		code.insert(code.end(), {0x20, 0x00, 0x28, 0x02, 0x08, 0x41, 0x02, 0x46, 0x20, 0x00, 0x28, 0x02, 0x08, 0x41, 0x03, 0x46, 0x72, 0x04, 0x40,
+								 0x20, 0x00, 0x28, 0x02, 0x18, 0x22, 0x01, 0x45, 0x04, 0x40, 0x05, 0x20, 0x01, 0x10});
+		wasm::append_uleb(code, import_index("bearer_free"));
+		code.insert(code.end(), {0x0b, 0x0b});
+		// DValue handles own a separate raw BRRB payload allocation.
+		code.insert(code.end(), {0x20, 0x00, 0x28, 0x02, 0x08, 0x41, 0x04, 0x46, 0x04, 0x40,
+								 0x20, 0x00, 0x28, 0x02, 0x18, 0x22, 0x01, 0x45, 0x04, 0x40, 0x05, 0x20, 0x01, 0x10});
+		wasm::append_uleb(code, import_index("bearer_free"));
+		code.insert(code.end(), {0x0b, 0x0b});
 		for (const auto& [type_id, captures] : closure_types_)
 		{
 			const AggregateLayout layout = aggregate_layout(captures, 24);
@@ -5852,77 +6111,57 @@ std::vector<Bytes> Module::runtime_bodies() const
 	return result;
 }
 
-Bytes Module::custom_export_body(const Definition& target) const
+Bytes Module::custom_export_body(const Definition& target)
 {
-	const unsigned length = 1, input = 2, result = 3, output = 4;
+	auto append_bytes = [](Bytes& destination, const Bytes& source) { destination.insert(destination.end(), source.begin(), source.end()); };
+	const unsigned length = 1, input = 2, result = 3, output = 4, payload = 5, capacity = 6;
 	Bytes code{0x20, 0x00, 0x41, 0x00, 0x41, 0x00, 0x10};
 	wasm::append_uleb(code, import_index("bearer_dv_ptr_to_brrb"));
-	code.push_back(0x21);
-	wasm::append_uleb(code, length);
-	code.push_back(0x20);
-	wasm::append_uleb(code, length);
-	code.insert(code.end(), {0x41, 0x14, 0x6a, 0x10});
+	code.push_back(0x22); wasm::append_uleb(code, length);
+	code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40}); append_bytes(code, marker(target.function->location));
+	code.insert(code.end(), {0x00, 0x0b, 0x20}); wasm::append_uleb(code, length);
+	code.insert(code.end(), {0x45, 0x04, 0x7f, 0x41, 0x01, 0x05, 0x20}); wasm::append_uleb(code, length);
+	code.insert(code.end(), {0x0b, 0x22}); wasm::append_uleb(code, capacity);
+	code.push_back(0x10); wasm::append_uleb(code, import_index("bearer_alloc"));
+	code.push_back(0x22); wasm::append_uleb(code, payload);
+	code.insert(code.end(), {0x45, 0x04, 0x40}); append_bytes(code, marker(target.function->location));
+	code.insert(code.end(), {0x00, 0x0b, 0x41, 0x1c, 0x10});
 	wasm::append_uleb(code, import_index("bearer_alloc"));
-	code.push_back(0x21);
-	wasm::append_uleb(code, input);
-	code.push_back(0x20);
-	wasm::append_uleb(code, input);
-	code.insert(code.end(), {0x45, 0x04, 0x40, 0x00, 0x0b});
-	for (const auto [header, offset] : {std::pair<std::int32_t, unsigned>{1, 0}, {1, 4}, {4, 8}})
+	code.push_back(0x22); wasm::append_uleb(code, input);
+	code.insert(code.end(), {0x45, 0x04, 0x40, 0x20}); wasm::append_uleb(code, payload);
+	code.push_back(0x10); wasm::append_uleb(code, import_index("bearer_free"));
+	append_bytes(code, marker(target.function->location)); code.insert(code.end(), {0x00, 0x0b});
+	auto store_constant = [&](unsigned offset, std::int32_t value)
 	{
-		code.push_back(0x20);
-		wasm::append_uleb(code, input);
-		code.push_back(0x41);
-		wasm::append_sleb32(code, header);
-		code.insert(code.end(), {0x36, 0x02});
-		wasm::append_uleb(code, offset);
-	}
-	code.push_back(0x20);
-	wasm::append_uleb(code, input);
-	code.push_back(0x20);
-	wasm::append_uleb(code, length);
-	code.insert(code.end(), {0x41, 0x14, 0x6a, 0x36, 0x02, 0x0c, 0x20});
-	wasm::append_uleb(code, input);
-	code.push_back(0x20);
-	wasm::append_uleb(code, length);
-	code.insert(code.end(), {0x36, 0x02, 0x10, 0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01});
-	code.push_back(0x20);
-	wasm::append_uleb(code, 0);
-	code.push_back(0x20);
-	wasm::append_uleb(code, input);
-	code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-	wasm::append_uleb(code, length);
-	code.push_back(0x10);
+		code.push_back(0x20); wasm::append_uleb(code, input); code.push_back(0x41); wasm::append_sleb32(code, value);
+		code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset);
+	};
+	auto store_local = [&](unsigned offset, unsigned local)
+	{
+		code.push_back(0x20); wasm::append_uleb(code, input); code.push_back(0x20); wasm::append_uleb(code, local);
+		code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset);
+	};
+	store_constant(0, 1); store_constant(4, 1); store_constant(8, 4); store_constant(12, 28);
+	store_local(16, length); store_local(20, capacity); store_local(24, payload);
+	code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01, 0x20, 0x00});
+	managed_payload_pointer(code, input, "dval");
+	code.push_back(0x20); wasm::append_uleb(code, length); code.push_back(0x10);
 	wasm::append_uleb(code, import_index("bearer_dv_ptr_to_brrb"));
-	code.push_back(0x20);
-	wasm::append_uleb(code, length);
-	code.insert(code.end(), {0x47, 0x04, 0x40, 0x00, 0x0b});
-	code.push_back(0x20);
-	wasm::append_uleb(code, input);
-	code.push_back(0x10);
-	wasm::append_uleb(code, target.index);
-	code.push_back(0x21);
-	wasm::append_uleb(code, result);
-	code.push_back(0x20);
-	wasm::append_uleb(code, result);
-	code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
-	wasm::append_uleb(code, result);
-	code.insert(code.end(), {0x28, 0x02, 0x10, 0x10});
-	wasm::append_uleb(code, import_index("bearer_dv_brrb_to_ptr"));
-	code.push_back(0x21);
-	wasm::append_uleb(code, output);
-	code.push_back(0x20);
-	wasm::append_uleb(code, input);
-	code.push_back(0x10);
-	wasm::append_uleb(code, release_index());
-	code.push_back(0x20);
-	wasm::append_uleb(code, result);
-	code.push_back(0x10);
-	wasm::append_uleb(code, release_index());
-	code.push_back(0x20);
-	wasm::append_uleb(code, output);
-	code.push_back(0x0b);
-	Bytes body{0x01, 0x04, 0x7f};
+	code.push_back(0x20); wasm::append_uleb(code, length);
+	code.insert(code.end(), {0x47, 0x04, 0x40, 0x20}); wasm::append_uleb(code, input);
+	code.push_back(0x10); wasm::append_uleb(code, release_index()); append_bytes(code, marker(target.function->location));
+	code.insert(code.end(), {0x00, 0x0b, 0x20}); wasm::append_uleb(code, input);
+	code.push_back(0x10); wasm::append_uleb(code, target.index);
+	code.push_back(0x21); wasm::append_uleb(code, result);
+	managed_payload_span(code, result, "dval");
+	code.push_back(0x10); wasm::append_uleb(code, import_index("bearer_dv_brrb_to_ptr"));
+	code.push_back(0x21); wasm::append_uleb(code, output);
+	for (unsigned value : {input, result})
+	{
+		code.push_back(0x20); wasm::append_uleb(code, value); code.push_back(0x10); wasm::append_uleb(code, release_index());
+	}
+	code.push_back(0x20); wasm::append_uleb(code, output); code.push_back(0x0b);
+	Bytes body{0x01, 0x06, 0x7f};
 	body.insert(body.end(), code.begin(), code.end());
 	Bytes result_body;
 	wasm::append_uleb(result_body, static_cast<unsigned>(body.size()));
@@ -5935,9 +6174,11 @@ void Module::collect()
 	for (Expr* item : items_)
 		if (auto alias = dynamic_cast<TypeAlias*>(item))
 		{
+			if (alias->name == "request")
+				throw Error(alias->location, "type request was removed. Use dval for Bearer handler input.");
 			if (alias->name == "true" || alias->name == "false" || alias->name == "any" ||
 				alias->name == "s32" || alias->name == "s64" || alias->name == "u64" || alias->name == "f64" || alias->name == "bool" ||
-				alias->name == "string" || alias->name == "markup" || alias->name == "dval" || alias->name == "request" || alias->name == "module" || alias->name == "void")
+				alias->name == "string" || alias->name == "markup" || alias->name == "dval" || alias->name == "module" || alias->name == "void")
 				throw Error(alias->location, "type alias name '" + alias->name + "' is reserved");
 			if (!aliases_.emplace(alias->name, alias).second)
 				throw Error(alias->location, "type alias '" + alias->name + "' is already declared");
@@ -6017,8 +6258,8 @@ void Module::collect()
 				if (parameter.convert)
 					throw Error(parameter.type_expr->location, "host declarations cannot request parameter conversion");
 				const std::string type = value_type(parameter.type_expr);
-				if (type == "void" || (!is_scalar(type) && type != "string" && type != "dval" && type != "request" && type != "module"))
-					throw Error(parameter.type_expr->location, "host declarations support scalar, string, dval, request, and module parameters only");
+				if (type == "void" || (!is_scalar(type) && type != "string" && type != "dval" && type != "module"))
+					throw Error(parameter.type_expr->location, "host declarations support scalar, string, dval, and module parameters only");
 				parameters.push_back(type);
 			}
 			if (function->name.rfind("__bearer_", 0) != 0)
@@ -6087,11 +6328,8 @@ void Module::collect()
 			throw Error(function->location, "Bearer handlers cannot use any parameters");
 		if (handler && std::any_of(conversions.begin(), conversions.end(), [](bool value) { return value; }))
 			throw Error(function->location, "Bearer handlers cannot request parameter conversion");
-		const bool task_handler = function->name == "TASK" || function->name.rfind("TASK:", 0) == 0;
-		if (task_handler && parameters != std::vector<std::string>{"request"})
-			throw Error(function->location, "TASK handler requires exactly one request parameter");
-		if (handler && !task_handler && (function->parameters.size() > 1 || (!parameters.empty() && parameters != std::vector<std::string>{"request"})))
-			throw Error(function->location, "Bearer handler accepts zero parameters or one request parameter");
+		if (handler && parameters != std::vector<std::string>{"dval"})
+			throw Error(function->location, "Bearer handlers require exactly one dval parameter. Use the handler input snapshot instead of request readers.");
 		if (handler && function->return_type && value_type(function->return_type, true) != "void")
 			throw Error(function->location, "Bearer handlers must return void");
 		if (handler && !handlers.insert(exported).second)
@@ -6162,7 +6400,19 @@ void Module::collect()
 			definition.variadic_element = variadic_element;
 			definition.variadic_convert = variadic_convert;
 			definition.result = result;
-			definition.exported = exported;
+			if (handler)
+			{
+				Definition adapter;
+				adapter.function = function;
+				adapter.parameters = {"request"};
+				adapter.result = "void";
+				adapter.exported = exported;
+				adapter.handler_adapter = true;
+				adapter.thunk_target = static_cast<unsigned>(definitions_.size());
+				definitions_.push_back(std::move(definition));
+				definitions_.push_back(std::move(adapter));
+				continue;
+			}
 			if (function->location.file == "capy://stdlib.capy" && parameters.empty() && function->body && function->body->items.size() == 1 && literal_type(function->body->items[0]) == result)
 				definition.inline_value = function->body->items[0];
 			definitions_by_key_[k] = definitions_.size();
@@ -6305,6 +6555,26 @@ Module::Capabilities Module::discover_capabilities()
 		if (auto binary = dynamic_cast<Binary*>(e))
 		{
 			if (binary->operator_ == "postfix?") return "bool";
+			if (binary->operator_ == "=")
+			{
+				if (auto name = dynamic_cast<Name*>(binary->left))
+					return scan_value_type(name);
+				if (auto member = dynamic_cast<Member*>(binary->left))
+				{
+					const std::string receiver = scan_value_type(member->value);
+					if (receiver.rfind("struct:", 0) == 0)
+						for (const auto& field : struct_type(receiver.substr(7), member->location).fields)
+							if (field.first == member->member) return field.second;
+					return "";
+				}
+				if (auto index = dynamic_cast<Index*>(binary->left))
+				{
+					const std::string receiver = scan_value_type(index->value);
+					if (receiver.rfind("array<", 0) == 0) return receiver.substr(6, receiver.size() - 7);
+					if (receiver == "dval") return "dval";
+					return "";
+				}
+			}
 			const bool comparison = binary->operator_ == "==" || binary->operator_ == "!=" || binary->operator_ == "<" || binary->operator_ == ">" ||
 									binary->operator_ == "<=" || binary->operator_ == ">=" || binary->operator_ == "&&" || binary->operator_ == "||" ||
 									binary->operator_ == "unary!";
@@ -6429,6 +6699,7 @@ Module::Capabilities Module::discover_capabilities()
 			used_hosts_.insert("bearer_dv_extract_" + target);
 		}
 	};
+	Definition* scanning_definition = nullptr;
 	std::function<void(Expr*)> scan = [&](Expr* e)
 	{
 		check_cancelled();
@@ -6438,6 +6709,18 @@ Module::Capabilities Module::discover_capabilities()
 			const Name* named_call = dynamic_cast<Name*>(c->function);
 			const std::string named_callee = named_call && has_alias(named_call->value) && !scan_value_names.contains(named_call->value)
 				? constructor_name(named_call->value, named_call->location) : named_call ? named_call->value : "";
+			if (named_callee == "length" && c->arguments.size() == 1 && scan_value_type(c->arguments[0]) == "dval")
+			{
+				dval_ = true;
+				runtime_imports_.insert("bearer_dv_count_brrb");
+			}
+			if (named_callee == "__bearer_dval_replace")
+			{
+				dval_ = true;
+				scan_retain = scan_release = true;
+				for (Expr* argument : c->arguments) scan(argument);
+				return;
+			}
 			if (member && scan_value_type(member->value).rfind("array<", 0) == 0 &&
 				(member->member == "push" || member->member == "pop" || member->member == "insert" || member->member == "remove" ||
 				 member->member == "clear" || member->member == "reserve" || member->member == "resize"))
@@ -6479,13 +6762,26 @@ Module::Capabilities Module::discover_capabilities()
 						for (std::size_t i = contract->second.fixed; i < host_arguments.size(); ++i)
 							scan_construction(host_arguments[i], contract->second.element);
 				}
-				if (const HostDeclaration* host = this->host(callee, host_arguments))
+				const HostDeclaration* selected_host = this->host(callee, host_arguments);
+				if (!selected_host && callee.rfind("__bearer_", 0) == 0)
 				{
-					used_hosts_.insert(host->symbol);
-					trace_host_ = trace_host_ || host->trace;
-					for (const std::string& type : host->parameters)
+					std::vector<Expr*> contextual_arguments;
+					if (member) contextual_arguments.push_back(member->value);
+					contextual_arguments.insert(contextual_arguments.end(), c->arguments.begin(), c->arguments.end());
+					if (auto contextual = contextual_argument_types(callee, contextual_arguments, host_arguments, c->location))
+						if (const HostDeclaration* candidate = this->host(callee, *contextual))
+						{
+							host_arguments = *contextual;
+							selected_host = candidate;
+						}
+				}
+				if (selected_host)
+				{
+					used_hosts_.insert(selected_host->symbol);
+					trace_host_ = trace_host_ || selected_host->trace;
+					for (const std::string& type : selected_host->parameters)
 						if (managed_type(type)) { dval_ = dval_ || type == "dval"; scan_retain = true; scan_release = true; }
-					if (managed_type(host->result)) { dval_ = dval_ || host->result == "dval"; scan_alloc = true; scan_retain = true; scan_release = true; }
+					if (managed_type(selected_host->result)) { dval_ = dval_ || selected_host->result == "dval"; scan_alloc = true; scan_retain = true; scan_release = true; }
 				}
 				const Definition* converted = converted_definition(callee, host_arguments, c->location);
 				if (!converted)
@@ -6662,6 +6958,7 @@ Module::Capabilities Module::discover_capabilities()
 					dval_ = true;
 					scan_alloc = scan_retain = scan_release = true;
 					runtime_imports_.insert("bearer_dv_set_path_brrb");
+					runtime_imports_.insert("bearer_dv_build_brrb");
 					scan_dval(b->right);
 					for (const Expr* selector = b->left; selector != root;)
 						if (auto member = dynamic_cast<const Member*>(selector))
@@ -6734,11 +7031,17 @@ Module::Capabilities Module::discover_capabilities()
 			for (const auto& [key, item] : m->entries)
 				scan(item);
 		}
-		else if (auto name = dynamic_cast<Name*>(e); name && name->value == "none" && !scan_value_names.contains(name->value))
+		else if (auto name = dynamic_cast<Name*>(e))
 		{
-			dval_ = true;
-			scan_alloc = scan_retain = scan_release = true;
-			runtime_imports_.insert("bearer_dv_none_brrb");
+			if (scanning_definition && !scanning_definition->function->parameters.empty() &&
+				name->value == scanning_definition->function->parameters.front().name)
+				scanning_definition->first_parameter_used = true;
+			if (name->value == "none" && !scan_value_names.contains(name->value))
+			{
+				dval_ = true;
+				scan_alloc = scan_retain = scan_release = true;
+				runtime_imports_.insert("bearer_dv_none_brrb");
+			}
 		}
 		else if (auto spread = dynamic_cast<Spread*>(e))
 			scan(spread->value);
@@ -6799,12 +7102,15 @@ Module::Capabilities Module::discover_capabilities()
 			}
 			scan(f->iterable);
 			auto outer = scan_value_names;
-			if (iterable.rfind("array<", 0) == 0 && f->names.size() == 1)
+			if (iterable.rfind("array<", 0) == 0 && !f->names.empty())
+			{
 				scan_value_names[f->names[0]] = iterable.substr(6, iterable.size() - 7);
+				if (f->names.size() == 2) scan_value_names[f->names[1]] = "s32";
+			}
 			else if (iterable == "dval" && !f->names.empty())
 			{
-				scan_value_names[f->names.back()] = "dval";
-				if (f->names.size() == 2) scan_value_names[f->names.front()] = "string";
+				scan_value_names[f->names.front()] = "dval";
+				if (f->names.size() == 2) scan_value_names[f->names.back()] = "string";
 			}
 			else if (!f->names.empty())
 				scan_value_names[f->names[0]] = "s32";
@@ -6814,10 +7120,12 @@ Module::Capabilities Module::discover_capabilities()
 	};
 	for (auto& d : definitions_)
 	{
-		if (d.body_omitted || d.inline_only) continue;
+		if (d.body_omitted || d.inline_only || d.handler_adapter) continue;
+		scanning_definition = &d;
 		scan(d.function);
-		for (const auto& type : d.parameters)
-			if (managed_type(type))
+		scanning_definition = nullptr;
+		for (std::size_t parameter = 0; parameter < d.parameters.size(); ++parameter)
+			if (managed_type(d.parameters[parameter]) && (parameter != 0 || d.first_parameter_used))
 			{
 				scan_retain = true;
 				scan_release = true;
@@ -6847,6 +7155,14 @@ Module::Capabilities Module::discover_capabilities()
 			scan_string_names = std::move(outer_strings);
 			scan_value_names = std::move(outer_values);
 		}
+	if (std::any_of(definitions_.begin(), definitions_.end(), [&](const Definition& definition) {
+		return definition.handler_adapter && definitions_[definition.thunk_target].first_parameter_used;
+	}))
+	{
+		dval_ = true;
+		scan_alloc = true;
+		scan_release = true;
+	}
 	if (!custom_exports_.empty())
 	{
 		dval_ = true;
@@ -6915,6 +7231,11 @@ CompileResult Module::compile()
 		imports_["bearer_free"] = next++;
 	for (const std::string& name : runtime_imports_)
 		imports_[name] = next++;
+	const bool has_handler_input = std::any_of(definitions_.begin(), definitions_.end(), [&](const Definition& definition) {
+		return definition.handler_adapter && definitions_[definition.thunk_target].first_parameter_used;
+	});
+	if (has_handler_input)
+		imports_["bearer_handler_input_brrb"] = next++;
 	if (!custom_exports_.empty())
 	{
 		imports_["bearer_dv_ptr_to_brrb"] = next++;
@@ -6965,10 +7286,15 @@ CompileResult Module::compile()
 	{
 		if (d.inline_only) continue;
 		d.index = next++;
+		if (d.handler_adapter)
+		{
+			d.type = wasm_type(d.parameters, d.result);
+			continue;
+		}
 		if (d.thunk_target != 0xffffffffu || d.closure_body)
 			continue;
 		const std::string contract = d.variadic ? "variadic:" + d.variadic_element + (d.variadic_convert ? ":convert" : "") : "";
-		d.type = wasm_type(d.exported.empty() ? d.parameters : std::vector<std::string>{"request"}, d.result, contract);
+		d.type = wasm_type(d.parameters, d.result, contract);
 		if (d.variadic) variadic_function_types_[d.type] = {d.parameters.size() - 1, d.variadic_element, d.variadic_convert};
 	}
 	// Ensure import signatures precede user types and lower after indexes are stable.
@@ -7059,7 +7385,7 @@ CompileResult Module::compile()
 			: name == "bearer_dv_is_none_brrb" ? count_type : name == "bearer_dv_set_path_brrb" ? set_path_type
 			: name == "bearer_dv_count_brrb" ? count_type
 			: name == "bearer_dv_entry_key_brrb" || name == "bearer_dv_entry_value_brrb" ? entry_type
-			: name == "bearer_dv_ptr_to_brrb" ? scalar_adapter_type : name == "bearer_dv_brrb_to_ptr" ? count_type : 0;
+			: name == "bearer_dv_ptr_to_brrb" || name == "bearer_handler_input_brrb" ? scalar_adapter_type : name == "bearer_dv_brrb_to_ptr" ? count_type : 0;
 		wasm::append_uleb(imports, type);
 	}
 	Bytes functions;

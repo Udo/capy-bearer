@@ -1,0 +1,134 @@
+struct State {
+    scalar : s32
+    wide : s64
+    text : string
+    values : [s32]
+}
+
+function identity(values : [s32]) [s32] { values }
+function observe_array(values : [s32], calls : [s32]) [s32] {
+    calls.push(1)
+    values
+}
+function observe_state(calls : [s32]) State {
+    calls.push(1)
+    State(0, s64(0), clone("old"), [1])
+}
+function observe_text(calls : [s32]) string {
+    calls.push(2)
+    clone("new")
+}
+function mutate_parameter(values : [s32]) {
+    values.reserve(8)
+    values.push(4)
+    values[0] = 9
+}
+function mutate_state(state : State) {
+    state.scalar = 7
+    state.wide = s64(9000000000)
+    state.text = state.text
+    state.text = clone("parameter")
+    state.values.push(5)
+}
+function joined(...values : as string) string {
+    var result := ""
+    for value := values { result = result + value }
+    result
+}
+
+function CLI(request : dval) {
+    {
+        var values : [s32] = []
+        var alias := values
+        mutate_parameter(values)
+        identity(alias).push(5)
+        var receiver_calls : [s32] = []
+        observe_array(values, receiver_calls).push(6)
+        values.insert(1, 8)
+        var removed := alias.remove(2)
+        var popped := values.pop()
+        values.resize(6, 7)
+        values.resize(3, 0)
+        values[2] = 3
+        print(values[0], values[1], values[2], length(alias), removed, popped, length(receiver_calls), values.capacity(), "|")
+        alias.clear()
+        print(length(values), "|")
+
+        var transfer := [clone("first"), clone("second"), clone("third")]
+        var transfer_popped := transfer.pop()
+        var transfer_removed := transfer.remove(0)
+        print(transfer_popped, transfer_removed, transfer[0], length(transfer), "|")
+
+        var words := [clone("a"), clone("b")]
+        var words_alias := words
+        words[0] = words[0]
+        words_alias[1] = clone("B")
+        var spread := [...words, clone("c")]
+        var assigned := ([clone("old")][0] = clone("temporary"))
+        print(words[0], words[1], spread[0], spread[1], spread[2], assigned, joined(...words), "|")
+
+        var captured : [s32] = [1]
+        var add_capture := function() void { captured.push(2) }
+        add_capture()
+        print(captured[1], "|")
+
+        var looped := [1, 2]
+        var loop_alias := looped
+        for item := looped {
+            print(item)
+            if item == 1 { loop_alias.reserve(16); loop_alias.push(3) }
+        }
+        print(length(looped), looped[2], "|")
+
+        var growing := [1, 2]
+        for item, index := growing {
+            print(item, index)
+            if index == 0 { index = 99; growing.push(3); continue }
+            if item == 3 { break }
+        }
+        var cleared := [4, 5]
+        for item := cleared { print(item); cleared.clear(); continue }
+        var removed_loop := [5, 6, 7]
+        for item, index := removed_loop { print(item); if index == 0 { var ignored := removed_loop.remove(1) } }
+        var shrunk := [8, 9, 0]
+        for item, index := shrunk { print(item); if index == 0 { shrunk.resize(2, 0) } }
+        var managed_loop := [clone("m"), clone("n")]
+        for item, index := managed_loop {
+            print(item, index)
+            if index == 0 { managed_loop.clear(); continue }
+        }
+        var managed_break := [clone("q"), clone("r")]
+        for item := managed_break { managed_break.clear(); print(item); break }
+        print("|")
+
+        var method_source := [1]
+        var method_alias := method_source
+        method_source.push({ method_source = [9]; 2 })
+        var index_source := [3]
+        var index_alias := index_source
+        index_source[{ index_source = [8]; 0 }] = { index_source = [7]; 6 }
+        var managed_source := [clone("a")]
+        var managed_alias := managed_source
+        managed_source[{ managed_source = [clone("x")]; 0 }] = { managed_source = [clone("y")]; clone("b") }
+        print(method_alias[0], method_alias[1], method_source[0], index_alias[0], index_source[0], managed_alias[0], managed_source[0], "|")
+
+        var spread_source := [1, 2]
+        var scalar_snapshot := [...spread_source, { spread_source.push(3); 9 }, ...spread_source]
+        var spread_words := [clone("a"), clone("b")]
+        var managed_snapshot := [...spread_words, { spread_words.clear(); clone("z") }]
+        print(joined(...scalar_snapshot), length(spread_source), joined(...managed_snapshot), length(spread_words), "|")
+
+        var state := State(1, s64(2), clone("start"), [1])
+        var state_alias := state
+        mutate_state(state)
+        state_alias.scalar = 8
+        state.wide = s64(9000000001)
+        state.text = state.text
+        var assignment_calls : [s32] = []
+        var assignment_result := (observe_state(assignment_calls).text = observe_text(assignment_calls))
+        var scalar_result := (State(1, s64(2), clone("scalar"), [1]).scalar = 4)
+        state.values[0] = 6
+        print(state_alias.scalar, state.wide, state.text, state_alias.values[0], assignment_result, scalar_result, joined(...assignment_calls), "|")
+    }
+    print(arc_live())
+}

@@ -122,7 +122,11 @@ scripts/bearer-cli --json '{"action":"echo","message":"hello"}' /tests/cli.uce
 curl --unix-socket /run/bearer/cli.sock http://localhost/tests/cli.uce
 ```
 
-For structured CLI commands, prefer JSON POST bodies and read them with `cli_input(context)`.
+For C++ `.uce` structured CLI commands, prefer JSON POST bodies and read them with `cli_input(context)`.
+
+Capy declares `function CLI(request : dval)`. Read CLI input from `request.query`, `request.form`, and `request.body`.
+
+Capy declares `function WS(request : dval)`. Read the inbound payload from `request.body`. Read message metadata from `request.websocket`.
 
 ## Template Output
 
@@ -179,26 +183,30 @@ If the component file also defines `ONCE(Request& context)`, that hook runs once
 
 ## WebSockets
 
-The runtime keeps the socket lifecycle in-process and exposes a low-boilerplate API to page code:
+The runtime keeps the socket lifecycle in-process and exposes this C++ API to page code:
 
 - `ws_message()`
 - `ws_connection_id()`
 - `ws_scope()`
 - `ws_opcode()`
 - `ws_is_binary()`
-- `ws_connections([scope])`
-- `ws_connection_count([scope])`
+- `ws_connections([scope])` (C++ only)
+- `ws_connection_count([scope])` (C++ only)
 - `ws_send(message[, binary[, scope]])`
 - `ws_send_to(connection_id, message[, binary])`
 - `ws_close([connection_id])`
 
 By default, the WebSocket scope is the current page file, so `ws_send()` queues a message for clients connected to that same `.uce` endpoint.
 
-Each live WebSocket connection owns a broker-side `DValue` exposed to page code as `context.connection`. Mutations to that tree persist for the life of the socket and are visible on later `WS(Request& context)` calls for the same client.
+In C++ `.uce`, each live WebSocket connection owns a broker-side `DValue` at `context.connection`. Changes to that tree persist for the socket lifetime. Later `WS(Request& context)` calls for that client can read them.
 
-The current inbound payload is available directly as `context.in`, and the runtime mirrors message metadata into `context.params` using keys such as `WS_CONNECTION_ID`, `WS_SCOPE`, `WS_CONNECTION_COUNT`, `WS_OPCODE`, `WS_MESSAGE_TYPE`, and `WS_DOCUMENT_URI`.
+The current inbound payload is available directly as `context.in`. The runtime mirrors message metadata into `context.params` using keys such as `WS_CONNECTION_ID`, `WS_SCOPE`, `WS_CONNECTION_COUNT`, `WS_OPCODE`, `WS_MESSAGE_TYPE`, and `WS_DOCUMENT_URI`.
 
-`ws_message()` may still be used when you want the payload through a helper API. Use `ws_opcode()` / `ws_is_binary()` to inspect the current inbound message type.
+A Capy `WS` handler receives one copied `request : dval`. It reads the payload from `request.body`. It reads current metadata from `request.websocket`. Current-scope connection IDs are in `request.websocket.connections`. Use `length(request.websocket.connections)` for the count. Capy keeps `ws_send`, `ws_send_to`, and `ws_close` for effects.
+
+Capy uses the copied handler snapshot. Read the payload from `request.body`. Read `connection_id`, `scope`, `opcode`, and `binary` from `request.websocket`. Use `ws_send`, `ws_send_to`, and `ws_close` for connection effects.
+
+In C++ `.uce`, `ws_message()` can read the payload through a helper API. Use `ws_opcode()` or `ws_is_binary()` to inspect the current inbound message type.
 
 Set `binary = true` on `ws_send()` or `ws_send_to()` to queue a binary frame instead of a text frame.
 

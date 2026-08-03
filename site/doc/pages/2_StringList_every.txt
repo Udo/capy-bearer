@@ -4,7 +4,7 @@ DValue::every(String predicate) (legacy `StringList` page)
 :content
 `every(items, predicate)` takes a list-shaped `dval` and a string predicate. It returns true only if every item satisfies the predicate. An empty list returns true.
 
-Use it with a list from `split` or `dval([...])`. Capy has no separate `StringList` type. It uses copied `dval` values.
+Use it with a list from `split` or `dval([...])`. Capy has no separate `StringList` type. It uses list-shaped DValues. This function does not mutate `items`.
 
 ## C++ API
 

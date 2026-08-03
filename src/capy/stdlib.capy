@@ -5,6 +5,7 @@ host function __bearer_dv_is_none_brrb(value : dval) bool
 host function __bearer_dv_require_brrb(value : dval, path : dval) dval
 host function __bearer_dv_set_path_brrb(value : dval, path : dval, replacement : dval) dval
 host function __bearer_dv_apply_brrb(operation : s32, value : dval, key : string, argument : dval) dval
+host function __bearer_dval_replace(target : dval, replacement : dval) dval
 host function __bearer_dv_extract_string(value : dval, fallback : string) string
 host function __bearer_dv_extract_bool(value : dval, fallback : bool) bool
 host function __bearer_dv_extract_s32(value : dval, fallback : s32) s32
@@ -23,7 +24,6 @@ host function __bearer_cache_brrb(operation : s32, value : dval, key : string, a
 host function __bearer_process_jobs_brrb(operation : s32, value : dval, key : string, argument : dval) dval
 host function __bearer_network_http_brrb(operation : s32, value : dval, key : string, argument : dval) dval
 host function __bearer_time_format_brrb(operation : s32, value : dval, key : string, argument : dval) dval
-host function __bearer_websocket_registry_brrb(operation : s32, value : dval, key : string, argument : dval) dval
 host function __bearer_string_find(value : string, needle : string) s32
 host function __bearer_string_nonblank(value : string) bool
 host function __bearer_string_replace(value : string, needle : string, replacement : string) string
@@ -63,16 +63,7 @@ host function __bearer_mysql_escape(raw : string, quote : string) string
 host function __bearer_mysql_query(handle : u64, query : string, params : dval) dval
 host function __bearer_mysql_insert_id(handle : u64) u64
 host function __bearer_mysql_affected_rows(handle : u64) u64
-host function __bearer_request_value(kind : s32, key : string) string
-host function __bearer_request_body() string
-host function __bearer_request_context_brrb() dval
-host function __bearer_request_context_for_brrb(value : request) dval
 host function __bearer_response_set_header(name : string, value : string) bool
-host function __bearer_ws_message() string
-host function __bearer_ws_connection_id() string
-host function __bearer_ws_scope() string
-host function __bearer_ws_opcode() s32
-host function __bearer_ws_is_binary() bool
 host function __bearer_ws_send(message : string, binary : bool) bool
 host function __bearer_ws_send_scope(message : string, binary : bool, scope : string) bool
 host function __bearer_ws_send_to(connection_id : string, message : string, binary : bool) bool
@@ -98,10 +89,15 @@ host function __bearer_codec_dval(operation : s32, value : string) dval
 
 function string(value : dval, fallback : string = "") string { __bearer_dv_extract_string(value, fallback) }
 function bool(value : dval, fallback : bool = false) bool { __bearer_dv_extract_bool(value, fallback) }
+function bool(value : string, fallback : bool = false) bool { bool(dval(trim(value)), fallback) }
 function s32(value : dval, fallback : s32 = 0) s32 { __bearer_dv_extract_s32(value, fallback) }
+function s32(value : string, fallback : s32 = 0) s32 { s32(dval(trim(value)), fallback) }
 function s64(value : dval, fallback : s64 = 0) s64 { __bearer_dv_extract_s64(value, fallback) }
+function s64(value : string, fallback : s64 = 0) s64 { s64(dval(trim(value)), fallback) }
 function u64(value : dval, fallback : u64 = 0) u64 { __bearer_dv_extract_u64(value, fallback) }
+function u64(value : string, fallback : u64 = 0) u64 { u64(dval(trim(value)), fallback) }
 function f64(value : dval, fallback : f64 = 0.0) f64 { __bearer_dv_extract_f64(value, fallback) }
+function f64(value : string, fallback : f64 = 0.0) f64 { f64(dval(trim(value)), fallback) }
 
 function __bearer_dval_dval_set() s32 { 0 }
 function __bearer_dval_dval_push() s32 { 1 }
@@ -119,15 +115,12 @@ function __bearer_dval_dval_is_list() s32 { 12 }
 function __bearer_dval_dval_key() s32 { 13 }
 function __bearer_dval_dval_keys() s32 { 14 }
 function __bearer_dval_dval_values() s32 { 15 }
-function __bearer_dval_dval_to_json() s32 { 16 }
-function __bearer_dval_dval_to_stringmap() s32 { 17 }
 function __bearer_dval_dval_put() s32 { 18 }
 function __bearer_text_ascii_safe_name() s32 { 0 }
 function __bearer_text_safe_name() s32 { 1 }
 function __bearer_text_trim() s32 { 2 }
 function __bearer_text_float_val() s32 { 3 }
 function __bearer_text_int_val() s32 { 4 }
-function __bearer_text_to_bool() s32 { 5 }
 function __bearer_text_str_starts_with() s32 { 6 }
 function __bearer_text_str_ends_with() s32 { 7 }
 function __bearer_text_encode_query() s32 { 8 }
@@ -212,12 +205,6 @@ function __bearer_request_csrf_token() s32 { 10 }
 function __bearer_request_csrf_valid() s32 { 11 }
 function __bearer_request_csrf_rotate() s32 { 12 }
 function __bearer_request_csrf_field() s32 { 13 }
-function __bearer_request_cli_input() s32 { 14 }
-function __bearer_request_cli_arg() s32 { 15 }
-function __bearer_request_request_base_url() s32 { 16 }
-function __bearer_request_request_script_url() s32 { 17 }
-function __bearer_request_request_query_path() s32 { 18 }
-function __bearer_request_request_query_route() s32 { 19 }
 function __bearer_request_request_route_from_raw_path() s32 { 20 }
 function __bearer_request_request_perf() s32 { 21 }
 function __bearer_cache_memcache_connect() s32 { 0 }
@@ -252,19 +239,12 @@ function __bearer_time_time_parse() s32 { 0 }
 function __bearer_time_time_format_local() s32 { 1 }
 function __bearer_time_time_format_utc() s32 { 2 }
 function __bearer_time_time_format_relative() s32 { 3 }
-function __bearer_websocket_ws_connections() s32 { 0 }
-function __bearer_websocket_ws_connection_count() s32 { 1 }
 function __bearer_noise_gen_noise64() s32 { 0 }
 function __bearer_noise_gen_int() s32 { 1 }
 function __bearer_noise_draw_int() s32 { 2 }
 function __bearer_noise_gen_noise01() s32 { 0 }
 function __bearer_noise_gen_float() s32 { 1 }
 function __bearer_noise_draw_float() s32 { 2 }
-function __bearer_request_value_request_param() s32 { 0 }
-function __bearer_request_value_request_get() s32 { 1 }
-function __bearer_request_value_request_post() s32 { 2 }
-function __bearer_request_value_request_cookie() s32 { 3 }
-function __bearer_request_value_request_session() s32 { 4 }
 function __bearer_regex_regex_split() s32 { 3 }
 function __bearer_regex_regex_search() s32 { 0 }
 function __bearer_regex_regex_search_all() s32 { 1 }
@@ -275,13 +255,11 @@ function __bearer_codec_uri_encode() s32 { 2 }
 function __bearer_codec_uri_decode() s32 { 3 }
 function __bearer_codec_json_decode() s32 { 4 }
 
-// DValues cross the Bearer boundary as copied ARC values.  Mutators return the
-// replacement value: `value = dval_push(value, child)`; no host alias escapes.
+// Bearer boundaries copy DValue payloads. Public mutators replace the payload
+// in the workspace-local target handle and return that target.
 function print(...values : as string) {
-    for value = values { __bearer_print_bytes(value) }
+    for value := values { __bearer_print_bytes(value) }
 }
-function to_lower(value : string) string { lower(value) }
-function to_upper(value : string) string { upper(value) }
 function find(haystack : string, needle : string) s32 { __bearer_string_find(haystack, needle) }
 function contains(haystack : string, needle : string) bool { __bearer_string_find(haystack, needle) != -1 }
 function replace(value : string, needle : string, replacement : string) string { __bearer_string_replace(value, needle, replacement) }
@@ -297,61 +275,59 @@ function substr(value : string, start : s64) string { __bearer_string_substr(val
 function substr(value : string, start : s32, length : s32) string { __bearer_string_substr(value, s64(start), s64(length)) }
 function substr(value : string, start : s64, length : s64) string { __bearer_string_substr(value, start, length) }
 function strpos(haystack : string, needle : string, offset : s64 = 0) s64 { __bearer_string_strpos(haystack, needle, offset) }
-function dval_set(value : dval, source : as dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set(), value, "", source) }
+function dval_set(value : dval, source : as dval) dval { __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_set(), value, "", source)) }
 function dval_assign(value : dval, source : as dval) dval { dval_set(value, source) }
-function dval_push(value : dval, child : as dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_push(), value, "", child) }
-function dval_pop(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_pop(), value, "", dval("")) }
-function dval_remove(value : dval, key : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_remove(), value, key, dval("")) }
-function dval_clear(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_clear(), value, "", dval("")) }
+function dval_push(value : dval, child : as dval) dval { __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_push(), value, "", child)) }
+function dval_pop(value : dval) dval { __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_pop(), value, "", dval(""))) }
+function dval_remove(value : dval, key : string) dval { __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_remove(), value, key, dval(""))) }
+function dval_clear(value : dval) dval { __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_clear(), value, "", dval(""))) }
 function dval_get_by_path(value : dval, path : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_get_by_path(), value, path, dval("")) }
-function dval_get_or_create(value : dval, key : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_get_or_create(), value, key, dval("")) }
-function dval_set_array(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set_array(), value, "", dval("")) }
-function dval_set_bool(value : dval, flag : bool) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set_bool(), value, "", dval(flag)) }
-function dval_set_type(value : dval, type : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_set_type(), value, type, dval("")) }
+function dval_get_or_create(value : dval, key : string) dval { __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_get_or_create(), value, key, dval(""))) }
+function dval_set_array(value : dval) dval { __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_set_array(), value, "", dval(""))) }
+function dval_set_bool(value : dval, flag : bool) dval { __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_set_bool(), value, "", dval(flag))) }
+function dval_set_type(value : dval, type : string) dval { __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_set_type(), value, type, dval(""))) }
 function dval_get_type_name(value : dval) string { string(__bearer_dv_apply_brrb(__bearer_dval_dval_get_type_name(), value, "", dval(""))) }
 function dval_is_array(value : dval) bool { bool(__bearer_dv_apply_brrb(__bearer_dval_dval_is_array(), value, "", dval(""))) }
 function dval_is_list(value : dval) bool { bool(__bearer_dv_apply_brrb(__bearer_dval_dval_is_list(), value, "", dval(""))) }
 function dval_key(value : dval, key : string) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_key(), value, key, dval("")) }
 function dval_keys(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_keys(), value, "", dval("")) }
 function dval_values(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_values(), value, "", dval("")) }
-function dval_to_json(value : dval, quote : string = "") string { string(__bearer_dv_apply_brrb(__bearer_dval_dval_to_json(), value, quote, dval(""))) }
-function dval_to_stringmap(value : dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_to_stringmap(), value, "", dval("")) }
-function dval_put(value : dval, key : string, child : as dval) dval { __bearer_dv_apply_brrb(__bearer_dval_dval_put(), value, key, child) }
+function dval_put(value : dval, key : string, child : as dval) dval { __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_put(), value, key, child)) }
 function dval_require(value : dval, key : string) dval { __bearer_dv_require_brrb(value, dval(key)) }
 function dval_require(value : dval, index : s32) dval { __bearer_dv_require_brrb(value, dval(index)) }
 
 // StringList is represented by a list-shaped copied DValue.  These callbacks
 // deliberately stay in Capy, just like dval_map/dval_filter.
 function every(items : dval, predicate : function(value : string) bool) bool {
-    for key, item = items { if !predicate(string(item)) { return false } }
+    for item, key := items { if !predicate(string(item)) { return false } }
     return true
 }
 function some(items : dval, predicate : function(value : string) bool) bool {
-    for key, item = items { if predicate(string(item)) { return true } }
+    for item, key := items { if predicate(string(item)) { return true } }
     return false
 }
 function string_list_find(items : dval, predicate : function(value : string) bool, fallback : string) string {
-    for key, item = items { var value := string(item); if predicate(value) { return value } }
+    for item, key := items { var value := string(item); if predicate(value) { return value } }
     return fallback
 }
 function keys(items : dval) dval {
     var result := dval([])
-    for key, item = items { result = dval_push(result, key) }
+    for item, key := items { result = dval_push(result, key) }
     return result
 }
 function map(items : dval, mapper : function(value : string) string) dval {
     var result := dval([])
-    for key, item = items { result = dval_push(result, mapper(string(item))) }
+    for item, key := items { result = dval_push(result, mapper(string(item))) }
     return result
 }
 function filter(items : dval, predicate : function(value : string) bool) dval {
     var result := dval([])
-    for key, item = items { var value := string(item); if predicate(value) { result = dval_push(result, value) } }
+    for item, key := items { var value := string(item); if predicate(value) { result = dval_push(result, value) } }
     return result
 }
 function unique(items : dval) dval {
     var result := dval([])
-    for key, item = items {
+    for item, key := items {
         var value := string(item)
         if !some(result, function(candidate : string) bool { candidate == value }) { result = dval_push(result, value) }
     }
@@ -363,7 +339,7 @@ function dval_map(value : dval, mapper : function(value : dval, key : string) dv
     var list := dval_is_list(value)
     if list { result = dval_set_array(result) }
     if dval_is_array(value) {
-        for key, item = value {
+        for item, key := value {
             var mapped := mapper(item, key)
             if list { result = dval_push(result, mapped) }
             else { result = dval_put(result, key, mapped) }
@@ -379,7 +355,7 @@ function dval_filter(value : dval, predicate : function(value : dval, key : stri
     var list := dval_is_list(value)
     if list { result = dval_set_array(result) }
     if dval_is_array(value) {
-        for key, item = value {
+        for item, key := value {
             if predicate(item, key) {
                 if list { result = dval_push(result, item) }
                 else { result = dval_put(result, key, item) }
@@ -399,10 +375,6 @@ function trim(raw : string) string { string(__bearer_text_parsing_brrb(__bearer_
 function float_val(raw : string) f64 { f64(__bearer_text_parsing_brrb(__bearer_text_float_val(), dval(raw), "", dval(0.0))) }
 function int_val(raw : string) u64 { u64(__bearer_text_parsing_brrb(__bearer_text_int_val(), dval(raw), "", dval(10.0)), 0) }
 function int_val(raw : string, base : s32) u64 { u64(__bearer_text_parsing_brrb(__bearer_text_int_val(), dval(raw), "", dval(base)), 0) }
-function to_bool(raw : string, fallback : bool = false) bool { bool(__bearer_text_parsing_brrb(__bearer_text_to_bool(), dval(raw), "", dval(fallback))) }
-function to_f64(raw : string, fallback : f64 = 0.0) f64 { f64(dval(trim(raw)), fallback) }
-function to_s64(raw : string, fallback : s64 = 0) s64 { s64(dval(trim(raw)), fallback) }
-function to_u64(raw : string, fallback : u64 = 0) u64 { u64(dval(trim(raw)), fallback) }
 function str_starts_with(haystack : string, needle : string) bool { bool(__bearer_text_parsing_brrb(__bearer_text_str_starts_with(), dval(haystack), needle, dval(false))) }
 function str_ends_with(haystack : string, needle : string) bool { bool(__bearer_text_parsing_brrb(__bearer_text_str_ends_with(), dval(haystack), needle, dval(false))) }
 function encode_query(map : dval) string { string(__bearer_text_parsing_brrb(__bearer_text_encode_query(), map, "", dval(""))) }
@@ -417,7 +389,7 @@ function split(value : string, delimiter : string) dval { __bearer_text_parsing_
 function join(items : dval, delimiter : string = "\n") string {
     var result := ""
     var first := true
-    for key, item = items { if !first { result = result + delimiter }; result = result + string(item); first = false }
+    for item, key := items { if !first { result = result + delimiter }; result = result + string(item); first = false }
     result
 }
 function regex_split(pattern : string, subject : string, flags : string = "") dval { __bearer_regex_dval(__bearer_regex_regex_split(), pattern, subject, "", flags) }
@@ -426,7 +398,7 @@ function split_utf8(value : string, compound : bool = false) dval { __bearer_tex
 function split_http_headers(value : string) dval { __bearer_text_parsing_brrb(__bearer_text_split_http_headers(), dval(value), "", dval("")) }
 function split_kv(value : string, separator : string = "=", trim_whitespace : bool = true, uppercase_keys : bool = false) dval { __bearer_text_parsing_brrb(__bearer_text_split_kv(), dval(value), separator, dval({"trim": trim_whitespace, "uppercase": uppercase_keys})) }
 function sort(items : dval) dval { __bearer_text_parsing_brrb(__bearer_text_sort(), items, "", dval("")) }
-function each(items : dval, callback : function(value : string) string) { for key, item = items { var ignored := callback(string(item)) } }
+function each(items : dval, callback : function(value : string) string) { for item, key := items { var ignored := callback(string(item)) } }
 // runtime-diagnostic operation order: signal, backtrace, sleep, value dump
 function signal_name(signal : s32) string { string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_signal_name(), dval(signal), "", dval(""))) }
 function backtrace_capture() string { string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_backtrace_capture(), dval(32.0), "", dval(0.0))) }
@@ -497,24 +469,18 @@ function ob_get() string { string(__bearer_request_workspace_brrb(__bearer_reque
 function ob_get_close() string { string(__bearer_request_workspace_brrb(__bearer_request_ob_get_close(), dval(""), "", dval(""))) }
 function response_status(code : s32, reason : string = "") { var ignored := __bearer_request_workspace_brrb(__bearer_request_response_status(), dval(code), reason, dval("")) }
 function redirect(url : string, code : s32 = 302) { var ignored := __bearer_request_workspace_brrb(__bearer_request_redirect(), dval(url), "", dval(code)) }
-function session_start(name : string = "bearer-session") string { string(__bearer_request_workspace_brrb(__bearer_request_session_start(), dval(name), "", dval(""))) }
-function session_set(key : string, value : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_session_set(), dval(key), "set", dval(value)) }
-function session_remove(key : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_session_set(), dval(key), "remove", dval("")) }
+function session_start(name : string = "bearer-session") dval { __bearer_request_workspace_brrb(__bearer_request_session_start(), dval(name), "", dval("")) }
+function session_set(key : string, value : string) dval { __bearer_request_workspace_brrb(__bearer_request_session_set(), dval(key), "set", dval(value)) }
+function session_remove(key : string) dval { __bearer_request_workspace_brrb(__bearer_request_session_set(), dval(key), "remove", dval("")) }
 function response_cookie(name : string, value : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_response_cookie(), dval(name), "", dval(value)) }
-function session_destroy(name : string = "bearer-session") { var ignored := __bearer_request_workspace_brrb(__bearer_request_session_destroy(), dval(name), "", dval("")) }
+function session_destroy(name : string = "bearer-session") dval { __bearer_request_workspace_brrb(__bearer_request_session_destroy(), dval(name), "", dval("")) }
 function session_id_create() string { string(__bearer_request_workspace_brrb(__bearer_request_session_id_create(), dval(""), "", dval(""))) }
 function csrf_token(session_name : string = "bearer-session", token_name : string = "csrf_token") string { string(__bearer_request_workspace_brrb(__bearer_request_csrf_token(), dval(session_name), token_name, dval(""))) }
 function csrf_valid(submitted : string, session_name : string = "bearer-session", token_name : string = "csrf_token") bool { bool(__bearer_request_workspace_brrb(__bearer_request_csrf_valid(), dval(submitted), session_name, dval(token_name))) }
 function csrf_rotate(session_name : string = "bearer-session", token_name : string = "csrf_token") { var ignored := __bearer_request_workspace_brrb(__bearer_request_csrf_rotate(), dval(session_name), token_name, dval("")) }
 function csrf_field(session_name : string = "bearer-session", token_name : string = "csrf_token", field_name : string = "") string { string(__bearer_request_workspace_brrb(__bearer_request_csrf_field(), dval(session_name), token_name, dval(field_name))) }
-function cli_input() dval { __bearer_request_workspace_brrb(__bearer_request_cli_input(), dval(""), "", dval("")) }
-function cli_arg(key : string, fallback : string = "") string { string(__bearer_request_workspace_brrb(__bearer_request_cli_arg(), dval(key), fallback, dval(""))) }
-function request_base_url() string { string(__bearer_request_workspace_brrb(__bearer_request_request_base_url(), dval(""), "", dval(""))) }
-function request_script_url() string { string(__bearer_request_workspace_brrb(__bearer_request_request_script_url(), dval(""), "", dval(""))) }
-function request_query_path(default_path : string = "index") string { string(__bearer_request_workspace_brrb(__bearer_request_request_query_path(), dval(""), default_path, dval(""))) }
-function request_query_route(default_path : string = "index") dval { __bearer_request_workspace_brrb(__bearer_request_request_query_route(), dval(""), default_path, dval("")) }
-function request_route_from_raw_path(raw_path : string, default_path : string = "index") dval { __bearer_request_workspace_brrb(__bearer_request_request_route_from_raw_path(), dval(raw_path), default_path, dval("")) }
-function request_perf() dval { __bearer_request_workspace_brrb(__bearer_request_request_perf(), dval(""), "", dval("")) }
+function route_from_raw_path(raw_path : string, default_path : string = "index") dval { __bearer_request_workspace_brrb(__bearer_request_request_route_from_raw_path(), dval(raw_path), default_path, dval("")) }
+function runtime_perf() dval { __bearer_request_workspace_brrb(__bearer_request_request_perf(), dval(""), "", dval("")) }
 
 function gen_sha1(value : string, as_binary : bool = false) string { string(__bearer_crypto_password_brrb(__bearer_crypto_gen_sha1(), dval(value), "", dval(as_binary))) }
 function sha256(value : string) string { string(__bearer_crypto_password_brrb(__bearer_crypto_sha256(), dval(value), "", dval(""))) }
@@ -602,28 +568,11 @@ function time_format_local(format : string = "", timestamp : u64 = 0) string { s
 function time_format_utc(format : string = "", timestamp : u64 = 0) string { string(__bearer_time_format_brrb(__bearer_time_time_format_utc(), dval(format), "", dval(timestamp))) }
 function time_format_relative(timestamp : u64, very_recent : string = "", medium_seconds : u64 = 0, medium_recent : string = "", not_recent_seconds : u64 = 0, not_recent : string = "") string { string(__bearer_time_format_brrb(__bearer_time_time_format_relative(), dval(timestamp), very_recent, dval({"medium_seconds": medium_seconds, "medium_recent": medium_recent, "not_recent_seconds": not_recent_seconds, "not_recent": not_recent}))) }
 
-function ws_connections(scope : string = "") dval { __bearer_websocket_registry_brrb(__bearer_websocket_ws_connections(), dval(scope), "", dval("")) }
-function ws_connection_count(scope : string = "") u64 { u64(__bearer_websocket_registry_brrb(__bearer_websocket_ws_connection_count(), dval(scope), "", dval("")), 0) }
-
 // Direct byte-span adapters remain private; public names below this boundary are
 // ordinary declarations selected from this source with user-call provenance.
 function array_merge(left : dval, right : dval) dval { __bearer_dv_merge_brrb(left, right) }
 
-function request_param(key : string) string { __bearer_request_value(__bearer_request_value_request_param(), key) }
-function request_get(key : string) string { __bearer_request_value(__bearer_request_value_request_get(), key) }
-function request_post(key : string) string { __bearer_request_value(__bearer_request_value_request_post(), key) }
-function request_cookie(key : string) string { __bearer_request_value(__bearer_request_value_request_cookie(), key) }
-function request_session(key : string) string { __bearer_request_value(__bearer_request_value_request_session(), key) }
-function request_body() string { __bearer_request_body() }
-function request_context() dval { __bearer_request_context_brrb() }
-function request_context(value : request) dval { __bearer_request_context_for_brrb(value) }
 function response_header(name : string, value : string) { if !__bearer_response_set_header(name, value) { trap() } }
-
-function ws_message() string { __bearer_ws_message() }
-function ws_connection_id() string { __bearer_ws_connection_id() }
-function ws_scope() string { __bearer_ws_scope() }
-function ws_opcode() s32 { __bearer_ws_opcode() }
-function ws_is_binary() bool { __bearer_ws_is_binary() }
 function ws_send(message : string, binary : bool) bool { __bearer_ws_send(message, binary) }
 function ws_send(message : string, binary : bool, scope : string) bool { __bearer_ws_send_scope(message, binary, scope) }
 function ws_send_to(connection_id : string, message : string, binary : bool) bool { __bearer_ws_send_to(connection_id, message, binary) }

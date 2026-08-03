@@ -1,4 +1,4 @@
-function CLI {
+function CLI(request : dval) {
     {
         var root := file_temp("/tmp/capy-files2-")
         file_unlink(root)
@@ -20,7 +20,7 @@ function CLI {
         var st_size := dval_key(st, "size")
         var listed := join(sort(ls(root)), ",")
         var found := false
-        for key, item = dir_list(root) {
+        for item, key := dir_list(root) {
             if string(dval_key(item, "name")) == "b.txt" { found = true }
         }
         var nonrecursive := dir_remove(root)

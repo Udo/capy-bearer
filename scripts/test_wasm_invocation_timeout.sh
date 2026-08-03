@@ -67,14 +67,14 @@ printf '%s\n' \
 printf '%s\n' \
 	'CLI(Request& context) { print(request_perf()["worker_pid"].to_u64(), "|health"); }' >"$source_dir/health.uce"
 cat >"$source_dir/sqlite-timeout.capy" <<'EOF'
-function CLI {
-    if request_get("warm") == "1" { print("warm"); return }
+function CLI(request : dval) {
+    if string(request.query.warm, "") == "1" { print("warm"); return }
     var db := sqlite_connect(":memory:")
     sqlite_query(db, "with recursive counter(x) as (values(0) union all select x + 1 from counter where x < 1000000000) select sum(x) from counter")
 }
 EOF
 cat >"$source_dir/sqlite-recover.capy" <<'EOF'
-function CLI {
+function CLI(request : dval) {
     var db := sqlite_connect(":memory:")
     var rows := sqlite_query(db, "select 7 as value")
     print(s32(rows[0]["value"], 0))

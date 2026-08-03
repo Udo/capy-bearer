@@ -1,4 +1,4 @@
-function RENDER {
+function RENDER(request : dval) {
     var props := {name: "Capy", missing: none}
     var known := units_list()
     print(component("/tests/capy-request-context.capy", props), "|")

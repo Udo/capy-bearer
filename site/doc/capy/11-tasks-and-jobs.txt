@@ -13,7 +13,7 @@ function state_label(status : dval) string {
     string(status.state, "missing")
 }
 
-function RENDER {
+function RENDER(request : dval) {
     print(state_label({state: "queued"}), "\n")
 }
 
@@ -28,8 +28,8 @@ Real task states are `queued`, `running`, `succeeded`, `failed`, `canceled`, or 
 A named task handler receives one request value:
 
 ```capy
-function TASK:STORE(request : request) {
-    var props := request_context(request).props
+function TASK:STORE(request : dval) {
+    var props := request.props
     var key := string(props.key, "")
     if key == "" {
         trap()
@@ -38,14 +38,14 @@ function TASK:STORE(request : request) {
 }
 ```
 
-The worker receives copied props. It does not receive the caller's request, session, connections, open handles, or memory state.
+The task boundary copies props as BRRB. DValue identity does not cross it. The worker does not receive the caller's request, session, connections, open handles, or memory state.
 
 ## Submit a task
 
 `task` returns an opaque string ID:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var id := task("/tasks/store.capy:STORE", {key: "report-42"})
     print(id, "\n")
 }
@@ -71,7 +71,7 @@ A successful task means that its handler finished. Task status does not carry an
 `shell_spawn` starts a bounded operating-system job:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var job := shell_spawn({cmd: "printf ready", timeout_ms: 1000})
     var status := job_await(job, 3000)
     print(string(status.state, "missing"), "\n")

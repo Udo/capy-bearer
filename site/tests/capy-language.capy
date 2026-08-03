@@ -1,10 +1,10 @@
 function add(x : s32, y : s32) s32 {
     return x + y
 }
-function CLI {
+function CLI(request : dval) {
     var a : s32 = add(10, 20)
     print("sum=", a, ";")
-    for i = 0..3 {
+    for i := 0..3 {
         print(i)
     }
     print(";")

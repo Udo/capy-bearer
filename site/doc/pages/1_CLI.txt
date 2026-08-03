@@ -5,39 +5,23 @@ CLI
 CLI(Request& context)
 
 :see
->ob
+>0_Request
 >1_RENDER
 >1_COMPONENT
+>1_CLI
 >1_WS
->1_INIT
->1_ONCE
->unit_call
->cli_input
->cli_arg
 
 :content
-`function CLI` defines the local command entrypoint for a Capy unit.
+`function CLI(request : dval)` defines the Capy local command entrypoint.
 
-Use `function CLI { ... }` for the normal form. You can also declare `function CLI(request : request) { ... }`. The optional `request` is an opaque Capy value. It is not a C++ `Request&`.
+Every Capy Bearer handler has exactly one parameter. The parameter name is `request`. Its type is `dval`. The value is a copied request snapshot. Bearer calls this handler through its local CLI socket.
 
-The handler accepts no other inputs and returns no value. The body can print output and call Capy request functions such as `cli_input()` and `cli_arg()`. `cli_input()` returns a copied `dval`. `cli_arg()` returns a string value.
-
-Bearer calls `CLI` only through its local CLI Unix socket. It does not call `CLI` for a public HTTP request. Use this handler for local tests, migrations, maintenance, and administration.
-
-The default socket path is `/run/bearer/cli.sock`. Set `CLI_SOCKET_PATH` to change it. The `scripts/bearer-cli` helper sends `key=value` input as a JSON POST body by default. Use `--get` for a query-string request.
-
-A Capy declaration fails to compile if it has a non-`request` parameter, more than one parameter, or a return type. A trap in the handler stops that invocation.
-
-`INIT` runs when Bearer materializes the unit in the current request workspace. `ONCE` then runs before `CLI` for the unit. Both can run again in a later request workspace.
-
-## C++ API
+Read input from the request fields. Use response, session, output, and WebSocket functions for effects. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.
 
 C++ declares `CLI(Request& context)`. Its live `context` provides query, POST, body, parameter, header, and response access. C++ can test `context.params["BEARER_CLI"]` and read `context.params["SCRIPT_FILENAME"]`.
 
-Capy does not expose the C++ `Request&` layout or its mutable `DValue` aliases. Use the Capy request functions and copied `dval` values instead.
-
 :example capy render
-print("Declare CLI as a top-level function.\n")
+print(string(request.method, ""), "\n")
 
 :example cpp render
-print("Declare CLI as a top-level function.\n");
+print(context.params["REQUEST_METHOD"], "\n");

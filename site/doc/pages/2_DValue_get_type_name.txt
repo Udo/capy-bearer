@@ -8,7 +8,7 @@ return value : one of String, f64, bool, array, none, pointer, reference, or unk
 0_DValue
 
 :content
-Use `dval_get_type_name(value)` in Capy to get the type name of a copied `dval`. It takes one value and returns a string. Normal results are `String`, `f64`, `bool`, `array`, `none`, `pointer`, `reference`, or `unknown`.
+Use `dval_get_type_name(value)` in Capy to get a DValue type name. It takes one value and returns a string. Normal results are `String`, `f64`, `bool`, `array`, `none`, `pointer`, `reference`, or `unknown`.
 
 C++ `get_type_name()` gets the name after it dereferences the value.
 

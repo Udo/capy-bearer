@@ -21,7 +21,7 @@ function bounds() string {
     var negative_skip := backtrace_get_frames(2, -1)
     no_frames + "|" + clamped + "|" + skipped + "|" + negative_skip
 }
-function CLI {
+function CLI(request : dval) {
     if true {
         var nested := outer()
         print(nested)

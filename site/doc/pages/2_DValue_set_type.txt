@@ -11,7 +11,7 @@ return value : none
 2_DValue_set_array
 
 :content
-`dval_set_type(value, type)` takes a `dval` and a type-tag string. It returns a replacement with that internal type. Assign the result back to retain the update.
+`dval_set_type(value, type)` changes the target to the specified internal type. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid.
 
 Use `dval_set`, `dval_set_bool`, or `dval_set_array` for normal Capy code. Setting map type clears children and resets list state and the next numeric index.
 

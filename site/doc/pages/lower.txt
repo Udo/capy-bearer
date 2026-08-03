@@ -1,0 +1,23 @@
+:title
+lower
+
+:sig
+String to_lower(String s)
+
+:params
+value : Capy string to convert
+return value : string with uppercase ASCII characters changed to lowercase
+
+:see
+>string
+to_lower
+
+:content
+`lower(value)` converts uppercase ASCII characters to lowercase. It does not convert Unicode case.
+
+C++ uses `to_lower()` with the signature above.
+
+:example capy render
+print(lower("BEARER"), "\n")
+:example cpp render
+print(to_lower("BEARER"), "\n");

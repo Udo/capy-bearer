@@ -1006,9 +1006,14 @@ Expr* Parser::for_expr(Location location)
 	For* result = program_.make<For>(location);
 	result->names.push_back(require_identifier("loop variable").text);
 	if (match(","))
+	{
 		result->names.push_back(require_identifier("second loop variable").text);
-	if (!(match("=") || match("in")))
-		fail(token().location, "expected '=' or 'in' after loop variable");
+		if (result->names[0] == result->names[1])
+			fail(location, "loop bindings must have different names");
+	}
+	if (token().text == "=" || token().text == "in")
+		fail(token().location, "old loop syntax is not supported. Use ':=' after the loop bindings");
+	require(":=");
 	result->iterable = expression();
 	result->body = block(require("{").location);
 	return result;

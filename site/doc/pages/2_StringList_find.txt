@@ -4,7 +4,7 @@ DValue::find(String predicate, String fallback = "") (legacy `StringList` page)
 :content
 `string_list_find(items, predicate, fallback)` takes a list-shaped `dval`, a string predicate, and a fallback string. It returns the first matching string. It returns the fallback when no item matches.
 
-Capy has no separate `StringList` type. It uses copied `dval` values.
+Capy has no separate `StringList` type. It uses list-shaped DValues. This function does not mutate `items`.
 
 ## C++ API
 

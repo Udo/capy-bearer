@@ -1,4 +1,4 @@
-function CLI {
+function CLI(request : dval) {
     {
         var db := sqlite_connect(":memory:")
         sqlite_query(db, "create table users(id integer primary key, name text)")

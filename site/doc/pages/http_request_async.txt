@@ -17,8 +17,8 @@ The `security` map follows `http_request()` rules. Any recognized hardening fiel
 >socket
 
 :example capy render
-var request := dval({"method": "GET", "url": "http://127.0.0.1/doc/", "headers": {"Host": "bearer.openfu.com"}, "timeout_ms": 2000})
-var job := http_request_async(request)
+var outbound := dval({"method": "GET", "url": "http://127.0.0.1/doc/", "headers": {"Host": "bearer.openfu.com"}, "timeout_ms": 2000})
+var job := http_request_async(outbound)
 var done := job_await(dval(job), 3000)
 print("async HTTP ", s32(dval_get_by_path(done, "result/status")), "\n")
 

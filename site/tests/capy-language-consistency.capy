@@ -39,7 +39,7 @@ function capture(value : u64, decimal : f64, text : string) (function(add : u64)
     }
 }
 
-function CLI {
+function CLI(request : dval) {
     {
         var counts : Counts = [Count(-2)]
         var tuple : WideTuple = (1, counts[0], u64(3), 4.5, clone("x"))

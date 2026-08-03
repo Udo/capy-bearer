@@ -1,1 +1,1 @@
-function CLI { print(gz_uncompress("not gzip data")) }
+function CLI(request : dval) { print(gz_uncompress("not gzip data")) }

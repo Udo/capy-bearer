@@ -10,14 +10,14 @@ return value : true when this node itself is a reference node
 2_DValue_deref
 
 :content
-Capy has no `dval_is_reference` API. Capy `dval` values are copied values. They have no reference identity, so this test has no Capy equivalent.
+Capy has no `dval_is_reference` API. DValues share identity inside one workspace, but Capy does not expose the C++ internal reference tag. Thus, this test has no Capy equivalent.
 
 C++ `is_reference()` tests this node's direct internal reference tag. Most C++ read methods dereference values automatically.
 
 
 :capy-status unsupported
 
-Capy values have no reference identity: boundary crossings dereference copied values, so this predicate has no equivalent.
+A boundary copies BRRB and does not preserve C++ internal reference tags. This predicate has no Capy equivalent.
 
 :example cpp render
 DValue target; target.set("x");

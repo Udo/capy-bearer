@@ -15,23 +15,22 @@ route_path_is_safe
 0_Request
 
 :content
-Before Capy runs a page, component, CLI, custom HTTP, or WebSocket handler, Bearer adds these values to the request context. In Capy, read them from `request_context()["params"]`.
+Bearer adds these values to the live C++ request context before it runs a handler. Capy does not call `request_context_params`. A Capy handler receives the equivalent data in its copied `request : dval`.
 
-- `SCRIPT_URL` is the canonical script URL. It changes `/index.uce` to the containing directory URL.
-- `BASE_URL` is the canonical directory URL for the script.
-- `ROUTE_PATH` is the safe keyless query route. It defaults to `index` when no route exists.
-- `ROUTE_PAGE` is the first segment of `ROUTE_PATH`.
-- `ROUTE_PATH_RAW` is normalized route input. Treat it as diagnostic data, not a safe path.
-- `ROUTE_VALID` is `1` for a safe route and `0` for a rejected route.
-- `BEARER_BIN_DIRECTORY` is the writable runtime cache directory from `BIN_DIRECTORY`.
+- `SCRIPT_URL` is the canonical script URL. Capy reads `request.url.script`.
+- `BASE_URL` is the canonical directory URL for the script. Capy reads `request.url.base`.
+- `ROUTE_PATH` is the safe keyless query route. Capy reads `request.route.path`.
+- `ROUTE_PAGE` is the first route segment. Capy reads `request.route.page`.
+- `ROUTE_PATH_RAW` is normalized route input for diagnostics. Capy reads `request.route.raw_path`.
+- `ROUTE_VALID` is `1` for a safe route and `0` for a rejected route. Capy reads `request.route.valid`.
+- `BEARER_BIN_DIRECTORY` is the writable runtime cache directory from `BIN_DIRECTORY`. Capy reads `request.config.BIN_DIRECTORY`.
 
-Use `ROUTE_PATH` only below an application-controlled route root. The runtime rejects unsafe input and sets `ROUTE_PATH` to an empty string. Unsafe input includes dot segments, empty interior segments, backslashes, filename dots, and characters outside route segments.
+Use only `ROUTE_PATH`, or `request.route.path`, below an application-controlled route root. The runtime rejects unsafe input and sets the path to an empty string. Unsafe input includes dot segments, empty interior segments, backslashes, filename dots, and characters outside route segments.
 
 This supports URLs such as `/?dashboard` and `/?workspace/projects`. Named query parameters can occur with the route.
 
 :example capy render
-var snapshot := request_context()
-if string(dval_get_by_path(snapshot, "params/SCRIPT_URL")) != "" { print("has script url\n") } else { print("request params available\n") }
+print(string(request.url.script, ""), "\n")
 
 :example cpp render
-print(context.params["SCRIPT_URL"] != "" ? "has script url\n" : "request params available\n");
+print(context.params["SCRIPT_URL"], "\n");

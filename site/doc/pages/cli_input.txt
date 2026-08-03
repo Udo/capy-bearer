@@ -1,26 +1,29 @@
+:title
+cli_input
+
 :sig
 DValue cli_input(Request& context)
+
+:params
+context : live C++ request context
+return value : merged CLI input values
 
 :see
 >ob
 >1_CLI
 >json_decode
 >DValue
+>0_Request
+
+:capy-status cpp-specific
 
 :content
-`cli_input()` returns CLI request values as one Capy `dval` map.
+`cli_input()` is a C++ API. It returns a map that merges query parameters, form parameters, and JSON object fields. Later sources replace earlier fields with the same name.
 
-It merges query parameters, form parameters, and JSON object fields. Later sources replace earlier values with the same key.
+A JSON scalar or list is stored at `input["_"]`. Use this API when C++ code needs several input values or DValue values.
 
-A JSON scalar or list is stored at `input["_"]`. Use this function when a command needs several values or DValue types.
+Capy does not expose `cli_input`. In a Capy `CLI` handler, read `request.query`, `request.form`, and `request.body` directly. A Capy handler receives exactly one copied `request : dval`.
 
-In C++ `.uce`, pass `context` as the first argument. Capy gets the request data without that argument.
-
-:example capy render
-var input := cli_input()
-var count := 0
-for key, value = input { count = count + 1 }
-print("parsed ", count, " CLI arguments\n")
 :example cpp render
 DValue input = cli_input(context);
 print("parsed ", input.keys().size(), " CLI arguments\n");

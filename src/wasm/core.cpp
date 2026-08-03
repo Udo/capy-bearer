@@ -1071,20 +1071,20 @@ struct WasmRequestEnvelopeSegment
 };
 
 static bool wasm_decode_request_envelope(const char* encoded, size_t encoded_size,
-	WasmRequestEnvelopeSegment (&segments)[13], String& error)
+	WasmRequestEnvelopeSegment (&segments)[15], String& error)
 {
 	if(encoded_size < 6 || memcmp(encoded, "BRRQ", 4) != 0)
 	{
 		error = "missing BEARER request-envelope header";
 		return(false);
 	}
-	if((u8)encoded[4] != 2 || (u8)encoded[5] != 13)
+	if((u8)encoded[4] != 3 || (u8)encoded[5] != 15)
 	{
 		error = "unsupported BEARER request-envelope version or segment count";
 		return(false);
 	}
 	size_t offset = 6;
-	for(u32 i = 0; i < 13; i++)
+	for(u32 i = 0; i < 15; i++)
 	{
 		u64 segment_size = 0;
 		if(!brb_read_varint(encoded, encoded_size, offset, segment_size) || segment_size > encoded_size - offset)
@@ -1155,7 +1155,10 @@ void bearer_wasm_core_reset_request()
 	if(context == 0)
 		bearer_wasm_core_init();
 	wasm_request.call = DValue();
+	wasm_request.cfg = DValue();
 	wasm_request.props = DValue();
+	wasm_request.connection = DValue();
+	wasm_request.uploaded_files.clear();
 	wasm_request.params.clear();
 	wasm_request.get.clear();
 	wasm_request.post.clear();
@@ -1177,6 +1180,11 @@ void bearer_wasm_core_reset_request()
 	wasm_request.session_loaded_hash = "";
 	wasm_request.out = "";
 	wasm_request.resources.current_unit_file = "";
+	wasm_request.resources.websocket_connection_id = "";
+	wasm_request.resources.websocket_scope = "";
+	wasm_request.resources.websocket_opcode = 0;
+	wasm_request.resources.websocket_is_binary = false;
+	wasm_request.resources.websocket_scope_connection_ids.clear();
 	wasm_component_slots.clear();
 	wasm_component_paths.clear();
 	wasm_component_errors.clear();
@@ -1223,7 +1231,9 @@ int bearer_wasm_apply_context(const char* config_buf, size_t config_len, const c
 	DValue decoded_call;
 	DValue decoded_ws;
 	DValue decoded_props;
-	WasmRequestEnvelopeSegment segments[13];
+	DValue decoded_cfg;
+	DValue decoded_files;
+	WasmRequestEnvelopeSegment segments[15];
 	String error;
 	if(!brb_decode_flat_string_map(config_buf, config_len, decoded_config, &error))
 	{
@@ -1262,14 +1272,44 @@ int bearer_wasm_apply_context(const char* config_buf, size_t config_len, const c
 		bearer_host_log(3, error.data(), error.size());
 		return(4);
 	}
-	if(!decode_tree(12, decoded_props, "request props"))
+	if(!decode_tree(12, decoded_props, "request props") ||
+		!decode_tree(13, decoded_cfg, "request config") ||
+		!decode_tree(14, decoded_files, "request files") || !decoded_files.is_list())
 	{
 		bearer_host_log(3, error.data(), error.size());
 		return(5);
 	}
+	std::vector<UploadedFile> uploaded_files;
+	bool valid_files = true;
+	decoded_files.each([&](const DValue& value, String) {
+		const DValue& item = value.deref();
+		const DValue* name = item.key("name");
+		const DValue* temporary_path = item.key("temporary_path");
+		const DValue* encoded_size = item.key("size");
+		if(item.type != 'M' || item.is_list() || !name || !temporary_path || !encoded_size)
+		{
+			valid_files = false;
+			return;
+		}
+		u64 size = encoded_size->to_u64();
+		if(size > std::numeric_limits<u32>::max())
+		{
+			valid_files = false;
+			return;
+		}
+		uploaded_files.push_back({name->to_string(), temporary_path->to_string(), (u32)size});
+	});
+	if(!valid_files)
+	{
+		error = "invalid request files";
+		bearer_host_log(3, error.data(), error.size());
+		return(6);
+	}
 	wasm_server.config = std::move(decoded_config);
 	wasm_request.call = std::move(decoded_call);
+	wasm_request.cfg = std::move(decoded_cfg);
 	wasm_request.props = std::move(decoded_props);
+	wasm_request.uploaded_files = std::move(uploaded_files);
 	wasm_request.params = std::move(decoded_params);
 	wasm_request.get = std::move(decoded_get);
 	wasm_request.post = std::move(decoded_post);
@@ -1289,13 +1329,17 @@ int bearer_wasm_apply_context(const char* config_buf, size_t config_len, const c
 	wasm_request.resources.websocket_connection_state_before = DValue();
 	wasm_request.resources.websocket_dispatch_commands = DValue();
 	wasm_request.resources.websocket_dispatch_capture = false;
+	wasm_request.resources.websocket_connection_id = "";
+	wasm_request.resources.websocket_scope = "";
+	wasm_request.resources.websocket_opcode = 0;
+	wasm_request.resources.websocket_is_binary = false;
+	wasm_request.resources.websocket_scope_connection_ids.clear();
 	if(segments[11].size)
 	{
 		wasm_request.resources.websocket_connection_id = decoded_ws["connection_id"].to_string();
 		wasm_request.resources.websocket_scope = decoded_ws["scope"].to_string();
 		wasm_request.resources.websocket_opcode = (u8)decoded_ws["opcode"].to_u64();
 		wasm_request.resources.websocket_is_binary = decoded_ws["binary"].to_bool();
-		wasm_request.resources.websocket_scope_connection_ids.clear();
 		if(DValue* conns = decoded_ws.key("connections"))
 			conns->each([&](const DValue& v, String) {
 				wasm_request.resources.websocket_scope_connection_ids.push_back(v.to_string());
@@ -2071,24 +2115,20 @@ s32 bearer_response_set_header(const char* name, size_t name_len, const char* va
 	return(1);
 }
 
-size_t bearer_request_value(s32 kind, const char* key, size_t key_len, char* out, size_t cap)
+static DValue bearer_session_snapshot(const Request* request)
 {
-	if(context == 0)
-		bearer_wasm_core_init();
-	String lookup(key ? key : "", key ? key_len : 0);
-	const StringMap* values = kind == 0 ? &context->params : kind == 1 ? &context->get : kind == 2 ? &context->post : kind == 3 ? &context->cookies : &context->session;
-	auto found = values->find(lookup);
-	return(bearer_copy_bytes(found == values->end() ? String("") : found->second, out, cap));
+	DValue session;
+	session.set_type('M');
+	session["id"] = request ? request->session_id : "";
+	session["name"] = request ? request->session_name : "";
+	session["values"].set_type('M');
+	if(request)
+		for(const auto& entry : request->session)
+			session["values"][entry.first] = entry.second;
+	return(session);
 }
 
-size_t bearer_request_body(char* out, size_t cap)
-{
-	if(context == 0)
-		bearer_wasm_core_init();
-	return(bearer_copy_bytes(context->in, out, cap));
-}
-
-static size_t bearer_request_context_encode(Request* request, char* out, size_t cap)
+static size_t bearer_handler_input_encode(Request* request, char* out, size_t cap)
 {
 	if(!request)
 		return(0);
@@ -2098,32 +2138,73 @@ static size_t bearer_request_context_encode(Request* request, char* out, size_t 
 		for(const auto& entry : values)
 			snapshot[key][entry.first] = entry.second;
 	};
-	copy_map("params", request->params);
-	copy_map("get", request->get);
-	copy_map("post", request->post);
+	auto param = [&](const String& key) {
+		auto found = request->params.find(key);
+		return(found == request->params.end() ? String("") : found->second);
+	};
+	copy_map("query", request->get);
+	copy_map("form", request->post);
 	copy_map("cookies", request->cookies);
-	copy_map("session", request->session);
+	snapshot["server"].set_type('M');
+	snapshot["headers"].set_type('M');
+	for(const auto& entry : request->params)
+	{
+		const bool header = entry.first.rfind("HTTP_", 0) == 0 || entry.first == "CONTENT_TYPE" || entry.first == "CONTENT_LENGTH";
+		const bool separate = entry.first == "REQUEST_METHOD" || entry.first.rfind("ROUTE_", 0) == 0 || entry.first == "SCRIPT_URL" || entry.first == "BASE_URL";
+		if(header)
+		{
+			String name = entry.first.rfind("HTTP_", 0) == 0 ? entry.first.substr(5) : entry.first;
+			for(char& character : name)
+				character = character == '_' ? '-' : static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+			snapshot["headers"][name] = entry.second;
+		}
+		else if(!separate)
+			snapshot["server"][entry.first] = entry.second;
+	}
+	snapshot["method"] = param("REQUEST_METHOD");
+	snapshot["body"] = request->in;
+	snapshot["files"].set_array();
+	for(const UploadedFile& file : request->uploaded_files)
+	{
+		DValue item;
+		item.set_type('M');
+		item["name"] = file.file_name;
+		item["temporary_path"] = file.tmp_name;
+		item["size"] = (f64)file.size;
+		snapshot["files"].push(item);
+	}
+	snapshot["route"].set_type('M');
+	snapshot["route"]["path"] = param("ROUTE_PATH");
+	snapshot["route"]["page"] = param("ROUTE_PAGE");
+	snapshot["route"]["raw_path"] = param("ROUTE_PATH_RAW");
+	snapshot["route"]["valid"].set_bool(param("ROUTE_VALID") == "1");
+	snapshot["url"].set_type('M');
+	snapshot["url"]["script"] = param("SCRIPT_URL");
+	snapshot["url"]["base"] = param("BASE_URL");
+	snapshot["session"] = bearer_session_snapshot(request);
 	snapshot["call"] = request->call;
-	snapshot["cfg"] = request->cfg;
+	snapshot["config"] = request->cfg;
 	snapshot["props"] = request->props;
 	snapshot["connection"] = request->connection;
-	snapshot["input"] = request->in;
-	snapshot["session_id"] = request->session_id;
-	snapshot["session_name"] = request->session_name;
-	snapshot["current_unit"] = request->resources.current_unit_file;
+	snapshot["unit"] = request->resources.current_unit_file;
+	snapshot["websocket"].set_type('M');
+	snapshot["websocket"]["connection_id"] = request->resources.websocket_connection_id;
+	snapshot["websocket"]["scope"] = request->resources.websocket_scope;
+	snapshot["websocket"]["opcode"] = (f64)request->resources.websocket_opcode;
+	snapshot["websocket"]["binary"].set_bool(request->resources.websocket_is_binary);
+	snapshot["websocket"]["connections"].set_array();
+	for(const String& connection_id : request->resources.websocket_scope_connection_ids)
+	{
+		DValue value;
+		value = connection_id;
+		snapshot["websocket"]["connections"].push(value);
+	}
 	return(bearer_copy_bytes(brb_encode(snapshot), out, cap));
 }
 
-size_t bearer_request_context_brrb(char* out, size_t cap)
+size_t bearer_handler_input_brrb(Request* request, char* out, size_t cap)
 {
-	if(context == 0)
-		bearer_wasm_core_init();
-	return(bearer_request_context_encode(context, out, cap));
-}
-
-size_t bearer_request_context_for_brrb(Request* request, char* out, size_t cap)
-{
-	return(bearer_request_context_encode(request, out, cap));
+	return(bearer_handler_input_encode(request, out, cap));
 }
 
 size_t bearer_dv_s32_to_brrb(s32 value, char* out, size_t cap)
@@ -2236,7 +2317,7 @@ size_t bearer_dv_apply_brrb(s32 operation, const char* value, size_t value_len, 
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class DValueOperation { dval_dval_set = 0, dval_dval_push = 1, dval_dval_pop = 2, dval_dval_remove = 3, dval_dval_clear = 4, dval_dval_get_by_path = 5, dval_dval_get_or_create = 6, dval_dval_set_array = 7, dval_dval_set_bool = 8, dval_dval_set_type = 9, dval_dval_get_type_name = 10, dval_dval_is_array = 11, dval_dval_is_list = 12, dval_dval_key = 13, dval_dval_keys = 14, dval_dval_values = 15, dval_dval_to_json = 16, dval_dval_to_stringmap = 17, dval_dval_put = 18 };
+	enum class DValueOperation { dval_dval_set = 0, dval_dval_push = 1, dval_dval_pop = 2, dval_dval_remove = 3, dval_dval_clear = 4, dval_dval_get_by_path = 5, dval_dval_get_or_create = 6, dval_dval_set_array = 7, dval_dval_set_bool = 8, dval_dval_set_type = 9, dval_dval_get_type_name = 10, dval_dval_is_array = 11, dval_dval_is_list = 12, dval_dval_key = 13, dval_dval_keys = 14, dval_dval_values = 15, dval_dval_put = 18 };
 	switch(static_cast<DValueOperation>(operation))
 	{
 		case DValueOperation::dval_dval_set: result.set(supplied); break;
@@ -2255,8 +2336,6 @@ size_t bearer_dv_apply_brrb(s32 operation, const char* value, size_t value_len, 
 		case DValueOperation::dval_dval_key: { const DValue* child = result.key(text); if(child) result = *child; else result.set_none(); break; }
 		case DValueOperation::dval_dval_keys: { result = result.keys(); break; }
 		case DValueOperation::dval_dval_values: result = result.values(); break;
-		case DValueOperation::dval_dval_to_json: result.set(result.to_json(text.empty() ? '"' : text[0])); break;
-		case DValueOperation::dval_dval_to_stringmap: result.set(result.to_stringmap()); break;
 		case DValueOperation::dval_dval_put: result[text] = supplied; break;
 			// Core utility adapters use copied BRRB values so the native helpers remain
 			// the only implementation of parsing, routing, and diagnostic policy.
@@ -2274,7 +2353,7 @@ size_t bearer_text_parsing_brrb(s32 operation, const char* value, size_t value_l
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class TextOperation { text_ascii_safe_name = 0, text_safe_name = 1, text_trim = 2, text_float_val = 3, text_int_val = 4, text_to_bool = 5, text_str_starts_with = 6, text_str_ends_with = 7, text_encode_query = 8, text_parse_query = 9, text_split = 10, text_split_space = 11, text_split_utf8 = 12, text_split_http_headers = 13, text_split_kv = 14, text_sort = 15 };
+	enum class TextOperation { text_ascii_safe_name = 0, text_safe_name = 1, text_trim = 2, text_float_val = 3, text_int_val = 4, text_str_starts_with = 6, text_str_ends_with = 7, text_encode_query = 8, text_parse_query = 9, text_split = 10, text_split_space = 11, text_split_utf8 = 12, text_split_http_headers = 13, text_split_kv = 14, text_sort = 15 };
 	switch(static_cast<TextOperation>(operation))
 	{
 		case TextOperation::text_ascii_safe_name: result.set(ascii_safe_name(result.to_string())); break;
@@ -2282,7 +2361,6 @@ size_t bearer_text_parsing_brrb(s32 operation, const char* value, size_t value_l
 		case TextOperation::text_trim: result.set(trim(result.to_string())); break;
 		case TextOperation::text_float_val: result.set(float_val(result.to_string())); break;
 		case TextOperation::text_int_val: result.set(std::to_string(int_val(result.to_string(), (u32)supplied.to_s64(10)))); break;
-		case TextOperation::text_to_bool: result.set_bool(to_bool(result.to_string(), supplied.to_bool())); break;
 		case TextOperation::text_str_starts_with: result.set_bool(str_starts_with(result.to_string(), text)); break;
 		case TextOperation::text_str_ends_with: result.set_bool(str_ends_with(result.to_string(), text)); break;
 		case TextOperation::text_encode_query: result.set(encode_query(result.to_stringmap())); break;
@@ -2513,7 +2591,13 @@ size_t bearer_request_workspace_brrb(s32 operation, const char* value, size_t va
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class RequestOperation { request_ob_start = 0, request_ob_close = 1, request_ob_get = 2, request_ob_get_close = 3, request_response_status = 4, request_redirect = 5, request_session_start = 6, request_session_set = 7, request_session_destroy = 8, request_session_id_create = 9, request_csrf_token = 10, request_csrf_valid = 11, request_csrf_rotate = 12, request_csrf_field = 13, request_cli_input = 14, request_cli_arg = 15, request_request_base_url = 16, request_request_script_url = 17, request_request_query_path = 18, request_request_query_route = 19, request_request_route_from_raw_path = 20, request_request_perf = 21, request_response_cookie = 22 };
+	enum class RequestOperation {
+		request_ob_start = 0, request_ob_close = 1, request_ob_get = 2, request_ob_get_close = 3,
+		request_response_status = 4, request_redirect = 5, request_session_start = 6, request_session_set = 7,
+		request_session_destroy = 8, request_session_id_create = 9, request_csrf_token = 10, request_csrf_valid = 11,
+		request_csrf_rotate = 12, request_csrf_field = 13, request_request_route_from_raw_path = 20,
+		request_request_perf = 21, request_response_cookie = 22
+	};
 	switch(static_cast<RequestOperation>(operation))
 	{
 		case RequestOperation::request_ob_start: ob_start(); result.clear(); break;
@@ -2522,24 +2606,18 @@ size_t bearer_request_workspace_brrb(s32 operation, const char* value, size_t va
 		case RequestOperation::request_ob_get_close: result.set(ob_get_close()); break;
 		case RequestOperation::request_response_status: if(result.to_s64() < 100 || result.to_s64() > 999) return(std::numeric_limits<size_t>::max()); context->set_status((s32)result.to_s64(), text); result.clear(); break;
 		case RequestOperation::request_redirect: redirect(result.to_string(), (s32)supplied.to_s64(302)); result.clear(); break;
-		case RequestOperation::request_session_start: result.set(session_start(result.to_string())); break;
+		case RequestOperation::request_session_start: session_start(result.to_string()); result = bearer_session_snapshot(context); break;
 		case RequestOperation::request_session_set:
 				if(text == "set") context->session[result.to_string()] = supplied.to_string();
 				else if(text == "remove") context->session.erase(result.to_string());
 				else return(std::numeric_limits<size_t>::max());
-				result.clear(); break;
-		case RequestOperation::request_session_destroy: session_destroy(result.to_string()); result.clear(); break;
+				result = bearer_session_snapshot(context); break;
+		case RequestOperation::request_session_destroy: session_destroy(result.to_string()); result = bearer_session_snapshot(context); break;
 		case RequestOperation::request_session_id_create: result.set(session_id_create()); break;
 		case RequestOperation::request_csrf_token: result.set(csrf_token(result.to_string(), text)); break;
 		case RequestOperation::request_csrf_valid: result.set_bool(csrf_valid(result.to_string(), text, supplied.to_string())); break;
 		case RequestOperation::request_csrf_rotate: csrf_rotate(result.to_string(), text); result.clear(); break;
 		case RequestOperation::request_csrf_field: result.set(csrf_field(result.to_string(), text, supplied.to_string())); break;
-		case RequestOperation::request_cli_input: result = cli_input(*context); break;
-		case RequestOperation::request_cli_arg: result.set(cli_arg(*context, result.to_string(), text)); break;
-		case RequestOperation::request_request_base_url: result.set(request_base_url(*context)); break;
-		case RequestOperation::request_request_script_url: result.set(request_script_url(*context)); break;
-		case RequestOperation::request_request_query_path: result.set(request_query_path(*context, text)); break;
-		case RequestOperation::request_request_query_route: result = request_query_route(*context, text); break;
 		case RequestOperation::request_request_route_from_raw_path: result = request_route_from_raw_path(result.to_string(), text); break;
 		case RequestOperation::request_request_perf: result = request_perf(); break;
 		case RequestOperation::request_response_cookie: set_cookie(result.to_string(), supplied.to_string()); result.clear(); break;
@@ -2647,25 +2725,6 @@ size_t bearer_time_format_brrb(s32 operation, const char* value, size_t value_le
 		case TimeOperation::time_time_format_local: result.set(time_format_local(result.to_string(), to_u64(supplied.to_string(), 0))); break;
 		case TimeOperation::time_time_format_utc: result.set(time_format_utc(result.to_string(), to_u64(supplied.to_string(), 0))); break;
 		case TimeOperation::time_time_format_relative: result.set(time_format_relative(to_u64(result.to_string(), 0), text, to_u64(supplied["medium_seconds"].to_string(), 0), supplied["medium_recent"].to_string(), to_u64(supplied["not_recent_seconds"].to_string(), 0), supplied["not_recent"].to_string())); break;
-		default: return(std::numeric_limits<size_t>::max());
-	}
-	return(bearer_brrb_call_finish(result));
-}
-
-size_t bearer_websocket_registry_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
-	const char* argument, size_t argument_len, char* out, size_t cap)
-{
-	if(out)
-		return(bearer_brrb_call_copy(out, cap));
-	DValue result, supplied;
-	String text;
-	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
-		return(std::numeric_limits<size_t>::max());
-	enum class WebsocketOperation { websocket_ws_connections = 0, websocket_ws_connection_count = 1 };
-	switch(static_cast<WebsocketOperation>(operation))
-	{
-		case WebsocketOperation::websocket_ws_connections: result = ws_connections(result.to_string()); break;
-		case WebsocketOperation::websocket_ws_connection_count: result.set(std::to_string(ws_connection_count(result.to_string()))); break;
 		default: return(std::numeric_limits<size_t>::max());
 	}
 	return(bearer_brrb_call_finish(result));

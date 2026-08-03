@@ -4,7 +4,7 @@ DValue::filter(String predicate) (legacy `StringList` page)
 :content
 `filter(items, predicate)` takes a list-shaped `dval` and a string predicate. It returns a new list-shaped `dval` with the accepted strings in input order. The result uses consecutive numeric keys.
 
-Capy has no separate `StringList` type. It uses copied `dval` values.
+Capy has no separate `StringList` type. It uses list-shaped DValues. The function returns a new list and does not mutate `items`.
 
 ## C++ API
 

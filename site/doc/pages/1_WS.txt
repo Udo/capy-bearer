@@ -5,31 +5,23 @@ WS
 WS(Request& context)
 
 :see
->websocket
->1_COMPONENT
->1_INIT
->1_ONCE
+>0_Request
 >1_RENDER
+>1_COMPONENT
+>1_CLI
+>1_WS
 
 :content
-`function WS` defines the Capy WebSocket message handler.
+`function WS(request : dval)` defines the Capy WebSocket message handler.
 
-Use `function WS { ... }` for the normal form. You can also declare `function WS(request : request) { ... }`. The optional input is an opaque Capy request value. The handler returns no value.
+Every Capy Bearer handler has exactly one parameter. The parameter name is `request`. Its type is `dval`. The value is a copied request snapshot. `request.body` contains the current message payload. `request.websocket.connections` contains current-scope connection IDs.
 
-Bearer calls `WS` after it receives one complete WebSocket message for the unit. It reassembles fragmented frames first. Text and binary messages both reach the handler. Define `RENDER` in the same unit when it must serve the initial HTTP page.
-
-Use `ws_message()` to get the current message string. Use `ws_connection_id()`, `ws_scope()`, `ws_connection_count()`, `ws_opcode()`, and `ws_is_binary()` to inspect message metadata. Use `ws_send()`, `ws_send_to()`, and `ws_close()` to act on connections. These functions use Capy values and return their documented value.
-
-The compiler rejects other parameter forms, a return type, and handler overloads. A trap in `WS` stops that message invocation.
-
-## C++ API
+Read input from the request fields. Use response, session, output, and WebSocket functions for effects. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.
 
 C++ declares `WS(Request& context)`. It reads the payload from `context.in`, metadata from `context.params["WS_..."]`, and persistent connection state from `context.connection`. The connection value starts empty and persists for later calls on that socket.
 
-Capy does not expose C++ `Request&`, `context.connection`, or mutable `DValue` aliases. Use the Capy WebSocket functions and copied `dval` values. Capy cannot use C++ references or direct C++ object access.
-
 :example capy render
-print("Declare WS as a top-level function.\n")
+print(string(request.method, ""), "\n")
 
 :example cpp render
-print("Declare WS as a top-level function.\n");
+print(context.params["REQUEST_METHOD"], "\n");

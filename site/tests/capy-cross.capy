@@ -1,12 +1,12 @@
-function COMPONENT {
+function COMPONENT(request : dval) {
     print("capy-component-ok")
 }
 
-function COMPONENT:CARD {
+function COMPONENT:CARD(request : dval) {
     print("capy-named-ok")
 }
 
-function CLI {
+function CLI(request : dval) {
     unit_render("/tests/capy-cross-target.uce")
     print("|")
     {

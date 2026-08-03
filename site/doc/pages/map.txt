@@ -21,7 +21,7 @@ Use `filter()` when you want to keep matching items instead.
 
 :example capy render
 var names := split("ada,grace", ",")
-var upper := map(names, function(item : string) string { return to_upper(item) })
+var upper := map(names, function(item : string) string { return upper(item) })
 print(join(upper, ","), "\n")
 
 :example cpp render

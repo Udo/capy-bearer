@@ -5,31 +5,23 @@ RENDER
 RENDER(Request& context)
 
 :see
->ob
+>0_Request
+>1_RENDER
 >1_COMPONENT
->1_INIT
->1_ONCE
+>1_CLI
 >1_WS
 
 :content
-`function RENDER` defines the Capy HTTP page entrypoint.
+`function RENDER(request : dval)` defines the Capy HTTP page entrypoint.
 
-Use `function RENDER { ... }` for the normal form. You can also declare `function RENDER(request : request) { ... }`. The optional input is an opaque Capy request value. The handler returns no value. Print response content and use Capy request and response functions in the body.
+Every Capy Bearer handler has exactly one parameter. The parameter name is `request`. Its type is `dval`. The value is a copied request snapshot. The handler writes the HTTP response.
 
-Bearer calls `RENDER` for a direct HTTP request to the unit. `INIT` runs when Bearer materializes the unit in the current request workspace. `ONCE` then runs before the first render or component entrypoint for the unit and request. A direct page request has no component props.
-
-Use `COMPONENT` or `COMPONENT:NAME` for reusable component output. Component helpers do not call `RENDER`. A unit can define `RENDER`, `COMPONENT`, and `WS` together. In that case, `RENDER` serves HTTP and `WS` handles later WebSocket messages.
-
-The compiler rejects other parameter forms, a return type, and handler overloads. A trap in `RENDER` stops that request invocation.
-
-## C++ API
+Read input from the request fields. Use response, session, output, and WebSocket functions for effects. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.
 
 C++ declares `RENDER(Request& context)`. It receives live parameters, cookies, POST data, session state, headers, uploaded files, and component props. `unit_render(file_name, context)` passes that live context to the callee.
 
-Capy does not expose C++ `Request&`, mutable request fields, or C++ object layouts. Use Capy request functions and copied `dval` values. Capy cannot use C++ references or direct C++ object access.
-
 :example capy render
-print("Declare RENDER as a top-level function.\n")
+print(string(request.method, ""), "\n")
 
 :example cpp render
-print("Declare RENDER as a top-level function.\n");
+print(context.params["REQUEST_METHOD"], "\n");

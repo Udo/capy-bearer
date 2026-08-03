@@ -1,4 +1,4 @@
-function exercise {
+function exercise(request : dval) {
     {
     ob_start()
     print("outer")
@@ -11,18 +11,22 @@ function exercise {
     print("discard")
     ob_close()
     var outer := ob_get_close()
-    var route := request_route_from_raw_path("workspace/projects", "index")
-    var query_route := request_query_route("fallback")
-    var rejected := request_route_from_raw_path("../unsafe", "index")
-    var input := cli_input()
-    var perf := request_perf()
-    print(cli_arg("name", "fallback"), "|", input["name"], "|", inner, "|", outer, "|", request_query_path("fallback"), "|", route["page"], bool(route["valid"]), string(rejected["l_path"]) == "", !bool(rejected["valid"]), "|", length(request_script_url()) > 0, length(request_base_url()) > 0, dval_get_type_name(perf) != "invalid", "|", length(session_id_create()) == 64)
+    var route := route_from_raw_path("workspace/projects", "index")
+    var rejected := route_from_raw_path("../unsafe", "index")
+    var perf := runtime_perf()
+    var input_name := string(request.form.name, string(request.query.name, ""))
+    if input_name == "" && string(request.server.BEARER_CLI, "") == "1" {
+        input_name = string(json_decode(string(request.body, "{}")).name, "")
+    }
+    var displayed_name := input_name
+    if displayed_name == "" { displayed_name = "fallback" }
+    print(displayed_name, "|", input_name, "|", inner, "|", outer, "|", string(request.route.path, "fallback"), "|", route.page, bool(route.valid, false), string(rejected.path, "") == "", !bool(rejected.valid, false), "|", length(string(request.url.script, "")) > 0, length(string(request.url.base, "")) > 0, dval_get_type_name(perf) != "invalid", "|", length(session_id_create()) == 64)
     }
     print("|", arc_live())
 }
 
-function CLI { exercise() }
-function RENDER {
-    if request_get("status") == "yes" { response_status(202, "Capy Accepted") }
-    exercise()
+function CLI(request : dval) { exercise(request) }
+function RENDER(request : dval) {
+    if string(request.query.status, "") == "yes" { response_status(202, "Capy Accepted") }
+    exercise(request)
 }

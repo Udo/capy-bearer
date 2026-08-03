@@ -1,0 +1,23 @@
+:title
+upper
+
+:sig
+String to_upper(String s)
+
+:params
+value : Capy string to convert
+return value : string with lowercase ASCII characters changed to uppercase
+
+:see
+>string
+to_upper
+
+:content
+`upper(value)` converts lowercase ASCII characters to uppercase. It does not convert Unicode case.
+
+C++ uses `to_upper()` with the signature above.
+
+:example capy render
+print(upper("bearer"), "\n")
+:example cpp render
+print(to_upper("bearer"), "\n");

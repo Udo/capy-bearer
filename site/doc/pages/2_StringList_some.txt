@@ -4,7 +4,7 @@ DValue::some(String predicate) (legacy `StringList` page)
 :content
 `some(items, predicate)` takes a list-shaped `dval` and a string predicate. It returns true when any item satisfies the predicate. An empty list returns false.
 
-Capy has no separate `StringList` type. It uses copied `dval` values.
+Capy has no separate `StringList` type. It uses list-shaped DValues. This function does not mutate `items`.
 
 ## C++ API
 

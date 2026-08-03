@@ -20,7 +20,7 @@ file_unlink(root)
 mkdir(root)
 file_put_contents(path_join(root, "note.txt"), "hi")
 var found := false
-for key, item = dir_list(root) { if string(item["name"]) == "note.txt" { found = true } }
+for item, key := dir_list(root) { if string(item["name"]) == "note.txt" { found = true } }
 dir_remove(root, true)
 if found { print("note.txt listed: yes\n") } else { print("note.txt listed: no\n") }
 :example cpp render

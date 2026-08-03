@@ -11,7 +11,7 @@ function greet(name : string) string {
     "Hello, " + name
 }
 
-function RENDER {
+function RENDER(request : dval) {
     print(greet("Ada"), "\n")
 }
 
@@ -30,7 +30,7 @@ function label(name : string, suffix : string = "!") string {
     name + suffix
 }
 
-function RENDER {
+function RENDER(request : dval) {
     print(label("Capy"), "\n")
 }
 ```
@@ -47,7 +47,7 @@ Several functions can have the same name when their parameter types differ:
 function describe(value : s32) string { "integer" }
 function describe(value : string) string { "string" }
 
-function RENDER {
+function RENDER(request : dval) {
     print(describe(42), " ", describe("Ada"), "\n")
 }
 ```
@@ -63,7 +63,7 @@ function show(value : as string) {
     print(value, "\n")
 }
 
-function RENDER {
+function RENDER(request : dval) {
     show(42)
 }
 ```
@@ -77,7 +77,7 @@ A function can be stored and called through a typed value:
 ```capy
 function double(value : s32) s32 { value * 2 }
 
-function RENDER {
+function RENDER(request : dval) {
     var operation : function(value : s32) s32 = double
     var answer := operation(21)
     print(answer, "\n")
@@ -87,7 +87,7 @@ function RENDER {
 A lambda defines a small function at its point of use:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var add_one := function(value : s32) s32 {
         value + 1
     }
@@ -95,7 +95,7 @@ function RENDER {
 }
 ```
 
-A lambda can read captured outer values. Scalar captures copy. Managed captures stay alive until the closure releases them.
+A lambda can read captured outer values. Scalar captures copy. Array, DValue, and struct captures share identity inside the workspace. A capture binding cannot be reassigned, but the closure can mutate shared aggregate content.
 
 ## Generic and variadic functions
 
@@ -105,12 +105,12 @@ A variadic parameter collects values into a typed array:
 
 ```capy
 function print_all(...values : as string) {
-    for value = values {
+    for value := values {
         print(value)
     }
 }
 
-function RENDER {
+function RENDER(request : dval) {
     print_all("one", " ", "two", "\n")
 }
 ```

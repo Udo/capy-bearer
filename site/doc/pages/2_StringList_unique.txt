@@ -4,7 +4,7 @@ DValue::unique() (legacy `StringList` page)
 :content
 `unique(items)` takes a list-shaped `dval` and returns a new list-shaped `dval`. It keeps the first instance of each string and keeps input order.
 
-Capy has no separate `StringList` type. It uses copied `dval` values.
+Capy has no separate `StringList` type. It uses list-shaped DValues. This pure transformation returns a new list.
 
 ## C++ API
 

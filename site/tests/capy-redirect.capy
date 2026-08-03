@@ -1,4 +1,4 @@
-function RENDER {
+function RENDER(request : dval) {
     redirect("/tests/capy-session.capy?action=read", 302)
     print("redirected")
 }

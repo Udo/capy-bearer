@@ -1,14 +1,16 @@
 function EXPORT_enrich (input : dval) dval {
     print("custom-once;")
+    input.export_mutation = "child"
     return dval({"input": input, "language": "capy", "items": [1, 2, 3]})
 }
 
-function CLI {
+function CLI(request : dval) {
     {
         var cpp := unit_call("/tests/capy-cross-target.uce", "structured", {"user": {"name": "Ada"}, "items": [4, 9]})
         print(cpp["source"], "|", cpp["name"], "|", s32(cpp["second"]), "|")
-        var capy := unit_call("/tests/capy-dval-rich.capy", "enrich", {"origin": "capy"})
-        print(capy["language"], "|", capy["input"]["origin"], "|")
+        var capy_input := {"origin": "capy"}
+        var capy := unit_call("/tests/capy-dval-rich.capy", "enrich", capy_input)
+        print(capy["language"], "|", capy["input"]["origin"], "|", dval_has(capy_input, "export_mutation"), "|")
         var profile := dval({
             "name": "Ada",
             "age": 42,
@@ -23,15 +25,15 @@ function CLI {
             dval_has(profile, "name"), dval_has(profile, "missing"), "|",
             arc_live(), "|"
         )
-        for key, value = profile {
+        for value, key := profile {
             print(key, ";")
         }
         print("|")
-        for key, value = profile["tags"] {
+        for value, key := profile["tags"] {
             print(key, "=", value, ";")
         }
         print("|")
-        for key, value = dval([1, 2, 3]) {
+        for value, key := dval([1, 2, 3]) {
             if s32(value) == 1 {
                 continue
             }
@@ -47,10 +49,10 @@ function CLI {
         var empty_map := dval({:})
         var empty_list := dval([])
         print(dval_has(empty_map, "missing"), dval_has(empty_list, 0), "|")
-        for key, value = empty_map {
+        for value, key := empty_map {
             print("unexpected-map")
         }
-        for key, value = empty_list {
+        for value, key := empty_list {
             print("unexpected-list")
         }
         print(arc_live(), "|")

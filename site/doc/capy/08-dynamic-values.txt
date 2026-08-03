@@ -7,7 +7,7 @@ A `dval` holds data whose shape is known only at run time. JSON, YAML, request d
 ## Read decoded data
 
 :example capy render
-function RENDER {
+function RENDER(request : dval) {
     var profile := json_decode("{\"name\":\"Ada\"}")
     print(profile.name, "\n")
 }
@@ -19,7 +19,7 @@ Ada
 `json_decode` returns a DValue. Member syntax reads a map key. Bracket syntax also works:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var profile := {name: "Ada"}
     print(profile["name"], "\n")
 }
@@ -32,7 +32,7 @@ Use brackets for a dynamic key, a key that is not an identifier, or a list index
 A missing read returns `none` instead of changing the map or trapping:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var profile := {name: "Ada"}
     var nickname := profile.nickname
     if nickname? {
@@ -52,7 +52,7 @@ A key can exist and contain `none`. Use `dval_has(profile, "nickname")` when tha
 DValue constructors convert a scalar to a static Capy type:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var profile := {name: "Ada"}
     var name := string(profile.name)
     var visits := s32(profile.visits, 0)
@@ -69,41 +69,71 @@ Use `dval_require(profile, "name")` when a missing value is an error. It traps i
 A map literal creates a DValue map:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var user := {name: "Ada", active: true}
     var empty := {:}
     print(user.name, " ", empty?, "\n")
 }
 ```
 
-A bare list is a typed array. Wrap it with `dval` when it must be a dynamic list:
+A bare list is a typed array. Wrap it with `dval` when it must be a dynamic list. `length(value)` returns the number of entries in a DValue map or list. It traps if the DValue is a scalar:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var tags := dval(["math", "logic"])
     print(tags[0], "\n")
 }
 ```
 
-## Update a local DValue
+## Mutate a DValue
 
-Nested assignment creates missing maps:
+A DValue is a mutable reference value inside one workspace. Assignment, parameters, returns, and captures share its identity:
 
 ```capy
-function RENDER {
-    var profile := {:}
+function set_email(profile : dval) {
     profile.contact.email = "ada@example.test"
+}
+
+function RENDER(request : dval) {
+    var profile := {:}
+    var alias := profile
+    set_email(alias)
     print(profile.contact.email, "\n")
 }
 ```
 
-The root must be a declared local DValue. Assignment uses copy-on-write semantics, so changing a copy does not change the original.
+Content mutation through the parameter affects the caller. The parameter binding remains immutable, so `profile = {:}` is invalid.
 
-An existing list accepts only an in-range nonnegative index. Capy does not create sparse lists.
+Nested assignment mutates its target and returns the same identity. The root must be a named local, parameter, or captured DValue binding. Temporary, call, member, array-item, and loop-item roots are invalid. Nested assignment creates missing maps. An existing list accepts only an in-range nonnegative index. Capy does not create sparse lists.
+
+The `dval_set`, `dval_assign`, `dval_push`, `dval_pop`, `dval_remove`, `dval_clear`, `dval_get_or_create`, `dval_set_array`, `dval_set_bool`, `dval_set_type`, and `dval_put` functions also mutate their target. Each function returns that same identity. Reassignment remains valid:
+
+```capy
+function RENDER(request : dval) {
+    var profile := {:}
+    profile = dval_put(profile, "active", true)
+    print(profile.active, "\n")
+}
+```
+
+Member and index reads return copied child values. Pure transformations return copies when their API specifies a copy.
+
+## Iterate a DValue
+
+Use the value-first loop forms:
+
+```capy
+function show(values : dval) {
+    for item := values { print(item, "\n") }
+    for item, key := values { print(key, ": ", item, "\n") }
+}
+```
+
+The key has type `string`. DValue list keys are decimal strings. Each item is a copied DValue. The loop uses a live view and rechecks the current count. A loop that keeps growing its iterable can continue.
 
 ## Boundaries
 
-DValues cross units, components, tasks, and host calls as copied BRRB values. Host object identity does not cross the boundary. JSON and YAML preserve `none` as `null`. XML has no distinct missing value and writes it as empty text.
+A DValue keeps identity only inside one workspace. Bearer, module, component, task, custom export or C++, codec, request, and serialization boundaries copy BRRB. Identity never crosses a boundary. JSON and YAML preserve `none` as `null`. XML writes `none` as empty text and cannot recover the distinction.
 
 :see
 0_DValue

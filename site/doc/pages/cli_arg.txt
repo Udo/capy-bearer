@@ -1,23 +1,30 @@
+:title
+cli_arg
+
 :sig
 String cli_arg(Request& context, String key, String default_value = "")
+
+:params
+context : live C++ request context
+key : CLI input name
+default_value : value returned for an absent or empty value
+return value : resolved CLI string value
 
 :see
 >ob
 >1_CLI
 >cli_input
+>0_Request
+
+:capy-status cpp-specific
 
 :content
-`cli_arg()` returns one string value from Capy `cli_input()` data.
+`cli_arg()` is a C++ API. It returns one CLI input value. It returns `default_value` when the value is absent or empty.
 
-Pass the input key and an optional fallback value. It returns the fallback when the key is absent or its resolved value is empty.
+Capy does not expose `cli_arg`. In a Capy `CLI` handler, read `request.query`, `request.form`, or `request.body`. Choose the field that matches the input source.
 
-Use `cli_arg()` for one simple command value. Use `cli_input()` once when you need several values or DValue types.
+C++ `.uce` code passes the live `Request& context` as the first argument.
 
-In C++ `.uce`, pass `context` as the first argument. Capy gets the request data without that argument.
-
-:example capy render
-var name := cli_arg("name", "world")
-print("hello ", name, "\n")
 :example cpp render
 String name = cli_arg(context, "name", "world");
 print("hello ", name, "\n");

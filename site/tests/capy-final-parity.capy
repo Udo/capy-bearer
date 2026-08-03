@@ -1,4 +1,4 @@
-function CLI {
+function CLI(request : dval) {
     {
         var path := file_temp("/tmp/capy-final-parity-")
         var handle := file_open(path, "r+")

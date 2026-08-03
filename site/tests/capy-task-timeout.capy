@@ -1,4 +1,4 @@
-function CLI {
+function CLI(request : dval) {
     var id := task("/tests/task-handlers.capy:SLOW", "")
     var status := task_await(id, u64(5000))
     print(status["state"], ":", status["failure_code"])

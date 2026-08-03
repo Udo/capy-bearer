@@ -1,4 +1,4 @@
-function CLI {
+function CLI(request : dval) {
     {
     var escaped := shell_escape("a'b; echo injected")
     var shell := shell_exec("printf %s " + escaped)

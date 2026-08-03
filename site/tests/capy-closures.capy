@@ -19,7 +19,7 @@ function make_nested(label : string) (function(value : s32) s32) {
     }
 }
 
-function CLI {
+function CLI(request : dval) {
     {
         var add := make_adder(10, clone("captured"))
         print(apply(add, 5), "|", arc_live(), "|")

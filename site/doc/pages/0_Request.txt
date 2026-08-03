@@ -1,84 +1,35 @@
 :title
-Request
+Request snapshot
 
 :sig
 Request& context
 
 :see
->types
-request_context_params
-request_script_url
-request_base_url
-request_query_path
-request_query_route
-2_Request_set_status
-component
-component_render
-unit_render
-unit_call
-session_start
-set_cookie
-parse_query
-parse_multipart
-ws_message
-ws_connection_id
-ws_connections
-ws_send
-0_DValue
-0_StringMap
-UploadedFile
+>1_RENDER
+>1_COMPONENT
+>1_CLI
+>1_WS
+>session_start
+>route_from_raw_path
+>runtime_perf
 
 :content
-Capy provides request functions. Use them in `RENDER`, `CLI`, `COMPONENT`, and `WS` handlers.
+Each Capy Bearer handler receives `request : dval`. Bearer copies this value at handler entry. Capy does not expose a public `request` type or a mutable C++ `Request` object.
 
-Capy does not pass a `Request& context` parameter to handlers. It does not expose a mutable `Request` object.
+The snapshot has these fields: `method`, `query`, `form`, `headers`, `cookies`, `body`, `files`, `route`, `url`, `server`, `session`, `props`, `config`, `call`, `connection`, `unit`, and `websocket`.
 
-## Normal Use
+`route` has `path`, `page`, `raw_path`, and `valid`. `url` has `script` and `base`. `session` has `id`, `name`, and `values`. `websocket` has `connection_id`, `scope`, `opcode`, `binary`, and current-scope `connections`.
 
-Use these functions to read request data:
+Missing data is `none`. Convert scalar values with normal DValue conversions. Use `string(request.query.name, "")`, `s32(request.websocket.opcode, 0)`, and `bool(request.websocket.binary, false)`.
 
-- `request_param(key)` returns a runtime or server parameter.
-- `request_get(key)` returns a parsed query value.
-- `request_post(key)` returns a parsed POST value.
-- `request_cookie(key)` returns a request cookie.
-- `request_body()` returns the raw request body.
-- `cli_input()` returns CLI input as a `dval`.
-- `cli_arg(key, fallback)` returns a CLI argument.
-
-These functions return an empty string when the named value is unavailable. `cli_arg` returns its fallback when the argument is unavailable.
-
-Use these functions to set the response:
-
-- `response_status(code, reason)` sets the HTTP response status.
-- `response_header(name, value)` sets a response header.
-- `response_cookie(name, value)` queues a cookie.
-- `redirect(url, code)` sets a redirect response.
-- `print(...)` writes output.
-
-`response_header` traps when the header name is invalid.
-
-Use `ob_start`, `ob_get`, `ob_get_close`, and `ob_close` to capture output. Use `session_start`, `session_set`, `request_session`, `session_remove`, and `session_destroy` for session data.
-
-Use `request_script_url`, `request_base_url`, `request_query_path`, and `request_query_route` for route and URL data. `request_route_from_raw_path` returns route data for a supplied path. `request_perf()` returns request statistics as a `dval`.
-
-For WebSocket handlers, use `ws_message`, `ws_connection_id`, `ws_scope`, `ws_opcode`, `ws_is_binary`, `ws_send`, `ws_send_to`, and `ws_close`.
-
-## Value Model and Limit
-
-`request_context()` returns a `dval` snapshot. It includes copied request maps, `call`, `cfg`, `props`, and `connection` values.
-
-You can read the snapshot. Changes to it do not change the live request.
-
-Capy cannot edit live `Request` fields, output buffers, or transport resources directly. Use the Capy request functions instead.
-
-## C++ API
+Use response, session, output, and WebSocket functions for effects. A session effect returns `{id, name, values}`. Store that result when later code needs the live session state. `request.session` remains the entry snapshot.
 
 C++ handlers receive `Request& context`. The object contains request maps, response state, session data, output buffers, WebSocket data, and runtime fields.
 
 C++ code can update these fields directly. The C++ `Request` lifetime is one request. WebSocket connection state can persist in `context.connection`.
 
 :example capy render
-print("request available\n")
+print(string(request.query.name, "guest"), "\n")
 
 :example cpp render
-print(context.params["REQUEST_URI"] != "" ? "request available\n" : "request available\n");
+print(context.get["name"] == "" ? "guest\n" : context.get["name"] + "\n");

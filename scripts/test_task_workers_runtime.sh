@@ -86,7 +86,7 @@ expect() {
 scripts/test_task_workers.sh
 start_server
 expect "one task worker serializes work" "succeeded|succeeded|serial" "$(timeout 25 scripts/bearer-cli /tests/capy-task-concurrency.capy)"
-expect "running cancellation and worker recovery" "canceled|stopped|failed:handler_trap|failed:missing_handler|succeeded:recovered" "$(timeout 30 scripts/bearer-cli /tests/capy-task-runtime.capy)"
+expect "running cancellation and worker recovery" "canceled|stopped|failed:handler_trap|failed:missing_handler|succeeded:none|succeeded:before" "$(timeout 30 scripts/bearer-cli /tests/capy-task-runtime.capy)"
 set_value TASK_WORKERS 2
 start_server
 expect "configured task worker parallelism" "succeeded|succeeded|parallel" "$(timeout 20 scripts/bearer-cli /tests/capy-task-concurrency.capy)"

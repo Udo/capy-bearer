@@ -17,7 +17,9 @@ return value : replacement `dval` in Capy. C++ changes the receiver and returns 
 2_DValue_set_array
 
 :content
-`dval_set(value, source)` takes two `dval` values and returns a copy of `source`. Assign the result back to replace `value`. Capy values cross the host boundary as copies.
+`dval_set(value, source)` replaces the target content. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid.
+
+A custom export or C++ boundary copies BRRB. Identity does not cross that boundary.
 
 Capy does not accept a C++ pointer or `StringMap` overload. Use `dval(...)` to create the source value.
 

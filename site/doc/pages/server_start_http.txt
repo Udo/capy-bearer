@@ -23,12 +23,12 @@ Pass a numeric TCP port such as `"19091"` or a Unix socket path. Bearer accepts 
 A Capy handler file uses `SERVE_HTTP`:
 
 ```capy
-function SERVE_HTTP {
+function SERVE_HTTP(request : dval) {
     response_header("Content-Type", "text/plain; charset=utf-8")
     print("hello from custom HTTP\n")
 }
 
-function SERVE_HTTP:admin {
+function SERVE_HTTP:admin(request : dval) {
     print("named handler\n")
 }
 ```

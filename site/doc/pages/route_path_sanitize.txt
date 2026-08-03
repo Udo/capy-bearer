@@ -14,7 +14,7 @@ In Capy, use this function before you compose a file path from a route.
 
 It removes outer whitespace and leading and trailing `/`. Empty input becomes `default_path`. Each segment must be non-empty and contain only ASCII letters, digits, `_`, and `-`. The function rejects `.` and `..` segments. It returns an empty string for unsafe input.
 
-`request_query_path()`, `request_query_route()`, and `ROUTE_PATH` already use this sanitizer.
+`request.route` and `ROUTE_PATH` already use this sanitizer.
 
 :example capy render
 print(route_path_sanitize("../secret", "index"), "\n")

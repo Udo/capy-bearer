@@ -1468,7 +1468,8 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 		}
 		else
 		{
-			String compile_command = shell_escape(compiler_wasm_compile_script(context))+" "+
+			String compile_command = "BEARER_UNIT_ABI_VERSION=" + std::to_string(BEARER_WASM_CORE_ABI_VERSION) + " " +
+				shell_escape(compiler_wasm_compile_script(context))+" "+
 				shell_escape(su->src_path)+" "+
 				shell_escape(su->bin_path)+" "+
 				shell_escape(su->file_name)+" "+

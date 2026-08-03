@@ -1,24 +1,23 @@
+:title
+ws_connections
+
 :sig
 DValue ws_connections(String scope = "")
 
 :params
-scope : optional scope identifier, defaults to the current WebSocket page scope
-return value : list of connection IDs currently connected to that scope
+scope : optional C++ WebSocket scope identifier
+return value : C++ list of connection IDs in that scope
 
 :see
 >websocket
+>0_Request
+
+:capy-status cpp-specific
 
 :content
-In Capy, `ws_connections()` returns a `dval` list of IDs in the current WebSocket scope. `ws_connections(scope)` accepts a scope `string` and returns that scope's list.
+`ws_connections()` is a C++ API. It returns the IDs connected to the selected scope. An omitted scope selects the current WebSocket page scope.
 
-Use it to inspect or select connected clients. The declaration has no error return.
-
-C++ uses the optional `String` input in the signature above. Capy provides separate zero-input and one-input declarations.
-
-:example capy render
-var count := 0
-for id = ws_connections() { count = count + 1 }
-print("active connections in this scope: ", count, "\n")
+Capy does not expose `ws_connections`. In a Capy `WS` handler, read `request.websocket.connections` for IDs in the current scope.
 
 :example cpp render
 DValue ids = ws_connections();

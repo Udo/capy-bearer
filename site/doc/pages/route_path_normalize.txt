@@ -5,8 +5,7 @@ String route_path_normalize(String path)
 >uri
 route_path_sanitize
 route_path_is_safe
-request_query_path
-request_query_route
+0_Request
 
 :content
 In Capy, use this function only to prepare route text for display or diagnostics.

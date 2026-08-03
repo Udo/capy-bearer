@@ -48,17 +48,17 @@ struct mystruct {
 var struct_instance : mystruct = {x: 10, key: "mykey"} // struct literal, can be incomplete, missing members will be defaulted
 
 // any non-declaration expression gets appended to the main function, which is the entry point of the program
-for i = 0..10 { // for loop, range is inclusive of start and exclusive of end
+for i := 0..10 { // for loop, range is inclusive of start and exclusive of end
 	print(i, " and
 		also ") // multi-line string literal, the newline and whitespace will be preserved, but the indentation will be removed
 }
 
-for s = ["one", "two", "three"] { // for loop over array literal
+for s := ["one", "two", "three"] { // for loop over array literal
 	print(s, " ")
 }
 
 function print(...args : as string) { // variadic; args has type [string], and each tail argument is constructed as string when needed
-	for s in args {
+	for s := args {
 		write_to_current_buffer(s)
 	}
 }
@@ -84,7 +84,7 @@ function meta_programming_example(myvar : any) {
 }
 
 // runtime type info
-for smem = struct_instance::members { // iterate over struct members, sn is a string containing the member name
+for smem := struct_instance::members { // iterate over struct members, sn is a string containing the member name
 	print("Struct member: ", smem::name, " = ", smem::offset, " : ", smem::type::type_name, "\n") // struct_instance[sn] is a dynamic access to the struct member by name
 	// I'm not quite sure yet how to best access the value in a precompiled environment, that's why this example uses the byte offset
 }

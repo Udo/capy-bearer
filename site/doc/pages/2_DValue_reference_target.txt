@@ -11,7 +11,7 @@ return value : resolved target pointer, or 0 when this node is not a usable refe
 2_DValue_deref
 
 :content
-Capy does not support `reference_target`. Capy `dval` values are copies. They have no host pointer, alias, or reference identity.
+Capy does not support `reference_target`. DValues share identity inside one workspace, but Capy does not expose host pointers or C++ internal reference nodes.
 
 ## C++ API
 
@@ -20,7 +20,7 @@ Capy does not support `reference_target`. Capy `dval` values are copies. They ha
 
 :capy-status unsupported
 
-Capy exposes no host DValue pointer or alias identity, so it cannot observe a reference target.
+Capy exposes no host DValue pointer or internal reference-node identity, so it cannot observe a C++ reference target.
 
 :example cpp render
 DValue target;

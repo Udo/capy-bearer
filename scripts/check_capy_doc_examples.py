@@ -23,6 +23,9 @@ EVIDENCE_ARRAY = re.compile(r"inline constexpr std::array<Evidence,\s*\d+>\s+(\w
 STRING_ARRAY = re.compile(r"inline constexpr std::array<std::string_view,\s*\d+>\s+(\w+)\s*\{\{(.*?)\}\};", re.S)
 NAME = re.compile(r'\{\s*"([^"]+)"')
 CPP_TOKENS = re.compile(r"\b(?:DValue|Request|String(?:List|Map)?|SharedUnit|std|void|const|auto|template|typename|class|nullptr|new|delete)\b|::|->|#\s*include")
+CAPY_HANDLER = re.compile(r"(?m)^\s*function\s+(?:INIT|ONCE|CLI|RENDER|COMPONENT(?::[A-Za-z_][A-Za-z0-9_]*)?|WS|TASK(?::[A-Za-z_][A-Za-z0-9_]*)?|SERVE_HTTP(?::[A-Za-z_][A-Za-z0-9_]*)?)\s*\(")
+CPP_HANDLER = re.compile(r"(?m)^\s*(?:INIT|ONCE|CLI|RENDER|COMPONENT(?::[A-Za-z_][A-Za-z0-9_]*)?|WS|TASK(?::[A-Za-z_][A-Za-z0-9_]*)?|SERVE_HTTP(?::[A-Za-z_][A-Za-z0-9_]*)?)\s*\(")
+CAPY_REQUEST_DECLARATION = re.compile(r"(?m)^\s*(?:var\s+request\b|request\s*:=)")
 REDIRECT = re.compile(r'redirects\["([^"]+)"\]\s*=\s*"([^"]+)";')
 
 
@@ -86,6 +89,12 @@ def check_example_body(page: Path, line: int, language: str, entry: str, body: s
         checked = re.sub(r"//[^\n]*", "", checked)
         if CPP_TOKENS.search(checked):
             errors.append(f"{page.name}:{line}: Capy example contains C++ syntax or a C++ type")
+        if page.stem not in CANONICAL_GUIDES and CAPY_HANDLER.search(checked):
+            errors.append(f"{page.name}:{line}: API examples must contain a handler body, not a complete Capy handler")
+        if page.stem not in CANONICAL_GUIDES and CAPY_REQUEST_DECLARATION.search(checked):
+            errors.append(f"{page.name}:{line}: API examples cannot redeclare the handler request parameter")
+    elif page.stem not in CANONICAL_GUIDES and CPP_HANDLER.search(body):
+        errors.append(f"{page.name}:{line}: API examples must contain a handler body, not a complete C++ handler")
     return errors
 
 
@@ -255,6 +264,12 @@ def self_test() -> int:
         (pages / "ok.txt").write_text(':sig\nvoid ok()\n:example capy render\nprint("ok")\n:example cpp render\nprint("ok\\n");\n')
         if check(pages, manifest, signatures):
             print("self-test API fixture failed")
+            return 1
+        if not check_example_body(pages / "ok.txt", 1, "capy", "render", "function RENDER(request : dval) {}"):
+            print("self-test accepted a complete handler in an API example")
+            return 1
+        if not check_example_body(pages / "ok.txt", 1, "capy", "render", "var request := dval({:})"):
+            print("self-test accepted a handler request redeclaration")
             return 1
         pairs = []
         canonical_sources = sorted(CANONICAL_GUIDES)

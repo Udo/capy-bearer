@@ -16,7 +16,7 @@ C++ returns a `DValue` list through the signature above. Use the same normal use
 
 :example capy cli
 var count := 0
-for item = units_list() { count = count + 1 }
+for item := units_list() { count = count + 1 }
 print("the runtime knows ", count, " compiled units\n")
 
 :example cpp cli

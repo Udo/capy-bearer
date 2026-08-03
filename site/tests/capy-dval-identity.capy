@@ -1,0 +1,78 @@
+function mutate_parameter(value : dval) {
+    value.nested.count = 2
+    dval_put(value, "parameter", "yes")
+}
+
+function nested_mutation(value : dval) { mutate_parameter(value) }
+function return_alias(value : dval) dval { value }
+
+function selector() string { print("S"); "once" }
+function replacement() string { print("R"); "value" }
+
+function CLI(request : dval) {
+  {
+    var root := {nested: {count: 1}, items: ["first", "placeholder"]}
+    var alias := root
+    nested_mutation(alias)
+    root.items[1] = "second"
+    var returned := return_alias(root)
+    returned.returned = "yes"
+    var read_copy := root.nested
+    read_copy.count = 8
+    var transformed_copy := dval_get_by_path(root, "nested")
+    transformed_copy.count = 9
+    var captured := root
+    var closure := function() void { captured.captured = "yes"; dval_put(captured, "closure", "yes") }
+    closure()
+    root[selector()] = replacement()
+    for value := 0..100 { value = 10; root.repeat = value }
+    print("|", s32(alias.nested.count), s32(read_copy.count), s32(transformed_copy.count), alias.items[1], alias.parameter, alias.returned, alias.captured, alias.closure, alias.once, alias.repeat, "|")
+
+    var assignment_root := {key: "old"}
+    var assignment_alias := assignment_root
+    var assignment_other := dval("new")
+    var assignment_result := (assignment_root.key = (assignment_root = assignment_other))
+    dval_put(assignment_result, "expression", true)
+    var public_result := dval_put(assignment_alias, "public", true)
+    dval_put(public_result, "returned", true)
+    print(assignment_alias.key, assignment_root, bool(assignment_alias.expression), bool(assignment_alias.public), bool(assignment_alias.returned), "|")
+
+    var pushed := dval([]); dval_push(pushed, 1); dval_push(pushed, 2); dval_pop(pushed)
+    var removed := {keep: 1, drop: 2}; dval_remove(removed, "drop")
+    var cleared := {drop: 1}; dval_clear(cleared)
+    var created := {:}; dval_get_or_create(created, "new")
+    var array := dval("x"); dval_set_array(array); dval_push(array, "item")
+    var boolean := dval("x"); dval_set_bool(boolean, true)
+    var typed := dval("x"); dval_set_type(typed, "M")
+    var set := dval("old"); dval_set(set, "new")
+    var assigned := dval("old"); dval_assign(assigned, "new")
+    var put := {:}; dval_put(put, "key", "value")
+    var old := dval([]); old = dval_push(old, 1)
+    print(pushed[0], dval_has(removed, "drop"), dval_has(cleared, "drop"), dval_has(created, "new"), array[0], bool(boolean), dval_get_type_name(typed), set, assigned, put.key, old[0], "|")
+
+    var none_value := none
+    var none_alias := none_value
+    dval_put(none_value, "present", true)
+    print(bool(none_alias.present), "|")
+
+    var growing := dval([1, 2])
+    for item, key := growing { print(item, key); if key == "0" { dval_push(growing, 3) } }
+    print("|")
+    var shrinking := dval([1, 2, 3])
+    for item, key := shrinking { print(item, key); if key == "0" { dval_remove(shrinking, "2") } }
+    print("|")
+    var copied_items := dval([{x: 1}, {x: 2}])
+    for item, key := copied_items { dval_put(item, "x", 9); print(key) }
+    print(s32(copied_items[0].x), s32(copied_items[1].x), "|")
+    for item, key := {a: 7} { print(item, key) }
+    print("|")
+    var range_count := 0
+    for value := 0..3 { value = 10; range_count = range_count + 1 }
+    print(range_count, "|")
+    var codec_source := {name: "source"}
+    var codec_result := json_decode(json_encode(codec_source))
+    codec_result.name = "result"
+    print(codec_source.name, codec_result.name, "|")
+  }
+  print(arc_live())
+}

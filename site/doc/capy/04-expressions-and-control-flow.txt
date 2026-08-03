@@ -7,7 +7,7 @@ An expression produces a value or performs an action. Capy evaluates listed expr
 ## Calculate a value
 
 :example capy render
-function RENDER {
+function RENDER(request : dval) {
     var price := 6
     var quantity := 2
     var total := price * quantity
@@ -25,7 +25,7 @@ function RENDER {
 `:=` declares a local and infers its type. `=` replaces its value:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var count := 1
     count = count + 1
     print(count, "\n")
@@ -39,7 +39,7 @@ A local exists until the end of its block. An inner block can declare a new loca
 Use `if` to select code:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var total := 12
     if total > 10 {
         print("large\n")
@@ -54,7 +54,7 @@ The condition must have type `bool`. `&&` and `||` stop as soon as the result is
 An `if` with `else` can also produce a value:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var total := 12
     var label := if total > 10 {
         "large"
@@ -72,7 +72,7 @@ Both branches must produce the same type.
 A `while` loop repeats while its condition is true:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var index := 0
     while index < 3 {
         print(index, "\n")
@@ -81,24 +81,39 @@ function RENDER {
 }
 ```
 
-A `for` loop reads each value from an array or range:
+A `for` loop reads each value from an iterable:
 
 ```capy
-function RENDER {
-    for number = 1..4 {
+function RENDER(request : dval) {
+    for number := 1..4 {
         print(number, "\n")
     }
 }
 ```
 
-The range is half-open. `1..4` contains `1`, `2`, and `3`. Use `break` to leave the nearest loop. Use `continue` to start its next iteration.
+The range is half-open. `1..4` contains `1`, `2`, and `3`. A range permits one loop value only.
+
+Optional metadata follows the value:
+
+```capy
+function show(names : [string], profile : dval) {
+    for name, index := names { print(index, ": ", name, "\n") }
+    for item, key := profile { print(key, ": ", item, "\n") }
+}
+```
+
+An array index has type `s32`. A DValue key has type `string`. DValue list keys are decimal strings. Structs are not iterable. The old `=` and `in` forms are invalid.
+
+Array and DValue loops recheck the current count before each iteration. A loop can visit items added while it runs. Shrinkage cannot cause an invalid access. DValue loop items are copies. An array loop retains its current managed item while the body runs.
+
+Use `break` to leave the nearest loop. Use `continue` to start its next iteration.
 
 ## Blocks
 
 A block produces its final reachable expression:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var total := {
         var subtotal := 10
         subtotal + 2

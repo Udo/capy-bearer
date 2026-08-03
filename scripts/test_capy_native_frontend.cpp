@@ -56,21 +56,21 @@ int main(int argc, char** argv)
 		assert(v->annotation->kind == ExprKind::FunctionType && v->value->kind == ExprKind::Lambda && type_name(*v->annotation) == "function(s32) s32");
 	}
 	{
-		Program p = parse("var callback : function(__bearer_value : s32) s32 = function(__bearer_value : s32) s32 { __bearer_value }\nfor __bearer_key, value = dval({:}) { value }\n", "private-binders.capy");
+		Program p = parse("var callback : function(__bearer_value : s32) s32 = function(__bearer_value : s32) s32 { __bearer_value }\nfor value, __bearer_key := dval({:}) { value }\n", "private-binders.capy");
 		assert(static_cast<Lambda*>(static_cast<Variable*>(p.items[0])->value)->parameters[0].name == "__bearer_value");
-		assert(static_cast<For*>(p.items[1])->names[0] == "__bearer_key");
+		assert(static_cast<For*>(p.items[1])->names[1] == "__bearer_key");
 	}
 	{
-		Program p = parse("function CLI { print(\";\", \",\", \"}\") }\n", "test.capy");
+		Program p = parse("function CLI(request : dval) { print(\";\", \",\", \"}\") }\n", "test.capy");
 		auto* f = static_cast<Function*>(p.items[0]);
 		assert(static_cast<Call*>(f->body->items[0])->arguments.size() == 3);
 	}
 	{
-		Program p = parse("function CLI { box.callback(7) }\n", "member-call.capy");
+		Program p = parse("function CLI(request : dval) { box.callback(7) }\n", "member-call.capy");
 		auto* call = static_cast<Call*>(static_cast<Function*>(p.items[0])->body->items[0]);
 		auto* member = static_cast<Member*>(call->function);
 		assert(member->member == "callback" && static_cast<Name*>(member->value)->value == "box" && call->arguments.size() == 1 &&
-			call->location.file == "member-call.capy" && call->location.line == 1 && call->location.column == 19);
+			call->location.file == "member-call.capy" && call->location.line == 1 && call->location.column == 35);
 	}
 	{
 		Program p = parse("var a := 1 // first\nvar b := 2\n", "comments.capy");
@@ -83,26 +83,26 @@ int main(int argc, char** argv)
 		assert(!a->inferred && b->inferred && !b->annotation);
 	}
 	{
-		Program p = parse("var value := dval({\"name\": \"Ada\", age: 42})\nfor key, item = value { print(key) }\n", "map.capy");
+		Program p = parse("var value := dval({\"name\": \"Ada\", age: 42})\nfor item, key := value { print(key) }\n", "map.capy");
 		auto* c = static_cast<Call*>(static_cast<Variable*>(p.items[0])->value);
 		assert(static_cast<MapLiteral*>(c->arguments[0])->entries.size() == 2);
 		assert(static_cast<For*>(p.items[1])->names.size() == 2);
 	}
 	{
-		Program p = parse("var value := {name: \"Ada\"}\nvar empty := {:}\nfunction CLI { value.name }\n", "bare-map.capy");
+		Program p = parse("var value := {name: \"Ada\"}\nvar empty := {:}\nfunction CLI(request : dval) { value.name }\n", "bare-map.capy");
 		assert(static_cast<MapLiteral*>(static_cast<Variable*>(p.items[0])->value)->entries.size() == 1);
 		assert(static_cast<MapLiteral*>(static_cast<Variable*>(p.items[1])->value)->entries.empty());
 		auto* member = static_cast<Member*>(static_cast<Function*>(p.items[2])->body->items[0]);
-		assert(member->member == "name" && member->location.file == "bare-map.capy" && member->location.line == 3 && member->location.column == 21);
+		assert(member->member == "name" && member->location.file == "bare-map.capy" && member->location.line == 3 && member->location.column == 37);
 	}
 	{
-		Program p = parse("function CLI { var value := none; value.a[1]?; value.a?[1] }\n", "presence.capy");
+		Program p = parse("function CLI(request : dval) { var value := none; value.a[1]?; value.a?[1] }\n", "presence.capy");
 		auto* body = static_cast<Function*>(p.items[0])->body;
 		auto* presence = static_cast<Binary*>(body->items[1]);
 		auto* indexed_presence = static_cast<Index*>(body->items[2]);
 		assert(static_cast<Name*>(static_cast<Variable*>(body->items[0])->value)->value == "none" && presence->operator_ == "postfix?" &&
 			static_cast<Index*>(presence->left)->value->kind == ExprKind::Member && static_cast<Binary*>(indexed_presence->value)->operator_ == "postfix?" &&
-			static_cast<Member*>(static_cast<Binary*>(indexed_presence->value)->left)->member == "a" && presence->location.column == 45);
+			static_cast<Member*>(static_cast<Binary*>(indexed_presence->value)->left)->member == "a" && presence->location.column == 61);
 	}
 	{
 		Program p = parse("0..10\n", "range.capy");
@@ -161,7 +161,7 @@ int main(int argc, char** argv)
 		assert(index.functions.size() == 2);
 	}
 	{
-		Program p = parse("function gather(prefix : string, ...values : as string) [string] { return values }\nfunction CLI { gather(\"x\", ...[\"a\", \"b\"]) }\n", "variadic.capy");
+		Program p = parse("function gather(prefix : string, ...values : as string) [string] { return values }\nfunction CLI(request : dval) { gather(\"x\", ...[\"a\", \"b\"]) }\n", "variadic.capy");
 		auto* gather = static_cast<Function*>(p.items[0]);
 		assert(gather->parameters.size() == 2 && gather->parameters[1].variadic && gather->parameters[1].convert);
 		auto* call = static_cast<Call*>(static_cast<Function*>(p.items[1])->body->items[0]);
@@ -179,8 +179,8 @@ int main(int argc, char** argv)
 			assert(e.message.find("return type does not distinguish overloads") != std::string::npos);
 		}
 	}
-	expect_error("const answer : s32 = 42\nfunction CLI {}\n", "const declarations were removed");
-	expect_error("function CLI { type Count = s64 }\n", "type aliases are top-level only");
+	expect_error("const answer : s32 = 42\nfunction CLI(request : dval) {}\n", "const declarations were removed");
+	expect_error("function CLI(request : dval) { type Count = s64 }\n", "type aliases are top-level only");
 	expect_error("function bad(s32) s32 { return 1 }\n", "name:type annotations");
 	expect_error("function bad(...values : string, tail : string) {}\n", "variadic parameter must be last");
 	expect_error("function bad(first : s32 = 1, second : s32) {}\n", "default parameters must be trailing");
@@ -189,7 +189,10 @@ int main(int argc, char** argv)
 	expect_error("function bad(value : s32 = next()) {}\n", "default parameter value must be a literal");
 	expect_error("function bad(value : s32 = [1]) {}\n", "default parameter value must be a literal");
 	expect_error("function bad(value : s32 = value = 1) {}\n", "default parameter value must be a literal");
-	expect_error("function CLI { var value := 1 as s64 }\n", "call the target type constructor instead");
+	expect_error("function CLI(request : dval) { var value := 1 as s64 }\n", "call the target type constructor instead");
+	expect_error("function CLI(request : dval) { for value = [1] {} }\n", "old loop syntax is not supported. Use ':=' after the loop bindings");
+	expect_error("function CLI(request : dval) { for value in [1] {} }\n", "old loop syntax is not supported. Use ':=' after the loop bindings");
+	expect_error("function CLI(request : dval) { for value, value := [1] {} }\n", "loop bindings must have different names");
 	expect_error("trace function bad() string {}\n", "trace modifier applies only to host function declarations");
 	expect_error("function bad(value : any, value : any) value::type { value }\n", "function parameter 'value' is already declared");
 	try
@@ -204,11 +207,11 @@ int main(int argc, char** argv)
 	expect_error("<><?=   ?></>", "empty markup interpolation");
 	expect_error("<><?= value </>", "unterminated markup interpolation");
 	expect_error("<><p>missing", "unterminated markup expression");
-	expect_error("function CLI { break junk }\n", "break does not accept arguments or operators");
-	expect_error("function CLI { continue() }\n", "continue does not accept arguments or operators");
+	expect_error("function CLI(request : dval) { break junk }\n", "break does not accept arguments or operators");
+	expect_error("function CLI(request : dval) { continue() }\n", "continue does not accept arguments or operators");
 	expect_error("EXPORTS\n", "EXPORTS requires at least one function name");
 	expect_error("EXPORTS first,\n", "expected exported function name after ','");
-	expect_error("function CLI { EXPORTS first }\n", "EXPORTS is a reserved top-level directive");
+	expect_error("function CLI(request : dval) { EXPORTS first }\n", "EXPORTS is a reserved top-level directive");
 	expect_error("function meta(x : any) { #compile { emit(x) } }\n", "#compile compile-time metaprogramming is deferred beyond Capy phase 3");
 	expect_error("#wat", "unknown compiler directive #wat");
 	expect_error("@", "unexpected character '@'");

@@ -12,5 +12,5 @@ CLI(Request& request)
 	print((*result)["language"].to_string(), "|");
 	print((*result)["input"]["name"].to_string(), "|");
 	print((*result)["input"]["nested"]["value"].to_string(), "|");
-	print((*result)["items"]["2"].to_s64());
+	print((*result)["items"]["2"].to_s64(), "|", input.has("export_mutation"));
 }

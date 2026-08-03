@@ -52,10 +52,14 @@ copy_payload() {
 	local webroot="$2"
 	local stage_dir="$3"
 	local path
-	for path in LICENSE README.md codesearch bin scripts src docs; do
+	for path in LICENSE README.md codesearch scripts src docs; do
 		cp -a "$REPO_ROOT/$path" "$destination/"
 	done
-	mkdir -p "$destination/etc" "$stage_dir$webroot"
+	mkdir -p "$destination/bin/wasm" "$destination/etc" "$stage_dir$webroot"
+	install -m 0755 "$REPO_ROOT/bin/bearer_fastcgi.linux.bin" "$destination/bin/"
+	install -m 0755 "$REPO_ROOT/bin/capyc" "$destination/bin/"
+	install -m 0755 "$REPO_ROOT/bin/wasm/core.wasm" "$destination/bin/wasm/"
+	if [[ -d "$REPO_ROOT/bin/assets" ]]; then cp -a "$REPO_ROOT/bin/assets" "$destination/bin/"; fi
 	cp -a "$REPO_ROOT/etc/bearer" "$destination/etc/"
 	cp -a "$REPO_ROOT/site/." "$stage_dir$webroot/"
 	if [[ "${BEARER_RPM_INCLUDE_TESTS:-0}" != "1" ]]; then
@@ -63,6 +67,26 @@ copy_payload() {
 	fi
 	find "$destination" "$stage_dir$webroot" -type d -name __pycache__ -exec rm -rf -- {} +
 	find "$destination" "$stage_dir$webroot" -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
+}
+
+validate_package_payload() {
+	local package="$1" listing expected
+	listing=$(rpm -qlp "$package")
+	for expected in \
+		/usr/lib/bearer/bin/bearer_fastcgi.linux.bin \
+		/usr/lib/bearer/bin/capyc \
+		/usr/lib/bearer/bin/wasm/core.wasm \
+		/usr/lib/bearer/scripts/compile_wasm_unit \
+		/etc/bearer/settings.cfg \
+		/usr/lib/systemd/system/bearer.service
+	do
+		grep -Fxq "$expected" <<<"$listing" || { echo "The RPM package is missing $expected." >&2; exit 1; }
+	done
+	grep -Fxq "${WEBROOT%/}" <<<"$listing" || { echo "The RPM package is missing the web root." >&2; exit 1; }
+	if grep -Eq '/usr/lib/bearer/bin/([^/]*\.o|\.build|capyc-request-dval|tmp/)' <<<"$listing"; then
+		echo "The RPM package contains a build artifact." >&2
+		exit 1
+	fi
 }
 
 write_packaged_settings() {
@@ -159,6 +183,7 @@ validate_version "$VERSION"
 
 require_command bash
 require_command rpmbuild
+require_command rpm
 require_command find
 require_command cp
 require_command tar
@@ -270,5 +295,8 @@ $OPT_FILES
 EOF
 
 rpmbuild --define "_topdir $RPMBUILD_DIR" -bb "$SPEC_FILE"
-find "$RPMBUILD_DIR/RPMS" -type f -name '*.rpm' -print -exec cp -a {} "$DIST_DIR/" \;
+while IFS= read -r package; do
+	validate_package_payload "$package"
+	cp -a "$package" "$DIST_DIR/"
+done < <(find "$RPMBUILD_DIR/RPMS" -type f -name '*.rpm' -print)
 find "$DIST_DIR" -maxdepth 1 -type f -name "${PACKAGE_NAME}-${VERSION}-${RELEASE}*.rpm" -print

@@ -56,10 +56,14 @@ copy_payload() {
 	local webroot="$2"
 	local stage_dir="$3"
 	local path
-	for path in LICENSE README.md codesearch bin scripts src docs; do
+	for path in LICENSE README.md codesearch scripts src docs; do
 		cp -a "$REPO_ROOT/$path" "$destination/"
 	done
-	mkdir -p "$destination/etc" "$stage_dir$webroot"
+	mkdir -p "$destination/bin/wasm" "$destination/etc" "$stage_dir$webroot"
+	install -m 0755 "$REPO_ROOT/bin/bearer_fastcgi.linux.bin" "$destination/bin/"
+	install -m 0755 "$REPO_ROOT/bin/capyc" "$destination/bin/"
+	install -m 0755 "$REPO_ROOT/bin/wasm/core.wasm" "$destination/bin/wasm/"
+	if [[ -d "$REPO_ROOT/bin/assets" ]]; then cp -a "$REPO_ROOT/bin/assets" "$destination/bin/"; fi
 	cp -a "$REPO_ROOT/etc/bearer" "$destination/etc/"
 	cp -a "$REPO_ROOT/site/." "$stage_dir$webroot/"
 	if [[ "${BEARER_DEB_INCLUDE_TESTS:-0}" != "1" ]]; then
@@ -153,6 +157,26 @@ write_md5sums() {
 	)
 }
 
+validate_package_payload() {
+	local package="$1" listing expected
+	listing=$(dpkg-deb --contents "$package")
+	for expected in \
+		/usr/lib/bearer/bin/bearer_fastcgi.linux.bin \
+		/usr/lib/bearer/bin/capyc \
+		/usr/lib/bearer/bin/wasm/core.wasm \
+		/usr/lib/bearer/scripts/compile_wasm_unit \
+		/etc/bearer/settings.cfg \
+		/lib/systemd/system/bearer.service
+	do
+		grep -Fq " .$expected" <<<"$listing" || { echo "The Debian package is missing $expected." >&2; exit 1; }
+	done
+	grep -Fq " .${WEBROOT%/}/" <<<"$listing" || { echo "The Debian package is missing the web root." >&2; exit 1; }
+	if grep -Eq '/usr/lib/bearer/bin/([^/]*\.o|\.build|capyc-request-dval|tmp/)' <<<"$listing"; then
+		echo "The Debian package contains a build artifact." >&2
+		exit 1
+	fi
+}
+
 if [[ $# -gt 1 ]]; then
 	usage >&2
 	exit 1
@@ -224,6 +248,7 @@ write_control_file "$DEBIAN_DIR/control" "$PACKAGE_VERSION" "$ARCH" "$INSTALLED_
 write_md5sums "$STAGE_DIR"
 
 dpkg-deb --root-owner-group --build "$STAGE_DIR" "$OUTPUT_DEB"
+validate_package_payload "$OUTPUT_DEB"
 
 dpkg-deb -I "$OUTPUT_DEB" | sed -n '1,80p'
 echo

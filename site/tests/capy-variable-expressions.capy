@@ -53,7 +53,7 @@ function implicit_returned() string {
     var result := clone("implicit")
 }
 
-function CLI {
+function CLI(request : dval) {
     if var declared := true {
         print("var;", declared, ";")
     }

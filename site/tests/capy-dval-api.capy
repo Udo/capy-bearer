@@ -1,5 +1,5 @@
-function CLI { var ignored := dval_api_run() }
-function RENDER { var ignored := dval_api_run() }
+function CLI(request : dval) { var ignored := dval_api_run() }
+function RENDER(request : dval) { var ignored := dval_api_run() }
 
 function dval_api_run() s32 {
     {
@@ -18,9 +18,9 @@ function dval_api_run() s32 {
     print(nested.site.title, dval_has(dval_get_by_path(nested, "none"), "x"), "|")
     var typed := dval_set_type(dval("scalar"), "M")
     var empty := dval_get_or_create({:}, "created")
-    print(dval_has(empty, "created"), dval_get_type_name(empty), dval_to_json(dval("A")), "|")
+    print(dval_has(empty, "created"), dval_get_type_name(empty), json_encode(dval("A")), "|")
     if f64(dval("1.5")) == 1.5 { print("f") }
-    print(bool(dval("yes")), dval_to_stringmap({x: "y"}).x, "|")
+    print(bool(dval("yes")), dval({x: "y"}).x, "|")
     var assigned := dval_assign(dval("old"), "new")
     assigned = dval_set_bool(assigned, true)
     var cleared := dval_clear({gone: "yes"})

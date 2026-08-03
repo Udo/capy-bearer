@@ -48,19 +48,19 @@ function make_pair () Pair {
 }
 
 function first_string () string {
-    for value = [clone("first")] {
+    for value := [clone("first")] {
         return value
     }
     return clone("fallback")
 }
 
-function CLI {
+function CLI(request : dval) {
     print(first_string(), "|", arc_live(), "|")
     {
         var a : string = clone("alpha")
         var b : string = a
         print(a, b, "|", arc_live(), "|")
-        for i = 0..2 {
+        for i := 0..2 {
             var loop_string := clone("loop")
         }
         print(arc_live(), "|")
@@ -70,7 +70,7 @@ function CLI {
             loop_index = loop_index + 1
         }
         print(arc_live(), "|")
-        for value = [7, 8, 9] {
+        for value := [7, 8, 9] {
             print(value)
         }
         print("|", arc_live(), "|")
@@ -88,7 +88,7 @@ function CLI {
         {
             var original := clone("owned")
             var words := [original, clone("two")]
-            for word = words {
+            for word := words {
                 print(word)
             }
             print("|", arc_live(), "|")

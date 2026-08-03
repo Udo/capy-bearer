@@ -13,5 +13,5 @@ function exercise {
     }
     print("|", arc_live())
 }
-function CLI { exercise() }
-function RENDER { exercise() }
+function CLI(request : dval) { exercise() }
+function RENDER(request : dval) { exercise() }

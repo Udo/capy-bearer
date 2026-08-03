@@ -1,1 +1,1 @@
-function CLI { usleep(-1) }
+function CLI(request : dval) { usleep(-1) }

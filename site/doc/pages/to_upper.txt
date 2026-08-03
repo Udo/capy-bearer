@@ -1,23 +1,23 @@
+:title
+to_upper
+
 :sig
 String to_upper(String s)
 
 :params
-s : text to convert
-return value : `s` with lowercase characters changed to uppercase
+s : C++ text to convert
+return value : `s` with lowercase ASCII characters changed to uppercase
 
 :see
 >string
+upper
+
+:capy-status cpp-specific
 
 :content
-In Capy, call `to_upper(value)` to return an uppercase `string` value.
+`to_upper()` is a C++ API. It normalizes ASCII text. It does not convert Unicode case.
 
-Use it to normalize ASCII text before comparison. Capy does not convert Unicode case.
-
-C++ uses the legacy `s` parameter in the signature above. C++ also does not provide Unicode case conversion through this function.
-
-
-:example capy render
-print(to_upper("bearer"), "\n")
+Capy does not expose `to_upper`. Use `upper(value)`.
 
 :example cpp render
 print(to_upper("bearer"), "\n");

@@ -1,15 +1,15 @@
-function WS {
-    var connection := ws_connection_id()
-    var scope := ws_scope()
-    var ids := ws_connections(scope)
-    if length(connection) > 0 && ws_connection_count(scope) > u64(0) && string(ids[0]) == connection {
-        if ws_opcode() == 1 && !ws_is_binary() {
-            ws_send("echo:" + ws_message(), false, scope)
-            ws_send_to(connection, "direct:" + ws_message(), false)
+function WS(request : dval) {
+    var connection := string(request.websocket.connection_id, "")
+    var scope := string(request.websocket.scope, "")
+    var ids := request.websocket.connections
+    if length(connection) > 0 && length(ids) > 0 && string(ids[0]) == connection {
+        if s32(request.websocket.opcode, 0) == 1 && !bool(request.websocket.binary, false) {
+            ws_send("echo:" + string(request.body, ""), false, scope)
+            ws_send_to(connection, "direct:" + string(request.body, ""), false)
             ws_close()
         } else {
-            if ws_opcode() == 2 && ws_is_binary() {
-                ws_send(ws_message(), true, scope)
+            if s32(request.websocket.opcode, 0) == 2 && bool(request.websocket.binary, false) {
+                ws_send(string(request.body, ""), true, scope)
                 ws_close()
             }
         }

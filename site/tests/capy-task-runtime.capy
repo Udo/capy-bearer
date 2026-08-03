@@ -1,6 +1,7 @@
-function CLI {
+function CLI(request : dval) {
     file_unlink("/tmp/bearer-task-slow-finished.txt")
     file_unlink("/tmp/bearer-task-capy.txt")
+    file_unlink("/tmp/bearer-task-capy-named.txt")
 
     var slow := task("/tests/task-handlers.capy:SLOW", "")
     var slow_status := task_status(slow)
@@ -12,7 +13,7 @@ function CLI {
     }
     task_cancel(slow)
     var canceled := task_await(slow, u64(10000))
-    usleep(3000000)
+    usleep(5000000)
 
     var trapped := task("/tests/task-handlers.capy:TRAP", "")
     var trap_status := task_await(trapped, u64(10000))
@@ -22,6 +23,12 @@ function CLI {
 
     var recovered := task("/tests/task-handlers.capy:NONE", none)
     var recovered_status := task_await(recovered, u64(10000))
+    var recovered_value := file_get_contents("/tmp/bearer-task-capy.txt")
+
+    var boundary_props := {nested: {value: "before"}}
+    var boundary_task := task("/tests/task-handlers.capy:CAPY", boundary_props)
+    boundary_props.nested.value = "after"
+    var boundary_status := task_await(boundary_task, u64(10000))
 
     var slow_result := "stopped"
     if file_exists("/tmp/bearer-task-slow-finished.txt") { slow_result = "finished" }
@@ -30,6 +37,7 @@ function CLI {
         slow_result, "|",
         trap_status["state"], ":", trap_status["failure_code"], "|",
         missing_status["state"], ":", missing_status["failure_code"], "|",
-        recovered_status["state"], ":", file_get_contents("/tmp/bearer-task-capy.txt")
+        recovered_status["state"], ":", recovered_value, "|",
+        boundary_status["state"], ":", file_get_contents("/tmp/bearer-task-capy-named.txt")
     )
 }

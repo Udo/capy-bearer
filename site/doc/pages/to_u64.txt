@@ -1,27 +1,24 @@
+:title
+to_u64
+
 :sig
 u64 to_u64(String s, u64 fallback = 0)
 
 :params
-s : text to parse
-fallback : value returned for empty or invalid integer text
-return value : parsed `u64`, or `fallback`
+s : C++ text to parse
+fallback : value for empty or invalid text
+return value : parsed C++ `u64` or `fallback`
 
 :see
 >types
-to_s64
-to_f64
-to_bool
-int_val
+2_DValue_to_u64
+
+:capy-status cpp-specific
 
 :content
-In Capy, call `to_u64(raw[, fallback])` to convert text to a `u64` value.
+`to_u64()` is a C++ API. It accepts a leading `+`. Negative, overflowing, empty, or partial text returns `fallback`.
 
-Invalid text returns `fallback`. Use this function for nonnegative numeric input.
-
-C++ uses the legacy `s` parameter and default shown above. It accepts a leading `+`. Negative and overflowing text returns `fallback`. Unlike `int_val()`, C++ requires complete trimmed text. Empty or partial text such as `"42px"` returns `fallback`.
-
-:example capy render
-print(to_u64("7"), "\n")
+Capy does not expose `to_u64`. Use `u64(value, fallback)`.
 
 :example cpp render
 print(to_u64("7"), "\n");

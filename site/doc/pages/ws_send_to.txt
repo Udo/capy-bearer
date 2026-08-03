@@ -15,7 +15,7 @@ In Capy, `ws_send_to(connection_id, message, binary)` sends one message to the s
 
 Both IDs and messages are `string` values. Set `binary` to `true` for a binary message. The function returns `true` when it finds the client and queues the message.
 
-Use it after `ws_connection_id()` or `ws_connections()`. A `false` return is the normal missing-client result.
+In Capy, use `request.websocket.connection_id` or `request.websocket.connections` to select an ID. In C++, use `ws_connection_id()` or `ws_connections()`. A `false` return is the normal missing-client result.
 
 C++ uses the signature above. Its `String` and `bool` inputs correspond to Capy `string` and `bool` values.
 

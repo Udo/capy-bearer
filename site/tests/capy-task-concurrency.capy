@@ -1,10 +1,10 @@
-function CLI {
+function CLI(request : dval) {
     var started := time_precise()
     var first := task("/tests/task-handlers.capy:SLOW", "")
     var second := task("/tests/task-handlers.capy:SLOW", "")
     var first_done := task_await(first, u64(15000))
     var second_done := task_await(second, u64(15000))
     var mode := "serial"
-    if time_precise() - started < 8.0 { mode = "parallel" }
+    if time_precise() - started < 1.5 { mode = "parallel" }
     print(first_done["state"], "|", second_done["state"], "|", mode)
 }

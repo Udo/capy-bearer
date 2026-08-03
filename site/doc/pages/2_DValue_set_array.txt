@@ -10,7 +10,7 @@ return value : none
 2_DValue_is_list
 
 :content
-`dval_set_array(value)` takes a `dval` and returns an empty list-shaped replacement. Assign the result back to retain the update. Later `dval_push` calls use numeric keys from `0`.
+`dval_set_array(value)` makes the target an empty list. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid. Later `dval_push` calls use numeric keys from `0`.
 
 ## C++ API
 

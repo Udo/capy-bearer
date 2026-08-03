@@ -14,7 +14,7 @@ json_decode
 :content
 `dval` is Capy's structured value type. It stores scalars, maps, lists, and `none`.
 
-A `dval` owns its data. Values that cross the Bearer boundary are copies. Capy has no DValue pointer, reference, or alias identity.
+A `dval` is a mutable reference value inside one workspace. Assignment, parameters, returns, and captures share its identity. Bearer, module, component, task, custom export or C++, codec, request, and serialization boundaries copy BRRB. Identity never crosses a boundary.
 
 ## Normal Use
 
@@ -42,19 +42,22 @@ Use `dval_require` when a missing value is an error. It traps for a missing or u
 
 ## Updates
 
-Capy update functions return a replacement value. Assign the result back to keep the update.
+Capy update functions mutate their target and return that same identity. Assigning the result back remains valid.
 
-- `value = dval_put(value, key, child)` sets a named child.
-- `value = dval_push(value, child)` adds a list child.
-- `value = dval_pop(value)` removes the final list child.
-- `value = dval_remove(value, key)` removes a named child.
-- `value = dval_clear(value)` removes all children.
-- `value = dval_set_array(value)` makes a list-shaped value.
-- `value = dval_assign(value, source)` replaces the value.
+- `dval_put(value, key, child)` sets a named child.
+- `dval_push(value, child)` adds a list child.
+- `dval_pop(value)` removes the final list child.
+- `dval_remove(value, key)` removes a named child.
+- `dval_clear(value)` removes all children.
+- `dval_get_or_create(value, key)` creates a missing child.
+- `dval_set_array(value)` makes a list-shaped value.
+- `dval_set_bool(value, flag)` stores a Boolean.
+- `dval_set_type(value, type)` changes the internal type.
+- `dval_set(value, source)` and `dval_assign(value, source)` replace the content.
 
-Nested assignment updates a declared local `dval` root. It creates missing, `none`, and scalar intermediate maps.
+Nested assignment mutates the target. Its root must be a named local, parameter, or captured DValue binding. Temporary, call, member, array-item, and loop-item roots are invalid. It creates missing, `none`, and scalar intermediate maps. Content mutation through a parameter affects the caller. Parameter binding reassignment remains invalid.
 
-Use `dval_map` and `dval_filter` when callbacks need each child as a `dval`. Use list functions for list-shaped string values.
+Member reads, index reads, and loop items return copied DValues. Pure operations such as `dval_map`, `dval_filter`, `dval_keys`, and `dval_values` return new values.
 
 ## C++ API
 

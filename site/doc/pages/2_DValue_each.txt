@@ -13,14 +13,16 @@ return value : none
 2_DValue_is_list
 
 :content
-Use `for key, item = value` in Capy to read a copied `dval`. The loop gives each child as `item` and its key as `key`. Lists use numeric keys in index order. Maps use string-key order. A scalar runs the loop once with an empty key.
+Use `for item, key := value` in Capy. The item comes first and is a copied DValue. The key has type `string`. Lists use decimal index strings in order. Maps use string-key order. A scalar runs the loop once with an empty key.
+
+The loop uses a live view and rechecks the current count. A loop that keeps growing `value` can continue.
 
 C++ `each(f)` does not modify the `DValue`. Its callback receives the child and key. It dereferences references before it iterates.
 
 :example capy render
 var user := dval({"name": "Ada", "role": "admin"})
 var keys := dval([])
-for key, item = user { keys = dval_push(keys, key) }
+for item, key := user { keys = dval_push(keys, key) }
 print(join(sort(keys), ","), "\n")
 
 :example cpp render

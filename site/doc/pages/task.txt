@@ -3,7 +3,7 @@ String task(String target, DValue props)
 
 :params
 target : Capy unit path. Add `:NAME` to select a named task handler.
-props : Capy `dval` input available through `request_context(request)["props"]`
+props : Capy `dval` input available through `request.props`
 return value : opaque task ID
 
 :see
@@ -15,11 +15,11 @@ task_cancel
 :content
 Use `task` to place background work in the task queue. Pass a Capy unit path and a `dval` input value. The function returns an opaque task ID without waiting for the task. Use that ID with `task_status`, `task_await`, or `task_cancel`.
 
-A target without a suffix calls `TASK`. A target with `:NAME` calls `TASK:NAME`. Each task gets a new request. Its `request_context(request)["props"]` field contains only the copied input value. It does not receive the caller request, session, connections, resources, or memory state.
+A target without a suffix calls `TASK`. A target with `:NAME` calls `TASK:NAME`. Each task gets a new request. Its `request.props` field contains only the copied input value. It does not receive the caller request, session, connections, resources, or memory state.
 
 The call can fail when the queue cannot accept the task. A task can later have a failed, timed out, or canceled status.
 
-Capy handlers use `function TASK(request : request)` or `function TASK:NAME(request : request)`. The C++ `.uce` forms are `TASK(Request& context)` and `TASK:NAME(Request& context)`.
+Capy handlers use `function TASK(request : dval)` or `function TASK:NAME(request : dval)`. The C++ `.uce` forms are `TASK(Request& context)` and `TASK:NAME(Request& context)`.
 
 :example capy render
 var id := task("/doc/examples/task_worker.capy:STORE", {"message": "hello"})

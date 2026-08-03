@@ -1,3 +1,6 @@
+:title
+ws_opcode
+
 :sig
 u8 ws_opcode()
 
@@ -6,19 +9,14 @@ return value : opcode of the current WebSocket message
 
 :see
 >websocket
+>0_Request
+
+:capy-status cpp-specific
 
 :content
-In Capy, `ws_opcode()` takes no inputs and returns the current WebSocket message opcode as `s32`.
+`ws_opcode()` is a C++ API. It returns the current WebSocket message opcode. Text messages use `1`, and binary messages use `2`. Outside a WebSocket handler, it returns `0`.
 
-Use it to identify the message type. Text messages use `1`, and binary messages use `2`.
-
-Outside a WebSocket handler, it returns `0`. The zero value is the normal no-message result.
-
-C++ returns the opcode as `u8` through the signature above.
-
-:example capy render
-print("opcode: ", u64(ws_opcode()), " (0 outside a WS frame)\n")
+Capy does not expose `ws_opcode`. In a Capy `WS` handler, read `request.websocket.opcode`.
 
 :example cpp render
-// ws_opcode() returns the WebSocket frame opcode (1 text, 2 binary, 8 close, ...).
 print("opcode: ", (u64)ws_opcode(), " (0 outside a WS frame)\n");

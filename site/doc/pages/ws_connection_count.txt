@@ -1,22 +1,24 @@
+:title
+ws_connection_count
+
 :sig
 u64 ws_connection_count(String scope = "")
 
 :params
-scope : optional scope identifier, defaults to the current WebSocket page scope
-return value : number of connected WebSocket clients in that scope
+scope : optional C++ WebSocket scope identifier
+return value : number of connected C++ WebSocket clients in that scope
 
 :see
 >websocket
+>ws_connections
+>0_Request
+
+:capy-status cpp-specific
 
 :content
-In Capy, `ws_connection_count()` returns the client count for the current WebSocket scope. `ws_connection_count(scope)` accepts a scope `string` and returns that scope's count as `u64`.
+`ws_connection_count()` is a C++ API. It returns the number of clients in the selected scope. An omitted scope selects the current WebSocket page scope.
 
-Use it to decide whether a scope has connected clients. The declaration has no error return.
-
-C++ uses the optional `String` input in the signature above. Capy provides separate zero-input and one-input declarations.
-
-:example capy render
-print("connection count in this scope: ", ws_connection_count(), "\n")
+Capy does not expose `ws_connection_count`. In a Capy `WS` handler, use `length(request.websocket.connections)` for the current-scope count.
 
 :example cpp render
 print("connection count in this scope: ", ws_connection_count(), "\n");

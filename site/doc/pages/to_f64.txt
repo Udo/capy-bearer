@@ -1,27 +1,24 @@
+:title
+to_f64
+
 :sig
 f64 to_f64(String s, f64 fallback = 0)
 
 :params
-s : text to parse
-fallback : value returned for empty or invalid number text
-return value : parsed `f64`, or `fallback`
+s : C++ text to parse
+fallback : value for empty or invalid text
+return value : parsed C++ `f64` or `fallback`
 
 :see
 >types
-to_u64
-to_s64
-to_bool
-float_val
+2_DValue_to_f64
+
+:capy-status cpp-specific
 
 :content
-In Capy, call `to_f64(raw[, fallback])` to convert text to an `f64` value.
+`to_f64()` is a C++ API. It requires complete trimmed text. Empty or partial text, such as `3.5ms`, returns `fallback`.
 
-Capy accepts surrounding whitespace. Invalid text returns `fallback`. Use this function when a value must be a complete floating-point number.
-
-C++ uses the legacy `s` parameter and default shown above. Unlike `float_val()`, C++ requires the complete trimmed text. Empty or partial text such as `"3.5ms"` returns `fallback`.
-
-:example capy render
-print(to_f64("3.5"), "\n")
+Capy does not expose `to_f64`. Use `f64(value, fallback)`.
 
 :example cpp render
 print(to_f64("3.5"), "\n");

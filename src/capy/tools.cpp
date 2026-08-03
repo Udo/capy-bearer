@@ -66,17 +66,16 @@ void stdlib_signatures(const std::string& path)
 		std::cout << function->name << '\t' << normalized << '\n';
 	}
 	static constexpr std::pair<std::string_view, std::string_view> language_forms[] = {
-		{"0_DValue", "type dval"}, {"0_Request", "type request"}, {"0_String", "type string"},
+		{"0_DValue", "type dval"}, {"0_Request", "handler request : dval"}, {"0_String", "type string"},
 		{"0_StringList", "type dval (list of strings)"}, {"0_StringMap", "type dval (map of strings)"},
-		{"1_INIT", "function INIT"}, {"1_INIT", "function INIT(request : request)"},
-		{"1_ONCE", "function ONCE"}, {"1_ONCE", "function ONCE(request : request)"},
-		{"1_CLI", "function CLI"}, {"1_CLI", "function CLI(request : request)"},
-		{"1_RENDER", "function RENDER"}, {"1_RENDER", "function RENDER(request : request)"},
-		{"1_RENDER", "function RENDER:NAME"}, {"1_RENDER", "function RENDER:NAME(request : request)"},
-		{"1_COMPONENT", "function COMPONENT"}, {"1_COMPONENT", "function COMPONENT(request : request)"},
-		{"1_COMPONENT", "function COMPONENT:NAME"}, {"1_COMPONENT", "function COMPONENT:NAME(request : request)"},
-		{"1_WS", "function WS"}, {"1_WS", "function WS(request : request)"},
-		{"2_DValue_each", "for key, value = input { ... }"},
+		{"1_INIT", "function INIT(request : dval)"},
+		{"1_ONCE", "function ONCE(request : dval)"},
+		{"1_CLI", "function CLI(request : dval)"},
+		{"1_RENDER", "function RENDER(request : dval)"}, {"1_RENDER", "function RENDER:NAME(request : dval)"},
+		{"1_COMPONENT", "function COMPONENT(request : dval)"}, {"1_COMPONENT", "function COMPONENT:NAME(request : dval)"},
+		{"1_WS", "function WS(request : dval)"},
+		{"request_context_params", "handler request : dval"},
+		{"2_DValue_each", "for value, key := input { ... }"},
 		{"2_DValue_has", "dval_has(value : dval, key : string) bool"},
 		{"2_DValue_operator_index", "value[key]"},
 	};

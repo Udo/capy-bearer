@@ -1,3 +1,6 @@
+:title
+ws_message
+
 :sig
 String ws_message()
 
@@ -6,19 +9,16 @@ return value : payload of the current WebSocket message
 
 :see
 >websocket
+>0_Request
+
+:capy-status cpp-specific
 
 :content
-In Capy, `ws_message()` takes no inputs and returns the current WebSocket message payload as a `string`.
+`ws_message()` is a C++ API. It returns the current WebSocket message payload. Text messages return text. Binary messages return raw bytes in the `String` value. Outside a WebSocket handler, it returns an empty string.
 
-Text messages return text. Binary messages return raw bytes in the `string` value.
+Use `ws_is_binary()` or `ws_opcode()` before you parse the payload.
 
-Use `ws_is_binary()` or `ws_opcode()` before you parse the payload. Outside a WebSocket handler, the result is an empty string.
-
-The empty string is the normal no-message result. C++ returns the same value as `String`.
-
-:example capy render
-print("payload length in this non-WS context: ", length(ws_message()), "\n")
+Capy does not expose `ws_message`. In a Capy `WS` handler, read `request.body`.
 
 :example cpp render
-// Inside a WS message handler ws_message() returns the current frame payload.
 print("payload length in this non-WS context: ", ws_message().length(), "\n");

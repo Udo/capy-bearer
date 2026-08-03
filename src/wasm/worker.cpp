@@ -2155,8 +2155,8 @@ static void wasm_request_envelope_append(String& envelope, const String& value)
 static String wasm_encode_request_envelope(const Request& request, const String& entry_unit, const String& handler)
 {
 	String envelope = "BRRQ";
-	envelope.push_back(2);
-	envelope.push_back(13);
+	envelope.push_back(3);
+	envelope.push_back(15);
 	wasm_request_envelope_append(envelope, brb_encode(request.call));
 	wasm_request_envelope_append(envelope, brb_encode_flat_string_map(request.params));
 	wasm_request_envelope_append(envelope, brb_encode_flat_string_map(request.get));
@@ -2187,6 +2187,18 @@ static String wasm_encode_request_envelope(const Request& request, const String&
 	}
 	wasm_request_envelope_append(envelope, websocket);
 	wasm_request_envelope_append(envelope, brb_encode(request.props));
+	wasm_request_envelope_append(envelope, brb_encode(request.cfg));
+	DValue files;
+	files.set_array();
+	for(const UploadedFile& file : request.uploaded_files)
+	{
+		DValue item;
+		item["name"] = file.file_name;
+		item["temporary_path"] = file.tmp_name;
+		item["size"] = (f64)file.size;
+		files.push(item);
+	}
+	wasm_request_envelope_append(envelope, brb_encode(files));
 	return(envelope);
 }
 

@@ -5,37 +5,23 @@ COMPONENT
 COMPONENT(Request& context)
 
 :see
->component
->component_render
+>0_Request
 >1_RENDER
->1_INIT
->1_ONCE
+>1_COMPONENT
+>1_CLI
 >1_WS
 
 :content
-`function COMPONENT` defines the default Capy component entrypoint.
+`function COMPONENT(request : dval)` defines the Capy component entrypoint.
 
-Use `function COMPONENT { ... }` for the normal form. Use `function COMPONENT:NAME { ... }` for a named component. Each form can instead accept one `request : request` value. The value is opaque and has no C++ object layout.
+Every Capy Bearer handler has exactly one parameter. The parameter name is `request`. Its type is `dval`. The value is a copied request snapshot. Use `COMPONENT:NAME` for a named component.
 
-A component handler accepts zero inputs or one `request` input. It returns no value. Component props cross the Bearer boundary as a copied `dval` value. Use `request_context()` or `request_context(request)` to read that snapshot.
-
-Call `component()` to capture component output as a string. Call `component_render()` to write component output. The helpers call `COMPONENT` by default. A `:NAME` target selects `COMPONENT:NAME`. A target that starts with `:NAME` resolves in the current unit.
-
-Use `COMPONENT` in a reusable unit. A unit can define `COMPONENT` without `RENDER`. `INIT` runs when Bearer materializes the unit in the current request workspace. `ONCE` then runs before the first component call for that unit and request.
-
-The compiler rejects other parameter forms, a return type, handler overloads, and `COMPONENT_NAME` syntax. A trap in the handler stops that component invocation.
-
-## C++ API
+Read input from the request fields. Use response, session, output, and WebSocket functions for effects. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.
 
 C++ declares `COMPONENT(Request& context)` or `COMPONENT:NAME(Request& context)`. C++ reads live component props from `context.props` and passes the live context to component helpers.
 
-Capy does not expose C++ `Request&`, `context.props`, or mutable `DValue` aliases. It uses an opaque request handle and copied `dval` snapshots.
-
-## Example
-
-
 :example capy render
-print("Declare COMPONENT as a top-level function.\n")
+print(string(request.method, ""), "\n")
 
 :example cpp render
-print("Declare COMPONENT as a top-level function.\n");
+print(context.params["REQUEST_METHOD"], "\n");

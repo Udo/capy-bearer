@@ -1,5 +1,13 @@
+:title
+request_query_path
+
 :sig
 String request_query_path(Request& context, String default_path = "index")
+
+:params
+context : live C++ request context
+default_path : route for empty input
+return value : safe keyless query route
 
 :see
 >uri
@@ -8,18 +16,16 @@ request_context_params
 route_path_sanitize
 route_path_is_safe
 parse_query
+0_Request
+
+:capy-status cpp-specific
 
 :content
-In Capy, this function reads the current request. Do not pass a `Request` value.
+`request_query_path()` is a C++ API. It returns the first keyless query-string segment as a safe route path. For `/?workspace/projects&theme=dark`, it returns `workspace/projects`.
 
-It returns the first keyless query-string segment as a safe route path. For `/?workspace/projects&theme=dark`, it returns `workspace/projects`.
+It returns `default_path` when no keyless route exists. It returns an empty string when the route is unsafe. Unsafe input includes dot segments, empty interior segments, backslashes, filename dots, and characters outside route segments.
 
-If no keyless route exists, it returns `default_path`. If the route is unsafe, it returns an empty string. Unsafe input includes dot segments, empty interior segments, backslashes, filename dots, and characters outside ASCII letters, digits, `_`, and `-`.
-
-`ROUTE_PATH` uses the same sanitizer.
-
-:example capy render
-if request_query_path("index") != "" { print("path\n") } else { print("empty\n") }
+Capy does not expose `request_query_path`. In a Capy `RENDER` handler, read `request.route.path`.
 
 :example cpp render
 print(request_query_path(context, "index") != "" ? "path\n" : "empty\n");

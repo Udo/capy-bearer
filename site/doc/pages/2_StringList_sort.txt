@@ -4,7 +4,7 @@ DValue::sort() (legacy `StringList` page)
 :content
 `sort(items)` takes a list-shaped `dval` and returns a new list-shaped `dval` with strings in ascending order. It does not change `items`.
 
-Capy has no separate `StringList` type. It uses copied `dval` values.
+Capy has no separate `StringList` type. It uses list-shaped DValues. This pure transformation returns a new list.
 
 ## C++ API
 

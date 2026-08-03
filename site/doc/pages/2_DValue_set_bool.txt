@@ -10,7 +10,7 @@ return value : none
 2_DValue_to_bool
 
 :content
-`dval_set_bool(value, flag)` takes a `dval` and a boolean. It returns a replacement that stores `flag`. Assign the result back to retain the update.
+`dval_set_bool(value, flag)` stores the Boolean in the target. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid.
 
 ## C++ API
 

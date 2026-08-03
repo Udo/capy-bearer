@@ -11,7 +11,7 @@ return value : none
 2_DValue_set_array
 
 :content
-`dval_push(value, child)` takes two `dval` values and returns a replacement with `child` at the next numeric key. Assign the returned value to retain the update.
+`dval_push(value, child)` appends `child` at the next numeric key. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid.
 
 An empty value becomes a list. A contiguous list adds the child after its last item. A non-list map uses its next unused numeric key and remains a map.
 

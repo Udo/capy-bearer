@@ -19,8 +19,8 @@ The `error` value can report `invalid_request`, `unsafe_dns`, `timeout`, `respon
 >socket
 
 :example capy cli
-var request := dval({"method": "GET", "url": "http://127.0.0.1/doc/", "headers": {"Host": "uce.openfu.com"}, "timeout_ms": 2000})
-var response := http_request(request)
+var outbound := dval({"method": "GET", "url": "http://127.0.0.1/doc/", "headers": {"Host": "uce.openfu.com"}, "timeout_ms": 2000})
+var response := http_request(outbound)
 print("HTTP ", s32(response["status"]), ", ", length(string(response["body"])), " bytes returned\n")
 
 :example cpp cli

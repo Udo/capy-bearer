@@ -7,7 +7,7 @@ Use strings for text and markup expressions for HTML. Markup escapes ordinary st
 ## Escape dynamic text
 
 :example capy render
-function RENDER {
+function RENDER(request : dval) {
     var name := "<Ada>"
     print(<><p>Hello, <?= name ?></p></>, "\n")
 }
@@ -23,7 +23,7 @@ function RENDER {
 String literals use double quotes:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var message := "Hello"
     var line := "first\nsecond"
     print(message, " ", line, "\n")
@@ -35,7 +35,7 @@ The supported escapes include `\n`, `\r`, `\t`, `\"`, and `\\`. String positions
 Use `+` to join strings:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var name := "Ada"
     var greeting := "Hello, " + name
     print(greeting, "\n")
@@ -45,7 +45,7 @@ function RENDER {
 Use a constructor to convert a scalar when a function does not already accept `as string`:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var label := "Count: " + string(3)
     print(label, "\n")
 }
@@ -56,7 +56,7 @@ function RENDER {
 A markup expression starts with `<>` and ends with `</>`:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var title := "Report"
     <>
         <h1><?= title ?></h1>
@@ -72,7 +72,7 @@ The expression has type `markup`. It can be printed, returned from a component, 
 `<?: value ?>` inserts an existing `markup` value without escaping it again:
 
 ```capy
-function RENDER {
+function RENDER(request : dval) {
     var icon := trusted_markup("<strong>ready</strong>")
     <><p><?: icon ?></p></>
 }

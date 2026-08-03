@@ -1,4 +1,4 @@
-function CLI {
+function CLI(request : dval) {
     {
         var source := dval({name: "<Ada>", values: [1.5, true]})
         var encoded := json_encode(source)

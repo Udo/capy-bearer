@@ -18,7 +18,7 @@ return value : none
 2_DValue_set_bool
 
 :content
-Use `dval_assign(value, source)` in Capy to replace a copied `dval` value. Pass the current value and a `dval` source. It returns the replacement value, so write `value = dval_assign(value, source)`. The call does not change another `dval` value.
+Use `dval_assign(value, source)` in Capy to replace the target content. The function mutates `value` and returns that same identity. All workspace aliases observe the mutation. Existing code can still write `value = dval_assign(value, source)`.
 
 C++ `operator=` calls the matching `set(...)` overload. It assigns strings, numbers, pointers, `DValue` values, and `StringMap` values. Use `set_bool()` for C++ Boolean values.
 
