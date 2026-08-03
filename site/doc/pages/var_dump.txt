@@ -4,7 +4,9 @@ String var_dump(DValue t, String prefix = "", String postfix = "\n")
 
 :params
 t : object to be dumped into a string
-return value : string containing a human-friendly representation of 't'
+
+:returns
+string containing a human-friendly representation of 't'
 
 :see
 >types

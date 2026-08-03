@@ -3,7 +3,9 @@ DValue* DValue::get_or_create(String s)
 
 :params
 s : child key to create or return
-return value : pointer to the child node
+
+:returns
+pointer to the child node
 
 :see
 0_DValue

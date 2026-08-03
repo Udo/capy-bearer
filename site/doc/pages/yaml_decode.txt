@@ -3,7 +3,9 @@ DValue yaml_decode(String s)
 
 :params
 s : YAML source string
-return value : decoded `dval`
+
+:returns
+decoded `dval`
 
 :see
 >markup

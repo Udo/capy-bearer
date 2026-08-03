@@ -3,7 +3,9 @@ String html_escape(String s)
 
 :params
 s : string to encode for HTML text
-return value : string with HTML-sensitive characters replaced by entities
+
+:returns
+string with HTML-sensitive characters replaced by entities
 
 :see
 >string

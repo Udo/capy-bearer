@@ -3,7 +3,9 @@ String path_real(String path)
 
 :params
 path : the path to resolve
-return value : the canonical absolute path, or `""` if resolution fails
+
+:returns
+the canonical absolute path, or `""` if resolution fails
 
 :content
 In Capy, `path_real()` returns the canonical absolute path as a `string`. It follows symbolic links and removes `.` and `..` segments.

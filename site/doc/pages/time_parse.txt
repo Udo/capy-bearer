@@ -3,7 +3,9 @@ u64 time_parse(String time_string)
 
 :params
 time_string : text that contains a date, time, or both
-return value : the parsed Unix timestamp, or zero when Capy cannot parse the text
+
+:returns
+the parsed Unix timestamp, or zero when Capy cannot parse the text
 
 :see
 >time

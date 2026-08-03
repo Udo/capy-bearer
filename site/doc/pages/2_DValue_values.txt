@@ -1,8 +1,8 @@
 :sig
 DValue DValue::values() const
 
-:params
-return value : a list-shaped `dval` containing each child value
+:returns
+a list-shaped `dval` containing each child value
 
 :see
 >types

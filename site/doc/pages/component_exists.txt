@@ -1,6 +1,12 @@
 :sig
 bool component_exists(String name)
 
+:params
+name : component path with an optional named handler
+
+:returns
+`true` when Bearer resolves the component file. Otherwise, `false`.
+
 :see
 >ob
 component
@@ -11,7 +17,7 @@ component_resolve
 :content
 `component_exists()` tests whether Capy can resolve a component file.
 
-Pass a component name. It returns `true` when Bearer finds the file and `false` when it does not. A colon and handler name do not affect this check.
+A colon and handler name do not affect this check.
 
 Use this function before rendering an optional component. Its name resolution matches `component_resolve()`.
 

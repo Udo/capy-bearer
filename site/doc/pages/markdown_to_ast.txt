@@ -5,7 +5,9 @@ DValue markdown_to_ast(String src, DValue options)
 :params
 src : Markdown text
 options : optional `dval` options
-return value : `dval` document tree
+
+:returns
+`dval` document tree
 
 :see
 >markup

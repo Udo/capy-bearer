@@ -3,7 +3,9 @@ String sha256(String data)
 
 :params
 data : bytes to hash
-return value : raw 32-byte SHA-256 digest
+
+:returns
+raw 32-byte SHA-256 digest
 
 :content
 In Capy, use this function when another binary operation needs a SHA-256 digest.

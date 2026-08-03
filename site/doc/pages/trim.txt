@@ -3,7 +3,9 @@ String trim(String raw)
 
 :params
 raw : text to trim
-return value : `raw` without leading or trailing whitespace
+
+:returns
+`raw` without leading or trailing whitespace
 
 :see
 >string

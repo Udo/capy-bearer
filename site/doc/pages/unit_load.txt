@@ -3,7 +3,9 @@ module unit_load(String file_name)
 
 :params
 file_name : unit source path
-return value : a `module` value for the unit
+
+:returns
+a `module` value for the unit
 
 :see
 >ob

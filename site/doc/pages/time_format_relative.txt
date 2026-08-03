@@ -8,7 +8,9 @@ medium_recency_seconds : recent cutoff in seconds. Zero uses `90`.
 format_medium_recent : text after the recent cutoff. An empty value uses `%deltaM minutes ago`.
 not_recent_seconds : older cutoff in seconds. Zero uses `5400`.
 format_not_recent : text after the older cutoff. An empty value uses `%deltaH hours ago`.
-return value : formatted relative-time string
+
+:returns
+formatted relative-time string
 
 :see
 >time

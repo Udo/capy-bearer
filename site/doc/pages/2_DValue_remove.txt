@@ -3,7 +3,9 @@ void DValue::remove(String s)
 
 :params
 s : child key to erase
-return value : none
+
+:returns
+none
 
 :see
 0_DValue

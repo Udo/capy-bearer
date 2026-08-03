@@ -3,7 +3,9 @@ DValue split_space(String str)
 
 :params
 str : string to split
-return value : list-shaped `dval` with string entries
+
+:returns
+list-shaped `dval` with string entries
 
 :see
 >string

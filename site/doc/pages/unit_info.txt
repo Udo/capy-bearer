@@ -3,7 +3,9 @@ DValue unit_info(String path = "")
 
 :params
 path : optional unit path. If empty, uses the current unit
-return value : unit metadata as a `dval`, or an empty value if Capy cannot resolve the unit
+
+:returns
+unit metadata as a `dval`, or an empty value if Capy cannot resolve the unit
 
 :see
 >runtime

@@ -4,7 +4,9 @@ String time_format_utc(String format = "", u64 timestamp = 0)
 :params
 format : optional Capy format string
 timestamp : optional Unix timestamp. Omit it to use the current time.
-return value : formatted UTC string
+
+:returns
+formatted UTC string
 
 :see
 >time

@@ -4,8 +4,8 @@ ws_scope
 :sig
 String ws_scope()
 
-:params
-return value : scope identifier of the current WebSocket endpoint
+:returns
+scope identifier of the current WebSocket endpoint
 
 :see
 >websocket

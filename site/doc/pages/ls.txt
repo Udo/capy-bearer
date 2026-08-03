@@ -3,7 +3,9 @@ DValue ls(String path)
 
 :params
 directory : directory to list
-return value : copied `dval` list of names
+
+:returns
+copied `dval` list of names
 
 :content
 In Capy, this function returns a copied `dval` list of directory entry names.

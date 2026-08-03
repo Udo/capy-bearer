@@ -3,7 +3,9 @@ String file_temp(String prefix)
 
 :params
 prefix : path prefix for the temporary file
-return value : path of a new empty temporary file, or `""` on failure
+
+:returns
+path of a new empty temporary file, or `""` on failure
 
 :content
 In Capy, `file_temp()` creates an empty temporary file and returns its path as a `string`. It adds a unique suffix to `prefix`.

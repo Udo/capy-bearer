@@ -4,10 +4,12 @@ u64 file_open(String path, String mode)
 :params
 path : path of the file to open
 mode : `"r"` for reading, `"w"` for writing, `"a"` for appending, or `"r+"` for reading and writing
-return value : a `u64` handle, or 0 when Capy cannot open the file
+
+:returns
+a `u64` handle, or 0 when Capy cannot open the file
 
 :content
-`file_open` returns a handle for streamed file access. Use the handle with `file_read()`, `file_write()`, `file_seek()`, and `file_close()`. A return value of 0 means that Capy could not open the file. Use `file_get_contents()` or `file_put_contents()` for whole-file access. C++ .uce uses the same modes and handle value.
+`file_open` returns a handle for streamed file access. Use the handle with `file_read()`, `file_write()`, `file_seek()`, and `file_close()`. Use `file_get_contents()` or `file_put_contents()` for whole-file access. C++ `.uce` uses the same modes and handle value.
 
 :example capy render
 var handle := file_open("/tmp/doc-open.txt", "w")

@@ -4,7 +4,9 @@ bool dir_remove(String path, bool recursive = false)
 :params
 path : directory path to remove
 recursive : `true` removes the directory and its contents
-return value : `true` on success
+
+:returns
+`true` on success
 
 :content
 `dir_remove()` removes a directory from a Capy path.

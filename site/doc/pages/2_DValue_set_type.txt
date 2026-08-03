@@ -3,7 +3,9 @@ void DValue::set_type(char t)
 
 :params
 t : internal type tag such as S, F, B, M, P, or R
-return value : none
+
+:returns
+none
 
 :see
 0_DValue

@@ -6,7 +6,9 @@ DValue regex_split(String pattern, String subject, String flags)
 pattern : PCRE2 regular expression separator
 subject : text to split
 flags : optional PCRE2 flags
-return value : `dval` list of text parts
+
+:returns
+`dval` list of text parts
 
 :see
 >string

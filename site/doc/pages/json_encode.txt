@@ -4,7 +4,9 @@ String json_encode(DValue t)
 
 :params
 value : string or `dval` value to encode
-return value : JSON text
+
+:returns
+JSON text
 
 :see
 >string

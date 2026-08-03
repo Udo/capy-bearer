@@ -3,7 +3,9 @@ String gz_uncompress(String compressed)
 
 :params
 compressed : gzip-format compressed bytes
-return value : uncompressed bytes
+
+:returns
+uncompressed bytes
 
 :see
 >sys

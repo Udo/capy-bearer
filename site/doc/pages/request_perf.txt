@@ -4,8 +4,8 @@ request_perf
 :sig
 DValue request_perf()
 
-:params
-return value : performance data for the active C++ request workspace
+:returns
+performance data for the active C++ request workspace
 
 :see
 >sys

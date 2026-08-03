@@ -3,7 +3,9 @@ DValue task_cancel(String id)
 
 :params
 id : opaque ID returned by `task`
-return value : current task status after the cancellation request
+
+:returns
+current task status after the cancellation request
 
 :see
 >task

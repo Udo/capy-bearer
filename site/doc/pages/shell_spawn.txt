@@ -4,12 +4,21 @@ shell_spawn
 :sig
 u64 shell_spawn(DValue spec)
 
+:params
+spec : a `dval` map with `cmd` and optional `stdin`, `env`, and `timeout_ms` values
+
+:returns
+a `dval` job ID
+
 :content
 Capy `shell_spawn(spec)` starts a background shell job. Give it a `dval` with `cmd` and optional `stdin`, `env`, and `timeout_ms` values.
 
-It returns a `dval` job ID. Use that value with `job_status()`, `job_await()`, `job_result()`, or `job_cancel()`. Check the job result for command errors.
+Use the job ID with `job_status()`, `job_await()`, `job_result()`, or `job_cancel()`.
 
 The C++ API returns a `u64` job ID. Capy uses a `dval` job ID instead.
+
+:errors
+The shell interprets `cmd`. Do not build it from untrusted input. Start and command failures appear in the job status and result.
 
 :see
 >sys

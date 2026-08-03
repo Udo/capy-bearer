@@ -6,7 +6,9 @@ String to_lower(String s)
 
 :params
 s : C++ text to convert
-return value : `s` with uppercase ASCII characters changed to lowercase
+
+:returns
+`s` with uppercase ASCII characters changed to lowercase
 
 :see
 >string

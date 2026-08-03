@@ -3,7 +3,9 @@ String ascii_safe_name(String raw)
 
 :params
 raw : arbitrary input string
-return value : an ASCII-only sanitized name
+
+:returns
+an ASCII-only sanitized name
 
 :content
 Capy's `ascii_safe_name(raw)` returns an ASCII-only `string` name. Pass any input string.

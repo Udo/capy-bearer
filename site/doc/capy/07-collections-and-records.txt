@@ -142,11 +142,11 @@ function RENDER(request : dval) {
 }
 ```
 
-This is the same call as `label(user)`.
+This is the same call as `total(point)`.
 
 ## Choose the right shape
 
-Use an array when every item has one static type. Use a tuple for a small fixed return value. Use a struct for application data with a stable shape. Use a DValue map or list for decoded input and data that crosses a Bearer boundary.
+Use an array when every item has one static type. Use a tuple for a small fixed return value. Use a struct for application data with a stable shape. Use a `dval` map or list for decoded input and data that crosses a Bearer boundary.
 
 :see
 capy-03-values-and-types

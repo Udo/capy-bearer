@@ -4,7 +4,9 @@ String runtime_safe_key(String key, String label = "runtime key")
 :params
 key : caller-provided runtime key
 label : error label for an empty key
-return value : stable SHA-1 key
+
+:returns
+stable SHA-1 key
 
 :see
 >sys

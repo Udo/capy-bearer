@@ -19,13 +19,13 @@ Hello, Capy!
 :content
 `RENDER` is the entry point for a web request. `print` adds text to the response. The `\n` escape adds a newline.
 
-Request the page through Bearer's local CLI socket:
+Request the page through Bearer's default local HTTP socket:
 
 ```text
-scripts/bearer-cli /hello.capy
+curl --unix-socket /run/bearer/http.sock http://localhost/hello.capy
 ```
 
-The command prints the response body. It also reports compiler or runtime errors in the terminal.
+The command prints the response body. Bearer logs compiler and runtime errors.
 
 ## Add a value
 

@@ -114,7 +114,7 @@ function RENDER(request : dval) {
 }
 ```
 
-`none` is different from `""`, `false`, an empty map, and an empty list. A DValue is also a mutable reference value inside one workspace. The dynamic-values chapter explains mutation, safe reads, and conversions.
+`none` is different from `""`, `false`, an empty map, and an empty list. A `dval` is also a mutable reference value inside one workspace. The dynamic-values chapter explains mutation, safe reads, and conversions.
 
 ## Type aliases
 

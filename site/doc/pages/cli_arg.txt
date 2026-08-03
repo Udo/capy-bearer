@@ -8,7 +8,9 @@ String cli_arg(Request& context, String key, String default_value = "")
 context : live C++ request context
 key : CLI input name
 default_value : value returned for an absent or empty value
-return value : resolved CLI string value
+
+:returns
+resolved CLI string value
 
 :see
 >ob

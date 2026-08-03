@@ -1,8 +1,8 @@
 :sig
 u64 time()
 
-:params
-return value : current Unix timestamp with second precision
+:returns
+current Unix timestamp with second precision
 
 :see
 >time

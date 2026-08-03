@@ -3,7 +3,9 @@ String encode_query(StringMap map)
 
 :params
 map : `dval` map of URL parameters in Capy
-return value : encoded query string
+
+:returns
+encoded query string
 
 :see
 >uri

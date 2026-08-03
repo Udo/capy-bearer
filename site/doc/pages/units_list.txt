@@ -1,6 +1,9 @@
 :sig
 DValue units_list()
 
+:returns
+a `dval` list of known unit paths
+
 :see
 >runtime
 unit_info
@@ -8,9 +11,9 @@ unit_compile
 unit_load
 
 :content
-In Capy, call `units_list()` to get a `dval` list of known unit paths.
+Call `units_list()` to inspect the units that the current runtime can load.
 
-Use this list to inspect units that the current runtime can load. The list includes known `.uce` units and units already loaded by the current runtime process.
+The list includes known `.uce` units and units already loaded by the current runtime process.
 
 C++ returns a `DValue` list through the signature above. Use the same normal use case.
 

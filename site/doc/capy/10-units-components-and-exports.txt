@@ -2,7 +2,7 @@
 10. Units and components
 
 :content
-Each Capy source file is an independent unit. A unit can expose DValue functions to other units and can render named components.
+Each Capy source file is an independent unit. A unit can expose `dval` functions to other units and can render named components.
 
 ## Export a function
 
@@ -48,13 +48,13 @@ function RENDER(request : dval) {
 }
 ```
 
-`unit_load` returns a request-local `module` handle. Module calls copy input and result DValues as BRRB. `unit_call(path, name, input)` performs the same operation without keeping a handle.
+`unit_load` returns a request-local `module` handle. Module calls copy input and result `dval` values as BRRB. `unit_call(path, name, input)` performs the same operation without keeping a handle.
 
 Relative paths resolve from the calling unit. Use an absolute site path when the target must not depend on the caller directory.
 
 ## Module handles
 
-A module handle is a verified request-local capability. It can pass through typed locals, parameters, and results during that request. It cannot enter a DValue, aggregate, closure, condition, or serialized boundary.
+A module handle is a verified request-local capability. It can pass through typed locals, parameters, and results during that request. It cannot enter a `dval`, aggregate, closure, condition, or serialized boundary.
 
 Do not retain a module handle for another request. A later request can load a newer valid source generation.
 
@@ -81,7 +81,7 @@ Use `component_capture` when the caller needs the component output as a string. 
 
 ## Boundary rules
 
-A DValue shares identity only inside one workspace. Bearer, module, component, task, custom export or C++, codec, request, and serialization boundaries copy BRRB. Identity never crosses a boundary. A target cannot mutate the caller's value through a boundary.
+Bearer copies `dval` values at module, component, task, export, C++, codec, request, and serialization boundaries. A target cannot mutate the caller's value through a boundary. The dynamic-values guide defines the identity rule.
 
 Missing units, missing exports, and incompatible exported signatures are errors.
 
@@ -91,3 +91,4 @@ unit_call
 component_render
 1_COMPONENT
 capy-08-dynamic-values
+capy-11-tasks-and-jobs

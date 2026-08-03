@@ -5,7 +5,9 @@ String xml_encode(DValue t, String root_name)
 :params
 t : tree to serialize as XML
 root_name : optional element name to use when `t` is not already an element-shaped tree, defaults to `root`
-return value : XML string
+
+:returns
+XML string
 
 :see
 >markup

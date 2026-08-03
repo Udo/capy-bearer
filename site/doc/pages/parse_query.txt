@@ -3,7 +3,9 @@ StringMap parse_query(String q)
 
 :params
 q : query text in URL form
-return value : decoded parameters as a map-shaped `dval`. C++ returns `StringMap`
+
+:returns
+decoded parameters as a map-shaped `dval`. C++ returns `StringMap`
 
 :see
 >uri

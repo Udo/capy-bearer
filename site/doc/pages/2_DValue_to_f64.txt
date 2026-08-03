@@ -3,7 +3,9 @@ f64 DValue::to_f64(f64 default_value = 0) const
 
 :params
 f64 : fallback returned when conversion is not possible
-return value : converted value or the fallback
+
+:returns
+converted value or the fallback
 
 :see
 >types

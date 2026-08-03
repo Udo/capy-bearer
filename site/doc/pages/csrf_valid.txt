@@ -5,7 +5,9 @@ bool csrf_valid(String submitted_token, String session_name = "bearer-session", 
 submitted_token : value from the request, usually `context.post["csrf_token"]`
 session_name : session and cookie name
 token_name : token namespace
-return value : `true` when the submitted token matches the session token
+
+:returns
+`true` when the submitted token matches the session token
 
 :content
 `csrf_valid()` checks a submitted Capy CSRF token against the session token.

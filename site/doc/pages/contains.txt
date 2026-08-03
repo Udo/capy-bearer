@@ -4,7 +4,9 @@ bool contains(String haystack, String needle)
 :params
 haystack : string to search
 needle : substring to find
-return value : `true` when `needle` occurs in `haystack`, otherwise `false`
+
+:returns
+`true` when `needle` occurs in `haystack`, otherwise `false`
 
 :see
 >string

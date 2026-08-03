@@ -4,16 +4,25 @@ http_request
 :sig
 DValue http_request(DValue req)
 
+:params
+request : a `dval` map that describes the outbound request
+
+:returns
+a `dval` map with `status`, `headers`, `body`, and `error`
+
 :content
-`http_request()` sends an outbound HTTP or HTTPS request from a `dval` request map. It returns a `dval` map with `status`, `headers`, `body`, and `error`.
+`http_request()` sends an outbound HTTP or HTTPS request from a `dval` request map.
 
 Set `method`, `url`, `headers`, `body`, `timeout_ms`, and `follow_redirects` as needed. Use it for an outbound request when the request handler can wait for the response.
 
 For hardened HTTPS requests, set every `security` field to `true`: `https_only`, `public_dns_only`, `pin_dns`, `isolated_curl`, and `no_redirects`. A partial or false hardened policy returns `invalid_request`.
 
-The hardened policy rejects non-HTTPS URLs, IP hosts, URL userinfo, unsafe DNS results, and redirects. It limits request and response bodies to 64 KiB and response headers to 8 KiB.
+In C++ `.uce`, use `DValue` for the request and response.
 
-The `error` value can report `invalid_request`, `unsafe_dns`, `timeout`, `response_too_large`, `redirect_not_allowed`, `http_status`, or `network_failure`. In C++ `.uce`, use `DValue` for the request and response.
+:errors
+The hardened policy rejects non-HTTPS URLs, IP hosts, URL userinfo, unsafe DNS results, and redirects. It limits request and response bodies to 64 KiB. It limits response headers to 8 KiB.
+
+The `error` member can be `invalid_request`, `unsafe_dns`, `timeout`, `response_too_large`, `redirect_not_allowed`, `http_status`, or `network_failure`.
 
 :see
 >socket

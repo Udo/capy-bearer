@@ -1,8 +1,8 @@
 :sig
 String DValue::get_type_name() const
 
-:params
-return value : one of String, f64, bool, array, none, pointer, reference, or unknown
+:returns
+one of String, f64, bool, array, none, pointer, reference, or unknown
 
 :see
 0_DValue

@@ -3,7 +3,9 @@ String shell_escape(String raw)
 
 :params
 raw : string value to use as one shell word
-return value : a single-quoted shell word that represents `raw`
+
+:returns
+a single-quoted shell word that represents `raw`
 
 :see
 >sys

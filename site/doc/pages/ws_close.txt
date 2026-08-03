@@ -3,7 +3,9 @@ bool ws_close(String connection_id = "")
 
 :params
 connection_id : optional target client ID, defaults to the current WebSocket client
-return value : true if the target connection exists and was scheduled to close
+
+:returns
+true if the target connection exists and was scheduled to close
 
 :see
 >websocket

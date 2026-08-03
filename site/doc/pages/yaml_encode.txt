@@ -3,7 +3,9 @@ String yaml_encode(DValue t)
 
 :params
 t : tree to serialize as YAML
-return value : YAML string
+
+:returns
+YAML string
 
 :see
 >markup

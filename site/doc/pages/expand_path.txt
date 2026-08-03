@@ -4,7 +4,9 @@ String expand_path(String path, String relative_to_path = "")
 :params
 path : path to expand
 relative_to_path : base directory for a relative path
-return value : expanded path
+
+:returns
+expanded path
 
 :content
 `expand_path()` returns a normalized Capy path string.

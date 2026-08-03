@@ -4,7 +4,9 @@ DValue task_await(String id, u64 timeout_ms)
 :params
 id : opaque ID returned by `task`
 timeout_ms : maximum wait time in milliseconds
-return value : current task status when the task ends or the wait time expires
+
+:returns
+current task status when the task ends or the wait time expires
 
 :see
 >task

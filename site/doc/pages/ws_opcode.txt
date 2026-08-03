@@ -4,8 +4,8 @@ ws_opcode
 :sig
 u8 ws_opcode()
 
-:params
-return value : opcode of the current WebSocket message
+:returns
+opcode of the current WebSocket message
 
 :see
 >websocket

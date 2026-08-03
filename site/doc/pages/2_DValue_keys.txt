@@ -1,8 +1,8 @@
 :sig
 StringList DValue::keys() const
 
-:params
-return value : child keys for map or list values. Scalars return an empty list
+:returns
+child keys for map or list values. Scalars return an empty list
 
 :see
 >types

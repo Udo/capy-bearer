@@ -4,7 +4,9 @@ u64 socket_connect(String host, u16 port)
 :params
 host : IPv4 address in dotted-quad form, such as `127.0.0.1`
 port : port number from 0 through 65535
-return value : socket handle, or zero when the connection fails
+
+:returns
+socket handle, or zero when the connection fails
 
 :see
 >socket

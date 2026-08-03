@@ -4,7 +4,9 @@ bool file_truncate(String path, u64 size)
 :params
 path : path of the file to resize
 size : new length in bytes
-return value : true when Capy resizes the file, otherwise false
+
+:returns
+true when Capy resizes the file, otherwise false
 
 :content
 `file_truncate` sets a file length to `size` bytes. Use it to remove trailing content or extend a file. A smaller size discards trailing bytes. It returns false when Capy cannot resize the file.

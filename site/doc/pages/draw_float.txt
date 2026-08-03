@@ -5,7 +5,9 @@ f64 draw_float(f64 from, f64 to, f64 decimal_precision = 0.000000000001)
 from : first range value
 to : second range value
 decimal_precision : output precision
-return value : `f64` noise value between `from` and `to`
+
+:returns
+`f64` noise value between `from` and `to`
 
 :see
 >noise

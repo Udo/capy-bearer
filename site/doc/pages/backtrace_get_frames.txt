@@ -5,7 +5,9 @@ String backtrace_get_frames(void* const* frames, size_t size, u32 skip_frames = 
 frames : frame pointer array returned by native backtrace collection
 size : number of frames in the array
 skip_frames : number of newest frames to omit
-return value : formatted backtrace string
+
+:returns
+formatted backtrace string
 
 :see
 >runtime

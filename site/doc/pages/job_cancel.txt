@@ -4,8 +4,14 @@ job_cancel
 :sig
 bool job_cancel(u64 job_id)
 
+:params
+job : the Capy `dval` job ID. C++ `.uce` uses a `u64` ID.
+
+:returns
+`true` when Bearer cancels an active job. Otherwise, `false`.
+
 :content
-`job_cancel()` requests cancellation of a job. It returns `true` when it cancels an active job, or `false` otherwise.
+`job_cancel()` requests cancellation of a job.
 
 Use it to stop a job that no longer has a useful result. Its status then reports `cancelled`.
 

@@ -5,7 +5,9 @@ s64 strpos(String haystack, String needle, s64 offset = 0)
 haystack : Capy string to search
 needle : Capy string to find
 offset : optional start position. Negative values count from the end.
-return value : zero-based first match position, or `-1` when no match exists
+
+:returns
+zero-based first match position, or `-1` when no match exists
 
 :see
 >string

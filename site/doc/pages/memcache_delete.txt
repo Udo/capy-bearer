@@ -4,7 +4,9 @@ bool memcache_delete(u64 connection, String key)
 :params
 connection : open connection handle
 key : entry key
-return value : `true` only for a `DELETED` server response
+
+:returns
+`true` only for a `DELETED` server response
 
 :see
 >memcache

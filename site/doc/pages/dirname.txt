@@ -3,7 +3,9 @@ String dirname(String fn)
 
 :params
 fn : path to inspect
-return value : directory part of the path
+
+:returns
+directory part of the path
 
 :content
 `dirname()` returns the directory part of a Capy path string.

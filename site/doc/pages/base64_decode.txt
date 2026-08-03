@@ -3,7 +3,9 @@ String base64_decode(String raw)
 
 :params
 raw : Base64-encoded text
-return value : the decoded bytes (empty on invalid input)
+
+:returns
+the decoded bytes (empty on invalid input)
 
 :content
 Capy's `base64_decode(raw)` returns the decoded bytes as a `string`. Capy strings can contain binary bytes.

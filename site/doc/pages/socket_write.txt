@@ -4,7 +4,9 @@ bool socket_write(u64 sockfd, String data)
 :params
 sockfd : socket handle from `socket_connect()`
 data : string to send
-return value : `true` when the write succeeds, otherwise `false`
+
+:returns
+`true` when the write succeeds, otherwise `false`
 
 :see
 >socket

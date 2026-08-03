@@ -4,8 +4,8 @@ ws_is_binary
 :sig
 bool ws_is_binary()
 
-:params
-return value : true for the current binary WebSocket message
+:returns
+true for the current binary WebSocket message
 
 :see
 >websocket

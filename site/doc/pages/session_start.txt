@@ -3,7 +3,9 @@ String session_start(String session_name = "bearer-session")
 
 :params
 session_name : optional session cookie name. The default is `bearer-session`.
-return value : current session ID
+
+:returns
+current session ID
 
 :see
 >session

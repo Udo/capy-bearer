@@ -3,7 +3,9 @@ String safe_name(String raw)
 
 :params
 raw : source text
-return value : text that contains only letters, digits, and `_`
+
+:returns
+text that contains only letters, digits, and `_`
 
 :content
 In Capy, use this function to remove unsafe characters from a name.

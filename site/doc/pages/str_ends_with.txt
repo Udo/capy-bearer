@@ -4,7 +4,9 @@ bool str_ends_with(String haystack, String needle)
 :params
 haystack : Capy string to inspect
 needle : suffix to compare
-return value : `true` when the string ends with the suffix. Otherwise, `false`.
+
+:returns
+`true` when the string ends with the suffix. Otherwise, `false`.
 
 :see
 >string

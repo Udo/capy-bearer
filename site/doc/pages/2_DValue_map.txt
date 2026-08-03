@@ -3,7 +3,9 @@ DValue DValue::map(std::function<DValue (const DValue& item, String key)> f) con
 
 :params
 f : mapper called for each iterated item
-return value : mapped copy
+
+:returns
+mapped copy
 
 :see
 >types

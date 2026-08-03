@@ -3,7 +3,9 @@ bool DValue::has(String s) const
 
 :params
 s : child key to test
-return value : true when the dereferenced value is map-shaped and contains the key
+
+:returns
+true when the dereferenced value is map-shaped and contains the key
 
 :see
 >types

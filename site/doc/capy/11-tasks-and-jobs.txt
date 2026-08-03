@@ -6,7 +6,7 @@ A task runs a Capy handler outside the current request. A job runs an operating-
 
 ## Read status data
 
-Task status is a DValue because fields can vary with the state:
+Task status is a `dval` because fields can vary with the state:
 
 :example capy render
 function state_label(status : dval) string {
@@ -38,11 +38,11 @@ function TASK:STORE(request : dval) {
 }
 ```
 
-The task boundary copies props as BRRB. DValue identity does not cross it. The worker does not receive the caller's request, session, connections, open handles, or memory state.
+The task boundary copies props as BRRB. `dval` identity does not cross it. The worker does not receive the caller's request, session, connections, open handles, or memory state.
 
 ## Submit a task
 
-`task` returns an opaque string ID:
+`task` returns an opaque string ID after Bearer admits the task:
 
 ```capy
 function RENDER(request : dval) {
@@ -51,7 +51,7 @@ function RENDER(request : dval) {
 }
 ```
 
-Use `task_status(id)` to poll. Use `task_await(id, timeout_ms)` to wait for a state:
+The call traps if Bearer cannot admit the task. Use `task_status(id)` to poll. Use `task_await(id, timeout_ms)` to wait for a state:
 
 ```capy
 function show_failure(id : string) {
@@ -80,6 +80,8 @@ function RENDER(request : dval) {
 
 Use `job_status`, `job_await`, `job_result`, and `job_cancel` with the returned handle. Always set a deliberate command timeout. Validate the final state before reading result data.
 
+The shell interprets `cmd`. Do not build it from request data or other untrusted input.
+
 ## Failure and retries
 
 Bearer does not retry a failed task automatically. Submit a new task only when the application can repeat the operation safely. Use an application idempotency key for work that changes external state.
@@ -94,4 +96,7 @@ task_cancel
 shell_spawn
 job_status
 job_result
+job_await
+job_cancel
 capy-08-dynamic-values
+capy-12-errors-testing-and-style

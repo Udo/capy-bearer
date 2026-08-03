@@ -6,7 +6,9 @@ String substr(String s, s64 start_pos, s64 length)
 s : Capy source string
 start_pos : zero-based start position. Negative values count from the end.
 length : optional result length. Negative values remove bytes from the end of the range.
-return value : extracted string, or an empty string when the range is outside the source string
+
+:returns
+extracted string, or an empty string when the range is outside the source string
 
 :see
 >string

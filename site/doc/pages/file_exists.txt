@@ -3,7 +3,9 @@ bool file_exists(String path)
 
 :params
 path : path to check
-return value : true when a regular file exists, otherwise false
+
+:returns
+true when a regular file exists, otherwise false
 
 :content
 `file_exists` tests whether a regular file exists at `path`. Use it before a file read or after a file write. It returns false for a directory. Use `file_stat()` and its `is_dir` field to test a directory.

@@ -4,7 +4,9 @@ DValue split(String str, String delim)
 :params
 str : string to split
 delim : exact separator string
-return value : list-shaped `dval` with string entries
+
+:returns
+list-shaped `dval` with string entries
 
 :see
 >string

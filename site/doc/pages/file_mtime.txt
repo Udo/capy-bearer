@@ -3,7 +3,9 @@ u64 file_mtime(String file_name)
 
 :params
 file_name : path of the file to inspect
-return value : last modification time as a Unix timestamp, or 0 when unavailable
+
+:returns
+last modification time as a Unix timestamp, or 0 when unavailable
 
 :content
 `file_mtime` returns a file modification time as a `u64` Unix timestamp. Use it to compare file ages. It returns 0 when it cannot read a timestamp. C++ .uce uses the same numeric result.

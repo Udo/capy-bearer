@@ -5,7 +5,9 @@ String socket_read(u64 sockfd, u32 max_length = 1024*128, u32 timeout = 1);
 sockfd : socket handle from `socket_connect()`
 max_length : maximum number of bytes to read. Default: 131072
 timeout : read timeout in seconds. Default: 1
-return value : data read from the socket
+
+:returns
+data read from the socket
 
 :see
 >socket

@@ -3,7 +3,9 @@ DValue dir_list(String path)
 
 :params
 path : directory path to list
-return value : `dval` list of entry maps with `name`, `type`, `size`, and `mtime`
+
+:returns
+`dval` list of entry maps with `name`, `type`, `size`, and `mtime`
 
 :content
 `dir_list()` returns entries from a directory as a Capy `dval` list.

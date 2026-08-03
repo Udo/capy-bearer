@@ -3,7 +3,9 @@ u32 mysql_affected_rows(MySQL* m)
 
 :params
 m : Capy MySQL handle
-return value : number of changed rows as `u64`
+
+:returns
+number of changed rows as `u64`
 
 :see
 >mysql

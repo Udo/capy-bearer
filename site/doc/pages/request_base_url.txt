@@ -6,7 +6,9 @@ String request_base_url(Request& context)
 
 :params
 context : live C++ request context
-return value : canonical directory URL for the current script
+
+:returns
+canonical directory URL for the current script
 
 :see
 >uri

@@ -3,7 +3,9 @@ void DValue::each(std::function<void (const DValue& item, String key)> f) const
 
 :params
 f : callback invoked for each child, or once for a scalar value
-return value : none
+
+:returns
+none
 
 :see
 >types

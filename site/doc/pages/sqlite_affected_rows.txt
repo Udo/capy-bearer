@@ -3,7 +3,9 @@ u32 sqlite_affected_rows(SQLite* db)
 
 :params
 db : SQLite handle from `sqlite_connect()`
-return value : number of rows changed by the most recent statement
+
+:returns
+number of rows changed by the most recent statement
 
 :see
 >sqlite

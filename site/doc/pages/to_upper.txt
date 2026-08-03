@@ -6,7 +6,9 @@ String to_upper(String s)
 
 :params
 s : C++ text to convert
-return value : `s` with lowercase ASCII characters changed to uppercase
+
+:returns
+`s` with lowercase ASCII characters changed to uppercase
 
 :see
 >string

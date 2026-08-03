@@ -4,8 +4,8 @@ ws_message
 :sig
 String ws_message()
 
-:params
-return value : payload of the current WebSocket message
+:returns
+payload of the current WebSocket message
 
 :see
 >websocket

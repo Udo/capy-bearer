@@ -1,8 +1,8 @@
 :sig
 void ob_start()
 
-:params
-return value : no value
+:returns
+no value
 
 :content
 In Capy, `ob_start()` starts a new output buffer. Later `print()` calls write to this buffer instead of the response.

@@ -4,8 +4,8 @@ runtime_perf
 :sig
 DValue request_perf()
 
-:params
-return value : performance data for the active request workspace
+:returns
+performance data for the active request workspace
 
 :see
 >0_Request

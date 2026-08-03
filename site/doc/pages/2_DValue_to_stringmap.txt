@@ -4,8 +4,8 @@ DValue to_stringmap
 :sig
 StringMap DValue::to_stringmap() const
 
-:params
-return value : C++ `StringMap` copy
+:returns
+C++ `StringMap` copy
 
 :see
 >types

@@ -6,7 +6,9 @@ String to_upper(String s)
 
 :params
 value : Capy string to convert
-return value : string with lowercase ASCII characters changed to uppercase
+
+:returns
+string with lowercase ASCII characters changed to uppercase
 
 :see
 >string

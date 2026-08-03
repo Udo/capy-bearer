@@ -3,7 +3,9 @@ String mysql_error(MySQL* m)
 
 :params
 m : Capy MySQL handle
-return value : diagnostic text for the connection attempt or latest operation
+
+:returns
+diagnostic text for the connection attempt or latest operation
 
 :see
 >mysql

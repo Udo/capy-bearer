@@ -5,7 +5,9 @@ DValue* unit_call(String file_name, String function_name, DValue* call_param = n
 file_name : unit path
 function_name : exported function name
 call_param : optional function input
-return value : the function result
+
+:returns
+the function result
 
 :see
 >ob

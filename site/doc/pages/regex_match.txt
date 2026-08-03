@@ -6,7 +6,9 @@ bool regex_match(String pattern, String subject, String flags)
 pattern : the PCRE2 regular expression
 subject : the string to test
 flags : optional regular expression flags
-return value : `true` if the entire subject matches the pattern
+
+:returns
+`true` if the entire subject matches the pattern
 
 :see
 >string

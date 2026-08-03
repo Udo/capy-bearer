@@ -5,7 +5,9 @@ String markdown_to_html(String src, DValue options)
 :params
 src : Markdown text
 options : optional `dval` options
-return value : HTML text
+
+:returns
+HTML text
 
 :see
 >markup

@@ -3,7 +3,9 @@ String first(String... args)
 
 :params
 args : zero or more strings, in selection order
-return value : first nonblank string, or an empty string
+
+:returns
+first nonblank string, or an empty string
 
 :see
 >string

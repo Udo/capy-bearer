@@ -7,7 +7,9 @@ pattern : the PCRE2 regular expression
 replacement : the replacement text
 subject : the string to change
 flags : optional regular expression flags
-return value : a new string with all matches replaced
+
+:returns
+a new string with all matches replaced
 
 :see
 >string
@@ -25,7 +27,8 @@ The replacement uses PCRE2 substitution syntax. Use `$1` for a numbered capture.
 
 Use `replace()` for a literal search. Use `regex_replace()` when you need a pattern, capture, character class, anchor, or flag.
 
-Invalid patterns, flags, and replacement syntax raise a request-visible runtime error.
+:errors
+Invalid patterns, flags, and replacement syntax cause a request-visible runtime error.
 
 :example capy render
 print(regex_replace("docs", "manual", "bearer docs"), "\n")

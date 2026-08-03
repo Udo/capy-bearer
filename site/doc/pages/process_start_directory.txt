@@ -1,8 +1,8 @@
 :sig
 String process_start_directory()
 
-:params
-return value : the worker process start directory
+:returns
+the worker process start directory
 
 :see
 >sys

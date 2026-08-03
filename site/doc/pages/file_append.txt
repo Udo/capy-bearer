@@ -4,7 +4,9 @@ void file_append(String file_name, ...val)
 :params
 file_name : path of the file to append
 ...val : C++ values to append in order
-return value : Capy `true` on success. C++ has no return value
+
+:returns
+Capy `true` on success. C++ has no return value
 
 :content
 `file_append()` adds text to a file. In Capy, pass a path and one, two, or three strings. It returns `true` on success and `false` on failure.

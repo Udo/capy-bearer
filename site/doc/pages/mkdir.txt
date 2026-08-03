@@ -3,7 +3,9 @@ bool mkdir(String path)
 
 :params
 path : directory path
-return value : `true` if the API creates the directory
+
+:returns
+`true` if the API creates the directory
 
 :content
 In Capy, this function creates one directory at `path`.

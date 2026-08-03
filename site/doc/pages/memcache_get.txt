@@ -5,7 +5,9 @@ String memcache_get(u64 connection, String key, String default_value = "")
 connection : open connection handle
 key : entry key
 default_value : value returned when no complete value is available
-return value : stored value or `default_value`
+
+:returns
+stored value or `default_value`
 
 :see
 >memcache

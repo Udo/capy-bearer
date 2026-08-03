@@ -4,7 +4,9 @@ bool zip_create(String zip_file_name, DValue entries)
 :params
 zip_file_name : path to the archive to create
 entries : map or list of archive entries
-return value : `true` when the archive is written
+
+:returns
+`true` when the archive is written
 
 :see
 >sys

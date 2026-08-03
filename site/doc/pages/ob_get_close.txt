@@ -1,8 +1,8 @@
 :sig
 String ob_get_close()
 
-:params
-return value : the current output buffer contents
+:returns
+the current output buffer contents
 
 :content
 In Capy, `ob_get_close()` returns the current output buffer as a `string` and closes it. Output returns to the previous buffer.

@@ -3,7 +3,9 @@ DValue xml_decode(String s)
 
 :params
 s : XML source string
-return value : element-shaped `dval`
+
+:returns
+element-shaped `dval`
 
 :see
 >markup

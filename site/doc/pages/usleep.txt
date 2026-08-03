@@ -3,7 +3,9 @@ s32 usleep(u32 usec)
 
 :params
 usec : microseconds to sleep
-return value : `0` after sleeping
+
+:returns
+`0` after sleeping
 
 :see
 >time

@@ -3,7 +3,9 @@ DValue task_status(String id)
 
 :params
 id : opaque ID returned by `task`
-return value : current task status map
+
+:returns
+current task status map
 
 :see
 >task

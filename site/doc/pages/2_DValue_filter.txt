@@ -5,7 +5,9 @@ DValue DValue::filter(std::function<bool (const DValue& item, String key)> f) co
 :params
 keys : child keys to copy when using the key-list overload
 f : predicate returning true for children to keep
-return value : filtered copy
+
+:returns
+filtered copy
 
 :see
 >types

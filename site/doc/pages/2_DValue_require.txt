@@ -4,7 +4,9 @@ const DValue* DValue::key(String s) const
 
 :params
 key or index : required child selector
-return value : copied child in Capy, or a child pointer in C++
+
+:returns
+copied child in Capy, or a child pointer in C++
 
 :see
 0_DValue

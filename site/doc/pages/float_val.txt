@@ -3,7 +3,9 @@ f64 float_val(String s)
 
 :params
 s : string that can contain a number
-return value : parsed `f64`, or `0` when no usable number exists
+
+:returns
+parsed `f64`, or `0` when no usable number exists
 
 :see
 >string

@@ -3,7 +3,9 @@ bool unit_compile(String path = "")
 
 :params
 path : optional unit path. If empty, recompiles the current unit
-return value : `true` if the compiler compiles the unit
+
+:returns
+`true` if the compiler compiles the unit
 
 :see
 >runtime

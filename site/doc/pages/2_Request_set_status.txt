@@ -4,7 +4,9 @@ void Request::set_status(s32 code, String reason = "")
 :params
 code : HTTP status code
 reason : optional reason phrase override
-return value : none
+
+:returns
+none
 
 :see
 >types

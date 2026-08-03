@@ -5,7 +5,9 @@ DValue split_utf8(String str, bool compound_characters = false)
 :params
 str : UTF-8 string to split
 compound_characters : when true, combine selected multi-code-point characters
-return value : list-shaped `dval` with UTF-8 string entries
+
+:returns
+list-shaped `dval` with UTF-8 string entries
 
 :see
 >string

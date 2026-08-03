@@ -7,7 +7,9 @@ s64 to_s64(String s, s64 fallback = 0)
 :params
 s : C++ text to parse
 fallback : value for empty or invalid text
-return value : parsed C++ `s64` or `fallback`
+
+:returns
+parsed C++ `s64` or `fallback`
 
 :see
 >types

@@ -6,7 +6,9 @@ DValue& DValue::operator[](String s)
 
 :params
 s : child key to return or create
-return value : reference to the child node
+
+:returns
+reference to the child node
 
 :see
 0_DValue

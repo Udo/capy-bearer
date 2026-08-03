@@ -4,7 +4,9 @@ String hmac_sha256(String key, String data)
 :params
 key : secret string bytes
 data : message string bytes
-return value : raw 32-byte HMAC-SHA256 string
+
+:returns
+raw 32-byte HMAC-SHA256 string
 
 :content
 `hmac_sha256()` returns the raw 32-byte HMAC-SHA256 for `key` and `data`. The returned string contains binary bytes.

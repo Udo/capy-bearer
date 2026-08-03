@@ -6,7 +6,9 @@ DValue regex_search_all(String pattern, String subject, String flags)
 pattern : PCRE2 regular expression pattern
 subject : text to search
 flags : optional regex flags
-return value : `dval` match data
+
+:returns
+`dval` match data
 
 :see
 >string

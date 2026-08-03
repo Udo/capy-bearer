@@ -3,7 +3,9 @@ SQLite* sqlite_connect(String path)
 
 :params
 path : database file path, or `:memory:` for an in-memory database
-return value : SQLite handle, or zero when the connection fails
+
+:returns
+SQLite handle, or zero when the connection fails
 
 :see
 >sqlite

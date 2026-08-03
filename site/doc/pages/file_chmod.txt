@@ -4,7 +4,9 @@ bool file_chmod(String path, u32 mode)
 :params
 path : path of the file or directory
 mode : permission bits, such as 0644 or 0600
-return value : true when Capy changes the mode, otherwise false
+
+:returns
+true when Capy changes the mode, otherwise false
 
 :content
 `file_chmod` sets permission bits on a path. Use it to restrict or grant file access. Capy receives `mode` as a number. The C++ .uce example can use an octal literal such as `0600`.

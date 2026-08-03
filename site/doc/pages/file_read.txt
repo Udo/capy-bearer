@@ -4,7 +4,9 @@ String file_read(u64 h, u64 len)
 :params
 h : readable handle from `file_open()`
 len : maximum number of bytes to read
-return value : a Capy `string` with up to `len` bytes from the current position
+
+:returns
+a Capy `string` with up to `len` bytes from the current position
 
 :content
 In Capy, `file_read()` returns a `string` from the current handle position. It advances the position by the bytes read.

@@ -62,7 +62,7 @@ Run one page through the local CLI socket:
 scripts/bearer-cli /path/to/page.capy
 ```
 
-A test should check the exact response body and the expected status. Include failure cases for missing input, invalid conversions, and boundary errors.
+The CLI helper exposes the response body and runtime errors. Use an HTTP client or a repository HTTP test helper when a test must verify status and headers. Include failure cases for missing input, invalid conversions, and boundary errors.
 
 The repository test suites exercise the compiler, Wasm runtime, source maps, components, units, tasks, and documentation examples:
 
@@ -76,7 +76,7 @@ Run the focused test while editing. Run the broader gate before deployment.
 
 ## Keep code direct
 
-Prefer a small typed helper over repeated dynamic conversion. Keep request parsing near the request boundary. Convert a DValue to a static type once the required shape is known.
+Prefer a small typed helper over repeated dynamic conversion. Keep request parsing near the request boundary. Convert a `dval` to a static type once the required shape is known.
 
 Use one name for one thing. Remove wrappers that only rename another function. Keep comments for behavior that the code cannot make clear.
 

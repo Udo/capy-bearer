@@ -6,7 +6,9 @@ from : first range endpoint
 to : second range endpoint
 index : deterministic input position
 seed : deterministic input seed, default `0`
-return value : deterministic `f64` noise value
+
+:returns
+deterministic `f64` noise value
 
 :see
 >noise

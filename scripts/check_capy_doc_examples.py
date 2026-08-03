@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_ENTRIES = {"render", "cli", "component", "init", "once", "ws"}
-PAGE_SECTIONS = {"title", "sig", "params", "content", "see", "output"}
+PAGE_SECTIONS = {"title", "sig", "params", "returns", "errors", "content", "see", "output"}
 LEGACY_GUIDE_HEADINGS = {"purpose", "minimal executable example", "explanation", "common variants", "edge cases", "related reference"}
 CANONICAL_GUIDES = {
     "01-install-and-first-program", "02-source-structure-and-syntax", "03-values-and-types",
@@ -104,6 +104,15 @@ def check_page(page: Path, status: str) -> list[str]:
     directives = [(line, header, body) for line, header, body in sections if header.startswith("example")]
     required_status = {"unsupported": "unsupported", "cpp-specific": "cpp-specific"}.get(status)
     headers = {header for _, header, _ in sections}
+    for section_name in ("returns", "errors"):
+        matching = [(line, body) for line, header, body in sections if header == section_name]
+        if len(matching) > 1:
+            errors.append(f"{page.name}: duplicate :{section_name} section")
+        elif matching and not matching[0][1]:
+            errors.append(f"{page.name}:{matching[0][0]}: empty :{section_name} section")
+    for line, header, body in sections:
+        if header == "params" and re.search(r"(?mi)^\s*return value\s*:", body):
+            errors.append(f"{page.name}:{line}: move return value from :params to :returns")
     if required_status and f"capy-status {required_status}" not in headers:
         errors.append(f"{page.name}: missing :capy-status {required_status}")
     examples = []
@@ -265,6 +274,12 @@ def self_test() -> int:
         if check(pages, manifest, signatures):
             print("self-test API fixture failed")
             return 1
+        (pages / "ok.txt").write_text(':sig\nString ok()\n:params\nreturn value : old location\n:returns\n\n:example capy render\nprint("ok")\n:example cpp render\nprint("ok\\n");\n')
+        contract_errors = check(pages, manifest, signatures)
+        if not any("move return value" in error for error in contract_errors) or not any("empty :returns" in error for error in contract_errors):
+            print("self-test accepted an invalid return contract")
+            return 1
+        (pages / "ok.txt").write_text(':sig\nvoid ok()\n:example capy render\nprint("ok")\n:example cpp render\nprint("ok\\n");\n')
         if not check_example_body(pages / "ok.txt", 1, "capy", "render", "function RENDER(request : dval) {}"):
             print("self-test accepted a complete handler in an API example")
             return 1

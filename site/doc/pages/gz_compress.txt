@@ -3,7 +3,9 @@ String gz_compress(String src)
 
 :params
 src : uncompressed input bytes
-return value : gzip-format compressed bytes
+
+:returns
+gzip-format compressed bytes
 
 :see
 >sys

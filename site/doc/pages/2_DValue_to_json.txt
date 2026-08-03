@@ -6,7 +6,9 @@ String DValue::to_json(char quote_char = '"') const
 
 :params
 quote_char : C++ quote character for string escaping
-return value : C++ JSON-like scalar representation
+
+:returns
+C++ JSON-like scalar representation
 
 :see
 >types

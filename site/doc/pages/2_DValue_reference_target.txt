@@ -2,8 +2,8 @@
 DValue* DValue::reference_target()
 const DValue* DValue::reference_target() const
 
-:params
-return value : resolved target pointer, or 0 when this node is not a usable reference
+:returns
+resolved target pointer, or 0 when this node is not a usable reference
 
 :see
 0_DValue

@@ -2,7 +2,7 @@
 8. Dynamic values
 
 :content
-A `dval` holds data whose shape is known only at run time. JSON, YAML, request data, task props, and unit calls use DValues.
+A `dval` holds data whose shape is known only at run time. JSON, YAML, request data, task props, and unit calls use `dval` values.
 
 ## Read decoded data
 
@@ -16,7 +16,7 @@ function RENDER(request : dval) {
 Ada
 
 :content
-`json_decode` returns a DValue. Member syntax reads a map key. Bracket syntax also works:
+`json_decode` returns a `dval`. Member syntax reads a map key. Bracket syntax also works:
 
 ```capy
 function RENDER(request : dval) {
@@ -43,13 +43,13 @@ function RENDER(request : dval) {
 }
 ```
 
-`value?` is false only when the DValue is `none`. An empty string, `false`, an empty map, and an empty list are present values.
+`value?` is false only when the `dval` is `none`. An empty string, `false`, an empty map, and an empty list are present values.
 
 A key can exist and contain `none`. Use `dval_has(profile, "nickname")` when that distinction matters.
 
 ## Convert a scalar
 
-DValue constructors convert a scalar to a static Capy type:
+Scalar constructors convert a `dval` to a static Capy type:
 
 ```capy
 function RENDER(request : dval) {
@@ -66,7 +66,7 @@ Use `dval_require(profile, "name")` when a missing value is an error. It traps i
 
 ## Create dynamic data
 
-A map literal creates a DValue map:
+A map literal creates a `dval` map:
 
 ```capy
 function RENDER(request : dval) {
@@ -76,7 +76,7 @@ function RENDER(request : dval) {
 }
 ```
 
-A bare list is a typed array. Wrap it with `dval` when it must be a dynamic list. `length(value)` returns the number of entries in a DValue map or list. It traps if the DValue is a scalar:
+A bare list is a typed array. Wrap it with `dval` when it must be a dynamic list. `length(value)` returns the number of entries in a `dval` map or list. It traps if the `dval` is a scalar:
 
 ```capy
 function RENDER(request : dval) {
@@ -85,9 +85,9 @@ function RENDER(request : dval) {
 }
 ```
 
-## Mutate a DValue
+## Mutate a dval
 
-A DValue is a mutable reference value inside one workspace. Assignment, parameters, returns, and captures share its identity:
+A `dval` is a mutable reference value inside one workspace. Assignment, parameters, returns, and captures share its identity:
 
 ```capy
 function set_email(profile : dval) {
@@ -104,7 +104,7 @@ function RENDER(request : dval) {
 
 Content mutation through the parameter affects the caller. The parameter binding remains immutable, so `profile = {:}` is invalid.
 
-Nested assignment mutates its target and returns the same identity. The root must be a named local, parameter, or captured DValue binding. Temporary, call, member, array-item, and loop-item roots are invalid. Nested assignment creates missing maps. An existing list accepts only an in-range nonnegative index. Capy does not create sparse lists.
+Nested assignment mutates its target and returns the same identity. The root must be a named local, parameter, or captured `dval` binding. Temporary, call, member, array-item, and loop-item roots are invalid. Nested assignment creates missing maps. An existing list accepts only an in-range nonnegative index. Capy does not create sparse lists.
 
 The `dval_set`, `dval_assign`, `dval_push`, `dval_pop`, `dval_remove`, `dval_clear`, `dval_get_or_create`, `dval_set_array`, `dval_set_bool`, `dval_set_type`, and `dval_put` functions also mutate their target. Each function returns that same identity. Reassignment remains valid:
 
@@ -118,7 +118,7 @@ function RENDER(request : dval) {
 
 Member and index reads return copied child values. Pure transformations return copies when their API specifies a copy.
 
-## Iterate a DValue
+## Iterate a dval
 
 Use the value-first loop forms:
 
@@ -129,11 +129,11 @@ function show(values : dval) {
 }
 ```
 
-The key has type `string`. DValue list keys are decimal strings. Each item is a copied DValue. The loop uses a live view and rechecks the current count. A loop that keeps growing its iterable can continue.
+The key has type `string`. `dval` list keys are decimal strings. Each item is a copied `dval`. The loop uses a live view and rechecks the current count. A loop that keeps growing its iterable can continue.
 
 ## Boundaries
 
-A DValue keeps identity only inside one workspace. Bearer, module, component, task, custom export or C++, codec, request, and serialization boundaries copy BRRB. Identity never crosses a boundary. JSON and YAML preserve `none` as `null`. XML writes `none` as empty text and cannot recover the distinction.
+A `dval` keeps identity only inside one workspace. Bearer, module, component, task, custom export or C++, codec, request, and serialization boundaries copy BRRB. Identity never crosses a boundary. JSON and YAML preserve `none` as `null`. XML writes `none` as empty text and cannot recover the distinction.
 
 :see
 0_DValue

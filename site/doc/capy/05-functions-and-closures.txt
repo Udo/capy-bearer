@@ -95,7 +95,19 @@ function RENDER(request : dval) {
 }
 ```
 
-A lambda can read captured outer values. Scalar captures copy. Array, DValue, and struct captures share identity inside the workspace. A capture binding cannot be reassigned, but the closure can mutate shared aggregate content.
+A lambda can read captured outer values. Scalar captures copy. Array, `dval`, and struct captures share identity inside the workspace. A capture binding cannot be reassigned. The closure can mutate shared aggregate content.
+
+```capy
+function RENDER(request : dval) {
+    var offset := 2
+    var values := [10]
+    var update := function() s32 {
+        values.push(20)
+        offset + length(values)
+    }
+    print(update(), " ", values[1], "\n")
+}
+```
 
 ## Generic and variadic functions
 

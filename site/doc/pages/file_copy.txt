@@ -4,7 +4,9 @@ bool file_copy(String from, String to)
 :params
 from : path of the source file
 to : path of the destination file
-return value : true when Capy copies the file, otherwise false
+
+:returns
+true when Capy copies the file, otherwise false
 
 :content
 `file_copy` copies one file to another path. Use it to keep the source and create a second file. The call reports failure with false. C++ .uce uses the same paths and Boolean result.

@@ -5,7 +5,9 @@ String file_pread(u64 h, u64 offset, u64 len)
 h : readable handle from `file_open()`
 offset : absolute byte offset
 len : maximum number of bytes to read
-return value : a Capy `string` with up to `len` bytes
+
+:returns
+a Capy `string` with up to `len` bytes
 
 :content
 In Capy, `file_pread()` reads from an absolute byte offset and returns a `string`. It does not change the handle position.

@@ -3,7 +3,9 @@ void DValue::push(const DValue& child)
 
 :params
 child : value to append/copy
-return value : none
+
+:returns
+none
 
 :see
 0_DValue

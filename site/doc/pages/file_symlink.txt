@@ -4,7 +4,9 @@ bool file_symlink(String target, String linkpath)
 :params
 target : path that the new symbolic link points to
 linkpath : path of the symbolic link to create
-return value : true when Capy creates the link, otherwise false
+
+:returns
+true when Capy creates the link, otherwise false
 
 :content
 `file_symlink` creates a symbolic link at `linkpath`. The link points to `target`. Use it to give a file another path. It returns false when Capy cannot create the link. Use `path_real()` to resolve a link.

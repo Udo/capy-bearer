@@ -5,7 +5,9 @@ String csrf_field(String session_name = "bearer-session", String token_name = "c
 session_name : session and cookie name
 token_name : token namespace
 field_name : submitted form field name. The default is `token_name`.
-return value : HTML hidden input with the active CSRF token
+
+:returns
+HTML hidden input with the active CSRF token
 
 :content
 `csrf_field()` returns an HTML hidden input with the active Capy CSRF token.

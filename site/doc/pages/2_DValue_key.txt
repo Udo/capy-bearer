@@ -4,7 +4,9 @@ const DValue* DValue::key(String s) const
 
 :params
 s : child key to find
-return value : pointer to an existing child, or 0
+
+:returns
+pointer to an existing child, or 0
 
 :see
 0_DValue

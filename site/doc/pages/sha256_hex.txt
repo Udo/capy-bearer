@@ -3,7 +3,9 @@ String sha256_hex(String data)
 
 :params
 data : bytes to hash
-return value : 64-character lowercase hexadecimal SHA-256 digest
+
+:returns
+64-character lowercase hexadecimal SHA-256 digest
 
 :content
 In Capy, use this function when you need a printable SHA-256 digest.

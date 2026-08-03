@@ -3,21 +3,25 @@ Documentation format
 
 :params
 - `:sig` — one or more real C++ `.uce` signatures, exactly as declared
-- `:params` — `name : description` rows plus `return value : description`
-- `:content` — usage-first prose in 2-5 tight sentences
+- `:content` — a direct description of the operation and its normal use
+- `:params` — `name : description` rows for each parameter
+- `:returns` — the returned value, including distinct success and failure values
+- `:errors` — traps, diagnostics, limits, or rejected input when they apply
 - `:example capy render` — a Capy example, immediately followed by its C++ equivalent
 - `:example cpp render` — its equivalent C++ `.uce` example
 - `:see` — an area reference (`>area`) followed by closest sibling page slugs
 
 
 :content
-Write the Capy API first. State its name and value model. State its inputs, return value, errors, and normal use. Then describe the matching C++ `.uce` API. If Capy does not support a C++ feature, state that limitation. Do not invent a Capy signature.
+Follow the reference order used by the PHP manual. Start with the generated synopsis. Then give the description, parameters, return values, errors, examples, and related pages.
+
+Write the Capy API first. State its value model and normal use in `:content`. Put each input in `:params`. Put the result in `:returns`. Use `:errors` only for verified failure behavior. Then describe the matching C++ `.uce` API. If Capy does not support a C++ feature, state that limit. Do not invent a Capy signature.
 
 `capyc` reads Capy declarations from `src/capy/stdlib.capy`. Compiler primitives and handlers use a checked catalog. The page's `:sig` section contains the existing C++ `.uce` declaration. Unsupported and C++-specific pages show their status.
 
 API pages live in `site/doc/pages/`. Ordered Capy language articles live in `site/doc/capy/`. Both use one parser, renderer, detail layout, search, single-page view, and runtime gate. Language articles require `:title` and `:content`.
 
-A typed example has two contiguous blocks. Put `:example capy ENTRY` before `:example cpp ENTRY`. ENTRY is `render`, `cli`, `component`, `init`, `once`, or `ws`, and both entries must match. The checker rejects unknown, reversed, and unpaired typed blocks. Bare `:example` is a legacy C++ render block. New examples must use typed pairs.
+A typed example has two contiguous blocks. Put `:example capy ENTRY` before `:example cpp ENTRY`. ENTRY is `render`, `cli`, `component`, `init`, `once`, or `ws`. Both entries must match. The checker rejects unknown, reversed, and unpaired typed blocks. Bare `:example` is a legacy C++ render block. New examples must use typed pairs.
 
 Render pairs compile and run as Capy and C++ units. They must produce equal output and show their source and output or error. Other entries compile their actual handler only. Documentation does not simulate a CLI, component, lifecycle, or WebSocket call. Keep examples self-contained and deterministic.
 

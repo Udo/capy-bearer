@@ -3,7 +3,9 @@ String file_get_contents(String file_name)
 
 :params
 file_name : path of the file to read
-return value : file content as a Capy `string`, or `""` when Capy cannot read it
+
+:returns
+file content as a Capy `string`, or `""` when Capy cannot read it
 
 :content
 In Capy, `file_get_contents()` reads a complete file into a `string`. Use it for a small file that you need as one value. An unreadable file returns `""`.

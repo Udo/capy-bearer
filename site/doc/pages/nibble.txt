@@ -4,7 +4,9 @@ String nibble(String& haystack, String delim)
 :params
 haystack : the string to change
 delim : the delimiter
-return value : the text before the first `delim`
+
+:returns
+the text before the first `delim`
 
 :see
 >string

@@ -4,7 +4,9 @@ String memcache_command(u64 connection, String command)
 :params
 connection : open connection handle
 command : Memcache command text
-return value : one bounded server response read
+
+:returns
+one bounded server response read
 
 :see
 >memcache

@@ -7,7 +7,9 @@ DValue request_route_from_raw_path(String raw_path, String default_path = "index
 :params
 raw_path : route text to validate
 default_path : route for empty input
-return value : route metadata as a `dval`
+
+:returns
+route metadata as a `dval`
 
 :see
 >0_Request

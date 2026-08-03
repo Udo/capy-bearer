@@ -3,7 +3,9 @@ String base64_encode(String raw)
 
 :params
 raw : binary-safe source bytes
-return value : the Base64-encoded text
+
+:returns
+the Base64-encoded text
 
 :content
 Capy's `base64_encode(raw)` returns Base64 text as a `string`. Capy strings can contain NUL and other binary bytes.

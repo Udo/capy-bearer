@@ -4,8 +4,8 @@ ws_connection_id
 :sig
 String ws_connection_id()
 
-:params
-return value : connection ID of the current WebSocket client
+:returns
+connection ID of the current WebSocket client
 
 :see
 >websocket

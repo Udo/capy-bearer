@@ -2,8 +2,8 @@
 DValue& DValue::deref()
 const DValue& DValue::deref() const
 
-:params
-return value : referenced target when resolvable, otherwise this value
+:returns
+referenced target when resolvable, otherwise this value
 
 :see
 0_DValue

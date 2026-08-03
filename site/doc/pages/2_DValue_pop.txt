@@ -1,8 +1,8 @@
 :sig
 DValue DValue::pop()
 
-:params
-return value : removed child as a `dval`, or an empty `dval` when no child exists
+:returns
+removed child as a `dval`, or an empty `dval` when no child exists
 
 :see
 0_DValue

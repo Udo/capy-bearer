@@ -4,7 +4,9 @@ bool zip_extract(String zip_file_name, String destination_directory)
 :params
 zip_file_name : path to the ZIP archive
 destination_directory : directory that should receive extracted files
-return value : `true` when extraction completes
+
+:returns
+`true` when extraction completes
 
 :see
 >sys

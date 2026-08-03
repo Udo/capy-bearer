@@ -4,7 +4,9 @@ bool str_starts_with(String haystack, String needle)
 :params
 haystack : Capy string to inspect
 needle : prefix to compare
-return value : `true` when the string starts with the prefix. Otherwise, `false`.
+
+:returns
+`true` when the string starts with the prefix. Otherwise, `false`.
 
 :see
 >string

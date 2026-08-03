@@ -3,7 +3,9 @@ String uri_decode(String s)
 
 :params
 s : string containing URI encoded data
-return value : a string that contains the decoded version of 's'
+
+:returns
+a string that contains the decoded version of 's'
 
 :see
 >uri

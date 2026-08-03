@@ -4,7 +4,9 @@ String join(DValue l, String delim = "\n")
 :params
 l : `dval` list whose values are read as strings
 delim : separator string, default newline
-return value : string with all list values separated by `delim`
+
+:returns
+string with all list values separated by `delim`
 
 :see
 >string

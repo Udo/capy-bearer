@@ -6,7 +6,9 @@ connection : open connection handle
 key : entry key
 value : value text
 expire : lifetime in seconds
-return value : `true` only for a `STORED` server response
+
+:returns
+`true` only for a `STORED` server response
 
 :see
 >memcache

@@ -4,7 +4,9 @@ u64 file_write(u64 h, String data)
 :params
 h : `u64` handle from `file_open()` in a writable mode
 data : string bytes to write at the current offset
-return value : `u64` number of bytes written
+
+:returns
+`u64` number of bytes written
 
 :content
 `file_write()` writes string bytes at a file handle's current offset. It returns the `u64` number of bytes written and advances the offset.

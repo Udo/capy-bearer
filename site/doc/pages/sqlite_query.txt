@@ -6,7 +6,9 @@ DValue sqlite_query(SQLite* db, String q, StringMap params)
 db : Capy SQLite connection value
 q : one SQL statement
 params : optional Capy `dval` map of named parameter values
-return value : Capy `dval` value that contains the result rows
+
+:returns
+Capy `dval` value that contains the result rows
 
 :see
 >sqlite
@@ -19,11 +21,14 @@ sqlite_affected_rows
 :content
 Use `sqlite_query` to run one SQL statement on a Capy SQLite connection. Pass the SQL string. You can also pass a `dval` map for named values. The function returns result rows as a `dval` value.
 
-Use `:name` placeholders with the parameter map. The API rejects positional `?`, `@name`, and `$name` placeholders. It also rejects SQL strings with more than one statement. Use `sqlite_error` to read a SQLite error. Check `sqlite_affected_rows` or `sqlite_insert_id` after a statement that does not return rows.
+Use `:name` placeholders with the parameter map. Check `sqlite_affected_rows` or `sqlite_insert_id` after a statement that does not return rows.
 
 Rows use column names as keys. SQLite integers, floats, text, blobs, and null values convert to `dval` values. Blob values return as byte strings.
 
 Capy uses a connection value and a `dval` map. C++ `.uce` uses an `SQLite*`, `String`, and `StringMap`, as the signatures show.
+
+:errors
+The API rejects positional `?`, `@name`, and `$name` placeholders. It also rejects SQL strings that contain more than one statement. Use `sqlite_error()` to read the SQLite diagnostic.
 
 :example capy render
 var db := sqlite_connect(":memory:")

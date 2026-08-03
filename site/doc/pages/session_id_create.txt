@@ -1,8 +1,8 @@
 :sig
 String session_id_create()
 
-:params
-return value : new 64-character lowercase hexadecimal session ID
+:returns
+new 64-character lowercase hexadecimal session ID
 
 :see
 >session

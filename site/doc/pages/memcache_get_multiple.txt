@@ -4,7 +4,9 @@ StringMap memcache_get_multiple(u64 connection, DValue keys)
 :params
 connection : open connection handle
 keys : `dval` list of entry keys
-return value : `dval` map of returned entries
+
+:returns
+`dval` map of returned entries
 
 :see
 >memcache

@@ -5,7 +5,9 @@ DValue::filter(function<bool (String)> f)
 :params
 items : `dval` list whose values are read as strings
 f : Capy function that returns `bool` for each string
-return value : new `dval` list of selected string values
+
+:returns
+new `dval` list of selected string values
 
 :see
 >string

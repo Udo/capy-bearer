@@ -5,7 +5,9 @@ String replace(String s, String search, String replace_with)
 s : source text
 search : literal text to replace
 replace_with : replacement text
-return value : source text with every literal match replaced
+
+:returns
+source text with every literal match replaced
 
 :see
 >string

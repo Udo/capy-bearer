@@ -1,8 +1,8 @@
 :sig
 bool DValue::is_array() const
 
-:params
-return value : true when the dereferenced value is map-shaped
+:returns
+true when the dereferenced value is map-shaped
 
 :see
 >types

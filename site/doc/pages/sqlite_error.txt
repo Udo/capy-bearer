@@ -3,7 +3,9 @@ String sqlite_error(SQLite* db)
 
 :params
 db : SQLite handle from `sqlite_connect()`
-return value : latest SQLite status or error message
+
+:returns
+latest SQLite status or error message
 
 :see
 >sqlite

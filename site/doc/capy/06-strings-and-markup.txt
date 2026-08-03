@@ -16,7 +16,9 @@ function RENDER(request : dval) {
 <p>Hello, &lt;Ada&gt;</p>
 
 :content
-`<?= name ?>` escapes `<` and `>` because `name` is an ordinary string. This makes markup safe for request data and database text.
+`<?= name ?>` escapes an ordinary string for HTML text and quoted attribute values. It escapes `&`, `<`, `>`, quotes, and apostrophes.
+
+HTML escaping does not validate a URL. It does not make text safe for JavaScript or CSS. Do not interpolate a value into an unquoted attribute.
 
 ## String literals
 
@@ -65,7 +67,7 @@ function RENDER(request : dval) {
 }
 ```
 
-The expression has type `markup`. It can be printed, returned from a component, or placed inside other markup.
+The expression has type `markup`. It can be printed, returned from an ordinary function, or placed inside other markup. A component writes markup to response output.
 
 ## Trusted markup
 

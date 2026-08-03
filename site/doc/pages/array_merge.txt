@@ -5,7 +5,9 @@ DValue array_merge(DValue a, DValue b)
 :params
 a : left-hand source map or tree
 b : right-hand source map or tree
-return value : merged result
+
+:returns
+merged result
 
 :see
 >types

@@ -3,7 +3,9 @@ bool server_stop(String key)
 
 :params
 key : runtime-wide listener key from `server_start_http()`
-return value : `true` when no listener remains or Bearer stopped it
+
+:returns
+`true` when no listener remains or Bearer stopped it
 
 :see
 >sys

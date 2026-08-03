@@ -5,7 +5,9 @@ DValue::map(function<String (String)> f)
 :params
 items : list of string items to transform
 f : function that returns one string for each item
-return value : new list of transformed strings
+
+:returns
+new list of transformed strings
 
 :see
 >string

@@ -65,7 +65,7 @@ function RENDER(request : dval) {
 }
 ```
 
-Both branches must produce the same type.
+Each reachable branch that produces a value must produce the same type. A branch that returns or traps does not produce a value.
 
 ## Loops
 
@@ -81,7 +81,7 @@ function RENDER(request : dval) {
 }
 ```
 
-A `for` loop reads each value from an iterable:
+A `for` loop reads a half-open `s32` range, an array, or a `dval` map or list:
 
 ```capy
 function RENDER(request : dval) {
@@ -102,9 +102,9 @@ function show(names : [string], profile : dval) {
 }
 ```
 
-An array index has type `s32`. A DValue key has type `string`. DValue list keys are decimal strings. Structs are not iterable. The old `=` and `in` forms are invalid.
+An array index has type `s32`. A `dval` key has type `string`. `dval` list keys are decimal strings. Structs are not iterable. The old `=` and `in` forms are invalid.
 
-Array and DValue loops recheck the current count before each iteration. A loop can visit items added while it runs. Shrinkage cannot cause an invalid access. DValue loop items are copies. An array loop retains its current managed item while the body runs.
+Array and `dval` loops recheck the current count before each iteration. A loop can visit items added while it runs. Shrinkage cannot cause an invalid access. `dval` loop items are copies. An array loop retains its current managed item while the body runs.
 
 Use `break` to leave the nearest loop. Use `continue` to start its next iteration.
 

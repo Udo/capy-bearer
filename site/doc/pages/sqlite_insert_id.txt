@@ -3,7 +3,9 @@ u64 sqlite_insert_id(SQLite* db)
 
 :params
 db : Capy SQLite connection value
-return value : last row ID for this connection
+
+:returns
+last row ID for this connection
 
 :see
 >sqlite

@@ -3,7 +3,9 @@ String uri_encode(String s)
 
 :params
 s : string that should be encoded
-return value : an URI-encoded version of 's'
+
+:returns
+an URI-encoded version of 's'
 
 :see
 >uri

@@ -3,7 +3,9 @@ DValue zip_list(String zip_file_name)
 
 :params
 zip_file_name : path to the ZIP archive to inspect
-return value : `dval` containing archive metadata and an `entries` list
+
+:returns
+`dval` containing archive metadata and an `entries` list
 
 :see
 >sys

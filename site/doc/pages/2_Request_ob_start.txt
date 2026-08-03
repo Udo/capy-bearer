@@ -1,8 +1,8 @@
 :sig
 void Request::ob_start()
 
-:params
-return value : none
+:returns
+none
 
 :see
 0_Request

@@ -1,8 +1,8 @@
 :sig
 bool DValue::is_reference() const
 
-:params
-return value : true when this node itself is a reference node
+:returns
+true when this node itself is a reference node
 
 :see
 0_DValue

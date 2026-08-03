@@ -4,7 +4,9 @@ String backtrace_capture(u32 max_frames = 32, u32 skip_frames = 0)
 :params
 max_frames : maximum number of frames to capture
 skip_frames : number of newest frames to omit
-return value : formatted backtrace string
+
+:returns
+formatted backtrace string
 
 :see
 >runtime

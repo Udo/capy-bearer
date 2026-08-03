@@ -3,7 +3,9 @@ StringMap split_http_headers(String s)
 
 :params
 s : HTTP request line and headers, or header lines
-return value : map-shaped `dval` with parsed fields
+
+:returns
+map-shaped `dval` with parsed fields
 
 :see
 >string

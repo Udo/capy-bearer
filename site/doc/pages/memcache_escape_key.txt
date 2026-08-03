@@ -3,7 +3,9 @@ String memcache_escape_key(String key)
 
 :params
 key : key text
-return value : key with whitespace characters replaced by underscores
+
+:returns
+key with whitespace characters replaced by underscores
 
 :see
 >sys

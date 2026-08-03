@@ -4,7 +4,9 @@ u64 draw_int(u64 from, u64 to)
 :params
 from : first range value
 to : second range value
-return value : `u64` noise value between `from` and `to`
+
+:returns
+`u64` noise value between `from` and `to`
 
 :see
 >noise

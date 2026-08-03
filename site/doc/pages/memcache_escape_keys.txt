@@ -3,7 +3,9 @@ DValue memcache_escape_keys(DValue keys)
 
 :params
 keys : input `dval` values
-return value : new `dval` list of escaped keys
+
+:returns
+new `dval` list of escaped keys
 
 :see
 >sys

@@ -1,8 +1,8 @@
 :sig
 String cwd_get()
 
-:params
-return value : current working directory path
+:returns
+current working directory path
 
 :see
 >sys

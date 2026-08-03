@@ -4,7 +4,9 @@ u64 gen_noise64(u64 index, u64 seed = 0)
 :params
 index : deterministic input position
 seed : deterministic input seed, default `0`
-return value : deterministic `u64` noise value
+
+:returns
+deterministic `u64` noise value
 
 :see
 >noise

@@ -3,7 +3,9 @@ String shell_exec(String cmd)
 
 :params
 cmd : complete shell command string
-return value : combined standard output and standard error
+
+:returns
+combined standard output and standard error
 
 :see
 >sys

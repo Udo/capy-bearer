@@ -3,7 +3,9 @@ void DValue::set_bool(bool b)
 
 :params
 b : boolean value to store
-return value : none
+
+:returns
+none
 
 :see
 0_DValue

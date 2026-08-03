@@ -5,7 +5,9 @@ bool ws_send(String message, bool binary = false, String scope = "")
 message : message payload to send
 binary : set to true to send a binary frame instead of a text frame
 scope : optional scope identifier, defaults to the current WebSocket page scope
-return value : true if the message was queued for at least one connected client
+
+:returns
+true if the message was queued for at least one connected client
 
 :see
 >websocket

@@ -4,7 +4,9 @@ DValue DValue::get_by_path(String path, String delim = "/") const
 :params
 path : delimited child path to traverse
 delim : path separator string
-return value : resolved child as a `dval`, or an empty string value when traversal fails
+
+:returns
+resolved child as a `dval`, or an empty string value when traversal fails
 
 :see
 >types

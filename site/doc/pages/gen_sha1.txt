@@ -4,7 +4,9 @@ String gen_sha1(String s, bool as_binary = false)
 :params
 s : string bytes to hash
 as_binary : `false` for hexadecimal text, `true` for raw bytes
-return value : SHA-1 digest string
+
+:returns
+SHA-1 digest string
 
 :see
 >noise

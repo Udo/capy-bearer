@@ -3,7 +3,9 @@ String random_bytes(u64 n)
 
 :params
 n : the number of random bytes to request
-return value : cryptographically random bytes
+
+:returns
+cryptographically random bytes
 
 :content
 In Capy, `random_bytes()` returns cryptographically secure bytes as a `string`. The API returns no more than 1 MiB. It can return fewer bytes, including an empty string, if the random source fails.

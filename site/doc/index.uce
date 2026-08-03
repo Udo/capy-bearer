@@ -45,6 +45,13 @@ void render_doc_params(DValue param_lines)
 	?></div></>
 }
 
+void render_doc_text_section(String class_name, String title, String content)
+{
+	if(trim(content) == "")
+		return;
+	?><div class="doc-section <?= class_name ?>"><h3><?= title ?></h3><?: markdown_to_html(content) ?></div><?
+}
+
 // The shared DocPage parser validates typed pairs before artifact creation.
 bool doc_example_safe_member(String value)
 {
@@ -304,6 +311,34 @@ void render_see_section(String name, bool compact = false)
 	}
 }
 
+void render_guide_navigation(String page)
+{
+	String previous;
+	String next;
+	bool found = false;
+	for(String target : doc_page_names())
+	{
+		if(target.rfind("capy-", 0) != 0)
+			continue;
+		if(found)
+		{
+			next = target;
+			break;
+		}
+		if(target == page)
+			found = true;
+		else
+			previous = target;
+	}
+	if(!found)
+		return;
+	?><nav class="guide-navigation" aria-label="Capy guide navigation">
+		<div class="guide-previous"><? if(previous != "") { ?>Previous: <? render_doc_page_link(previous); } ?></div>
+		<div class="guide-index"><a href="./">Guide index</a></div>
+		<div class="guide-next"><? if(next != "") { ?>Next: <? render_doc_page_link(next); } ?></div>
+	</nav><?
+}
+
 void render_doc_see_links(DValue see_lines)
 {
 	if(see_lines.size() == 0)
@@ -479,14 +514,24 @@ RENDER(Request& context)
 
 			render_doc_signatures(doc_page);
 
-			render_doc_params(doc_page.param_lines);
+			bool is_guide = page.rfind("capy-", 0) == 0;
+			if(is_guide)
+				render_guide_navigation(page);
 
 			if(trim(doc_page.content) != "")
 			{
-				?><div class="doc-section content"><?: markdown_to_html(doc_page.content) ?></div><?
+				?><div class="doc-section content"><?
+				if(!is_guide) { ?><h3>Description</h3><? }
+				?><?: markdown_to_html(doc_page.content) ?></div><?
 			}
 
+			render_doc_params(doc_page.param_lines);
+			render_doc_text_section("returns", "Return Values", doc_page.returns);
+			render_doc_text_section("errors", "Errors", doc_page.errors);
 			render_doc_examples(context, page, doc_page);
+
+			if(is_guide)
+				render_guide_navigation(page);
 
 			?></article><?
 

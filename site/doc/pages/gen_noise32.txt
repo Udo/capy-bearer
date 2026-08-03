@@ -4,7 +4,9 @@ u32 gen_noise32(u32 index, u32 seed = 0)
 :params
 index : deterministic input position
 seed : deterministic input seed, default `0`
-return value : deterministic noise value
+
+:returns
+deterministic noise value
 
 :see
 >noise

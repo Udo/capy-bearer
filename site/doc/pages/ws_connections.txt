@@ -6,7 +6,9 @@ DValue ws_connections(String scope = "")
 
 :params
 scope : optional C++ WebSocket scope identifier
-return value : C++ list of connection IDs in that scope
+
+:returns
+C++ list of connection IDs in that scope
 
 :see
 >websocket

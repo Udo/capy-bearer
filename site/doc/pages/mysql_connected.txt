@@ -3,7 +3,9 @@ bool mysql_connected(MySQL* m)
 
 :params
 m : Capy MySQL handle
-return value : `true` when the handle has a live server connection
+
+:returns
+`true` when the handle has a live server connection
 
 :see
 >mysql

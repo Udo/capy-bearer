@@ -4,7 +4,9 @@ String hmac_sha256_hex(String key, String data)
 :params
 key : secret string bytes
 data : message string bytes
-return value : 64-character lowercase hexadecimal HMAC-SHA256 string
+
+:returns
+64-character lowercase hexadecimal HMAC-SHA256 string
 
 :content
 `hmac_sha256_hex()` returns the HMAC-SHA256 for `key` and `data` as lowercase hexadecimal text.

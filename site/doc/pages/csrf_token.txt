@@ -4,7 +4,9 @@ String csrf_token(String session_name = "bearer-session", String token_name = "c
 :params
 session_name : session and cookie name
 token_name : token namespace in the session
-return value : printable CSRF token for the active session
+
+:returns
+printable CSRF token for the active session
 
 :content
 `csrf_token()` returns a stable Capy CSRF token for one session and token namespace.

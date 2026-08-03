@@ -6,7 +6,9 @@ key : runtime-wide listener key
 socket_fn_or_port : TCP port number or Unix socket path
 call_bearer_filename : `.capy` or `.uce` file that contains the handler
 call_function : optional named handler
-return value : listener process PID, or `0` if Bearer cannot start it
+
+:returns
+listener process PID, or `0` if Bearer cannot start it
 
 :see
 >sys

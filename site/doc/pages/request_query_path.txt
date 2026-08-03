@@ -7,7 +7,9 @@ String request_query_path(Request& context, String default_path = "index")
 :params
 context : live C++ request context
 default_path : route for empty input
-return value : safe keyless query route
+
+:returns
+safe keyless query route
 
 :see
 >uri

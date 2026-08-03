@@ -5,7 +5,9 @@ u64 file_pwrite(u64 h, u64 offset, String data)
 h : writable handle from `file_open()`
 offset : absolute byte offset
 data : Capy `string` data to write
-return value : number of bytes written
+
+:returns
+number of bytes written
 
 :content
 In Capy, `file_pwrite()` writes `string` bytes at an absolute offset without changing the handle position.

@@ -6,7 +6,9 @@ u64 ws_connection_count(String scope = "")
 
 :params
 scope : optional C++ WebSocket scope identifier
-return value : number of connected C++ WebSocket clients in that scope
+
+:returns
+number of connected C++ WebSocket clients in that scope
 
 :see
 >websocket

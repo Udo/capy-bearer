@@ -9,7 +9,9 @@ void DValue::set(StringMap source)
 value : Capy `dval` to replace
 source : replacement `dval`
 s, p, f : C++-only string, pointer, and `f64` overload values
-return value : replacement `dval` in Capy. C++ changes the receiver and returns nothing
+
+:returns
+replacement `dval` in Capy. C++ changes the receiver and returns nothing
 
 :see
 0_DValue

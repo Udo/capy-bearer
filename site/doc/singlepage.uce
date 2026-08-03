@@ -26,6 +26,13 @@ void render_doc_params(DValue param_lines)
 	<></div></>
 }
 
+void render_doc_text_section(String class_name, String title, String content)
+{
+	if(trim(content) == "")
+		return;
+	?><div class="<?= class_name ?>"><h3><?= title ?></h3><?: markdown_to_html(content) ?></div><?
+}
+
 void render_doc_example_sources(DocPage doc_page)
 {
 	if(doc_page.example_parse_error != "")
@@ -86,12 +93,16 @@ void render_doc_page(String page)
 	}
 	<></div></>
 
-	render_doc_params(doc_page.param_lines);
-
 	if(trim(doc_page.content) != "")
 	{
-		<><div class="content"><?: markdown_to_html(doc_page.content) ?></div></>
+		<><div class="content"><?
+		if(page.rfind("capy-", 0) != 0) { ?><h3>Description</h3><? }
+		?><?: markdown_to_html(doc_page.content) ?></div></>
 	}
+
+	render_doc_params(doc_page.param_lines);
+	render_doc_text_section("returns", "Return Values", doc_page.returns);
+	render_doc_text_section("errors", "Errors", doc_page.errors);
 	render_doc_example_sources(doc_page);
 	<></section></>
 }

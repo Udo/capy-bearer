@@ -4,7 +4,9 @@ bool crypto_equal(String a, String b)
 :params
 a : first byte string
 b : second byte string
-return value : `true` when both byte strings are equal
+
+:returns
+`true` when both byte strings are equal
 
 :content
 `crypto_equal()` compares two Capy byte strings in constant time.

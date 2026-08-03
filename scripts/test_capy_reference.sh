@@ -37,8 +37,9 @@ guide=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=capy-08-dynamic-va
 }
 [[ "$guide" == *"8. Dynamic values"* && "$guide" == *"Nested assignment creates missing maps"* &&
 	"$guide" == *"var profile :="* && "$guide" == *"<strong>Output</strong>"* &&
+	"$guide" == *'class="guide-navigation"'* && "$guide" == *'Previous: '* && "$guide" == *'Next: '* &&
 	"$guide" != *"Minimal executable example"* && "$guide" != *"Compile-only: WS"* ]] || {
-	echo "Capy guide page omitted its title, content, source, or output" >&2
+	echo "Capy guide page omitted its content, output, or navigation" >&2
 	exit 1
 }
 constructor=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=2_DValue_to_string") || {
@@ -48,6 +49,16 @@ constructor=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=2_DValue_to_
 [[ "$constructor" == *"DValue::to_string"* && "$constructor" == *"function string(value : dval"* &&
 	"$constructor" != *"DOC EXAMPLE ERROR"* ]] || {
 	echo "Capy constructor API page omitted its C++ or Capy signature" >&2
+	exit 1
+}
+contract=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=http_request") || {
+	echo "Structured API contract page did not render" >&2
+	exit 1
+}
+[[ "$contract" == *'<h3>Description</h3>'* && "$contract" == *'<h3>Parameters</h3>'* &&
+	"$contract" == *'<h3>Return Values</h3>'* && "$contract" == *'<h3>Errors</h3>'* &&
+	"$contract" != *"DOC EXAMPLE ERROR"* ]] || {
+	echo "Structured API contract sections are incomplete" >&2
 	exit 1
 }
 legacy_headers=$(curl -fsS --max-time 30 -o /dev/null -D - -H "Host: $host" "$doc_base?p=capy-10-dvalues" | tr -d '\r')
@@ -61,8 +72,17 @@ singlepage=$(curl -fsS --max-time 180 -H "Host: $host" "${doc_base}singlepage.uc
 }
 [[ "$singlepage" == *'<pre><code class="language-capy">'* &&
 	"$singlepage" == *"function RENDER"* && "$singlepage" == *"<strong>Output</strong>"* &&
+	"$singlepage" == *'<h3>Return Values</h3>'* && "$singlepage" == *'<h3>Errors</h3>'* &&
 	"$singlepage" != *"Minimal executable example"* && "$singlepage" != *"guide-example"* ]] || {
-	echo "Combined documentation page misplaced parsed guide examples" >&2
+	echo "Combined documentation page misplaced guide examples or contract sections" >&2
+	exit 1
+}
+search=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}search.uce?q=http_request") || {
+	echo "Documentation search did not render" >&2
+	exit 1
+}
+[[ "$search" == *'p=http_request'* && "$search" == *'http_request'* ]] || {
+	echo "Documentation search omitted a structured API page" >&2
 	exit 1
 }
 

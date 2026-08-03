@@ -3,7 +3,9 @@ URI parse_uri(String uri_string)
 
 :params
 uri_string : the URI or URL text
-return value : URI data as a `dval`. C++ returns a `URI` value
+
+:returns
+URI data as a `dval`. C++ returns a `URI` value
 
 :see
 >uri

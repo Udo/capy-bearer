@@ -4,7 +4,9 @@ String path_join(String base, String child)
 :params
 base : the base path
 child : the path to append
-return value : the joined path
+
+:returns
+the joined path
 
 :content
 In Capy, `path_join()` returns a `string` that joins `base` and `child` with one `/` when needed.

@@ -6,7 +6,9 @@ DValue cli_input(Request& context)
 
 :params
 context : live C++ request context
-return value : merged CLI input values
+
+:returns
+merged CLI input values
 
 :see
 >ob

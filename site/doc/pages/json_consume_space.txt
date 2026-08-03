@@ -4,7 +4,9 @@ void json_consume_space(String s, u32& i)
 :params
 source : JSON source text
 index : byte offset where scanning starts
-return value : Capy byte offset after JSON whitespace
+
+:returns
+Capy byte offset after JSON whitespace
 
 :see
 >string

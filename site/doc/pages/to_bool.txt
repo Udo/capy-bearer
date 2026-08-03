@@ -7,7 +7,9 @@ bool to_bool(String s, bool fallback = false)
 :params
 s : C++ text to parse
 fallback : value for empty or unrecognized text
-return value : parsed C++ boolean or `fallback`
+
+:returns
+parsed C++ boolean or `fallback`
 
 :see
 >types

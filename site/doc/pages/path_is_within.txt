@@ -4,7 +4,9 @@ bool path_is_within(String path, String root)
 :params
 path : the path to test
 root : the directory that must contain the path
-return value : `true` if `path` is inside `root`
+
+:returns
+`true` if `path` is inside `root`
 
 :content
 In Capy, `path_is_within()` returns `true` when `path` is inside `root`. It resolves both paths with `path_real()`. Both paths must exist. Resolution follows symbolic links and removes `.` and `..` segments.

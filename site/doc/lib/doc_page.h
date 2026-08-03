@@ -7,6 +7,8 @@ struct DocPage {
 	DValue sig_lines;
 	DValue capy_sig_lines;
 	DValue param_lines;
+	String returns;
+	String errors;
 	DValue example_blocks;
 	DValue example_pairs;
 	DValue cpp_only_examples;
@@ -241,6 +243,10 @@ void doc_flush_section(DocPage& result, String page, String section, DValue& sec
 		for(String line : section_lines)
 			result.param_lines.push_back(line);
 	}
+	else if(section == "returns")
+		result.returns = trim(join(section_lines, "\n"));
+	else if(section == "errors")
+		result.errors = trim(join(section_lines, "\n"));
 	else if(section == "see")
 	{
 		for(String line : section_lines)
@@ -425,7 +431,7 @@ DocPage load_doc_page(String page)
 				current_section = "";
 				continue;
 			}
-			if(section == "title" || section == "sig" || section == "params" || section == "content" || section == "see" || section == "output")
+			if(section == "title" || section == "sig" || section == "params" || section == "returns" || section == "errors" || section == "content" || section == "see" || section == "output")
 			{
 				current_section = section;
 				continue;

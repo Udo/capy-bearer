@@ -4,7 +4,9 @@ u64 memcache_connect(String host = "127.0.0.1", u16 port = 11211)
 :params
 host : server host name. The default is `127.0.0.1`
 port : server port. The default is `11211`
-return value : connection handle, or zero on failure
+
+:returns
+connection handle, or zero on failure
 
 :see
 >memcache

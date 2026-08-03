@@ -6,7 +6,9 @@ s : text with one key and value per line
 separator : separator string. Capy uses its first character
 trim_whitespace : trim keys and values when true
 uppercase_keys : convert keys to uppercase when true
-return value : map-shaped `dval` of keys and values
+
+:returns
+map-shaped `dval` of keys and values
 
 :see
 >string

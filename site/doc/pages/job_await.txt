@@ -4,8 +4,15 @@ job_await
 :sig
 DValue job_await(u64 job_id, u64 timeout_ms)
 
+:params
+job : the Capy `dval` job ID. C++ `.uce` uses a `u64` ID.
+timeout_ms : maximum wait in milliseconds
+
+:returns
+a `dval` status map. A completed job includes `result`.
+
 :content
-`job_await()` waits for a job for up to `timeout_ms` milliseconds. It returns a `dval` status map and includes `result` when the job finishes.
+`job_await()` waits for a job for up to `timeout_ms` milliseconds.
 
 It returns a running status when the time limit expires. Use it after `shell_spawn()` or `http_request_async()` when you can wait for completion.
 

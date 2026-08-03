@@ -3,7 +3,9 @@ DValue json_decode(String s)
 
 :params
 s : text that contains JSON data
-return value : decoded `dval` data
+
+:returns
+decoded `dval` data
 
 :see
 0_DValue

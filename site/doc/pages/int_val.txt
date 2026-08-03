@@ -4,7 +4,9 @@ u64 int_val(String s, u32 base = 10)
 :params
 s : string that can contain an integer
 base : number base, default `10`
-return value : parsed `u64`, or `0` when no usable number exists
+
+:returns
+parsed `u64`, or `0` when no usable number exists
 
 :see
 >string

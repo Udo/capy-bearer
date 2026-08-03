@@ -1,8 +1,8 @@
 :sig
 String ob_get()
 
-:params
-return value : the current output buffer contents
+:returns
+the current output buffer contents
 
 :content
 In Capy, `ob_get()` returns the current output buffer as a `string`. The buffer stays active, so later `print()` calls add more output.

@@ -3,7 +3,9 @@ String basename(String fn)
 
 :params
 fn : a path
-return value : the final path component
+
+:returns
+the final path component
 
 :content
 Capy's `basename(path)` returns the final path component as a `string`. Pass a path string.

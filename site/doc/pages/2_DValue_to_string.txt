@@ -3,7 +3,9 @@ String DValue::to_string(String default_value = "") const
 
 :params
 String : fallback returned when conversion is not possible
-return value : converted value or the fallback
+
+:returns
+converted value or the fallback
 
 :see
 >types

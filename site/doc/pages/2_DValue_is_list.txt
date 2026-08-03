@@ -1,8 +1,8 @@
 :sig
 bool DValue::is_list() const
 
-:params
-return value : true when the value is an array with keys 0..n-1
+:returns
+true when the value is an array with keys 0..n-1
 
 :see
 >types

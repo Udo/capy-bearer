@@ -4,7 +4,9 @@ String time_format_local(String format = "", u64 timestamp = 0)
 :params
 format : optional Capy format string
 timestamp : optional Unix timestamp. Omit it to use the current time.
-return value : formatted local-time string
+
+:returns
+formatted local-time string
 
 :see
 >time

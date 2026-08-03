@@ -4,7 +4,9 @@ String mysql_escape(String raw, char quote_char)
 :params
 raw : the string to escape
 quote_char : the character that wraps the result. Pass `NULL` for no wrapper.
-return value : the escaped form of `raw`
+
+:returns
+the escaped form of `raw`
 
 :see
 >mysql

@@ -4,7 +4,9 @@ String zip_read(String zip_file_name, String entry_name)
 :params
 zip_file_name : path to the ZIP archive
 entry_name : member name to read from the archive
-return value : uncompressed entry contents
+
+:returns
+uncompressed entry contents
 
 :see
 >sys

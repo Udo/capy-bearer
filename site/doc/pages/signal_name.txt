@@ -3,7 +3,9 @@ String signal_name(s32 sig)
 
 :params
 sig : POSIX signal number
-return value : signal name, or an empty string for an unknown number
+
+:returns
+signal name, or an empty string for an unknown number
 
 :see
 >runtime

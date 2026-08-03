@@ -4,7 +4,9 @@ String task(String target, DValue props)
 :params
 target : Capy unit path. Add `:NAME` to select a named task handler.
 props : Capy `dval` input available through `request.props`
-return value : opaque task ID
+
+:returns
+opaque task ID
 
 :see
 >task
@@ -17,7 +19,10 @@ Use `task` to place background work in the task queue. Pass a Capy unit path and
 
 A target without a suffix calls `TASK`. A target with `:NAME` calls `TASK:NAME`. Each task gets a new request. Its `request.props` field contains only the copied input value. It does not receive the caller request, session, connections, resources, or memory state.
 
-The call can fail when the queue cannot accept the task. A task can later have a failed, timed out, or canceled status.
+A task can later have a failed, timed out, or canceled status.
+
+:errors
+The call traps when Bearer cannot admit the task to the queue. A returned task ID only confirms admission. It does not confirm completion.
 
 Capy handlers use `function TASK(request : dval)` or `function TASK:NAME(request : dval)`. The C++ `.uce` forms are `TASK(Request& context)` and `TASK:NAME(Request& context)`.
 

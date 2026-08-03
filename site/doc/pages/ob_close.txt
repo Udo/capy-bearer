@@ -1,8 +1,8 @@
 :sig
 void ob_close()
 
-:params
-return value : no value
+:returns
+no value
 
 :content
 In Capy, `ob_close()` discards the current output buffer and returns to the previous buffer.
