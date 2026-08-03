@@ -3077,11 +3077,13 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 	if (receiver.second != array_type)
 		throw Error(member->value->location, "array receiver type changed during mutation");
 	const bool owned_receiver = expression_is_owned(member->value);
+	const bool stable_borrow = !owned_receiver && dynamic_cast<Name*>(member->value);
 	const unsigned slot = add_local("", array_type, member->value->location);
 	Bytes receiver_code = std::move(receiver.first); receiver_code.push_back(0x21); wasm::append_uleb(receiver_code, slot);
-	if (!owned_receiver) { receiver_code.push_back(0x20); wasm::append_uleb(receiver_code, slot); receiver_code.push_back(0x10); wasm::append_uleb(receiver_code, module_.retain_index()); }
+	if (!owned_receiver && !stable_borrow) { receiver_code.push_back(0x20); wasm::append_uleb(receiver_code, slot); receiver_code.push_back(0x10); wasm::append_uleb(receiver_code, module_.retain_index()); }
 	auto release_receiver = [&](Bytes& code)
 	{
+		if (!owned_receiver && stable_borrow) return;
 		code.push_back(0x20); wasm::append_uleb(code, slot); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
 	};
 	Bytes receiver_cleanup; release_receiver(receiver_cleanup);
