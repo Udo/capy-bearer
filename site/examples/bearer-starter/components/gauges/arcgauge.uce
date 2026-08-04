@@ -86,7 +86,7 @@ COMPONENT(Request& context)
 					});
 				}
 			};
-			ArcgaugeComponents.start_listen(<?: json_encode(context.props, '\'') ?>);
+			ArcgaugeComponents.start_listen(<?= context.props ?>);
 			</script>
 		<? } ?>
 	</>

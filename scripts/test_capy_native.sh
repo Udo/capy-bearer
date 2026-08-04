@@ -12,7 +12,7 @@ needs_rebuild() {
 	shift
 	[[ ! -x "$output" ]] || find "$@" -newer "$output" -print -quit | grep -q .
 }
-if needs_rebuild "$BUILD_DIR/capyc" src/capy scripts/build_capy.sh; then
+if needs_rebuild "$BUILD_DIR/capyc" src/capy src/lib/markup-context.h scripts/build_capy.sh; then
 	scripts/build_capy.sh "$BUILD_DIR/capyc" debug
 else
 	echo "Reusing $BUILD_DIR/capyc"

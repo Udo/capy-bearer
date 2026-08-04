@@ -163,7 +163,7 @@ COMPONENT(Request& context)
 					});
 				}
 			};
-			ProgressbarComponents.start_listen(<?: json_encode(context.props, '\'') ?>);
+			ProgressbarComponents.start_listen(<?= context.props ?>);
 			</script>
 		<? } ?>
 	</>

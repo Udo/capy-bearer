@@ -140,15 +140,15 @@ COMPONENT:TIMESERIES_CHART(Request& context)
 		<script>
 		(function () {
 			if (typeof UTimeSeriesChart === 'undefined') return;
-			var chart = new UTimeSeriesChart(<?: json_encode(canvas_id) ?>, {
-				xAxisLabel: <?: json_encode(x_axis_label) ?>,
-				yAxisLeftLabel: <?: json_encode(y_axis_left_label) ?>,
-				yAxisRightLabel: <?: json_encode(y_axis_right_label) ?>,
-				yAxisLeftFormat: <?: json_encode(y_axis_left_format) ?>,
-				yAxisRightFormat: <?: json_encode(y_axis_right_format) ?>
+			var chart = new UTimeSeriesChart(<?= canvas_id ?>, {
+				xAxisLabel: <?= x_axis_label ?>,
+				yAxisLeftLabel: <?= y_axis_left_label ?>,
+				yAxisRightLabel: <?= y_axis_right_label ?>,
+				yAxisLeftFormat: <?= y_axis_left_format ?>,
+				yAxisRightFormat: <?= y_axis_right_format ?>
 			});
-			chart.setData(<?: json_encode(context.props["series"]) ?>, <?: json_encode(context.props["x_labels"]) ?>);
-			window[<?: json_encode("chart_" + chart_id) ?>] = chart;
+			chart.setData(<?= context.props["series"] ?>, <?= context.props["x_labels"] ?>);
+			window[<?= "chart_" + chart_id ?>] = chart;
 		}());
 		</script>
 	</>
@@ -211,7 +211,7 @@ COMPONENT:SORTABLE_TABLE(Request& context)
 		<script>
 		(function () {
 			if (typeof USortableTable === 'undefined') return;
-			USortableTable.init(<?: json_encode(table_id) ?>, <?: json_encode(init_options) ?>);
+			USortableTable.init(<?= table_id ?>, <?= init_options ?>);
 		}());
 		</script>
 	</>
@@ -291,18 +291,18 @@ COMPONENT:DATA_TABLE(Request& context)
 		<script>
 		(function () {
 			if (typeof agGrid === 'undefined') return;
-			const gridOptions = <?: json_encode(grid_options) ?>;
-			const gridElement = document.getElementById(<?: json_encode(table_id) ?>);
+			const gridOptions = <?= grid_options ?>;
+			const gridElement = document.getElementById(<?= table_id ?>);
 			if (!gridElement) return;
 			const gridApi = agGrid.createGrid(gridElement, gridOptions);
-			document.getElementById(<?: json_encode(table_id + "-search") ?>)?.addEventListener('input', function () {
+			document.getElementById(<?= table_id + "-search" ?>)?.addEventListener('input', function () {
 				gridApi.setQuickFilter(this.value);
 			});
-			document.getElementById(<?: json_encode(table_id + "-clear-filters") ?>)?.addEventListener('click', function () {
+			document.getElementById(<?= table_id + "-clear-filters" ?>)?.addEventListener('click', function () {
 				gridApi.setFilterModel(null);
 				gridApi.setQuickFilter('');
 			});
-			document.getElementById(<?: json_encode(table_id + "-export-csv") ?>)?.addEventListener('click', function () {
+			document.getElementById(<?= table_id + "-export-csv" ?>)?.addEventListener('click', function () {
 				gridApi.exportDataAsCsv();
 			});
 		}());

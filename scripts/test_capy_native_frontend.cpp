@@ -147,6 +147,38 @@ int main(int argc, char** argv)
 		assert(static_cast<MarkupText*>(static_cast<Markup*>(p.items[0])->parts[0])->value == "<script>const close = \"</>\";</script>");
 	}
 	{
+		bearer::MarkupContextScanner script;
+		script.consume("<script/>");
+		assert(script.context() == bearer::MarkupContext::javascript_value);
+		bearer::MarkupContextScanner style;
+		style.consume("<style/>");
+		assert(style.context() == bearer::MarkupContext::css_value);
+		bearer::MarkupContextScanner css_comment;
+		css_comment.consume("<style>.x { color: /* note */ ");
+		assert(css_comment.context() == bearer::MarkupContext::css_value);
+		bearer::MarkupContextScanner javascript_comment;
+		javascript_comment.consume("<script>const value = // note\xE2\x80\xA8");
+		assert(javascript_comment.context() == bearer::MarkupContext::javascript_value);
+		bearer::MarkupContextScanner javascript_keyword;
+		javascript_keyword.consume("<script>const value = new ");
+		assert(javascript_keyword.context() == bearer::MarkupContext::javascript_value);
+		bearer::MarkupContextScanner javascript_division;
+		javascript_division.consume("<script>const ratio = total / ");
+		assert(javascript_division.context() == bearer::MarkupContext::javascript_value);
+		bearer::MarkupContextScanner css_division;
+		css_division.consume("<style>.x { width: calc(1 / ");
+		assert(css_division.context() == bearer::MarkupContext::css_value);
+	}
+	{
+		Program p = parse("<><p title=\"<?= title ?>\"><?= body ?></p><a href=\"<?= url ?>\">link</a><script>const value = <?= script ?>;</script><script>function value() { return <?= returned ?>; }</script><style>.x { content: <?= css ?>; }</style></>\n", "contexts.capy");
+		auto* markup = static_cast<Markup*>(p.items[0]);
+		std::vector<bearer::MarkupContext> contexts;
+		for (Expr* part : markup->parts)
+			if (auto* field = dynamic_cast<MarkupField*>(part)) contexts.push_back(field->context);
+		assert(contexts == std::vector<bearer::MarkupContext>({bearer::MarkupContext::html_attribute, bearer::MarkupContext::html_text,
+			bearer::MarkupContext::html_attribute, bearer::MarkupContext::javascript_value, bearer::MarkupContext::javascript_value, bearer::MarkupContext::css_value}));
+	}
+	{
 		Program p = parse("EXPORTS first, second\nEXPORTS third\n", "exports.capy");
 		auto* first = static_cast<Exports*>(p.items[0]);
 		auto* second = static_cast<Exports*>(p.items[1]);
@@ -206,6 +238,17 @@ int main(int argc, char** argv)
 	}
 	expect_error("<><?=   ?></>", "empty markup interpolation");
 	expect_error("<><?= value </>", "unterminated markup interpolation");
+	expect_error("<><<?= name ?>>x</div></>", "tag or attribute name");
+	expect_error("<><div <?= name ?>=\"x\"></div></>", "tag or attribute name");
+	expect_error("<><div title=<?= value ?>></div></>", "requires a quoted attribute value");
+	expect_error("<><script>const value = \"<?= value ?>\";</script></>", "JavaScript string");
+	expect_error("<><script>// <?= value ?>\n</script></>", "JavaScript comment");
+	expect_error("<><script>window.name_<?= value ?> = true;</script></>", "JavaScript value boundary");
+	expect_error("<><style>.x { content: \"<?= value ?>\"; }</style></>", "CSS string");
+	expect_error("<><style>.x { color-name-<?= value ?>: red; }</style></>", "CSS value boundary");
+	expect_error("<><style>/* <?= value ?> */</style></>", "CSS comment");
+	expect_error("<><!-- <?= value ?> --></>", "HTML comment or declaration");
+	expect_error("<><script><?: trusted ?></script></>", "raw markup interpolation is only allowed in HTML text");
 	expect_error("<><p>missing", "unterminated markup expression");
 	expect_error("function CLI(request : dval) { break junk }\n", "break does not accept arguments or operators");
 	expect_error("function CLI(request : dval) { continue() }\n", "continue does not accept arguments or operators");

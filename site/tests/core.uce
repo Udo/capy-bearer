@@ -1,4 +1,5 @@
 #include "testlib.h"
+#include <limits>
 
 RENDER(Request& context)
 {
@@ -33,7 +34,15 @@ RENDER(Request& context)
 	check("trim() / split_kv() / split_http_headers()", trim("  padded value  ") == "padded value" && kv["alpha"] == "one" && kv["empty"] == "" && http_headers["REQUEST_METHOD"] == "GET" && http_headers["DOCUMENT_URI"] == "/demo.uce" && http_headers["QUERY_STRING"] == "x=1" && http_headers["HTTP_X_EMPTY"] == "" && leading_crlf_headers["REQUEST_METHOD"] == "GET" && leading_crlf_headers["DOCUMENT_URI"] == "/lead.uce" && leading_crlf_headers["HTTP_HOST"] == "lead.example" && header_only["REQUEST_METHOD"] == "" && header_only["HTTP_HOST"] == "example.test" && header_only["HTTP_X_TOKEN"] == "abc", trim("  padded value  ") + " / " + var_dump(kv) + " / " + var_dump(http_headers) + " / " + var_dump(leading_crlf_headers) + " / " + var_dump(header_only));
 	check("replace()", replace("alpha-beta-beta", "beta", "done") == "alpha-done-done", replace("alpha-beta-beta", "beta", "done"));
 	check("html_escape() attribute-safe quotes", html_escape("<&>\"Don't") == "&lt;&amp;&gt;&quot;Don&#39;t", html_escape("<&>\"Don't"));
-	check("regex_match()", regex_match("[A-Z][a-z]+", "Alice") && !regex_match("[A-Z][a-z]+", "Alice!"), "full-string validation");
+	String javascript_value = markup_javascript_value("</script>&'" + String("\xE2\x80\xA8") + String("\xE2\x80\xA9"));
+	check("markup JavaScript value escaping", javascript_value == "\"\\u003C\\/script\\u003E\\u0026\\u0027\\u2028\\u2029\"", javascript_value);
+	DValue javascript_data; javascript_data["close"] = "</script>";
+	String javascript_object = markup_javascript_value(javascript_data);
+	check("markup JavaScript DValue escaping", javascript_object == "{\"close\": \"\\u003C\\/script\\u003E\"}", javascript_object);
+	String css_value = markup_css_value("</style>\n");
+	check("markup CSS value escaping", css_value == "\"\\3C /style\\3E \\A \"", css_value);
+	check("markup floating-point values", markup_javascript_value(1.5) == "1.5" && markup_css_value(1.5) == "1.5" && markup_javascript_value(std::numeric_limits<f64>::infinity()) == "null" && markup_css_value(std::numeric_limits<f64>::infinity()) == "\"\"", "finite and nonfinite f64 encoding");
+	check("regex_match()",  regex_match("[A-Z][a-z]+", "Alice") && !regex_match("[A-Z][a-z]+", "Alice!"), "full-string validation");
 
 	DValue regex_email = regex_search("(?<user>[A-Za-z0-9._%+-]+)@(?<host>[A-Za-z0-9.-]+)", "Contact ops@example.test");
 	check("regex_search()", regex_email["matched"].to_bool() && regex_email["named"]["user"].to_string() == "ops" && regex_email["named"]["host"].to_string() == "example.test", json_encode(regex_email));

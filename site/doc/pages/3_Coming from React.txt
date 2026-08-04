@@ -28,7 +28,7 @@ This page describes the C++ Bearer workflow. Bearer renders on the server. It do
 
 `context.call` holds request-local shared state. `context.cfg` holds structured app data. `ONCE(Request& context)` prepares one unit for a request. `INIT(Request& context)` prepares a loaded worker unit.
 
-Use `<?= expression ?>` for escaped text. Use `<?: expression ?>` only for trusted markup. `component()` returns component HTML. `unit_render()` renders another page unit.
+Use `<?= expression ?>` for context-aware output. Use `<?: expression ?>` only for trusted markup in HTML text. `component()` returns component HTML. `unit_render()` renders another page unit.
 
 ## Routes and data
 

@@ -126,6 +126,23 @@ inline String first(Args... args)
 String html_escape(String s);
 String html_escape(u64 a);
 String html_escape(f64 a);
+String markup_javascript_value(String value);
+String markup_javascript_value(const char* value);
+String markup_javascript_value(const DValue& value);
+String markup_javascript_value(s32 value);
+String markup_javascript_value(u32 value);
+String markup_javascript_value(s64 value);
+String markup_javascript_value(u64 value);
+String markup_javascript_value(f64 value);
+String markup_javascript_value(bool value);
+String markup_css_value(String value);
+String markup_css_value(const char* value);
+String markup_css_value(s32 value);
+String markup_css_value(u32 value);
+String markup_css_value(s64 value);
+String markup_css_value(u64 value);
+String markup_css_value(f64 value);
+String markup_css_value(bool value);
 
 String json_encode(String s, char quote_char = '"');
 String json_encode(DValue t, char quote_char = '"');

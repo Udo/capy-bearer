@@ -20,7 +20,7 @@ expect_equal() {
 	fi
 }
 
-native_compiler_id=$(sha256sum src/capy/*.cpp src/capy/*.h src/lib/compiler.cpp src/lib/compiler-parser.cpp | sha256sum | awk '{print $1}')
+native_compiler_id=$(sha256sum src/capy/*.cpp src/capy/*.h src/lib/compiler.cpp src/lib/compiler-parser.cpp src/lib/markup-context.h | sha256sum | awk '{print $1}')
 grep -aFq "$native_compiler_id" bin/bearer_fastcgi.linux.bin || {
 	echo "Bearer binary does not contain the current native Capy compiler identity" >&2
 	exit 1
@@ -343,10 +343,53 @@ string_output=$(scripts/bearer-cli /tests/capy-strings.capy)
 	exit 1
 }
 markup_output=$(scripts/bearer-cli /tests/capy-markup.capy)
-[[ "$markup_output" == "<p>static</p>|once;<main>&lt;side&gt;&lt;&amp;&gt;&quot;&#39;<strong>&lt;&amp;&gt;&quot;&#39;</strong><em>trusted</em><i>&lt;&amp;&gt;&quot;&#39;</i><aside>-2147483648:0:2147483647:true:false</aside><wide>-9223372036854775808:18446744073709551615:-1.5</wide></main>|-2147483648|0" ]] || {
+[[ "$markup_output" == '<p>static</p>|once;<main>&lt;side&gt;&lt;&amp;&gt;&quot;&#39;<strong>&lt;&amp;&gt;&quot;&#39;</strong><em>trusted</em><trust><em>trusted</em></trust><trusted-context title="&lt;em&gt;trusted&lt;/em&gt;"><script>const trusted = "\u003Cem\u003Etrusted\u003C\/em\u003E";</script><style>.trusted::after { content: "\3C em\3E trusted\3C /em\3E "; }</style></trusted-context><i>&lt;&amp;&gt;&quot;&#39;</i><aside>-2147483648:0:2147483647:true:false</aside><wide>-9223372036854775808:18446744073709551615:-1.5</wide></main>|-2147483648|0' ]] || {
 	echo "Capy markup output mismatch: $markup_output" >&2
 	exit 1
 }
+context_markup=$(scripts/bearer-cli /tests/capy-markup-context.capy)
+expect_equal "Capy and C++ contextual markup" "$context_markup" "$(scripts/bearer-cli /tests/markup-context.uce)"
+[[ "$context_markup" == once\;* && "${context_markup#once;}" != *'once;'* &&
+	"$context_markup" == *'&lt;once&gt;<p title="&lt;/script&gt;&lt;style&gt;&amp;&quot;&#39;'* &&
+	"$context_markup" == *'\u003C\/script\u003E'* && "$context_markup" == *'\u000A\u2028\u2029'* &&
+	"$context_markup" == *'\3C /script\3E '* && "$context_markup" == *'\A \2028 \2029 '* &&
+	"$context_markup" == *'|0' ]] || {
+	echo "Contextual markup escaping mismatch: $context_markup" >&2
+	exit 1
+}
+(
+	invalid_markup=$(mktemp "$site_directory/tests/tmp-markup-context.XXXXXX.uce")
+	invalid_island=$(mktemp "$site_directory/tests/tmp-markup-island.XXXXXX.uce")
+	trap 'rm -f -- "$invalid_markup" "$invalid_island"' EXIT
+	cat >"$invalid_markup" <<'EOF'
+CLI(Request& context) {
+    String value = "unsafe";
+    <><script>const value = "<?= value ?>";</script></>
+}
+EOF
+	set +e
+	invalid_output=$(scripts/bearer-cli "/tests/${invalid_markup##*/}" 2>&1)
+	invalid_status=$?
+	set -e
+	[[ $invalid_status -ne 0 && "$invalid_output" == *"must not be inside a JavaScript string or template literal"* ]] || {
+		echo "C++ contextual markup diagnostic mismatch: $invalid_output" >&2
+		exit 1
+	}
+	cat >"$invalid_island" <<'EOF'
+CLI(Request& context) {
+    String value = "unsafe";
+    <><script><? bool enabled = true; ?><?: value ?></script></>
+}
+EOF
+	set +e
+	invalid_output=$(scripts/bearer-cli "/tests/${invalid_island##*/}" 2>&1)
+	invalid_status=$?
+	set -e
+	[[ $invalid_status -ne 0 && "$invalid_output" == *"a C++ code island is only allowed in HTML text"* ]] || {
+		echo "C++ code-island markup context mismatch: $invalid_output" >&2
+		exit 1
+	}
+)
 loop_control_output=$(scripts/bearer-cli /tests/capy-loop-control.capy)
 [[ "$loop_control_output" == "7|owned-return|0|13|0|023|0|ab|0|0002||2022|0" ]] || {
 	echo "Capy break/continue ARC output mismatch: $loop_control_output" >&2

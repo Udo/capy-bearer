@@ -15,7 +15,8 @@ COMPONENT(Request& context)
 		account_props["name_class"] = context.props["name_class"];
 
 	<>
-		<nav<?: nav_class != "" ? " class=\"" + html_escape(nav_class) + "\"" : "" ?>>
+		<? if(nav_class != "") { ?><nav class="<?= nav_class ?>"><? }
+		else { ?><nav><? } ?>
 			<div class="nav-menu">
 				<a href="<?= app_link("", context) ?>"><?= context.cfg.get_by_path("site/name").to_string() ?></a>
 				<? context.cfg.get_by_path("menu").each([&](DValue menu_item, String menu_key) {

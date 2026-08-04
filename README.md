@@ -139,14 +139,18 @@ BEARER treats template parsing as one shared code-vs-literal state machine.
 Inside literal output, BEARER supports three inline forms:
 
 - `<? ... ?>` to emit raw C++ statements
-- `<?= expression ?>` to print HTML-escaped output
-- `<?: expression ?>` to print unescaped output
+- `<?= expression ?>` to print context-aware output
+- `<?: expression ?>` to print trusted markup in HTML text
 
-Use `<?= ... ?>` by default for user-visible text. Use `<?: ... ?>` only for trusted markup or content that has already been escaped.
+Use `<?= ... ?>` by default. HTML text and quoted attributes use HTML escaping. Strings in `script` and `style` elements become self-contained JavaScript and CSS literals. Capy does not support `f64` interpolation in these contexts. C++ emits finite `f64` values as numbers. It emits `null` in JavaScript and an empty CSS string for nonfinite values.
+
+Script and style interpolation must start where a value can start. Static source after the interpolation can apply an operator or a CSS unit. Do not put interpolation inside an existing script or style string. Do not interpolate unquoted attributes, tag names, or attribute names. In C++ templates, use code islands only in HTML text. A code island must not write output because the scanner tracks literal source only. Direct `print()` output is trusted and can invalidate the context for later interpolation. Calculate script and style values before the literal. Validate URL, event-handler, and inline-style attribute values before interpolation.
+
+Use `<?: ... ?>` only for reviewed markup in HTML text. In Capy, a raw value must have type `markup`.
 
 The parser treats C++ `//` and `/* ... */` comments as comments in both normal code and `<? ... ?>` islands, so quotes or delimiter markers inside comments do not confuse template parsing.
 
-The preprocessing implementation is split between `src/lib/compiler.cpp` and `src/lib/compiler-parser.cpp`. `compiler.cpp` owns unit compilation and cache orchestration, while `compiler-parser.cpp` owns source rewriting and template parsing.
+The shared markup-context scanner is `src/lib/markup-context.h`. Capy lexing and C++ preprocessing use this scanner. `compiler.cpp` owns unit compilation and cache orchestration. `compiler-parser.cpp` owns C++ source rewriting.
 
 ## Components
 

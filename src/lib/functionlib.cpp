@@ -5,6 +5,9 @@
 #include <pcre2.h>
 #endif
 #include <cctype>
+#include <charconv>
+#include <cmath>
+#include <limits>
 #include <stdexcept>
 #include <algorithm>
 
@@ -927,6 +930,117 @@ String html_escape(f64 a)
 {
 	return(std::to_string(a));
 }
+
+String markup_javascript_value(String value)
+{
+	static const char hex[] = "0123456789ABCDEF";
+	String result = "\"";
+	for(u64 i = 0; i < value.size(); i++)
+	{
+		unsigned char c = value[i];
+		if(i + 2 < value.size() && c == 0xe2 && (unsigned char)value[i + 1] == 0x80 &&
+			((unsigned char)value[i + 2] == 0xa8 || (unsigned char)value[i + 2] == 0xa9))
+		{
+			result += (unsigned char)value[i + 2] == 0xa8 ? "\\u2028" : "\\u2029";
+			i += 2;
+			continue;
+		}
+		if(c == '"') result += "\\\"";
+		else if(c == '\\') result += "\\\\";
+		else if(c == '/') result += "\\/";
+		else if(c < 0x20 || c == '<' || c == '>' || c == '&' || c == '\'')
+		{
+			result += "\\u00";
+			result += hex[c >> 4];
+			result += hex[c & 15];
+		}
+		else result += (char)c;
+	}
+	return(result + "\"");
+}
+
+String markup_javascript_value(const char* value) { return(markup_javascript_value(String(value ? value : ""))); }
+
+String markup_javascript_value(const DValue& value)
+{
+	static const char hex[] = "0123456789ABCDEF";
+	String encoded = json_encode(value);
+	String result;
+	for(u64 i = 0; i < encoded.size(); i++)
+	{
+		unsigned char c = encoded[i];
+		if(i + 2 < encoded.size() && c == 0xe2 && (unsigned char)encoded[i + 1] == 0x80 &&
+			((unsigned char)encoded[i + 2] == 0xa8 || (unsigned char)encoded[i + 2] == 0xa9))
+		{
+			result += (unsigned char)encoded[i + 2] == 0xa8 ? "\\u2028" : "\\u2029";
+			i += 2;
+			continue;
+		}
+		if(c == '/') result += "\\/";
+		else if(c == '<' || c == '>' || c == '&' || c == '\'')
+		{
+			result += "\\u00";
+			result += hex[c >> 4];
+			result += hex[c & 15];
+		}
+		else result += (char)c;
+	}
+	return(result);
+}
+
+String markup_javascript_value(s32 value) { return(std::to_string(value)); }
+String markup_javascript_value(u32 value) { return(std::to_string(value)); }
+String markup_javascript_value(s64 value) { return(std::to_string(value)); }
+static String markup_f64_value(f64 value, const String& nonfinite)
+{
+	if(!std::isfinite(value))
+		return(nonfinite);
+	char buffer[64];
+	auto result = std::to_chars(buffer, buffer + sizeof(buffer), value, std::chars_format::general, std::numeric_limits<f64>::max_digits10);
+	if(result.ec != std::errc())
+		return(nonfinite);
+	return(String(buffer, result.ptr - buffer));
+}
+
+String markup_javascript_value(u64 value) { return(std::to_string(value)); }
+String markup_javascript_value(f64 value) { return(markup_f64_value(value, "null")); }
+String markup_javascript_value(bool value) { return(value ? "true" : "false"); }
+
+String markup_css_value(String value)
+{
+	static const char hex[] = "0123456789ABCDEF";
+	String result = "\"";
+	for(u64 i = 0; i < value.size(); i++)
+	{
+		unsigned char c = value[i];
+		if(i + 2 < value.size() && c == 0xe2 && (unsigned char)value[i + 1] == 0x80 &&
+			((unsigned char)value[i + 2] == 0xa8 || (unsigned char)value[i + 2] == 0xa9))
+		{
+			result += (unsigned char)value[i + 2] == 0xa8 ? "\\2028 " : "\\2029 ";
+			i += 2;
+			continue;
+		}
+		if(c == '"' || c == '\\') { result += '\\'; result += (char)c; }
+		else if(c < 0x20 || c == 0x7f || c == '<' || c == '>' || c == '&')
+		{
+			result += '\\';
+			if(c > 15) result += hex[c >> 4];
+			result += hex[c & 15];
+			result += ' ';
+		}
+		else result += (char)c;
+	}
+	return(result + "\"");
+}
+
+String markup_css_value(const char* value) { return(markup_css_value(String(value ? value : ""))); }
+
+String markup_css_value(s32 value) { return(std::to_string(value)); }
+String markup_css_value(u32 value) { return(std::to_string(value)); }
+String markup_css_value(s64 value) { return(std::to_string(value)); }
+String markup_css_value(u64 value) { return(std::to_string(value)); }
+String markup_css_value(f64 value) { return(markup_f64_value(value, "\"\"")); }
+String markup_css_value(bool value) { return(value ? "true" : "false"); }
 
 String json_encode(String s, char quote_char)
 {

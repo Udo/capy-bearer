@@ -266,7 +266,11 @@ Selected standard-library value parameters use `as dval`. They can insert one DV
 
 Strings preserve bytes. String indexing is not a source-language operation. Standard-library functions provide byte lengths, search, slicing, replacement, and case conversion.
 
-Markup escapes ordinary interpolated strings. Raw interpolation requires `markup`. `trusted_markup(string)` is the explicit trust boundary.
+`<?= value ?>` selects an encoding from its markup context. HTML text and quoted attributes use HTML escaping. A string in a `script` element becomes one self-contained JavaScript literal. A string in a `style` element becomes one self-contained CSS literal. Integer and Boolean values remain scalar values in those elements. `f64` interpolation is not supported in `script` or `style` elements.
+
+Script and style interpolation must start at a value boundary. Static source after the interpolation can apply an operator or a CSS unit. Interpolation cannot occur inside a quoted string, template literal, or comment. An attribute value must be quoted. Tag names and attribute names cannot contain interpolation. URL, event-handler, and inline-style attributes still use HTML attribute escaping. Validate their application-specific value before interpolation.
+
+A value with static type `markup` remains trusted when `<?= value ?>` inserts it into HTML text. In attributes, scripts, and styles, the compiler escapes it as a string for that context. Raw `<?: value ?>` interpolation also requires `markup` and works only in HTML text. `trusted_markup(string)` is the explicit trust boundary.
 
 Capy uses request-local automatic reference counting for strings, markup, arrays, tuples, structs, closures, and DValues. Managed parameters are borrowed. Managed results are owned. Assignment retains the replacement before it releases the old value. Captures retain managed values. Strong ARC cycles remain until request teardown. Capy has no weak-reference source type.
 

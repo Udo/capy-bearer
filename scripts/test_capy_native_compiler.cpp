@@ -173,6 +173,9 @@ int main()
 			 std::pair{"function CLI(request : dval) { var value := s64(-9223372036854775809) }\n", "outside the s64 range"},
 			 std::pair{"function pick(value : s64) s32 { 1 }\nfunction pick(value : u64) s32 { 2 }\nfunction CLI(request : dval) { pick(8) }\n", "ambiguous contextual integer overload"},
 			 std::pair{"function CLI(request : dval) { var value := 1s64 }\n", "numeric suffixes were removed"},
+			 std::pair{"function CLI(request : dval) { <><script>const value = <?= 1.5 ?>;</script></> }\n", "f64 markup interpolation is not supported"},
+			 std::pair{"function CLI(request : dval) { <><script>const value = \"<?= \"x\" ?>\";</script></> }\n", "JavaScript string"},
+			 std::pair{"function CLI(request : dval) { <><div title=<?= \"x\" ?>></div></> }\n", "requires a quoted attribute value"},
 		 })
 	{
 		try { capy::compile_bearer_unit(source, options); assert(false); }

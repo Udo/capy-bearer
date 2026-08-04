@@ -65,7 +65,7 @@ needs_rebuild() {
 
 # Native Capy compiler CLI. The same src/capy compiler implementation is also
 # linked into Bearer below; this executable is the operator/build interface.
-if needs_rebuild bin/capyc src/capy scripts/build_capy.sh "$build_mode_file"; then
+if needs_rebuild bin/capyc src/capy src/lib/markup-context.h scripts/build_capy.sh "$build_mode_file"; then
 	echo "Compiling native Capy compiler..."
 	bash scripts/build_capy.sh bin/capyc "$BUILDMODE"
 else
@@ -117,7 +117,7 @@ if needs_rebuild bin/main.o src/linux_fastcgi.cpp src/lib src/capy src/fastcgi s
 	echo "Compiling main..."
 	tmp="bin/main.o.tmp.$$"
 	build_tmp_files+=("$tmp")
-	capy_compiler_build_id=$(sha256sum src/capy/*.cpp src/capy/*.h src/lib/compiler.cpp src/lib/compiler-parser.cpp | sha256sum | awk '{print $1}')
+	capy_compiler_build_id=$(sha256sum src/capy/*.cpp src/capy/*.h src/lib/compiler.cpp src/lib/compiler-parser.cpp src/lib/markup-context.h | sha256sum | awk '{print $1}')
 	time -p $COMPILER -c src/linux_fastcgi.cpp $SRCFLAGS $FLAGS \
 		"-DCAPY_COMPILER_BUILD_ID=\"$capy_compiler_build_id\"" -o "$tmp" 2>&1
 	mv "$tmp" bin/main.o

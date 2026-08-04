@@ -445,7 +445,9 @@ void cli_run_starter_parity()
 		String title = parts[2];
 		cli_expect_http("bearer_starter_parity:starter view " + name, "/examples/bearer-starter/index.uce" + query, 200, "<title>" + title + "</title>", cli_demo_error_markers());
 	}
-	cli_expect_http("bearer_starter_parity:starter unknown route 404", "/examples/bearer-starter/index.uce?does-not-exist", 404, "<title>404 Not Found | BEARER Starter</title>", cli_demo_error_markers());
+	CliHttpResponse workspace = cli_frontend("/examples/bearer-starter/index.uce?workspace");
+	cli_test_case("bearer_starter_parity:optional attributes stay omitted", !cli_contains(workspace.body, " id=\"\"") && !cli_contains(workspace.body, " class=\"\""), "workspace output has no empty id or class attribute");
+	cli_expect_http("bearer_starter_parity:starter unknown route 404",  "/examples/bearer-starter/index.uce?does-not-exist", 404, "<title>404 Not Found | BEARER Starter</title>", cli_demo_error_markers());
 }
 
 void cli_run_pool_isolation()

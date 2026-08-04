@@ -55,17 +55,17 @@ COMPONENT(Request& context)
 					<div class="loading" style="display: none;"><span>Connecting...</span></div>
 					<label>Secure authentication via <?= service_name ?></label>
 					<script>
-						window.initiateOAuth_<?= handler_name ?> = function () {
-							const wrapper = document.querySelector('[data-service="<?= service_key ?>"]');
+						window[<?= "initiateOAuth_" + handler_name ?>] = function () {
+							const wrapper = document.querySelector('[data-service="' + CSS.escape(<?= service_key ?>) + '"]');
 							if (!wrapper) return;
 							const button = wrapper.querySelector('.btn');
 							const loading = wrapper.querySelector('.loading');
 							if (button) button.style.display = 'none';
 							if (loading) loading.style.display = 'block';
 
-							const clientId = <?: json_encode(client_id) ?>;
+							const clientId = <?= client_id ?>;
 							if (!clientId || clientId.indexOf('YOUR_') === 0) {
-								alert('<?= service_name ?> OAuth is not configured yet.');
+								alert(<?= service_name + " OAuth is not configured yet." ?>);
 								if (button) button.style.display = '';
 								if (loading) loading.style.display = 'none';
 								return;
@@ -74,21 +74,21 @@ COMPONENT(Request& context)
 							const state = btoa(Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2)).replace(/[^a-zA-Z0-9]/g, '');
 							const params = new URLSearchParams({
 								client_id: clientId,
-								redirect_uri: <?: json_encode(callback_url) ?>,
-								scope: <?: json_encode(scope) ?>,
+								redirect_uri: <?= callback_url ?>,
+								scope: <?= scope ?>,
 								response_type: 'code',
 								state: state
 							});
 
 							sessionStorage.setItem('oauth_state', state);
-							sessionStorage.setItem('oauth_service', <?: json_encode(service_key) ?>);
+							sessionStorage.setItem('oauth_service', <?= service_key ?>);
 
-							fetch(<?: json_encode(store_url) ?>, {
+							fetch(<?= store_url ?>, {
 								method: 'POST',
 								headers: {'Content-Type': 'application/json'},
-								body: JSON.stringify({oauth_service: <?: json_encode(service_key) ?>, oauth_state: state})
+								body: JSON.stringify({oauth_service: <?= service_key ?>, oauth_state: state})
 							}).catch(console.error).finally(() => {
-								window.location.href = <?: json_encode(auth_url) ?> + '?' + params.toString();
+								window.location.href = <?= auth_url ?> + '?' + params.toString();
 							});
 						};
 					</script>

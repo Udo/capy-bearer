@@ -7,7 +7,7 @@ function build_page () markup {
     var dangerous := clone("<&>\"'")
     var nested := <><strong><?= dangerous ?></strong></>
     var trusted := trusted_markup(clone("<em>trusted</em>"))
-    return <><main><?= side_effect() ?><?= dangerous ?><?: nested ?><?: trusted ?><?= <><i><?= dangerous ?></i></> ?><aside><?= 0 - 2147483647 - 1 ?>:<?= 0 ?>:<?= 2147483647 ?>:<?= true ?>:<?= false ?></aside><wide><?= s64(-9223372036854775808) ?>:<?= u64(18446744073709551615) ?>:<?= -1.5 ?></wide></main></>
+    return <><main><?= side_effect() ?><?= dangerous ?><?: nested ?><?: trusted ?><trust><?= trusted ?></trust><trusted-context title="<?= trusted ?>"><script>const trusted = <?= trusted ?>;</script><style>.trusted::after { content: <?= trusted ?>; }</style></trusted-context><?= <><i><?= dangerous ?></i></> ?><aside><?= 0 - 2147483647 - 1 ?>:<?= 0 ?>:<?= 2147483647 ?>:<?= true ?>:<?= false ?></aside><wide><?= s64(-9223372036854775808) ?>:<?= u64(18446744073709551615) ?>:<?= -1.5 ?></wide></main></>
 }
 
 function CLI(request : dval) {

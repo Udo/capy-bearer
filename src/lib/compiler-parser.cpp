@@ -1,8 +1,10 @@
 #include "compiler-parser.h"
 
 #include "compiler.h"
+#include "markup-context.h"
 
 #include <set>
+#include <stdexcept>
 
 namespace {
 
@@ -224,6 +226,34 @@ void compiler_append_text_literal_output(String& parsed_content, String& literal
 	literal_buffer.clear();
 }
 
+String compiler_markup_location(SharedUnit* su, const String& content, u32 offset)
+{
+	u64 line = 1;
+	u64 column = 1;
+	for(u32 i = 0; i < offset && i < content.size(); i++)
+	{
+		if(content[i] == '\n') { line++; column = 1; }
+		else column++;
+	}
+	return((su ? su->file_name : String("<source>")) + ":" + std::to_string(line) + ":" + std::to_string(column) + ": ");
+}
+
+String compiler_markup_field_output(String code, bool escaped, bearer::MarkupContext context, String location)
+{
+	if(!escaped)
+	{
+		if(context != bearer::MarkupContext::html_text)
+			throw std::runtime_error(location + "raw markup interpolation is only allowed in HTML text");
+		return("print( " + code + " ); ");
+	}
+	if(!bearer::markup_context_is_safe(context))
+		throw std::runtime_error(location + bearer::markup_context_error(context));
+	String function = "html_escape";
+	if(context == bearer::MarkupContext::javascript_value) function = "markup_javascript_value";
+	else if(context == bearer::MarkupContext::css_value) function = "markup_css_value";
+	return("print(" + function + "( " + code + " )); ");
+}
+
 String compiler_process_text_literal(Request* context, SharedUnit* su, String content)
 {
 	String parsed_content;
@@ -233,6 +263,9 @@ String compiler_process_text_literal(Request* context, SharedUnit* su, String co
 	bool inside_code = false;
 	bool is_field = false;
 	bool escape_field = false;
+	String field_location;
+	bearer::MarkupContext field_context = bearer::MarkupContext::html_text;
+	bearer::MarkupContextScanner context_scanner;
 
 	for(u32 i = 0; i < content.length(); i++)
 	{
@@ -247,7 +280,10 @@ String compiler_process_text_literal(Request* context, SharedUnit* su, String co
 				inside_code = true;
 				code_buffer = "";
 				code_state = CompilerCodeState();
+				context_scanner.consume(literal_buffer);
 				compiler_append_text_literal_output(parsed_content, literal_buffer);
+				field_context = context_scanner.context();
+				field_location = compiler_markup_location(su, content, i);
 				if(c2 == '=')
 				{
 					is_field = true;
@@ -262,6 +298,8 @@ String compiler_process_text_literal(Request* context, SharedUnit* su, String co
 				}
 				else
 				{
+					if(field_context != bearer::MarkupContext::html_text)
+						throw std::runtime_error(field_location + "a C++ code island is only allowed in HTML text");
 					is_field = false;
 					escape_field = false;
 					i += 1;
@@ -278,24 +316,7 @@ String compiler_process_text_literal(Request* context, SharedUnit* su, String co
 			inside_code = false;
 			i += 1;
 			if(is_field)
-			{
-				if(escape_field)
-				{
-					parsed_content.append(
-						"print(html_escape( " +
-						code_buffer +
-						" )); "
-					);
-				}
-				else
-				{
-					parsed_content.append(
-						"print( " +
-						code_buffer +
-						" ); "
-					);
-				}
-			}
+				parsed_content.append(compiler_markup_field_output(code_buffer, escape_field, field_context, field_location));
 			else
 			{
 				parsed_content.append(code_buffer);
@@ -553,6 +574,8 @@ String compiler_preprocess_shared_unit_char_wise(Request* context, SharedUnit* s
 	String current_line = "";
 	String literal_buffer = "";
 	bool inside_literal = false;
+	bool resume_literal_context = false;
+	bearer::MarkupContextScanner context_scanner;
 
 	for(u32 i = 0; i < content.length(); i++)
 	{
@@ -564,21 +587,25 @@ String compiler_preprocess_shared_unit_char_wise(Request* context, SharedUnit* s
 		{
 			if(c == '<' && c1 == '?' && (c2 == '=' || c2 == ':'))
 			{
+				context_scanner.consume(literal_buffer);
 				compiler_append_text_literal_output(parsed_content, literal_buffer);
 				bool escape_field = (c2 == '=');
+				const bearer::MarkupContext field_context = context_scanner.context();
+				const String field_location = compiler_markup_location(su, content, i);
 				i += 3;
 				String field_code = compiler_capture_code_until_php_close(content, i);
-				if(escape_field)
-					parsed_content.append("print(html_escape( " + field_code + " )); ");
-				else
-					parsed_content.append("print( " + field_code + " ); ");
+				parsed_content.append(compiler_markup_field_output(field_code, escape_field, field_context, field_location));
 				continue;
 			}
 
 			if(c == '<' && c1 == '?')
 			{
+				context_scanner.consume(literal_buffer);
+				if(context_scanner.context() != bearer::MarkupContext::html_text)
+					throw std::runtime_error(compiler_markup_location(su, content, i) + "a C++ code island is only allowed in HTML text");
 				compiler_append_text_literal_output(parsed_content, literal_buffer);
 				inside_literal = false;
+				resume_literal_context = true;
 				code_state = CompilerCodeState();
 				i += 1;
 				continue;
@@ -586,8 +613,10 @@ String compiler_preprocess_shared_unit_char_wise(Request* context, SharedUnit* s
 
 			if(c == '<' && c1 == '/' && c2 == '>')
 			{
+				context_scanner.consume(literal_buffer);
 				compiler_append_text_literal_output(parsed_content, literal_buffer);
 				inside_literal = false;
+				resume_literal_context = false;
 				i += 2;
 				continue;
 			}
@@ -600,6 +629,8 @@ String compiler_preprocess_shared_unit_char_wise(Request* context, SharedUnit* s
 		{
 			inside_literal = true;
 			literal_buffer = "";
+			if(!resume_literal_context) context_scanner = bearer::MarkupContextScanner();
+			resume_literal_context = false;
 			current_line = "";
 			i += 1;
 			continue;

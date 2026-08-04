@@ -57,7 +57,7 @@ Status: <span id="status">Connecting...</span></pre>
 		<pre id="chat-log"></pre>
 
 		<script>
-			const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}<?= ws_url ?>`;
+			const wsUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}` + <?= ws_url ?>;
 			const statusEl = document.getElementById('status');
 			const onlineEl = document.getElementById('online-count');
 			const logEl = document.getElementById('chat-log');

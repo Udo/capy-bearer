@@ -139,7 +139,7 @@ COMPONENT(Request& context)
 					});
 				}
 			};
-			NeedlegaugeComponents.start_listen(<?: json_encode(context.props, '\'') ?>);
+			NeedlegaugeComponents.start_listen(<?= context.props ?>);
 			</script>
 		<? } ?>
 	</>

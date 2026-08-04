@@ -172,10 +172,12 @@ Token Lexer::markup_token()
 	std::string literal;
 	Location literal_location = location();
 	int depth = 0;
+	bearer::MarkupContextScanner context_scanner;
 	auto flush_literal = [&]
 	{
+		context_scanner.consume(literal);
 		if (!literal.empty())
-			parts.push_back({"text", literal, literal_location});
+			parts.push_back({"text", literal, literal_location, bearer::MarkupContext::html_text});
 		literal.clear();
 		literal_location = location();
 	};
@@ -186,6 +188,11 @@ Token Lexer::markup_token()
 			flush_literal();
 			bool escaped = starts("<?=");
 			Location marker_location = location();
+			const bearer::MarkupContext context = context_scanner.context();
+			if (escaped && !bearer::markup_context_is_safe(context))
+				fail(marker_location, bearer::markup_context_error(context));
+			if (!escaped && context != bearer::MarkupContext::html_text)
+				fail(marker_location, "raw markup interpolation is only allowed in HTML text");
 			advance();
 			advance();
 			advance();
@@ -266,7 +273,7 @@ Token Lexer::markup_token()
 			advance();
 			if (std::all_of(field.begin(), field.end(), [](unsigned char c) { return std::isspace(c); }))
 				fail(marker_location, "empty markup interpolation");
-			parts.push_back({escaped ? "escaped" : "raw", field, field_location});
+			parts.push_back({escaped ? "escaped" : "raw", field, field_location, context});
 			literal_location = location();
 			continue;
 		}
@@ -440,7 +447,8 @@ SignedInteger::SignedInteger(Location l, std::int64_t v) : Expr(ExprKind::Signed
 Float::Float(Location l, double v) : Expr(ExprKind::Float, std::move(l)), value(v) {}
 String::String(Location l, std::string v) : Expr(ExprKind::String, std::move(l)), value(std::move(v)) {}
 MarkupText::MarkupText(Location l, std::string v) : Expr(ExprKind::MarkupText, std::move(l)), value(std::move(v)) {}
-MarkupField::MarkupField(Location l, Expr* v, bool e) : Expr(ExprKind::MarkupField, std::move(l)), value(v), escaped(e) {}
+MarkupField::MarkupField(Location l, Expr* v, bool e, bearer::MarkupContext c)
+	: Expr(ExprKind::MarkupField, std::move(l)), value(v), escaped(e), context(c) {}
 Markup::Markup(Location l) : Expr(ExprKind::Markup, std::move(l)) {}
 TupleExpr::TupleExpr(Location l) : Expr(ExprKind::Tuple, std::move(l)) {}
 ArrayLiteral::ArrayLiteral(Location l) : Expr(ExprKind::Array, std::move(l)) {}
@@ -640,7 +648,7 @@ Expr* Parser::prefix()
 				fail(field_parser.token().location, "markup interpolation must contain one expression");
 			for (auto& node : field_parser.program_.storage)
 				program_.storage.push_back(std::move(node));
-			markup->parts.push_back(program_.make<MarkupField>(part.location, value, part.kind == "escaped"));
+			markup->parts.push_back(program_.make<MarkupField>(part.location, value, part.kind == "escaped", part.context));
 		}
 		return markup;
 	}

@@ -1,0 +1,18 @@
+String contextual_value()
+{
+    print("once;");
+    return("<once>");
+}
+
+String context_page()
+{
+    String value = "</script><style>&\"'\\\n  ";
+    ob_start();
+    <><?= contextual_value() ?><p title="<?= value ?>" href="<?= value ?>" onclick="<?= value ?>" style="<?= value ?>"><?= value ?></p><script>const value = <?= value ?>; const count = <?= 7 ?>;</script><style>.x::before { content: <?= value ?>; width: <?= 7 ?>px; }</style></>
+    return(ob_get_close());
+}
+
+CLI(Request& context)
+{
+    print(context_page(), "|0");
+}

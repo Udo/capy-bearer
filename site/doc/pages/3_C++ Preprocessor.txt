@@ -20,7 +20,11 @@ This page describes the C++ Bearer preprocessor. It converts a C++ `.uce` or `.w
 
 ## Normal use
 
-Use `<> ... </>` or `?> ... <?` for literal output. Use `<? ... ?>` for C++ code inside literal output. Use `<?= expression ?>` for HTML-escaped output. Use `<?: expression ?>` only for trusted output that needs no HTML escaping.
+Use `<> ... </>` or `?> ... <?` for literal output. Use `<? ... ?>` for C++ code inside literal output. Use `<?= expression ?>` for context-aware output. Use `<?: expression ?>` only for trusted markup in HTML text.
+
+C++ `.uce` and Capy use the same markup-context scanner. HTML text and quoted attributes use HTML escaping. Strings in `script` and `style` elements become self-contained quoted JavaScript and CSS literals. Interpolation must start at a value boundary. Finite C++ `f64` values become numbers. A nonfinite value becomes JavaScript `null` or an empty CSS string. The preprocessor rejects interpolation inside quoted script or style strings, comments, unquoted attributes, tag names, and attribute names. A C++ code island is allowed only in HTML text. It must not write output because the scanner tracks literal source only. Direct `print()` output is trusted and can invalidate the context for later interpolation. Calculate script and style values before the literal.
+
+URL, event-handler, and inline-style attributes still use HTML attribute escaping. Validate their application-specific values before interpolation.
 
 Use `#load "other.uce"` to include another unit while Bearer compiles the source. Use `unit_render()` or `unit_call()` when the unit must run at request time.
 

@@ -16,9 +16,23 @@ function RENDER(request : dval) {
 <p>Hello, &lt;Ada&gt;</p>
 
 :content
-`<?= name ?>` escapes an ordinary string for HTML text and quoted attribute values. It escapes `&`, `<`, `>`, quotes, and apostrophes.
+`<?= name ?>` selects an encoding from its location. HTML text and quoted attributes escape `&`, `<`, `>`, quotes, and apostrophes.
 
-HTML escaping does not validate a URL. It does not make text safe for JavaScript or CSS. Do not interpolate a value into an unquoted attribute.
+Inside a `script` element, a string becomes one self-contained JavaScript literal. The encoder protects the closing tag and JavaScript line separators. Inside a `style` element, a string becomes one self-contained CSS literal. Integer and Boolean values remain scalar values. `f64` interpolation is not supported in these elements.
+
+```capy
+function RENDER(request : dval) {
+    var name := string(request.query.name, "guest")
+    <>
+        <script>const name = <?= name ?>;</script>
+        <style>.name::before { content: <?= name ?>; }</style>
+    </>
+}
+```
+
+Script and style interpolation must start at a value boundary. Static source after it can apply an operator or a CSS unit. Do not put interpolation inside an existing string, template literal, or comment. Attribute values must use quotes. Tag and attribute names cannot contain interpolation.
+
+URL, event-handler, and inline-style attributes use HTML attribute escaping. Validate these values for their application context before interpolation.
 
 ## String literals
 
@@ -71,7 +85,7 @@ The expression has type `markup`. It can be printed, returned from an ordinary f
 
 ## Trusted markup
 
-`<?: value ?>` inserts an existing `markup` value without escaping it again:
+A `markup` value stays trusted when `<?= value ?>` inserts it into HTML text. In attributes, scripts, and styles, Capy escapes it as a string for that context. `<?: value ?>` also inserts a `markup` value without escaping it again. Raw interpolation works only in HTML text:
 
 ```capy
 function RENDER(request : dval) {

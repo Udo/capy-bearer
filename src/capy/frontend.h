@@ -11,6 +11,8 @@
 #include <utility>
 #include <vector>
 
+#include "../lib/markup-context.h"
+
 namespace capy
 {
 
@@ -46,6 +48,7 @@ struct MarkupTokenPart
 {
 	std::string kind, source;
 	Location location;
+	bearer::MarkupContext context = bearer::MarkupContext::html_text;
 };
 struct Token
 {
@@ -162,7 +165,8 @@ struct MarkupField : Expr
 {
 	Expr* value;
 	bool escaped;
-	MarkupField(Location l, Expr* v, bool e);
+	bearer::MarkupContext context;
+	MarkupField(Location l, Expr* v, bool e, bearer::MarkupContext context);
 };
 struct Markup : Expr
 {

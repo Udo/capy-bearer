@@ -663,8 +663,9 @@ struct FunctionLowerer
 	std::optional<std::pair<unsigned, std::string>> compatible_local_callable(const std::string& name, const std::vector<std::string>& arguments) const;
 	std::vector<std::pair<std::string, std::string>> lambda_captures(Lambda* value) const;
 	std::tuple<std::string, unsigned, unsigned, Definition*, std::vector<std::pair<std::string, std::string>>> register_lambda(Lambda* value);
-	Bytes markup_escape_length(unsigned source, unsigned total, const Location& location);
-	Bytes markup_escape_write(unsigned source, unsigned cursor, const Location& location);
+	Bytes markup_escape_length(unsigned source, unsigned total, bearer::MarkupContext context, const Location& location);
+	Bytes markup_escape_write(unsigned source, unsigned cursor, bearer::MarkupContext context, const Location& location);
+	Bytes markup_unicode_separator(unsigned source, unsigned index, unsigned length, unsigned target);
 	Bytes markup_s32_length(unsigned source, unsigned total, const Location& location);
 	Bytes markup_s32_write(unsigned source, unsigned cursor, const Location& location);
 	Bytes markup_write_bytes(unsigned cursor, std::string_view text);
@@ -2303,10 +2304,75 @@ Bytes FunctionLowerer::markup_write_bytes(unsigned cursor, std::string_view text
 	return code;
 }
 
-Bytes FunctionLowerer::markup_escape_length(unsigned source, unsigned total, const Location& location)
+Bytes FunctionLowerer::markup_unicode_separator(unsigned source, unsigned index, unsigned length, unsigned target)
+{
+	Bytes code{0x41, 0x00, 0x21};
+	wasm::append_uleb(code, target);
+	code.push_back(0x20); wasm::append_uleb(code, index);
+	code.insert(code.end(), {0x41, 0x02, 0x6a, 0x20}); wasm::append_uleb(code, length);
+	code.insert(code.end(), {0x49, 0x04, 0x40});
+	auto load = [&](unsigned offset)
+	{
+		code.push_back(0x20); wasm::append_uleb(code, source);
+		code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20}); wasm::append_uleb(code, index);
+		if (offset) { code.push_back(0x41); wasm::append_sleb32(code, static_cast<std::int32_t>(offset)); code.push_back(0x6a); }
+		code.insert(code.end(), {0x6a, 0x2d, 0x00, 0x00});
+	};
+	load(0); code.push_back(0x41); wasm::append_sleb32(code, 0xe2); code.push_back(0x46);
+	load(1); code.push_back(0x41); wasm::append_sleb32(code, 0x80); code.insert(code.end(), {0x46, 0x71});
+	load(2); code.push_back(0x22); wasm::append_uleb(code, target);
+	code.push_back(0x41); wasm::append_sleb32(code, 0xa8); code.push_back(0x46);
+	code.push_back(0x20); wasm::append_uleb(code, target);
+	code.push_back(0x41); wasm::append_sleb32(code, 0xa9); code.insert(code.end(), {0x46, 0x72, 0x71, 0x45, 0x04, 0x40, 0x41, 0x00, 0x21});
+	wasm::append_uleb(code, target);
+	code.insert(code.end(), {0x0b, 0x0b});
+	return code;
+}
+
+std::vector<std::pair<std::int32_t, std::string>> markup_escape_sequences(bearer::MarkupContext context)
+{
+	if (context == bearer::MarkupContext::html_text || context == bearer::MarkupContext::html_attribute)
+		return {{'&', "&amp;"}, {'<', "&lt;"}, {'>', "&gt;"}, {'"', "&quot;"}, {'\'', "&#39;"}};
+	static const char hex[] = "0123456789ABCDEF";
+	std::vector<std::pair<std::int32_t, std::string>> result;
+	if (context == bearer::MarkupContext::javascript_value)
+	{
+		result = {{'"', "\\\""}, {'\\', "\\\\"}, {'/', "\\/"}, {'<', "\\u003C"}, {'>', "\\u003E"}, {'&', "\\u0026"}, {'\'', "\\u0027"}};
+		for (int value = 0; value < 32; ++value)
+		{
+			std::string escaped = "\\u00";
+			escaped += hex[value >> 4];
+			escaped += hex[value & 15];
+			result.emplace_back(value, std::move(escaped));
+		}
+	}
+	else
+	{
+		result = {{'"', "\\\""}, {'\\', "\\\\"}, {'<', "\\3C "}, {'>', "\\3E "}, {'&', "\\26 "}, {127, "\\7F "}};
+		for (int value = 0; value < 32; ++value)
+		{
+			std::string escaped = "\\";
+			if (value > 15) escaped += hex[value >> 4];
+			escaped += hex[value & 15];
+			escaped += ' ';
+			result.emplace_back(value, std::move(escaped));
+		}
+	}
+	return result;
+}
+
+Bytes FunctionLowerer::markup_escape_length(unsigned source, unsigned total, bearer::MarkupContext context, const Location& location)
 {
 	const unsigned index = add_local("", "s32", location), length = add_local("", "s32", location), byte = add_local("", "s32", location);
-	Bytes code{0x20};
+	const bool contextual = context == bearer::MarkupContext::javascript_value || context == bearer::MarkupContext::css_value;
+	const unsigned separator = contextual ? add_local("", "s32", location) : 0;
+	Bytes code;
+	if (contextual)
+	{
+		code.push_back(0x20); wasm::append_uleb(code, total);
+		code.insert(code.end(), {0x41, 0x02, 0x6a, 0x21}); wasm::append_uleb(code, total);
+	}
+	code.push_back(0x20);
 	wasm::append_uleb(code, source);
 	code.insert(code.end(), {0x28, 0x02, 0x10, 0x21});
 	wasm::append_uleb(code, length);
@@ -2323,12 +2389,23 @@ Bytes FunctionLowerer::markup_escape_length(unsigned source, unsigned total, con
 	wasm::append_uleb(code, index);
 	code.insert(code.end(), {0x6a, 0x2d, 0x00, 0x00, 0x21});
 	wasm::append_uleb(code, byte);
+	if (contextual)
+	{
+		append(code, markup_unicode_separator(source, index, length, separator));
+		code.push_back(0x20); wasm::append_uleb(code, separator);
+		code.insert(code.end(), {0x04, 0x40, 0x20}); wasm::append_uleb(code, total);
+		code.insert(code.end(), {0x41, 0x06, 0x6a, 0x21}); wasm::append_uleb(code, total);
+		code.push_back(0x20); wasm::append_uleb(code, index);
+		code.insert(code.end(), {0x41, 0x03, 0x6a, 0x21}); wasm::append_uleb(code, index);
+		code.push_back(0x05);
+	}
 	code.push_back(0x20);
 	wasm::append_uleb(code, total);
 	code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21});
 	wasm::append_uleb(code, total);
-	for (const auto [character, extra] : {std::pair<std::int32_t, std::int32_t>{'&', 4}, {'<', 3}, {'>', 3}, {'"', 5}, {'\'', 4}})
+	for (const auto& [character, escaped] : markup_escape_sequences(context))
 	{
+		const std::int32_t extra = static_cast<std::int32_t>(escaped.size() - 1);
 		code.push_back(0x20);
 		wasm::append_uleb(code, byte);
 		code.push_back(0x41);
@@ -2345,14 +2422,20 @@ Bytes FunctionLowerer::markup_escape_length(unsigned source, unsigned total, con
 	wasm::append_uleb(code, index);
 	code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21});
 	wasm::append_uleb(code, index);
+	if (contextual) code.push_back(0x0b);
 	code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b});
 	return code;
 }
 
-Bytes FunctionLowerer::markup_escape_write(unsigned source, unsigned cursor, const Location& location)
+Bytes FunctionLowerer::markup_escape_write(unsigned source, unsigned cursor, bearer::MarkupContext context, const Location& location)
 {
 	const unsigned index = add_local("", "s32", location), length = add_local("", "s32", location), byte = add_local("", "s32", location);
-	Bytes code{0x20};
+	const bool contextual = context == bearer::MarkupContext::javascript_value || context == bearer::MarkupContext::css_value;
+	const unsigned separator = contextual ? add_local("", "s32", location) : 0;
+	Bytes code;
+	if (contextual)
+		append(code, markup_write_bytes(cursor, "\""));
+	code.push_back(0x20);
 	wasm::append_uleb(code, source);
 	code.insert(code.end(), {0x28, 0x02, 0x10, 0x21});
 	wasm::append_uleb(code, length);
@@ -2369,9 +2452,23 @@ Bytes FunctionLowerer::markup_escape_write(unsigned source, unsigned cursor, con
 	wasm::append_uleb(code, index);
 	code.insert(code.end(), {0x6a, 0x2d, 0x00, 0x00, 0x21});
 	wasm::append_uleb(code, byte);
+	if (contextual)
+	{
+		append(code, markup_unicode_separator(source, index, length, separator));
+		code.push_back(0x20); wasm::append_uleb(code, separator);
+		code.insert(code.end(), {0x04, 0x40, 0x20}); wasm::append_uleb(code, separator);
+		code.push_back(0x41); wasm::append_sleb32(code, 0xa8);
+		code.insert(code.end(), {0x46, 0x04, 0x40});
+		append(code, markup_write_bytes(cursor, context == bearer::MarkupContext::javascript_value ? "\\u2028" : "\\2028 "));
+		code.push_back(0x05);
+		append(code, markup_write_bytes(cursor, context == bearer::MarkupContext::javascript_value ? "\\u2029" : "\\2029 "));
+		code.push_back(0x0b);
+		code.push_back(0x20); wasm::append_uleb(code, index);
+		code.insert(code.end(), {0x41, 0x03, 0x6a, 0x21}); wasm::append_uleb(code, index);
+		code.push_back(0x05);
+	}
 	code.insert(code.end(), {0x02, 0x40});
-	for (const auto& [character, escaped] :
-		 std::initializer_list<std::pair<std::int32_t, std::string_view>>{{'&', "&amp;"}, {'<', "&lt;"}, {'>', "&gt;"}, {'"', "&quot;"}, {'\'', "&#39;"}})
+	for (const auto& [character, escaped] : markup_escape_sequences(context))
 	{
 		code.push_back(0x20);
 		wasm::append_uleb(code, byte);
@@ -2394,7 +2491,10 @@ Bytes FunctionLowerer::markup_escape_write(unsigned source, unsigned cursor, con
 	wasm::append_uleb(code, index);
 	code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21});
 	wasm::append_uleb(code, index);
+	if (contextual) code.push_back(0x0b);
 	code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b});
+	if (contextual)
+		append(code, markup_write_bytes(cursor, "\""));
 	return code;
 }
 
@@ -3905,6 +4005,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			unsigned local;
 			std::string type;
 			bool owned;
+			bool formatted_scalar;
 		};
 		std::vector<Field> compiled;
 		Bytes code;
@@ -3912,11 +4013,15 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		{
 			auto [field_code, type] = expression(field->value);
 			bool owned = expression_is_owned(field->value);
+			bool formatted_scalar = false;
+			if (type == "f64" && (field->context == bearer::MarkupContext::javascript_value || field->context == bearer::MarkupContext::css_value))
+				throw Error(field->location, "f64 markup interpolation is not supported in script or style elements");
 			if (wide_scalar(type))
 			{
 				field_code = format_wide_scalar(std::move(field_code), type, field->location);
 				type = "string";
 				owned = true;
+				formatted_scalar = true;
 			}
 			if (type != "string" && type != "markup" && type != "s32" && type != "bool")
 				throw Error(field->location, "markup interpolation does not support " + type);
@@ -3926,7 +4031,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			append(code, field_code);
 			code.push_back(0x21);
 			wasm::append_uleb(code, local);
-			compiled.push_back({field, local, std::move(type), owned});
+			compiled.push_back({field, local, std::move(type), owned, formatted_scalar});
 		}
 
 		const unsigned total = add_local("", "s32", markup->location);
@@ -3940,8 +4045,9 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		wasm::append_uleb(code, total);
 		for (const Field& field : compiled)
 		{
-			if (field.node->escaped && field.type == "string")
-				append(code, markup_escape_length(field.local, total, field.node->location));
+			const bool escape_text = field.type == "string" || (field.type == "markup" && field.node->context != bearer::MarkupContext::html_text);
+			if (field.node->escaped && escape_text && !field.formatted_scalar)
+				append(code, markup_escape_length(field.local, total, field.node->context, field.node->location));
 			else if (field.type == "s32")
 				append(code, markup_s32_length(field.local, total, field.node->location));
 			else if (field.type == "bool")
@@ -4029,8 +4135,9 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				continue;
 			}
 			auto field = std::find_if(compiled.begin(), compiled.end(), [&](const Field& item) { return item.node == part; });
-			if (field->node->escaped && field->type == "string")
-				append(code, markup_escape_write(field->local, cursor, field->node->location));
+			const bool escape_text = field->type == "string" || (field->type == "markup" && field->node->context != bearer::MarkupContext::html_text);
+			if (field->node->escaped && escape_text && !field->formatted_scalar)
+				append(code, markup_escape_write(field->local, cursor, field->node->context, field->node->location));
 			else if (field->type == "s32")
 				append(code, markup_s32_write(field->local, cursor, field->node->location));
 			else if (field->type == "bool")
