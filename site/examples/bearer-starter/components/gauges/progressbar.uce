@@ -2,10 +2,7 @@
 
 COMPONENT(Request& context)
 {
-	DValue asset_props;
-	asset_props["css"]["0"] = "themes/common/css/gauges.css";
-	asset_props["js"]["0"] = "components/gauges/common.js";
-	print(component("../theme/assets", asset_props, context));
+	gauge_assets(context);
 
 	String gauge_id = first(context.props["id"].to_string(), "progressbar-" + std::to_string((u64)time()));
 	String style = context.props["style"].to_string();

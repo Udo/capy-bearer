@@ -1,5 +1,29 @@
 #pragma once
 
+inline bool mysql_has_unquoted_positional_placeholder(const String& query, bool no_backslash_escapes)
+{
+	char quote = 0;
+	bool line_comment = false, block_comment = false;
+	for(size_t i = 0; i < query.size(); i++)
+	{
+		char c = query[i], next = i + 1 < query.size() ? query[i + 1] : 0;
+		if(line_comment) { if(c == '\n' || c == '\r') line_comment = false; continue; }
+		if(block_comment) { if(c == '*' && next == '/') { block_comment = false; i++; } continue; }
+		if(quote)
+		{
+			if(!no_backslash_escapes && c == '\\') { if(next) i++; continue; }
+			if(c == quote) { if(next == quote) i++; else quote = 0; }
+			continue;
+		}
+		if(c == '\'' || c == '"' || c == '`') { quote = c; continue; }
+		if(c == '#') { line_comment = true; continue; }
+		if(c == '-' && next == '-' && (i + 2 >= query.size() || std::isspace((unsigned char)query[i + 2]))) { line_comment = true; i++; continue; }
+		if(c == '/' && next == '*') { block_comment = true; i++; continue; }
+		if(c == '?') return(true);
+	}
+	return(false);
+}
+
 struct MySQLFieldInfo {
 	String name;
 	String table;

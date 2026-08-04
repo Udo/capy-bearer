@@ -191,24 +191,18 @@ static DValue wasm_decode_dvalue_result(String encoded)
 	brb_decode(encoded, out, &error);
 	return(out);
 }
-DValue file_stat(String path)
+template<typename Hostcall>
+static DValue wasm_file_dvalue(String path, Hostcall hostcall)
 {
 	String current = wasm_current_unit_file();
-	size_t required = bearer_host_file_stat(path.data(), path.size(), current.data(), current.size(), 0, 0);
+	size_t required = hostcall(path.data(), path.size(), current.data(), current.size(), 0, 0);
 	String encoded(required, 0);
-	size_t got = required ? bearer_host_file_stat(path.data(), path.size(), current.data(), current.size(), &encoded[0], required) : 0;
+	size_t got = required ? hostcall(path.data(), path.size(), current.data(), current.size(), &encoded[0], required) : 0;
 	encoded.resize(got <= required ? got : 0);
 	return(wasm_decode_dvalue_result(encoded));
 }
-DValue dir_list(String path)
-{
-	String current = wasm_current_unit_file();
-	size_t required = bearer_host_dir_list(path.data(), path.size(), current.data(), current.size(), 0, 0);
-	String encoded(required, 0);
-	size_t got = required ? bearer_host_dir_list(path.data(), path.size(), current.data(), current.size(), &encoded[0], required) : 0;
-	encoded.resize(got <= required ? got : 0);
-	return(wasm_decode_dvalue_result(encoded));
-}
+DValue file_stat(String path) { return(wasm_file_dvalue(path, bearer_host_file_stat)); }
+DValue dir_list(String path) { return(wasm_file_dvalue(path, bearer_host_dir_list)); }
 bool file_rename(String from, String to)
 {
 	String current = wasm_current_unit_file();

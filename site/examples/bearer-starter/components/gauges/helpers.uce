@@ -1,6 +1,14 @@
 #load "../../lib/app.uce"
 #include <math.h>
 
+void gauge_assets(Request& context)
+{
+	DValue props;
+	props["css"]["0"] = "themes/common/css/gauges.css";
+	props["js"]["0"] = "components/gauges/common.js";
+	print(component("../theme/assets", props, context));
+}
+
 f64 gauge_clamp_value(f64 value, f64 min_value, f64 max_value)
 {
 	return(std::max(min_value, std::min(max_value, value)));

@@ -1,0 +1,28 @@
+#load "../../lib/app.uce"
+
+inline void render_common_theme_page(Request& context)
+{
+	String main_html = context.call["fragments"]["main"].to_string();
+	String key = context.cfg.get_by_path("theme/key").to_string();
+	String body_class;
+	if(key == "portal-dark") body_class = "portal-theme portal-dark-theme dark-theme";
+	else if(key == "portal-light") body_class = "portal-theme portal-light-theme";
+
+	<>
+		<!doctype html>
+		<html class="no-js <?= context.cfg.get_by_path("theme/mode-class").to_string() ?>" lang="en" data-theme-key="<?= key ?>">
+		<head>
+			<?: component("../../components/theme/head", context) ?>
+		</head>
+		<? if(body_class == "") { ?><body><? } else { ?><body class="<?= body_class ?>"><? } ?>
+			<? if(key == "retro-gaming") { ?><div class="retro-stars"></div><? } ?>
+			<?: component("../../components/theme/global_controls", context) ?>
+			<?: component("../../components/theme/standard_nav", context) ?>
+			<div id="content">
+				<?: main_html ?>
+			</div>
+			<?: component("../../components/theme/footer", context) ?>
+		</body>
+		</html>
+	</>
+}

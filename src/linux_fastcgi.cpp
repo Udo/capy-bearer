@@ -242,25 +242,14 @@ void on_request_fault_signal(int sig)
 	on_segfault(sig);
 }
 
-void install_request_fault_handlers()
+void set_request_fault_handlers(void (*handler)(int))
 {
-	signal(SIGSEGV, on_request_fault_signal);
-	signal(SIGABRT, on_request_fault_signal);
-	signal(SIGBUS, on_request_fault_signal);
-	signal(SIGILL, on_request_fault_signal);
-	signal(SIGFPE, on_request_fault_signal);
-	signal(SIGALRM, on_request_fault_signal);
+	for(int sig : {SIGSEGV, SIGABRT, SIGBUS, SIGILL, SIGFPE, SIGALRM})
+		signal(sig, handler);
 }
 
-void restore_request_fault_handlers()
-{
-	signal(SIGSEGV, on_segfault);
-	signal(SIGABRT, on_segfault);
-	signal(SIGBUS, on_segfault);
-	signal(SIGILL, on_segfault);
-	signal(SIGFPE, on_segfault);
-	signal(SIGALRM, on_segfault);
-}
+void install_request_fault_handlers() { set_request_fault_handlers(on_request_fault_signal); }
+void restore_request_fault_handlers() { set_request_fault_handlers(on_segfault); }
 
 
 String current_ws_scope()

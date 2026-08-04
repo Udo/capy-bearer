@@ -34,7 +34,9 @@
 
 #include "fcgicc.h"
 
+#include <atomic>
 #include <cstring>
+#include <limits>
 #include <stdexcept>
 
 #include <errno.h> // E*
@@ -50,6 +52,17 @@
 #include "../fastcgi_devkit/fastcgi.h"
 
 namespace {
+
+std::atomic<u64> websocket_connection_sequence{0};
+
+static u64 next_websocket_connection_sequence()
+{
+	u64 current = websocket_connection_sequence.load(std::memory_order_relaxed);
+	while(current != std::numeric_limits<u64>::max())
+		if(websocket_connection_sequence.compare_exchange_weak(current, current + 1, std::memory_order_relaxed))
+			return(current + 1);
+	return(0);
+}
 
 struct TransportLimits {
 	u64 max_client_connections = 256;
@@ -838,8 +851,14 @@ FastCGIServer::validate_websocket_upgrade(FastCGIRequest& request, Connection& c
 void
 FastCGIServer::begin_websocket_upgrade(FastCGIRequest& request, Connection& connection, String& data)
 {
+	u64 sequence = next_websocket_connection_sequence();
+	if(sequence == 0)
+	{
+		reject_http_connection(connection, "HTTP/1.1 503 Service Unavailable", "WebSocket connection ID space is exhausted");
+		return;
+	}
 	connection.is_websocket = true;
-	connection.websocket_connection_id = std::to_string(getpid()) + ":" + std::to_string(connection.client_socket);
+	connection.websocket_connection_id = std::to_string(getpid()) + ":" + std::to_string(sequence);
 	connection.websocket_scope = first(
 		request.params["SCRIPT_FILENAME"],
 		request.params["DOCUMENT_URI"],

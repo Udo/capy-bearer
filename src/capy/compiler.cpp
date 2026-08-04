@@ -317,6 +317,15 @@ void store_field(Bytes& code, const std::string& type, unsigned offset)
 	wasm::append_uleb(code, offset);
 }
 
+void store_i32_constant(Bytes& code, unsigned object, std::int32_t value, unsigned offset)
+{
+	code.push_back(0x20);
+	wasm::append_uleb(code, object);
+	code.push_back(0x41);
+	wasm::append_sleb32(code, value);
+	store_field(code, "s32", offset);
+}
+
 void managed_payload_pointer(Bytes& code, unsigned local, const std::string& type)
 {
 	code.push_back(0x20);
@@ -2641,14 +2650,7 @@ std::pair<Bytes, unsigned> FunctionLowerer::allocate_blob(const std::string& typ
 	append(code, module_.marker(location));
 	code.insert(code.end(), {0x00, 0x0b});
 	for (const auto [header, offset] : {std::pair<std::int32_t, unsigned>{1, 0}, {1, 4}, {static_cast<std::int32_t>(type_id), 8}})
-	{
-		code.push_back(0x20);
-		wasm::append_uleb(code, pointer);
-		code.push_back(0x41);
-		wasm::append_sleb32(code, header);
-		code.insert(code.end(), {0x36, 0x02});
-		wasm::append_uleb(code, offset);
-	}
+		store_i32_constant(code, pointer, header, offset);
 	code.push_back(0x20);
 	wasm::append_uleb(code, pointer);
 	code.push_back(0x20);
@@ -3542,14 +3544,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 											{static_cast<std::int32_t>(type_id), 8},
 											{static_cast<std::int32_t>(size), 12},
 											{static_cast<std::int32_t>(slot), 16}})
-		{
-			code.push_back(0x20);
-			wasm::append_uleb(code, pointer);
-			code.push_back(0x41);
-			wasm::append_sleb32(code, header);
-			code.insert(code.end(), {0x36, 0x02});
-			wasm::append_uleb(code, offset);
-		}
+			store_i32_constant(code, pointer, header, offset);
 		code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01});
 		for (std::size_t i = 0; i < captures.size(); ++i)
 		{
@@ -3605,14 +3600,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 											{1, 4},
 											{static_cast<std::int32_t>(module_.tuple_type(type)), 8},
 											{static_cast<std::int32_t>(layout.size), 12}})
-		{
-			code.push_back(0x20);
-			wasm::append_uleb(code, pointer);
-			code.push_back(0x41);
-			wasm::append_sleb32(code, header);
-			code.insert(code.end(), {0x36, 0x02});
-			wasm::append_uleb(code, offset);
-		}
+			store_i32_constant(code, pointer, header, offset);
 		code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01});
 		for (std::size_t i = 0; i < tuple->items.size(); ++i)
 		{
@@ -4089,14 +4077,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		code.push_back(0x00);
 		code.push_back(0x0b);
 		for (const auto [header, offset] : {std::pair<std::int32_t, unsigned>{1, 0}, {1, 4}, {1, 8}})
-		{
-			code.insert(code.end(), {0x20});
-			wasm::append_uleb(code, pointer);
-			code.push_back(0x41);
-			wasm::append_sleb32(code, header);
-			code.insert(code.end(), {0x36, 0x02});
-			wasm::append_uleb(code, offset);
-		}
+			store_i32_constant(code, pointer, header, offset);
 		code.insert(code.end(), {0x20});
 		wasm::append_uleb(code, pointer);
 		code.insert(code.end(), {0x20});
@@ -4997,14 +4978,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 												{1, 4},
 												{static_cast<std::int32_t>(aggregate.type_id), 8},
 												{static_cast<std::int32_t>(layout.size), 12}})
-			{
-				code.push_back(0x20);
-				wasm::append_uleb(code, pointer);
-				code.push_back(0x41);
-				wasm::append_sleb32(code, header);
-				code.insert(code.end(), {0x36, 0x02});
-				wasm::append_uleb(code, offset);
-			}
+				store_i32_constant(code, pointer, header, offset);
 			code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01});
 			for (std::size_t i = 0; i < arguments->size(); ++i)
 			{
@@ -6091,76 +6065,41 @@ std::vector<Bytes> Module::runtime_bodies() const
 								 0x20, 0x00, 0x28, 0x02, 0x18, 0x22, 0x01, 0x45, 0x04, 0x40, 0x05, 0x20, 0x01, 0x10});
 		wasm::append_uleb(code, import_index("bearer_free"));
 		code.insert(code.end(), {0x0b, 0x0b});
-		for (const auto& [type_id, captures] : closure_types_)
+		auto release_aggregate_fields = [&](unsigned type_id, const std::vector<std::string>& fields, unsigned first_offset)
 		{
-			const AggregateLayout layout = aggregate_layout(captures, 24);
-			std::vector<unsigned> managed;
-			for (unsigned i = 0; i < captures.size(); ++i)
-				if (managed_type(captures[i]))
-					managed.push_back(i);
-			if (managed.empty())
-				continue;
-			code.insert(code.end(), {0x20, 0x00, 0x28, 0x02, 0x08, 0x41});
-			wasm::append_sleb32(code, static_cast<std::int32_t>(type_id));
-			code.insert(code.end(), {0x46, 0x04, 0x40});
-			for (unsigned i : managed)
-			{
-				code.push_back(0x20);
-				wasm::append_uleb(code, 0);
-				load_field(code, captures[i], layout.offsets[i]);
-				code.push_back(0x10);
-				wasm::append_uleb(code, release_index());
-			}
-			code.push_back(0x0b);
-		}
-		for (const auto& [name, aggregate] : structs_)
-		{
-			std::vector<std::string> field_types;
-			for (const auto& [field_name, field_type] : aggregate.fields)
-				field_types.push_back(field_type);
-			const AggregateLayout layout = aggregate_layout(field_types, 16);
-			std::vector<unsigned> managed;
-			for (unsigned i = 0; i < aggregate.fields.size(); ++i)
-				if (managed_type(aggregate.fields[i].second))
-					managed.push_back(i);
-			if (managed.empty())
-				continue;
-			code.insert(code.end(), {0x20, 0x00, 0x28, 0x02, 0x08, 0x41});
-			wasm::append_sleb32(code, static_cast<std::int32_t>(aggregate.type_id));
-			code.insert(code.end(), {0x46, 0x04, 0x40});
-			for (unsigned i : managed)
-			{
-				code.push_back(0x20);
-				wasm::append_uleb(code, 0);
-				load_field(code, aggregate.fields[i].second, layout.offsets[i]);
-				code.push_back(0x10);
-				wasm::append_uleb(code, release_index());
-			}
-			code.push_back(0x0b);
-		}
-		for (const auto& [type, id] : tuples_)
-		{
-			const auto fields = aggregate_elements(type);
-			const AggregateLayout layout = aggregate_layout(fields, 16);
-			std::vector<unsigned> managed;
+			const AggregateLayout layout = aggregate_layout(fields, first_offset);
+			bool guarded = false;
 			for (unsigned i = 0; i < fields.size(); ++i)
-				if (managed_type(fields[i]))
-					managed.push_back(i);
-			if (managed.empty())
-				continue;
-			code.insert(code.end(), {0x20, 0x00, 0x28, 0x02, 0x08, 0x41});
-			wasm::append_sleb32(code, static_cast<std::int32_t>(id));
-			code.insert(code.end(), {0x46, 0x04, 0x40});
-			for (unsigned i : managed)
 			{
+				if (!managed_type(fields[i]))
+					continue;
+				if (!guarded)
+				{
+					code.insert(code.end(), {0x20, 0x00, 0x28, 0x02, 0x08, 0x41});
+					wasm::append_sleb32(code, static_cast<std::int32_t>(type_id));
+					code.insert(code.end(), {0x46, 0x04, 0x40});
+					guarded = true;
+				}
 				code.push_back(0x20);
 				wasm::append_uleb(code, 0);
 				load_field(code, fields[i], layout.offsets[i]);
 				code.push_back(0x10);
 				wasm::append_uleb(code, release_index());
 			}
-			code.push_back(0x0b);
+			if (guarded)
+				code.push_back(0x0b);
+		};
+		for (const auto& [type_id, captures] : closure_types_)
+			release_aggregate_fields(type_id, captures, 24);
+		for (const auto& [name, aggregate] : structs_)
+		{
+			std::vector<std::string> fields;
+			for (const auto& [field_name, field_type] : aggregate.fields)
+				fields.push_back(field_type);
+			release_aggregate_fields(aggregate.type_id, fields, 16);
 		}
+		for (const auto& [type, id] : tuples_)
+			release_aggregate_fields(id, aggregate_elements(type), 16);
 		code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6b, 0x24, 0x01, 0x20, 0x00, 0x10});
 		wasm::append_uleb(code, import_index("bearer_free"));
 		code.push_back(0x0b);

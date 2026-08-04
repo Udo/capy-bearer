@@ -22,4 +22,4 @@ int main()
 EOF
 "${CXX:-c++}" -std=c++20 -fpermissive -I. "$source" -lpcre2-8 -o "$binary"
 "$binary"
-echo "exact decimal SQLite/MySQL request-handle protocol passed"
+echo "exact BRRB u64 decimal round-trip passed"

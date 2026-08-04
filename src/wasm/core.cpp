@@ -22,6 +22,7 @@ static const char* WASM_DB_UNAVAILABLE =
 	"database connector is not available in the wasm workspace";
 
 extern "C" size_t bearer_host_mysql(const char* in, size_t in_len, char* out, size_t cap);
+extern "C" size_t bearer_host_sqlite(const char* in, size_t in_len, char* out, size_t cap);
 extern "C" size_t bearer_host_zip(const char* in, size_t in_len, char* out, size_t cap);
 extern "C" size_t bearer_host_units(const char* in, size_t in_len, char* out, size_t cap);
 extern "C" size_t bearer_host_regex_capy(const char* in, size_t in_len, char* out, size_t cap);
@@ -43,11 +44,10 @@ static DValue wasm_sized_hostcall(DValue request, size_t (*hostcall)(const char*
 	return(response);
 }
 
-static DValue wasm_zip_call(DValue request)
-{
-	DValue response = wasm_sized_hostcall(request, bearer_host_zip);
-	return(response);
-}
+static DValue wasm_zip_call(DValue request) { return(wasm_sized_hostcall(request, bearer_host_zip)); }
+static DValue wasm_units_call(DValue request) { return(wasm_sized_hostcall(request, bearer_host_units)); }
+static DValue wasm_mysql_call(DValue request) { return(wasm_sized_hostcall(request, bearer_host_mysql)); }
+static DValue wasm_sqlite_call(DValue request) { return(wasm_sized_hostcall(request, bearer_host_sqlite)); }
 
 static bool wasm_zip_apply(DValue request, DValue& response)
 {
@@ -114,11 +114,6 @@ String gz_uncompress(String compressed)
 	return(response["result"].to_string());
 }
 
-static DValue wasm_units_call(DValue request)
-{
-	return(wasm_sized_hostcall(request, bearer_host_units));
-}
-
 DValue unit_info(String path)
 {
 	DValue request;
@@ -170,11 +165,6 @@ static size_t bearer_copy_bytes(const String& value, char* out, size_t cap);
 static size_t bearer_copy_staged(String& staged, char* out, size_t cap);
 static bool bearer_decode_brrb_span(const char* value, size_t value_len, DValue& decoded);
 static String wasm_unit_call_encoded_result;
-
-static DValue wasm_mysql_call(DValue request)
-{
-	return(wasm_sized_hostcall(request, bearer_host_mysql));
-}
 
 bool MySQL::connect(String host, String username, String password, String database)
 {
@@ -317,34 +307,10 @@ String MySQL::parse_query_parameters(String query, StringMap map)
 	return(result);
 }
 
-static bool wasm_mysql_has_unquoted_positional_placeholder(String query)
-{
-	char quote = 0;
-	bool line_comment = false, block_comment = false;
-	for(size_t i = 0; i < query.size(); i++)
-	{
-		char c = query[i], next = i + 1 < query.size() ? query[i + 1] : 0;
-		if(line_comment) { if(c == '\n' || c == '\r') line_comment = false; continue; }
-		if(block_comment) { if(c == '*' && next == '/') { block_comment = false; i++; } continue; }
-		if(quote)
-		{
-			if(c == '\\') { if(next) i++; continue; }
-			if(c == quote) { if(next == quote) i++; else quote = 0; }
-			continue;
-		}
-		if(c == '\'' || c == '"' || c == '`') { quote = c; continue; }
-		if(c == '#') { line_comment = true; continue; }
-		if(c == '-' && next == '-' && (i + 2 >= query.size() || isspace((unsigned char)query[i + 2]))) { line_comment = true; i++; continue; }
-		if(c == '/' && next == '*') { block_comment = true; i++; continue; }
-		if(c == '?') return(true);
-	}
-	return(false);
-}
-
 DValue MySQL::query(String q)
 {
 	affected_rows = 0;
-	if(!connection && wasm_mysql_has_unquoted_positional_placeholder(q))
+	if(!connection && mysql_has_unquoted_positional_placeholder(q, false))
 	{
 		_preload_next_error_code = 2000;
 		statement_info = "mysql positional ? placeholders are not supported; use named :name placeholders";
@@ -373,7 +339,7 @@ DValue MySQL::query(String q)
 
 DValue MySQL::query(String q, StringMap params)
 {
-	if(!connection && wasm_mysql_has_unquoted_positional_placeholder(q))
+	if(!connection && mysql_has_unquoted_positional_placeholder(q, false))
 	{
 		_preload_next_error_code = 2000;
 		statement_info = "mysql positional ? placeholders are not supported; use named :name placeholders";
@@ -405,24 +371,6 @@ DValue MySQL::get_pending_result() { return(DValue()); }
 // a per-workspace handle table). One BRRB2-marshalled hostcall carries
 // {op,handle,path,query,params} in and {handle,result,insert_id,affected,
 // error_code,statement_info} out. `connection` holds the host handle (>0).
-extern "C" size_t bearer_host_sqlite(const char* in, size_t in_len, char* out, size_t cap);
-
-static DValue wasm_sqlite_call(DValue request)
-{
-	String encoded = brb_encode(request);
-	size_t need = bearer_host_sqlite(encoded.data(), encoded.size(), 0, 0);
-	if(need == 0)
-		return(DValue());
-	String buffer(need, 0);
-	size_t got = bearer_host_sqlite(encoded.data(), encoded.size(), &buffer[0], need);
-	if(got == 0 || got > need)
-		return(DValue());
-	DValue response;
-	String error;
-	brb_decode(String(buffer.data(), got), response, &error);
-	return(response);
-}
-
 void SQLite::set_error(s32 code, String info) { error_code = code; statement_info = info; }
 
 bool SQLite::connect(String path)
@@ -1695,13 +1643,7 @@ size_t bearer_file_read(u64 handle, u64 length, char* out, size_t cap)
 		}
 		return(wasm_file_read_result.size());
 	}
-	if(cap < wasm_file_read_result.size())
-		return(wasm_file_read_result.size());
-	if(!wasm_file_read_result.empty())
-		memcpy(out, wasm_file_read_result.data(), wasm_file_read_result.size());
-	size_t size = wasm_file_read_result.size();
-	wasm_file_read_result.clear();
-	return(size);
+	return(bearer_copy_staged(wasm_file_read_result, out, cap));
 }
 
 u64 bearer_file_write(u64 handle, const char* data, size_t data_len)
@@ -1736,13 +1678,7 @@ size_t bearer_file_temp(const char* prefix, size_t prefix_len, char* out, size_t
 		wasm_file_temp_result = file_temp(String(prefix ? prefix : "", prefix ? prefix_len : 0));
 		return(wasm_file_temp_result.size());
 	}
-	if(cap < wasm_file_temp_result.size())
-		return(wasm_file_temp_result.size());
-	if(!wasm_file_temp_result.empty())
-		memcpy(out, wasm_file_temp_result.data(), wasm_file_temp_result.size());
-	size_t size = wasm_file_temp_result.size();
-	wasm_file_temp_result.clear();
-	return(size);
+	return(bearer_copy_staged(wasm_file_temp_result, out, cap));
 }
 
 void bearer_file_unlink(const char* path, size_t path_len)
@@ -1867,13 +1803,7 @@ static size_t bearer_component_capture_impl(const char* target, size_t target_le
 		}
 		return(wasm_component_capture_result.size());
 	}
-	if(cap < wasm_component_capture_result.size())
-		return(wasm_component_capture_result.size());
-	if(!wasm_component_capture_result.empty())
-		memcpy(out, wasm_component_capture_result.data(), wasm_component_capture_result.size());
-	size_t size = wasm_component_capture_result.size();
-	wasm_component_capture_result.clear();
-	return(size);
+	return(bearer_copy_staged(wasm_component_capture_result, out, cap));
 }
 
 size_t bearer_component_capture(const char* target, size_t target_len, char* out, size_t cap)
