@@ -50,7 +50,7 @@ function returned() string {
 }
 
 function implicit_returned() string {
-    var result := clone("implicit")
+    -> var result := clone("implicit")
 }
 
 function CLI(request : dval) {

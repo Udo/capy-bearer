@@ -12,7 +12,7 @@ Each Capy source file is an independent unit. A unit can expose `dval` functions
 EXPORTS echo
 
 function echo(input : dval) dval {
-    input
+    -> input
 }
 
 function RENDER(request : dval) {
@@ -34,7 +34,7 @@ Save this service as `service.capy`:
 EXPORTS version
 
 function version(input : dval) dval {
-    {name: "Capy"}
+    -> {name: "Capy"}
 }
 ```
 

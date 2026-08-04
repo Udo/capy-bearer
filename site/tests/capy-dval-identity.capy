@@ -4,10 +4,10 @@ function mutate_parameter(value : dval) {
 }
 
 function nested_mutation(value : dval) { mutate_parameter(value) }
-function return_alias(value : dval) dval { value }
+function return_alias(value : dval) dval { -> value }
 
-function selector() string { print("S"); "once" }
-function replacement() string { print("R"); "value" }
+function selector() string { print("S"); -> "once" }
+function replacement() string { print("R"); -> "value" }
 
 function CLI(request : dval) {
   {

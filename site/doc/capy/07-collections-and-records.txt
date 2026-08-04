@@ -80,7 +80,7 @@ function RENDER(request : dval) {
 A tuple can spread into matching function parameters:
 
 ```capy
-function add(left : s32, right : s32) s32 { left + right }
+function add(left : s32, right : s32) s32 { -> left + right }
 
 function RENDER(request : dval) {
     var pair := (20, 22)
@@ -134,7 +134,7 @@ struct Point {
     y : s32
 }
 
-function total(point : Point) s32 { point.x + point.y }
+function total(point : Point) s32 { -> point.x + point.y }
 
 function RENDER(request : dval) {
     var point := Point(3, 4)

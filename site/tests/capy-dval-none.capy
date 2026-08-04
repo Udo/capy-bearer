@@ -2,12 +2,12 @@ type Optional = dval
 
 function selector(marker : string, value : string) string {
     print(marker)
-    value
+    -> value
 }
 
 function replacement(marker : string, value : string) dval {
     print(marker)
-    dval(value)
+    -> dval(value)
 }
 
 function CLI(request : dval) {

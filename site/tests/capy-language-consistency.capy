@@ -12,30 +12,30 @@ struct Wide {
 }
 
 function choose(flag : bool) s32 {
-    {
+    -> {
         var base := 2
-        if flag { base + 1 } else { base + 2 }
+        -> if flag { -> base + 1 } else { -> base + 2 }
     }
 }
 
 function choose_text(flag : bool) string {
-    if flag {
+    -> if flag {
         var result := clone("left")
-        result
+        -> result
     } else {
         var result := clone("right")
-        result
+        -> result
     }
 }
 
 function early(flag : bool) string {
     var outer := clone("outer")
-    if flag { return clone("early") } else { clone("late") }
+    -> if flag { return clone("early") } else { -> clone("late") }
 }
 
 function capture(value : u64, decimal : f64, text : string) (function(add : u64) f64) {
-    function(add : u64) f64 {
-        f64(value + add) + decimal + f64(length(text))
+    -> function(add : u64) f64 {
+        -> f64(value + add) + decimal + f64(length(text))
     }
 }
 

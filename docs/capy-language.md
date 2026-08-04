@@ -130,19 +130,19 @@ The range `start..end` is a half-open `s32` range. It contains values from `star
 
 ## 6. Blocks and conditionals
 
-A block evaluates its expressions in order. An empty block has type `void`. A non-empty block produces the value of its final reachable expression. Earlier produced values are discarded.
+A block evaluates its expressions in order. An empty block has type `void`. A block produces a value only when its final reachable item is `-> expression`. Earlier produced values are discarded.
 
-The block owns its locals. Before normal block exit, the compiler preserves the final managed result and then releases the locals in reverse declaration order. It releases each managed value exactly once on normal exit, `return`, `break`, and `continue`. A runtime trap discards the complete request workspace.
+The block owns its locals. Before normal block exit, the compiler preserves the yielded managed result. It then releases the locals in reverse declaration order. It releases each managed value exactly once on normal exit, `return`, `break`, and `continue`. A runtime trap discards the complete request workspace.
 
 An `if` condition evaluates once. An `if` without `else` has type `void`. Its selected branch result is discarded.
 
-An `if` with `else` produces the selected branch value. All branches that can fall through must produce the same canonical type. A branch that always returns does not constrain the other branch type. If neither branch can fall through, the conditional does not produce a reachable value.
+An `if` with `else` produces the selected branch yield. All branches that can fall through must yield the same canonical type. A branch that always returns does not constrain the other branch type. If neither branch can fall through, the conditional does not produce a reachable value.
 
 ```capy
 var label := if ready {
-    "ready"
+    -> "ready"
 } else {
-    "waiting"
+    -> "waiting"
 }
 ```
 
@@ -164,7 +164,7 @@ Array and DValue loops use a live view. Each iteration checks the current count 
 
 Loops have type `void`. `break` leaves the nearest loop. `continue` starts its next iteration. Neither accepts a value.
 
-`return expression` exits the function with a value. Bare `return` is valid only for a `void` result. A non-void function can omit explicit `return` when its final reachable expression has the declared result type. A function is also complete when all paths return explicitly.
+`return expression` exits the function with a value. Bare `return` is valid only for a `void` result. `-> expression` yields the current block value and must be its final reachable item. A non-void function must yield its declared result from the outer body or return explicitly on all paths.
 
 ## 8. Functions, overloads, and constructors
 
@@ -172,7 +172,7 @@ A function has a name, optional parameters, an optional result type, and a body:
 
 ```capy
 function add(left : s32, right : s32) s32 {
-    left + right
+    -> left + right
 }
 ```
 
@@ -181,7 +181,7 @@ A missing result type means `void`. A trailing parameter can have a literal defa
 A direct named call can omit only trailing default parameters. The call evaluates supplied arguments once from left to right. It then evaluates omitted defaults in parameter order. A function value has its full parameter arity. Defaults do not shorten its function type. Hosts, handlers, lambdas, and function types cannot declare defaults.
 
 ```capy
-function label(text : string, suffix : string = "!") string { text + suffix }
+function label(text : string, suffix : string = "!") string { -> text + suffix }
 label("Capy") // "Capy!"
 ```
 

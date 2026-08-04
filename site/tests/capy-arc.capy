@@ -28,7 +28,7 @@ function early(x : string) string {
 }
 
 function implicit(x : string) string {
-    x
+    -> x
 }
 
 function consume(x : string) void {
@@ -36,15 +36,15 @@ function consume(x : string) void {
 }
 
 function pick(values : [string], index : s32) string {
-    values[index]
+    -> values[index]
 }
 
 function make_numbers () [s32] {
-    [3, 4]
+    -> [3, 4]
 }
 
 function make_pair () Pair {
-    Pair(clone("pair"), 42)
+    -> Pair(clone("pair"), 42)
 }
 
 function first_string () string {

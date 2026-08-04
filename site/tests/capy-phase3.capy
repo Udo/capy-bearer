@@ -7,35 +7,35 @@ struct TupleBox {
 }
 
 function add(left : s32, right : s32) s32 {
-    left + right
+    -> left + right
 }
 
 function subtract(left : s32, right : s32) s32 {
-    left - right
+    -> left - right
 }
 
 function identity(value : any) value::type {
-    value
+    -> value
 }
 
 function choose(value : any) value::type {
-    value
+    -> value
 }
 
 function choose(value : s32) value::type {
-    value + 1
+    -> value + 1
 }
 
 function make_tuple (s32, string) {
-    (9, clone("tuple"))
+    -> (9, clone("tuple"))
 }
 
 function nested_tuple ((s32, string), string) {
-    ((1, clone("inner")), clone("outer"))
+    -> ((1, clone("inner")), clone("outer"))
 }
 
 function tuple_label(value : (s32, string)) string {
-    value[1]
+    -> value[1]
 }
 
 function countdown(value : any) value::type {

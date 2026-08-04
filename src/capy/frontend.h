@@ -97,6 +97,7 @@ enum struct ExprKind
 	Member,
 	Block,
 	Return,
+	Yield,
 	Break,
 	Continue,
 	Variable,
@@ -241,6 +242,11 @@ struct Return : Expr
 	Expr* value;
 	Return(Location l, Expr* v);
 };
+struct Yield : Expr
+{
+	Expr* value;
+	Yield(Location l, Expr* v);
+};
 struct Break : Expr
 {
 	explicit Break(Location l);
@@ -356,7 +362,7 @@ struct Parser
 	Expr* exports(Location);
 	Expr* type_alias(Location);
 	Expr* variable(Location);
-	Expr* return_expr(Location);
+	Expr* result_expr(Location, bool yield);
 	Expr* for_expr(Location);
 	Expr* if_expr(Location);
 	Expr* while_expr(Location);

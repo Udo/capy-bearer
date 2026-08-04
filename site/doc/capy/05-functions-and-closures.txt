@@ -8,7 +8,7 @@ A function gives a name to a calculation. Parameters describe its input. The dec
 
 :example capy render
 function greet(name : string) string {
-    "Hello, " + name
+    -> "Hello, " + name
 }
 
 function RENDER(request : dval) {
@@ -19,7 +19,7 @@ function RENDER(request : dval) {
 Hello, Ada
 
 :content
-The final expression in `greet` supplies its result. Use `return` when a function must finish early.
+The `->` expression supplies the function result. Use `return` when a function must finish early.
 
 ## Parameters and defaults
 
@@ -27,7 +27,7 @@ Parameters have names and types:
 
 ```capy
 function label(name : string, suffix : string = "!") string {
-    name + suffix
+    -> name + suffix
 }
 
 function RENDER(request : dval) {
@@ -44,8 +44,8 @@ Capy evaluates arguments once from left to right.
 Several functions can have the same name when their parameter types differ:
 
 ```capy
-function describe(value : s32) string { "integer" }
-function describe(value : string) string { "string" }
+function describe(value : s32) string { -> "integer" }
+function describe(value : string) string { -> "string" }
 
 function RENDER(request : dval) {
     print(describe(42), " ", describe("Ada"), "\n")
@@ -75,7 +75,7 @@ The call behaves as if it passed `string(42)`. Capy does not chain several conve
 A function can be stored and called through a typed value:
 
 ```capy
-function double(value : s32) s32 { value * 2 }
+function double(value : s32) s32 { -> value * 2 }
 
 function RENDER(request : dval) {
     var operation : function(value : s32) s32 = double
@@ -89,7 +89,7 @@ A lambda defines a small function at its point of use:
 ```capy
 function RENDER(request : dval) {
     var add_one := function(value : s32) s32 {
-        value + 1
+        -> value + 1
     }
     print(add_one(41), "\n")
 }
@@ -103,7 +103,7 @@ function RENDER(request : dval) {
     var values := [10]
     var update := function() s32 {
         values.push(20)
-        offset + length(values)
+        -> offset + length(values)
     }
     print(update(), " ", values[1], "\n")
 }

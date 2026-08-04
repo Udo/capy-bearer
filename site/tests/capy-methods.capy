@@ -1,17 +1,17 @@
-function observe_receiver() s32 { print("receiver;"); 7 }
-function observe_argument() s32 { print("argument;"); 3 }
-function combine(value : s32, argument : s32) s32 { print("method;"); value + argument }
-function describe(value : s32) string { "s32" }
-function describe(value : string) string { "string" }
-function identity(value : any) value::type { value }
+function observe_receiver() s32 { print("receiver;"); -> 7 }
+function observe_argument() s32 { print("argument;"); -> 3 }
+function combine(value : s32, argument : s32) s32 { print("method;"); -> value + argument }
+function describe(value : s32) string { -> "s32" }
+function describe(value : string) string { -> "string" }
+function identity(value : any) value::type { -> value }
 struct Box { callback : function(value : s32) s32 }
 struct OverrideBox { callback : function(value : s32) s32 }
-function callback(value : string, argument : s32) s32 { 0 }
-function callback(value : OverrideBox, argument : s32) s32 { print("extension;"); argument }
+function callback(value : string, argument : s32) s32 { -> 0 }
+function callback(value : OverrideBox, argument : s32) s32 { print("extension;"); -> argument }
 
 function CLI(request : dval) {
-    var call : function(value : s32) s32 = function(value : s32) s32 { print("shadow;"); value }
-    var box := Box(function(value : s32) s32 { print("field;"); value + 1 })
-    var overridden := OverrideBox(function(value : s32) s32 { print("wrong-field;"); value })
+    var call : function(value : s32) s32 = function(value : s32) s32 { print("shadow;"); -> value }
+    var box := Box(function(value : s32) s32 { print("field;"); -> value + 1 })
+    var overridden := OverrideBox(function(value : s32) s32 { print("wrong-field;"); -> value })
     print(observe_receiver().combine(observe_argument()), "|", (7).describe(), "|", ("x").describe(), "|", (9).identity(), "|", (5).call(), "|", box.callback(4), "|", overridden.callback(6))
 }

@@ -1,12 +1,12 @@
-function scalar(value : as s64) s64 { value }
-function text(value : as string) string { value }
-function select(value : s32) s32 { 1 }
-function select(value : as s64) s32 { 2 }
-function choose(value : any) value::type { value }
-function choose(value : as s64) s64 { value + s64(100) }
-function widen(value : as s64) s64 { value }
-function ranked(left : as s64, right : as s64) s32 { 4 }
-function ranked(left : as u64, right : as f64) s32 { 5 }
+function scalar(value : as s64) s64 { -> value }
+function text(value : as string) string { -> value }
+function select(value : s32) s32 { -> 1 }
+function select(value : as s64) s32 { -> 2 }
+function choose(value : any) value::type { -> value }
+function choose(value : as s64) s64 { -> value + s64(100) }
+function widen(value : as s64) s64 { -> value }
+function ranked(left : as s64, right : as s64) s32 { -> 4 }
+function ranked(left : as u64, right : as f64) s32 { -> 5 }
 
 function CLI(request : dval) {
     print(

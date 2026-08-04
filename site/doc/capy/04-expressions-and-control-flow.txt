@@ -57,9 +57,9 @@ An `if` with `else` can also produce a value:
 function RENDER(request : dval) {
     var total := 12
     var label := if total > 10 {
-        "large"
+        -> "large"
     } else {
-        "small"
+        -> "small"
     }
     print(label, "\n")
 }
@@ -110,13 +110,13 @@ Use `break` to leave the nearest loop. Use `continue` to start its next iteratio
 
 ## Blocks
 
-A block produces its final reachable expression:
+A block yields a value when its final reachable item starts with `->`:
 
 ```capy
 function RENDER(request : dval) {
     var total := {
         var subtotal := 10
-        subtotal + 2
+        -> subtotal + 2
     }
     print(total, "\n")
 }

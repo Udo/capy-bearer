@@ -5,13 +5,13 @@ function add
 )
 s32
 {
-    left
+    -> left
     +
     right
 }
 
 function multiline_return() s32 {
-    return
+    ->
     9
 }
 

@@ -10,7 +10,7 @@ Task status is a `dval` because fields can vary with the state:
 
 :example capy render
 function state_label(status : dval) string {
-    string(status.state, "missing")
+    -> string(status.state, "missing")
 }
 
 function RENDER(request : dval) {

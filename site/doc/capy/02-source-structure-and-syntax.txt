@@ -25,7 +25,7 @@ A function declaration has a name, parameters, a result type, and a body:
 
 ```capy
 function add(left : s32, right : s32) s32 {
-    left + right
+    -> left + right
 }
 
 function RENDER(request : dval) {
@@ -33,7 +33,7 @@ function RENDER(request : dval) {
 }
 ```
 
-The final expression supplies the result. A function that returns no value has the result type `void`. Handler declarations omit a result type because handlers write a response instead of returning one.
+The `->` expression supplies the function result. A function that returns no value has the result type `void`. Handler declarations omit a result type because handlers write a response instead of returning one.
 
 ## Statements and expressions
 
@@ -41,7 +41,7 @@ Whitespace separates tokens but does not end an expression. Commas separate argu
 
 ```capy
 function add(left : s32, right : s32) s32 {
-    left + right
+    -> left + right
 }
 
 function RENDER(request : dval) {

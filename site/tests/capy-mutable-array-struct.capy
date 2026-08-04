@@ -5,18 +5,18 @@ struct State {
     values : [s32]
 }
 
-function identity(values : [s32]) [s32] { values }
+function identity(values : [s32]) [s32] { -> values }
 function observe_array(values : [s32], calls : [s32]) [s32] {
     calls.push(1)
-    values
+    -> values
 }
 function observe_state(calls : [s32]) State {
     calls.push(1)
-    State(0, s64(0), clone("old"), [1])
+    -> State(0, s64(0), clone("old"), [1])
 }
 function observe_text(calls : [s32]) string {
     calls.push(2)
-    clone("new")
+    -> clone("new")
 }
 function mutate_parameter(values : [s32]) {
     values.reserve(8)
@@ -33,7 +33,7 @@ function mutate_state(state : State) {
 function joined(...values : as string) string {
     var result := ""
     for value := values { result = result + value }
-    result
+    -> result
 }
 
 function CLI(request : dval) {
@@ -103,19 +103,19 @@ function CLI(request : dval) {
 
         var method_source := [1]
         var method_alias := method_source
-        method_source.push({ method_source = [9]; 2 })
+        method_source.push({ method_source = [9]; -> 2 })
         var index_source := [3]
         var index_alias := index_source
-        index_source[{ index_source = [8]; 0 }] = { index_source = [7]; 6 }
+        index_source[{ index_source = [8]; -> 0 }] = { index_source = [7]; -> 6 }
         var managed_source := [clone("a")]
         var managed_alias := managed_source
-        managed_source[{ managed_source = [clone("x")]; 0 }] = { managed_source = [clone("y")]; clone("b") }
+        managed_source[{ managed_source = [clone("x")]; -> 0 }] = { managed_source = [clone("y")]; -> clone("b") }
         print(method_alias[0], method_alias[1], method_source[0], index_alias[0], index_source[0], managed_alias[0], managed_source[0], "|")
 
         var spread_source := [1, 2]
-        var scalar_snapshot := [...spread_source, { spread_source.push(3); 9 }, ...spread_source]
+        var scalar_snapshot := [...spread_source, { spread_source.push(3); -> 9 }, ...spread_source]
         var spread_words := [clone("a"), clone("b")]
-        var managed_snapshot := [...spread_words, { spread_words.clear(); clone("z") }]
+        var managed_snapshot := [...spread_words, { spread_words.clear(); -> clone("z") }]
         print(joined(...scalar_snapshot), length(spread_source), joined(...managed_snapshot), length(spread_words), "|")
 
         var state := State(1, s64(2), clone("start"), [1])

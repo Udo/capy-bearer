@@ -54,23 +54,23 @@ expect_equal "type aliases, value blocks, conditional values, and wide aggregate
 	value_trap_name=${value_trap_dir##*/}
 	cat >"$value_trap_dir/then.capy" <<'EOF'
 function CLI(request : dval) {
-    var value := if true { [1][1] } else { [1][0] }
+    var value := if true { -> [1][1] } else { -> [1][0] }
     print(value)
 }
 EOF
 	cat >"$value_trap_dir/else.capy" <<'EOF'
 function CLI(request : dval) {
-    var value := if false { [1][0] } else { [1][1] }
+    var value := if false { -> [1][0] } else { -> [1][1] }
     print(value)
 }
 EOF
 	cat >"$value_trap_dir/block.capy" <<'EOF'
 function CLI(request : dval) {
-    var value := { var values := [1]; values[1] }
+    var value := { var values := [1]; -> values[1] }
     print(value)
 }
 EOF
-	for case in then:2:31 else:2:48 block:2:45; do
+	for case in then:2:34 else:2:54 block:2:48; do
 		name=${case%%:*}; location=${case#*:}
 		set +e
 		value_trap_output=$(scripts/bearer-cli "/tests/$value_trap_name/$name.capy" 2>&1)
@@ -96,7 +96,7 @@ expect_equal "stable mutable arrays and struct fields" \
 	trap 'rm -rf -- "$cycle_dir"' EXIT
 	cat >"$cycle_dir/entry.capy" <<'EOF'
 struct Cycle { children : [Cycle] }
-function empty_cycles() [Cycle] { var values : [Cycle] = []; values }
+function empty_cycles() [Cycle] { var values : [Cycle] = []; -> values }
 function CLI(request : dval) { var cycle := Cycle(empty_cycles()); cycle.children.push(cycle); print(arc_live() > 0) }
 EOF
 	expect_equal "characterized strong aggregate cycle" "true" "$(scripts/bearer-cli "/tests/${cycle_dir##*/}/entry.capy")"
@@ -126,7 +126,7 @@ EOF
 	trap 'rm -rf -- "$coercion_trap_dir"' EXIT
 	coercion_trap_name=${coercion_trap_dir##*/}
 	cat >"$coercion_trap_dir/entry.capy" <<'EOF'
-function narrow(value : as s64) s64 { value }
+function narrow(value : as s64) s64 { -> value }
 function CLI(request : dval) { print(narrow(1e300)) }
 EOF
 	set +e
@@ -173,12 +173,12 @@ expect_equal "Capy source-mapped guest backtrace" "$expected_backtrace" "$backtr
 	trap 'rm -rf -- "$backtrace_test_dir"' EXIT
 	backtrace_test_name=${backtrace_test_dir##*/}
 	{
-		printf 'function tail() string { backtrace_get_frames(2147483647, 0) }\n'
+		printf 'function tail() string { -> backtrace_get_frames(2147483647, 0) }\n'
 		for ((frame = 0; frame < 300; ++frame)); do
 			if ((frame == 299)); then
-				printf 'function ring_%d() string { tail() }\n' "$frame"
+				printf 'function ring_%d() string { -> tail() }\n' "$frame"
 			else
-				printf 'function ring_%d() string { ring_%d() }\n' "$frame" "$((frame + 1))"
+				printf 'function ring_%d() string { -> ring_%d() }\n' "$frame" "$((frame + 1))"
 			fi
 		done
 		printf 'function CLI(request : dval) { print(ring_0()) }\n'
@@ -715,7 +715,7 @@ grep -qx 'DValue\* counted(DValue\*);' "$module_exports"
 	check_module_trap wrong_target $'function CLI(request : dval) {\n    var module := unit_load("/tests/capy-module-caller.capy")\n    module.call("CLI")\n}'
 	external_unit=$(mktemp /tmp/capy-module-external.XXXXXX.capy)
 	trap 'rm -f -- "$external_unit"; rm -rf -- "$module_test_dir"' EXIT
-	printf '%s\n' 'EXPORTS echo' 'function echo(input : dval) dval { dval("external") }' >"$external_unit"
+	printf '%s\n' 'EXPORTS echo' 'function echo(input : dval) dval { -> dval("external") }' >"$external_unit"
 	check_module_trap external_source "function CLI(request : dval) { var module := unit_load(\"$external_unit\"); print(string(module.call(\"echo\"), \"\")) }"
 	ln -s "$external_unit" "$module_test_dir/escape.capy"
 	check_module_trap source_symlink 'function CLI(request : dval) { var module := unit_load("escape.capy"); print(string(module.call("echo"), "")) }'
@@ -728,11 +728,11 @@ grep -qx 'DValue\* counted(DValue\*);' "$module_exports"
 	check_module_trap wrong_abi $'function CLI(request : dval) {\n    var module := unit_load("wrong.uce")\n    module.call("wrong")\n}'
 	printf '%s\n' 'function CLI(request : dval) { print(not_a_constant) }' >"$module_test_dir/broken.capy"
 	check_module_trap failed_compile 'function CLI(request : dval) { var module := unit_load("broken.capy") }'
-	printf '%s\n' 'EXPORTS echo' 'function echo(input : dval) dval { dval("v1") }' >"$module_test_dir/target.capy"
+	printf '%s\n' 'EXPORTS echo' 'function echo(input : dval) dval { -> dval("v1") }' >"$module_test_dir/target.capy"
 	cat >"$module_test_dir/pinned.capy" <<'EOF'
 function CLI(request : dval) {
     var module := unit_load("target.capy")
-    file_put_contents("target.capy", "EXPORTS echo\nfunction echo(input : dval) dval { dval(\"v2\") }\n")
+    file_put_contents("target.capy", "EXPORTS echo\nfunction echo(input : dval) dval { -> dval(\"v2\") }\n")
     print(string(module.call("echo", ""), ""))
 }
 EOF
@@ -741,7 +741,7 @@ EOF
 	expect_equal "Capy module next-request reload" "v2" "$(scripts/bearer-cli "/tests/$module_test_name/fresh.capy")"
 	printf '%s\n' 'function CLI(request : dval) { print(not_a_constant) }' >"$module_test_dir/target.capy"
 	check_module_trap failed_reload_compile 'function CLI(request : dval) { var module := unit_load("target.capy") }'
-	printf '%s\n' 'EXPORTS echo' 'function echo(input : dval) dval { dval("v3") }' >"$module_test_dir/target.capy"
+	printf '%s\n' 'EXPORTS echo' 'function echo(input : dval) dval { -> dval("v3") }' >"$module_test_dir/target.capy"
 	expect_equal "Capy module failed-compile recovery" "v3" "$(scripts/bearer-cli "/tests/$module_test_name/fresh.capy")"
 	module_artifacts="$(scripts/unit_cache_directory "$bin_directory")$module_test_dir/target.capy"
 	printf '\377' | dd of="$module_artifacts.wasm" bs=1 seek=8 conv=notrunc status=none
@@ -751,11 +751,11 @@ EOF
 	sed -i 's/^wasm_sha256=.*/wasm_sha256=0000000000000000000000000000000000000000000000000000000000000000/' "$module_artifacts.meta.txt"
 	check_module_trap metadata_tamper 'function CLI(request : dval) { unit_call("target.capy", "echo", "") }'
 	printf '%s\n' 'EXPORTS echo, nested, file_relative, boom' \
-		'function echo(input : dval) dval { dval("v4") }' \
-		'function nested(input : dval) dval { unit_load("nested.capy").call("echo", input) }' \
-		'function file_relative(input : dval) dval { dval(file_get_contents("marker.txt")) }' \
-		'function boom(input : dval) dval { trap(); dval("") }' >"$module_test_dir/target.capy"
-	printf '%s\n' 'EXPORTS echo' 'function echo(input : dval) dval { dval("nested") }' >"$module_test_dir/nested.capy"
+		'function echo(input : dval) dval { -> dval("v4") }' \
+		'function nested(input : dval) dval { -> unit_load("nested.capy").call("echo", input) }' \
+		'function file_relative(input : dval) dval { -> dval(file_get_contents("marker.txt")) }' \
+		'function boom(input : dval) dval { trap(); -> dval("") }' >"$module_test_dir/target.capy"
+	printf '%s\n' 'EXPORTS echo' 'function echo(input : dval) dval { -> dval("nested") }' >"$module_test_dir/nested.capy"
 	printf '%s' 'target-file' >"$module_test_dir/marker.txt"
 	cat >"$module_test_dir/provenance.capy" <<'EOF'
 function CLI(request : dval) {

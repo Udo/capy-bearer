@@ -11,22 +11,22 @@ struct Pair {
     right : string
 }
 
-function Token(value : s32) Token { Token(string(value)) }
-function token_text(value : Token) string { value.value }
-function string(value : any) string { token_text(value) }
-function s32(value : string) s32 { if value == "seven" { return 7 }; 0 }
-function show(value : as string) string { value }
-function collect(...values : as string) [string] { values }
-function add(left : s32, right : s32) s32 { left + right }
+function Token(value : s32) Token { -> Token(string(value)) }
+function token_text(value : Token) string { -> value.value }
+function string(value : any) string { -> token_text(value) }
+function s32(value : string) s32 { if value == "seven" { return 7 }; -> 0 }
+function show(value : as string) string { -> value }
+function collect(...values : as string) [string] { -> values }
+function add(left : s32, right : s32) s32 { -> left + right }
 function mutate_copy(values : [string]) string {
     values.push("local")
     values[0] = "inside"
-    values[0] + string(length(values))
+    -> values[0] + string(length(values))
 }
 function joined(...values : as string) string {
     var result := ""
     for value := values { result = result + value }
-    result
+    -> result
 }
 
 function CLI(request : dval) {
@@ -61,11 +61,11 @@ function CLI(request : dval) {
         var anonymous := function(...values : as string) string {
             var result := ""
             for value := values { result = result + value }
-            result
+            -> result
         }
         var tuple_args := (4, "c")
         var collector := Collector(named)
-        print(named("a", 2, true), "|", anonymous("b", 3), "|", named(...tuple_args), "|", (function(...values : as string) string { values[0] })(...tuple_args), "|", collector.invoke(...tuple_args))
+        print(named("a", 2, true), "|", anonymous("b", 3), "|", named(...tuple_args), "|", (function(...values : as string) string { -> values[0] })(...tuple_args), "|", collector.invoke(...tuple_args))
 
         var nested := [[clone("n")]]
         var nested_copy := nested

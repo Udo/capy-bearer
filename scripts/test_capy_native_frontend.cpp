@@ -40,7 +40,7 @@ int main(int argc, char** argv)
 		assert(f->parameters.size() == 1 && type_name(*f->parameters[0].type_expr) == "s32" && type_name(*f->return_type) == "(s32,string)");
 	}
 	{
-		Program p = parse("function value(a : s32, b : string = \"x\", c : bool = true) string { b }\n", "defaults.capy");
+		Program p = parse("function value(a : s32, b : string = \"x\", c : bool = true) string { -> b }\n", "defaults.capy");
 		auto* f = static_cast<Function*>(p.items[0]);
 		assert(f->parameters.size() == 3 && !f->parameters[0].default_value && static_cast<String*>(f->parameters[1].default_value)->value == "x" &&
 			static_cast<Name*>(f->parameters[2].default_value)->value == "true");
@@ -250,6 +250,17 @@ int main(int argc, char** argv)
 	expect_error("<><!-- <?= value ?> --></>", "HTML comment or declaration");
 	expect_error("<><script><?: trusted ?></script></>", "raw markup interpolation is only allowed in HTML text");
 	expect_error("<><p>missing", "unterminated markup expression");
+	{
+		Program p = parse("function value() s32 { ->\n42 }\nfunction returned() s32 { return\n7 }\nfunction stop() { return\n}\n", "results.capy");
+		auto* value = static_cast<Function*>(p.items[0]);
+		auto* yield = static_cast<Yield*>(value->body->items[0]);
+		auto* returned = static_cast<Return*>(static_cast<Function*>(p.items[1])->body->items[0]);
+		auto* stop = static_cast<Return*>(static_cast<Function*>(p.items[2])->body->items[0]);
+		assert(static_cast<Integer*>(yield->value)->magnitude == 42 && static_cast<Integer*>(returned->value)->magnitude == 7 && stop->value == nullptr);
+	}
+	expect_error("function value() s32 { -> }\n", "expected expression");
+	expect_error("function value() s32 { -> return 1 }\n", "block yield requires a value expression");
+	expect_error("function CLI(request : dval) { while true { -> break } }\n", "block yield requires a value expression");
 	expect_error("function CLI(request : dval) { break junk }\n", "break does not accept arguments or operators");
 	expect_error("function CLI(request : dval) { continue() }\n", "continue does not accept arguments or operators");
 	expect_error("EXPORTS\n", "EXPORTS requires at least one function name");

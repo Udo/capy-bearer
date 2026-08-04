@@ -10,7 +10,7 @@ Use a fallback when absence is valid:
 
 :example capy render
 function display_name(profile : dval) string {
-    string(profile.name, "guest")
+    -> string(profile.name, "guest")
 }
 
 function RENDER(request : dval) {

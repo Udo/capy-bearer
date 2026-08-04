@@ -322,7 +322,7 @@ Token Lexer::markup_token()
 
 std::vector<Token> Lexer::tokens()
 {
-	static const std::unordered_set<std::string> two = {"::", ":=", "..", "==", "!=", "<=", ">=", "&&", "||"};
+	static const std::unordered_set<std::string> two = {"::", ":=", "..", "==", "!=", "<=", ">=", "&&", "||", "->"};
 	static const std::string one = "(){}[],:=+-*/%<>.!?;";
 	std::vector<Token> result;
 	while (byte_ < source_.size())
@@ -463,6 +463,7 @@ Index::Index(Location l, Expr* v, Expr* i) : Expr(ExprKind::Index, std::move(l))
 Member::Member(Location l, Expr* v, std::string m) : Expr(ExprKind::Member, std::move(l)), value(v), member(std::move(m)) {}
 Block::Block(Location l) : Expr(ExprKind::Block, std::move(l)) {}
 Return::Return(Location l, Expr* v) : Expr(ExprKind::Return, std::move(l)), value(v) {}
+Yield::Yield(Location l, Expr* v) : Expr(ExprKind::Yield, std::move(l)), value(v) {}
 Break::Break(Location l) : Expr(ExprKind::Break, std::move(l)) {}
 Continue::Continue(Location l) : Expr(ExprKind::Continue, std::move(l)) {}
 Variable::Variable(Location l, std::string n, Expr* a, Expr* v, bool i)
@@ -684,7 +685,7 @@ Expr* Parser::prefix()
 		if (current.text == "var")
 			return variable(current.location);
 		if (current.text == "return")
-			return return_expr(current.location);
+			return result_expr(current.location, false);
 		if (current.text == "break")
 			return program_.make<Break>(current.location);
 		if (current.text == "continue")
@@ -697,6 +698,8 @@ Expr* Parser::prefix()
 			return while_expr(current.location);
 		return program_.make<Name>(current.location, current.text);
 	}
+	if (current.text == "->")
+		return result_expr(current.location, true);
 	if (current.text == "...")
 		return program_.make<Spread>(current.location, expression(70));
 	if (current.text == "(")
@@ -994,20 +997,26 @@ Expr* Parser::variable(Location location)
 	}
 	return program_.make<Variable>(location, name.text, annotation, expression(), inferred);
 }
-Expr* Parser::return_expr(Location location)
+Expr* Parser::result_expr(Location location, bool yield)
 {
-	while (token().kind == TokenKind::newline)
-		take();
-	if (token().kind == TokenKind::eof || token().text == ";" || token().text == "}")
+	if (!yield)
+		while (token().kind == TokenKind::newline)
+			take();
+	if (!yield && (token().kind == TokenKind::eof || token().text == ";" || token().text == "}"))
 		return program_.make<Return>(location, nullptr);
 	std::vector<Expr*> values = {expression()};
 	while (match(","))
 		values.push_back(expression());
-	if (values.size() == 1)
-		return program_.make<Return>(location, values[0]);
-	TupleExpr* tuple = program_.make<TupleExpr>(location);
-	tuple->items = std::move(values);
-	return program_.make<Return>(location, tuple);
+	Expr* value = values[0];
+	if (values.size() > 1)
+	{
+		TupleExpr* tuple = program_.make<TupleExpr>(location);
+		tuple->items = std::move(values);
+		value = tuple;
+	}
+	if (yield && (value->kind == ExprKind::Return || value->kind == ExprKind::Yield || value->kind == ExprKind::Break || value->kind == ExprKind::Continue))
+		fail(value->location, "block yield requires a value expression");
+	return yield ? static_cast<Expr*>(program_.make<Yield>(location, value)) : program_.make<Return>(location, value);
 }
 Expr* Parser::for_expr(Location location)
 {

@@ -1,6 +1,6 @@
 function observed(value : string, label : string) string {
     print(label)
-    value
+    -> value
 }
 
 function CLI(request : dval) {

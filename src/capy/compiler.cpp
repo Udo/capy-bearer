@@ -608,6 +608,7 @@ bool references_function_value(Expr* expression, const std::string& target)
 	if (auto binary = dynamic_cast<Binary*>(expression)) return references_function_value(binary->left, target) || references_function_value(binary->right, target);
 	if (auto lookup = dynamic_cast<ScopeLookup*>(expression)) return references_function_value(lookup->value, target);
 	if (auto returned = dynamic_cast<Return*>(expression)) return references_function_value(returned->value, target);
+	if (auto yielded = dynamic_cast<Yield*>(expression)) return references_function_value(yielded->value, target);
 	if (auto conditional = dynamic_cast<If*>(expression))
 		return references_function_value(conditional->condition, target) || references_function_value(conditional->then_body, target) || references_function_value(conditional->else_body, target);
 	if (auto loop = dynamic_cast<While*>(expression)) return references_function_value(loop->condition, target) || references_function_value(loop->body, target);
@@ -653,7 +654,7 @@ struct FunctionLowerer
 	std::set<unsigned> owned_local_dval_slots_;
 	unsigned local_count_ = 0;
 	std::vector<std::string> local_types_;
-	bool implicit_result_ = false;
+	bool yielded_result_ = false;
 	std::set<const Expr*> owned_expression_results_;
 	std::optional<std::size_t> repeated_condition_scope_;
 	struct Loop
@@ -1646,6 +1647,8 @@ std::vector<std::pair<std::string, std::string>> FunctionLowerer::lambda_capture
 			if (returned->value)
 				visit(returned->value);
 		}
+		else if (auto yielded = dynamic_cast<Yield*>(value))
+			visit(yielded->value);
 		else if (auto conditional = dynamic_cast<If*>(value))
 		{
 			visit(conditional->condition);
@@ -1780,7 +1783,13 @@ std::string FunctionLowerer::infer_block(Block* block_value)
 	{
 		Expr* item = block_value->items[i];
 		const bool final = i + 1 == block_value->items.size();
-		if (dynamic_cast<Return*>(item) || dynamic_cast<Break*>(item) || dynamic_cast<Continue*>(item))
+		if (auto yielded = dynamic_cast<Yield*>(item))
+		{
+			if (!final)
+				throw Error(yielded->location, "block yield must be the final item in its block");
+			result = infer(yielded->value);
+		}
+		else if (dynamic_cast<Return*>(item) || dynamic_cast<Break*>(item) || dynamic_cast<Continue*>(item))
 			result = "never";
 		else if (auto conditional = dynamic_cast<If*>(item); conditional && !final)
 		{
@@ -1789,7 +1798,11 @@ std::string FunctionLowerer::infer_block(Block* block_value)
 			result = "void";
 		}
 		else
+		{
 			result = infer(item);
+			if (final)
+				result = "void";
+		}
 		if (auto variable = dynamic_cast<Variable*>(item))
 			scopes_.back()[variable->name] = {0, result};
 		else if (auto binary = dynamic_cast<Binary*>(item); binary && binary->operator_ == ":=")
@@ -1879,6 +1892,8 @@ std::string FunctionLowerer::infer(Expr* value)
 			throw Error(conditional->location, "if branches produce " + then_type + " and " + else_type);
 		return then_type;
 	}
+	if (dynamic_cast<Yield*>(value))
+		throw Error(value->location, "block yield is only valid as a block item");
 	if (dynamic_cast<Return*>(value) || dynamic_cast<Break*>(value) || dynamic_cast<Continue*>(value))
 		return "never";
 	if (dynamic_cast<While*>(value) || dynamic_cast<For*>(value))
@@ -5412,6 +5427,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			}
 		return {code, target.result};
 	}
+	if (dynamic_cast<Yield*>(value))
+		throw Error(value->location, "block yield is only valid as a block item");
 	if (auto returned = dynamic_cast<Return*>(value))
 	{
 		Bytes code;
@@ -5752,7 +5769,11 @@ FunctionLowerer::BlockValue FunctionLowerer::value_block(Block* block_value)
 	{
 		Expr* item = block_value->items[i];
 		const bool final = i + 1 == block_value->items.size();
-		auto [part, type] = expression(item, final);
+		auto yielded = dynamic_cast<Yield*>(item);
+		if (yielded && !final)
+			throw Error(yielded->location, "block yield must be the final item in its block");
+		Expr* compiled_item = yielded ? yielded->value : item;
+		auto [part, type] = expression(compiled_item, yielded != nullptr);
 		append(code, part);
 		falls_through = expression_falls_through(item);
 		if (!final)
@@ -5771,31 +5792,36 @@ FunctionLowerer::BlockValue FunctionLowerer::value_block(Block* block_value)
 				break;
 			continue;
 		}
-		result_type = type;
-		if (falls_through)
+		if (!yielded)
 		{
-			if (type != "void")
-			{
-				const unsigned result = add_local("", type, item->location);
-				code.push_back(0x21);
-				wasm::append_uleb(code, result);
-				if (managed_type(type) && !expression_is_owned(item))
-				{
-					code.push_back(0x20);
-					wasm::append_uleb(code, result);
-					code.push_back(0x10);
-					wasm::append_uleb(code, module_.retain_index());
-				}
-				append(code, cleanup_scopes(owned_scopes_.size() - 1));
-				code.push_back(0x20);
-				wasm::append_uleb(code, result);
-			}
+			if (!falls_through)
+				result_type = "never";
 			else
-				append(code, cleanup_scopes(owned_scopes_.size() - 1));
+				throw Error(item->location, "value-producing block must end with '-> expression'");
+			continue;
 		}
+		result_type = type;
+		if (type == "void")
+		{
+			append(code, cleanup_scopes(owned_scopes_.size() - 1));
+			continue;
+		}
+		const unsigned result = add_local("", type, item->location);
+		code.push_back(0x21);
+		wasm::append_uleb(code, result);
+		if (managed_type(type) && !expression_is_owned(compiled_item))
+		{
+			code.push_back(0x20);
+			wasm::append_uleb(code, result);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.retain_index());
+		}
+		append(code, cleanup_scopes(owned_scopes_.size() - 1));
+		code.push_back(0x20);
+		wasm::append_uleb(code, result);
 	}
 	if (block_value->items.empty())
-		append(code, cleanup_scopes(owned_scopes_.size() - 1));
+		throw Error(block_value->location, "value-producing block must end with '-> expression'");
 	owned_scopes_.pop_back();
 	scopes_.pop_back();
 	return {std::move(code), result_type, falls_through};
@@ -5812,24 +5838,41 @@ Bytes FunctionLowerer::block(Block* block_value, bool new_scope)
 	for (std::size_t i = 0; i < block_value->items.size(); ++i)
 	{
 		Expr* item = block_value->items[i];
-		const auto variable = dynamic_cast<Variable*>(item);
-		const bool final_result = !new_scope && i + 1 == block_value->items.size() && definition_.result != "void";
-		const bool declaration_result = variable && final_result && infer(variable) == definition_.result;
-		auto compiled = final_result && dynamic_cast<Integer*>(item)
-			? integer_expression(static_cast<Integer*>(item), definition_.result) : expression(item, declaration_result || (!variable && final_result));
+		auto yielded = dynamic_cast<Yield*>(item);
+		const bool final = i + 1 == block_value->items.size();
+		if (yielded && !final)
+			throw Error(yielded->location, "block yield must be the final item in its block");
+		Expr* compiled_item = yielded ? yielded->value : item;
+		auto compiled = yielded && dynamic_cast<Integer*>(compiled_item) && !new_scope
+			? integer_expression(static_cast<Integer*>(compiled_item), definition_.result) : expression(compiled_item, yielded != nullptr);
 		auto part = std::move(compiled.first);
 		const std::string type = std::move(compiled.second);
 		append(code, part);
-		const bool implicit_result = declaration_result || (!variable && !new_scope && i + 1 == block_value->items.size() && type == definition_.result && type != "void");
-		if (implicit_result)
+		if (yielded)
 		{
-			implicit_result_ = true;
+			if (new_scope)
+			{
+				if (type != "void")
+				{
+					if (managed_type(type) && expression_is_owned(compiled_item))
+					{
+						code.push_back(0x10);
+						wasm::append_uleb(code, module_.release_index());
+					}
+					else
+						code.push_back(0x1a);
+				}
+				continue;
+			}
+			if (type != definition_.result)
+				throw Error(yielded->location, "expected " + definition_.result + ", found " + type);
+			yielded_result_ = true;
 			if (managed_type(type))
 			{
-				const unsigned result = add_local("", type, item->location);
+				const unsigned result = add_local("", type, yielded->location);
 				code.push_back(0x21);
 				wasm::append_uleb(code, result);
-				if (!expression_is_owned(item))
+				if (!expression_is_owned(compiled_item))
 				{
 					code.push_back(0x20);
 					wasm::append_uleb(code, result);
@@ -5840,8 +5883,11 @@ Bytes FunctionLowerer::block(Block* block_value, bool new_scope)
 				code.push_back(0x20);
 				wasm::append_uleb(code, result);
 			}
+			else
+				append(code, cleanup_scopes());
+			continue;
 		}
-		if (type != "void" && !implicit_result)
+		if (type != "void")
 		{
 			if (managed_type(type) && expression_is_owned(item))
 			{
@@ -5971,7 +6017,7 @@ Bytes FunctionLowerer::lower()
 		}
 	}
 	append(code, block(definition_.function->body, false));
-	if (definition_.result != "void" && !implicit_result_ && !expression_always_returns(definition_.function->body))
+	if (definition_.result != "void" && !yielded_result_ && !expression_always_returns(definition_.function->body))
 		throw Error(definition_.function->location, "not all paths produce " + definition_.result);
 	if (definition_.result == "void")
 		append(code, cleanup_scopes());
@@ -6461,8 +6507,14 @@ void Module::collect()
 				definitions_.push_back(std::move(adapter));
 				continue;
 			}
-			if (function->location.file == "capy://stdlib.capy" && parameters.empty() && function->body && function->body->items.size() == 1 && literal_type(function->body->items[0]) == result)
-				definition.inline_value = function->body->items[0];
+			if (function->location.file == "capy://stdlib.capy" && parameters.empty() && function->body && function->body->items.size() == 1)
+			{
+				Expr* body_value = function->body->items[0];
+				if (auto yielded = dynamic_cast<Yield*>(body_value))
+					body_value = yielded->value;
+				if (literal_type(body_value) == result)
+					definition.inline_value = body_value;
+			}
 			definitions_by_key_[k] = definitions_.size();
 			definitions_.push_back(std::move(definition));
 			if (function->name.rfind("EXPORT_", 0) == 0)
@@ -6536,7 +6588,11 @@ Module::Capabilities Module::discover_capabilities()
 		if (dynamic_cast<Markup*>(e))
 			return "markup";
 		if (auto block = dynamic_cast<Block*>(e))
-			return block->items.empty() ? "void" : scan_value_type(block->items.back());
+		{
+			if (block->items.empty()) return "void";
+			if (auto yielded = dynamic_cast<Yield*>(block->items.back())) return scan_value_type(yielded->value);
+			return dynamic_cast<Return*>(block->items.back()) ? "never" : "void";
+		}
 		if (auto conditional = dynamic_cast<If*>(e))
 		{
 			if (!conditional->else_body) return "void";
@@ -6926,11 +6982,13 @@ Module::Capabilities Module::discover_capabilities()
 			for (auto a : c->arguments)
 				scan(a);
 		}
+		else if (auto yielded = dynamic_cast<Yield*>(e))
+			scan(yielded->value);
 		else if (auto b = dynamic_cast<Block*>(e))
 		{
 			for (auto x : b->items)
 				scan(x);
-			if (!b->items.empty() && managed_type(scan_value_type(b->items.back())))
+			if (!b->items.empty() && managed_type(scan_value_type(b)))
 				scan_retain = scan_release = true;
 		}
 		else if (auto f = dynamic_cast<Function*>(e))
@@ -7700,6 +7758,8 @@ void collect_stdlib_demand(Expr* expression, std::set<std::pair<std::string, std
 	}
 	else if (auto returned = dynamic_cast<Return*>(expression))
 		collect_stdlib_demand(returned->value, calls, values, scopes);
+	else if (auto yielded = dynamic_cast<Yield*>(expression))
+		collect_stdlib_demand(yielded->value, calls, values, scopes);
 	else if (auto conditional = dynamic_cast<If*>(expression))
 	{
 		collect_stdlib_demand(conditional->condition, calls, values, scopes);
@@ -7804,6 +7864,7 @@ void validate_user_source(const Program& program, const std::set<std::string>& p
 			reject_reserved_calls(binary->left); reject_reserved_calls(binary->right);
 		}
 		else if (auto returned = dynamic_cast<Return*>(expression)) reject_reserved_calls(returned->value);
+		else if (auto yielded = dynamic_cast<Yield*>(expression)) reject_reserved_calls(yielded->value);
 		else if (auto conditional = dynamic_cast<If*>(expression)) { reject_reserved_calls(conditional->condition); reject_reserved_calls(conditional->then_body); reject_reserved_calls(conditional->else_body); }
 		else if (auto loop = dynamic_cast<While*>(expression)) { reject_reserved_calls(loop->condition); reject_reserved_calls(loop->body); }
 		else if (auto loop = dynamic_cast<For*>(expression))

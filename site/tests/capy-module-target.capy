@@ -4,18 +4,18 @@ function ONCE(request : dval) { print("handler-once;") }
 function RENDER(request : dval) { print("handler-render;") }
 
 function echo(input : dval) dval {
-    input
+    -> input
 }
 
 function default_input(input : dval) dval {
-    dval("default")
+    -> dval("default")
 }
 
 function counted(input : dval) dval {
     print("counted;")
-    input
+    -> input
 }
 
 function hidden(input : dval) dval {
-    input
+    -> input
 }
