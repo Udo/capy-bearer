@@ -18,12 +18,13 @@ Ada
 :content
 `json_decode` returns a `dval`. Member syntax reads a map key. Bracket syntax also works:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var profile := {name: "Ada"}
     print(profile["name"], "\n")
 }
-```
+
+:content
 
 Use brackets for a dynamic key, a key that is not an identifier, or a list index.
 
@@ -31,7 +32,7 @@ Use brackets for a dynamic key, a key that is not an identifier, or a list index
 
 A missing read returns `none` instead of changing the map or trapping:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var profile := {name: "Ada"}
     var nickname := profile.nickname
@@ -41,7 +42,8 @@ function RENDER(request : dval) {
         print("guest")
     }
 }
-```
+
+:content
 
 `value?` is false only when the `dval` is `none`. An empty string, `false`, an empty map, and an empty list are present values.
 
@@ -51,14 +53,15 @@ A key can exist and contain `none`. Use `dval_has(profile, "nickname")` when tha
 
 Scalar constructors convert a `dval` to a static Capy type:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var profile := {name: "Ada"}
     var name := string(profile.name)
     var visits := s32(profile.visits, 0)
     print(name, " ", visits, "\n")
 }
-```
+
+:content
 
 The second argument is a fallback. Capy uses it when the value is `none` or cannot convert to the requested type.
 
@@ -68,28 +71,30 @@ Use `dval_require(profile, "name")` when a missing value is an error. It traps i
 
 A map literal creates a `dval` map:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var user := {name: "Ada", active: true}
     var empty := {:}
     print(user.name, " ", empty?, "\n")
 }
-```
+
+:content
 
 A bare list is a typed array. Wrap it with `dval` when it must be a dynamic list. `length(value)` returns the number of entries in a `dval` map or list. It traps if the `dval` is a scalar:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var tags := dval(["math", "logic"])
     print(tags[0], "\n")
 }
-```
+
+:content
 
 ## Mutate a dval
 
 A `dval` is a mutable reference value inside one workspace. Assignment, parameters, returns, and captures share its identity:
 
-```capy
+:example capy render
 function set_email(profile : dval) {
     profile.contact.email = "ada@example.test"
 }
@@ -100,7 +105,8 @@ function RENDER(request : dval) {
     set_email(alias)
     print(profile.contact.email, "\n")
 }
-```
+
+:content
 
 Content mutation through the parameter affects the caller. The parameter binding remains immutable, so `profile = {:}` is invalid.
 
@@ -108,13 +114,14 @@ Nested assignment mutates its target and returns the same identity. The root mus
 
 The `dval_set`, `dval_assign`, `dval_push`, `dval_pop`, `dval_remove`, `dval_clear`, `dval_get_or_create`, `dval_set_array`, `dval_set_bool`, `dval_set_type`, and `dval_put` functions also mutate their target. Each function returns that same identity. Reassignment remains valid:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var profile := {:}
     profile = dval_put(profile, "active", true)
     print(profile.active, "\n")
 }
-```
+
+:content
 
 Member and index reads return copied child values. Pure transformations return copies when their API specifies a copy.
 
@@ -122,12 +129,17 @@ Member and index reads return copied child values. Pure transformations return c
 
 Use the value-first loop forms:
 
-```capy
+:example capy render
 function show(values : dval) {
     for item := values { print(item, "\n") }
     for item, key := values { print(key, ": ", item, "\n") }
 }
-```
+
+function RENDER(request : dval) {
+    show({name: "Ada"})
+}
+
+:content
 
 The key has type `string`. `dval` list keys are decimal strings. Each item is a copied `dval`. The loop uses a live view and rechecks the current count. A loop that keeps growing its iterable can continue.
 
@@ -141,3 +153,9 @@ json_decode
 yaml_decode
 capy-07-collections-and-records
 capy-09-web-handlers-and-requests
+dval
+dval_put
+bool
+s32
+string
+length

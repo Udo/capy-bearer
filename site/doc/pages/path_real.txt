@@ -8,7 +8,7 @@ path : the path to resolve
 the canonical absolute path, or `""` if resolution fails
 
 :content
-In Capy, `path_real()` returns the canonical absolute path as a `string`. It follows symbolic links and removes `.` and `..` segments.
+`path_real()` returns the canonical absolute path as a `string`. It follows symbolic links and removes `.` and `..` segments.
 
 It returns `""` if it cannot resolve the path.
 

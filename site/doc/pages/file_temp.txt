@@ -8,7 +8,7 @@ prefix : path prefix for the temporary file
 path of a new empty temporary file, or `""` on failure
 
 :content
-In Capy, `file_temp()` creates an empty temporary file and returns its path as a `string`. It adds a unique suffix to `prefix`.
+`file_temp()` creates an empty temporary file and returns its path as a `string`. It adds a unique suffix to `prefix`.
 
 Use it for scratch files or before `file_rename()`. It returns `""` when Capy cannot create a file.
 
@@ -30,3 +30,7 @@ file_unlink(path);
 >sys
 file_rename
 file_put_contents
+dir_remove
+file_chmod
+file_truncate
+file_symlink

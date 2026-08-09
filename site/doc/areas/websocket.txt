@@ -1,4 +1,5 @@
 WebSocket Functions
+:order 170
 
 ws_close
 ws_connection_count

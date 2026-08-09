@@ -12,7 +12,12 @@ deterministic `u64` noise value
 
 :see
 >noise
-
+gen_float
+gen_sha1
+gen_noise64
+sha256
+gen_noise32
+sha256_hex
 :content
 `gen_int()` returns a deterministic `u64` noise value for `index` and `seed`. `from` and `to` set the output range.
 

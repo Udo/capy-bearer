@@ -1,5 +1,3 @@
-:title
-http_request_async
 
 :sig
 u64 http_request_async(DValue req)
@@ -15,7 +13,11 @@ The `security` map follows `http_request()` rules. Any recognized hardening fiel
 
 :see
 >socket
-
+http_request
+socket_close
+socket_connect
+socket_read
+socket_write
 :example capy render
 var outbound := dval({"method": "GET", "url": "http://127.0.0.1/doc/", "headers": {"Host": "bearer.openfu.com"}, "timeout_ms": 2000})
 var job := http_request_async(outbound)

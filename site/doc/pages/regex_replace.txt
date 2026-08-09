@@ -21,7 +21,7 @@ regex_split
 replace
 
 :content
-In Capy, `regex_replace()` replaces every `pattern` match in `subject` and returns a new `string`.
+`regex_replace()` replaces every `pattern` match in `subject` and returns a new `string`.
 
 The replacement uses PCRE2 substitution syntax. Use `$1` for a numbered capture. Use `${name}` for a named capture.
 

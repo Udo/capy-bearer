@@ -20,7 +20,7 @@ regex_split
 0_DValue
 
 :content
-In Capy, use this function to find all non-overlapping matches in text.
+Use this function to find all non-overlapping matches in text.
 
 It returns `dval` match data. Each result has `matched`, `count`, `matches`, `pattern`, and `flags` fields. `matches` contains entries with the same shape as `regex_search()`.
 

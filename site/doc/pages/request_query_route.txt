@@ -1,5 +1,3 @@
-:title
-request_query_route
 
 :sig
 DValue request_query_route(Request& context, String default_path = "index")

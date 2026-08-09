@@ -1,0 +1,45 @@
+:sig
+string(value : dval, fallback : string = "") string
+string(value : string, fallback : string = "") string
+
+:params
+value : source value to convert
+fallback : value returned when conversion fails
+
+:returns
+converted string, or `fallback`
+
+:content
+Use `string` to convert scalar data to text.
+
+`string(dval, fallback)` accepts scalar `string`, `bool`, and finite `f64` values. It returns `fallback` for an empty string, map, or list.
+
+`string(string, fallback)` trims spaces and then applies the same rules. Use it for user input that can contain accidental whitespace.
+
+:errors
+`string` does not throw. It returns `fallback` for unsupported shapes and empty text.
+
+:example capy render string() reads scalar text
+print(string("hello"), "\n")
+
+:example cpp render string() reads scalar text
+DValue text;
+text = "hello";
+print(text.to_string(), "\n");
+
+:example capy render string() returns the fallback for map data
+print(string({"x": 1}, "<missing>"), "\n")
+
+:example cpp render string() returns the fallback for map data
+DValue map;
+map["x"] = "1";
+print(map.to_string("<missing>"), "\n");
+
+:see
+>types
+0_String
+2_DValue_to_string
+2_DValue_to_bool
+2_DValue_to_s64
+2_DValue_to_u64
+2_DValue_to_f64

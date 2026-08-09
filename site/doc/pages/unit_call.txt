@@ -18,7 +18,7 @@ unit_info
 1_COMPONENT
 
 :content
-In Capy, call `unit_call(file_name, function_name[, props])` to call an exported unit function.
+Call `unit_call(file_name, function_name[, props])` to call an exported unit function.
 
 The input and result are `dval` values. The two-input form supplies an empty `dval` value. Use `unit_call()` for one direct call that returns data.
 

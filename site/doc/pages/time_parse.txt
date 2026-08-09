@@ -9,9 +9,14 @@ the parsed Unix timestamp, or zero when Capy cannot parse the text
 
 :see
 >time
-
+time_format_utc
+time_format_relative
+time_format_local
+time
+time_precise
+usleep
 :content
-In Capy, call `time_parse(value)` with date or time text.
+Call `time_parse(value)` with date or time text.
 
 The function returns a `u64` Unix timestamp. It returns zero when it cannot parse `value`. Use it to convert external time text before you compare or format a timestamp.
 

@@ -12,9 +12,14 @@ an opaque request-local MySQL handle. A failed connection can still return a non
 
 :see
 >mysql
-
+mysql_connected
+mysql_disconnect
+mysql_error
+mysql_escape
+mysql_insert_id
+mysql_affected_rows
 :content
-In Capy, this function returns an opaque request-local `u64` handle. Pass all four arguments.
+This function returns an opaque request-local `u64` handle. Pass all four arguments.
 
 Use `mysql_connected()` before work that needs a live server connection.
 

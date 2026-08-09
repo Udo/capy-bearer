@@ -11,7 +11,12 @@ new `dval` list of selected string values
 
 :see
 >string
-
+contains
+first
+base64_encode
+join
+base64_decode
+json_consume_space
 :content
 `filter()` reads each `dval` list value as a string. It returns a new `dval` list with values where `f` returns `true`.
 

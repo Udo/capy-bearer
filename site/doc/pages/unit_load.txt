@@ -12,9 +12,14 @@ a `module` value for the unit
 >unit_compile
 >unit_info
 >unit_call
-
+component_capture
+unit_render
+component_render
+call
+print
+response_status
 :content
-In Capy, call `unit_load(path)` to get a `module` value for a readable unit.
+Call `unit_load(path)` to get a `module` value for a readable unit.
 
 Call an exported function with `module.call(name[, input])`. Inputs and results are `dval` values. The no-input form passes an empty `dval` value. A Capy unit uses `EXPORTS` to declare callable functions.
 
@@ -22,11 +27,13 @@ Use `unit_load()` when several calls use one unit. A missing unit or export is a
 
 C++ cannot use a Capy `module` value. Use `unit_call()` with the `DValue*` API instead. C++ exports use `EXPORT DValue* name(DValue*)`.
 
-:example capy cli
-var module := unit_load("examples/sample_unit.capy")
-var output := module.call("echo", "hello")
+:example capy render
+var module := unit_load("/doc/examples/call_target.capy")
+var output := call(module, "default_input")
+print(string(output), "\n")
 
-:example cpp cli
-DValue input; input = "hello";
-DValue* output = unit_call("examples/sample_unit.uce", "echo", &input);
+:example cpp render
+DValue input; input = "default_input";
+DValue* output = unit_call("/doc/examples/call_target.capy", "default_input", &input);
+print(output == 0 ? "missing\n" : output->to_string() + "\n");
 delete output;

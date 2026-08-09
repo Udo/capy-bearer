@@ -10,7 +10,10 @@ latest SQLite status or error message
 :see
 >sqlite
 sqlite_query
-
+sqlite_disconnect
+sqlite_connect
+sqlite_insert_id
+sqlite_affected_rows
 :content
 Capy `sqlite_error(db)` returns the latest SQLite status or error message for a handle. Give it a handle from `sqlite_connect()`.
 

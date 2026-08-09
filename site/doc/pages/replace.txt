@@ -11,9 +11,14 @@ source text with every literal match replaced
 
 :see
 >string
-
+split_utf8
+regex_match
+split_space
+regex_search
+split_kv
+regex_search_all
 :content
-In Capy, use this function to replace every literal occurrence of `search` in `s`.
+Use this function to replace every literal occurrence of `search` in `s`.
 
 The function returns the changed text. It does not change `s`. Use `regex_replace()` when the search pattern is a regular expression.
 

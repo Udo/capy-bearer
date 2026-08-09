@@ -1,0 +1,41 @@
+:sig
+string component_capture(name : string)
+string component_capture(name : string, props : as dval)
+
+:params
+name : component target or component handler name
+props : optional input `dval` for `request.props`
+
+:returns
+captured output string
+
+:see
+>ob
+component
+component_render
+component_resolve
+unit_load
+unit_call
+
+:content
+`component_capture(name[, props])` executes a component and returns the rendered output as a `string`.
+Use this when you need a component fragment and will insert it into another result.
+
+The function uses normal component resolution rules, including named handlers such as `:NAME`.
+If you pass props, Bearer injects them into the component request and restores the prior request props after the call.
+If you pass no props, it sends an empty `dval` input.
+
+When the component is missing, `component_capture()` sets a 500 status and captures an error banner as output.
+
+## C++ API
+
+C++ has no direct `component_capture()` helper.
+Use `ob_start()`, `component_render()`, and `ob_get_close()` to get the same behavior.
+
+:example capy render
+print(component_capture("/tests/capy-cross.capy"), "\n")
+
+:example cpp render
+ob_start();
+component_render("/tests/capy-cross.capy");
+print(ob_get_close(), "\n");

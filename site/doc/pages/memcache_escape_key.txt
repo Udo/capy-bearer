@@ -10,9 +10,14 @@ key with whitespace characters replaced by underscores
 :see
 >sys
 >memcache_escape_keys
-
+basename
+dirname
+expand_path
+file_append
+file_exists
+file_get_contents
 :content
-In Capy, use this function to replace whitespace in a Memcache key with underscores.
+Use this function to replace whitespace in a Memcache key with underscores.
 
 It replaces only characters for which C++ `isspace()` returns true. It does not reject or escape every invalid Memcache protocol byte.
 

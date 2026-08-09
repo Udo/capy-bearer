@@ -10,9 +10,14 @@ key : entry key
 
 :see
 >memcache
-
+memcache_connect
+memcache_get
+memcache_command
+memcache_get_multiple
+memcache_set
+memcache_escape_key
 :content
-In Capy, pass the `u64` handle from `memcache_connect()`.
+Pass the `u64` handle from `memcache_connect()`.
 
 This function deletes the entry for `key`. It returns `true` only when the trimmed server response is exactly `DELETED`.
 

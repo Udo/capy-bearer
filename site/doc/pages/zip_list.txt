@@ -12,10 +12,10 @@ zip_file_name : path to the ZIP archive to inspect
 zip_create
 zip_read
 zip_extract
-DValue
+0_DValue
 
 :content
-In Capy, `zip_list(path)` accepts an archive path and returns metadata as a `dval`.
+`zip_list(path)` accepts an archive path and returns metadata as a `dval`.
 
 The result contains `file`, `count`, and an `entries` list. Each entry contains `name`, `index`, `size`, `compressed_size`, `is_directory`, and `method`.
 

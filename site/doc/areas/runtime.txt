@@ -1,4 +1,6 @@
 Runtime
+:order 80
+trap
 backtrace_get_frames
 backtrace_capture
 error_pages

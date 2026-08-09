@@ -11,9 +11,14 @@ stable SHA-1 key
 :see
 >sys
 >gen_sha1
-
+request_perf
+process_start_directory
+path_real
+path_is_within
+file_fsync
+file_symlink
 :content
-In Capy, use this function to make a stable runtime key from a non-empty name.
+Use this function to make a stable runtime key from a non-empty name.
 
 The function trims `key` and returns its SHA-1 value. Use the result for runtime task names or file names. An empty key is an error. `label` identifies that key in the error message.
 

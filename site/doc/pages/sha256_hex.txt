@@ -8,7 +8,7 @@ data : bytes to hash
 64-character lowercase hexadecimal SHA-256 digest
 
 :content
-In Capy, use this function when you need a printable SHA-256 digest.
+Use this function when you need a printable SHA-256 digest.
 
 It returns the SHA-256 digest of `data` as 64 lowercase hexadecimal characters. Use it for checksums, cache keys, and content fingerprints. Use `sha256()` when you need the raw 32-byte digest.
 

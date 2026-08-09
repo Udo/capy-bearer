@@ -11,7 +11,12 @@ formatted local-time string
 :see
 >time
 >time_format_relative
-
+time
+time_format_relative
+time_precise
+time_format_utc
+usleep
+time_parse
 :content
 Use `time_format_local` to format a Unix timestamp in the server local time zone. Pass a format string and, if needed, a timestamp. The function returns a Capy `string`. Omit the timestamp to format the current time.
 

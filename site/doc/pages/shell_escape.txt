@@ -9,7 +9,12 @@ a single-quoted shell word that represents `raw`
 
 :see
 >sys
-
+cwd_set
+shell_exec
+path_join
+shell_spawn
+mkdir
+job_status
 :content
 Capy `shell_escape(raw)` returns `raw` as one shell word. Give it one value that will become an argument in a command string.
 

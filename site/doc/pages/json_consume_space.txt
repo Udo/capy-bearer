@@ -12,11 +12,14 @@ Capy byte offset after JSON whitespace
 >string
 json_encode
 json_decode
-
+join
+first
+map
+filter
 :content
-In Capy, this function returns the byte offset after JSON whitespace in `source`.
+This internal helper returns the byte offset after JSON whitespace in `source`.
 
-Use it when you write a parser that must continue at a known JSON position. Most code should use `json_decode()` instead.
+Use `json_decode()` for application code. Keep this helper for codec tests and parser work.
 
 The C++ API advances its `u32&` offset argument. Both APIs scan byte positions.
 

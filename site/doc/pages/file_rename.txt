@@ -27,3 +27,7 @@ print(file_get_contents("/tmp/doc-rename-b.txt"), " / source ", file_exists("/tm
 >sys
 file_copy
 file_temp
+dir_list
+file_stat
+file_truncate
+file_close

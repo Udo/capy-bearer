@@ -54,6 +54,27 @@
 	--radius: 10px;
 	--radius-lg: 16px;
 	--ease: cubic-bezier(0.4, 0, 0.2, 1);
+	color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #071225;
+		--bg-grad: linear-gradient(168deg, #0b1b36 0%, #071225 48%, #030814 100%);
+		--bg-surface: rgba(255, 255, 255, 0.045);
+		--bg-surface-hover: rgba(255, 255, 255, 0.08);
+		--bg-inset: rgba(0, 0, 0, 0.42);
+		--bg-code: rgba(0, 0, 0, 0.48);
+		--text: #eef3ff;
+		--text-dim: rgba(220, 230, 250, 0.68);
+		--text-muted: rgba(220, 230, 250, 0.42);
+		--accent: #ffd65a;
+		--accent-dim: rgba(255, 214, 90, 0.1);
+		--accent-hover: #ffe58a;
+		--accent-glow: rgba(255, 214, 90, 0.17);
+		--border: rgba(255, 255, 255, 0.08);
+		--border-strong: rgba(255, 255, 255, 0.18);
+	}
 }
 
 /* ── Reset ── */
@@ -308,6 +329,20 @@ a:hover {
 	margin-bottom: 12px;
 	padding-bottom: 8px;
 	border-bottom: 1px solid var(--border);
+}
+
+.doc-callout {
+	border-left: 4px solid var(--accent);
+	background: rgba(240, 196, 48, 0.08);
+}
+
+.doc-callout.warning {
+	border-left-color: #ff8a65;
+	background: rgba(255, 138, 101, 0.1);
+}
+
+.doc-callout p:last-child {
+	margin-bottom: 0;
 }
 
 /* Markdown prose needs its own rhythm; the reset intentionally removes it globally. */
@@ -769,7 +804,8 @@ details pre {
 	margin-bottom: 24px;
 }
 
-#doc-search {
+#doc-search,
+#doc-not-found-search {
 	flex: 1;
 	max-width: 480px;
 	padding: 11px 16px 11px 42px;
@@ -782,14 +818,29 @@ details pre {
 	transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease);
 }
 
-#doc-search::placeholder {
+#doc-search::placeholder,
+#doc-not-found-search::placeholder {
 	color: var(--text-muted);
 }
 
-#doc-search:focus {
+#doc-search:focus,
+#doc-not-found-search:focus {
 	outline: none;
 	border-color: var(--accent);
 	box-shadow: 0 0 0 3px var(--accent-glow), var(--shadow-glow);
+}
+
+.not-found-search form {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+}
+
+.not-found-search label {
+	width: 100%;
+	color: var(--text-dim);
+	font-size: 0.875rem;
 }
 
 .search-count {

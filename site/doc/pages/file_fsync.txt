@@ -28,3 +28,7 @@ file_close(h);
 >sys
 file_write
 file_close
+file_symlink
+path_is_within
+file_chmod
+path_real

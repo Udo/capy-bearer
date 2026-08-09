@@ -5,7 +5,7 @@ String ob_get_close()
 the current output buffer contents
 
 :content
-In Capy, `ob_get_close()` returns the current output buffer as a `string` and closes it. Output returns to the previous buffer.
+`ob_get_close()` returns the current output buffer as a `string` and closes it. Output returns to the previous buffer.
 
 Use this to capture output before you change or print it.
 

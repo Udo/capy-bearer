@@ -1,4 +1,5 @@
 Markup Functions
+:order 60
 markdown_to_ast
 markdown_to_html
 xml_decode

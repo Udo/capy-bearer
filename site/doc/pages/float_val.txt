@@ -11,7 +11,10 @@ parsed `f64`, or `0` when no usable number exists
 >string
 int_val
 0_String
-
+trim
+to_upper
+html_escape
+to_lower
 :content
 `float_val()` extracts a floating-point value from a string. It returns `0` when it cannot identify a usable number.
 

@@ -1,5 +1,3 @@
-:title
-lower
 
 :sig
 String to_lower(String s)
@@ -13,7 +11,11 @@ string with uppercase ASCII characters changed to lowercase
 :see
 >string
 to_lower
-
+string
+length
+clone
+ascii_safe_name
+base64_decode
 :content
 `lower(value)` converts uppercase ASCII characters to lowercase. It does not convert Unicode case.
 

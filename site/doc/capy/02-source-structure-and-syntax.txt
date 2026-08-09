@@ -23,7 +23,7 @@ This file has one comment and one handler. Names are case-sensitive, so `greetin
 
 A function declaration has a name, parameters, a result type, and a body:
 
-```capy
+:example capy render
 function add(left : s32, right : s32) s32 {
     -> left + right
 }
@@ -31,7 +31,8 @@ function add(left : s32, right : s32) s32 {
 function RENDER(request : dval) {
     print(add(20, 22), "\n")
 }
-```
+
+:content
 
 The `->` expression supplies the function result. A function that returns no value has the result type `void`. Handler declarations omit a result type because handlers write a response instead of returning one.
 
@@ -39,7 +40,7 @@ The `->` expression supplies the function result. A function that returns no val
 
 Whitespace separates tokens but does not end an expression. Commas separate arguments and collection items. Most lines do not need a semicolon.
 
-```capy
+:example capy render
 function add(left : s32, right : s32) s32 {
     -> left + right
 }
@@ -51,7 +52,8 @@ function RENDER(request : dval) {
     )
     print(total, "\n")
 }
-```
+
+:content
 
 A block starts with `{` and ends with `}`. Its expressions run from top to bottom.
 
@@ -59,19 +61,34 @@ A block starts with `{` and ends with `}`. Its expressions run from top to botto
 
 Use `//` for a line comment:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     // Explain why the next operation is necessary.
     var retries := 3
     print(retries, "\n")
 }
-```
+
+:content
 
 Comments do not change the program. Prefer names that make routine code clear without a comment.
 
 ## Reserved names
 
 Application code cannot declare host functions. Names that start with `__bearer_` are reserved for the standard library. Later chapters introduce the handler names that Bearer calls.
+
+## Keep the unit shape simple
+
+Put helper functions near the handler that uses them. Move a helper only when several units share it. This keeps the request flow easy to read.
+
+Use one top-level entry point for each route. Add named handlers only when the route needs separate component, WebSocket, task, or export entry points.
+
+A source file can declare types, structs, functions, and handlers in any order. Prefer the order that helps the next reader: data shapes first, helpers next, and handlers last.
+
+## Read syntax errors locally
+
+The compiler reports the source path, line, and column. Look at that location first. If a block misses `-> expression`, the error points at the value-producing block.
+
+Do not use a newline to end an expression. Newlines are whitespace in normal code. Use braces and explicit block yields to show where a value comes from.
 
 :see
 capy-03-values-and-types

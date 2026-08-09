@@ -10,9 +10,13 @@ key : runtime-wide listener key from `server_start_http()`
 :see
 >sys
 server_start_http
-
+file_open
+gz_uncompress
+file_read
+gz_compress
+file_pread
 :content
-In Capy, use this function to stop a custom HTTP listener that `server_start_http()` created.
+Use this function to stop a custom HTTP listener that `server_start_http()` created.
 
 It removes the listener configuration for `key`. It returns true if no listener exists for that key. It returns false for an empty key or when the stop operation fails.
 

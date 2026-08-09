@@ -9,7 +9,12 @@ first nonblank string, or an empty string
 
 :see
 >string
-
+filter
+join
+contains
+json_consume_space
+base64_encode
+json_encode
 :content
 `first()` returns the first nonblank string. It returns an empty string when no argument is nonblank.
 

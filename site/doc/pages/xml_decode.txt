@@ -15,7 +15,7 @@ json_decode
 0_String
 
 :content
-In Capy, `xml_decode(source)` accepts XML source as a `string` and returns a structured `dval`.
+`xml_decode(source)` accepts XML source as a `string` and returns a structured `dval`.
 
 Use it to read XML data into the element shape that `xml_encode()` accepts. It reads the first root element.
 

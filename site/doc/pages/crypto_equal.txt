@@ -28,3 +28,7 @@ print(crypto_equal(expected, "tampered") ? "valid" : "invalid", "\n");
 >sys
 hmac_sha256_hex
 sha256_hex
+basename
+dirname
+expand_path
+file_append

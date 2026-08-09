@@ -9,9 +9,14 @@ true if the target connection exists and was scheduled to close
 
 :see
 >websocket
-
+ws_connection_count
+ws_connection_id
+ws_connections
+ws_is_binary
+ws_message
+ws_opcode
 :content
-In Capy, `ws_close()` closes the current WebSocket connection. `ws_close(connection_id)` accepts a connection ID and closes that connection.
+`ws_close()` closes the current WebSocket connection. `ws_close(connection_id)` accepts a connection ID and closes that connection.
 
 The function returns `true` when it finds the target connection and queues its close. It returns `false` when the target does not exist.
 

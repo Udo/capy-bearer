@@ -5,7 +5,7 @@ void ob_close()
 no value
 
 :content
-In Capy, `ob_close()` discards the current output buffer and returns to the previous buffer.
+`ob_close()` discards the current output buffer and returns to the previous buffer.
 
 Use this when you do not need captured output.
 
@@ -25,3 +25,7 @@ print("the buffered text never reached the response\n");
 >ob
 ob_get_close
 ob_start
+load
+ob_get
+component_resolve
+component_exists

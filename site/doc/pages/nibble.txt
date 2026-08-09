@@ -10,7 +10,12 @@ the text before the first `delim`
 
 :see
 >string
-
+map
+print
+json_encode
+strpos
+json_consume_space
+str_ends_with
 :capy-status unsupported
 
 :content

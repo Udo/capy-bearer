@@ -10,7 +10,12 @@ needle : substring to find
 
 :see
 >string
-
+base64_encode
+filter
+base64_decode
+first
+ascii_safe_name
+join
 :content
 `contains()` checks whether one Capy string contains another string.
 

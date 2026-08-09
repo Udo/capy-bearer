@@ -1,5 +1,3 @@
-:title
-ws_connections
 
 :sig
 DValue ws_connections(String scope = "")
@@ -13,7 +11,12 @@ C++ list of connection IDs in that scope
 :see
 >websocket
 >0_Request
-
+ws_connection_id
+ws_is_binary
+ws_connection_count
+ws_message
+ws_close
+ws_opcode
 :capy-status cpp-specific
 
 :content

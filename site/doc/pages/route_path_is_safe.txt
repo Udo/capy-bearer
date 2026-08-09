@@ -9,7 +9,7 @@ request_query_path
 request_query_route
 
 :content
-In Capy, use this function to test whether route text is safe after normalization.
+Use this function to test whether route text is safe after normalization.
 
 A safe route has non-empty segments. Each segment can contain ASCII letters, digits, `_`, and `-`. The function rejects `.` and `..` segments.
 

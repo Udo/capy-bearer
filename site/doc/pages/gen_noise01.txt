@@ -10,7 +10,12 @@ deterministic `f64` noise value from `0` to `1`
 
 :see
 >noise
-
+draw_int
+gen_noise32
+draw_float
+gen_noise64
+gen_float
+gen_int
 :content
 `gen_noise01()` returns a deterministic `f64` noise value from `0` to `1`. `index` and `seed` select the value.
 

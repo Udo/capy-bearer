@@ -10,7 +10,12 @@ needle : suffix to compare
 
 :see
 >string
-
+strpos
+str_starts_with
+print
+substr
+nibble
+split
 :content
 Use `str_ends_with` to test whether a Capy string ends with a suffix. Pass the string and the suffix. The function returns a Boolean value.
 

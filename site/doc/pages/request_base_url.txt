@@ -1,5 +1,3 @@
-:title
-request_base_url
 
 :sig
 String request_base_url(Request& context)

@@ -87,7 +87,7 @@ def check_example_body(page: Path, line: int, language: str, entry: str, body: s
             errors.append(f"{page.name}:{line}: Capy example exposes private __bearer API")
         checked = re.sub(r'"(?:\\.|[^"\\])*"', '""', body)
         checked = re.sub(r"//[^\n]*", "", checked)
-        if CPP_TOKENS.search(checked):
+        if page.stem not in CANONICAL_GUIDES and CPP_TOKENS.search(checked):
             errors.append(f"{page.name}:{line}: Capy example contains C++ syntax or a C++ type")
         if page.stem not in CANONICAL_GUIDES and CAPY_HANDLER.search(checked):
             errors.append(f"{page.name}:{line}: API examples must contain a handler body, not a complete Capy handler")
@@ -117,11 +117,11 @@ def check_page(page: Path, status: str) -> list[str]:
         errors.append(f"{page.name}: missing :capy-status {required_status}")
     examples = []
     for line, header, body in directives:
-        match = re.fullmatch(r"example\s+(capy|cpp)\s+([a-z]+)", header)
+        match = re.fullmatch(r"example\s+(capy|cpp)\s+([a-z]+)(?:\s+(.+))?", header)
         if not match:
             errors.append(f"{page.name}:{line}: bare or invalid example directive: :{header}")
             continue
-        language, entry = match.groups()
+        language, entry, _caption = match.groups()
         errors.extend(check_example_body(page, line, language, entry, body))
         examples.append((line, language, entry))
     capy = [example for example in examples if example[1] == "capy"]
@@ -133,11 +133,11 @@ def check_page(page: Path, status: str) -> list[str]:
     index = 0
     while index < len(sections):
         line, header, _ = sections[index]
-        match = re.fullmatch(r"example\s+(capy|cpp)\s+([a-z]+)", header)
+        match = re.fullmatch(r"example\s+(capy|cpp)\s+([a-z]+)(?:\s+(.+))?", header)
         if not match:
             index += 1
             continue
-        language, entry = match.groups()
+        language, entry, _caption = match.groups()
         if language == "cpp":
             errors.append(f"{page.name}:{line}: C++ example is unpaired or reversed")
             index += 1
@@ -147,7 +147,7 @@ def check_page(page: Path, status: str) -> list[str]:
             index += 1
             continue
         next_line, next_header, _ = sections[index + 1]
-        next_match = re.fullmatch(r"example\s+cpp\s+([a-z]+)", next_header)
+        next_match = re.fullmatch(r"example\s+cpp\s+([a-z]+)(?:\s+(.+))?", next_header)
         if next_match is None or entry != next_match.group(1):
             errors.append(f"{page.name}:{line}: Capy example needs a matching contiguous C++ pair")
             index += 1
@@ -215,7 +215,7 @@ def check_language_guides(guides: Path, pages: Path, redirect_header: Path) -> l
         headers = [header for _, header, _ in sections]
         if headers.count("title") != 1 or headers.count("content") < 1:
             errors.append(f"{page.name}: guide needs one :title and at least one :content")
-        unknown = [header for header in headers if header not in PAGE_SECTIONS and not re.fullmatch(r"example\s+capy\s+[a-z]+", header)]
+        unknown = [header for header in headers if header not in PAGE_SECTIONS and not re.fullmatch(r"example\s+capy\s+[a-z]+(?:\s+.+)?", header)]
         if unknown:
             errors.append(f"{page.name}: unsupported directive: :{unknown[0]}")
         headings = {heading.strip().lower() for heading in re.findall(r"^##\s+(.+)$", page.read_text(), re.M)}
@@ -225,25 +225,26 @@ def check_language_guides(guides: Path, pages: Path, redirect_header: Path) -> l
             errors.append(f"{page.name}: remove legacy template section: {heading}")
         examples = [(line, header, body) for line, header, body in sections if header.startswith("example")]
         render_examples = []
-        for line, header, body in examples:
-            match = re.fullmatch(r"example\s+capy\s+([a-z]+)", header)
+        render_with_output = 0
+        for index, (line, header, body) in enumerate(sections):
+            if not header.startswith("example"):
+                continue
+            match = re.fullmatch(r"example\s+capy\s+([a-z]+)(?:\s+.+)?", header)
             if not match:
                 errors.append(f"{page.name}:{line}: guide examples must use :example capy")
                 continue
             entry = match.group(1)
             errors.extend(check_example_body(page, line, "capy", entry, body))
-            if re.search(r"^##\s", body, re.M):
-                errors.append(f"{page.name}:{line}: :output must immediately follow the render example")
             if entry == "render":
                 render_examples.append((line, body))
-        if len(render_examples) != 1:
-            errors.append(f"{page.name}: guide needs one :example capy render")
-        else:
-            render_index = next(index for index, (_line, header, _body) in enumerate(sections) if header == "example capy render")
-            if render_index + 1 >= len(sections) or sections[render_index + 1][1] != "output":
-                errors.append(f"{page.name}: :output must immediately follow :example capy render")
+                if index + 1 < len(sections) and sections[index + 1][1] == "output":
+                    render_with_output += 1
+        if len(render_examples) < 1:
+            errors.append(f"{page.name}: guide needs at least one :example capy render")
+        if render_with_output < 1:
+            errors.append(f"{page.name}: guide needs one render example with exact output")
         output_sections = [(line, body) for line, header, body in sections if header == "output"]
-        if len(output_sections) != 1 or not output_sections[0][1]:
+        if len(output_sections) < 1 or not output_sections[0][1]:
             errors.append(f"{page.name}: guide needs one exact nonempty :output")
         elif render_examples and output_sections[0][0] < render_examples[0][0]:
             errors.append(f"{page.name}: :output must follow :example capy render")

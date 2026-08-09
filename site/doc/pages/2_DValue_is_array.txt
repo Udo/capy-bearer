@@ -8,7 +8,10 @@ true when the dereferenced value is map-shaped
 >types
 0_DValue
 2_DValue_is_list
-
+2_DValue_has
+2_DValue_get_by_path
+2_Request_set_status
+2_DValue_each
 :content
 Use `dval_is_array(value)` in Capy to test whether a DValue is map-shaped. It returns `true` for both maps and lists. It does not require numeric or contiguous keys. Use `dval_is_list()` to test for a list.
 

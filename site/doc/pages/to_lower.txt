@@ -1,5 +1,3 @@
-:title
-to_lower
 
 :sig
 String to_lower(String s)
@@ -13,7 +11,11 @@ s : C++ text to convert
 :see
 >string
 lower
-
+regex_split
+to_upper
+regex_replace
+trim
+regex_search_all
 :capy-status cpp-specific
 
 :content

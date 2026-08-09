@@ -1,5 +1,3 @@
-:title
-request_perf
 
 :sig
 DValue request_perf()
@@ -11,7 +9,12 @@ performance data for the active C++ request workspace
 >sys
 >time_precise
 >runtime_perf
-
+process_start_directory
+runtime_safe_key
+path_real
+path_is_within
+file_fsync
+file_symlink
 :capy-status cpp-specific
 
 :content

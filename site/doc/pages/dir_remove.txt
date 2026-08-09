@@ -34,3 +34,7 @@ print(file_stat("/tmp/doc-rmdir")["exists"].to_bool() ? "still there" : "removed
 >sys
 mkdir
 file_unlink
+file_truncate
+file_temp
+file_copy
+file_chmod

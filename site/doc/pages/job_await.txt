@@ -1,5 +1,3 @@
-:title
-job_await
 
 :sig
 DValue job_await(u64 job_id, u64 timeout_ms)
@@ -20,7 +18,12 @@ In Capy, pass the job ID as `dval`. In C++ `.uce`, pass the `u64` job ID shown a
 
 :see
 >sys
-
+job_result
+job_cancel
+job_status
+file_unlink
+shell_spawn
+zip_create
 :example capy render
 var spec := dval({"cmd": "printf hello-from-job", "timeout_ms": 1000})
 var job := shell_spawn(spec)

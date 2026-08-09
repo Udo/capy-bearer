@@ -6,9 +6,13 @@ new 64-character lowercase hexadecimal session ID
 
 :see
 >session
-
+session_start
+session_set
+session_remove
+session_destroy
+response_cookie
 :content
-In Capy, use this function only when you need a new session ID without starting a session.
+Use this function only when you need a new session ID without starting a session.
 
 It returns a new 64-character lowercase hexadecimal ID. Use `session_start()` for the normal cookie and session-data flow.
 

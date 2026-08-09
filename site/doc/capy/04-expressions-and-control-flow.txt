@@ -24,13 +24,14 @@ function RENDER(request : dval) {
 
 `:=` declares a local and infers its type. `=` replaces its value:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var count := 1
     count = count + 1
     print(count, "\n")
 }
-```
+
+:content
 
 A local exists until the end of its block. An inner block can declare a new local with the same name without changing the outer local.
 
@@ -38,7 +39,7 @@ A local exists until the end of its block. An inner block can declare a new loca
 
 Use `if` to select code:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var total := 12
     if total > 10 {
@@ -47,13 +48,14 @@ function RENDER(request : dval) {
         print("small\n")
     }
 }
-```
+
+:content
 
 The condition must have type `bool`. `&&` and `||` stop as soon as the result is known.
 
 An `if` with `else` can also produce a value:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var total := 12
     var label := if total > 10 {
@@ -63,7 +65,8 @@ function RENDER(request : dval) {
     }
     print(label, "\n")
 }
-```
+
+:content
 
 Each reachable branch that produces a value must produce the same type. A branch that returns or traps does not produce a value.
 
@@ -71,7 +74,7 @@ Each reachable branch that produces a value must produce the same type. A branch
 
 A `while` loop repeats while its condition is true:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var index := 0
     while index < 3 {
@@ -79,28 +82,35 @@ function RENDER(request : dval) {
         index = index + 1
     }
 }
-```
+
+:content
 
 A `for` loop reads a half-open `s32` range, an array, or a `dval` map or list:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     for number := 1..4 {
         print(number, "\n")
     }
 }
-```
+
+:content
 
 The range is half-open. `1..4` contains `1`, `2`, and `3`. A range permits one loop value only.
 
 Optional metadata follows the value:
 
-```capy
+:example capy render
 function show(names : [string], profile : dval) {
     for name, index := names { print(index, ": ", name, "\n") }
     for item, key := profile { print(key, ": ", item, "\n") }
 }
-```
+
+function RENDER(request : dval) {
+    show(["Ada"], {role: "admin"})
+}
+
+:content
 
 An array index has type `s32`. A `dval` key has type `string`. `dval` list keys are decimal strings. Structs are not iterable. The old `=` and `in` forms are invalid.
 
@@ -112,7 +122,7 @@ Use `break` to leave the nearest loop. Use `continue` to start its next iteratio
 
 A block yields a value when its final reachable item starts with `->`:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var total := {
         var subtotal := 10
@@ -120,7 +130,8 @@ function RENDER(request : dval) {
     }
     print(total, "\n")
 }
-```
+
+:content
 
 This makes `total` equal to `12`. A block can keep temporary locals close to the calculation that uses them.
 

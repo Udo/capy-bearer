@@ -12,7 +12,10 @@ formatted backtrace string
 >runtime
 backtrace_get_frames
 signal_name
-
+error_pages
+trap
+unit_info
+units_list
 :content
 Capy's `backtrace_capture()` returns a formatted `string` for the current call stack. Use it for diagnostic output.
 

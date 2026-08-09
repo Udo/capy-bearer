@@ -20,7 +20,7 @@ regex_split
 0_DValue
 
 :content
-In Capy, use this function to find the first match in a string. It returns a DValue, not a Boolean.
+Use this function to find the first match in a string. It returns a DValue, not a Boolean.
 
 The result has these fields:
 

@@ -1,0 +1,42 @@
+:sig
+dval dval_put(value : dval, key : string, child : as dval)
+
+:params
+value : target `dval`
+key : child key to set
+child : replacement child
+
+:returns
+same `dval` identity as `value`
+
+:see
+0_DValue
+2_DValue_set
+2_DValue_remove
+2_DValue_get_or_create
+
+:content
+`dval_put(value, key, child)` writes `child` into `value[key]` and returns `value`.
+Use it when you need a mutation-style setter that stays in one line.
+
+`value` can be `none`, scalar, or map shaped.
+If needed, this operation creates a map shape and then stores the new key.
+List values keep existing numeric items and switch to named map mode when the key is not numeric.
+
+## C++ API
+
+`DValue::operator[]` gives the same inline mutation behavior.
+
+:example capy render
+var user := {:}
+user = dval_put(user, "active", true)
+if bool(user.active) {
+    print("yes\n")
+} else {
+    print("no\n")
+}
+
+:example cpp render
+DValue user;
+user["active"].set_bool(true);
+print(user["active"].to_bool() ? "yes\n" : "no\n");

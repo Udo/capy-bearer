@@ -9,6 +9,8 @@ struct DocPage {
 	DValue param_lines;
 	String returns;
 	String errors;
+	DValue note_blocks;
+	DValue warning_blocks;
 	DValue example_blocks;
 	DValue example_pairs;
 	DValue cpp_only_examples;
@@ -223,6 +225,14 @@ String doc_example_handler_name(String entry)
 	return("WS");
 }
 
+String doc_example_title(u64 index, String caption)
+{
+	String title = "Example #" + std::to_string(index + 1);
+	if(trim(caption) != "")
+		title += " — " + trim(caption);
+	return(title);
+}
+
 void doc_flush_section(DocPage& result, String page, String section, DValue& section_lines, DValue& content_lines)
 {
 	if(section == "")
@@ -247,6 +257,18 @@ void doc_flush_section(DocPage& result, String page, String section, DValue& sec
 		result.returns = trim(join(section_lines, "\n"));
 	else if(section == "errors")
 		result.errors = trim(join(section_lines, "\n"));
+	else if(section == "note")
+	{
+		String text = trim(join(section_lines, "\n"));
+		if(text != "")
+			result.note_blocks.push_back(text);
+	}
+	else if(section == "warning")
+	{
+		String text = trim(join(section_lines, "\n"));
+		if(text != "")
+			result.warning_blocks.push_back(text);
+	}
 	else if(section == "see")
 	{
 		for(String line : section_lines)
@@ -270,6 +292,7 @@ void doc_flush_section(DocPage& result, String page, String section, DValue& sec
 		{
 			String output = join(section_lines, "\n");
 			result.guide_examples[result.guide_examples.size() - 1]["output"] = output;
+			result.guide_examples[result.guide_examples.size() - 1]["has_output"] = "Y";
 			if(page.rfind("capy-", 0) == 0)
 			{
 				content_lines.push_back("**Output**");
@@ -289,7 +312,7 @@ void doc_flush_section(DocPage& result, String page, String section, DValue& sec
 	}
 }
 
-void doc_add_example(DocPage& result, String page, String language, String entry, String body, String& pending_entry, String& pending_body)
+void doc_add_example(DocPage& result, String page, String language, String entry, String caption, String body, String& pending_entry, String& pending_caption, String& pending_body)
 {
 	if(language == "legacy")
 	{
@@ -308,6 +331,7 @@ void doc_add_example(DocPage& result, String page, String language, String entry
 		{
 			DValue example;
 			example["entry"] = entry;
+			example["caption"] = caption;
 			example["body"] = body;
 			result.guide_examples.push(example);
 		}
@@ -315,6 +339,7 @@ void doc_add_example(DocPage& result, String page, String language, String entry
 		{
 			DValue example;
 			example["entry"] = entry;
+			example["caption"] = caption;
 			example["body"] = body;
 			result.cpp_only_examples[result.cpp_only_examples.size()] = example;
 		}
@@ -323,6 +348,7 @@ void doc_add_example(DocPage& result, String page, String language, String entry
 		else
 		{
 			pending_entry = entry;
+			pending_caption = caption;
 			pending_body = body;
 		}
 		return;
@@ -334,10 +360,12 @@ void doc_add_example(DocPage& result, String page, String language, String entry
 	}
 	DValue pair;
 	pair["entry"] = pending_entry;
+	pair["caption"] = pending_caption;
 	pair["capy_body"] = pending_body;
 	pair["cpp_body"] = body;
 	result.example_pairs[result.example_pairs.size()] = pair;
 	pending_entry = "";
+	pending_caption = "";
 	pending_body = "";
 }
 
@@ -361,9 +389,11 @@ DocPage load_doc_page(String page)
 	DValue current_lines;
 	DValue content_lines;
 	String pending_entry;
+	String pending_caption;
 	String pending_body;
 	String example_language;
 	String example_entry;
+	String example_caption;
 	bool in_typed_example = false;
 
 	for(auto line : lines)
@@ -383,7 +413,7 @@ DocPage load_doc_page(String page)
 					result.example_parse_error = "empty example block";
 				else
 				{
-					doc_add_example(result, page, example_language, example_entry, example_body, pending_entry, pending_body);
+					doc_add_example(result, page, example_language, example_entry, example_caption, example_body, pending_entry, pending_caption, pending_body);
 					doc_append_guide_example(page, example_language, example_body, content_lines);
 				}
 			}
@@ -397,6 +427,7 @@ DocPage load_doc_page(String page)
 				current_section = "example";
 				example_language = "";
 				example_entry = "";
+				example_caption = "";
 				if(section == "example")
 				{
 					example_language = "legacy";
@@ -406,11 +437,12 @@ DocPage load_doc_page(String page)
 				{
 					String header = trim(section.substr(8));
 					String language = trim(nibble(header, " "));
-					String entry = trim(header);
-					if((language == "capy" || language == "cpp") && entry != "" && entry.find(" ") == String::npos)
+					String entry = trim(nibble(header, " "));
+					if((language == "capy" || language == "cpp") && entry != "")
 					{
 						example_language = language;
 						example_entry = entry;
+						example_caption = trim(header);
 						in_typed_example = true;
 					}
 					else
@@ -431,7 +463,7 @@ DocPage load_doc_page(String page)
 				current_section = "";
 				continue;
 			}
-			if(section == "title" || section == "sig" || section == "params" || section == "returns" || section == "errors" || section == "content" || section == "see" || section == "output")
+			if(section == "title" || section == "sig" || section == "params" || section == "returns" || section == "errors" || section == "note" || section == "warning" || section == "content" || section == "see" || section == "output")
 			{
 				current_section = section;
 				continue;
@@ -459,7 +491,7 @@ DocPage load_doc_page(String page)
 			result.example_parse_error = "empty example block";
 		else
 		{
-			doc_add_example(result, page, example_language, example_entry, example_body, pending_entry, pending_body);
+			doc_add_example(result, page, example_language, example_entry, example_caption, example_body, pending_entry, pending_caption, pending_body);
 			doc_append_guide_example(page, example_language, example_body, content_lines);
 		}
 	}

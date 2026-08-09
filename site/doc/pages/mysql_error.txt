@@ -9,9 +9,14 @@ diagnostic text for the connection attempt or latest operation
 
 :see
 >mysql
-
+mysql_disconnect
+mysql_escape
+mysql_connected
+mysql_insert_id
+mysql_connect
+mysql_affected_rows
 :content
-In Capy, pass the opaque `u64` handle from `mysql_connect()`.
+Pass the opaque `u64` handle from `mysql_connect()`.
 
 This function returns diagnostic text for a failed connection or the latest MySQL operation. Use it after `mysql_connected()` returns `false` or an operation fails.
 

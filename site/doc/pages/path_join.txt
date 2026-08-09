@@ -9,7 +9,7 @@ child : the path to append
 the joined path
 
 :content
-In Capy, `path_join()` returns a `string` that joins `base` and `child` with one `/` when needed.
+`path_join()` returns a `string` that joins `base` and `child` with one `/` when needed.
 
 If `child` starts with `/`, it replaces `base`. If either value is empty, the API returns the other value.
 

@@ -14,7 +14,7 @@ unit_load
 component
 
 :content
-In Capy, call `unit_render(name)` to run another unit's `RENDER` function.
+Call `unit_render(name)` to run another unit's `RENDER` function.
 
 Capy has no `context` input. It uses the current request context. Use this function when the unit writes page output instead of returning a value.
 

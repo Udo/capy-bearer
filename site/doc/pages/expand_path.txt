@@ -26,3 +26,7 @@ print(expand_path("sub/page.uce", "/var/www/site"), "\n");
 >sys
 path_join
 path_real
+dirname
+file_append
+basename
+file_exists

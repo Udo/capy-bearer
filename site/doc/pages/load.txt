@@ -6,7 +6,12 @@ file name : Bearer source file to include
 
 :see
 >ob
-
+component_resolve
+ob_close
+component_exists
+ob_get
+component
+ob_get_close
 :capy-status cpp-specific
 
 :content

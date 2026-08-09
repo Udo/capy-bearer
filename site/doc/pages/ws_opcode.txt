@@ -1,5 +1,3 @@
-:title
-ws_opcode
 
 :sig
 u8 ws_opcode()
@@ -10,7 +8,12 @@ opcode of the current WebSocket message
 :see
 >websocket
 >0_Request
-
+ws_message
+ws_scope
+ws_is_binary
+ws_send
+ws_connections
+ws_send_to
 :capy-status cpp-specific
 
 :content

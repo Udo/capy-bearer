@@ -26,3 +26,7 @@ print(file_exists("/tmp/doc-unlink.txt") ? "exists" : "gone", "\n");
 >sys
 file_exists
 dir_remove
+job_cancel
+zip_create
+job_await
+zip_list

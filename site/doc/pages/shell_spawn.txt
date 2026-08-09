@@ -1,5 +1,3 @@
-:title
-shell_spawn
 
 :sig
 u64 shell_spawn(DValue spec)
@@ -22,7 +20,12 @@ The shell interprets `cmd`. Do not build it from untrusted input. Start and comm
 
 :see
 >sys
-
+shell_exec
+job_status
+shell_escape
+job_result
+cwd_set
+job_await
 :example capy render
 var spec := dval({"cmd": "printf 'spawned in the background'", "timeout_ms": 1000})
 var job := shell_spawn(spec)

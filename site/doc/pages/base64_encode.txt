@@ -23,3 +23,7 @@ print(base64_encode("hello"), "\n");
 >uri
 base64_decode
 random_bytes
+encode_query
+redirect
+request_context_params
+request_base_url

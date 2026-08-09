@@ -1,5 +1,3 @@
-:title
-route_from_raw_path
 
 :sig
 DValue request_route_from_raw_path(String raw_path, String default_path = "index")

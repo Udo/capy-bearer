@@ -8,7 +8,7 @@ directory : directory to list
 copied `dval` list of names
 
 :content
-In Capy, this function returns a copied `dval` list of directory entry names.
+This function returns a copied `dval` list of directory entry names.
 
 Use it when you need to inspect a directory. Handle an empty result when the directory has no entries or cannot be listed.
 
@@ -34,3 +34,7 @@ dir_remove("/tmp/doc-ls", true);
 >sys
 dir_list
 0_DValue
+cwd_get
+mkdir
+file_put_contents
+path_join

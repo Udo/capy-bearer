@@ -42,13 +42,14 @@ Read the first diagnostic and its source location. Later messages can be consequ
 
 Use strict access when missing data violates the program contract:
 
-```capy
+:example capy cli
 function RENDER(request : dval) {
     var profile := {:}
     var name := dval_require(profile, "name")
     print(name)
 }
-```
+
+:content
 
 This traps if `name` is missing or the access path is unusable. Other traps include division by zero, invalid typed-array indexes, failed host operations, and an explicit `trap()`.
 
@@ -84,6 +85,15 @@ Use one name for one thing. Remove wrappers that only rename another function. K
 
 The language guide explains how Capy code fits together. The API reference gives exact signatures and failure behavior for standard-library functions. Use the generated Capy signature on each API page rather than translating a C++ signature by hand.
 
+## Read failures as contracts
+
+A compile error usually means the source does not match the type contract. Fix that error before you inspect later messages.
+
+A runtime trap usually means the input did not match the application contract. Use `dval_require()` when the contract requires data. Use constructors with fallbacks when absence is valid.
+
+Write tests for both paths. A success test proves the expected shape works. A failure test proves bad input cannot silently continue.
+
 :see
 capy-08-dynamic-values
 capy-09-web-handlers-and-requests
+trap

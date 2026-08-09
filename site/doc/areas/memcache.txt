@@ -1,4 +1,5 @@
 Memcache Functions
+:order 150
 
 memcache_command
 memcache_connect

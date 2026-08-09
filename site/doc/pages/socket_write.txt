@@ -10,7 +10,11 @@ data : string to send
 
 :see
 >socket
-
+socket_read
+socket_connect
+socket_close
+http_request_async
+http_request
 :content
 Capy `socket_write(sockfd, data)` sends a string to a socket. Give it a socket handle and the data to send.
 

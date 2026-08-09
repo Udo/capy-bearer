@@ -10,9 +10,14 @@ one bounded server response read
 
 :see
 >memcache
-
+memcache_connect
+memcache_delete
+memcache_get
+memcache_get_multiple
+memcache_set
+memcache_escape_key
 :content
-In Capy, pass the `u64` handle from `memcache_connect()`.
+Pass the `u64` handle from `memcache_connect()`.
 
 This function appends CRLF to `command` and sends it to the server. It makes one bounded read for the response. It does not guarantee a complete multi-chunk response.
 

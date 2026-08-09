@@ -17,7 +17,7 @@ json_encode
 html_escape
 
 :content
-In Capy, `xml_encode(value)` accepts a `dval` and returns XML as a `string`. `xml_encode(value, root_name)` uses the supplied root name.
+`xml_encode(value)` accepts a `dval` and returns XML as a `string`. `xml_encode(value, root_name)` uses the supplied root name.
 
 Use it to write application data as simple XML. It escapes text and attribute values. List values use repeated `item` elements.
 

@@ -1,0 +1,35 @@
+:sig
+dval session_set(string key, string value)
+
+:params
+key : session field name
+value : value to write
+
+:returns
+session snapshot with `id`, `name`, and `values`
+
+:content
+Use `session_set` to write one key to the active session.
+Call `session_start()` first so values persist and return in a valid session snapshot.
+The function returns the updated session state.
+C++ can write `context.session[key] = value` for the same data change.
+
+:example capy render
+var session := session_start("capy-doc-session")
+session = session_set("status", "ok")
+if string(session.values.status, "") == "ok" {
+    print("stored\n")
+} else {
+    print("missing\n")
+}
+
+:example cpp render
+session_start("capy-doc-session");
+context.session["status"] = "ok";
+print(context.session["status"] != "" ? "stored\n" : "missing\n");
+
+:see
+>session
+session_start
+session_destroy
+session_remove

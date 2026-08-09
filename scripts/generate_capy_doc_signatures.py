@@ -8,6 +8,41 @@ ROOT = Path(__file__).resolve().parents[1]
 PAGE_SYMBOLS = {
     "2_DValue_set": ["dval_set"],
     "2_DValue_to_s64": ["s32", "s64"],
+    "response_status": ["response_status"],
+    "response_header": ["response_header"],
+    "response_cookie": ["response_cookie"],
+    "session_set": ["session_set"],
+    "session_remove": ["session_remove"],
+    "component_capture": ["component_capture"],
+    "call": ["call"],
+    "dval_put": ["dval_put"],
+    "bool": ["bool"],
+    "s32": ["s32"],
+    "s64": ["s64"],
+    "u64": ["u64"],
+    "f64": ["f64"],
+    "string": ["string"],
+}
+
+PAGE_SIGNATURES = {
+    "length": [
+        "function length(value : string) s32",
+        "function length(value : markup) s32",
+        "function length(value : dval) s32",
+        "function length(value : [T]) s32",
+    ],
+    "trap": ["function trap()"],
+    "trusted_markup": ["function trusted_markup(value : string) markup"],
+    "clone": ["function clone(value : string) string"],
+    "dval": [
+        "function dval(value : string) dval",
+        "function dval(value : s32) dval",
+        "function dval(value : s64) dval",
+        "function dval(value : u64) dval",
+        "function dval(value : f64) dval",
+        "function dval(value : bool) dval",
+        "function dval(value : dval) dval",
+    ],
 }
 
 
@@ -48,6 +83,9 @@ def generate(capyc: Path) -> str:
             continue
         if page in PAGE_SYMBOLS:
             pages[page] = [declaration for symbol in PAGE_SYMBOLS[page] for declaration in signatures[symbol]]
+            continue
+        if page in PAGE_SIGNATURES:
+            pages[page] = PAGE_SIGNATURES[page]
             continue
         match = re.match(r"([A-Za-z_][A-Za-z0-9_]*)\(", marker)
         if not match or match.group(1) not in signatures:

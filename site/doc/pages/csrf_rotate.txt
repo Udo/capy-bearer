@@ -26,7 +26,7 @@ String new_token = csrf_token();
 print(old_token != new_token ? "rotated\n" : "unchanged\n");
 
 :see
->http
+>session
 csrf_token
 csrf_valid
 session_start

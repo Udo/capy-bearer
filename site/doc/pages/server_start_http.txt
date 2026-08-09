@@ -14,9 +14,12 @@ listener process PID, or `0` if Bearer cannot start it
 >sys
 server_stop
 task
-
+gz_uncompress
+gz_compress
+file_open
+zip_extract
 :content
-In Capy, this function starts or updates a custom HTTP listener. It supports custom HTTP listeners only.
+This function starts or updates a custom HTTP listener. It supports custom HTTP listeners only.
 
 The key identifies one runtime-wide listener. A second call with the same key and bind target updates the handler without a restart. A changed bind target stops the old listener and starts another one.
 

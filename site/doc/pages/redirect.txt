@@ -9,14 +9,19 @@ code : the optional HTTP redirect status. The default is `302`.
 >uri
 2_Request_set_status
 0_Request
-
+encode_query
+request_context_params
+request_base_url
+request_query_path
 :content
-In Capy, `redirect()` sets the response `Location` header and status code.
+`redirect()` sets the response `Location` header and status code.
 
 Call `redirect(url)` for status `302`. Use the two-argument form for another status.
 
 Use this API instead of setting the response header and status separately.
 
+:note
+The examples are compile-only because an executed redirect would replace the documentation response.
 
 :example capy cli
 redirect("/next")

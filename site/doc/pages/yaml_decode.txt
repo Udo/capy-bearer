@@ -15,7 +15,7 @@ json_decode
 2_DValue_to_string
 
 :content
-In Capy, `yaml_decode(source)` accepts YAML source as a `string` and returns a `dval`.
+`yaml_decode(source)` accepts YAML source as a `string` and returns a `dval`.
 
 Use it to read configuration data. The parser supports indentation-based maps and lists, quoted strings, booleans, comments, and block strings.
 

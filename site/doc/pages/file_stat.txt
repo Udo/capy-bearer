@@ -8,7 +8,7 @@ path : path to inspect
 a `dval` map with `exists`, `is_file`, `is_dir`, `is_symlink`, `size`, `mode`, `mtime`, and `ctime`
 
 :content
-In Capy, `file_stat()` returns file metadata in a map-shaped `dval`. Use it to test a path type or read its size and times.
+`file_stat()` returns file metadata in a map-shaped `dval`. Use it to test a path type or read its size and times.
 
 The `exists` field is `false` when the path does not exist. Read fields with functions such as `bool()`.
 

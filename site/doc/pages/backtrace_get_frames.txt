@@ -13,13 +13,19 @@ formatted backtrace string
 >runtime
 backtrace_capture
 signal_name
-
+trap
+error_pages
+unit_info
+units_list
 :content
 Capy's `backtrace_get_frames()` returns a source-mapped guest backtrace as a `string`. Use it for Capy diagnostic output.
 
 The zero-argument form uses 32 frames and skips none. The other forms accept a maximum frame count and an optional skip count. The function returns an empty string when no frames are available. It does not report errors.
 
 Capy does not accept native frame pointers. The C++ `backtrace_get_frames` function formats a `void*` frame array. Use `backtrace_capture()` for normal C++ page code.
+
+:note
+The examples are compile-only because the documentation renderer cannot capture its own native frame array.
 
 :example capy cli
 var frames := backtrace_get_frames()

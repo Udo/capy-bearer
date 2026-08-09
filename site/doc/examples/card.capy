@@ -1,0 +1,4 @@
+function COMPONENT:CARD(request : dval) {
+    var props := request.props
+    <><article><?= string(props.title, "Untitled") ?></article></>
+}

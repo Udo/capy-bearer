@@ -296,6 +296,9 @@ void cli_run_http_smoke()
 	cli_expect_http("bearer_http_smoke:doc index lists functions", "/doc/", 200, "capy-guide-index");
 	cli_expect_http("bearer_http_smoke:Capy language article", "/doc/?p=capy-01-install-and-first-program", 200, "Capy programs run as Bearer units");
 	cli_expect_http("bearer_http_smoke:search includes Capy guides", "/doc/search.uce?q=closures", 200, "capy-05-functions-and-closures");
+	cli_expect_http("bearer_http_smoke:multi-word search finds length", "/doc/search.uce?q=string%20length", 200, "?p=length");
+	cli_expect_http("bearer_http_smoke:PHP alias strlen finds length", "/doc/search.uce?q=strlen", 200, "?p=length");
+	cli_expect_http("bearer_http_smoke:cookie search finds response_cookie", "/doc/search.uce?q=how%20to%20set%20a%20cookie", 200, "?p=response_cookie");
 	cli_expect_http("bearer_http_smoke:search no-result state", "/doc/search.uce?q=no-such-document-term", 200, "No results");
 	CliHttpResponse singlepage = cli_frontend("/doc/singlepage.uce");
 	u64 first_guide = singlepage.body.find("1. Getting started");

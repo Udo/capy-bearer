@@ -20,7 +20,7 @@ function RENDER(request : dval) {
 
 Inside a `script` element, a string becomes one self-contained JavaScript literal. The encoder protects the closing tag and JavaScript line separators. Inside a `style` element, a string becomes one self-contained CSS literal. Integer and Boolean values remain scalar values. `f64` interpolation is not supported in these elements.
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var name := string(request.query.name, "guest")
     <>
@@ -28,7 +28,8 @@ function RENDER(request : dval) {
         <style>.name::before { content: <?= name ?>; }</style>
     </>
 }
-```
+
+:content
 
 Script and style interpolation must start at a value boundary. Static source after it can apply an operator or a CSS unit. Do not put interpolation inside an existing string, template literal, or comment. Attribute values must use quotes. Tag and attribute names cannot contain interpolation.
 
@@ -38,40 +39,43 @@ URL, event-handler, and inline-style attributes use HTML attribute escaping. Val
 
 String literals use double quotes:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var message := "Hello"
     var line := "first\nsecond"
     print(message, " ", line, "\n")
 }
-```
+
+:content
 
 The supported escapes include `\n`, `\r`, `\t`, `\"`, and `\\`. String positions and lengths count bytes, not Unicode characters.
 
 Use `+` to join strings:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var name := "Ada"
     var greeting := "Hello, " + name
     print(greeting, "\n")
 }
-```
+
+:content
 
 Use a constructor to convert a scalar when a function does not already accept `as string`:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var label := "Count: " + string(3)
     print(label, "\n")
 }
-```
+
+:content
 
 ## Markup expressions
 
 A markup expression starts with `<>` and ends with `</>`:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var title := "Report"
     <>
@@ -79,7 +83,8 @@ function RENDER(request : dval) {
         <p>Ready</p>
     </>
 }
-```
+
+:content
 
 The expression has type `markup`. It can be printed, returned from an ordinary function, or placed inside other markup. A component writes markup to response output.
 
@@ -87,12 +92,13 @@ The expression has type `markup`. It can be printed, returned from an ordinary f
 
 A `markup` value stays trusted when `<?= value ?>` inserts it into HTML text. In attributes, scripts, and styles, Capy escapes it as a string for that context. `<?: value ?>` also inserts a `markup` value without escaping it again. Raw interpolation works only in HTML text:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var icon := trusted_markup("<strong>ready</strong>")
     <><p><?: icon ?></p></>
 }
-```
+
+:content
 
 Use `trusted_markup` only at a reviewed trust boundary. Do not apply it to request input, database text, or remote content.
 
@@ -107,3 +113,7 @@ Strings use automatic reference counting. Assignment and function calls preserve
 html_escape
 capy-05-functions-and-closures
 capy-09-web-handlers-and-requests
+string
+length
+trusted_markup
+clone

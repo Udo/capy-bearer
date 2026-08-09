@@ -1,4 +1,5 @@
 URI Functions
+:order 30
 
 encode_query
 redirect

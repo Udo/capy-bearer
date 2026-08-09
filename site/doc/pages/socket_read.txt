@@ -11,7 +11,11 @@ data read from the socket
 
 :see
 >socket
-
+socket_connect
+socket_write
+socket_close
+http_request_async
+http_request
 :content
 Capy `socket_read(sockfd, max_length, timeout)` reads a string from a socket. Give it a socket handle, a byte limit, and a timeout in seconds.
 

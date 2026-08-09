@@ -1,5 +1,3 @@
-:title
-cli_input
 
 :sig
 DValue cli_input(Request& context)
@@ -14,9 +12,14 @@ merged CLI input values
 >ob
 >1_CLI
 >json_decode
->DValue
+0_DValue
 >0_Request
-
+1_CLI
+cli_arg
+1_RENDER
+unit_call
+component
+component_exists
 :capy-status cpp-specific
 
 :content

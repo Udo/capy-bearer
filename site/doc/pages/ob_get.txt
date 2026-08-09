@@ -5,7 +5,7 @@ String ob_get()
 the current output buffer contents
 
 :content
-In Capy, `ob_get()` returns the current output buffer as a `string`. The buffer stays active, so later `print()` calls add more output.
+`ob_get()` returns the current output buffer as a `string`. The buffer stays active, so later `print()` calls add more output.
 
 Use `ob_get_close()` to get the contents and close the buffer.
 
@@ -27,3 +27,7 @@ print("snapshot was: ", snapshot, "\n");
 >ob
 ob_get_close
 ob_start
+ob_close
+load
+component_resolve
+print

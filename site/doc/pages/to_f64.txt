@@ -1,5 +1,3 @@
-:title
-to_f64
 
 :sig
 f64 to_f64(String s, f64 fallback = 0)
@@ -14,7 +12,11 @@ parsed C++ `f64` or `fallback`
 :see
 >types
 2_DValue_to_f64
-
+to_bool
+to_s64
+2_DValue_to_u64
+to_u64
+2_DValue_to_stringmap
 :capy-status cpp-specific
 
 :content
@@ -22,5 +24,8 @@ parsed C++ `f64` or `fallback`
 
 Capy does not expose `to_f64`. Use `f64(value, fallback)`.
 
-:example cpp render
+:example cpp render to_f64() parses decimal text
 print(to_f64("3.5"), "\n");
+
+:example cpp render to_f64() returns the fallback for partial text
+print(to_f64("3.5ms", 9.0), "\n");

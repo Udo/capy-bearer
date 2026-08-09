@@ -10,7 +10,12 @@ list-shaped `dval` with string entries
 
 :see
 >string
-
+substr
+split_http_headers
+str_starts_with
+split_kv
+str_ends_with
+split_space
 :content
 Capy `split(str, delim)` returns a list-shaped `dval` of strings. Give it a string and an exact separator string.
 

@@ -8,7 +8,7 @@ path : directory path
 `true` if the API creates the directory
 
 :content
-In Capy, this function creates one directory at `path`.
+This function creates one directory at `path`.
 
 Use it when the parent directory already exists. It does not create missing parent directories. The C++ API has the same behavior.
 
@@ -29,3 +29,7 @@ dir_remove("/tmp/doc-mkdir-demo", true);
 >sys
 dir_remove
 dir_list
+ls
+path_join
+cwd_get
+cwd_set

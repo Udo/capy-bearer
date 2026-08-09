@@ -27,7 +27,7 @@ Real task states are `queued`, `running`, `succeeded`, `failed`, `canceled`, or 
 
 A named task handler receives one request value:
 
-```capy
+:example capy render
 function TASK:STORE(request : dval) {
     var props := request.props
     var key := string(props.key, "")
@@ -36,7 +36,12 @@ function TASK:STORE(request : dval) {
     }
     // Store the application result under key.
 }
-```
+
+function RENDER(request : dval) {
+    print("task handler ready\n")
+}
+
+:content
 
 The task boundary copies props as BRRB. `dval` identity does not cross it. The worker does not receive the caller's request, session, connections, open handles, or memory state.
 
@@ -44,23 +49,29 @@ The task boundary copies props as BRRB. `dval` identity does not cross it. The w
 
 `task` returns an opaque string ID after Bearer admits the task:
 
-```capy
+:example capy cli
 function RENDER(request : dval) {
     var id := task("/tasks/store.capy:STORE", {key: "report-42"})
     print(id, "\n")
 }
-```
+
+:content
 
 The call traps if Bearer cannot admit the task. Use `task_status(id)` to poll. Use `task_await(id, timeout_ms)` to wait for a state:
 
-```capy
+:example capy render
 function show_failure(id : string) {
     var status := task_await(id, 5000)
     if string(status.state, "") == "failed" {
         print(string(status.failure_code, "unknown"))
     }
 }
-```
+
+function RENDER(request : dval) {
+    print("failure helper ready\n")
+}
+
+:content
 
 A wait timeout does not cancel active work. `task_cancel(id)` requests cancellation, but a running task can finish first. Cancellation does not undo an external effect.
 
@@ -70,13 +81,14 @@ A successful task means that its handler finished. Task status does not carry an
 
 `shell_spawn` starts a bounded operating-system job:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var job := shell_spawn({cmd: "printf ready", timeout_ms: 1000})
     var status := job_await(job, 3000)
     print(string(status.state, "missing"), "\n")
 }
-```
+
+:content
 
 Use `job_status`, `job_await`, `job_result`, and `job_cancel` with the returned handle. Always set a deliberate command timeout. Validate the final state before reading result data.
 
@@ -87,6 +99,14 @@ The shell interprets `cmd`. Do not build it from request data or other untrusted
 Bearer does not retry a failed task automatically. Submit a new task only when the application can repeat the operation safely. Use an application idempotency key for work that changes external state.
 
 Do not wait for long work in a page request unless the response requires it. Treat task IDs and job handles as opaque values.
+
+## Keep task input small
+
+Pass a `dval` that contains only stable identifiers and simple options. Do not pass a full request snapshot to a task. Request data can contain cookies, headers, and uploaded-file metadata that the task does not need.
+
+Use a database row, file path, or application key when work needs large input. Validate that reference again inside the task. A task can run after the user request has ended.
+
+Use a visible status page for long work. It should show queued, running, done, failed, and canceled states in user terms.
 
 :see
 task

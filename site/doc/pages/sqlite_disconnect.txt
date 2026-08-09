@@ -7,7 +7,10 @@ db : SQLite handle from `sqlite_connect()`
 :see
 >sqlite
 sqlite_connect
-
+sqlite_error
+sqlite_query
+sqlite_insert_id
+sqlite_affected_rows
 :content
 Capy `sqlite_disconnect(db)` closes an SQLite handle from `sqlite_connect()`. It does not return a value.
 

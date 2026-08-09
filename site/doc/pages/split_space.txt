@@ -9,7 +9,12 @@ list-shaped `dval` with string entries
 
 :see
 >string
-
+split_kv
+split_utf8
+split_http_headers
+replace
+split
+regex_match
 :content
 Capy `split_space(str)` returns a list-shaped `dval` of strings. Give it text with whitespace-separated values.
 

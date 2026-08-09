@@ -22,3 +22,8 @@ print(base64_decode("aGVsbG8="), "\n");
 :see
 >uri
 base64_encode
+encode_query
+redirect
+request_context_params
+request_base_url
+request_query_path

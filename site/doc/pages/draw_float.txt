@@ -11,7 +11,12 @@ decimal_precision : output precision
 
 :see
 >noise
-
+draw_int
+gen_noise01
+gen_noise32
+gen_noise64
+gen_float
+gen_int
 :content
 `draw_float()` returns a Capy `f64` noise value between two values.
 

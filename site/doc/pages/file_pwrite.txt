@@ -10,7 +10,7 @@ data : Capy `string` data to write
 number of bytes written
 
 :content
-In Capy, `file_pwrite()` writes `string` bytes at an absolute offset without changing the handle position.
+`file_pwrite()` writes `string` bytes at an absolute offset without changing the handle position.
 
 Use a writable handle, such as one opened with `"r+"`, for an in-place edit. It returns zero for an invalid, closed, or non-writable handle.
 

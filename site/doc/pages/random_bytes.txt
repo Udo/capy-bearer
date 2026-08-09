@@ -8,7 +8,7 @@ n : the number of random bytes to request
 cryptographically random bytes
 
 :content
-In Capy, `random_bytes()` returns cryptographically secure bytes as a `string`. The API returns no more than 1 MiB. It can return fewer bytes, including an empty string, if the random source fails.
+`random_bytes()` returns cryptographically secure bytes as a `string`. The API returns no more than 1 MiB. It can return fewer bytes, including an empty string, if the random source fails.
 
 Use these bytes for session IDs, tokens, and salts. The result can contain binary bytes. Use `base64_encode()` or `sha256_hex()` when you need printable text.
 
@@ -24,3 +24,7 @@ print(random_bytes(16).length(), " raw bytes; as base64 token: ", token.length()
 >sys
 base64_encode
 sha256_hex
+basename
+dirname
+expand_path
+file_append

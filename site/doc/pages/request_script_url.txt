@@ -1,5 +1,3 @@
-:title
-request_script_url
 
 :sig
 String request_script_url(Request& context)

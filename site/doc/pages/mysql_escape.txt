@@ -10,9 +10,14 @@ the escaped form of `raw`
 
 :see
 >mysql
-
+mysql_error
+mysql_insert_id
+mysql_disconnect
+mysql_affected_rows
+mysql_connected
+mysql_query
 :content
-In Capy, `mysql_escape(raw)` escapes `raw` and wraps it in single quotes. Use the two-argument form to select one wrapper character.
+`mysql_escape(raw)` escapes `raw` and wraps it in single quotes. Use the two-argument form to select one wrapper character.
 
 Use an empty Capy string for no wrapper. In C++, pass `NULL` for no wrapper.
 

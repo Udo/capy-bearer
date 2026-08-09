@@ -1,5 +1,3 @@
-:title
-ws_connection_id
 
 :sig
 String ws_connection_id()
@@ -10,7 +8,12 @@ connection ID of the current WebSocket client
 :see
 >websocket
 >0_Request
-
+ws_connection_count
+ws_connections
+ws_close
+ws_is_binary
+ws_message
+ws_opcode
 :capy-status cpp-specific
 
 :content

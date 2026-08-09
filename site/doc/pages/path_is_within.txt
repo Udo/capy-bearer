@@ -9,7 +9,7 @@ root : the directory that must contain the path
 `true` if `path` is inside `root`
 
 :content
-In Capy, `path_is_within()` returns `true` when `path` is inside `root`. It resolves both paths with `path_real()`. Both paths must exist. Resolution follows symbolic links and removes `.` and `..` segments.
+`path_is_within()` returns `true` when `path` is inside `root`. It resolves both paths with `path_real()`. Both paths must exist. Resolution follows symbolic links and removes `.` and `..` segments.
 
 Use this check before you open a user-supplied path.
 
@@ -34,3 +34,7 @@ dir_remove("/tmp/doc-within", true);
 >sys
 path_real
 expand_path
+file_fsync
+file_symlink
+process_start_directory
+file_chmod

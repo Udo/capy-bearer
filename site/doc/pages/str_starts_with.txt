@@ -10,7 +10,12 @@ needle : prefix to compare
 
 :see
 >string
-
+str_ends_with
+substr
+strpos
+split
+print
+split_http_headers
 :content
 Use `str_starts_with` to test whether a Capy string starts with a prefix. Pass the string and the prefix. The function returns a Boolean value.
 

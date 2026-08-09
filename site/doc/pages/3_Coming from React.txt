@@ -13,8 +13,6 @@ unit_render
 map
 filter
 2_DValue_filter
-2_DValue_map
-
 :capy-status cpp-specific
 
 :content

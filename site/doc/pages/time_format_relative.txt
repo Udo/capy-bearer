@@ -16,7 +16,12 @@ formatted relative-time string
 >time
 >time_format_local
 >time_format_utc
-
+time_format_local
+time_format_utc
+time
+time_parse
+time_precise
+usleep
 :content
 Use `time_format_relative` to show a Capy timestamp relative to the current time. Pass the timestamp. You can also set the three output formats and their two cutoffs. The function returns a Capy `string`.
 

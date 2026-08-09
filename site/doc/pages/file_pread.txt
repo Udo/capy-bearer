@@ -10,7 +10,7 @@ len : maximum number of bytes to read
 a Capy `string` with up to `len` bytes
 
 :content
-In Capy, `file_pread()` reads from an absolute byte offset and returns a `string`. It does not change the handle position.
+`file_pread()` reads from an absolute byte offset and returns a `string`. It does not change the handle position.
 
 Use it for random reads between sequential reads. An invalid handle returns an empty string.
 

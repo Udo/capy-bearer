@@ -9,7 +9,7 @@ len : maximum number of bytes to read
 a Capy `string` with up to `len` bytes from the current position
 
 :content
-In Capy, `file_read()` returns a `string` from the current handle position. It advances the position by the bytes read.
+`file_read()` returns a `string` from the current handle position. It advances the position by the bytes read.
 
 End of file can return fewer bytes or `""`. Use `file_pread()` to read an absolute offset without moving the position.
 

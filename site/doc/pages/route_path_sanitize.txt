@@ -10,7 +10,7 @@ request_query_route
 request_context_params
 
 :content
-In Capy, use this function before you compose a file path from a route.
+Use this function before you compose a file path from a route.
 
 It removes outer whitespace and leading and trailing `/`. Empty input becomes `default_path`. Each segment must be non-empty and contain only ASCII letters, digits, `_`, and `-`. The function rejects `.` and `..` segments. It returns an empty string for unsafe input.
 

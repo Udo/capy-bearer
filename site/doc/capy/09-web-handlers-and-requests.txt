@@ -25,19 +25,72 @@ Missing members are `none`. Use normal conversions for scalar values. For exampl
 
 ## Form a response
 
-Use `print`, `response_status`, `response_header`, `response_cookie`, and `redirect` to change the response. Use `ws_send`, `ws_send_to`, and `ws_close` for WebSocket effects. Use `request.websocket.connections` to select current-scope clients.
+Use `print`, `response_status`, `response_header`, `response_cookie`, and `redirect` to change the response. Set headers before large output. Use a redirect after a successful state change so the user can refresh the page safely.
+
+Use `ws_send`, `ws_send_to`, and `ws_close` for WebSocket effects. Use `request.websocket.connections` to select current-scope clients.
+
+## Handle a form
+
+A handler normally uses one route for both the form and the POST result. Read `request.method` first. Read submitted fields from `request.form`.
+
+This example shows the complete control flow. A GET request prints the form. A POST request validates the email, stores it in the session, queues a cookie, and redirects. The documentation renderer runs the GET path.
+
+:example capy render
+function RENDER(request : dval) {
+    response_header("Content-Type", "text/html; charset=utf-8")
+    var method := string(request.method, "GET")
+
+    if method == "POST" {
+        var email := string(request.form.email, "")
+        if email == "" {
+            response_status(422, "Unprocessable Content")
+            <><p>Email is required.</p></>
+            return
+        }
+
+        var session := session_start("account")
+        session = session_set("email", email)
+        response_cookie("has_account", "1")
+        redirect("/account")
+        return
+    }
+
+    <>
+        <form method="post">
+            <label>Email <input name="email" type="email" /></label>
+            <button>Save</button>
+        </form>
+    </>
+}
+
+:content
+
+## Read uploaded files
+
+Uploaded files appear in `request.files`. Each entry is a copied `dval` with the metadata that Bearer accepted for the request. Treat the original filename as user input.
+
+Use the generated request page for the exact file fields. Validate the file count, size, and type before you store anything.
+
+:example capy render
+function RENDER(request : dval) {
+    var files := request.files
+    print("files=", length(files), "\n")
+}
+
+:content
 
 ## Sessions
 
 Session effects return a state map with `id`, `name`, and `values`. Keep the returned value when later code needs changed session data. The handler request snapshot does not change.
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var session := session_start("account")
     session = session_set("theme", "dark")
     print(string(session.values.theme, ""), "\n")
 }
-```
+
+:content
 
 ## Other handlers
 
@@ -50,3 +103,11 @@ function RENDER(request : dval) {
 session_start
 capy-08-dynamic-values
 capy-10-units-components-and-exports
+response_status
+response_header
+response_cookie
+session_set
+session_remove
+bool
+s32
+string

@@ -20,7 +20,7 @@ function RENDER(request : dval) {
 :content
 State a wider type on the local, or construct the value explicitly:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var signed : s64 = 8
     var inferred_signed := s64(9)
@@ -28,7 +28,8 @@ function RENDER(request : dval) {
     var inferred_unsigned := u64(11)
     print(signed, " ", inferred_signed, " ", unsigned, " ", inferred_unsigned, "\n")
 }
-```
+
+:content
 
 Both forms produce the stated wide integer type. `var signed : s64 = s64(8)` also compiles, but the constructor repeats information already supplied by the annotation.
 
@@ -40,13 +41,14 @@ Arithmetic requires operands of the same type. Use a constructor when the surrou
 
 A `bool` is either `true` or `false`. Conditions require a boolean value.
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var enabled := true
     var ratio := 2.5
     print(enabled, " ", ratio, "\n")
 }
-```
+
+:content
 
 A decimal point or exponent makes an `f64` literal.
 
@@ -54,13 +56,14 @@ A decimal point or exponent makes an `f64` literal.
 
 A `string` stores bytes:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var name := "Ada"
     var empty := ""
     print(name, empty, "\n")
 }
-```
+
+:content
 
 An empty string is still a string value. It is not missing data.
 
@@ -68,25 +71,27 @@ An empty string is still a string value. It is not missing data.
 
 An array contains values of one type:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var names := ["Ada", "Grace"]
     print(names[0], "\n")
 }
-```
+
+:content
 
 A tuple has a fixed number of positions, which can have different types:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var point := (3, 4)
     print(point[0], " ", point[1], "\n")
 }
-```
+
+:content
 
 A struct gives names to fixed fields:
 
-```capy
+:example capy render
 struct Point {
     x : s32
     y : s32
@@ -96,7 +101,8 @@ function RENDER(request : dval) {
     var point := Point(3, 4)
     print(point.x, " ", point.y, "\n")
 }
-```
+
+:content
 
 Arrays and struct instances are mutable reference values inside one workspace. Assignment shares their identity. Tuples remain immutable.
 
@@ -106,13 +112,14 @@ The collections chapter covers these types in detail.
 
 A `dval` holds data whose shape is known only at run time. The `none` value represents missing dynamic data:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var profile := {name: "Ada"}
     var missing := none
     print(profile.name, " ", missing?, "\n")
 }
-```
+
+:content
 
 `none` is different from `""`, `false`, an empty map, and an empty list. A `dval` is also a mutable reference value inside one workspace. The dynamic-values chapter explains mutation, safe reads, and conversions.
 
@@ -120,14 +127,15 @@ function RENDER(request : dval) {
 
 A type alias gives another name to a type:
 
-```capy
+:example capy render
 type Count = s64
 
 function RENDER(request : dval) {
     var total : Count = 12
     print(total, "\n")
 }
-```
+
+:content
 
 An alias does not create a new runtime type.
 
@@ -136,3 +144,11 @@ capy-04-expressions-and-control-flow
 capy-07-collections-and-records
 capy-08-dynamic-values
 0_DValue
+bool
+s32
+s64
+u64
+f64
+string
+dval
+length

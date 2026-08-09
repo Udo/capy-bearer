@@ -28,25 +28,27 @@ An exported function has the exact signature `(dval) dval`. Private helper funct
 
 ## Call another unit
 
-Save this service as `service.capy`:
+A separate service unit can expose a data function:
 
-```capy
+:example capy cli
 EXPORTS version
 
 function version(input : dval) dval {
     -> {name: "Capy"}
 }
-```
+
+:content
 
 Load and call it from a neighboring page:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
-    var service := unit_load("service.capy")
-    var version := service.call("version")
-    print(version.name, "\n")
+    var service := unit_load("/doc/examples/call_target.capy")
+    var version := call(service, "default_input")
+    print(string(version), "\n")
 }
-```
+
+:content
 
 `unit_load` returns a request-local `module` handle. Module calls copy input and result `dval` values as BRRB. `unit_call(path, name, input)` performs the same operation without keeping a handle.
 
@@ -62,20 +64,22 @@ Do not retain a module handle for another request. A later request can load a ne
 
 A component writes reusable response content. A named component uses a handler name:
 
-```capy
+:example capy cli
 function COMPONENT:CARD(request : dval) {
     var props := request.props
     <><article><?= string(props.title, "Untitled") ?></article></>
 }
-```
+
+:content
 
 Render it into the response:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
-    component_render("card.capy:CARD", {title: "News"})
+    component_render("/doc/examples/card.capy:CARD", {title: "News"})
 }
-```
+
+:content
 
 Use `component_capture` when the caller needs the component output as a string. Bearer copies props into the component request context and restores the earlier props after the call.
 
@@ -85,6 +89,14 @@ Bearer copies `dval` values at module, component, task, export, C++, codec, requ
 
 Missing units, missing exports, and incompatible exported signatures are errors.
 
+## Choose a boundary
+
+Use a component when the result is markup for the current page. Use an exported function when the result is data. Use a direct helper function only inside one source file.
+
+A module loaded with `unit_load()` lives only for the current request. Store data in a session, a file, a database, or a task result when it must outlive the request.
+
+Keep component props narrow. Pass only the values the component needs. This makes examples, tests, and future replacement easier.
+
 :see
 unit_load
 unit_call
@@ -92,3 +104,6 @@ component_render
 1_COMPONENT
 capy-08-dynamic-values
 capy-11-tasks-and-jobs
+component_capture
+call
+dval

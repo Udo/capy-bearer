@@ -10,9 +10,14 @@ new `dval` list of escaped keys
 :see
 >sys
 >memcache_escape_key
-
+basename
+dirname
+expand_path
+file_append
+file_exists
+file_get_contents
 :content
-In Capy, this function converts each input item to a string and returns a new `dval` list.
+This function converts each input item to a string and returns a new `dval` list.
 
 It applies `memcache_escape_key()` to every item. The C++ API uses the same `DValue` input and result model.
 

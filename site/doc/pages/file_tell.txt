@@ -26,3 +26,7 @@ file_close(h);
 >sys
 file_seek
 file_open
+file_close
+file_pwrite
+file_stat
+file_write

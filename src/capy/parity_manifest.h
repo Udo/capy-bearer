@@ -3,8 +3,27 @@
 #include <string_view>
 namespace capy::parity {
 struct Evidence { std::string_view name, path, marker; };
-inline constexpr std::array<Evidence, 241> supported{{
+inline constexpr std::array<Evidence, 260> supported{{
     {"3_Documentation format","site/doc/pages/3_Documentation format.txt",":example capy render"},
+    {"response_status","site/doc/pages/response_status.txt",":example capy render"},
+    {"response_header","site/doc/pages/response_header.txt",":example capy render"},
+    {"response_cookie","site/doc/pages/response_cookie.txt",":example capy render"},
+    {"session_set","site/doc/pages/session_set.txt",":example capy render"},
+    {"session_remove","site/doc/pages/session_remove.txt",":example capy render"},
+    {"component_capture","site/doc/pages/component_capture.txt",":example capy render"},
+    {"call","site/doc/pages/call.txt",":example capy render"},
+    {"dval_put","site/doc/pages/dval_put.txt",":example capy render"},
+    {"bool","site/doc/pages/bool.txt",":example capy render"},
+    {"s32","site/doc/pages/s32.txt",":example capy render"},
+    {"s64","site/doc/pages/s64.txt",":example capy render"},
+    {"u64","site/doc/pages/u64.txt",":example capy render"},
+    {"f64","site/doc/pages/f64.txt",":example capy render"},
+    {"string","site/doc/pages/string.txt",":example capy render"},
+    {"length","site/doc/pages/length.txt",":example capy render"},
+    {"trap","site/doc/pages/trap.txt",":example capy render"},
+    {"trusted_markup","site/doc/pages/trusted_markup.txt",":example capy render"},
+    {"clone","site/doc/pages/clone.txt",":example capy render"},
+    {"dval","site/doc/pages/dval.txt",":example capy render"},
     {"1_INIT","site/tests/capy-lifecycle-parity.capy","function INIT"},
     {"1_ONCE","site/tests/capy-lifecycle-parity.capy","function ONCE"},
     {"1_CLI","site/tests/capy-strings.capy","function CLI"},

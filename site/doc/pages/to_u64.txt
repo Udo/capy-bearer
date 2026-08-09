@@ -1,5 +1,3 @@
-:title
-to_u64
 
 :sig
 u64 to_u64(String s, u64 fallback = 0)
@@ -14,7 +12,11 @@ parsed C++ `u64` or `fallback`
 :see
 >types
 2_DValue_to_u64
-
+to_s64
+brb_encode
+to_f64
+brb_decode
+to_bool
 :capy-status cpp-specific
 
 :content
@@ -22,5 +24,9 @@ parsed C++ `u64` or `fallback`
 
 Capy does not expose `to_u64`. Use `u64(value, fallback)`.
 
-:example cpp render
+:example cpp render to_u64() parses unsigned text
 print(to_u64("7"), "\n");
+
+:example cpp render to_u64() returns the fallback for invalid text
+print(to_u64("-1", 99), "\n");
+print(to_u64("12px", 99), "\n");

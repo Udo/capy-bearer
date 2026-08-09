@@ -12,9 +12,14 @@ expire : lifetime in seconds
 
 :see
 >memcache
-
+memcache_get_multiple
+memcache_escape_key
+memcache_get
+memcache_escape_keys
+memcache_delete
+memcache_connect
 :content
-In Capy, pass the `u64` handle from `memcache_connect()`.
+Pass the `u64` handle from `memcache_connect()`.
 
 This function stores `value` under `key`. It sends the value length in bytes. It returns `true` only when the trimmed server response is exactly `STORED`.
 

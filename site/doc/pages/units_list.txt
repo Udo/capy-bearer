@@ -17,10 +17,11 @@ The list includes known `.uce` units and units already loaded by the current run
 
 C++ returns a `DValue` list through the signature above. Use the same normal use case.
 
-:example capy cli
+:example capy render
 var count := 0
 for item := units_list() { count = count + 1 }
-print("the runtime knows ", count, " compiled units\n")
+print("unit list available\n")
 
-:example cpp cli
-print("the runtime knows ", units_list().size(), " compiled units\n");
+:example cpp render
+DValue units = units_list();
+print("unit list available\n");

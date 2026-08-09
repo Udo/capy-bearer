@@ -15,7 +15,7 @@ zip_list
 zip_read
 
 :content
-In Capy, `zip_extract(path, destination)` accepts an archive path and destination path. It returns `true` when extraction completes.
+`zip_extract(path, destination)` accepts an archive path and destination path. It returns `true` when extraction completes.
 
 Use it to extract all archive members. Bearer creates the destination and required child directories.
 

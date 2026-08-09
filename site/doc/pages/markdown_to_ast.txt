@@ -18,7 +18,7 @@ json_encode
 0_DValue
 
 :content
-In Capy, this function parses Markdown text into a `dval` document tree.
+This function parses Markdown text into a `dval` document tree.
 
 The root is a map-shaped document node. Its `children` field is a list-shaped value. The parser stores component data but does not call component hooks during parsing.
 

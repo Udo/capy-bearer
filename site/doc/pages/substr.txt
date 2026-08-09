@@ -12,7 +12,12 @@ extracted string, or an empty string when the range is outside the source string
 
 :see
 >string
-
+str_starts_with
+split
+str_ends_with
+split_http_headers
+strpos
+split_kv
 :content
 Use `substr` to get part of a Capy string. Pass the source string and a start position. Add a length to limit the result. The two-input form returns text from the start position to the end.
 
@@ -20,8 +25,26 @@ A negative start position counts from the end. A negative length stops the resul
 
 Capy accepts `s32` or `s64` positions and lengths. C++ `.uce` uses `String` and `s64`, as the signatures show.
 
-:example capy render
+:example capy render substr() with a start and length
 print(substr("documentation", 0, 3), "\n")
 
-:example cpp render
+:example cpp render substr() with a start and length
 print(substr("documentation", 0, 3), "\n");
+
+:example capy render substr() with a negative start
+print(substr("documentation", -7), "\n")
+
+:example cpp render substr() with a negative start
+print(substr("documentation", -7), "\n");
+
+:example capy render substr() with a negative length
+print(substr("documentation", 0, -7), "\n")
+
+:example cpp render substr() with a negative length
+print(substr("documentation", 0, -7), "\n");
+
+:example capy render substr() with an out-of-range start
+print(length(substr("documentation", 99)), "\n")
+
+:example cpp render substr() with an out-of-range start
+print(substr("documentation", 99).size(), "\n");

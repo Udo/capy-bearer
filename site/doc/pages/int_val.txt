@@ -12,7 +12,10 @@ parsed `u64`, or `0` when no usable number exists
 >string
 float_val
 0_String
-
+html_escape
+trim
+trusted_markup
+to_upper
 :content
 `int_val()` extracts an unsigned integer from a string. It returns `0` when it cannot identify a usable number.
 

@@ -14,7 +14,10 @@ map-shaped `dval` of keys and values
 >string
 split
 split_http_headers
-
+split_space
+split_utf8
+substr
+replace
 :content
 Capy `split_kv(s, separator, trim_whitespace, uppercase_keys)` returns a map-shaped `dval`. Give it line-based text and a separator.
 

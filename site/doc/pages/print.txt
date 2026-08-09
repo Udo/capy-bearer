@@ -6,9 +6,14 @@ void print(...val)
 
 :see
 >string
-
+nibble
+strpos
+map
+str_ends_with
+json_encode
+str_starts_with
 :content
-In Capy, `print(...values : as string)` constructs each non-string value as `string` and writes the values in order.
+`print(...values : as string)` constructs each non-string value as `string` and writes the values in order.
 
 Use `print(...array)` to spread a `[string]` array. When an output buffer is active, `print()` writes to that buffer. Otherwise, it writes to the response.
 

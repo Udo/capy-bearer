@@ -1,4 +1,5 @@
 Noise/Hash Functions
+:order 120
 
 draw_float
 draw_int

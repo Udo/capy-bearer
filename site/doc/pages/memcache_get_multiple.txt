@@ -10,9 +10,14 @@ keys : `dval` list of entry keys
 
 :see
 >memcache
-
+memcache_get
+memcache_set
+memcache_delete
+memcache_escape_key
+memcache_connect
+memcache_escape_keys
 :content
-In Capy, this function returns a `dval` map of entries parsed from `VALUE` responses.
+This function returns a `dval` map of entries parsed from `VALUE` responses.
 
 Use it to read several keys through one connection. Missing keys are absent from the map.
 

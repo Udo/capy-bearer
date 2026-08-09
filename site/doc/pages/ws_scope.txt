@@ -1,5 +1,3 @@
-:title
-ws_scope
 
 :sig
 String ws_scope()
@@ -11,7 +9,12 @@ scope identifier of the current WebSocket endpoint
 >websocket
 >ws_connections
 >0_Request
-
+ws_opcode
+ws_send
+ws_message
+ws_send_to
+ws_is_binary
+ws_connections
 :capy-status cpp-specific
 
 :content

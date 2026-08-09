@@ -6,9 +6,13 @@ session_name : session cookie name
 
 :see
 >session
-
+session_remove
+response_cookie
+session_set
+session_start
+session_id_create
 :content
-In Capy, use this function to end the named session.
+Use this function to end the named session.
 
 It expires the cookie and removes the matching server-side session file. In Capy, `session_destroy` returns `{id, name, values}` for the resulting state. The fields are empty for the destroyed session. C++ keeps its documented `void` behavior.
 

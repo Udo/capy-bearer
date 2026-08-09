@@ -13,10 +13,10 @@ entries : map or list of archive entries
 zip_list
 zip_read
 zip_extract
-DValue
+0_DValue
 
 :content
-In Capy, `zip_create(path, entries)` accepts an archive path and a `dval` of entries. It returns `true` when it writes the archive.
+`zip_create(path, entries)` accepts an archive path and a `dval` of entries. It returns `true` when it writes the archive.
 
 Use a map when each key is a member name and each value is its content. An entry can also name a source file with `file`.
 

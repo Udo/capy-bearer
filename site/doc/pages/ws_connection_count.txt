@@ -1,5 +1,3 @@
-:title
-ws_connection_count
 
 :sig
 u64 ws_connection_count(String scope = "")
@@ -14,7 +12,12 @@ number of connected C++ WebSocket clients in that scope
 >websocket
 >ws_connections
 >0_Request
-
+ws_close
+ws_connection_id
+ws_connections
+ws_is_binary
+ws_message
+ws_opcode
 :capy-status cpp-specific
 
 :content

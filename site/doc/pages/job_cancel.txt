@@ -1,5 +1,3 @@
-:title
-job_cancel
 
 :sig
 bool job_cancel(u64 job_id)
@@ -19,7 +17,12 @@ In Capy, pass the job ID as `dval`. In C++ `.uce`, pass the `u64` job ID shown a
 
 :see
 >sys
-
+job_await
+file_unlink
+job_result
+zip_create
+job_status
+zip_list
 :example capy render
 var spec := dval({"cmd": "sleep 5", "timeout_ms": 10000})
 var job := shell_spawn(spec)

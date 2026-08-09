@@ -10,7 +10,12 @@ deterministic `u64` noise value
 
 :see
 >noise
-
+gen_noise32
+gen_float
+gen_noise01
+gen_int
+draw_int
+gen_sha1
 :content
 `gen_noise64()` returns a deterministic `u64` noise value for `index` and `seed`.
 

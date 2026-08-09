@@ -15,7 +15,7 @@ zip_list
 zip_extract
 
 :content
-In Capy, `zip_read(path, entry)` accepts an archive path and member name. It returns the uncompressed member bytes as a `string`.
+`zip_read(path, entry)` accepts an archive path and member name. It returns the uncompressed member bytes as a `string`.
 
 Use `zip_list()` to discover member names before you read them. Member names cannot be empty, absolute, drive-qualified, or contain `..` path segments.
 

@@ -10,7 +10,12 @@ SHA-1 digest string
 
 :see
 >noise
-
+gen_int
+sha256
+gen_float
+sha256_hex
+gen_noise64
+hmac_sha256
 :content
 `gen_sha1()` returns the SHA-1 digest of string bytes. It returns hexadecimal text by default, or raw digest bytes when `as_binary` is `true`.
 

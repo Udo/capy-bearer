@@ -1,4 +1,5 @@
 Output / Invocation Functions
+:order 50
 
 coming_from_react
 1_RENDER
@@ -16,5 +17,9 @@ ob_get_close
 ob_start
 print
 component_render
+component_capture
 unit_load
 unit_render
+call
+response_status
+response_header

@@ -28,7 +28,7 @@ print(csrf_valid(token, "bearer-doc-session") ? "valid\n" : "invalid\n");
 print(csrf_valid("bad-token", "bearer-doc-session") ? "bad valid\n" : "bad invalid\n");
 
 :see
->http
+>session
 csrf_token
 csrf_rotate
 crypto_equal

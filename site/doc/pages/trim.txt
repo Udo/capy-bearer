@@ -9,9 +9,14 @@ raw : text to trim
 
 :see
 >string
-
+to_upper
+float_val
+to_lower
+int_val
+regex_split
+html_escape
 :content
-In Capy, call `trim(raw)` to return a `string` without leading or trailing whitespace.
+Call `trim(raw)` to return a `string` without leading or trailing whitespace.
 
 Use it to normalize text before validation or comparison. C++ uses the same input and return value.
 

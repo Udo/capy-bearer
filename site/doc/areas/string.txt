@@ -1,5 +1,9 @@
 String Functions
+:order 20
 
+string
+length
+clone
 ascii_safe_name
 base64_decode
 base64_encode
@@ -7,7 +11,6 @@ contains
 filter
 first
 join
-json_consume_space
 json_encode
 map
 nibble
@@ -33,6 +36,7 @@ trim
 float_val
 int_val
 html_escape
+trusted_markup
 safe_name
 var_dump
 json_decode

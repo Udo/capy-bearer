@@ -9,7 +9,12 @@ encoded query string
 
 :see
 >uri
-
+redirect
+request_context_params
+request_base_url
+request_query_path
+request_query_route
+request_script_url
 :content
 `encode_query()` converts a Capy `dval` map into an encoded URL query string.
 

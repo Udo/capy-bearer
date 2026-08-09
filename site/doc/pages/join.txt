@@ -10,7 +10,12 @@ string with all list values separated by `delim`
 
 :see
 >string
-
+first
+json_consume_space
+filter
+json_encode
+contains
+map
 :content
 `join()` reads every `dval` list value as a string and returns one string. It inserts `delim` between values.
 

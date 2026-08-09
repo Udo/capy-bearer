@@ -17,7 +17,7 @@ json_decode
 html_escape
 
 :content
-In Capy, this function encodes a `string` or `dval` value as JSON text.
+This function encodes a `string` or `dval` value as JSON text.
 
 Use it to send structured data in a response or store it as text. List-shaped `dval` values encode as JSON arrays. `none` encodes as JSON `null`.
 

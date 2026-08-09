@@ -31,12 +31,13 @@ The command prints the response body. Bearer logs compiler and runtime errors.
 
 A local declaration uses `:=`. Capy infers the type from the value:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var name := "Ada"
     print("Hello, ", name, "!\n")
 }
-```
+
+:content
 
 `print` accepts several arguments and writes them in order.
 
@@ -44,18 +45,25 @@ function RENDER(request : dval) {
 
 A markup expression produces escaped HTML:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var name := "Ada"
     <><h1>Hello, <?= name ?>!</h1></>
 }
-```
+
+:content
 
 Bearer writes top-level markup from `RENDER` to the response. The markup chapter explains escaping and trusted markup.
 
 ## If it does not run
 
 Confirm that `bearer.service` is active. The source file must be below the configured site directory. The CLI helper must use the configured local socket.
+
+## Make the first change small
+
+Change one value and request the page again. For example, change `Ada` to your name. This proves that Bearer sees the file you edited.
+
+Then add one standard-library call, such as `response_header("Content-Type", "text/plain; charset=utf-8")`. Small changes make compiler errors easier to isolate.
 
 Continue with basic source syntax before you add request data or application APIs.
 

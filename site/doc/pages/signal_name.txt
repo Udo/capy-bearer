@@ -11,7 +11,10 @@ signal name, or an empty string for an unknown number
 >runtime
 backtrace_capture
 backtrace_get_frames
-
+error_pages
+unit_info
+units_list
+unit_compile
 :content
 Capy `signal_name(sig)` returns the POSIX name for a signal number. Give it a numeric signal value.
 

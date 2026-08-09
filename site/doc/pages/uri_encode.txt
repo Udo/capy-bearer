@@ -9,9 +9,14 @@ an URI-encoded version of 's'
 
 :see
 >uri
-
+uri_decode
+request_route_from_raw_path
+parse_uri
+parse_query
+session_id_create
+route_path_sanitize
 :content
-In Capy, `uri_encode(value)` accepts a `string` and returns its URI-encoded `string` form.
+`uri_encode(value)` accepts a `string` and returns its URI-encoded `string` form.
 
 Use it before you place text in a URI component. The API has no error return.
 

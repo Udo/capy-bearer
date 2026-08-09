@@ -1,4 +1,5 @@
 Socket Functions
+:order 160
 
 http_request
 http_request_async

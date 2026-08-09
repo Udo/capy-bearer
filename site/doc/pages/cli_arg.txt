@@ -1,5 +1,3 @@
-:title
-cli_arg
 
 :sig
 String cli_arg(Request& context, String key, String default_value = "")
@@ -17,7 +15,12 @@ resolved CLI string value
 >1_CLI
 >cli_input
 >0_Request
-
+cli_input
+unit_call
+1_CLI
+component
+1_RENDER
+component_exists
 :capy-status cpp-specific
 
 :content

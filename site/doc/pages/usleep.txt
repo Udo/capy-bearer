@@ -9,10 +9,14 @@ usec : microseconds to sleep
 
 :see
 >time
-sleep
-
+time_precise
+time
+time_format_local
+time_format_relative
+time_format_utc
+time_parse
 :content
-In Capy, `usleep(usec)` accepts a microsecond count and returns `0` after the wait.
+`usleep(usec)` accepts a microsecond count and returns `0` after the wait.
 
 Use it for a short wait in a local test, polling loop, or task. Long waits hold a worker for the wait duration.
 

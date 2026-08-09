@@ -8,7 +8,7 @@ route_path_is_safe
 0_Request
 
 :content
-In Capy, use this function only to prepare route text for display or diagnostics.
+Use this function only to prepare route text for display or diagnostics.
 
 It removes outer whitespace and leading and trailing `/`. It does not validate the result.
 

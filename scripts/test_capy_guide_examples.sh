@@ -82,25 +82,30 @@ unsafe = re.compile(r"\b(?:component_(?:capture|render)|file_[a-z_]+|job_[a-z_]+
 for slug in sorted(checker.CANONICAL_GUIDES):
     page = articles[slug]
     sections = checker.parse_sections(page)
-    render = [(line, body) for line, header, body in sections if header == "example capy render"]
-    output = [(line, body) for line, header, body in sections if header == "output"]
-    if len(render) != 1 or len(output) != 1 or not output[0][1]:
-        raise SystemExit(f"{page.name}: missing one runnable RENDER example or exact output")
-    source = render[0][1]
+    chosen = None
+    for index, (line, header, body) in enumerate(sections):
+        if header.startswith("example capy render") and index + 1 < len(sections) and sections[index + 1][1] == "output" and sections[index + 1][2]:
+            chosen = (line, body, sections[index + 1][2])
+            break
+    if chosen is None:
+        raise SystemExit(f"{page.name}: missing a runnable RENDER example with exact output")
+    line, source, expected = chosen
     source_without_strings = re.sub(r'"(?:\\.|[^"\\])*"', '""', source)
     source_without_strings = re.sub(r"//[^\n]*", "", source_without_strings)
     match = unsafe.search(source_without_strings)
     if match:
-        raise SystemExit(f"{page.name}:{render[0][0]}: example requires undeclared external setup or has unsafe side effects: {match.group(0).strip()}")
+        raise SystemExit(f"{page.name}:{line}: example requires undeclared external setup or has unsafe side effects: {match.group(0).strip()}")
     source_path = Path(sys.argv[1]) / f"{slug}.capy"
     source_path.write_text(source + "\n")
     source_path.chmod(0o644)
-    (Path(sys.argv[1]) / f"{slug}.expected").write_text(output[0][1] + "\n")
-    for index, snippet in enumerate(re.findall(r"```capy\n(.*?)```", page.read_text(), re.S), 1):
-        if re.search(r"^function\s+(?:RENDER|CLI|WS|ONCE|INIT)\b", snippet, re.M) is None:
-            snippet = snippet.rstrip() + "\n\nfunction RENDER(request : dval) {}\n"
-        snippet_path = snippet_directory / f"{slug}-{index}.capy"
+    (Path(sys.argv[1]) / f"{slug}.expected").write_text(expected + "\n")
+    snippet_index = 1
+    for index, (example_line, header, snippet) in enumerate(sections):
+        if not header.startswith("example capy") or snippet == source:
+            continue
+        snippet_path = snippet_directory / f"{slug}-{snippet_index}.capy"
         snippet_path.write_text(snippet.rstrip() + "\n")
+        snippet_index += 1
 PY
 
 snippet_build="$test_directory/snippet-build"

@@ -11,7 +11,9 @@ number of rows changed by the most recent statement
 >sqlite
 sqlite_query
 sqlite_insert_id
-
+sqlite_error
+sqlite_disconnect
+sqlite_connect
 :content
 Capy `sqlite_affected_rows(db)` returns the row count for the last insert, update, or delete on `db`. Give it a handle from `sqlite_connect()`.
 

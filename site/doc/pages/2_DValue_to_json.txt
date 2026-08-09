@@ -14,7 +14,10 @@ C++ JSON-like scalar representation
 >types
 0_DValue
 json_encode
-
+2_DValue_to_f64
+2_DValue_require
+2_DValue_to_bool
+2_DValue_to_s64
 :capy-status cpp-specific
 
 :content

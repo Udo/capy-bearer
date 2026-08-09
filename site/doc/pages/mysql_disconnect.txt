@@ -6,9 +6,14 @@ m : Capy MySQL handle
 
 :see
 >mysql
-
+mysql_connected
+mysql_error
+mysql_connect
+mysql_escape
+mysql_insert_id
+mysql_affected_rows
 :content
-In Capy, pass the opaque `u64` handle from `mysql_connect()`.
+Pass the opaque `u64` handle from `mysql_connect()`.
 
 This function releases the connection lease. It does not necessarily close a pooled server connection immediately. Do not use the handle after this call.
 

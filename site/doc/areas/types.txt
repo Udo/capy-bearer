@@ -1,7 +1,16 @@
 Types
+:order 10
 
 0_Request
 array_merge
+length
+dval
+bool
+s32
+s64
+u64
+f64
+string
 0_DValue
 2_DValue_filter
 2_DValue_keys
@@ -25,6 +34,7 @@ array_merge
 2_StringList_every
 2_StringList_find
 0_StringMap
+dval_put
 2_DValue_to_bool
 2_DValue_to_f64
 2_DValue_to_json

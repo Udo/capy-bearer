@@ -1,5 +1,3 @@
-:title
-runtime_perf
 
 :sig
 DValue request_perf()

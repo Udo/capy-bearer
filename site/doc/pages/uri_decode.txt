@@ -9,9 +9,14 @@ a string that contains the decoded version of 's'
 
 :see
 >uri
-
+parse_uri
+uri_encode
+parse_query
+request_route_from_raw_path
+session_id_create
+route_path_sanitize
 :content
-In Capy, `uri_decode(value)` accepts a URI-encoded `string` and returns the decoded `string`.
+`uri_decode(value)` accepts a URI-encoded `string` and returns the decoded `string`.
 
 Use it to read URI data such as a query value. The API has no error return.
 

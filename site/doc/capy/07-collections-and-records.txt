@@ -20,13 +20,14 @@ Array indexes start at zero. An invalid index traps.
 
 Declare the item type when an array starts empty:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var names : [string] = []
     names.push("Ada")
     print(names[0], "\n")
 }
-```
+
+:content
 
 `push`, `pop`, `insert`, `remove`, `clear`, `reserve`, and `resize` change an array.
 
@@ -34,7 +35,7 @@ function RENDER(request : dval) {
 
 An array is a mutable reference value inside one workspace:
 
-```capy
+:example capy render
 function append_three(values : [s32]) {
     values.push(3)
 }
@@ -45,20 +46,22 @@ function RENDER(request : dval) {
     append_three(second)
     print(first[2], " ", second[2], "\n")
 }
-```
+
+:content
 
 Assignment and parameter passing share the array identity. Returns and captures also share it. Content mutation through a parameter affects the caller. A parameter binding remains immutable, so `values = [3]` is invalid. Array growth preserves identity.
 
 A `for` loop reads array items in order:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var names := ["Ada", "Grace"]
     for name, index := names {
         print(index, ": ", name, "\n")
     }
 }
-```
+
+:content
 
 The optional index follows the value and has type `s32`. The loop rechecks the current array length. It safely stops after shrinkage and can visit appended items. The loop retains each current managed item while the body runs.
 
@@ -68,18 +71,19 @@ The loop item is a value, not an assignable array position. Use an index to repl
 
 A tuple is immutable. It has fixed positions and can contain different types:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var result := (200, "ok")
     print(result[0], " ", result[1], "\n")
 }
-```
+
+:content
 
 `(value)` only groups an expression. It does not create a one-item tuple.
 
 A tuple can spread into matching function parameters:
 
-```capy
+:example capy render
 function add(left : s32, right : s32) s32 { -> left + right }
 
 function RENDER(request : dval) {
@@ -87,13 +91,14 @@ function RENDER(request : dval) {
     var answer := add(...pair)
     print(answer, "\n")
 }
-```
+
+:content
 
 ## Structs
 
 A struct defines a named fixed layout:
 
-```capy
+:example capy render
 struct Point {
     x : s32
     y : s32
@@ -103,11 +108,12 @@ function RENDER(request : dval) {
     var point := Point(3, 4)
     print(point.x, " ", point.y, "\n")
 }
-```
+
+:content
 
 The generated constructor takes fields in declaration order. A struct instance is a mutable reference value inside one workspace. Assignment, parameters, returns, and captures share its identity. Struct fields are assignable:
 
-```capy
+:example capy render
 struct Point {
     x : s32
     y : s32
@@ -122,13 +128,14 @@ function RENDER(request : dval) {
     move_right(point)
     print(point.x, "\n")
 }
-```
+
+:content
 
 The field mutation affects the caller. The parameter binding itself remains immutable.
 
 A receiver-first function can use method syntax:
 
-```capy
+:example capy render
 struct Point {
     x : s32
     y : s32
@@ -140,7 +147,8 @@ function RENDER(request : dval) {
     var point := Point(3, 4)
     print(point.total(), "\n")
 }
-```
+
+:content
 
 This is the same call as `total(point)`.
 
@@ -152,3 +160,5 @@ Use an array when every item has one static type. Use a tuple for a small fixed 
 capy-03-values-and-types
 capy-05-functions-and-closures
 capy-08-dynamic-values
+length
+dval_put

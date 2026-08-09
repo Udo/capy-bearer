@@ -9,9 +9,14 @@ m : Capy MySQL handle
 
 :see
 >mysql
-
+mysql_connect
+mysql_disconnect
+mysql_error
+mysql_escape
+mysql_insert_id
+mysql_affected_rows
 :content
-In Capy, pass the opaque `u64` handle from `mysql_connect()`.
+Pass the opaque `u64` handle from `mysql_connect()`.
 
 This function distinguishes a failed connection wrapper from a live server connection. It returns `false` for a failed wrapper in both Capy and C++.
 

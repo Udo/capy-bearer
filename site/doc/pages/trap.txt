@@ -1,0 +1,34 @@
+:sig
+void trap()
+
+:params
+none
+
+:returns
+no value because execution stops
+
+:content
+Use `trap()` to stop the current handler immediately after a failed guard.
+
+`trap()` has no arguments and no usable return value. Any reachable code after the call does not run.
+
+The example keeps the condition false so the documentation page can render.
+
+:errors
+`trap()` always aborts execution when called. Calling it with arguments is a compile-time error.
+
+:example capy render
+print("before\n")
+if false { trap() }
+print("after\n")
+
+:example cpp render
+print("before\n");
+if(false) { print("would trap\n"); }
+print("after\n");
+
+:see
+>runtime
+error_pages
+unit_render
+unit_compile

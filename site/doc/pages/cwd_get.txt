@@ -6,7 +6,12 @@ current working directory path
 
 :see
 >sys
-
+file_put_contents
+ls
+file_mtime
+mkdir
+file_get_contents
+path_join
 :content
 `cwd_get()` returns the current working directory path as a Capy string.
 

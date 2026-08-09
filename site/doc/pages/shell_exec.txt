@@ -9,7 +9,12 @@ combined standard output and standard error
 
 :see
 >sys
-
+shell_escape
+shell_spawn
+cwd_set
+job_status
+path_join
+job_result
 :content
 Capy `shell_exec(cmd)` runs a shell command and returns its output as a string. Give it a complete command string.
 

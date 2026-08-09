@@ -5,7 +5,7 @@ void ob_start()
 no value
 
 :content
-In Capy, `ob_start()` starts a new output buffer. Later `print()` calls write to this buffer instead of the response.
+`ob_start()` starts a new output buffer. Later `print()` calls write to this buffer instead of the response.
 
 Call `ob_get_close()` to get the contents. Call `ob_close()` to discard them. Buffers can nest.
 

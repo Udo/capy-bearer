@@ -14,7 +14,7 @@ uri_decode
 uri_encode
 
 :content
-In Capy, `parse_uri()` returns URI parts as a `dval`.
+`parse_uri()` returns URI parts as a `dval`.
 
 Read the `parts` and `query` maps from the result. `query` uses the same rules as `parse_query()`.
 

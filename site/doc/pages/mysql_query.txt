@@ -12,15 +12,22 @@ the query result rows
 :see
 >mysql
 mysql_affected_rows
-
+mysql_insert_id
+mysql_escape
+mysql_error
+mysql_disconnect
+mysql_connected
 :content
-In Capy, `mysql_query()` runs a MySQL query and returns its rows as a `dval`.
+`mysql_query()` runs a MySQL query and returns its rows as a `dval`.
 
 Pass parameter values as a `dval` map. Use named `:name` placeholders. The API rejects positional `?` placeholders.
 
 Ordinary placeholders become quoted SQL strings. For an unquoted non-negative integer, such as `LIMIT` or `OFFSET`, add `!` to the placeholder: `:limit!`. Its value must contain one or more decimal digits. It cannot contain signs, whitespace, expressions, identifiers, or SQL fragments.
 
 After an insert, update, or delete, call `mysql_affected_rows()`.
+
+:note
+The examples are compile-only because they need a reachable MySQL server. They print a fallback when no server is available.
 
 :example capy cli
 var db := mysql_connect("localhost", "root", "", "")

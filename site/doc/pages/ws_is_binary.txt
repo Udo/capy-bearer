@@ -1,5 +1,3 @@
-:title
-ws_is_binary
 
 :sig
 bool ws_is_binary()
@@ -10,7 +8,12 @@ true for the current binary WebSocket message
 :see
 >websocket
 >0_Request
-
+ws_connections
+ws_message
+ws_connection_id
+ws_opcode
+ws_connection_count
+ws_scope
 :capy-status cpp-specific
 
 :content

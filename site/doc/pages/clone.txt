@@ -1,0 +1,32 @@
+:sig
+string clone(string value)
+
+:params
+value : source string to copy
+
+:returns
+new string copy
+
+:content
+Use `clone()` to copy a string before passing ownership across a boundary where you need a fresh value.
+
+Most Capy code does not need explicit clones. Use it only when normal ownership rules are not clear enough for the code you are writing.
+
+:errors
+Compilation fails when `clone()` receives anything other than one string.
+
+:example capy render
+var source := "token"
+var copy := clone(source)
+print(length(source), " ", length(copy), "\n")
+
+:example cpp render
+String source = "token";
+String copy = source;
+print(source.size(), " ", copy.size(), "\n");
+
+:see
+>string
+length
+0_String
+component

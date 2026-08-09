@@ -14,7 +14,7 @@ units_list
 unit_call
 
 :content
-In Capy, call `unit_compile()` for the current unit. Call `unit_compile(path)` for another unit.
+Call `unit_compile()` for the current unit. Call `unit_compile(path)` for another unit.
 
 The function returns `true` when compilation succeeds. It returns `false` when compilation fails. Use it when an operator must compile a unit explicitly.
 

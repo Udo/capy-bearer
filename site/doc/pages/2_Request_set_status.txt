@@ -12,7 +12,7 @@ none
 >types
 0_Request
 redirect
-set_cookie
+response_cookie
 
 :content
 `response_status(code, reason)` sets the active response status. It takes an HTTP status code and an optional reason string. It returns no value.

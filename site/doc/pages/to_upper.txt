@@ -1,5 +1,3 @@
-:title
-to_upper
 
 :sig
 String to_upper(String s)
@@ -13,7 +11,11 @@ s : C++ text to convert
 :see
 >string
 upper
-
+to_lower
+trim
+regex_split
+float_val
+regex_replace
 :capy-status cpp-specific
 
 :content

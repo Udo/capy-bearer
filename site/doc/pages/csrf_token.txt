@@ -26,7 +26,7 @@ String token = csrf_token("bearer-doc-session");
 print(token.size() > 0 ? "token ready\n" : "token missing\n");
 
 :see
->http
+>session
 csrf_valid
 csrf_field
 csrf_rotate

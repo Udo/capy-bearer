@@ -25,3 +25,7 @@ print(file_chmod("/tmp/doc-chmod.txt", 0600) ? "mode set" : "failed", "\n");
 >sys
 file_stat
 file_put_contents
+file_temp
+file_symlink
+dir_remove
+file_fsync

@@ -6,7 +6,11 @@ sockfd : socket handle from `socket_connect()`
 
 :see
 >socket
-
+http_request_async
+socket_connect
+http_request
+socket_read
+socket_write
 :content
 Capy `socket_close(sockfd)` closes a socket handle from `socket_connect()`. It does not return a value.
 

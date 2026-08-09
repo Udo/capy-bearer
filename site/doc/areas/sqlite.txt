@@ -1,4 +1,5 @@
 SQLite
+:order 130
 
 sqlite_connect
 sqlite_disconnect

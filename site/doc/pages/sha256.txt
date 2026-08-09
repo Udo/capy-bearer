@@ -8,7 +8,7 @@ data : bytes to hash
 raw 32-byte SHA-256 digest
 
 :content
-In Capy, use this function when another binary operation needs a SHA-256 digest.
+Use this function when another binary operation needs a SHA-256 digest.
 
 It returns the raw 32-byte digest of `data`. Use `sha256_hex()` when you need printable text.
 
@@ -22,3 +22,7 @@ print(sha256("abc").length(), " raw bytes, hex = ", sha256_hex("abc"), "\n");
 >sys
 sha256_hex
 hmac_sha256
+basename
+dirname
+expand_path
+file_append

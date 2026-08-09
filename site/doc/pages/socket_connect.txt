@@ -10,7 +10,11 @@ socket handle, or zero when the connection fails
 
 :see
 >socket
-
+socket_close
+socket_read
+http_request_async
+socket_write
+http_request
 :content
 Capy `socket_connect(host, port)` opens a socket to an IPv4 address and port. Give it a dotted-quad address and a port from 0 through 65535.
 

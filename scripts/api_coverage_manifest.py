@@ -7,11 +7,55 @@ marked internal/integration-only, and that active docs exist for doc-required
 APIs. The manifest is deliberately source-controlled so a new public function
 requires an explicit coverage decision.
 """
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST_DIR = ROOT / "site" / "tests"
 DOC_DIR = ROOT / "site" / "doc" / "pages"
+
+# Public source names that intentionally do not need public docs.
+DOC_INTERNAL_APIS = {
+    "__bearer_dval_replace",
+    "arc_live",
+    "cleanup_mysql_connections",
+    "cleanup_sqlite_connections",
+    "json_consume_space",
+    "mysql_escape_default",
+    "string_list_find",
+}
+
+# Public source names whose public page uses the object-oriented page slug.
+DOC_PAGE_ALIASES = {
+    "dval_assign": "2_DValue_assign",
+    "dval_clear": "2_DValue_clear",
+    "dval_filter": "2_DValue_filter",
+    "dval_get_by_path": "2_DValue_get_by_path",
+    "dval_get_or_create": "2_DValue_get_or_create",
+    "dval_get_type_name": "2_DValue_get_type_name",
+    "dval_has": "2_DValue_has",
+    "dval_is_array": "2_DValue_is_array",
+    "dval_is_list": "2_DValue_is_list",
+    "dval_key": "2_DValue_key",
+    "dval_keys": "2_DValue_keys",
+    "dval_map": "2_DValue_map",
+    "dval_pop": "2_DValue_pop",
+    "dval_push": "2_DValue_push",
+    "dval_remove": "2_DValue_remove",
+    "dval_require": "2_DValue_require",
+    "dval_set": "2_DValue_set",
+    "dval_set_array": "2_DValue_set_array",
+    "dval_set_bool": "2_DValue_set_bool",
+    "dval_set_type": "2_DValue_set_type",
+    "dval_values": "2_DValue_values",
+    "each": "2_StringList_each",
+    "every": "2_StringList_every",
+    "find": "2_StringList_find",
+    "keys": "2_StringList_keys",
+    "some": "2_StringList_some",
+    "sort": "2_StringList_sort",
+    "unique": "2_StringList_unique",
+}
 
 # name, needs_doc, status. status: public | internal | integration
 PUBLIC_APIS = [
@@ -35,7 +79,7 @@ PUBLIC_APIS = [
     ("signal_name", False, "public"), ("memcache_escape_key", True, "public"),
     ("memcache_escape_keys", True, "public"), ("memcache_command", True, "public"),
     ("memcache_get_multiple", True, "public"), ("runtime_safe_key", True, "public"),
-    ("float_val", True, "public"), ("nibble", True, "public"), ("json_consume_space", False, "public"),
+    ("float_val", True, "public"), ("nibble", True, "public"), ("json_consume_space", False, "internal"),
     ("array_merge", True, "public"), ("safe_name", True, "public"), ("ascii_safe_name", True, "public"),
     ("to_json", False, "public"), ("remove", False, "public"), ("clear", False, "public"),
     ("gen_sha1", True, "public"), ("sha256", True, "public"), ("sha256_hex", True, "public"),
@@ -65,8 +109,26 @@ def all_test_text() -> str:
 
 
 def doc_exists(name: str) -> bool:
-    path = DOC_DIR / f"{name}.txt"
+    page_name = DOC_PAGE_ALIASES.get(name, name)
+    path = DOC_DIR / f"{page_name}.txt"
     return path.exists() and "Removed" not in path.read_text(errors="ignore")[:200]
+
+
+def stdlib_public_functions() -> set[str]:
+    source = (ROOT / "src" / "capy" / "stdlib.capy").read_text(errors="ignore")
+    names = set(re.findall(r"^function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", source, re.M))
+    return {name for name in names if not name.startswith("__")}
+
+
+def compiler_intrinsics() -> set[str]:
+    source = (ROOT / "src" / "capy" / "compiler.cpp").read_text(errors="ignore")
+    names = set(re.findall(r'!member && callee == "([A-Za-z_][A-Za-z0-9_]*)"', source))
+    names.update(re.findall(r'name->value == "(trusted_markup|trap|clone)"', source))
+    return {name for name in names if not name.startswith("__")}
+
+
+def required_doc_apis() -> set[str]:
+    return (stdlib_public_functions() | compiler_intrinsics()) - DOC_INTERNAL_APIS
 
 
 def has_call(text: str, name: str) -> bool:
@@ -81,6 +143,9 @@ def main() -> int:
             errors.append(f"missing test coverage: {name}")
         if needs_doc and status in {"public", "integration"} and not doc_exists(name):
             errors.append(f"missing active doc page: {name}")
+    for name in sorted(required_doc_apis()):
+        if not doc_exists(name):
+            errors.append(f"missing source-derived doc page: {name}")
     compiler_h = (ROOT / "src" / "lib" / "compiler.h").read_text(errors="ignore")
     if "#ifndef __BEARER_WASM_UNIT__\nSharedUnit* unit_load" not in compiler_h:
         errors.append("unit_load is not guarded out of wasm-unit exposure")
@@ -93,7 +158,7 @@ def main() -> int:
         for error in errors:
             print("- " + error)
         return 1
-    print(f"API coverage manifest ok: {len(PUBLIC_APIS)} entries checked")
+    print(f"API coverage manifest ok: {len(PUBLIC_APIS)} manifest entries and {len(required_doc_apis())} source-derived docs checked")
     return 0
 
 if __name__ == "__main__":

@@ -1,5 +1,3 @@
-:title
-request_route_from_raw_path
 
 :sig
 DValue request_route_from_raw_path(String raw_path, String default_path = "index")
@@ -12,9 +10,9 @@ default_path : route for empty input
 C++ route metadata as a `dval`
 
 :see
->request
->route_path_sanitize
->route_from_raw_path
+>uri
+route_path_sanitize
+route_from_raw_path
 
 :capy-status cpp-specific
 
@@ -25,6 +23,10 @@ The result contains `raw_path`, `l_path`, `page`, and `valid`. `raw_path` is nor
 
 Capy does not expose `request_route_from_raw_path`. Use `route_from_raw_path(raw_path, default_path)` in Capy. Use only its `path` below an application-controlled route root.
 
-:example cpp render
+:example cpp render request_route_from_raw_path() returns route metadata
 DValue route = request_route_from_raw_path("blog/2024/hello-world");
 print("page=", route["page"].to_string(), " valid=", route["valid"].to_bool() ? "yes" : "no", "\n");
+
+:example cpp render request_route_from_raw_path() marks traversal invalid
+DValue route = request_route_from_raw_path("../secret");
+print("path=", route["l_path"].to_string("<empty>"), " valid=", route["valid"].to_bool() ? "yes" : "no", "\n");

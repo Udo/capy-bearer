@@ -7,6 +7,8 @@ Documentation format
 - `:params` — `name : description` rows for each parameter
 - `:returns` — the returned value, including distinct success and failure values
 - `:errors` — traps, diagnostics, limits, or rejected input when they apply
+- `:note` — important behavior that affects correct use
+- `:warning` — dangerous or silent failure behavior
 - `:example capy render` — a Capy example, immediately followed by its C++ equivalent
 - `:example cpp render` — its equivalent C++ `.uce` example
 - `:see` — an area reference (`>area`) followed by closest sibling page slugs
@@ -21,7 +23,9 @@ Write the Capy API first. State its value model and normal use in `:content`. Pu
 
 API pages live in `site/doc/pages/`. Ordered Capy language articles live in `site/doc/capy/`. Both use one parser, renderer, detail layout, search, single-page view, and runtime gate. Language articles require `:title` and `:content`.
 
-A typed example has two contiguous blocks. Put `:example capy ENTRY` before `:example cpp ENTRY`. ENTRY is `render`, `cli`, `component`, `init`, `once`, or `ws`. Both entries must match. The checker rejects unknown, reversed, and unpaired typed blocks. Bare `:example` is a legacy C++ render block. New examples must use typed pairs.
+Use `:note` for behavior that changes how a reader should use the API. Use `:warning` for silent failure, data loss risk, or security risk.
+
+A typed example has two contiguous blocks. Put `:example capy ENTRY` before `:example cpp ENTRY`. Add an optional caption after ENTRY. ENTRY is `render`, `cli`, `component`, `init`, `once`, or `ws`. Both entries must match. The checker rejects unknown, reversed, and unpaired typed blocks. Bare `:example` is a legacy C++ render block. New examples must use typed pairs.
 
 Render pairs compile and run as Capy and C++ units. They must produce equal output and show their source and output or error. Other entries compile their actual handler only. Documentation does not simulate a CLI, component, lifecycle, or WebSocket call. Keep examples self-contained and deterministic.
 

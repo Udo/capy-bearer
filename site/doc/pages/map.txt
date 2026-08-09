@@ -13,9 +13,12 @@ new list of transformed strings
 >string
 filter
 0_DValue
-
+json_encode
+nibble
+json_consume_space
+print
 :content
-In Capy, this function calls `f` for each list item and returns a new list.
+This function calls `f` for each list item and returns a new list.
 
 Use it to transform each string in a list. Capy converts each input item with `string()` before it calls `f`.
 

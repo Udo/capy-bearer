@@ -11,9 +11,12 @@ decoded parameters as a map-shaped `dval`. C++ returns `StringMap`
 >uri
 encode_query
 request_context_params
-
+session_id_create
+parse_uri
+route_path_sanitize
+uri_decode
 :content
-In Capy, `parse_query()` decodes query text such as `a=b&c=d` into a map-shaped `dval`.
+`parse_query()` decodes query text such as `a=b&c=d` into a map-shaped `dval`.
 
 - `&` separates pairs.
 - The first raw `=` separates a key and value.
@@ -25,10 +28,26 @@ In Capy, `parse_query()` decodes query text such as `a=b&c=d` into a map-shaped 
 Use this API for query text outside normal request parsing.
 
 
-:example capy render
+:example capy render parse_query() decodes a value
 var query := parse_query("name=Ada&role=admin")
 print(query["name"], "\n")
 
-:example cpp render
+:example cpp render parse_query() decodes a value
 StringMap q = parse_query("name=Ada&role=admin");
+print(q["name"], "\n");
+
+:example capy render parse_query() handles keys without values
+var query := parse_query("enabled&name=Ada")
+print(length(string(query["enabled"], "")), "\n")
+
+:example cpp render parse_query() handles keys without values
+StringMap q = parse_query("enabled&name=Ada");
+print(q["enabled"].size(), "\n");
+
+:example capy render parse_query() keeps the last repeated value
+var query := parse_query("name=Ada&name=Grace")
+print(query["name"], "\n")
+
+:example cpp render parse_query() keeps the last repeated value
+StringMap q = parse_query("name=Ada&name=Grace");
 print(q["name"], "\n");

@@ -20,7 +20,7 @@ regex_split
 0_String
 
 :content
-In Capy, `regex_match()` returns `true` when all of `subject` matches `pattern`.
+`regex_match()` returns `true` when all of `subject` matches `pattern`.
 
 This is not a substring search. Use `regex_search()` to find the first match in a string.
 

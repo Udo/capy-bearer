@@ -6,7 +6,12 @@ current Unix timestamp with second precision
 
 :see
 >time
-
+time_precise
+time_format_local
+usleep
+time_format_relative
+time_format_utc
+time_parse
 :content
 Use `time` to get the current Capy Unix timestamp. The function takes no input. It returns a `u64` value with second precision. Use it for timestamps and time calculations.
 

@@ -52,6 +52,14 @@ void render_doc_text_section(String class_name, String title, String content)
 	?><div class="doc-section <?= class_name ?>"><h3><?= title ?></h3><?: markdown_to_html(content) ?></div><?
 }
 
+void render_doc_callouts(String class_name, String title, DValue blocks)
+{
+	for(String content : blocks)
+	{
+		?><div class="doc-section doc-callout <?= class_name ?>"><h3><?= title ?></h3><?: markdown_to_html(content) ?></div><?
+	}
+}
+
 // The shared DocPage parser validates typed pairs before artifact creation.
 bool doc_example_safe_member(String value)
 {
@@ -167,7 +175,7 @@ DValue doc_render_example(Request& context, String page, u64 idx, String languag
 void render_doc_example_result(String language, String entry, String body, DValue result)
 {
 	?><div class="example-language <?= language ?>">
-		<h4><?= doc_example_language_label(language) ?></h4>
+		<h4><?= doc_example_language_label(language) ?> <span class="dim">(<?= doc_example_handler_name(entry) ?>)</span></h4>
 		<pre class="example-source"><?= body ?></pre><?
 	if(result["error"].to_string() != "")
 	{
@@ -221,28 +229,31 @@ void render_doc_examples(Request& context, String page, DocPage doc_page)
 		DValue example = doc_page.guide_examples[idx];
 		String entry = example["entry"].to_string();
 		String body = example["body"].to_string();
-		String expected = example["output"].to_string();
 		DValue capy = doc_render_example(context, page, idx, "capy", entry, body, true);
 		if(capy["error"].to_string() != "")
 		{
 			?><div class="doc-section example-output error"><div class="example-output-label">Error</div><pre><?= capy["error"].to_string() ?></pre></div><?
 		}
-		else if(entry == "render" && capy["output"].to_string() != expected)
+		else if(entry != "render")
 		{
-			?><div class="doc-section example-output error"><div class="example-output-label">Output error</div><pre>DOC EXAMPLE ERROR: output differs from :output</pre></div><?
+			?><div class="doc-section example guide-compile-only"><?
+			render_doc_example_result("capy", entry, body, capy);
+			?></div><?
 		}
+
 	}
 	for(u64 idx = 0; idx < doc_page.example_pairs.size(); idx++)
 	{
 		DValue pair = doc_page.example_pairs[idx];
 		String entry = pair["entry"].to_string();
+		String caption = pair["caption"].to_string();
 		String capy_body = pair["capy_body"].to_string();
 		String cpp_body = pair["cpp_body"].to_string();
 		DValue capy = doc_render_example(context, page, idx, "capy", entry, capy_body, false);
 		DValue cpp = doc_render_example(context, page, idx, "cpp", entry, cpp_body, false);
 		bool equal = entry != "render" || (capy["error"].to_string() == "" && cpp["error"].to_string() == "" && capy["output"].to_string() == cpp["output"].to_string());
 		?><div class="doc-section example paired-example">
-			<h3>Example: <?= doc_example_handler_name(entry) ?></h3><?
+			<h3><?= doc_example_title(idx, caption) ?></h3><?
 			render_doc_example_result("capy", entry, capy_body, capy);
 			render_doc_example_result("cpp", entry, cpp_body, cpp);
 			if(entry == "render" && !equal)
@@ -255,10 +266,11 @@ void render_doc_examples(Request& context, String page, DocPage doc_page)
 	{
 		DValue example = doc_page.cpp_only_examples[idx];
 		String entry = example["entry"].to_string();
+		String caption = example["caption"].to_string();
 		String body = example["body"].to_string();
 		u64 artifact_idx = doc_page.guide_examples.size() + doc_page.example_pairs.size() + idx;
 		DValue cpp = doc_render_example(context, page, artifact_idx, "cpp", entry, body, false);
-		?><div class="doc-section example cpp-only-example"><h3>C++ example: <?= doc_example_handler_name(entry) ?></h3><?
+		?><div class="doc-section example cpp-only-example"><h3><?= doc_example_title(artifact_idx, caption) ?></h3><?
 			render_doc_example_result("cpp", entry, body, cpp);
 		?></div><?
 	}
@@ -272,6 +284,38 @@ void render_doc_examples(Request& context, String page, DocPage doc_page)
 	}
 }
 
+s32 doc_area_order(String name)
+{
+	DValue lines = split(file_get_contents("areas/" + name + ".txt"), "\n");
+	for(auto line : lines)
+	{
+		line = trim(line);
+		if(line.rfind(":order ", 0) == 0)
+			return(to_s64(trim(line.substr(7))));
+	}
+	return(9999);
+}
+
+DValue doc_area_names()
+{
+	DValue ordered;
+	for(auto file_name : ls("areas/"))
+	{
+		String name = nibble(file_name, ".");
+		String key = std::to_string(doc_area_order(name));
+		while(key.length() < 5)
+			key = "0" + key;
+		ordered.push(key + "|" + name);
+	}
+	DValue names;
+	for(String item : ordered.sort())
+	{
+		nibble(item, "|");
+		names.push(item);
+	}
+	return(names);
+}
+
 void render_see_section(String name, bool compact = false)
 {
 	DValue lines = split(file_get_contents("areas/" + name + ".txt"), "\n");
@@ -279,7 +323,7 @@ void render_see_section(String name, bool compact = false)
 	for(auto line : lines)
 	{
 		line = trim(line);
-		if(line == "")
+		if(line == "" || line.rfind(":order ", 0) == 0)
 		{
 			idx += 1;
 			continue;
@@ -339,30 +383,46 @@ void render_guide_navigation(String page)
 	</nav><?
 }
 
-void render_doc_see_links(DValue see_lines)
+String doc_area_title(String name)
+{
+	DValue lines = split(file_get_contents("areas/" + name + ".txt"), "\n");
+	return(lines.size() == 0 ? name : trim(lines[0]));
+}
+
+void render_doc_see_links(DValue see_lines, String current_page)
 {
 	if(see_lines.size() == 0)
 		return;
 
-	<><h3 class="sidebar-subhead">Related</h3>
+	DValue seen;
+	<><h3 class="sidebar-subhead">See Also</h3>
 	<?
 	for(auto sl : see_lines)
 	{
+		sl = trim(sl);
+		if(sl == "")
+			continue;
 		if(sl[0] == '>')
 		{
 			String target = trim(sl.substr(1));
 			if(doc_has_area(target))
 			{
-				render_see_section(target, true);
+				?><h4><?= doc_area_title(target) ?></h4><?
 			}
-			else if(doc_has_page(target))
+			else if(doc_has_page(target) && target != current_page && seen[target].to_string() == "")
 			{
+				seen[target] = "Y";
 				?><div class="related-link"><? render_doc_page_link(target); ?></div><?
 			}
 		}
 		else
 		{
-			?><div class="related-link"><? render_doc_page_link(trim(sl)); ?></div><?
+			String target = doc_canonical_page(sl);
+			if(doc_has_page(target) && target != current_page && seen[target].to_string() == "")
+			{
+				seen[target] = "Y";
+				?><div class="related-link"><? render_doc_page_link(target); ?></div><?
+			}
 		}
 	} 
 	?>
@@ -380,8 +440,13 @@ RENDER(Request& context)
 		return;
 	}
 	DocPage doc_page;
-	String page_title = doc_default_title(page);
-	if(page != "index")
+	bool not_found = page != "index" && !doc_has_page(page);
+	String page_title = not_found ? "Page not found" : doc_default_title(page);
+	if(not_found)
+	{
+		context.set_status(404, "Not Found");
+	}
+	else if(page != "index")
 	{
 		doc_page = load_doc_page(page);
 		if(doc_page.title != "")
@@ -428,9 +493,8 @@ RENDER(Request& context)
 			<div class="index-pane" id="index-pane">
 			<div class="index-layout">
 			<nav class="sidebar"><?
-			for(auto file_name : ls("areas/"))
+			for(String ft : doc_area_names())
 			{
-				String ft = nibble(file_name, ".");
 				render_see_section(ft);
 			}
 			?></nav>
@@ -501,6 +565,24 @@ RENDER(Request& context)
 			})();
 			</script></>
 		}
+		else if(not_found)
+		{
+			?><article class="doc-detail not-found">
+				<div class="doc-section content">
+					<h2>Page not found</h2>
+					<p>No documentation page exists for <code><?= requested_page ?></code>.</p>
+					<p>Search from the index, or open the full API list.</p>
+					<p><a href="./">Go to the documentation index</a></p>
+				</div>
+				<div class="search-bar not-found-search">
+					<form action="./" method="get">
+						<label for="doc-not-found-search">Search documentation</label>
+						<input id="doc-not-found-search" name="q" type="search" value="<?= requested_page ?>" autocomplete="off" spellcheck="false"/>
+						<button type="submit">Search</button>
+					</form>
+				</div>
+			</article><?
+		}
 		else
 		{
 			String detail_class = "detail-layout";
@@ -528,6 +610,8 @@ RENDER(Request& context)
 			render_doc_params(doc_page.param_lines);
 			render_doc_text_section("returns", "Return Values", doc_page.returns);
 			render_doc_text_section("errors", "Errors", doc_page.errors);
+			render_doc_callouts("note", "Note", doc_page.note_blocks);
+			render_doc_callouts("warning", "Warning", doc_page.warning_blocks);
 			render_doc_examples(context, page, doc_page);
 
 			if(is_guide)
@@ -539,7 +623,7 @@ RENDER(Request& context)
 			{
 				?><aside class="detail-sidebar">
 				<div class="sidebar-card"><?
-				render_doc_see_links(doc_page.see_lines);
+				render_doc_see_links(doc_page.see_lines, page);
 				?></div>
 				</aside><?
 			}

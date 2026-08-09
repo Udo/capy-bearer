@@ -1,5 +1,3 @@
-:title
-to_s64
 
 :sig
 s64 to_s64(String s, s64 fallback = 0)
@@ -14,7 +12,11 @@ parsed C++ `s64` or `fallback`
 :see
 >types
 2_DValue_to_s64
-
+to_f64
+to_u64
+to_bool
+brb_encode
+2_DValue_to_u64
 :capy-status cpp-specific
 
 :content
@@ -22,5 +24,8 @@ parsed C++ `s64` or `fallback`
 
 Capy does not expose `to_s64`. Use `s64(value, fallback)`.
 
-:example cpp render
+:example cpp render to_s64() parses signed text
 print(to_s64("-7"), "\n");
+
+:example cpp render to_s64() returns the fallback for partial text
+print(to_s64("-12px", 99), "\n");

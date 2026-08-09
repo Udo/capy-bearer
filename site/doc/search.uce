@@ -5,8 +5,87 @@ void render_hit(String ft, String name, String snippet)
 	ft = doc_canonical_page(ft);
 	<><div class="search-hit">
 		<a href="./?p=<?= uri_encode(ft) ?>"><?= name ?></a><?
-		if(snippet != "") { ?><span class="search-snippet"><?= snippet ?></span><? } ?>
+		if(snippet != "") { ?><span class="search-snippet"><?: doc_markdown_inline(snippet) ?></span><? } ?>
 	</div></>
+}
+
+void add_search_token(DValue& tokens, String value)
+{
+	value = to_lower(trim(value));
+	if(value.length() < 2)
+		return;
+	if(value == "the" || value == "and" || value == "for" || value == "how" || value == "with" || value == "to" || value == "of" || value == "in")
+		return;
+	for(String existing : tokens)
+		if(existing == value)
+			return;
+	tokens.push_back(value);
+}
+
+DValue search_tokens(String query)
+{
+	DValue tokens;
+	for(String token : split_space(query))
+	{
+		String clean;
+		for(char c : token)
+		{
+			if((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_')
+				clean += c;
+		}
+		add_search_token(tokens, clean);
+		if(clean == "strlen")
+			add_search_token(tokens, "length");
+		else if(clean == "count")
+			add_search_token(tokens, "length");
+		else if(clean == "setcookie")
+			add_search_token(tokens, "response_cookie");
+		else if(clean == "header")
+			add_search_token(tokens, "response_header");
+		else if(clean == "http_status" || clean == "status")
+			add_search_token(tokens, "response_status");
+		else if(clean == "json")
+			add_search_token(tokens, "json_decode");
+	}
+	return(tokens);
+}
+
+u32 search_score(String name, String source, DValue tokens)
+{
+	String lower_name = to_lower(name);
+	String lower_source = to_lower(source);
+	u32 score = 0;
+	for(String token : tokens)
+	{
+		bool title_hit = contains(lower_name, token);
+		bool body_hit = contains(lower_source, token);
+		if(title_hit)
+			score += 10;
+		else if(body_hit)
+			score += 1;
+	}
+	return(score);
+}
+
+String search_snippet(String source, DValue tokens)
+{
+	for(auto line : split(source, "\n"))
+	{
+		String t = trim(line);
+		if(t.length() <= 4 || t.substr(0, 1) == ":")
+			continue;
+		String lower = to_lower(t);
+		for(String token : tokens)
+		{
+			if(contains(lower, token))
+			{
+				if(t.length() > 160)
+					t = t.substr(0, 160) + "…";
+				return(t);
+			}
+		}
+	}
+	return("");
 }
 
 RENDER(Request& context)
@@ -18,68 +97,44 @@ RENDER(Request& context)
 		return;
 	}
 
-	// Collect results into two buckets: title matches first, then content-only matches
-	DValue title_ft;
-	DValue title_name;
-	DValue title_snippet;
-
-	DValue body_ft;
-	DValue body_name;
-	DValue body_snippet;
-
-	DValue documents = doc_page_names();
-	documents.each([&](DValue document, String) {
-		String ft = document.to_string();
-		String content = doc_page_source(ft);
-		String name = first(doc_page_title_from_source(content), doc_index_label(ft));
-		bool name_match = contains(to_lower(name), q);
-		bool content_match = contains(to_lower(content), q);
-
-		if(!name_match && !content_match)
-			return;
-
-		// Find first content line that contains the query for a snippet
-		String snippet = "";
-		if(!name_match || content_match)
-		{
-			for(auto line : split(content, "\n"))
-			{
-				String t = trim(line);
-				if(t.length() > 4 && t.substr(0, 1) != ":" && contains(to_lower(t), q))
-				{
-					snippet = t;
-					if(snippet.length() > 120)
-						snippet = snippet.substr(0, 120) + "…";
-					break;
-				}
-			}
-		}
-
-		if(name_match)
-		{
-			title_ft.push_back(ft);
-			title_name.push_back(name);
-			title_snippet.push_back(snippet);
-		}
-		else
-		{
-			body_ft.push_back(ft);
-			body_name.push_back(name);
-			body_snippet.push_back(snippet);
-		}
-	});
-
-	u32 count = title_ft.size() + body_ft.size();
-
-	if(count == 0)
+	DValue tokens = search_tokens(q);
+	if(tokens.size() == 0)
 	{
 		<><p class="no-results">No results for "<strong><?= q ?></strong>"</p></>
 		return;
 	}
 
-	for(u32 i = 0; i < title_ft.size(); i++)
-		render_hit(title_ft[i], title_name[i], title_snippet[i]);
+	DValue hits;
+	u32 max_score = 0;
+	DValue documents = doc_page_names();
+	documents.each([&](DValue document, String) {
+		String ft = document.to_string();
+		String source = doc_page_source(ft);
+		String name = first(doc_page_title_from_source(source), doc_index_label(ft));
+		u32 score = search_score(name, source, tokens);
+		if(score == 0)
+			return;
+		DValue hit;
+		hit["ft"] = ft;
+		hit["name"] = name;
+		hit["snippet"] = search_snippet(source, tokens);
+		hit["score"] = std::to_string(score);
+		hits.push(hit);
+		if(score > max_score)
+			max_score = score;
+	});
 
-	for(u32 i = 0; i < body_ft.size(); i++)
-		render_hit(body_ft[i], body_name[i], body_snippet[i]);
+	if(hits.size() == 0)
+	{
+		<><p class="no-results">No results for "<strong><?= q ?></strong>"</p></>
+		return;
+	}
+
+	for(u32 score = max_score; score > 0; score--)
+	{
+		hits.each([&](DValue hit, String) {
+			if(hit["score"].to_u64() == score)
+				render_hit(hit["ft"].to_string(), hit["name"].to_string(), hit["snippet"].to_string());
+		});
+	}
 }

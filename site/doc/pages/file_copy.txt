@@ -25,3 +25,7 @@ print(file_get_contents("/tmp/doc-copy-dst.txt"), "\n");
 >sys
 file_rename
 file_put_contents
+file_truncate
+dir_list
+dir_remove
+file_stat

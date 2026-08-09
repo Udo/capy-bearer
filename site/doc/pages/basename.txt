@@ -23,3 +23,7 @@ print(basename("/var/www/site/index.uce"), "\n");
 >sys
 dirname
 path_join
+expand_path
+file_append
+file_exists
+file_get_contents

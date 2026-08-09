@@ -14,7 +14,7 @@ json_encode
 0_DValue
 
 :content
-In Capy, `yaml_encode(value)` accepts a `dval` and returns YAML as a `string`.
+`yaml_encode(value)` accepts a `dval` and returns YAML as a `string`.
 
 Use it to write configuration data. It writes nested maps, lists, strings, booleans, numeric f64 values, and `none`.
 

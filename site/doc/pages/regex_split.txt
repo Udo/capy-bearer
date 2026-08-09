@@ -22,7 +22,7 @@ join
 0_StringList
 
 :content
-In Capy, use this function when a regular expression defines the separator. Use `split()` for a literal separator.
+Use this function when a regular expression defines the separator. Use `split()` for a literal separator.
 
 The result does not include separators. It keeps empty parts. If the pattern does not match, the result contains `subject` as one item. Zero-length matches advance safely.
 

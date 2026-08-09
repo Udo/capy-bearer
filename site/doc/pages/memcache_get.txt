@@ -11,9 +11,14 @@ stored value or `default_value`
 
 :see
 >memcache
-
+memcache_delete
+memcache_get_multiple
+memcache_connect
+memcache_set
+memcache_command
+memcache_escape_key
 :content
-In Capy, pass the `u64` handle from `memcache_connect()`.
+Pass the `u64` handle from `memcache_connect()`.
 
 This function returns the stored value for `key`. It returns `default_value` for a missing key, malformed response, truncated value body, or non-`VALUE` response.
 

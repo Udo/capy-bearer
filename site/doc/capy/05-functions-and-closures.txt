@@ -25,7 +25,7 @@ The `->` expression supplies the function result. Use `return` when a function m
 
 Parameters have names and types:
 
-```capy
+:example capy render
 function label(name : string, suffix : string = "!") string {
     -> name + suffix
 }
@@ -33,7 +33,8 @@ function label(name : string, suffix : string = "!") string {
 function RENDER(request : dval) {
     print(label("Capy"), "\n")
 }
-```
+
+:content
 
 `label("Capy")` uses the default suffix. Defaults are trailing literals. A direct call can omit them, but a function value keeps the full parameter list.
 
@@ -43,14 +44,15 @@ Capy evaluates arguments once from left to right.
 
 Several functions can have the same name when their parameter types differ:
 
-```capy
+:example capy render
 function describe(value : s32) string { -> "integer" }
 function describe(value : string) string { -> "string" }
 
 function RENDER(request : dval) {
     print(describe(42), " ", describe("Ada"), "\n")
 }
-```
+
+:content
 
 The argument types select the overload. A result type never selects one.
 
@@ -58,7 +60,7 @@ The argument types select the overload. A result type never selects one.
 
 A parameter declared with `as` permits one constructor conversion:
 
-```capy
+:example capy render
 function show(value : as string) {
     print(value, "\n")
 }
@@ -66,7 +68,8 @@ function show(value : as string) {
 function RENDER(request : dval) {
     show(42)
 }
-```
+
+:content
 
 The call behaves as if it passed `string(42)`. Capy does not chain several conversions.
 
@@ -74,7 +77,7 @@ The call behaves as if it passed `string(42)`. Capy does not chain several conve
 
 A function can be stored and called through a typed value:
 
-```capy
+:example capy render
 function double(value : s32) s32 { -> value * 2 }
 
 function RENDER(request : dval) {
@@ -82,22 +85,24 @@ function RENDER(request : dval) {
     var answer := operation(21)
     print(answer, "\n")
 }
-```
+
+:content
 
 A lambda defines a small function at its point of use:
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var add_one := function(value : s32) s32 {
         -> value + 1
     }
     print(add_one(41), "\n")
 }
-```
+
+:content
 
 A lambda can read captured outer values. Scalar captures copy. Array, `dval`, and struct captures share identity inside the workspace. A capture binding cannot be reassigned. The closure can mutate shared aggregate content.
 
-```capy
+:example capy render
 function RENDER(request : dval) {
     var offset := 2
     var values := [10]
@@ -107,7 +112,8 @@ function RENDER(request : dval) {
     }
     print(update(), " ", values[1], "\n")
 }
-```
+
+:content
 
 ## Generic and variadic functions
 
@@ -115,7 +121,7 @@ An `any` parameter creates a compile-time generic function. Use it when the same
 
 A variadic parameter collects values into a typed array:
 
-```capy
+:example capy render
 function print_all(...values : as string) {
     for value := values {
         print(value)
@@ -125,7 +131,8 @@ function print_all(...values : as string) {
 function RENDER(request : dval) {
     print_all("one", " ", "two", "\n")
 }
-```
+
+:content
 
 Use `...items` to spread an array into a variadic call.
 

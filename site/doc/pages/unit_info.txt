@@ -14,7 +14,7 @@ unit_compile
 0_Request
 
 :content
-In Capy, call `unit_info()` for the current unit. Call `unit_info(path)` for another unit.
+Call `unit_info()` for the current unit. Call `unit_info(path)` for another unit.
 
 The function returns a `dval` value with available unit metadata. Fields can include paths, status, times, and exported APIs. Check that a field exists before you use it. An empty result means Capy cannot resolve the unit.
 

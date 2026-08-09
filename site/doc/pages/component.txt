@@ -6,7 +6,12 @@ String component(String name, [DValue props], [Request& context])
 >component_render
 >1_COMPONENT
 >1_RENDER
-
+unit_call
+component_exists
+cli_arg
+component_resolve
+cli_input
+load
 :content
 `component()` runs a Capy component and returns its output as a string.
 

@@ -16,7 +16,7 @@ json_encode
 print
 
 :content
-In Capy, `var_dump(value)` accepts a `dval` and returns a readable `string` representation.
+`var_dump(value)` accepts a `dval` and returns a readable `string` representation.
 
 Use it to inspect a value while you debug. The API has no error return.
 

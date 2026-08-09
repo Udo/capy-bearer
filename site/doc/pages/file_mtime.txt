@@ -24,3 +24,7 @@ print(file_mtime("/tmp/doc-mtime.txt") > 0 ? "has a modification time" : "missin
 >sys
 file_stat
 time
+file_get_contents
+file_put_contents
+file_exists
+cwd_get

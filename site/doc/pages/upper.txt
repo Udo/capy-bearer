@@ -1,5 +1,3 @@
-:title
-upper
 
 :sig
 String to_upper(String s)
@@ -13,7 +11,11 @@ string with lowercase ASCII characters changed to uppercase
 :see
 >string
 to_upper
-
+string
+length
+clone
+ascii_safe_name
+base64_decode
 :content
 `upper(value)` converts lowercase ASCII characters to uppercase. It does not convert Unicode case.
 

@@ -6,7 +6,12 @@ path : new working directory path
 
 :see
 >sys
-
+path_join
+shell_escape
+mkdir
+shell_exec
+ls
+shell_spawn
 :content
 `cwd_set()` changes the current working directory to a Capy string path.
 

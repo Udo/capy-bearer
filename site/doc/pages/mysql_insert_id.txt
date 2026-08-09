@@ -9,9 +9,14 @@ the last automatic row ID for this connection
 
 :see
 >mysql
-
+mysql_escape
+mysql_affected_rows
+mysql_error
+mysql_query
+mysql_disconnect
+mysql_connected
 :content
-In Capy, `mysql_insert_id()` returns the last automatic row ID as `u64`.
+`mysql_insert_id()` returns the last automatic row ID as `u64`.
 
 Call this after an `INSERT` into a table with an `AUTO_INCREMENT` column.
 

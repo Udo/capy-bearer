@@ -18,7 +18,7 @@ json_decode
 0_String
 
 :content
-In Capy, this function renders Markdown text as HTML.
+This function renders Markdown text as HTML.
 
 Use it to render trusted Markdown in a response. When `allow_html` is true, it outputs stored raw HTML without escaping it.
 

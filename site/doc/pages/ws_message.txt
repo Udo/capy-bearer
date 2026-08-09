@@ -1,5 +1,3 @@
-:title
-ws_message
 
 :sig
 String ws_message()
@@ -10,7 +8,12 @@ payload of the current WebSocket message
 :see
 >websocket
 >0_Request
-
+ws_is_binary
+ws_opcode
+ws_connections
+ws_scope
+ws_connection_id
+ws_send
 :capy-status cpp-specific
 
 :content

@@ -9,7 +9,7 @@ content : Capy `string` that replaces existing content
 true when Capy writes the file, otherwise false
 
 :content
-In Capy, `file_put_contents()` writes a `string` to a complete file. Use it to create or replace a small file. It returns `false` when Capy cannot write the file.
+`file_put_contents()` writes a `string` to a complete file. Use it to create or replace a small file. It returns `false` when Capy cannot write the file.
 
 C++ `.uce` uses `String` and returns the same Boolean result.
 

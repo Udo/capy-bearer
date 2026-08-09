@@ -1,5 +1,3 @@
-:title
-http_request
 
 :sig
 DValue http_request(DValue req)
@@ -19,6 +17,9 @@ For hardened HTTPS requests, set every `security` field to `true`: `https_only`,
 
 In C++ `.uce`, use `DValue` for the request and response.
 
+:note
+The examples are compile-only because they make outbound HTTP requests. Run them in a local test page when you control the target service.
+
 :errors
 The hardened policy rejects non-HTTPS URLs, IP hosts, URL userinfo, unsafe DNS results, and redirects. It limits request and response bodies to 64 KiB. It limits response headers to 8 KiB.
 
@@ -26,7 +27,11 @@ The `error` member can be `invalid_request`, `unsafe_dns`, `timeout`, `response_
 
 :see
 >socket
-
+http_request_async
+socket_close
+socket_connect
+socket_read
+socket_write
 :example capy cli
 var outbound := dval({"method": "GET", "url": "http://127.0.0.1/doc/", "headers": {"Host": "uce.openfu.com"}, "timeout_ms": 2000})
 var response := http_request(outbound)

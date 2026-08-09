@@ -11,9 +11,14 @@ true if the target connection exists and the message was queued
 
 :see
 >websocket
-
+ws_send
+ws_scope
+ws_opcode
+ws_message
+ws_is_binary
+ws_connections
 :content
-In Capy, `ws_send_to(connection_id, message, binary)` sends one message to the selected WebSocket client.
+`ws_send_to(connection_id, message, binary)` sends one message to the selected WebSocket client.
 
 Both IDs and messages are `string` values. Set `binary` to `true` for a binary message. The function returns `true` when it finds the client and queues the message.
 

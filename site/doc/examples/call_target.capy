@@ -1,0 +1,9 @@
+EXPORTS echo, default_input
+
+function echo(input : dval) dval {
+    -> input
+}
+
+function default_input(input : dval) dval {
+    -> dval("default")
+}

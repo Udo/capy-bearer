@@ -11,7 +11,12 @@ list-shaped `dval` with UTF-8 string entries
 
 :see
 >string
-
+split_space
+replace
+split_kv
+regex_match
+split_http_headers
+regex_search
 :content
 Capy `split_utf8(str, compound_characters)` returns a list-shaped `dval` of UTF-8 strings. Give it UTF-8 text.
 

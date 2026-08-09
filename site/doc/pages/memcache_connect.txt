@@ -10,9 +10,14 @@ connection handle, or zero on failure
 
 :see
 >memcache
-
+memcache_command
+memcache_delete
+memcache_get
+memcache_get_multiple
+memcache_set
+memcache_escape_key
 :content
-In Capy, this function returns a `u64` connection handle.
+This function returns a `u64` connection handle.
 
 It returns zero when it cannot connect. Do not use a zero handle with another Memcache function.
 

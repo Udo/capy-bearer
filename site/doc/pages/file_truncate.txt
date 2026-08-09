@@ -25,3 +25,7 @@ print(file_get_contents("/tmp/doc-truncate.txt"), "\n");
 >sys
 file_put_contents
 file_stat
+file_copy
+dir_remove
+file_rename
+file_temp
