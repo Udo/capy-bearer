@@ -45,14 +45,12 @@ function render_examples(page : dval) void {
         return
     }
     for example := page.examples {
-        print("<div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">", html_escape(string(example.body, "")), "</pre></div><div class=\"example-compile-only\">Compile-only: this example is not executed by documentation rendering.</div></div>")
+        print("<div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">", html_escape(string(example.body, "")), "</pre></div></div>")
     }
     for example := page.guide_examples {
         print("<div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">", html_escape(string(example.body, "")), "</pre></div>")
         if example.output? {
             print("<p><strong>Output</strong></p><div class=\"example-output\"><div class=\"example-output-label\">Output</div><pre>", html_escape(string(example.output, "")), "</pre></div>")
-        } else {
-            print("<div class=\"example-compile-only\">Compile-only: this example is not executed by documentation rendering.</div>")
         }
         print("</div>")
     }
