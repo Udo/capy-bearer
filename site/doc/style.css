@@ -289,8 +289,45 @@ a:hover {
 
 /* ── Detail Page ── */
 
+.doc-detail-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 240px;
+	gap: 32px;
+	align-items: start;
+}
+
 .doc-detail {
 	min-width: 0;
+}
+
+.see-also {
+	position: sticky;
+	top: 20px;
+}
+
+.see-also .related-link {
+	display: block;
+	padding: 5px 8px;
+	border-radius: 4px;
+	font-family: var(--font-mono);
+	font-size: 0.875rem;
+	overflow-wrap: anywhere;
+}
+
+.see-also .related-link:hover {
+	background: var(--accent-dim);
+	text-decoration: none;
+}
+
+@media (max-width: 800px) {
+	.doc-detail-layout {
+		grid-template-columns: 1fr;
+		gap: 0;
+	}
+
+	.see-also {
+		position: static;
+	}
 }
 
 .doc-section {

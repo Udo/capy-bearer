@@ -62,7 +62,7 @@ function render_see(page : dval) void {
     for item := page.see {
         var key := trim(string(item, ""))
         if length(key) > 0 && substr(key, 0, 1) == ">" { key = trim(substr(key, 1)) }
-        if key != "" { print("<div class=\"related-link\">", html_escape(key), "</div>") }
+        if key != "" { print("<a class=\"related-link\" href=\"/doc/?p=", html_escape(uri_encode(key)), "\">", html_escape(key), "</a>") }
     }
     print("</aside>")
 }
@@ -73,7 +73,7 @@ function render_guide_navigation(page : dval) void {
 }
 
 function render_page(page : dval) void {
-    print("<main class=\"content doc-page doc-detail\"><h2>", html_escape(string(page.title, string(page.label, "Documentation"))), "</h2>")
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>", html_escape(string(page.title, string(page.label, "Documentation"))), "</h2>")
     render_lines("Capy", page.capy_sig_lines)
     if string(page.content, "") != "" {
         print("<div class=\"doc-section content\">")
@@ -86,9 +86,10 @@ function render_page(page : dval) void {
     render_callouts("note", "Note", page.notes)
     render_callouts("warning", "Warning", page.warnings)
     render_examples(page)
-    render_see(page)
     render_guide_navigation(page)
     print("</main>")
+    render_see(page)
+    print("</div>")
 }
 
 function COMPONENT(request : dval) {

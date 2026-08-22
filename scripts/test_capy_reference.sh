@@ -52,8 +52,10 @@ contract=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=http_request") 
 }
 [[ "$contract" == *'<h3>Description</h3>'* && "$contract" == *'<h3>Parameters</h3>'* &&
 	"$contract" == *'<h3>Return Values</h3>'* && "$contract" == *'<h3>Errors</h3>'* &&
+	"$contract" == *'class="doc-detail-layout"'* &&
+	"$contract" == *'class="related-link" href="/doc/?p=http_request_async"'* &&
 	"$contract" != *"DOC EXAMPLE ERROR"* ]] || {
-	echo "Structured API contract sections are incomplete" >&2
+	echo "Structured API contract sections or related links are incomplete" >&2
 	exit 1
 }
 legacy=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=capy-10-dvalues") || {
