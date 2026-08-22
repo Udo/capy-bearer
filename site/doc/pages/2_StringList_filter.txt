@@ -1,20 +1,21 @@
+:title
+Filter strings
+
 :sig
-DValue::filter(String predicate) (legacy `StringList` page)
+function filter(items : dval, predicate : function(value : string) bool) dval
+
+:returns
+This function returns a new list-shaped `dval`.
 
 :content
-`filter(items, predicate)` takes a list-shaped `dval` and a string predicate. It returns a new list-shaped `dval` with the accepted strings in input order. The result uses consecutive numeric keys.
+`filter` keeps the strings for which `predicate` returns `true`.
 
-Capy has no separate `StringList` type. It uses list-shaped DValues. The function returns a new list and does not mutate `items`.
-
-## C++ API
-
-`DValue::filter()` provides the legacy StringList operation.
-
-:see
-0_DValue
-2_DValue_filter
+The result keeps input order. This function does not change `items`.
 
 :example capy render
 var items := split("one,two", ",")
 var kept := filter(items, function(value : string) bool { return value == "two" })
 print(join(kept, ","), "\n")
+
+:see
+0_StringList

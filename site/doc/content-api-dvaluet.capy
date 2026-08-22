@@ -8,20 +8,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-to-bool"
         page["route"] = "/doc/api/dvalue-to-bool/"
-        page["title"] = "DValue::to_bool"
-        page["content"] = "`bool(value)` is Capy's boolean constructor for a `dval`. `bool(value, fallback)` returns the fallback for `none` or a failed conversion.\n\nIt recognizes the string values `true`, `yes`, `on`, `1`, `false`, `no`, `off`, and `0`. It also converts booleans and finite f64 values. An empty or unrecognized string, a non-finite number, a map, and a list return the fallback.\n\nCapy boolean text is `true` or `false`. Use `bool(value)` for a typed boolean. Do not use boolean text as a data test.\n\n## C++ API\n\n`DValue::to_bool()` also converts C++ pointers, references, maps, lists, and other nonempty strings. These C++ rules do not change the Capy constructor rules.\n"
-        page["returns"] = "converted value or the fallback"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "DValue::to_bool"
-        page["sig_lines"] = dval(["bool DValue::to_bool(bool default_value = false) const", ""])
+        page["title"] = "Convert to Boolean"
+        page["content"] = "## sig\n\nfunction bool(value : dval, fallback : bool = false) bool\nfunction bool(value : string, fallback : bool = false) bool\n\n`bool(value)` converts a dynamic value to `bool`. Use `bool(value, fallback)` when conversion can fail.\n"
+        page["returns"] = "The Boolean value or `fallback`."
+        page["label"] = "dval_to_bool"
         page["capy_sig_lines"] = dval(["function bool(value : dval, fallback : bool = false) bool", "function bool(value : string, fallback : bool = false) bool"])
-        page["param_lines"] = dval(["bool : fallback returned when conversion is not possible", ""])
+        page["param_lines"] = dval(["value : value to convert", "fallback : value to return when conversion fails", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "2_DValue_to_string", "2_DValue_require"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(bool(dval(\"true\")), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -31,20 +27,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-to-f64"
         page["route"] = "/doc/api/dvalue-to-f64/"
-        page["title"] = "DValue::to_f64"
-        page["content"] = "`f64(value)` is Capy's f64 constructor for a `dval`. `f64(value, fallback)` returns the fallback for `none` or a failed conversion.\n\nExact numeric strings, finite f64 values, and booleans can convert. Empty, invalid, and non-finite strings return the fallback. Maps and lists also return the fallback.\n\n## C++ API\n\n`DValue::to_f64()` also converts C++ pointers, resolved references, and one-child maps. These C++ rules do not change the Capy constructor rules.\n"
-        page["returns"] = "converted value or the fallback"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "DValue::to_f64"
-        page["sig_lines"] = dval(["f64 DValue::to_f64(f64 default_value = 0) const", ""])
+        page["title"] = "Convert to f64"
+        page["content"] = "## sig\n\nfunction f64(value : dval, fallback : f64 = 0.0) f64\nfunction f64(value : string, fallback : f64 = 0.0) f64\n\n`f64(value)` converts a dynamic value to `f64`. Use the optional fallback for invalid input.\n"
+        page["returns"] = "The `f64` value or `fallback`."
+        page["label"] = "dval_to_f64"
         page["capy_sig_lines"] = dval(["function f64(value : dval, fallback : f64 = 0.0) f64", "function f64(value : string, fallback : f64 = 0.0) f64"])
-        page["param_lines"] = dval(["f64 : fallback returned when conversion is not possible", ""])
+        page["param_lines"] = dval(["value : value to convert", "fallback : value to return when conversion fails", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "2_DValue_to_string", "2_DValue_require"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(f64(dval(\"12.5\")), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -54,20 +46,15 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-to-json"
         page["route"] = "/doc/api/dvalue-to-json/"
-        page["title"] = "DValue to_json"
-        page["content"] = "`DValue::to_json()` is a C++ API. It escapes and quotes strings. It writes numbers as runtime numeric text. It writes booleans as `true` or `false`. Maps return `(array)`.\n\nC++ represents pointers as `(pointer)` and references as `(reference)`. Capy does not expose `dval_to_json`. Use `json_encode(value)` for JSON.\n"
-        page["returns"] = "C++ JSON-like scalar representation"
-        page["capy_status"] = "cpp-specific"
-        page["label"] = "DValue::to_json"
-        page["sig_lines"] = dval(["String DValue::to_json(char quote_char = '\"') const", ""])
+        page["title"] = "Encode a dynamic value as JSON"
+        page["content"] = "## sig\n\nNo Capy declaration.\n\nCapy does not provide `dval_to_json`.\n\nUse `json_encode(value)` to encode a dynamic value as JSON text.\n"
+        page["label"] = "dval_to_json"
         page["capy_sig_lines"] = dval([])
-        page["param_lines"] = dval(["quote_char : C++ quote character for string escaping", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "json_encode", "2_DValue_to_f64", "2_DValue_require", "2_DValue_to_bool", "2_DValue_to_s64"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["0_DValue", "json_encode"])
+        page["examples"] = dval([])
         page["guide_examples"] = dval([])
         return page
     }
@@ -77,20 +64,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-to-s64"
         page["route"] = "/doc/api/dvalue-to-s64/"
-        page["title"] = "DValue::to_s64"
-        page["content"] = "`s64(value)` is Capy's signed integer constructor for a `dval`. `s64(value, fallback)` returns the fallback for `none` or a failed conversion. `s32(value)` uses the same rules with the s32 range and a default fallback of `0`.\n\nExact decimal strings, in-range finite f64 values, and booleans can convert. An f64 conversion truncates toward zero. Empty or invalid strings, overflow, maps, and lists return the fallback.\n\n## C++ API\n\n`DValue::to_s64()` also converts C++ pointers, resolved references, and one-child maps. It can clamp values outside its range. These C++ rules do not change the Capy constructor rules.\n"
-        page["returns"] = "converted value or the fallback"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "DValue::to_s64"
-        page["sig_lines"] = dval(["s64 DValue::to_s64(s64 default_value = 0) const", ""])
+        page["title"] = "Convert to a signed integer"
+        page["content"] = "## sig\n\nfunction s32(value : dval, fallback : s32 = 0) s32\nfunction s32(value : string, fallback : s32 = 0) s32\nfunction s64(value : dval, fallback : s64 = 0) s64\nfunction s64(value : string, fallback : s64 = 0) s64\n\n`s32(value)` and `s64(value)` convert a dynamic value to a signed integer. Use the optional fallback for invalid input.\n"
+        page["returns"] = "The integer value or `fallback`."
+        page["label"] = "dval_to_s64"
         page["capy_sig_lines"] = dval(["function s32(value : dval, fallback : s32 = 0) s32", "function s32(value : string, fallback : s32 = 0) s32", "function s64(value : dval, fallback : s64 = 0) s64", "function s64(value : string, fallback : s64 = 0) s64"])
-        page["param_lines"] = dval(["s64 : fallback returned when conversion is not possible", ""])
+        page["param_lines"] = dval(["value : value to convert", "fallback : value to return when conversion fails", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "2_DValue_to_string", "2_DValue_require"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(s64(dval(\"-42\")), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -100,20 +83,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-to-string"
         page["route"] = "/doc/api/dvalue-to-string/"
-        page["title"] = "DValue::to_string"
-        page["content"] = "`string(value)` is Capy's string constructor for a `dval`. `string(value, fallback)` returns the fallback for `none` or a failed conversion.\n\nIt returns stored text, f64 text, and boolean text. Capy boolean text is `true` or `false`.\n\nAn empty string, a map, or an unsupported value returns the fallback. Ordinary `print(value.member)` uses `as string` and has the same conversion.\n\n## C++ API\n\n`DValue::to_string()` also converts pointers. It returns the fallback for an unresolved reference or an unknown type.\n\nC++ `DValue::to_string()` returns `(true)` or `(false)` for boolean values. This differs from Capy boolean text.\n"
-        page["returns"] = "converted value or the fallback"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "DValue::to_string"
-        page["sig_lines"] = dval(["String DValue::to_string(String default_value = \"\") const", ""])
+        page["title"] = "Convert to string"
+        page["content"] = "## sig\n\nfunction string(value : dval, fallback : string = \"\") string\n\n`string(value)` converts a dynamic value to `string`. Use the optional fallback for values that cannot convert.\n"
+        page["returns"] = "The string value or `fallback`."
+        page["label"] = "dval_to_string"
         page["capy_sig_lines"] = dval(["function string(value : dval, fallback : string = \"\") string"])
-        page["param_lines"] = dval(["String : fallback returned when conversion is not possible", ""])
+        page["param_lines"] = dval(["value : value to convert", "fallback : value to return when conversion fails", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "2_DValue_to_bool", "2_DValue_require"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(string(dval(\"Ada\")), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -123,20 +102,15 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-to-stringmap"
         page["route"] = "/doc/api/dvalue-to-stringmap/"
-        page["title"] = "DValue to_stringmap"
-        page["content"] = "`DValue::to_stringmap()` is a C++ API. It converts map children to string entries. A nonempty string, f64, or boolean becomes a `value` entry. An empty string returns an empty map.\n\nIt also converts C++ pointers. It returns an empty map for an unresolved reference. Capy does not expose `dval_to_stringmap`. Use a `dval` map directly.\n"
-        page["returns"] = "C++ `StringMap` copy"
-        page["capy_status"] = "cpp-specific"
-        page["label"] = "DValue::to_stringmap"
-        page["sig_lines"] = dval(["StringMap DValue::to_stringmap() const", ""])
+        page["title"] = "Convert to a string map"
+        page["content"] = "## sig\n\nNo Capy declaration.\n\nCapy does not provide a string-map conversion.\n\nUse a map-shaped `dval` directly for string-keyed values.\n"
+        page["label"] = "dval_to_stringmap"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "0_StringMap", "2_DValue_to_string"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["0_DValue", "0_StringMap"])
+        page["examples"] = dval([])
         page["guide_examples"] = dval([])
         return page
     }
@@ -146,20 +120,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-to-u64"
         page["route"] = "/doc/api/dvalue-to-u64/"
-        page["title"] = "DValue::to_u64"
-        page["content"] = "`u64(value)` is Capy's unsigned integer constructor for a `dval`. `u64(value, fallback)` returns the fallback for `none` or a failed conversion.\n\nExact decimal strings, in-range nonnegative finite f64 values, and booleans can convert. An f64 conversion truncates toward zero. Empty or invalid strings, negative values, overflow, maps, and lists return the fallback.\n\n## C++ API\n\n`DValue::to_u64()` also converts C++ pointers, resolved references, and one-child maps. It can clamp values outside its range. These C++ rules do not change the Capy constructor rules.\n"
-        page["returns"] = "converted value or the fallback"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "DValue::to_u64"
-        page["sig_lines"] = dval(["u64 DValue::to_u64(u64 default_value = 0) const", ""])
+        page["title"] = "Convert to an unsigned integer"
+        page["content"] = "## sig\n\nfunction u64(value : dval, fallback : u64 = 0) u64\nfunction u64(value : string, fallback : u64 = 0) u64\n\n`u64(value)` converts a dynamic value to `u64`. Use the optional fallback for invalid input.\n"
+        page["returns"] = "The `u64` value or `fallback`."
+        page["label"] = "dval_to_u64"
         page["capy_sig_lines"] = dval(["function u64(value : dval, fallback : u64 = 0) u64", "function u64(value : string, fallback : u64 = 0) u64"])
-        page["param_lines"] = dval(["u64 : fallback returned when conversion is not possible", ""])
+        page["param_lines"] = dval(["value : value to convert", "fallback : value to return when conversion fails", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "2_DValue_to_string", "2_DValue_require"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(u64(dval(\"42\")), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

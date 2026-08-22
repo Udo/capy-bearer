@@ -1,26 +1,20 @@
+:title
+Append a child
+
 :sig
-void DValue::push(const DValue& child)
+function dval_push(value : dval, child : as dval) dval
 
 :params
-child : value to append/copy
+value : target value
+child : value to append
 
 :returns
-none
-
-:see
-0_DValue
-2_DValue_pop
-2_DValue_set_array
+The changed target value.
 
 :content
-`dval_push(value, child)` appends `child` at the next numeric key. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid.
-
-An empty value becomes a list. A contiguous list adds the child after its last item. A non-list map uses its next unused numeric key and remains a map.
-
-## C++ API
-
-`DValue::push()` changes the object in place.
+`dval_push` appends `child` with the next numeric key. It changes and returns `value`.
 
 :example capy render
-var list := dval_push(dval_push(dval([]), "x"), "y")
-if dval_has(list, "1") { print("count: 2\n") } else { print("count: 1\n") }
+var list := dval([])
+list = dval_push(list, "Ada")
+print(list[0], "\n")

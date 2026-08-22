@@ -1,27 +1,22 @@
 :sig
-bool file_chmod(String path, u32 mode)
+function file_chmod(path : string, mode : s32) bool
 
 :params
 path : path of the file or directory
-mode : permission bits, such as 0644 or 0600
+mode : Unix permission bits as a decimal `s32`
 
 :returns
-true when Capy changes the mode, otherwise false
+`true` when Capy changes the mode. Otherwise, it returns `false`.
 
 :content
-`file_chmod` sets permission bits on a path. Use it to restrict or grant file access. Capy receives `mode` as a number. The Capy example can use an octal literal such as `0600`.
+`file_chmod` changes the permission bits of a path.
 
 :example capy render
 file_put_contents("/tmp/doc-chmod.txt", "secret")
-var result := "failed"
-if file_chmod("/tmp/doc-chmod.txt", 384) { result = "mode set" }
-print(result, "\n")
+print(file_chmod("/tmp/doc-chmod.txt", 384), "\n")
 
 :see
 >sys
 file_stat
 file_put_contents
-file_temp
-file_symlink
-dir_remove
 file_fsync

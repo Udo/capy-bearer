@@ -1,11 +1,11 @@
 :sig
-DValue xml_decode(String s)
+function xml_decode(source : string) dval
 
 :params
-s : XML source string
+source : XML source
 
 :returns
-element-shaped `dval`
+A `dval` that contains the decoded XML.
 
 :see
 >markup
@@ -15,14 +15,8 @@ json_decode
 0_String
 
 :content
-`xml_decode(source)` accepts XML source as a `string` and returns a structured `dval`.
-
-Use it to read XML data into the element shape that `xml_encode()` accepts. It reads the first root element.
-
-The parser supports elements, quoted attributes, text, CDATA, comments, processing instructions, and XML entities. It does not validate schemas, DTDs, namespaces, or document types.
-
-Malformed XML raises a request-visible runtime error. C++ returns the same data as `DValue` through the signature above.
+`xml_decode()` decodes XML source into a `dval`.
 
 :example capy render
-var node := xml_decode("<root><name>Ada</name></root>")
-if dval_is_array(node) { print("xml\n") } else { print("empty\n") }
+var value := xml_decode("<root><name>Ada</name></root>")
+print(value["children"][0]["text"], "\n")

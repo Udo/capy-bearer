@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "zip-list"
         page["route"] = "/doc/api/zip-list/"
         page["title"] = "zip_list"
-        page["content"] = "`zip_list(path)` accepts an archive path and returns metadata as a `dval`.\n\nThe result contains `file`, `count`, and an `entries` list. Each entry contains `name`, `index`, `size`, `compressed_size`, `is_directory`, and `method`.\n\nUse it to inspect an archive or discover member names before `zip_read()`. The declaration has no error return.\n\nC++ returns the same data as `DValue` through the signature above.\n\n"
-        page["returns"] = "`dval` containing archive metadata and an `entries` list"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction zip_list(path : string) dval\n\n`zip_list()` returns ZIP archive metadata and entries.\n"
+        page["returns"] = "A `dval` with archive metadata and entries."
         page["label"] = "zip_list"
-        page["sig_lines"] = dval(["DValue zip_list(String zip_file_name)", ""])
         page["capy_sig_lines"] = dval(["function zip_list(path : string) dval"])
-        page["param_lines"] = dval(["zip_file_name : path to the ZIP archive to inspect", ""])
+        page["param_lines"] = dval(["path : archive path", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">sys", "zip_create", "zip_read", "zip_extract", "0_DValue"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var archive := file_temp(\"/tmp/capy-zip-\") + \".zip\"\nzip_create(archive, dval({\"note.txt\": \"hello\"}))\nvar listing := zip_list(archive)\nprint(s32(listing[\"count\"]), \"\\n\")\nfile_unlink(archive)\n"}])
         page["guide_examples"] = dval([])
         return page
     }

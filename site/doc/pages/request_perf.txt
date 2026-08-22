@@ -1,25 +1,9 @@
-
 :sig
-DValue request_perf()
-
-:returns
-performance data for the active C++ request workspace
-
-:see
->sys
->time_precise
->runtime_perf
-process_start_directory
-runtime_safe_key
-path_real
-path_is_within
-file_fsync
-file_symlink
-:capy-status cpp-specific
+Not available in Capy.
 
 :content
-`request_perf()` is a C++ API. It returns diagnostic data for an active Wasm request workspace. Outside that workspace, it returns an invalid DValue.
+Use `runtime_perf()` in a handler to read runtime performance data.
 
-The result can include request, transport, workspace, guest, hostcall, unit-load, component, and connector timing data. Available fields depend on the enabled profiling options and completed work. `hostcall_cpu_profiled` and `thread_runtime_profiled` show whether optional counters are available.
-
-Capy does not expose `request_perf`. Use `runtime_perf()` in a Capy handler.
+:example capy render
+var perf := runtime_perf()
+print(dval_get_type_name(perf), "\n")

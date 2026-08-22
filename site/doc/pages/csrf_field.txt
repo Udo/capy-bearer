@@ -1,29 +1,24 @@
 :sig
-String csrf_field(String session_name = "bearer-session", String token_name = "csrf_token", String field_name = "")
+function csrf_field(session_name : string = "bearer-session", token_name : string = "csrf_token", field_name : string = "") string
 
 :params
-session_name : session and cookie name
-token_name : token namespace
-field_name : submitted form field name. The default is `token_name`.
+session_name : the session and cookie name
+token_name : the token namespace
+field_name : the form field name. The default is `token_name`.
 
 :returns
-HTML hidden input with the active CSRF token
+An HTML hidden input with the active CSRF token.
 
 :content
-`csrf_field()` returns an HTML hidden input with the active Capy CSRF token.
+`csrf_field()` returns a hidden form input with the active CSRF token.
 
-Pass the session name, token namespace, and optional form field name. It starts the named session when necessary. It HTML-escapes the field name and token value.
-
-Use it in server-rendered forms that change state. Validate the submitted field with `csrf_valid()` before you change state.
-
-The Capy call has the same arguments.
+Use it in a form that changes state. Check the submitted value with `csrf_valid()` before you change state.
 
 :example capy render
-var field := csrf_field("bearer-doc-session", "profile_form", "csrf_token")
-print(strpos(field, "type=\"hidden\"") >= 0, "\n")
+var field := csrf_field("capy-doc-session", "profile", "csrf_token")
+print(contains(field, "type=\"hidden\""), "\n")
+
 :see
->session
 csrf_token
 csrf_valid
 csrf_rotate
-session_start

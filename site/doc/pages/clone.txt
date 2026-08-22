@@ -1,19 +1,16 @@
 :sig
-string clone(string value)
+function clone(value : string) string
 
 :params
-value : source string to copy
+value : a source string
 
 :returns
-new string copy
+A separate string copy.
 
 :content
-Use `clone()` to copy a string before passing ownership across a boundary where you need a fresh value.
+`clone()` copies a string.
 
-Most Capy code does not need explicit clones. Use it only when normal ownership rules are not clear enough for the code you are writing.
-
-:errors
-Compilation fails when `clone()` receives anything other than one string.
+Most Capy code does not need an explicit copy. Use `clone()` when a fresh string value is required.
 
 :example capy render
 var source := "token"
@@ -21,7 +18,5 @@ var copy := clone(source)
 print(length(source), " ", length(copy), "\n")
 
 :see
->string
+>0_String
 length
-0_String
-component

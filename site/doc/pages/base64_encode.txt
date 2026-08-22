@@ -1,26 +1,19 @@
 :sig
-String base64_encode(String raw)
+function base64_encode(value : string) string
 
 :params
-raw : binary-safe source bytes
+value : source string
 
 :returns
-the Base64-encoded text
+Base64 text
 
 :content
-Capy's `base64_encode(raw)` returns Base64 text as a `string`. Capy strings can contain NUL and other binary bytes.
+`base64_encode` encodes a string as Base64 text.
 
-Pass source bytes, such as `random_bytes()` or a `sha256()` digest. Use the result in a text field, header, cookie, or JSON value. The function does not report errors.
-
-The C++ `String` function has the same input and result.
+Use `base64_decode` to decode the result.
 
 :example capy render
 print(base64_encode("hello"), "\n")
+
 :see
->uri
 base64_decode
-random_bytes
-encode_query
-redirect
-request_context_params
-request_base_url

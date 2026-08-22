@@ -1,20 +1,15 @@
 :sig
-String route_path_sanitize(String path, String default_path = "index")
+function route_path_sanitize(path : string, fallback : string = "index") string
 
-:see
->uri
-route_path_is_safe
-route_path_normalize
-request_query_path
-request_query_route
-request_context_params
+:params
+path : route text to validate
+fallback : route for empty input
+
+:returns
+A safe route, or an empty string.
 
 :content
-Use this function before you compose a file path from a route.
-
-It removes outer whitespace and leading and trailing `/`. Empty input becomes `default_path`. Each segment must be non-empty and contain only ASCII letters, digits, `_`, and `-`. The function rejects `.` and `..` segments. It returns an empty string for unsafe input.
-
-`request.route` and `ROUTE_PATH` already use this sanitizer.
+The function normalizes the path. It uses `fallback` for empty input. It returns an empty string for unsafe input.
 
 :example capy render
-print(route_path_sanitize("../secret", "index"), "\n")
+print(route_path_sanitize("../private"), "\n")

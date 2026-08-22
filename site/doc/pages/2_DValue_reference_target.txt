@@ -1,23 +1,15 @@
-:sig
-DValue* DValue::reference_target()
-const DValue* DValue::reference_target() const
+:title
+Get a reference target
 
-:returns
-resolved target pointer, or 0 when this node is not a usable reference
+:sig
+No Capy declaration.
 
 :see
 0_DValue
-2_DValue_is_reference
-2_DValue_deref
-
-:content
-Capy does not support `reference_target`. DValues share identity inside one workspace, but Capy does not expose host pointers or C++ internal reference nodes.
-
-## C++ API
-
-`DValue::reference_target()` follows an internal reference chain and returns its final non-reference target pointer. It returns `0` for a non-reference, a null or self reference, or an unresolved chain.
-
 
 :capy-status unsupported
 
-Capy exposes no host DValue pointer or internal reference-node identity, so it cannot observe a C++ reference target.
+:content
+Capy does not expose reference targets or host pointers.
+
+No Capy alternative exists.

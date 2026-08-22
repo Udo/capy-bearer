@@ -92,9 +92,27 @@ function RENDER(request : dval) {
 
 :content
 
-## Other handlers
+## CLI and WebSocket handlers
 
-`RENDER`, named `RENDER`, `COMPONENT`, named `COMPONENT`, `CLI`, `WS`, `TASK`, named `TASK`, `INIT`, `ONCE`, and custom HTTP handlers all use `request : dval`. Handlers do not return application values.
+Use `CLI` for a local command through Bearer's private CLI socket. Read command input from the copied request snapshot:
+
+:example capy cli
+function CLI(request : dval) {
+    print(string(request.body, ""))
+}
+
+:content
+
+Use `WS` for each WebSocket message. Read the message from `request.body`. Read the connection ID, scope, opcode, binary flag, and current-scope connections from `request.websocket`:
+
+:example capy ws
+function WS(request : dval) {
+    ws_send(string(request.body, ""), false)
+}
+
+:content
+
+`RENDER`, named `RENDER`, `COMPONENT`, named `COMPONENT`, `CLI`, `WS`, `TASK`, named `TASK`, `INIT`, `ONCE`, and custom HTTP handlers use `request : dval`. Handlers do not return application values.
 
 :see
 0_Request

@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "call"
         page["route"] = "/doc/api/call/"
         page["title"] = "call"
-        page["content"] = "`call(handle, name[, input])` calls an exported function on a loaded module and returns the function result as `dval`.\nUse it after `unit_load()` when several calls should reuse the same module.\nThe handle is valid only for one request.\n\nThe two-argument form sends an empty `dval` when no input is needed.\n\nA missing handle or missing export is an error.\n\n## C++ API\n\nC++ has no direct module-handle `call()` helper.\nUse `unit_call(file_name, function_name, input)` with the same unit path and function name in C++.\n"
-        page["returns"] = "exported function result"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction call(handle : module, name : string) dval\nfunction call(handle : module, name : string, input : as dval) dval\n\n`call()` calls an exported function in a loaded unit. It returns the result as `dval`.\n\nUse `unit_load()` once when several calls use the same unit. The two-argument form passes an empty `dval`.\n"
+        page["returns"] = "The exported function result."
         page["label"] = "call"
-        page["sig_lines"] = dval(["dval call(handle : module, name : string)", "dval call(handle : module, name : string, input : as dval)", ""])
         page["capy_sig_lines"] = dval(["function call(handle : module, name : string) dval", "function call(handle : module, name : string, input : as dval) dval"])
-        page["param_lines"] = dval(["handle : module value returned by `unit_load()`", "name : exported function name", "input : optional `dval` input", ""])
+        page["param_lines"] = dval(["handle : a value from `unit_load()`", "name : an exported function name", "input : optional `dval` input", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">ob", "unit_load", "unit_call", "unit_render", "response_status", "response_header", "component_capture"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["unit_load", "unit_call", "component_capture"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var handle := unit_load(\"/doc/examples/call_target.capy\")\nvar result := call(handle, \"echo\", {name: \"Ada\"})\nprint(string(result.name), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

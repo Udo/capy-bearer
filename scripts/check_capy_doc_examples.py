@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import re
 import tempfile
 from pathlib import Path
@@ -25,7 +26,6 @@ CPP_TOKENS = re.compile(r"\b(?:DValue|Request|String(?:List|Map)?|SharedUnit|std
 CAPY_HANDLER = re.compile(r"(?m)^\s*function\s+(?:INIT|ONCE|CLI|RENDER|COMPONENT(?::[A-Za-z_][A-Za-z0-9_]*)?|WS|TASK(?::[A-Za-z_][A-Za-z0-9_]*)?|SERVE_HTTP(?::[A-Za-z_][A-Za-z0-9_]*)?)\s*\(")
 CPP_HANDLER = re.compile(r"(?m)^\s*(?:INIT|ONCE|CLI|RENDER|COMPONENT(?::[A-Za-z_][A-Za-z0-9_]*)?|WS|TASK(?::[A-Za-z_][A-Za-z0-9_]*)?|SERVE_HTTP(?::[A-Za-z_][A-Za-z0-9_]*)?)\s*\(")
 CAPY_REQUEST_DECLARATION = re.compile(r"(?m)^\s*(?:var\s+request\b|request\s*:=)")
-REDIRECT = re.compile(r'redirects\["([^"]+)"\]\s*=\s*"([^"]+)";')
 
 
 def manifest_statuses(path: Path) -> dict[str, str]:
@@ -117,8 +117,11 @@ def check_page(page: Path, status: str) -> list[str]:
         errors.append(f"{page.name}: supported page needs a Capy example")
     return errors
 
-def generated_capy_signature_pages(path: Path) -> set[str]:
-    return set(re.findall(r'^\s*\{"([^"]+)", "', path.read_text(), re.M))
+def generated_capy_signatures(path: Path) -> dict[str, list[str]]:
+    pages: dict[str, list[str]] = {}
+    for page, declaration in re.findall(r'^\s*\{"([^"]+)", "((?:\\.|[^"\\])*)"\},', path.read_text(), re.M):
+        pages.setdefault(page, []).append(bytes(declaration, "utf-8").decode("unicode_escape"))
+    return pages
 
 
 def check(pages: Path, manifest: Path, signatures: Path) -> list[str]:
@@ -134,29 +137,39 @@ def check(pages: Path, manifest: Path, signatures: Path) -> list[str]:
         if name != "3_Documentation format" and ":sig\n" not in page.read_text():
             errors.append(f"{page.name}: missing Capy :sig declaration")
     try:
-        generated = generated_capy_signature_pages(signatures)
+        generated = generated_capy_signatures(signatures)
     except OSError as error:
         errors.append(f"Capy signatures: {error}")
-        generated = set()
+        generated = {}
     required = {name for name, status in statuses.items() if status == "supported"} - {"3_Documentation format"}
-    errors += [f"Capy signatures: supported page has no generated declaration: {name}" for name in sorted(required - generated)]
-    errors += [f"Capy signatures: stale or unsupported generated page: {name}" for name in sorted(generated - required)]
+    errors += [f"Capy signatures: supported page has no generated declaration: {name}" for name in sorted(required - set(generated))]
+    errors += [f"Capy signatures: stale or unsupported generated page: {name}" for name in sorted(set(generated) - required)]
+    for name in sorted(required & set(generated)):
+        sections = parse_sections(pages / f"{name}.txt")
+        source = next((body.splitlines() for _line, header, body in sections if header == "sig"), [])
+        if source != generated[name]:
+            errors.append(f"{name}.txt: :sig does not match generated Capy signatures")
     return errors
 
 
 def guide_redirects(path: Path) -> dict[str, str]:
-    redirects = dict(REDIRECT.findall(path.read_text()))
-    if len(redirects) != 14:
-        raise ValueError(f"guide redirect map needs 14 old slugs, found {len(redirects)}")
+    spec = importlib.util.spec_from_file_location("capy_docs", path)
+    if spec is None or spec.loader is None:
+        raise ValueError("cannot load guide redirect source")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    redirects = getattr(module, "GUIDE_REDIRECTS", None)
+    if not isinstance(redirects, dict) or len(redirects) != 14:
+        raise ValueError("guide redirect map needs 14 old slugs")
     if set(redirects.values()) != CANONICAL_GUIDES:
         raise ValueError("guide redirect map does not produce the canonical guide set")
     return redirects
 
 
-def check_language_guides(guides: Path, pages: Path, redirect_header: Path) -> list[str]:
+def check_language_guides(guides: Path, pages: Path, redirect_source: Path) -> list[str]:
     errors: list[str] = []
     try:
-        redirects = guide_redirects(redirect_header)
+        redirects = guide_redirects(redirect_source)
     except (OSError, ValueError) as error:
         return [f"guide redirects: {error}"]
     articles = {article.stem: article for article in guides.glob("*.txt")}
@@ -224,20 +237,20 @@ def fixture_manifest(path: Path) -> None:
 def self_test() -> int:
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
-        pages, guides, header = root / "pages", root / "guides", root / "doc_page.h"
+        pages, guides, redirect_source = root / "pages", root / "guides", root / "generate_capy_docs.py"
         pages.mkdir(); guides.mkdir()
         manifest, signatures = root / "manifest.h", root / "signatures.h"
         fixture_manifest(manifest); signatures.write_text('{"ok", "function ok"},\n')
-        (pages / "ok.txt").write_text(':sig\nvoid ok()\n:example capy render\nprint("ok")\n')
+        (pages / "ok.txt").write_text(':sig\nfunction ok\n:example capy render\nprint("ok")\n')
         if check(pages, manifest, signatures):
             print("self-test API fixture failed")
             return 1
-        (pages / "ok.txt").write_text(':sig\nString ok()\n:params\nreturn value : old location\n:returns\n\n:example capy render\nprint("ok")\n')
+        (pages / "ok.txt").write_text(':sig\nfunction ok\n:params\nreturn value : old location\n:returns\n\n:example capy render\nprint("ok")\n')
         contract_errors = check(pages, manifest, signatures)
         if not any("move return value" in error for error in contract_errors) or not any("empty :returns" in error for error in contract_errors):
             print("self-test accepted an invalid return contract")
             return 1
-        (pages / "ok.txt").write_text(':sig\nvoid ok()\n:example capy render\nprint("ok")\n')
+        (pages / "ok.txt").write_text(':sig\nfunction ok\n:example capy render\nprint("ok")\n')
         if not check_example_body(pages / "ok.txt", 1, "render", "function RENDER(request : dval) {}"):
             print("self-test accepted a complete handler in an API example")
             return 1
@@ -254,10 +267,10 @@ def self_test() -> int:
         canonical_sources = sorted(CANONICAL_GUIDES)
         for index, canonical in enumerate(canonical_sources + canonical_sources[3:5], 1):
             old = f"{index:02d}-old"
-            pairs.append(f'\tredirects["{old}"] = "{canonical}";')
+            pairs.append(f'"{old}": "{canonical}"')
             (guides / canonical).with_suffix('.txt').write_text(':title\nGuide\n:content\n## First step\ntext\n:example capy render\nprint("ok")\n:output\nok\n:content\n## Next step\ntext\n:see\nok\n')
-        header.write_text('\n'.join(pairs))
-        guide_errors = check_language_guides(guides, pages, header)
+        redirect_source.write_text("GUIDE_REDIRECTS = {" + ", ".join(pairs) + "}\n")
+        guide_errors = check_language_guides(guides, pages, redirect_source)
         if guide_errors:
             print("self-test guide fixture failed:", *guide_errors, sep="\n- ")
             return 1
@@ -268,7 +281,7 @@ def self_test() -> int:
             print("self-test output whitespace was not preserved")
             return 1
         (guides / sorted(CANONICAL_GUIDES)[0]).with_suffix('.txt').write_text(':title\nGuide\n:content\n## Purpose\ntext\n')
-        if not check_language_guides(guides, pages, header):
+        if not check_language_guides(guides, pages, redirect_source):
             print("self-test incomplete guide was accepted")
             return 1
     print("Capy documentation example checker self-tests passed")
@@ -280,14 +293,14 @@ def main() -> int:
     parser.add_argument("--pages", type=Path, default=ROOT / "site/doc/pages")
     parser.add_argument("--manifest", type=Path, default=ROOT / "src/capy/parity_manifest.h")
     parser.add_argument("--guides", type=Path, default=ROOT / "site/doc/capy")
-    parser.add_argument("--redirect-header", type=Path, default=ROOT / "site/doc/lib/doc_page.h")
+    parser.add_argument("--redirect-source", type=Path, default=ROOT / "scripts/generate_capy_docs.py")
     parser.add_argument("--signatures", type=Path, default=ROOT / "site/doc/lib/capy_signatures.generated.h")
     parser.add_argument("--allow-incomplete", action="store_true")
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:
         return self_test()
-    errors = check(args.pages, args.manifest, args.signatures) + check_language_guides(args.guides, args.pages, args.redirect_header)
+    errors = check(args.pages, args.manifest, args.signatures) + check_language_guides(args.guides, args.pages, args.redirect_source)
     if errors:
         print("Capy documentation examples INCOMPLETE" if args.allow_incomplete else "Capy documentation examples FAILED")
         print(*("- " + error for error in errors), sep="\n")

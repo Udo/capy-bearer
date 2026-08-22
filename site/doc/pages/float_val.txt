@@ -1,25 +1,14 @@
 :sig
-f64 float_val(String s)
+function float_val(raw : string) f64
 
 :params
-s : string that can contain a number
+raw : text that contains a number
 
 :returns
-parsed `f64`, or `0` when no usable number exists
+The parsed floating-point value. Returns `0` if no usable number exists.
 
-:see
->string
-int_val
-0_String
-trim
-to_upper
-html_escape
-to_lower
 :content
-`float_val()` extracts a floating-point value from a string. It returns `0` when it cannot identify a usable number.
-
-Use it when input text can contain a numeric value. In Capy, the same call returns `f64`.
+`float_val` reads a floating-point value from text.
 
 :example capy render
-if float_val("3.14") + 1.0 > 4.13 { print("parsed\n") }
-else { print("not parsed\n") }
+print(float_val("3.14"), "\n")

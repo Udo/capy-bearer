@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "file-fsync"
         page["route"] = "/doc/api/file-fsync/"
         page["title"] = "file_fsync"
-        page["content"] = "`file_fsync` flushes writes for a handle. Use it before `file_close()` when durable storage matters. It returns false when the flush fails. Capy uses the same handle and Boolean result.\n"
-        page["returns"] = "true when Capy flushes the handle, otherwise false"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction file_fsync(handle : u64) bool\n\n`file_fsync` flushes pending writes for a handle. Call it before `file_close` when the file system must receive the writes first.\n"
+        page["returns"] = "`true` when Capy flushes the handle. Otherwise, it returns `false`."
         page["label"] = "file_fsync"
-        page["sig_lines"] = dval(["bool file_fsync(u64 h)", ""])
         page["capy_sig_lines"] = dval(["function file_fsync(handle : u64) bool"])
-        page["param_lines"] = dval(["h : writable handle from `file_open()`", ""])
+        page["param_lines"] = dval(["handle : writable handle returned by `file_open`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "file_write", "file_close", "file_symlink", "path_is_within", "file_chmod", "path_real"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">sys", "file_write", "file_close", "file_open"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var handle := file_open(\"/tmp/doc-fsync.txt\", \"w\")\nfile_write(handle, \"durable\")\nprint(file_fsync(handle), \"\\n\")\nfile_close(handle)\n"}])
         page["guide_examples"] = dval([])
         return page
     }

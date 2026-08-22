@@ -1,19 +1,21 @@
 :sig
-String brb_encode(DValue value)
+function brb_encode(value : dval) string
+
+:params
+value : value to encode
+
+:returns
+BRRB data as a string
+
+:content
+`brb_encode` encodes a `dval` value as BRRB data.
+
+Use `brb_decode` to restore the value.
+
+:example capy render
+var packed := brb_encode(dval({"name": "Ada"}))
+print(brb_decode(packed)["name"], "\n")
 
 :see
 brb_decode
-0_DValue
 json_encode
-
-:content
-`brb_encode()` converts a Capy `dval` into a BRRB2 byte string.
-
-Pass a `dval` that you will later decode with `brb_decode()`. The returned string can contain any byte, including NUL. BRRB preserves scalars, nested maps, lists, empty lists, and the `N` tag for `none`.
-
-Use this function for Bearer DValue data. Use JSON or YAML for text formats that people read.
-
-:example capy render
-var original := dval({"msg": "hello", "missing": none})
-var packed := brb_encode(original)
-print("encoded ", length(packed), " bytes. ", brb_decode(packed).msg, "\n")

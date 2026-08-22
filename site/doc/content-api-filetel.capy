@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "file-tell"
         page["route"] = "/doc/api/file-tell/"
         page["title"] = "file_tell"
-        page["content"] = "`file_tell` returns the current byte offset for a handle. Use it to record the position after `file_read()`, `file_write()`, or `file_seek()`. Capy uses the same numeric result.\n"
-        page["returns"] = "current absolute byte offset"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction file_tell(handle : u64) s64\n\n`file_tell` returns the current position for a file handle.\n"
+        page["returns"] = "The current byte offset."
         page["label"] = "file_tell"
-        page["sig_lines"] = dval(["s64 file_tell(u64 h)", ""])
         page["capy_sig_lines"] = dval(["function file_tell(handle : u64) s64"])
-        page["param_lines"] = dval(["h : handle from `file_open()`", ""])
+        page["param_lines"] = dval(["handle : handle from `file_open`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "file_seek", "file_open", "file_close", "file_pwrite", "file_stat", "file_write"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var handle := file_open(\"/tmp/doc-tell.txt\", \"w\")\nfile_write(handle, \"hello\")\nprint(file_tell(handle), \"\\n\")\nfile_close(handle)\n"}])
         page["guide_examples"] = dval([])
         return page
     }

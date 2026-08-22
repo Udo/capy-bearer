@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "mkdir"
         page["route"] = "/doc/api/mkdir/"
         page["title"] = "mkdir"
-        page["content"] = "This function creates one directory at `path`.\n\nUse it when the parent directory already exists. It does not create missing parent directories. The C++ API has the same behavior.\n"
-        page["returns"] = "`true` if the API creates the directory"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction mkdir(path : string) bool\n\n`mkdir()` creates one directory at `path`.\n\nThe parent directory must exist. This function does not create parent directories.\n"
+        page["returns"] = "`true` when the API creates the directory"
         page["label"] = "mkdir"
-        page["sig_lines"] = dval(["bool mkdir(String path)", ""])
         page["capy_sig_lines"] = dval(["function mkdir(path : string) bool"])
-        page["param_lines"] = dval(["path : directory path", ""])
+        page["param_lines"] = dval(["path : the directory path", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "dir_remove", "dir_list", "ls", "path_join", "cwd_get", "cwd_set"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">sys", "dir_remove", "path_join"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var path := file_temp(\"/tmp/doc-mkdir-\")\nfile_unlink(path)\nprint(mkdir(path), \"\\n\")\ndir_remove(path, true)\n"}])
         page["guide_examples"] = dval([])
         return page
     }

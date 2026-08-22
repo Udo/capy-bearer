@@ -1,27 +1,23 @@
 :sig
-f64 gen_noise01(u64 index, u64 seed = 0)
+function gen_noise01(index : u64, seed : u64 = 0) f64
 
 :params
 index : deterministic input position
-seed : deterministic input seed, default `0`
+seed : deterministic input seed
 
 :returns
-deterministic `f64` noise value from `0` to `1`
+A deterministic `f64` value from `0` to `1`.
 
-:see
->noise
-draw_int
-gen_noise32
-draw_float
-gen_noise64
-gen_float
-gen_int
 :content
-`gen_noise01()` returns a deterministic `f64` noise value from `0` to `1`. `index` and `seed` select the value.
+`gen_noise01()` returns normalized noise for an index and seed.
 
-Use it for repeatable normalized noise. The Capy call uses the declaration above.
-
+Use the same inputs to reproduce a value.
 
 :example capy render
-var generated := gen_noise01(1, 2)
-print("noise\n")
+var value := gen_noise01(u64(1), u64(2))
+print(value, "\n")
+
+:see
+gen_noise32
+gen_noise64
+gen_float

@@ -1,22 +1,19 @@
 :sig
-String html_escape(String s)
+function html_escape(value : string) string
 
 :params
-s : string to encode for HTML text
+value : text to use in HTML
 
 :returns
-string with HTML-sensitive characters replaced by entities
-
-:see
->string
-json_encode
-print
-component
+Text with HTML-sensitive characters replaced by entities.
 
 :content
-`html_escape()` returns a string that is safe to insert as HTML text. Use it for text from users or other untrusted sources.
-
-It escapes ampersands, angle brackets, and double quotes.
+`html_escape()` escapes text for an HTML text position. It escapes ampersands, angle brackets, and double quotes.
 
 :example capy render
 print(html_escape("<b>Tom & Jerry</b>"), "\n")
+
+:see
+json_encode
+print
+component

@@ -1,13 +1,5 @@
-
 :sig
-bool to_bool(String s, bool fallback = false)
-
-:params
-s : C++ text to parse
-fallback : value for empty or unrecognized text
-
-:returns
-parsed C++ boolean or `fallback`
+No Capy signature.
 
 :see
 >types
@@ -17,9 +9,6 @@ to_f64
 2_DValue_to_stringmap
 to_s64
 2_DValue_to_string
-:capy-status cpp-specific
 
 :content
-`to_bool()` is a C++ API. It ignores case and surrounding whitespace. It accepts `1`, `true`, `yes`, and `on` as true. It accepts `0`, `false`, `no`, and `off` as false.
-
-Capy does not expose `to_bool`. Use `bool(value, fallback)`.
+Capy has no native `to_bool` signature. Use `bool(value, fallback)`.

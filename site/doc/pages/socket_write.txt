@@ -1,27 +1,12 @@
 :sig
-bool socket_write(u64 sockfd, String data)
-
-:params
-sockfd : socket handle from `socket_connect()`
-data : string to send
+function socket_write(handle : u64, data : string) bool
 
 :returns
-`true` when the write succeeds, otherwise `false`
+`true` when the write succeeds.
 
-:see
->socket
-socket_read
-socket_connect
-socket_close
-http_request_async
-http_request
 :content
-Capy `socket_write(sockfd, data)` sends a string to a socket. Give it a socket handle and the data to send.
-
-It returns `true` when the write succeeds. It returns `false` when it fails. Use it after `socket_connect()` to send a request.
+Use `socket_write` to send data to a socket.
 
 :example capy render
-var fd := socket_connect("127.0.0.1", 80)
-var sent := socket_write(fd, "GET / HTTP/1.0\r\nHost: localhost\r\nConnection: close\r\n\r\n")
-socket_close(fd)
-if sent { print("request sent\n") } else { print("send failed\n") }
+var handle := socket_connect("127.0.0.1", 1)
+if handle != 0 { print(socket_write(handle, "hello"), "\n"); socket_close(handle) }

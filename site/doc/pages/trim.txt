@@ -1,11 +1,11 @@
 :sig
-String trim(String raw)
+function trim(raw : string) string
 
 :params
 raw : text to trim
 
 :returns
-`raw` without leading or trailing whitespace
+text without leading or trailing whitespace
 
 :see
 >string
@@ -15,11 +15,9 @@ to_lower
 int_val
 regex_split
 html_escape
+
 :content
-Call `trim(raw)` to return a `string` without leading or trailing whitespace.
-
-Use it to normalize text before validation or comparison. C++ uses the same input and return value.
-
+`trim` removes leading and trailing whitespace.
 
 :example capy render
 print(trim("  docs  "), "\n")

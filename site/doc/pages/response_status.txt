@@ -1,26 +1,12 @@
 :sig
-void response_status(s32 code, string reason = "")
+function response_status(code : s32, reason : string = "")
 
 :params
 code : HTTP status code
 reason : optional reason phrase
 
-:returns
-none
-
 :content
-Use `response_status` to set the status of the current response.
-Call it before output or redirect logic.
-Use a valid HTTP status number from 100 to 999.
-If you omit `reason`, the runtime uses a built-in phrase for common codes.
-C++ keeps the same behavior through `context.set_status(code, reason)`.
+`response_status()` sets the response status.
 
 :example capy render
 response_status(202, "Accepted")
-print("status set\n")
-
-:see
->uri
-response_header
-response_cookie
-redirect

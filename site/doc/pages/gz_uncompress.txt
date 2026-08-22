@@ -1,23 +1,23 @@
 :sig
-String gz_uncompress(String compressed)
+function gz_uncompress(source : string) string
 
 :params
-compressed : gzip-format compressed bytes
+source : gzip-compressed bytes
 
 :returns
-uncompressed bytes
-
-:see
->sys
-gz_compress
-zip_list
-zip_extract
+Uncompressed bytes as a string.
 
 :content
-`gz_uncompress()` returns the uncompressed bytes from a gzip string. Use it to read data made by `gz_compress()` or another gzip writer.
+`gz_uncompress()` uncompresses gzip data from a string.
 
-It validates the gzip header, CRC32 footer, and uncompressed-size footer. It reports an error for unsupported or invalid gzip data.
+Use it with data from `gz_compress()`.
 
 :example capy render
-var packed := gz_compress("round trip data")
-print(gz_uncompress(packed), "\n")
+var packed := gz_compress("archive data")
+var source := gz_uncompress(packed)
+print(source, "\n")
+
+:see
+gz_compress
+zip_read
+zip_extract

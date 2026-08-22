@@ -1,8 +1,8 @@
 :sig
-f64 time_precise()
+function time_precise() f64
 
 :returns
-current Unix timestamp as an `f64`
+current Unix timestamp with fractional seconds
 
 :see
 >time
@@ -12,11 +12,9 @@ time_format_local
 time_format_relative
 time_format_utc
 time_parse
+
 :content
-Call `time_precise()` to get the current Unix timestamp as an `f64`.
-
-Use this value to measure elapsed time within an operation. C++ uses the same no-input call and return value.
-
+`time_precise` returns the current Unix timestamp with fractional seconds.
 
 :example capy render
-if time_precise() > 0.0 { print("timer\n") } else { print("no timer\n") }
+print(time_precise(), "\n")

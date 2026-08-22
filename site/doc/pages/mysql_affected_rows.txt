@@ -1,31 +1,23 @@
 :sig
-u32 mysql_affected_rows(MySQL* m)
+function mysql_affected_rows(handle : u64) u64
 
 :params
-m : Capy MySQL handle
+handle : the MySQL connection handle
 
 :returns
-number of changed rows as `u64`
+the number of changed rows
+
+:content
+`mysql_affected_rows()` returns the changed-row count for the latest applicable successful statement.
+
+It returns zero when no applicable statement has run or a query fails.
+
+:example capy render
+var database := mysql_connect("localhost", "root", "", "")
+if mysql_connected(database) { print(mysql_affected_rows(database), "\n") }
+if database != u64(0) { mysql_disconnect(database) }
 
 :see
 >mysql
 mysql_query
-mysql_insert_id
-mysql_escape
-mysql_error
-mysql_disconnect
-mysql_connected
-:content
-Pass the opaque `u64` handle from `mysql_connect()`.
-
-This function returns the rows changed by the most recent applicable successful statement. A valid connection without such a statement returns zero. A rejected query also returns zero.
-
-The C++ API returns `u32`. Capy returns `u64`.
-
-:example capy render
-var db := mysql_connect("localhost", "root", "", "")
-if db != 0 {
-    mysql_query(db, "update users set active=1 where active=0")
-    print("rows updated: ", mysql_affected_rows(db), "\n")
-    mysql_disconnect(db)
-} else { print("(requires a reachable MySQL server)\n") }
+mysql_connect

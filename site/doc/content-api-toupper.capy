@@ -9,19 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "to-upper"
         page["route"] = "/doc/api/to-upper/"
         page["title"] = "to_upper"
-        page["content"] = "`to_upper()` is a C++ API. It normalizes ASCII text. It does not convert Unicode case.\n\nCapy does not expose `to_upper`. Use `upper(value)`.\n"
-        page["returns"] = "`s` with lowercase ASCII characters changed to uppercase"
-        page["capy_status"] = "cpp-specific"
+        page["content"] = "## sig\n\nNo Capy signature.\n\nCapy has no native `to_upper` signature. Use `upper(value)`.\n"
         page["label"] = "to_upper"
-        page["sig_lines"] = dval(["String to_upper(String s)", ""])
         page["capy_sig_lines"] = dval([])
-        page["param_lines"] = dval(["s : C++ text to convert", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">string", "upper", "to_lower", "trim", "regex_split", "float_val", "regex_replace"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([])
         page["guide_examples"] = dval([])
         return page
     }

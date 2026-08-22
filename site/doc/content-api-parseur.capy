@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "parse-uri"
         page["route"] = "/doc/api/parse-uri/"
         page["title"] = "parse_uri"
-        page["content"] = "`parse_uri()` returns URI parts as a `dval`.\n\nRead the `parts` and `query` maps from the result. `query` uses the same rules as `parse_query()`.\n\nFor an absolute URL, `parts` can contain `scheme`, `host`, `port`, `path`, `query`, and `fragment`. `path` does not start with `/`.\n\nUse `parse_uri()` for a complete URL. Use `parse_query()` for query text only.\n"
-        page["returns"] = "URI data as a `dval`. C++ returns a `URI` value"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction parse_uri(uri : string) dval\n\n`parse_uri()` returns URI parts as a `dval`.\n\nRead the `parts` and `query` maps from the result. Use `parse_query()` when you only have query text.\n"
+        page["returns"] = "the URI data"
         page["label"] = "parse_uri"
-        page["sig_lines"] = dval(["URI parse_uri(String uri_string)", ""])
         page["capy_sig_lines"] = dval(["function parse_uri(uri : string) dval"])
-        page["param_lines"] = dval(["uri_string : the URI or URL text", ""])
+        page["param_lines"] = dval(["uri : the URI or URL text", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">uri", "parse_query", "uri_decode", "uri_encode"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">uri", "parse_query"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var parsed := parse_uri(\"https://example.test/docs?name=Ada\")\nprint(parsed[\"parts\"][\"path\"], \" \", parsed[\"query\"][\"name\"], \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

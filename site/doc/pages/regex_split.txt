@@ -1,30 +1,17 @@
 :sig
-DValue regex_split(String pattern, String subject)
-DValue regex_split(String pattern, String subject, String flags)
+function regex_split(pattern : string, subject : string, flags : string = "") dval
 
 :params
-pattern : PCRE2 regular expression separator
+pattern : regular expression separator
 subject : text to split
-flags : optional PCRE2 flags
+flags : regular expression flags
 
 :returns
-`dval` list of text parts
-
-:see
->string
->regex
-regex_match
-regex_search
-regex_search_all
-regex_replace
-split
-join
-0_StringList
+A list of text parts.
 
 :content
-Use this function when a regular expression defines the separator. Use `split()` for a literal separator.
-
-The result does not include separators. It keeps empty parts. If the pattern does not match, the result contains `subject` as one item. Zero-length matches advance safely.
+`regex_split()` removes separators and keeps empty parts.
 
 :example capy render
-print(join(regex_split("\\s+", "bearer docs api"), ","), "\n")
+var parts := regex_split(",", "a,,b")
+print(parts[1], "\n")

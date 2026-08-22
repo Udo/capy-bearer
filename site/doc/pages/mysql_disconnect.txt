@@ -1,25 +1,20 @@
 :sig
-void mysql_disconnect(MySQL* m)
+function mysql_disconnect(handle : u64)
 
 :params
-m : Capy MySQL handle
+handle : the MySQL connection handle
+
+:content
+`mysql_disconnect()` releases the MySQL connection lease.
+
+Do not use the handle after this call.
+
+:example capy render
+var database := mysql_connect("localhost", "root", "", "")
+if database != u64(0) { mysql_disconnect(database) }
+print("connection released\n")
 
 :see
 >mysql
-mysql_connected
-mysql_error
 mysql_connect
-mysql_escape
-mysql_insert_id
-mysql_affected_rows
-:content
-Pass the opaque `u64` handle from `mysql_connect()`.
-
-This function releases the connection lease. It does not necessarily close a pooled server connection immediately. Do not use the handle after this call.
-
-The C++ API accepts `MySQL*` instead.
-
-:example capy render
-var db := mysql_connect("localhost", "root", "", "")
-if db != 0 { mysql_disconnect(db); print("connection closed\n") }
-else { print("(requires a reachable MySQL server)\n") }
+mysql_connected

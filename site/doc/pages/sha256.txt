@@ -1,25 +1,11 @@
 :sig
-String sha256(String data)
-
-:params
-data : bytes to hash
+function sha256(value : string) string
 
 :returns
-raw 32-byte SHA-256 digest
+Raw 32-byte SHA-256 digest.
 
 :content
-Use this function when another binary operation needs a SHA-256 digest.
-
-It returns the raw 32-byte digest of `data`. Use `sha256_hex()` when you need printable text.
+Use `sha256` to create a raw SHA-256 digest. Use `sha256_hex` when you need hexadecimal text.
 
 :example capy render
-print(length(sha256("abc")), " raw bytes, hex = ", sha256_hex("abc"), "\n")
-
-:see
->sys
-sha256_hex
-hmac_sha256
-basename
-dirname
-expand_path
-file_append
+print(length(sha256("abc")), "\n")

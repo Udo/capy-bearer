@@ -9,20 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "dval"
         page["route"] = "/doc/api/dval/"
         page["title"] = "dval"
-        page["content"] = "Use `dval()` to build a dynamic value from scalar values or a literal structure.\n\nIt converts `string`, integer, float, and `bool` scalars into typed `dval` entries. It keeps existing `dval` input as `dval`.\n\nUse it for request and task payloads, JSON-like in-memory data, and nested maps and lists.\n"
-        page["returns"] = "new `dval` value"
-        page["errors"] = "Compilation fails when `dval()` receives an unsupported input type. The compiler rejects map literals with duplicate keys."
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction dval(value : string) dval\nfunction dval(value : s32) dval\nfunction dval(value : s64) dval\nfunction dval(value : u64) dval\nfunction dval(value : f64) dval\nfunction dval(value : bool) dval\nfunction dval(value : dval) dval\n\n`dval()` converts a scalar or literal structure to a dynamic value.\n\nUse it for request payloads and nested map or list data. Existing `dval` input stays a `dval` value.\n"
+        page["returns"] = "A `dval` value."
         page["label"] = "dval"
-        page["sig_lines"] = dval(["dval(value : string) dval", "dval(value : s32) dval", "dval(value : s64) dval", "dval(value : u64) dval", "dval(value : f64) dval", "dval(value : bool) dval", "dval(value : dval) dval", ""])
         page["capy_sig_lines"] = dval(["function dval(value : string) dval", "function dval(value : s32) dval", "function dval(value : s64) dval", "function dval(value : u64) dval", "function dval(value : f64) dval", "function dval(value : bool) dval", "function dval(value : dval) dval"])
-        page["param_lines"] = dval(["value : scalar value, map or list literal, or existing `dval`", ""])
+        page["param_lines"] = dval(["value : a scalar, literal structure, or `dval`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "2_DValue_is_array", "2_DValue_is_list", "2_DValue_to_string"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">0_DValue", "dval_put", "dval_set"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var profile := dval({name: \"Ada\", scores: [1, 2, 3]})\nprint(string(profile.name), \" \", length(profile.scores), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

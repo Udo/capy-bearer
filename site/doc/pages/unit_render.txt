@@ -1,10 +1,8 @@
 :sig
-void unit_render(String file_name)
-void unit_render(String file_name, Request& context)
+function unit_render(name : string)
 
 :params
-file_name : unit path
-context : optional request context for the target page
+name : unit path
 
 :see
 >ob
@@ -14,14 +12,7 @@ unit_load
 component
 
 :content
-Call `unit_render(name)` to run another unit's `RENDER` function.
-
-Capy has no `context` input. It uses the current request context. Use this function when the unit writes page output instead of returning a value.
-
-A missing unit or `RENDER` function is an error. For an optional unit, call `unit_info()` before `unit_render()`.
-
-C++ adds the `Request& context` overload in the signature above. If you omit it, C++ uses the active request context.
-
+`unit_render` runs a unit `RENDER` handler.
 
 :example capy render
-unit_render("examples/sample_unit.capy")
+unit_render("/tests/capy-cross-target.capy")

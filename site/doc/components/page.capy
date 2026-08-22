@@ -44,6 +44,9 @@ function render_examples(page : dval) void {
         print("<div class=\"doc-section example error\"><h3>Example format error</h3><pre>", html_escape(string(page.example_error, "")), "</pre></div>")
         return
     }
+    for example := page.examples {
+        print("<div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">", html_escape(string(example.body, "")), "</pre></div><div class=\"example-compile-only\">Compile-only: this example is not executed by documentation rendering.</div></div>")
+    }
     for example := page.guide_examples {
         print("<div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">", html_escape(string(example.body, "")), "</pre></div>")
         if example.output? {
@@ -52,29 +55,6 @@ function render_examples(page : dval) void {
             print("<div class=\"example-compile-only\">Compile-only: this example is not executed by documentation rendering.</div>")
         }
         print("</div>")
-    }
-    for pair := page.example_pairs {
-        print("<div class=\"doc-section example paired-example\"><h3>Example</h3>")
-        print("<div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">", html_escape(string(pair.capy_body, "")), "</pre></div>")
-        print("<div class=\"example-language cpp\"><h4>C++ (.capy)</h4><pre class=\"example-source\">", html_escape(string(pair.cpp_body, "")), "</pre></div>")
-        if string(pair.entry, "") == "render" {
-            print("<div class=\"example-output\"><div class=\"example-output-label\">Output</div><pre>Example output is checked by the documentation example suite.</pre></div>")
-        } else {
-            print("<div class=\"example-compile-only\">Compile-only: this example is not executed by documentation rendering.</div>")
-        }
-        print("</div>")
-    }
-    for example := page.cpp_only_examples {
-        print("<div class=\"doc-section example cpp-only-example\"><h3>Example</h3><div class=\"example-language cpp\"><h4>C++ (.capy)</h4><pre class=\"example-source\">", html_escape(string(example.body, "")), "</pre></div>")
-        if string(example.entry, "") == "render" {
-            print("<div class=\"example-output\"><div class=\"example-output-label\">Output</div><pre>Example output is checked by the documentation example suite.</pre></div>")
-        } else {
-            print("<div class=\"example-compile-only\">Compile-only: this example is not executed by documentation rendering.</div>")
-        }
-        print("</div>")
-    }
-    for example := page.legacy_examples {
-        print("<div class=\"doc-section example legacy-example\"><h3>Legacy C++ example</h3><pre class=\"example-source\">", html_escape(string(example.body, "")), "</pre><div class=\"example-output\"><div class=\"example-output-label\">Output</div><pre>Example output is checked by the documentation example suite.</pre></div></div>")
     }
 }
 
@@ -97,7 +77,6 @@ function render_guide_navigation(page : dval) void {
 function render_page(page : dval) void {
     print("<main class=\"content doc-page doc-detail\"><h2>", html_escape(string(page.title, string(page.label, "Documentation"))), "</h2>")
     render_lines("Capy", page.capy_sig_lines)
-    render_lines("C++ (.capy)", page.sig_lines)
     if string(page.content, "") != "" {
         print("<div class=\"doc-section content\">")
         if string(page.kind, "") == "api" { print("<h3>Description</h3>") }

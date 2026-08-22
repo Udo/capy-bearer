@@ -1,27 +1,23 @@
 :sig
-bool mysql_connected(MySQL* m)
+function mysql_connected(handle : u64) bool
 
 :params
-m : Capy MySQL handle
+handle : the MySQL connection handle
 
 :returns
 `true` when the handle has a live server connection
 
+:content
+`mysql_connected()` tests whether a MySQL handle has a live server connection.
+
+Use `mysql_error()` to get the diagnostic when it returns `false`.
+
+:example capy render
+var database := mysql_connect("localhost", "root", "", "")
+print(mysql_connected(database), "\n")
+if database != u64(0) { mysql_disconnect(database) }
+
 :see
 >mysql
 mysql_connect
-mysql_disconnect
 mysql_error
-mysql_escape
-mysql_insert_id
-mysql_affected_rows
-:content
-Pass the opaque `u64` handle from `mysql_connect()`.
-
-This function distinguishes a failed connection wrapper from a live server connection. It returns `false` for a failed wrapper in both Capy and C++.
-
-:example capy render
-var db := mysql_connect("localhost", "root", "", "")
-if !mysql_connected(db) { print("database unavailable: ", mysql_error(db), "\n") }
-else { print("database connected\n") }
-if db != 0 { mysql_disconnect(db) }

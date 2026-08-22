@@ -1,35 +1,22 @@
 :sig
-bool(value : dval, fallback : bool = false) bool
-bool(value : string, fallback : bool = false) bool
+function bool(value : dval, fallback : bool = false) bool
+function bool(value : string, fallback : bool = false) bool
 
 :params
-value : source value to convert
-fallback : value returned when conversion fails
+value : value to convert
+fallback : value to return when conversion fails
 
 :returns
-converted boolean, or `fallback`
+a Boolean value
 
 :content
-Use `bool` to read scalar data as a Boolean value.
+`bool` converts a `dval` or string to a Boolean value.
 
-`bool(dval, fallback)` reads `none`, scalar `string`, scalar `bool`, and scalar `f64` values. It returns `fallback` for maps, lists, and failed conversions.
+For strings, it ignores outer whitespace and accepts case-insensitive Boolean text. It returns `fallback` when conversion fails.
 
-`bool(string, fallback)` trims spaces and then applies the same rules. Accepted text tokens are case-insensitive: `true`, `false`, `1`, `0`, `yes`, `no`, `on`, and `off`.
-
-:errors
-`bool` does not throw. It returns `fallback` when conversion fails.
-
-:example capy render bool() parses recognized text
-print(bool("true"), "\n")
-print(bool("OFF"), "\n")
-
-:example capy render bool() returns the fallback for empty text
-print(bool("", true), "\n")
+:example capy render
+print(bool("YES"), "\n")
+print(bool("unknown", true), "\n")
 
 :see
->types
-2_DValue_to_bool
-2_DValue_to_f64
-2_DValue_to_s64
-2_DValue_to_u64
-2_DValue_to_string
+string

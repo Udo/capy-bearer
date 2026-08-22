@@ -1,31 +1,20 @@
-
 :sig
-bool job_cancel(u64 job_id)
+function job_cancel(job : dval) bool
 
 :params
-job : the Capy `dval` job ID. Capy uses a `u64` ID.
+job : a job ID as `dval`
 
 :returns
-`true` when Bearer cancels an active job. Otherwise, `false`.
+`true` when the system cancels an active job. Otherwise, `false`.
 
 :content
-`job_cancel()` requests cancellation of a job.
+`job_cancel()` requests cancellation of a job. A canceled job reports the `cancelled` state.
 
-Use it to stop a job that no longer has a useful result. Its status then reports `cancelled`.
-
-In Capy, pass the job ID as `dval`. In Capy, pass the `u64` job ID shown above.
+:example capy render
+var job := shell_spawn(dval({"cmd": "sleep 5", "timeout_ms": 10000}))
+print(job_cancel(job), "\n")
 
 :see
->sys
 job_await
-file_unlink
 job_result
-zip_create
 job_status
-zip_list
-:example capy render
-var spec := dval({"cmd": "sleep 5", "timeout_ms": 10000})
-var job := shell_spawn(spec)
-var result := "could not cancel"
-if job_cancel(job) { result = "job cancelled" }
-print(result, "\n")

@@ -2,23 +2,16 @@
 CLI
 
 :sig
-CLI(Request& context)
-
-:see
->0_Request
->1_RENDER
->1_COMPONENT
->1_CLI
->1_WS
+function CLI(request : dval)
 
 :content
-`function CLI(request : dval)` defines the Capy local command entrypoint.
+`CLI` defines the local command entrypoint.
 
-Every Capy Bearer handler has exactly one parameter. The parameter name is `request`. Its type is `dval`. The value is a copied request snapshot. Bearer calls this handler through its local CLI socket.
+The handler has one parameter named `request` with type `dval`. Read command data from the request snapshot. Use `print` to write command output.
 
-Read input from the request fields. Use response, session, output, and WebSocket functions for effects. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.
-
-C++ declares `CLI(Request& context)`. Its live `context` provides query, POST, body, parameter, header, and response access. C++ can test `context.params["BEARER_CLI"]` and read `context.params["SCRIPT_FILENAME"]`.
-
-:example capy render
+:example capy cli
 print(string(request.method, ""), "\n")
+
+:see
+0_Request
+1_RENDER

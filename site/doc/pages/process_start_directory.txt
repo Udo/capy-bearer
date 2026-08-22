@@ -1,23 +1,18 @@
 :sig
-String process_start_directory()
+function process_start_directory() string
 
 :returns
 the worker process start directory
 
-:see
->sys
->cwd_get
->cwd_set
-path_real
-request_perf
-path_is_within
-runtime_safe_key
-file_fsync
-file_symlink
 :content
-`process_start_directory()` returns the worker's start directory as a `string`.
+`process_start_directory()` returns the worker process start directory.
 
 The value does not change when `cwd_set()` changes the current directory.
 
 :example capy render
-if process_start_directory() != "" { print("have a start directory\n") } else { print("none\n") }
+print(process_start_directory(), "\n")
+
+:see
+>sys
+cwd_get
+cwd_set

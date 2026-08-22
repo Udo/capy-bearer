@@ -1,29 +1,24 @@
 :sig
-bool mkdir(String path)
+function mkdir(path : string) bool
 
 :params
-path : directory path
+path : the directory path
 
 :returns
-`true` if the API creates the directory
+`true` when the API creates the directory
 
 :content
-This function creates one directory at `path`.
+`mkdir()` creates one directory at `path`.
 
-Use it when the parent directory already exists. It does not create missing parent directories. The C++ API has the same behavior.
+The parent directory must exist. This function does not create parent directories.
 
 :example capy render
-var root := file_temp("/tmp/doc-mkdir-")
-file_unlink(root)
-mkdir(root)
-if bool(file_stat(root)["is_dir"]) { print("created\n") } else { print("not created\n") }
-dir_remove(root, true)
+var path := file_temp("/tmp/doc-mkdir-")
+file_unlink(path)
+print(mkdir(path), "\n")
+dir_remove(path, true)
 
 :see
 >sys
 dir_remove
-dir_list
-ls
 path_join
-cwd_get
-cwd_set

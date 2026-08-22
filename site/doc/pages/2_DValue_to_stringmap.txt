@@ -1,21 +1,14 @@
 :title
-DValue to_stringmap
+Convert to a string map
 
 :sig
-StringMap DValue::to_stringmap() const
-
-:returns
-C++ `StringMap` copy
+No Capy declaration.
 
 :see
->types
 0_DValue
 0_StringMap
-2_DValue_to_string
-
-:capy-status cpp-specific
 
 :content
-`DValue::to_stringmap()` is a C++ API. It converts map children to string entries. A nonempty string, f64, or boolean becomes a `value` entry. An empty string returns an empty map.
+Capy does not provide a string-map conversion.
 
-It also converts C++ pointers. It returns an empty map for an unresolved reference. Capy does not expose `dval_to_stringmap`. Use a `dval` map directly.
+Use a map-shaped `dval` directly for string-keyed values.

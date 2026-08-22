@@ -9,19 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "response-cookie"
         page["route"] = "/doc/api/response-cookie/"
         page["title"] = "response_cookie"
-        page["content"] = "Use `response_cookie` to queue a response cookie.\nThe function writes a `Set-Cookie` header and keeps `request.cookies` in sync.\nThe default cookie path is `/`, and `HttpOnly` plus `SameSite=Lax` are always added.\nC++ keeps the same effect through `set_cookie(name, value)`.\n"
-        page["returns"] = "none"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction response_cookie(name : string, value : string)\n\n`response_cookie()` queues a response cookie.\n"
         page["label"] = "response_cookie"
-        page["sig_lines"] = dval(["void response_cookie(string name, string value)", ""])
         page["capy_sig_lines"] = dval(["function response_cookie(name : string, value : string)"])
         page["param_lines"] = dval(["name : cookie name", "value : cookie value", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">session", "session_start", "session_destroy", "response_header"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "response_cookie(\"theme\", \"dark\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -32,19 +27,14 @@ function data(input : dval) dval {
         page["slug"] = "response-header"
         page["route"] = "/doc/api/response-header/"
         page["title"] = "response_header"
-        page["content"] = "Use `response_header` to set one response header.\nHeader names must use letters, digits, hyphen, or underscore only.\nIf `name` fails validation, execution traps.\nThe runtime removes raw carriage return and newline characters from `value`.\nCapy updates the context header map. C++ code uses `context.header[name] = value`.\n"
-        page["returns"] = "none"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction response_header(name : string, value : string)\n\n`response_header()` sets a response header.\n"
         page["label"] = "response_header"
-        page["sig_lines"] = dval(["void response_header(string name, string value)", ""])
         page["capy_sig_lines"] = dval(["function response_header(name : string, value : string)"])
-        page["param_lines"] = dval(["name : response header name", "value : response header value", ""])
+        page["param_lines"] = dval(["name : header name", "value : header value", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">uri", "response_status", "response_cookie", "redirect"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "response_header(\"X-Mode\", \"docs\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -55,19 +45,14 @@ function data(input : dval) dval {
         page["slug"] = "response-status"
         page["route"] = "/doc/api/response-status/"
         page["title"] = "response_status"
-        page["content"] = "Use `response_status` to set the status of the current response.\nCall it before output or redirect logic.\nUse a valid HTTP status number from 100 to 999.\nIf you omit `reason`, the runtime uses a built-in phrase for common codes.\nC++ keeps the same behavior through `context.set_status(code, reason)`.\n"
-        page["returns"] = "none"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction response_status(code : s32, reason : string = \"\")\n\n`response_status()` sets the response status.\n"
         page["label"] = "response_status"
-        page["sig_lines"] = dval(["void response_status(s32 code, string reason = \"\")", ""])
         page["capy_sig_lines"] = dval(["function response_status(code : s32, reason : string = \"\")"])
         page["param_lines"] = dval(["code : HTTP status code", "reason : optional reason phrase", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">uri", "response_header", "response_cookie", "redirect"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "response_status(202, \"Accepted\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

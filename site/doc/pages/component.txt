@@ -1,27 +1,29 @@
 :sig
-String component(String name, [DValue props], [Request& context])
+function component(name : string) string
+function component(name : string, props : as dval) string
 
-:see
->ob
->component_render
->1_COMPONENT
->1_RENDER
-unit_call
-component_exists
-cli_arg
-component_resolve
-cli_input
-load
+:params
+name : a component name or named handler
+props : optional input for `request.props`
+
+:returns
+The component output.
+
 :content
-`component()` runs a Capy component and returns its output as a string.
+`component()` renders a component and returns its output as a string.
 
-Pass a component name and optional `dval` props. The component reads copied props from `request.props`. Use `component()` when you need captured output, such as markup inside a larger value.
+Use it when a larger result needs a component fragment. `component_render()` writes output directly.
 
-Bearer first tries the exact name. Without a suffix, it also tries the `.capy` form. It checks both forms below `components/`. An explicit `.capy` name selects a Capy source file. A colon selects a named component handler. A name that starts with a colon selects a handler in the current file.
+Bearer accepts a component path with or without the `.capy` suffix. A colon selects a named handler. A leading colon selects a handler in the current file.
 
-A missing component or handler causes a server error with status 500. Call `component_exists()` first when the component is optional.
-
-`component_render()` writes output directly. In Capy, pass `context` as the optional final argument when needed.
+Use `component_exists()` before an optional component.
 
 :example capy render
-print(component("examples/sample_unit"), "\n")
+var props := {name: "Capy"}
+print(component("/tests/capy-request-context.capy", props), "\n")
+
+:see
+component_capture
+component_exists
+component_render
+component_resolve

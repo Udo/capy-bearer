@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "str-ends-with"
         page["route"] = "/doc/api/str-ends-with/"
         page["title"] = "str_ends_with"
-        page["content"] = "Use `str_ends_with` to test whether a Capy string ends with a suffix. Pass the string and the suffix. The function returns a Boolean value.\n\nCapy uses `string` values. Capy uses `String`, as the signature shows.\n"
-        page["returns"] = "`true` when the string ends with the suffix. Otherwise, `false`."
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction str_ends_with(haystack : string, needle : string) bool\n\nUse `str_ends_with` to test a string suffix.\n"
+        page["returns"] = "`true` when the text ends with the suffix."
         page["label"] = "str_ends_with"
-        page["sig_lines"] = dval(["bool str_ends_with(String haystack, String needle)", ""])
         page["capy_sig_lines"] = dval(["function str_ends_with(haystack : string, needle : string) bool"])
-        page["param_lines"] = dval(["haystack : Capy string to inspect", "needle : suffix to compare", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "strpos", "str_starts_with", "print", "substr", "nibble", "split"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(str_ends_with(\"index.capy\", \".capy\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "shell-escape"
         page["route"] = "/doc/api/shell-escape/"
         page["title"] = "shell_escape"
-        page["content"] = "Capy `shell_escape(raw)` returns `raw` as one shell word. Give it one value that will become an argument in a command string.\n\nUse it before `shell_exec()` when a command contains input from outside the program. It does not make a complete command safe. Do not use it for shell syntax.\n"
-        page["returns"] = "a single-quoted shell word that represents `raw`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction shell_escape(raw : string) string\n\nUse `shell_escape` for one value in a shell command. Do not use it for shell syntax or a complete command.\n"
+        page["returns"] = "A shell-escaped word."
         page["label"] = "shell_escape"
-        page["sig_lines"] = dval(["String shell_escape(String raw)", ""])
         page["capy_sig_lines"] = dval(["function shell_escape(raw : string) string"])
-        page["param_lines"] = dval(["raw : string value to use as one shell word", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "cwd_set", "shell_exec", "path_join", "shell_spawn", "mkdir", "job_status"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(shell_escape(\"Ada Lovelace\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

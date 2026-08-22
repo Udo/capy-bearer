@@ -1,22 +1,17 @@
+:title
+Test for a container
+
 :sig
-bool DValue::is_array() const
+function dval_is_array(value : dval) bool
+
+:params
+value : value to test
 
 :returns
-true when the dereferenced value is map-shaped
+`true` for a map or list.
 
-:see
->types
-0_DValue
-2_DValue_is_list
-2_DValue_has
-2_DValue_get_by_path
-2_Request_set_status
-2_DValue_each
 :content
-Use `dval_is_array(value)` in Capy to test whether a DValue is map-shaped. It returns `true` for both maps and lists. It does not require numeric or contiguous keys. Use `dval_is_list()` to test for a list.
-
-C++ `is_array()` tests the dereferenced value's `M` container type.
+`dval_is_array` returns `true` when a value has map shape. It returns `true` for both maps and lists.
 
 :example capy render
-var user := dval({"name": "Ada"})
-if dval_is_array(user) { print("array\n") } else { print("scalar\n") }
+print(dval_is_array(dval({"name": "Ada"})), "\n")

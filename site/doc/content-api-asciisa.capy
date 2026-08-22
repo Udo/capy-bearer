@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "ascii-safe-name"
         page["route"] = "/doc/api/ascii-safe-name/"
         page["title"] = "ascii_safe_name"
-        page["content"] = "Capy's `ascii_safe_name(raw)` returns an ASCII-only `string` name. Pass any input string.\n\nThe function transliterates or removes non-ASCII characters. Use it when a file name, header, or protocol requires ASCII. The function does not report errors.\n\nThe C++ `String` function has the same input and result.\n"
-        page["returns"] = "an ASCII-only sanitized name"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction ascii_safe_name(raw : string) string\n\n`ascii_safe_name` converts text to an ASCII-safe name.\n\nUse it when a target accepts ASCII names only.\n"
+        page["returns"] = "an ASCII-safe name"
         page["label"] = "ascii_safe_name"
-        page["sig_lines"] = dval(["String ascii_safe_name(String raw)", ""])
         page["capy_sig_lines"] = dval(["function ascii_safe_name(raw : string) string"])
-        page["param_lines"] = dval(["raw : arbitrary input string", ""])
+        page["param_lines"] = dval(["raw : source text", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "safe_name", "clone", "base64_decode", "length", "base64_encode", "string"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["safe_name"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(ascii_safe_name(\"Café file-1\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

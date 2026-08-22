@@ -9,18 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "unit-render"
         page["route"] = "/doc/api/unit-render/"
         page["title"] = "unit_render"
-        page["content"] = "Call `unit_render(name)` to run another unit's `RENDER` function.\n\nCapy has no `context` input. It uses the current request context. Use this function when the unit writes page output instead of returning a value.\n\nA missing unit or `RENDER` function is an error. For an optional unit, call `unit_info()` before `unit_render()`.\n\nC++ adds the `Request& context` overload in the signature above. If you omit it, C++ uses the active request context.\n\n"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction unit_render(name : string)\n\n`unit_render` runs a unit `RENDER` handler.\n"
         page["label"] = "unit_render"
-        page["sig_lines"] = dval(["void unit_render(String file_name)", "void unit_render(String file_name, Request& context)", ""])
         page["capy_sig_lines"] = dval(["function unit_render(name : string)"])
-        page["param_lines"] = dval(["file_name : unit path", "context : optional request context for the target page", ""])
+        page["param_lines"] = dval(["name : unit path", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">ob", "unit_call", "unit_load", "1_RENDER", "component"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "unit_render(\"/tests/capy-cross-target.capy\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

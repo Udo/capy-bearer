@@ -1,26 +1,14 @@
 :title
-DValue to_json
+Encode a dynamic value as JSON
 
 :sig
-String DValue::to_json(char quote_char = '"') const
-
-:params
-quote_char : C++ quote character for string escaping
-
-:returns
-C++ JSON-like scalar representation
+No Capy declaration.
 
 :see
->types
 0_DValue
 json_encode
-2_DValue_to_f64
-2_DValue_require
-2_DValue_to_bool
-2_DValue_to_s64
-:capy-status cpp-specific
 
 :content
-`DValue::to_json()` is a C++ API. It escapes and quotes strings. It writes numbers as runtime numeric text. It writes booleans as `true` or `false`. Maps return `(array)`.
+Capy does not provide `dval_to_json`.
 
-C++ represents pointers as `(pointer)` and references as `(reference)`. Capy does not expose `dval_to_json`. Use `json_encode(value)` for JSON.
+Use `json_encode(value)` to encode a dynamic value as JSON text.

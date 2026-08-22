@@ -1,26 +1,16 @@
 :sig
-String replace(String s, String search, String replace_with)
+function replace(value : string, needle : string, replacement : string) string
 
 :params
-s : source text
-search : literal text to replace
-replace_with : replacement text
+value : source text
+needle : literal text to replace
+replacement : replacement text
 
 :returns
-source text with every literal match replaced
+Text with every literal match replaced.
 
-:see
->string
-split_utf8
-regex_match
-split_space
-regex_search
-split_kv
-regex_search_all
 :content
-Use this function to replace every literal occurrence of `search` in `s`.
-
-The function returns the changed text. It does not change `s`. Use `regex_replace()` when the search pattern is a regular expression.
+Use `regex_replace()` when the search text is a regular expression.
 
 :example capy render
-print(replace("hello docs", "docs", "BEARER"), "\n")
+print(replace("capy docs", "docs", "API"), "\n")

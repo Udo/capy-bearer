@@ -1,38 +1,27 @@
 :sig
-DValue mysql_query(MySQL* m, String q, StringMap params)
+function mysql_query(handle : u64, query : string) dval
+function mysql_query(handle : u64, query : string, params : dval) dval
 
 :params
-m : an active MySQL connection. Capy uses a `u64` handle. C++ uses a pointer.
-q : the MySQL query text
-params : optional named parameter values
+handle : the MySQL connection handle
+query : the SQL query text
+params : the named parameter values
 
 :returns
 the query result rows
 
+:content
+`mysql_query()` runs a query and returns its rows as a `dval`.
+
+Use named `:name` placeholders with a `dval` map. The API rejects positional `?` placeholders. Add `!` to a placeholder only for an unquoted non-negative integer.
+
+:example capy render
+var database := mysql_connect("localhost", "root", "", "")
+if mysql_connected(database) { var rows := mysql_query(database, "select :name as name", dval({"name": "Ada"})); print(rows[0]["name"], "\n") }
+if database != u64(0) { mysql_disconnect(database) }
+
 :see
 >mysql
-mysql_affected_rows
-mysql_insert_id
-mysql_escape
+mysql_connect
 mysql_error
-mysql_disconnect
-mysql_connected
-:content
-`mysql_query()` runs a MySQL query and returns its rows as a `dval`.
-
-Pass parameter values as a `dval` map. Use named `:name` placeholders. The API rejects positional `?` placeholders.
-
-Ordinary placeholders become quoted SQL strings. For an unquoted non-negative integer, such as `LIMIT` or `OFFSET`, add `!` to the placeholder: `:limit!`. Its value must contain one or more decimal digits. It cannot contain signs, whitespace, expressions, identifiers, or SQL fragments.
-
-After an insert, update, or delete, call `mysql_affected_rows()`.
-
-:note
-The examples are compile-only because they need a reachable MySQL server. They print a fallback when no server is available.
-
-:example capy cli
-var db := mysql_connect("localhost", "root", "", "")
-if db != 0 {
-    var rows := mysql_query(db, "select 'ada@example.test' as email, 1 + 1 as total limit :limit!", dval({limit: "1"}))
-    print(rows[0]["email"], " / total=", rows[0]["total"], "\n")
-    mysql_disconnect(db)
-} else { print("(requires a reachable MySQL server)\n") }
+mysql_affected_rows

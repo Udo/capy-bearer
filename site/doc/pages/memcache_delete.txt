@@ -1,30 +1,23 @@
 :sig
-bool memcache_delete(u64 connection, String key)
+function memcache_delete(connection : u64, key : string) bool
 
 :params
-connection : open connection handle
-key : entry key
+connection : the connection handle
+key : the entry key
 
 :returns
-`true` only for a `DELETED` server response
+`true` when the server deletes the entry
+
+:content
+`memcache_delete()` deletes the entry for `key`.
+
+It returns `true` only when the server returns `DELETED`.
+
+:example capy render
+var connection := memcache_connect()
+if connection != u64(0) { print(memcache_delete(connection, "doc-key"), "\n") }
 
 :see
 >memcache
 memcache_connect
 memcache_get
-memcache_command
-memcache_get_multiple
-memcache_set
-memcache_escape_key
-:content
-Pass the `u64` handle from `memcache_connect()`.
-
-This function deletes the entry for `key`. It returns `true` only when the trimmed server response is exactly `DELETED`.
-
-:example capy render
-var conn := memcache_connect()
-if conn != 0 {
-    memcache_set(conn, "doc_del_key", "v")
-    memcache_delete(conn, "doc_del_key")
-    print(memcache_get(conn, "doc_del_key", "gone"), "\n")
-} else { print("(requires a reachable memcached server)\n") }

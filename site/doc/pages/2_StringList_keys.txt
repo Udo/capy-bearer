@@ -1,19 +1,20 @@
+:title
+Get list keys
+
 :sig
-DValue::keys() (legacy `StringList` page)
+function keys(items : dval) dval
+
+:returns
+This function returns a list-shaped `dval` of string keys.
 
 :content
-`keys(items)` takes a list-shaped `dval` and returns a list-shaped `dval` of numeric string keys in list order. It returns copied values.
+`keys` returns the keys from a list-shaped `dval` in list order.
 
-Capy has no separate `StringList` type. Use `dval_keys` when you need keys from any `dval` map or list.
-
-## C++ API
-
-`DValue::keys()` provides the legacy StringList operation.
-
-:see
-0_DValue
-2_DValue_keys
+Use `dval_keys` when you need keys from any `dval` map or list.
 
 :example capy render
 var items := split("one,two", ",")
 print(join(keys(items), ","), "\n")
+
+:see
+0_StringList

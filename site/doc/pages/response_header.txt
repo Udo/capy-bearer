@@ -1,26 +1,12 @@
 :sig
-void response_header(string name, string value)
+function response_header(name : string, value : string)
 
 :params
-name : response header name
-value : response header value
-
-:returns
-none
+name : header name
+value : header value
 
 :content
-Use `response_header` to set one response header.
-Header names must use letters, digits, hyphen, or underscore only.
-If `name` fails validation, execution traps.
-The runtime removes raw carriage return and newline characters from `value`.
-Capy updates the context header map. C++ code uses `context.header[name] = value`.
+`response_header()` sets a response header.
 
 :example capy render
-response_header("X-Demo", "ok")
-print("header set\n")
-
-:see
->uri
-response_status
-response_cookie
-redirect
+response_header("X-Mode", "docs")

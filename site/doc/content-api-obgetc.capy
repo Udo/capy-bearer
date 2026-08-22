@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "ob-get-close"
         page["route"] = "/doc/api/ob-get-close/"
         page["title"] = "ob_get_close"
-        page["content"] = "`ob_get_close()` returns the current output buffer as a `string` and closes it. Output returns to the previous buffer.\n\nUse this to capture output before you change or print it.\n"
+        page["content"] = "## sig\n\nfunction ob_get_close() string\n\n`ob_get_close()` returns the current output buffer contents and closes the buffer.\n\nOutput then returns to the previous buffer.\n"
         page["returns"] = "the current output buffer contents"
-        page["example_error"] = "expected contiguous :example cpp render"
         page["label"] = "ob_get_close"
-        page["sig_lines"] = dval(["String ob_get_close()", ""])
         page["capy_sig_lines"] = dval(["function ob_get_close() string"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">ob", "ob_start", "ob_get", "ob_close"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">ob", "ob_start", "ob_get"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "ob_start()\nprint(\"captured\")\nvar output := ob_get_close()\nprint(output, \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

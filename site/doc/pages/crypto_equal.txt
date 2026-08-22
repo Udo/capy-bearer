@@ -1,29 +1,22 @@
 :sig
-bool crypto_equal(String a, String b)
+function crypto_equal(left : string, right : string) bool
 
 :params
-a : first byte string
-b : second byte string
+left : the expected byte string
+right : the submitted byte string
 
 :returns
-`true` when both byte strings are equal
+`true` if both byte strings are equal.
 
 :content
-`crypto_equal()` compares two Capy byte strings in constant time.
+`crypto_equal()` compares byte strings in constant time.
 
-Pass the expected secret and the submitted secret. It returns `true` when their bytes are equal. Use it for HMACs, tokens, and password hashes.
-
-Do not use `==` to compare secrets. Its time can reveal how many bytes matched.
+Use it to compare secrets such as HMACs and tokens. Do not use `==` to compare secrets.
 
 :example capy render
 var expected := hmac_sha256_hex("key", "payload")
-if crypto_equal(expected, hmac_sha256_hex("key", "payload")) { print("valid / ") } else { print("invalid / ") }
-if crypto_equal(expected, "tampered") { print("valid\n") } else { print("invalid\n") }
+if crypto_equal(expected, hmac_sha256_hex("key", "payload")) { print("valid\n") } else { print("invalid\n") }
+
 :see
->sys
 hmac_sha256_hex
-sha256_hex
-basename
-dirname
-expand_path
-file_append
+csrf_valid

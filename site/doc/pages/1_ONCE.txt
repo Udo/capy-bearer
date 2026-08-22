@@ -2,23 +2,16 @@
 ONCE
 
 :sig
-ONCE(Request& context)
-
-:see
->0_Request
->1_RENDER
->1_COMPONENT
->1_CLI
->1_WS
+function ONCE(request : dval)
 
 :content
-`function ONCE(request : dval)` defines the Capy request-local unit hook.
+`ONCE` defines the request-local unit hook.
 
-Every Capy Bearer handler has exactly one parameter. The parameter name is `request`. Its type is `dval`. The value is a copied request snapshot. Bearer runs this hook before the first unit entry or component call.
+Bearer runs this hook before the first unit entry or component call. The handler has one parameter named `request` with type `dval`.
 
-Read input from the request fields. Use response, session, output, and WebSocket functions for effects. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.
-
-C++ declares `ONCE(Request& context)`. C++ can store request-local data in the live context.
-
-:example capy render
+:example capy once
 print(string(request.method, ""), "\n")
+
+:see
+0_Request
+1_INIT

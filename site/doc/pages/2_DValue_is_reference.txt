@@ -1,20 +1,15 @@
-:sig
-bool DValue::is_reference() const
+:title
+Test for a reference
 
-:returns
-true when this node itself is a reference node
+:sig
+No Capy declaration.
 
 :see
 0_DValue
-2_DValue_reference_target
-2_DValue_deref
-
-:content
-Capy has no `dval_is_reference` API. DValues share identity inside one workspace, but Capy does not expose the C++ internal reference tag. Thus, this test has no Capy equivalent.
-
-C++ `is_reference()` tests this node's direct internal reference tag. Most C++ read methods dereference values automatically.
-
 
 :capy-status unsupported
 
-A boundary copies BRRB and does not preserve C++ internal reference tags. This predicate has no Capy equivalent.
+:content
+Capy does not expose reference nodes. It cannot test whether a dynamic value is a host reference.
+
+No Capy alternative exists.

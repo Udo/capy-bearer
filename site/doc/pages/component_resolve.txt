@@ -1,25 +1,21 @@
 :sig
-String component_resolve(String name)
+function component_resolve(name : string) string
 
 :params
-name : component path with an optional named handler
+name : a component path with an optional named handler
 
 :returns
-the resolved component source path
+The resolved component source path.
+
+:content
+`component_resolve()` resolves a component name to its source path.
+
+A name without a suffix resolves to its `.capy` file. A named handler does not affect the returned path.
+
+:example capy render
+print(component_resolve("/tests/capy-request-context"), "\n")
 
 :see
->ob
 component
 component_exists
 component_render
-1_COMPONENT
-
-:content
-`component_resolve()` resolves a Capy component name.
-
-A name without a suffix resolves to its `.capy` file. An explicit `.capy` target resolves to its Capy source path. A colon and handler name do not affect the returned path.
-
-Use this function to inspect a shorthand name before you render a component. Its name resolution matches `component()` and `component_exists()`.
-
-:example capy render
-print("resolved path: ", component_resolve("examples/sample_unit"), "\n")

@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "dirname"
         page["route"] = "/doc/api/dirname/"
         page["title"] = "dirname"
-        page["content"] = "`dirname()` returns the directory part of a Capy path string.\n\nPass a path with a final component. The returned string omits that final component. Use it to get a containing directory.\n\nThe Capy call has the same arguments.\n"
-        page["returns"] = "directory part of the path"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction dirname(path : string) string\n\n`dirname()` removes the final component from a path string.\n\nThe function does not access the file system.\n"
+        page["returns"] = "The directory part of the path."
         page["label"] = "dirname"
-        page["sig_lines"] = dval(["String dirname(String fn)", ""])
         page["capy_sig_lines"] = dval(["function dirname(path : string) string"])
-        page["param_lines"] = dval(["fn : path to inspect", ""])
+        page["param_lines"] = dval(["path : the path to inspect", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "basename", "path_join", "expand_path", "file_append", "file_exists", "file_get_contents"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["basename", "path_join"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(dirname(\"/var/www/site/index.capy\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

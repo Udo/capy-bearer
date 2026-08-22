@@ -1,29 +1,23 @@
 :sig
-u64 mysql_insert_id(MySQL* m)
+function mysql_insert_id(handle : u64) u64
 
 :params
-m : an active MySQL connection. Capy uses a `u64` handle. C++ uses a pointer.
+handle : the MySQL connection handle
 
 :returns
 the last automatic row ID for this connection
 
-:see
->mysql
-mysql_escape
-mysql_affected_rows
-mysql_error
-mysql_query
-mysql_disconnect
-mysql_connected
 :content
-`mysql_insert_id()` returns the last automatic row ID as `u64`.
+`mysql_insert_id()` returns the last automatic row ID for a connection.
 
-Call this after an `INSERT` into a table with an `AUTO_INCREMENT` column.
+Call it after an insert into a table with an automatic ID column.
 
 :example capy render
-var db := mysql_connect("localhost", "root", "", "")
-if db != 0 {
-    mysql_query(db, "select last_insert_id() as id")
-    print("mysql_insert_id() returns the last AUTO_INCREMENT id for this connection (currently ", mysql_insert_id(db), ")\n")
-    mysql_disconnect(db)
-} else { print("(requires a reachable MySQL server)\n") }
+var database := mysql_connect("localhost", "root", "", "")
+if mysql_connected(database) { print(mysql_insert_id(database), "\n") }
+if database != u64(0) { mysql_disconnect(database) }
+
+:see
+>mysql
+mysql_query
+mysql_connect

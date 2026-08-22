@@ -1,35 +1,19 @@
 :sig
-DValue json_decode(String s)
+function json_decode(value : string) dval
 
 :params
-s : text that contains JSON data
+value : JSON text
 
 :returns
-decoded `dval` data
-
-:see
-0_DValue
-json_encode
-2_DValue_to_bool
-2_DValue_to_f64
-2_DValue_to_u64
+The decoded `dval` value.
 
 :content
-This function decodes JSON text into `dval` data.
+`json_decode()` converts JSON text to a `dval` value. Objects become maps, arrays become lists, and `null` becomes `none`.
 
-JSON objects become map-shaped values. JSON arrays become list-shaped values. JSON booleans become bool values. JSON strings and numbers become string values.
+:example capy render
+var value := json_decode("{\"name\":\"Ada\",\"tags\":[\"x\",\"y\"]}")
+print(value["name"], " has ", length(value["tags"]), " tags\n")
 
-JSON `null` becomes `none` in Capy and C++. Use a constructor fallback when you read it as a scalar.
-
-Malformed JSON returns empty or partial data without an error. Use safe reads or constructors to read the result.
-
-:warning
-Malformed JSON can return partial data without an error. Validate required keys before you trust the result.
-
-:example capy render json_decode() reads object and array data
-var data := json_decode("{\"name\": \"Ada\", \"tags\": [\"x\", \"y\"]}")
-print(data.name, " has ", length(data.tags), " tags\n")
-
-:example capy render json_decode() with malformed input
-var data := json_decode("{\"name\": \"Ada\", ")
-print(string(data.name, "<missing>"), "\n")
+:see
+json_encode
+dval

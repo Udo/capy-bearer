@@ -1,26 +1,19 @@
 :sig
-String base64_decode(String raw)
+function base64_decode(value : string) string
 
 :params
-raw : Base64-encoded text
+value : Base64 text
 
 :returns
-the decoded bytes (empty on invalid input)
+the decoded string
 
 :content
-Capy's `base64_decode(raw)` returns the decoded bytes as a `string`. Capy strings can contain binary bytes.
+`base64_decode` decodes Base64 text into a string.
 
-Pass Base64 text from `base64_encode()` or another Base64 source. Invalid input returns an empty string. Use it with `base64_encode()` to move binary data through text channels.
-
-The C++ `String` function has the same input and result.
+Invalid Base64 text returns an empty string.
 
 :example capy render
 print(base64_decode("aGVsbG8="), "\n")
+
 :see
->uri
 base64_encode
-encode_query
-redirect
-request_context_params
-request_base_url
-request_query_path

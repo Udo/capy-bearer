@@ -10,6 +10,12 @@ function rebind_array(values : [s32]) [s32] {
     return values
 }
 
+function two_scopes(value : string, flag : bool) string {
+    if flag { value = "A" }
+    value = value + "?"
+    return value
+}
+
 function mutate_array(values : [s32]) void {
     values[0] = 4
     values.push(5)
@@ -23,10 +29,17 @@ function CLI(request : dval) {
     var text := "go"
     var path := "api/length"
     var head := nibble(path, "/")
+    var caller := "cc" + "/" + "dd"
+    var rebound_text := two_scopes(caller, false)
+    var pad := "z" + "z"
+    var nibble_path := "aaa" + "/" + "bbb"
+    var arc_before := arc_live()
+    for index := 0..50 { var unused := nibble(nibble_path, "/") }
+    var arc_after := arc_live()
     var values := [1, 2]
     var box := Box(3)
     var rebound := rebind_array(values)
     mutate_array(values)
     mutate_box(box)
-    print(rebind_text(text), "|", text, "|", head, ":", path, "|", rebound[0], rebound[1], "|", values[0], values[1], values[2], "|", box.value, "|", arc_live())
+    print(rebind_text(text), "|", text, "|", head, ":", path, "|", rebound_text, ":", caller, ":", pad, "|", arc_after - arc_before, "|", rebound[0], rebound[1], "|", values[0], values[1], values[2], "|", box.value, "|", arc_live())
 }

@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "server-start-http"
         page["route"] = "/doc/api/server-start-http/"
         page["title"] = "server_start_http"
-        page["content"] = "This function starts or updates a custom HTTP listener. It supports custom HTTP listeners only.\n\nThe key identifies one runtime-wide listener. A second call with the same key and bind target updates the handler without a restart. A changed bind target stops the old listener and starts another one.\n\nPass a numeric TCP port such as `\"19091\"` or a Unix socket path. Bearer accepts handler files only below its configured custom-server root. Runtime settings also limit ports, socket paths, and listener count.\n\nA Capy handler file uses `SERVE_HTTP`:\n\n```capy\nfunction SERVE_HTTP(request : dval) {\n    response_header(\"Content-Type\", \"text/plain; charset=utf-8\")\n    print(\"hello from custom HTTP\\n\")\n}\n\nfunction SERVE_HTTP:admin(request : dval) {\n    print(\"named handler\\n\")\n}\n```\n\nThe handler can read normal request data. A long-running handler delays its listener.\n\nThe paired example starts the existing C++ `examples/sample_unit.capy` handler. Pass a `.capy` path and an empty handler name to call its default `SERVE_HTTP` handler.\n"
-        page["returns"] = "listener process PID, or `0` if Bearer cannot start it"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction server_start_http(key : string, bind : string, file : string, callback : string = \"\") s32\n\n`server_start_http()` starts or updates a custom HTTP listener. The handler file must define `SERVE_HTTP`.\n"
+        page["returns"] = "The listener process ID, or `0`."
         page["label"] = "server_start_http"
-        page["sig_lines"] = dval(["pid_t server_start_http(String key, String socket_fn_or_port, String call_bearer_filename, String call_function = \"\")", ""])
         page["capy_sig_lines"] = dval(["function server_start_http(key : string, bind : string, file : string, callback : string = \"\") s32"])
-        page["param_lines"] = dval(["key : runtime-wide listener key", "socket_fn_or_port : TCP port number or Unix socket path", "call_bearer_filename : `.capy` or `.capy` file that contains the handler", "call_function : optional named handler", ""])
+        page["param_lines"] = dval(["key : listener key", "bind : TCP port or Unix socket path", "file : handler file", "callback : optional handler name", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "server_stop", "task", "gz_uncompress", "gz_compress", "file_open", "zip_extract"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var pid := server_start_http(\"docs-server\", \"29994\", \"servers/http.capy\", \"named\")\nprint(pid, \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -32,19 +28,15 @@ function data(input : dval) dval {
         page["slug"] = "server-stop"
         page["route"] = "/doc/api/server-stop/"
         page["title"] = "server_stop"
-        page["content"] = "Use this function to stop a custom HTTP listener that `server_start_http()` created.\n\nIt removes the listener configuration for `key`. It returns true if no listener exists for that key. It returns false for an empty key or when the stop operation fails.\n"
-        page["returns"] = "`true` when no listener remains or Bearer stopped it"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction server_stop(key : string) bool\n\n`server_stop()` removes the custom HTTP listener for `key`.\n"
+        page["returns"] = "`true` if no listener remains."
         page["label"] = "server_stop"
-        page["sig_lines"] = dval(["bool server_stop(String key)", ""])
         page["capy_sig_lines"] = dval(["function server_stop(key : string) bool"])
-        page["param_lines"] = dval(["key : runtime-wide listener key from `server_start_http()`", ""])
+        page["param_lines"] = dval(["key : listener key", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "server_start_http", "file_open", "gz_uncompress", "file_read", "gz_compress", "file_pread"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(server_stop(\"docs-server\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

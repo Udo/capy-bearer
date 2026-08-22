@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "file-rename"
         page["route"] = "/doc/api/file-rename/"
         page["title"] = "file_rename"
-        page["content"] = "`file_rename` moves a file from one path to another. Use it after writing a temporary file. A successful call removes the source path. It returns false when Capy cannot rename the file. Capy uses the same paths and Boolean result.\n"
-        page["returns"] = "true when Capy renames the file, otherwise false"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction file_rename(from : string, to : string) bool\n\n`file_rename` changes a file path. The source path no longer exists after a successful call.\n"
+        page["returns"] = "`true` if Capy renames the file. Otherwise, `false`."
         page["label"] = "file_rename"
-        page["sig_lines"] = dval(["bool file_rename(String from, String to)", ""])
         page["capy_sig_lines"] = dval(["function file_rename(from : string, to : string) bool"])
-        page["param_lines"] = dval(["from : current path of the file", "to : new path of the file", ""])
+        page["param_lines"] = dval(["from : source path", "to : destination path", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "file_copy", "file_temp", "dir_list", "file_stat", "file_truncate", "file_close"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-rename-source.txt\", \"moved\")\nif file_rename(\"/tmp/doc-rename-source.txt\", \"/tmp/doc-rename-destination.txt\") {\n    print(file_get_contents(\"/tmp/doc-rename-destination.txt\"), \"\\n\")\n}\n"}])
         page["guide_examples"] = dval([])
         return page
     }

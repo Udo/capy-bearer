@@ -9,19 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "cli-arg"
         page["route"] = "/doc/api/cli-arg/"
         page["title"] = "cli_arg"
-        page["content"] = "`cli_arg()` is a C++ API. It returns one CLI input value. It returns `default_value` when the value is absent or empty.\n\nCapy does not expose `cli_arg`. In a Capy `CLI` handler, read `request.query`, `request.form`, or `request.body`. Choose the field that matches the input source.\n\nCapy code passes the live `Request& context` as the first argument.\n"
-        page["returns"] = "resolved CLI string value"
-        page["capy_status"] = "cpp-specific"
+        page["content"] = "## sig\n\n`cli_arg` is not available in Capy.\n\nCapy does not provide the retired CLI argument reader.\n\nIn a `CLI` handler, read the required value from `request.query`, `request.form`, or `request.body`. Select the field that matches the input source.\n"
         page["label"] = "cli_arg"
-        page["sig_lines"] = dval(["String cli_arg(Request& context, String key, String default_value = \"\")", ""])
         page["capy_sig_lines"] = dval([])
-        page["param_lines"] = dval(["context : live C++ request context", "key : CLI input name", "default_value : value returned for an absent or empty value", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">ob", ">1_CLI", ">cli_input", ">0_Request", "cli_input", "unit_call", "1_CLI", "component", "1_RENDER", "component_exists"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">1_CLI", ">0_Request", "cli_input"])
+        page["examples"] = dval([])
         page["guide_examples"] = dval([])
         return page
     }

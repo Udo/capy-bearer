@@ -1,28 +1,19 @@
+:title
+Set a dynamic value type
+
 :sig
-void DValue::set_type(char t)
+function dval_set_type(value : dval, type : string) dval
 
 :params
-t : internal type tag such as S, F, B, M, P, or R
+value : target value
+type : type code
 
 :returns
-none
-
-:see
-0_DValue
-2_DValue_set
-2_DValue_set_array
+The changed target value.
 
 :content
-`dval_set_type(value, type)` changes the target to the specified internal type. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid.
-
-Use `dval_set`, `dval_set_bool`, or `dval_set_array` for normal Capy code. Setting map type clears children and resets list state and the next numeric index.
-
-## C++ API
-
-`DValue::set_type()` changes the object in place and can follow an internal reference.
-
+`dval_set_type` changes the internal type of `value`. Use `dval_set`, `dval_set_bool`, or `dval_set_array` for normal code.
 
 :example capy render
 var value := dval_set_type(dval(""), "M")
-value = dval_push(value, "x")
-print("type after set_array: ", dval_get_type_name(value), "\n")
+print(dval_get_type_name(value), "\n")

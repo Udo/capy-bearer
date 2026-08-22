@@ -1,30 +1,23 @@
-
 :sig
-DValue job_status(u64 job_id)
+function job_status(job : dval) dval
 
 :params
-job : the Capy `dval` job ID. Capy uses a `u64` ID.
+job : a job ID as `dval`
 
 :returns
-a `dval` status map
+A job status map.
 
 :content
-`job_status()` checks a job without waiting. The status map can include `state`, `done`, `kind`, `pid`, and `job_id`.
+`job_status()` checks a job without waiting. The map can include `state`, `done`, `kind`, `pid`, and `job_id`.
 
-`state` can be `pending`, `running`, `done`, `failed`, `cancelled`, or `missing`. Use it to poll without waiting for a result.
+The `state` value can be `pending`, `running`, `done`, `failed`, `cancelled`, or `missing`.
 
-In Capy, pass the job ID as `dval`. In Capy, pass the `u64` job ID shown above.
+:example capy render
+var job := shell_spawn(dval({"cmd": "printf x", "timeout_ms": 1000}))
+job_await(job, 3000)
+print(job_status(job)["state"], "\n")
 
 :see
->sys
-shell_spawn
 job_result
-shell_exec
 job_await
-shell_escape
 job_cancel
-:example capy render
-var spec := dval({"cmd": "printf x", "timeout_ms": 1000})
-var job := shell_spawn(spec)
-job_await(job, 3000)
-print("state: ", job_status(job)["state"], "\n")

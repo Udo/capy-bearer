@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "path-join"
         page["route"] = "/doc/api/path-join/"
         page["title"] = "path_join"
-        page["content"] = "`path_join()` returns a `string` that joins `base` and `child` with one `/` when needed.\n\nIf `child` starts with `/`, it replaces `base`. If either value is empty, the API returns the other value.\n\nThis API does not resolve `.` or `..` segments. Use `path_real()` when you need a canonical existing path.\n"
+        page["content"] = "## sig\n\nfunction path_join(base : string, child : string) string\n\n`path_join()` joins `base` and `child` with one slash when needed.\n\nAn absolute `child` replaces `base`. This function does not resolve dot segments.\n"
         page["returns"] = "the joined path"
-        page["example_error"] = "expected contiguous :example cpp render"
         page["label"] = "path_join"
-        page["sig_lines"] = dval(["String path_join(String base, String child)", ""])
         page["capy_sig_lines"] = dval(["function path_join(base : string, child : string) string"])
         page["param_lines"] = dval(["base : the base path", "child : the path to append", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "basename", "dirname", "path_real"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">sys", "path_real", "path_is_within"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(path_join(\"/var/www\", \"site/index.capy\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

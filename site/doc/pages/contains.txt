@@ -1,27 +1,19 @@
 :sig
-bool contains(String haystack, String needle)
+function contains(haystack : string, needle : string) bool
 
 :params
-haystack : string to search
-needle : substring to find
+haystack : the string to search
+needle : the substring to find
 
 :returns
-`true` when `needle` occurs in `haystack`, otherwise `false`
+`true` if `needle` occurs in `haystack`. An empty `needle` matches.
 
-:see
->string
-base64_encode
-filter
-base64_decode
-first
-ascii_safe_name
-join
 :content
-`contains()` checks whether one Capy string contains another string.
-
-Pass the string to search and the substring to find. It returns `true` for an empty substring.
-
-Use this function for a simple substring check.
+`contains()` checks for a substring.
 
 :example capy render
-if contains("bearer docs", "docs") { print("yes\n") } else { print("no\n") }
+if contains("Capy docs", "docs") { print("yes\n") } else { print("no\n") }
+
+:see
+find
+strpos

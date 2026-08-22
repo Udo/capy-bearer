@@ -9,18 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "http-request-async"
         page["route"] = "/doc/api/http-request-async/"
         page["title"] = "http_request_async"
-        page["content"] = "`http_request_async()` starts an outbound request from a `dval` request map. It returns a `u64` job ID.\n\nUse `job_await()` or `job_result()` to get the response map from `http_request()`. Use it when the handler must continue before the request finishes.\n\nThe `security` map follows `http_request()` rules. Any recognized hardening field requires all five fields to be `true`, or the job reports `invalid_request`.\n\n`job_cancel()` cancels a hardened request and its child processes. In Capy, pass `DValue` and use the returned job ID.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction http_request_async(request : dval) u64\n\n`http_request_async()` starts an outbound request and returns its job ID. Use `job_await()` or `job_result()` to get the response map.\n\nThe request map follows the `http_request()` rules.\n"
+        page["returns"] = "A job ID."
         page["label"] = "http_request_async"
-        page["sig_lines"] = dval(["u64 http_request_async(DValue req)", ""])
         page["capy_sig_lines"] = dval(["function http_request_async(request : dval) u64"])
-        page["param_lines"] = dval([])
+        page["param_lines"] = dval(["request : a map that describes an outbound request", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">socket", "http_request", "socket_close", "socket_connect", "socket_read", "socket_write"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["http_request", "job_await", "job_result"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var outbound := dval({\"method\": \"GET\", \"url\": \"http://127.0.0.1/tests/capy-render.capy\", \"headers\": {\"Host\": \"bearer.openfu.com\"}, \"timeout_ms\": 2000})\nvar job := http_request_async(outbound)\nvar done := job_await(dval(job), 3000)\nprint(s32(dval_get_by_path(done, \"result/status\")), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -31,20 +28,16 @@ function data(input : dval) dval {
         page["slug"] = "http-request"
         page["route"] = "/doc/api/http-request/"
         page["title"] = "http_request"
-        page["content"] = "`http_request()` sends an outbound HTTP or HTTPS request from a `dval` request map.\n\nSet `method`, `url`, `headers`, `body`, `timeout_ms`, and `follow_redirects` as needed. Use it for an outbound request when the request handler can wait for the response.\n\nFor hardened HTTPS requests, set every `security` field to `true`: `https_only`, `public_dns_only`, `pin_dns`, `isolated_curl`, and `no_redirects`. A partial or false hardened policy returns `invalid_request`.\n\nIn Capy, use `DValue` for the request and response.\n"
-        page["returns"] = "a `dval` map with `status`, `headers`, `body`, and `error`"
-        page["errors"] = "The hardened policy rejects non-HTTPS URLs, IP hosts, URL userinfo, unsafe DNS results, and redirects. It limits request and response bodies to 64 KiB. It limits response headers to 8 KiB.\n\nThe `error` member can be `invalid_request`, `unsafe_dns`, `timeout`, `response_too_large`, `redirect_not_allowed`, `http_status`, or `network_failure`."
-        page["example_error"] = "expected contiguous :example cpp cli"
+        page["content"] = "## sig\n\nfunction http_request(request : dval) dval\n\n`http_request()` sends an outbound HTTP or HTTPS request. Set `method`, `url`, `headers`, `body`, `timeout_ms`, and `follow_redirects` as needed.\n\nWhen you set a `security` field, set `https_only`, `public_dns_only`, `pin_dns`, `isolated_curl`, and `no_redirects` to `true`.\n"
+        page["returns"] = "A map with `status`, `headers`, `body`, and `error`."
+        page["errors"] = "The result can report `invalid_request`, `unsafe_dns`, `timeout`, `response_too_large`, `redirect_not_allowed`, `http_status`, or `network_failure`."
         page["label"] = "http_request"
-        page["sig_lines"] = dval(["DValue http_request(DValue req)", ""])
         page["capy_sig_lines"] = dval(["function http_request(request : dval) dval"])
-        page["param_lines"] = dval(["request : a `dval` map that describes the outbound request", ""])
-        page["notes"] = dval(["The examples are compile-only because they make outbound HTTP requests. Run them in a local test page when you control the target service."])
+        page["param_lines"] = dval(["request : a map that describes an outbound request", ""])
+        page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">socket", "http_request_async", "socket_close", "socket_connect", "socket_read", "socket_write"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["http_request_async"])
+        page["examples"] = dval([{entry: "cli", caption: "", body: "var outbound := dval({\"method\": \"GET\", \"url\": \"http://127.0.0.1/tests/capy-render.capy\", \"headers\": {\"Host\": \"bearer.openfu.com\"}, \"timeout_ms\": 2000})\nvar response := http_request(outbound)\nprint(\"status=\", s32(response[\"status\"]), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

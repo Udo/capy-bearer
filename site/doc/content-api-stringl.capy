@@ -8,19 +8,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "string-list-each"
         page["route"] = "/doc/api/string-list-each/"
-        page["title"] = "StringList::each"
-        page["content"] = "`each(items, callback)` takes a list-shaped `dval` and a callback that takes one string. It calls the callback once for each item in numeric list order. It returns no value.\n\nUse a list from `split` or `dval([...])`. Capy has no separate `StringList` type. It uses list-shaped DValues. Callback values are copied strings.\n\n## C++ API\n\n`DValue::each()` provides the legacy StringList operation.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "StringList::each"
-        page["sig_lines"] = dval(["DValue::each(String callback) (legacy `StringList` page)", ""])
+        page["title"] = "Call a function for each string"
+        page["content"] = "## sig\n\nfunction each(items : dval, callback : function(value : string) string)\n\n`each` calls `callback` once for each item in a list-shaped `dval`.\n\nThe callback receives a string value. `each` processes items in list order.\n"
+        page["returns"] = "This function returns no value."
+        page["label"] = "each"
         page["capy_sig_lines"] = dval(["function each(items : dval, callback : function(value : string) string)"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue", "2_DValue_each"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["0_StringList"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\neach(items, function(value : string) string { print(value); return \"\" })\nprint(\"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -30,19 +27,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "string-list-every"
         page["route"] = "/doc/api/string-list-every/"
-        page["title"] = "StringList::every"
-        page["content"] = "`every(items, predicate)` takes a list-shaped `dval` and a string predicate. It returns true only if every item satisfies the predicate. An empty list returns true.\n\nUse it with a list from `split` or `dval([...])`. Capy has no separate `StringList` type. It uses list-shaped DValues. This function does not mutate `items`.\n\n## C++ API\n\n`DValue::every()` provides the legacy StringList operation.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "StringList::every"
-        page["sig_lines"] = dval(["DValue::every(String predicate) (legacy `StringList` page)", ""])
+        page["title"] = "Test every string"
+        page["content"] = "## sig\n\nfunction every(items : dval, predicate : function(value : string) bool) bool\n\n`every` tests each string in a list-shaped `dval` with `predicate`.\n\nThis function does not change `items`.\n"
+        page["returns"] = "This function returns `true` when every item matches. It returns `true` for an empty list."
+        page["label"] = "every"
         page["capy_sig_lines"] = dval(["function every(items : dval, predicate : function(value : string) bool) bool"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["0_StringList"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\nprint(every(items, function(value : string) bool { return value != \"\" }), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -52,19 +46,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "string-list-filter"
         page["route"] = "/doc/api/string-list-filter/"
-        page["title"] = "StringList::filter"
-        page["content"] = "`filter(items, predicate)` takes a list-shaped `dval` and a string predicate. It returns a new list-shaped `dval` with the accepted strings in input order. The result uses consecutive numeric keys.\n\nCapy has no separate `StringList` type. It uses list-shaped DValues. The function returns a new list and does not mutate `items`.\n\n## C++ API\n\n`DValue::filter()` provides the legacy StringList operation.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "StringList::filter"
-        page["sig_lines"] = dval(["DValue::filter(String predicate) (legacy `StringList` page)", ""])
+        page["title"] = "Filter strings"
+        page["content"] = "## sig\n\nfunction filter(items : dval, predicate : function(value : string) bool) dval\n\n`filter` keeps the strings for which `predicate` returns `true`.\n\nThe result keeps input order. This function does not change `items`.\n"
+        page["returns"] = "This function returns a new list-shaped `dval`."
+        page["label"] = "filter"
         page["capy_sig_lines"] = dval(["function filter(items : dval, predicate : function(value : string) bool) dval"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue", "2_DValue_filter"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["0_StringList"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\nvar kept := filter(items, function(value : string) bool { return value == \"two\" })\nprint(join(kept, \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -74,19 +65,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "string-list-find"
         page["route"] = "/doc/api/string-list-find/"
-        page["title"] = "StringList::find"
-        page["content"] = "`string_list_find(items, predicate, fallback)` takes a list-shaped `dval`, a string predicate, and a fallback string. It returns the first matching string. It returns the fallback when no item matches.\n\nCapy has no separate `StringList` type. It uses list-shaped DValues. This function does not mutate `items`.\n\n## C++ API\n\n`DValue::find()` provides the legacy StringList operation.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "StringList::find"
-        page["sig_lines"] = dval(["DValue::find(String predicate, String fallback = \"\") (legacy `StringList` page)", ""])
+        page["title"] = "Find text in a string"
+        page["content"] = "## sig\n\nfunction find(haystack : string, needle : string) s32\n\n`find` searches a string for another string.\n\nFor a list-shaped `dval`, use `some` to test for a matching item.\n"
+        page["returns"] = "This function returns the byte position of `needle`. It returns `-1` when it does not find `needle`."
+        page["label"] = "find"
         page["capy_sig_lines"] = dval(["function find(haystack : string, needle : string) s32"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["0_StringList"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(find(\"one,two\", \"two\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -96,19 +84,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "string-list-keys"
         page["route"] = "/doc/api/string-list-keys/"
-        page["title"] = "StringList::keys"
-        page["content"] = "`keys(items)` takes a list-shaped `dval` and returns a list-shaped `dval` of numeric string keys in list order. It returns copied values.\n\nCapy has no separate `StringList` type. Use `dval_keys` when you need keys from any `dval` map or list.\n\n## C++ API\n\n`DValue::keys()` provides the legacy StringList operation.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "StringList::keys"
-        page["sig_lines"] = dval(["DValue::keys() (legacy `StringList` page)", ""])
+        page["title"] = "Get list keys"
+        page["content"] = "## sig\n\nfunction keys(items : dval) dval\n\n`keys` returns the keys from a list-shaped `dval` in list order.\n\nUse `dval_keys` when you need keys from any `dval` map or list.\n"
+        page["returns"] = "This function returns a list-shaped `dval` of string keys."
+        page["label"] = "keys"
         page["capy_sig_lines"] = dval(["function keys(items : dval) dval"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue", "2_DValue_keys"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["0_StringList"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\nprint(join(keys(items), \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -118,19 +103,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "string-list-map"
         page["route"] = "/doc/api/string-list-map/"
-        page["title"] = "StringList::map"
-        page["content"] = "`map(items, mapper)` takes a list-shaped `dval` and a string mapper. It returns a new list-shaped `dval` of mapped strings in input order.\n\nCapy has no separate `StringList` type. It uses list-shaped DValues. The function returns a new list and does not mutate `items`.\n\n## C++ API\n\n`DValue::map()` provides the legacy StringList operation.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "StringList::map"
-        page["sig_lines"] = dval(["DValue::map(String mapper) (legacy `StringList` page)", ""])
+        page["title"] = "Map strings"
+        page["content"] = "## sig\n\nfunction map(items : dval, mapper : function(value : string) string) dval\n\n`map` calls `mapper` for each string in a list-shaped `dval`.\n\nThe result keeps input order. This function does not change `items`.\n"
+        page["returns"] = "This function returns a new list-shaped `dval`."
+        page["label"] = "map"
         page["capy_sig_lines"] = dval(["function map(items : dval, mapper : function(value : string) string) dval"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue", "2_DValue_map"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["0_StringList"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\nvar names := map(items, function(value : string) string { return upper(value) })\nprint(join(names, \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -140,19 +122,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "string-list-some"
         page["route"] = "/doc/api/string-list-some/"
-        page["title"] = "StringList::some"
-        page["content"] = "`some(items, predicate)` takes a list-shaped `dval` and a string predicate. It returns true when any item satisfies the predicate. An empty list returns false.\n\nCapy has no separate `StringList` type. It uses list-shaped DValues. This function does not mutate `items`.\n\n## C++ API\n\n`DValue::some()` provides the legacy StringList operation.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "StringList::some"
-        page["sig_lines"] = dval(["DValue::some(String predicate) (legacy `StringList` page)", ""])
+        page["title"] = "Test any string"
+        page["content"] = "## sig\n\nfunction some(items : dval, predicate : function(value : string) bool) bool\n\n`some` tests each string in a list-shaped `dval` with `predicate`.\n\nThis function does not change `items`.\n"
+        page["returns"] = "This function returns `true` when any item matches. It returns `false` for an empty list."
+        page["label"] = "some"
         page["capy_sig_lines"] = dval(["function some(items : dval, predicate : function(value : string) bool) bool"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["0_StringList"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\nprint(some(items, function(value : string) bool { return value == \"two\" }), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -162,19 +141,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "string-list-sort"
         page["route"] = "/doc/api/string-list-sort/"
-        page["title"] = "StringList::sort"
-        page["content"] = "`sort(items)` takes a list-shaped `dval` and returns a new list-shaped `dval` with strings in ascending order. It does not change `items`.\n\nCapy has no separate `StringList` type. It uses list-shaped DValues. This pure transformation returns a new list.\n\n## C++ API\n\n`DValue::sort()` provides the legacy StringList operation.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "StringList::sort"
-        page["sig_lines"] = dval(["DValue::sort() (legacy `StringList` page)", ""])
+        page["title"] = "Sort strings"
+        page["content"] = "## sig\n\nfunction sort(items : dval) dval\n\n`sort` sorts the strings in a list-shaped `dval`.\n\nThis function does not change `items`.\n"
+        page["returns"] = "This function returns a new list-shaped `dval` in ascending order."
+        page["label"] = "sort"
         page["capy_sig_lines"] = dval(["function sort(items : dval) dval"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["0_StringList"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"two,one\", \",\")\nprint(join(sort(items), \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -184,19 +160,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "string-list-unique"
         page["route"] = "/doc/api/string-list-unique/"
-        page["title"] = "StringList::unique"
-        page["content"] = "`unique(items)` takes a list-shaped `dval` and returns a new list-shaped `dval`. It keeps the first instance of each string and keeps input order.\n\nCapy has no separate `StringList` type. It uses list-shaped DValues. This pure transformation returns a new list.\n\n## C++ API\n\n`DValue::unique()` provides the legacy StringList operation.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "StringList::unique"
-        page["sig_lines"] = dval(["DValue::unique() (legacy `StringList` page)", ""])
+        page["title"] = "Get unique strings"
+        page["content"] = "## sig\n\nfunction unique(items : dval) dval\n\n`unique` keeps the first copy of each string in a list-shaped `dval`.\n\nThe result keeps input order. This function does not change `items`.\n"
+        page["returns"] = "This function returns a new list-shaped `dval`."
+        page["label"] = "unique"
         page["capy_sig_lines"] = dval(["function unique(items : dval) dval"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["0_StringList"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two,one\", \",\")\nprint(join(unique(items), \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -206,19 +179,15 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "string-list"
         page["route"] = "/doc/api/string-list/"
-        page["title"] = "StringList"
-        page["content"] = "Use a list-shaped `dval` for an ordered string list in Capy. Create one with `dval([...])` or use a result from `split`, `split_utf8`, `regex_split`, `ls`, `units_list`, or `request.websocket.connections` in a `WS` handler.\n\nList functions take a list-shaped `dval` and return a `dval`, a `string`, or a `bool`. Use `join`, `map`, `filter`, `keys`, `unique`, `sort`, `some`, `every`, and `string_list_find` for normal list work.\n\n`dval_push` and `dval_pop` mutate the target list and return that same identity. Assigning the result back remains valid.\n\n## Capy Limit\n\nCapy has no separate `StringList` type or representation. It uses mutable DValue reference values inside a workspace. A C++ boundary copies BRRB and does not expose a container alias.\n\n## C++ API\n\n`StringList` is a C++ name for a list-shaped `DValue`. Capy uses a list-shaped `dval` instead.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["title"] = "String list"
+        page["content"] = "## sig\n\ntype dval (list of strings)\n\nUse a list-shaped `dval` for an ordered string list. Create one with `dval([...])` or `split`.\n\nUse `join`, `map`, `filter`, `keys`, `unique`, `sort`, `some`, and `every` for list work. These functions return a new value unless stated otherwise.\n\nCapy has no separate `StringList` type. Use a list-shaped `dval` instead.\n"
         page["label"] = "StringList"
-        page["sig_lines"] = dval(["DValue list (legacy `StringList` spelling)", ""])
         page["capy_sig_lines"] = dval(["type dval (list of strings)"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "split", "join"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["0_DValue", "split", "join"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var labels := map(unique(split(\"a,b,a\", \",\")), function(item : string) string { return upper(item) })\nprint(join(labels, \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

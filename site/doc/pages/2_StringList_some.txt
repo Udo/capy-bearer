@@ -1,18 +1,20 @@
+:title
+Test any string
+
 :sig
-DValue::some(String predicate) (legacy `StringList` page)
+function some(items : dval, predicate : function(value : string) bool) bool
+
+:returns
+This function returns `true` when any item matches. It returns `false` for an empty list.
 
 :content
-`some(items, predicate)` takes a list-shaped `dval` and a string predicate. It returns true when any item satisfies the predicate. An empty list returns false.
+`some` tests each string in a list-shaped `dval` with `predicate`.
 
-Capy has no separate `StringList` type. It uses list-shaped DValues. This function does not mutate `items`.
-
-## C++ API
-
-`DValue::some()` provides the legacy StringList operation.
-
-:see
-0_DValue
+This function does not change `items`.
 
 :example capy render
 var items := split("one,two", ",")
-if some(items, function(value : string) bool { return value == "two" }) { print("found\n") } else { print("missing\n") }
+print(some(items, function(value : string) bool { return value == "two" }), "\n")
+
+:see
+0_StringList

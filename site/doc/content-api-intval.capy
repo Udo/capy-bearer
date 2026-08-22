@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "int-val"
         page["route"] = "/doc/api/int-val/"
         page["title"] = "int_val"
-        page["content"] = "`int_val()` extracts an unsigned integer from a string. It returns `0` when it cannot identify a usable number.\n\n`base` selects the number base and defaults to `10`. Use it for numeric input text. In Capy, the same call returns `u64`.\n"
-        page["returns"] = "parsed `u64`, or `0` when no usable number exists"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction int_val(raw : string) u64\nfunction int_val(raw : string, base : s32) u64\n\n`int_val()` extracts an unsigned integer from text. The one-argument form uses base 10.\n"
+        page["returns"] = "A parsed unsigned integer, or `0` when no usable number exists."
         page["label"] = "int_val"
-        page["sig_lines"] = dval(["u64 int_val(String s, u32 base = 10)", ""])
         page["capy_sig_lines"] = dval(["function int_val(raw : string) u64", "function int_val(raw : string, base : s32) u64"])
-        page["param_lines"] = dval(["s : string that can contain an integer", "base : number base, default `10`", ""])
+        page["param_lines"] = dval(["raw : text that can contain an integer", "base : number base", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "float_val", "0_String", "html_escape", "trim", "trusted_markup", "to_upper"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["float_val", "trim"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(int_val(\"42\"), \" / \", int_val(\"ff\", 16), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

@@ -9,18 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "redirect"
         page["route"] = "/doc/api/redirect/"
         page["title"] = "redirect"
-        page["content"] = "`redirect()` sets the response `Location` header and status code.\n\nCall `redirect(url)` for status `302`. Use the two-argument form for another status.\n\nUse this API instead of setting the response header and status separately.\n"
-        page["example_error"] = "expected contiguous :example cpp cli"
+        page["content"] = "## sig\n\nfunction redirect(url : string, code : s32 = 302)\n\n`redirect()` sets the response location and status. The default status is `302`.\n"
         page["label"] = "redirect"
-        page["sig_lines"] = dval(["void redirect(String url, s32 code = 302)", ""])
         page["capy_sig_lines"] = dval(["function redirect(url : string, code : s32 = 302)"])
-        page["param_lines"] = dval(["url : the redirect target URL", "code : the optional HTTP redirect status. The default is `302`.", ""])
-        page["notes"] = dval(["The examples are compile-only because an executed redirect would replace the documentation response."])
+        page["param_lines"] = dval(["url : redirect target URL", "code : HTTP status code", ""])
+        page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">uri", "2_Request_set_status", "0_Request", "encode_query", "request_context_params", "request_base_url", "request_query_path"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "redirect(\"/next\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

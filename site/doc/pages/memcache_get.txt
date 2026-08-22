@@ -1,28 +1,24 @@
 :sig
-String memcache_get(u64 connection, String key, String default_value = "")
+function memcache_get(connection : u64, key : string, default_value : string = "") string
 
 :params
-connection : open connection handle
-key : entry key
-default_value : value returned when no complete value is available
+connection : the connection handle
+key : the entry key
+default_value : the value for a missing or invalid response
 
 :returns
-stored value or `default_value`
+the stored value or `default_value`
+
+:content
+`memcache_get()` reads the value for `key`.
+
+It returns `default_value` for a missing key or an incomplete response.
+
+:example capy render
+var connection := memcache_connect()
+if connection != u64(0) { print(memcache_get(connection, "doc-key", "missing"), "\n") }
 
 :see
 >memcache
-memcache_delete
-memcache_get_multiple
 memcache_connect
 memcache_set
-memcache_command
-memcache_escape_key
-:content
-Pass the `u64` handle from `memcache_connect()`.
-
-This function returns the stored value for `key`. It returns `default_value` for a missing key, malformed response, truncated value body, or non-`VALUE` response.
-
-:example capy render
-var conn := memcache_connect()
-if conn != 0 { memcache_set(conn, "doc_get_key", "stored value"); print(memcache_get(conn, "doc_get_key"), "\n") }
-else { print("(requires a reachable memcached server)\n") }

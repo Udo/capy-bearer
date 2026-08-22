@@ -1,25 +1,12 @@
 :sig
-void response_cookie(string name, string value)
+function response_cookie(name : string, value : string)
 
 :params
 name : cookie name
 value : cookie value
 
-:returns
-none
-
 :content
-Use `response_cookie` to queue a response cookie.
-The function writes a `Set-Cookie` header and keeps `request.cookies` in sync.
-The default cookie path is `/`, and `HttpOnly` plus `SameSite=Lax` are always added.
-C++ keeps the same effect through `set_cookie(name, value)`.
+`response_cookie()` queues a response cookie.
 
 :example capy render
-response_cookie("demo", "yes")
-print("cookie queued\n")
-
-:see
->session
-session_start
-session_destroy
-response_header
+response_cookie("theme", "dark")

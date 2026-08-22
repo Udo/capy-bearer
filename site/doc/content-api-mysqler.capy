@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "mysql-error"
         page["route"] = "/doc/api/mysql-error/"
         page["title"] = "mysql_error"
-        page["content"] = "Pass the opaque `u64` handle from `mysql_connect()`.\n\nThis function returns diagnostic text for a failed connection or the latest MySQL operation. Use it after `mysql_connected()` returns `false` or an operation fails.\n\nThe C++ API accepts `MySQL*` instead.\n"
-        page["returns"] = "diagnostic text for the connection attempt or latest operation"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction mysql_error(handle : u64) string\n\n`mysql_error()` returns diagnostic text for a failed connection or the latest database operation.\n\nRead it after `mysql_connected()` returns `false` or a query fails.\n"
+        page["returns"] = "the latest diagnostic text"
         page["label"] = "mysql_error"
-        page["sig_lines"] = dval(["String mysql_error(MySQL* m)", ""])
         page["capy_sig_lines"] = dval(["function mysql_error(handle : u64) string"])
-        page["param_lines"] = dval(["m : Capy MySQL handle", ""])
+        page["param_lines"] = dval(["handle : the MySQL connection handle", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">mysql", "mysql_disconnect", "mysql_escape", "mysql_connected", "mysql_insert_id", "mysql_connect", "mysql_affected_rows"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">mysql", "mysql_connect", "mysql_connected"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var database := mysql_connect(\"localhost\", \"root\", \"\", \"\")\nif !mysql_connected(database) { print(mysql_error(database), \"\\n\") }\nif database != u64(0) { mysql_disconnect(database) }\n"}])
         page["guide_examples"] = dval([])
         return page
     }

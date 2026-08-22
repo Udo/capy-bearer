@@ -1,26 +1,11 @@
 :sig
-String shell_exec(String cmd)
-
-:params
-cmd : complete shell command string
+function shell_exec(command : string) string
 
 :returns
-combined standard output and standard error
+Command output.
 
-:see
->sys
-shell_escape
-shell_spawn
-cwd_set
-job_status
-path_join
-job_result
 :content
-Capy `shell_exec(cmd)` runs a shell command and returns its output as a string. Give it a complete command string.
-
-The returned string includes standard output and standard error. Capy does not return a separate exit status. Use it for a command when its text output is the result you need.
-
-Escape each input value with `shell_escape()` before you add it to `cmd`.
+Use `shell_exec` to run a shell command and get its output. Escape external values with `shell_escape` before you add them to the command.
 
 :example capy render
-print(shell_exec("echo hello from the shell"))
+print(shell_exec("printf hello"), "\n")

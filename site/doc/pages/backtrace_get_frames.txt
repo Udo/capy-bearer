@@ -1,33 +1,20 @@
 :sig
-String backtrace_get_frames(void* const* frames, size_t size, u32 skip_frames = 0)
+function backtrace_get_frames(max_frames : s32 = 32, skip_frames : s32 = 0) string
 
 :params
-frames : frame pointer array returned by native backtrace collection
-size : number of frames in the array
+max_frames : maximum number of frames
 skip_frames : number of newest frames to omit
 
 :returns
-formatted backtrace string
+a backtrace string
 
-:see
->runtime
-backtrace_capture
-signal_name
-trap
-error_pages
-unit_info
-units_list
 :content
-Capy's `backtrace_get_frames()` returns a source-mapped guest backtrace as a `string`. Use it for Capy diagnostic output.
+`backtrace_get_frames` gets source-mapped frames for the current Capy call stack.
 
-The zero-argument form uses 32 frames and skips none. The other forms accept a maximum frame count and an optional skip count. The function returns an empty string when no frames are available. It does not report errors.
-
-Capy does not accept native frame pointers. The C++ `backtrace_get_frames` function formats a `void*` frame array. Use `backtrace_capture()` for normal C++ page code.
-
-:note
-The examples are compile-only because the documentation renderer cannot capture its own native frame array.
+Set `max_frames` to limit the result. Set `skip_frames` to omit the newest frames.
 
 :example capy cli
-var frames := backtrace_get_frames()
-if frames == "" { print("(no frames available in the wasm sandbox)\n") }
-else { print("frames captured\n") }
+print(backtrace_get_frames(4, 0), "\n")
+
+:see
+backtrace_capture

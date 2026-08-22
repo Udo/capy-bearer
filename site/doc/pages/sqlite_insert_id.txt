@@ -1,27 +1,15 @@
 :sig
-u64 sqlite_insert_id(SQLite* db)
-
-:params
-db : Capy SQLite connection value
+function sqlite_insert_id(handle : u64) u64
 
 :returns
-last row ID for this connection
+Last inserted row ID.
 
-:see
->sqlite
-sqlite_query
-sqlite_affected_rows
-sqlite_error
-sqlite_disconnect
-sqlite_connect
 :content
-Use `sqlite_insert_id` after `sqlite_query` inserts a row. Pass the Capy connection value. The function returns the last inserted row ID for that connection.
-
-In C++, a null connection pointer returns `0`. Capy uses an `SQLite*` pointer, as the signature shows.
+Use `sqlite_insert_id` after an insert that creates a row ID.
 
 :example capy render
 var db := sqlite_connect(":memory:")
-sqlite_query(db, "create table t(id integer primary key autoincrement, v text)")
-sqlite_query(db, "insert into t(v) values('x')")
-print("new row id: ", sqlite_insert_id(db), "\n")
+sqlite_query(db, "create table t(id integer primary key)")
+sqlite_query(db, "insert into t values(1)")
+print(sqlite_insert_id(db), "\n")
 sqlite_disconnect(db)

@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "sha256"
         page["route"] = "/doc/api/sha256/"
         page["title"] = "sha256"
-        page["content"] = "Use this function when another binary operation needs a SHA-256 digest.\n\nIt returns the raw 32-byte digest of `data`. Use `sha256_hex()` when you need printable text.\n"
-        page["returns"] = "raw 32-byte SHA-256 digest"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction sha256(value : string) string\n\nUse `sha256` to create a raw SHA-256 digest. Use `sha256_hex` when you need hexadecimal text.\n"
+        page["returns"] = "Raw 32-byte SHA-256 digest."
         page["label"] = "sha256"
-        page["sig_lines"] = dval(["String sha256(String data)", ""])
         page["capy_sig_lines"] = dval(["function sha256(value : string) string"])
-        page["param_lines"] = dval(["data : bytes to hash", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "sha256_hex", "hmac_sha256", "basename", "dirname", "expand_path", "file_append"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(length(sha256(\"abc\")), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

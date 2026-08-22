@@ -1,28 +1,15 @@
 :sig
-u32 sqlite_affected_rows(SQLite* db)
-
-:params
-db : SQLite handle from `sqlite_connect()`
+function sqlite_affected_rows(handle : u64) u64
 
 :returns
-number of rows changed by the most recent statement
+Rows changed by the latest statement.
 
-:see
->sqlite
-sqlite_query
-sqlite_insert_id
-sqlite_error
-sqlite_disconnect
-sqlite_connect
 :content
-Capy `sqlite_affected_rows(db)` returns the row count for the last insert, update, or delete on `db`. Give it a handle from `sqlite_connect()`.
-
-Use it after a statement when you need its changed-row count. The C++ API uses an `SQLite*` pointer. Capy uses a `u64` handle.
+Use `sqlite_affected_rows` after an insert, update, or delete.
 
 :example capy render
 var db := sqlite_connect(":memory:")
-sqlite_query(db, "create table t(id integer primary key, v text)")
-sqlite_query(db, "insert into t(id, v) values(1,'a'),(2,'b'),(3,'c')")
-sqlite_query(db, "update t set v = 'x' where id <= 2")
-print("rows updated: ", sqlite_affected_rows(db), "\n")
+sqlite_query(db, "create table t(id integer)")
+sqlite_query(db, "insert into t values(1)")
+print(sqlite_affected_rows(db), "\n")
 sqlite_disconnect(db)

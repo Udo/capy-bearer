@@ -1,26 +1,14 @@
 :sig
-String sqlite_error(SQLite* db)
-
-:params
-db : SQLite handle from `sqlite_connect()`
+function sqlite_error(handle : u64) string
 
 :returns
-latest SQLite status or error message
+Latest SQLite error text.
 
-:see
->sqlite
-sqlite_query
-sqlite_disconnect
-sqlite_connect
-sqlite_insert_id
-sqlite_affected_rows
 :content
-Capy `sqlite_error(db)` returns the latest SQLite status or error message for a handle. Give it a handle from `sqlite_connect()`.
-
-Call it after `sqlite_connect()` or `sqlite_query()` when you need error text. A failed operation sets an error message. The C++ API uses an `SQLite*` pointer. Capy uses a `u64` handle.
+Use `sqlite_error` after a SQLite operation when you need its diagnostic text.
 
 :example capy render
 var db := sqlite_connect(":memory:")
-sqlite_query(db, "select * from no_such_table")
-if sqlite_error(db) != "" { print("error reported\n") } else { print("no error\n") }
+sqlite_query(db, "select * from missing_table")
+print(sqlite_error(db), "\n")
 sqlite_disconnect(db)

@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "task-await"
         page["route"] = "/doc/api/task-await/"
         page["title"] = "task_await"
-        page["content"] = "Use `task_await` to wait for a Capy task status. Pass the task ID and a maximum wait time in milliseconds. The function returns the current status when the task ends or the wait time expires.\n\nThis call does not run the task in the caller. If the task remains nonterminal after the wait time, it continues to run. The wait time does not cancel it.\n\nCapy task IDs are `string` values, and task status is a `dval` value. Capy uses `String`, `u64`, and `DValue`, as the signature shows.\n"
-        page["returns"] = "current task status when the task ends or the wait time expires"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction task_await(id : string, timeout_ms : u64) dval\n\nUse `task_await` to wait for a task status. It returns when the task ends or the timeout expires.\n"
+        page["returns"] = "Task status map."
         page["label"] = "task_await"
-        page["sig_lines"] = dval(["DValue task_await(String id, u64 timeout_ms)", ""])
         page["capy_sig_lines"] = dval(["function task_await(id : string, timeout_ms : u64) dval"])
-        page["param_lines"] = dval(["id : opaque ID returned by `task`", "timeout_ms : maximum wait time in milliseconds", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">task", "task", "task_status", "task_cancel"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var status := task_await(\"\", u64(0))\nprint(string(status[\"state\"]), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

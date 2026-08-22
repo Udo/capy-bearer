@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "var-dump"
         page["route"] = "/doc/api/var-dump/"
         page["title"] = "var_dump"
-        page["content"] = "`var_dump(value)` accepts a `dval` and returns a readable `string` representation.\n\nUse it to inspect a value while you debug. The API has no error return.\n\nCapy supports a `dval` input only. C++ also provides the `StringMap` overload and optional prefix and postfix inputs shown above.\n"
-        page["returns"] = "string containing a human-friendly representation of 't'"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction var_dump(value : dval, prefix : string = \"\", postfix : string = \"\") string\n\n`var_dump` formats a `dval` as a string.\n"
+        page["returns"] = "formatted string"
         page["label"] = "var_dump"
-        page["sig_lines"] = dval(["String var_dump(StringMap t, String prefix = \"\", String postfix = \"\\n\")", "String var_dump(DValue t, String prefix = \"\", String postfix = \"\\n\")", ""])
         page["capy_sig_lines"] = dval(["function var_dump(value : dval, prefix : string = \"\", postfix : string = \"\") string"])
-        page["param_lines"] = dval(["t : object to be dumped into a string", ""])
+        page["param_lines"] = dval(["value : value to format", "prefix : text before the formatted value", "postfix : text after the formatted value", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "0_StringMap", "json_encode", "print"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">types", "0_DValue", "json_encode", "print"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(var_dump(dval({\"name\": \"Ada\"})), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

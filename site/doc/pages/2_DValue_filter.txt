@@ -1,26 +1,20 @@
+:title
+Filter a dynamic value
+
 :sig
-DValue DValue::filter(DValue keys) const
-DValue DValue::filter(std::function<bool (const DValue& item, String key)> f) const
+function dval_filter(value : dval, predicate : function(value : dval, key : string) bool) dval
 
 :params
-keys : child keys to copy when using the key-list overload
-f : predicate returning true for children to keep
+value : source value
+predicate : function that selects children
 
 :returns
-filtered copy
-
-:see
->types
-0_DValue
-2_DValue_map
-2_DValue_keys
+A new filtered value.
 
 :content
-Use `dval_filter(value, predicate)` in Capy to make a copied `dval` that contains matching values. The predicate receives an item and key. The function returns a new value. A list result keeps list shape and reindexes kept items. A map result keeps its keys. A scalar result is a one-item list when the predicate accepts it.
-
-C++ also provides `filter(keys)`, which copies named children into a map. Its callback overload follows the same list, map, and scalar rules.
+`dval_filter` returns children for which `predicate` returns `true`. It keeps map keys and keeps list shape.
 
 :example capy render
-var user := dval({"name": "Ada", "email": "ada@example.test"})
-var public_user := dval_filter(user, function(item : dval, key : string) bool { return key == "name" })
-print(public_user["name"], "\n")
+var value := dval({"name": "Ada", "role": "admin"})
+var result := dval_filter(value, function(item : dval, key : string) bool { return key == "name" })
+print(result.name, "\n")

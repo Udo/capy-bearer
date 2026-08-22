@@ -1,25 +1,18 @@
-
 :sig
-String to_lower(String s)
+function lower(value : string) string
 
 :params
-value : Capy string to convert
+value : text to convert
 
 :returns
-string with uppercase ASCII characters changed to lowercase
+Text with uppercase ASCII characters converted to lowercase.
 
-:see
->string
-to_lower
-string
-length
-clone
-ascii_safe_name
-base64_decode
 :content
-`lower(value)` converts uppercase ASCII characters to lowercase. It does not convert Unicode case.
-
-C++ uses `to_lower()` with the signature above.
+`lower()` converts uppercase ASCII characters to lowercase. It does not convert Unicode case.
 
 :example capy render
 print(lower("BEARER"), "\n")
+
+:see
+upper
+length

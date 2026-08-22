@@ -71,7 +71,7 @@ if spec is None or spec.loader is None:
 checker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(checker)
 guides = root / "site/doc/capy"
-errors = checker.check_language_guides(guides, root / "site/doc/pages", root / "site/doc/lib/doc_page.h")
+errors = checker.check_language_guides(guides, root / "site/doc/pages", root / "scripts/generate_capy_docs.py")
 if errors:
     raise SystemExit("Capy guide test rejected guide sources:\n- " + "\n- ".join(errors))
 articles = {path.stem: path for path in guides.glob("*.txt")}

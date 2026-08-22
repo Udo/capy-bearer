@@ -1,34 +1,17 @@
 :sig
-String regex_replace(String pattern, String replacement, String subject)
-String regex_replace(String pattern, String replacement, String subject, String flags)
+function regex_replace(pattern : string, replacement : string, subject : string, flags : string = "") string
 
 :params
-pattern : the PCRE2 regular expression
-replacement : the replacement text
-subject : the string to change
-flags : optional regular expression flags
+pattern : regular expression
+replacement : replacement text
+subject : source text
+flags : regular expression flags
 
 :returns
-a new string with all matches replaced
-
-:see
->string
->regex
-regex_match
-regex_search
-regex_search_all
-regex_split
-replace
+Text with all matches replaced.
 
 :content
-`regex_replace()` replaces every `pattern` match in `subject` and returns a new `string`.
-
-The replacement uses PCRE2 substitution syntax. Use `$1` for a numbered capture. Use `${name}` for a named capture.
-
-Use `replace()` for a literal search. Use `regex_replace()` when you need a pattern, capture, character class, anchor, or flag.
-
-:errors
-Invalid patterns, flags, and replacement syntax cause a request-visible runtime error.
+Use `$1` for a numbered capture in `replacement`.
 
 :example capy render
-print(regex_replace("docs", "manual", "bearer docs"), "\n")
+print(regex_replace("([a-z]+)", "<$1>", "capy docs"), "\n")

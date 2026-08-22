@@ -1,22 +1,8 @@
 :sig
-#load "myfile.capy"
-
-:params
-file name : Bearer source file to include
-
-:see
->ob
-component_resolve
-ob_close
-component_exists
-ob_get
-component
-ob_get_close
-:capy-status cpp-specific
+load is not available in Capy
 
 :content
-Capy does not support the C++ `#load` directive.
+Capy does not support `#load`. The checked Capy surface has no replacement for this directive.
 
-Use ordinary Capy declarations in one unit. Use `unit_load()` or runtime composition APIs when you must load another unit at runtime.
-
-The C++ `#load` directive includes another Bearer source file. Bearer tracks direct and nested dependencies. A changed dependency causes recompilation before the next execution.
+:see
+component

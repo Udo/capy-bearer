@@ -87,6 +87,7 @@ struct CompilerDeadline
 };
 
 static std::atomic<u64> compiler_invocation_stage_counter(0);
+const u64 BEARER_IMPORT_COMPILE_TIMEOUT_MS = 30000;
 static thread_local CompilerDeadline* compiler_active_deadline = 0;
 
 struct CompilerDeadlineScope
@@ -1326,12 +1327,12 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 			options.module_name = su->wasm_file_name;
 			options.abi_version = BEARER_WASM_CORE_ABI_VERSION;
 			options.cancelled = [deadline]() { return deadline && deadline->expire_if_needed(); };
-			options.import_type_metadata = [context, deadline, current_source = su->file_name](const std::string& path, const std::string& current) {
-				(void)current;
+			// The parent lock stays held while this bounded import compiles.
+			options.import_type_metadata = [context, deadline, current_source = su->file_name](const std::string& path) {
 				String resolved = compiler_resolve_unit_path(context, path, dirname(current_source));
 				if(resolved == "") throw capy::Error({current_source, 1, 1, 0}, "#import path is not readable: " + path);
 				bool timed_out = false;
-				u64 remaining = deadline ? deadline->remaining_ms() : 30000;
+				u64 remaining = deadline ? deadline->remaining_ms() : BEARER_IMPORT_COMPILE_TIMEOUT_MS;
 				SharedUnit* imported = get_shared_unit_bounded(context, resolved, remaining, &timed_out);
 				if(timed_out) throw capy::Error({current_source, 1, 1, 0}, "#import timed out: " + path);
 				if(!imported || trim(imported->compiler_messages) != "") throw capy::Error({current_source, 1, 1, 0}, "#import failed to compile: " + path);
@@ -1376,9 +1377,39 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 		if(attempt == 1) su->compiler_messages = "source changed during wasm compile; retry required";
 	}
 	if(deadline && deadline->timed_out)
+	{
+		file_unlink(staged_wasm_name);
+		file_unlink(staged_map_name);
+		file_unlink(staged_api_name);
+		file_unlink(staged_meta_name);
 		su->compiler_messages = "BEARER_INVOCATION_TIMEOUT: unit compilation exceeded the invocation deadline";
-	if(deadline && deadline->operational_failure)
-		su->compiler_messages = first(deadline->operational_error, "transitive dependency compilation failed");
+		compiler_record_compile_result(su, time_precise() - comp_start, false, "compile_timeout", su->compiler_messages);
+		return;
+	}
+	if(deadline && (deadline->dependency_failure || deadline->operational_failure))
+	{
+		file_unlink(staged_wasm_name);
+		file_unlink(staged_map_name);
+		file_unlink(staged_api_name);
+		file_unlink(staged_meta_name);
+		su->compiler_messages = deadline->dependency_failure ? first(deadline->dependency_error, "transitive dependency compilation failed") : first(deadline->operational_error, "transitive dependency compilation failed");
+		compiler_record_compile_result(su, time_precise() - comp_start, false, "dependency_error", su->compiler_messages);
+		return;
+	}
+	if(publication_failed)
+	{
+		file_unlink(staged_wasm_name);
+		file_unlink(staged_map_name);
+		file_unlink(staged_api_name);
+		file_unlink(staged_meta_name);
+		compiler_record_compile_result(su, time_precise() - comp_start, false, "publish_error", su->compiler_messages);
+		if(deadline)
+		{
+			deadline->operational_failure = true;
+			deadline->operational_error = su->compiler_messages;
+		}
+		return;
+	}
 	file_unlink(staged_wasm_name);
 	file_unlink(staged_map_name);
 	file_unlink(staged_api_name);
@@ -1390,7 +1421,7 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 		file_put_contents(su->wasm_check_file_name, raw_messages + "\n");
 		file_put_contents(su->meta_file_name, compiler_unit_metadata_text(context, su, compiled_input_signature));
 		if(!publication_failed && !preserve_last_known_good) compiler_unlink_unit_wasm_artifacts(su);
-		compiler_record_compile_result(su, time_precise() - comp_start, false, deadline && deadline->timed_out ? "compile_timeout" : "compile_error", raw_messages);
+		compiler_record_compile_result(su, time_precise() - comp_start, false, "compile_error", raw_messages);
 		printf("%s \n", compiler_format_compile_failure(context, su, raw_messages).c_str());
 	}
 	else

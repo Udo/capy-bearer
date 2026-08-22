@@ -1,27 +1,21 @@
+:title
+Convert to a signed integer
+
 :sig
-s64 DValue::to_s64(s64 default_value = 0) const
+function s32(value : dval, fallback : s32 = 0) s32
+function s32(value : string, fallback : s32 = 0) s32
+function s64(value : dval, fallback : s64 = 0) s64
+function s64(value : string, fallback : s64 = 0) s64
 
 :params
-s64 : fallback returned when conversion is not possible
+value : value to convert
+fallback : value to return when conversion fails
 
 :returns
-converted value or the fallback
-
-:see
->types
-0_DValue
-2_DValue_to_string
-2_DValue_require
+The integer value or `fallback`.
 
 :content
-`s64(value)` is Capy's signed integer constructor for a `dval`. `s64(value, fallback)` returns the fallback for `none` or a failed conversion. `s32(value)` uses the same rules with the s32 range and a default fallback of `0`.
-
-Exact decimal strings, in-range finite f64 values, and booleans can convert. An f64 conversion truncates toward zero. Empty or invalid strings, overflow, maps, and lists return the fallback.
-
-## C++ API
-
-`DValue::to_s64()` also converts C++ pointers, resolved references, and one-child maps. It can clamp values outside its range. These C++ rules do not change the Capy constructor rules.
+`s32(value)` and `s64(value)` convert a dynamic value to a signed integer. Use the optional fallback for invalid input.
 
 :example capy render
-var value := dval("-42")
-print(s64(value), "\n")
+print(s64(dval("-42")), "\n")

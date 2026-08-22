@@ -83,7 +83,7 @@ Use one name for one thing. Remove wrappers that only rename another function. K
 
 ## Find API details
 
-The language guide explains how Capy code fits together. The API reference gives exact signatures and failure behavior for standard-library functions. Use the generated Capy signature on each API page rather than translating a C++ signature by hand.
+The language guide explains how Capy code fits together. The API reference gives exact standard-library signatures and failure behavior. Use the generated Capy signature on each API page.
 
 ## Read failures as contracts
 

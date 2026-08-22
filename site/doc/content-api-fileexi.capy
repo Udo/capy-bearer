@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "file-exists"
         page["route"] = "/doc/api/file-exists/"
         page["title"] = "file_exists"
-        page["content"] = "`file_exists` tests whether a regular file exists at `path`. Use it before a file read or after a file write. It returns false for a directory. Use `file_stat()` and its `is_dir` field to test a directory.\n"
-        page["returns"] = "true when a regular file exists, otherwise false"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction file_exists(path : string) bool\n\n`file_exists` tests for a regular file. It returns `false` for a directory. Use `file_stat` to inspect another path type.\n"
+        page["returns"] = "`true` when a regular file exists. Otherwise, it returns `false`."
         page["label"] = "file_exists"
-        page["sig_lines"] = dval(["bool file_exists(String path)", ""])
         page["capy_sig_lines"] = dval(["function file_exists(path : string) bool"])
-        page["param_lines"] = dval(["path : path to check", ""])
+        page["param_lines"] = dval(["path : path to test", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "file_stat", "file_unlink", "file_append", "file_get_contents", "expand_path", "file_mtime"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">sys", "file_stat", "file_unlink", "file_get_contents"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-exists.txt\", \"x\")\nprint(file_exists(\"/tmp/doc-exists.txt\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

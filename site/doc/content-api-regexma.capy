@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "regex-match"
         page["route"] = "/doc/api/regex-match/"
         page["title"] = "regex_match"
-        page["content"] = "`regex_match()` returns `true` when all of `subject` matches `pattern`.\n\nThis is not a substring search. Use `regex_search()` to find the first match in a string.\n\nSupported flags:\n\n- `i` ignores case.\n- `m` enables multiline `^` and `$`.\n- `s` lets `.` match a newline.\n- `x` enables extended pattern syntax.\n- `u` enables UTF-8 and Unicode properties.\n- `a` uses ASCII-oriented matching instead.\n\nBearer uses PCRE2 UTF-8 and Unicode properties by default. For example, `\\\\p{L}+` matches Unicode letters.\n\nInvalid patterns and flags raise a request-visible runtime error with the PCRE2 diagnostic.\n"
-        page["returns"] = "`true` if the entire subject matches the pattern"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction regex_match(pattern : string, subject : string, flags : string = \"\") bool\n\nUse `regex_match()` to test a complete string. Use `regex_search()` to find text within a string.\n"
+        page["returns"] = "`true` if the complete subject matches the pattern."
         page["label"] = "regex_match"
-        page["sig_lines"] = dval(["bool regex_match(String pattern, String subject)", "bool regex_match(String pattern, String subject, String flags)", ""])
         page["capy_sig_lines"] = dval(["function regex_match(pattern : string, subject : string, flags : string = \"\") bool"])
-        page["param_lines"] = dval(["pattern : the PCRE2 regular expression", "subject : the string to test", "flags : optional regular expression flags", ""])
+        page["param_lines"] = dval(["pattern : regular expression", "subject : text to test", "flags : regular expression flags", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", ">regex", "regex_search", "regex_search_all", "regex_replace", "regex_split", "0_String"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(regex_match(\"[a-z]+\", \"Capy\", \"i\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

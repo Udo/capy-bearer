@@ -1,27 +1,12 @@
 :sig
-StringMap split_http_headers(String s)
-
-:params
-s : HTTP request line and headers, or header lines
+function split_http_headers(value : string) dval
 
 :returns
-map-shaped `dval` with parsed fields
-
-:see
->string
-split_kv
-parse_query
-0_Request
+Map-shaped `dval`.
 
 :content
-Capy `split_http_headers(s)` returns a map-shaped `dval` of HTTP fields. Give it a request line and headers, or header lines.
-
-For a request line, the map includes `REQUEST_METHOD`, `REQUEST_URI`, `SCRIPT_NAME`, `QUERY_STRING`, and `SERVER_PROTOCOL`. It converts header names to uppercase keys. For example, `Host` becomes `HTTP_HOST`.
-
-Most page code should read `context.params`. Use this function to parse raw HTTP text in tests or protocol helpers.
-
-The C++ API returns `StringMap`. Capy returns a map-shaped `dval`.
+Use `split_http_headers` to parse an HTTP header block.
 
 :example capy render
-var headers := split_http_headers("Host: example.test\r\nUser-Agent: bearer\r\n")
+var headers := split_http_headers("Host: example.test\r\n")
 print(headers["HTTP_HOST"], "\n")

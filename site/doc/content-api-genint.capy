@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "gen-int"
         page["route"] = "/doc/api/gen-int/"
         page["title"] = "gen_int"
-        page["content"] = "`gen_int()` returns a deterministic `u64` noise value for `index` and `seed`. `from` and `to` set the output range.\n\nUse the same inputs to reproduce procedural integer values. The Capy call uses the declaration above.\n\n"
-        page["returns"] = "deterministic `u64` noise value"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction gen_int(from : u64, to : u64, index : u64, seed : u64 = 0) u64\n\n`gen_int()` returns a deterministic value for the range values, index, and seed.\n\nUse the same inputs to reproduce a value.\n"
+        page["returns"] = "A deterministic `u64` value."
         page["label"] = "gen_int"
-        page["sig_lines"] = dval(["u64 gen_int(u64 from, u64 to, u64 index, u64 seed = 0)", ""])
         page["capy_sig_lines"] = dval(["function gen_int(from : u64, to : u64, index : u64, seed : u64 = 0) u64"])
-        page["param_lines"] = dval(["from : first range endpoint", "to : second range endpoint", "index : deterministic input position", "seed : deterministic input seed, default `0`", ""])
+        page["param_lines"] = dval(["from : first range value", "to : second range value", "index : deterministic input position", "seed : deterministic input seed", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">noise", "gen_float", "gen_sha1", "gen_noise64", "sha256", "gen_noise32", "sha256_hex"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["gen_float", "gen_noise32", "draw_int"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var value := gen_int(u64(1), u64(10), u64(1))\nprint(value, \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

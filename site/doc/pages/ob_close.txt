@@ -1,25 +1,18 @@
 :sig
-void ob_close()
-
-:returns
-no value
+function ob_close()
 
 :content
 `ob_close()` discards the current output buffer and returns to the previous buffer.
 
-Use this when you do not need captured output.
+Use it when you do not need the buffered output.
 
 :example capy render
 ob_start()
-print("this output is discarded")
+print("discarded")
 ob_close()
-print("the buffered text never reached the response\n")
+print("kept\n")
 
 :see
 >ob
-ob_get_close
 ob_start
-load
-ob_get
-component_resolve
-component_exists
+ob_get_close

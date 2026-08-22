@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "mysql-escape"
         page["route"] = "/doc/api/mysql-escape/"
         page["title"] = "mysql_escape"
-        page["content"] = "`mysql_escape(raw)` escapes `raw` and wraps it in single quotes. Use the two-argument form to select one wrapper character.\n\nUse an empty Capy string for no wrapper. In C++, pass `NULL` for no wrapper.\n\nUse query parameters with `mysql_query()` when possible. Escape values only when you must build SQL text.\n"
-        page["returns"] = "the escaped form of `raw`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction mysql_escape(raw : string) string\nfunction mysql_escape(raw : string, quote : string) string\n\n`mysql_escape(raw)` escapes `raw` and wraps it in single quotes.\n\nUse the second form to set the wrapper. Pass an empty string when no wrapper is needed. Prefer named parameters with `mysql_query()`.\n"
+        page["returns"] = "the escaped string"
         page["label"] = "mysql_escape"
-        page["sig_lines"] = dval(["String mysql_escape(String raw, char quote_char)", ""])
         page["capy_sig_lines"] = dval(["function mysql_escape(raw : string) string", "function mysql_escape(raw : string, quote : string) string"])
-        page["param_lines"] = dval(["raw : the string to escape", "quote_char : the character that wraps the result. Pass `NULL` for no wrapper.", ""])
+        page["param_lines"] = dval(["raw : the string to escape", "quote : the string that wraps the result", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">mysql", "mysql_error", "mysql_insert_id", "mysql_disconnect", "mysql_affected_rows", "mysql_connected", "mysql_query"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">mysql", "mysql_query"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(mysql_escape(\"O'Brien\", \"'\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

@@ -9,19 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "to-s64"
         page["route"] = "/doc/api/to-s64/"
         page["title"] = "to_s64"
-        page["content"] = "`to_s64()` is a C++ API. It parses a base-10 integer from complete trimmed text. Empty or partial text, such as `-12px`, returns `fallback`.\n\nCapy does not expose `to_s64`. Use `s64(value, fallback)`.\n"
-        page["returns"] = "parsed C++ `s64` or `fallback`"
-        page["capy_status"] = "cpp-specific"
+        page["content"] = "## sig\n\nNo Capy signature.\n\nCapy has no native `to_s64` signature. Use `s64(value, fallback)`.\n"
         page["label"] = "to_s64"
-        page["sig_lines"] = dval(["s64 to_s64(String s, s64 fallback = 0)", ""])
         page["capy_sig_lines"] = dval([])
-        page["param_lines"] = dval(["s : C++ text to parse", "fallback : value for empty or invalid text", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">types", "2_DValue_to_s64", "to_f64", "to_u64", "to_bool", "brb_encode", "2_DValue_to_u64"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([])
         page["guide_examples"] = dval([])
         return page
     }

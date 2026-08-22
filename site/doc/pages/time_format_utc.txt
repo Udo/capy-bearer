@@ -1,12 +1,12 @@
 :sig
-String time_format_utc(String format = "", u64 timestamp = 0)
+function time_format_utc(format : string = "", timestamp : u64 = 0) string
 
 :params
-format : optional Capy format string
-timestamp : optional Unix timestamp. Omit it to use the current time.
+format : date format
+timestamp : Unix timestamp. Zero uses the current time
 
 :returns
-formatted UTC string
+formatted UTC time
 
 :see
 >time
@@ -17,18 +17,9 @@ time_format_local
 time
 time_precise
 usleep
+
 :content
-Use `time_format_utc` to format a Unix timestamp in UTC. Pass a format string and, if needed, a timestamp. The function returns a Capy `string`. Omit the timestamp to format the current time.
-
-The formatter supports core Linux `date` format tokens and the relative-time delta tokens. Pass `RFC1123` to use the built-in RFC 1123 UTC format.
-
-Supported format sequences:
-
-
-Padding and case flags may follow `%`:
-
-
-Capy uses `string` and `u64` values. Capy uses `String` and `u64`, as the signature shows.
+`time_format_utc` formats a Unix timestamp in UTC.
 
 :example capy render
-print(time_format_utc("%Y-%m-%d", 0), "\n")
+print(time_format_utc("%Y", u64(5)), "\n")

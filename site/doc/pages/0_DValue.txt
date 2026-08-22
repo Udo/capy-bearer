@@ -1,8 +1,8 @@
 :title
-DValue
+Dynamic values
 
 :sig
-DValue
+type dval
 
 :see
 >types
@@ -12,61 +12,14 @@ DValue
 json_decode
 
 :content
-`dval` is Capy's structured value type. It stores scalars, maps, lists, and `none`.
+A `dval` stores scalar values, maps, lists, and `none`.
 
-A `dval` is a mutable reference value inside one workspace. Assignment, parameters, returns, and captures share its identity. Bearer, module, component, task, custom export, codec, request, and serialization boundaries copy BRRB. Identity never crosses a boundary.
+Use maps for named fields and lists for ordered values. Read children with `value.name`, `value["name"]`, or `value[0]`. A missing read returns `none` and does not change the value.
 
-## Normal Use
+Use `dval_has` to test a key. Use `dval_require` when a missing child is an error. Use `string`, `bool`, `s32`, `s64`, `u64`, or `f64` to convert a value.
 
-Use a map-shaped `dval` for named fields. Use a list-shaped `dval` for ordered values.
-
-- `{"name": "Ada"}` creates named fields.
-- `dval(["Ada", "Lin"])` creates an ordered list.
-- `value["name"]` and `value.name` read a named child.
-- `value[0]` reads a list child.
-- `string`, `bool`, `s32`, `s64`, `u64`, and `f64` are scalar constructors.
-- `dval_has(value, key)` tests whether a key exists.
-- `dval_key(value, key)` reads one named child.
-- `dval_get_by_path(value, "a/b/c")` reads a nested child.
-- `dval_require(value, key)` makes a strict read.
-
-Use `T(value)` to convert a `dval`. Use `T(value, fallback)` when `none` or a failed conversion needs a fallback.
-
-`none` is not an empty string. A child can exist and contain `none`. `dval_has` returns true for that child.
-
-Member and index reads are safe. A missing child, unusable intermediate value, negative list index, or out-of-range list index returns `none`. These reads do not change the value.
-
-`dval_key` returns `none` for a missing key or a scalar value. `dval_get_by_path` returns an empty string value when traversal fails. It does not return `none` for that case.
-
-Use `dval_require` when a missing value is an error. It traps for a missing or unusable key or index.
-
-## Updates
-
-Capy update functions mutate their target and return that same identity. Assigning the result back remains valid.
-
-- `dval_put(value, key, child)` sets a named child.
-- `dval_push(value, child)` adds a list child.
-- `dval_pop(value)` removes the final list child.
-- `dval_remove(value, key)` removes a named child.
-- `dval_clear(value)` removes all children.
-- `dval_get_or_create(value, key)` creates a missing child.
-- `dval_set_array(value)` makes a list-shaped value.
-- `dval_set_bool(value, flag)` stores a Boolean.
-- `dval_set_type(value, type)` changes the internal type.
-- `dval_set(value, source)` and `dval_assign(value, source)` replace the content.
-
-Nested assignment mutates the target. Its root must be a named local, parameter, or captured DValue binding. Temporary, call, member, array-item, and loop-item roots are invalid. It creates missing, `none`, and scalar intermediate maps. Content mutation through a parameter affects the caller. Parameter binding reassignment remains invalid.
-
-Member reads, index reads, and loop items return copied DValues. Pure operations such as `dval_map`, `dval_filter`, `dval_keys`, and `dval_values` return new values.
-
-## C++ API
-
-C++ uses the `DValue` class. It supports calls such as `set`, `push`, `get_by_path`, and `to_string`.
-
-C++ `operator[]` can create a missing child. Use `has`, `key`, or `get_by_path` when you must not create a child.
-
-C++ `key` returns a pointer or `0`. C++ `get_by_path` returns an empty string value when traversal fails.
+Update functions such as `dval_put`, `dval_push`, and `dval_set` change their target and return it. Pure functions such as `dval_map`, `dval_filter`, `dval_keys`, and `dval_values` return new values.
 
 :example capy render
-var user := {"name": "Ada", "active": true}
-print(user.name, "\n")
+var user := dval({"name": "Ada", "tags": ["math"]})
+print(user.name, " ", user.tags[0], "\n")

@@ -30,9 +30,10 @@ for path in paths:
     for match in handlers.finditer(source):
         if match.group(1) != 'request : dval':
             errors.append(f'{path}:{source.count(chr(10), 0, match.start()) + 1}: handler must use (request : dval)')
-    if re.search(r'\brequest\s*:\s*request\b', source):
+    code = re.sub(r'"(?:\\.|[^"\\])*"', '""', source)
+    if re.search(r'\brequest\s*:\s*request\b', code):
         errors.append(f'{path}: public request type is not allowed')
-    if removed.search(source):
+    if removed.search(code):
         errors.append(f'{path}: removed request reader is not allowed')
 fixture = Path('site/tests/capy-request-context.capy').read_text()
 for field in ('method', 'query', 'form', 'headers', 'cookies', 'body', 'files', 'route', 'url', 'server', 'session', 'props', 'config', 'call', 'connection', 'unit', 'websocket'):
@@ -62,7 +63,8 @@ scripts/test_dvalue_none_native.sh
 scripts/test_capy_exact_handle_native.sh
 "$BUILD_DIR/capyc" --parity-manifest "$PARITY_MANIFEST"
 cmp "$PARITY_MANIFEST" docs/capy-capability-manifest.md
-[[ $(grep -c '^| `' "$PARITY_MANIFEST") -eq $(find site/doc/pages -maxdepth 1 -type f -name '*.txt' | wc -l) ]]
+expected_manifest_pages=$(find site/doc/pages -maxdepth 1 -type f -name '*.txt' ! -name '3_Coming from React.txt' ! -name '3_Documentation format.txt' | wc -l)
+[[ $(grep -c '^| `' "$PARITY_MANIFEST") -eq $expected_manifest_pages ]]
 
 clang++ "${COMMON[@]}" src/capy/frontend.cpp scripts/test_capy_native_frontend.cpp \
 	-o "$BUILD_DIR/frontend"

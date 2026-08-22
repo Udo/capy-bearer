@@ -1,39 +1,26 @@
 :sig
-dval call(handle : module, name : string)
-dval call(handle : module, name : string, input : as dval)
+function call(handle : module, name : string) dval
+function call(handle : module, name : string, input : as dval) dval
 
 :params
-handle : module value returned by `unit_load()`
-name : exported function name
+handle : a value from `unit_load()`
+name : an exported function name
 input : optional `dval` input
 
 :returns
-exported function result
+The exported function result.
 
-:see
->ob
-unit_load
-unit_call
-unit_render
-response_status
-response_header
-component_capture
 :content
-`call(handle, name[, input])` calls an exported function on a loaded module and returns the function result as `dval`.
-Use it after `unit_load()` when several calls should reuse the same module.
-The handle is valid only for one request.
+`call()` calls an exported function in a loaded unit. It returns the result as `dval`.
 
-The two-argument form sends an empty `dval` when no input is needed.
-
-A missing handle or missing export is an error.
-
-## C++ API
-
-C++ has no direct module-handle `call()` helper.
-Use `unit_call(file_name, function_name, input)` with the same unit path and function name in C++.
+Use `unit_load()` once when several calls use the same unit. The two-argument form passes an empty `dval`.
 
 :example capy render
-var module := unit_load("/doc/examples/call_target.capy")
-var empty := call(module, "default_input")
-var echoed := call(module, "echo", {"name": "Ada"})
-print(string(empty), "|", string(echoed.name, ""), "\n")
+var handle := unit_load("/doc/examples/call_target.capy")
+var result := call(handle, "echo", {name: "Ada"})
+print(string(result.name), "\n")
+
+:see
+unit_load
+unit_call
+component_capture

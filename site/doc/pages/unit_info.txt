@@ -1,11 +1,11 @@
 :sig
-DValue unit_info(String path = "")
+function unit_info(path : string = "") dval
 
 :params
-path : optional unit path. If empty, uses the current unit
+path : unit path. An empty path selects the current unit
 
 :returns
-unit metadata as a `dval`, or an empty value if Capy cannot resolve the unit
+unit metadata
 
 :see
 >runtime
@@ -14,14 +14,8 @@ unit_compile
 0_Request
 
 :content
-Call `unit_info()` for the current unit. Call `unit_info(path)` for another unit.
-
-The function returns a `dval` value with available unit metadata. Fields can include paths, status, times, and exported APIs. Check that a field exists before you use it. An empty result means Capy cannot resolve the unit.
-
-Use this function to inspect a unit before an optional call. Relative paths use the same unit path rules as unit calls. Counters describe the current runtime process.
-
-C++ returns a `DValue` through the signature above. Use the same path and result checks.
+`unit_info` returns metadata for a unit.
 
 :example capy render
-var info := unit_info("examples/sample_unit.capy")
-if dval_is_array(info) { print("unit_info() returns metadata for the unit\n") } else { print("empty metadata for the unit\n") }
+var info := unit_info("capy-files.capy")
+print(bool(info["source_exists"]), "\n")

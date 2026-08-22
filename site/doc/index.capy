@@ -69,7 +69,6 @@ function render_legacy(page : string) bool {
     if page == "2_StringList_sort" { render_page_shell("api", "string-list-sort"); return true }
     if page == "2_StringList_unique" { render_page_shell("api", "string-list-unique"); return true }
     if page == "3_Blocked functions" { render_page_shell("api", "blocked-functions"); return true }
-    if page == "3_C++ Preprocessor" { render_page_shell("api", "cpp-preprocessor"); return true }
     if page == "3_Coming from React" { render_page_shell("api", "coming-from-react"); return true }
     if page == "3_Documentation format" { render_page_shell("api", "documentation-format"); return true }
     if page == "array_merge" { render_page_shell("api", "array-merge"); return true }

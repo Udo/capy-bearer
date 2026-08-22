@@ -1,26 +1,23 @@
+:title
+Start an output buffer
+
 :sig
-void Request::ob_start()
+function ob_start()
 
 :returns
-none
-
-:see
-0_Request
-ob_start
-ob_get_close
+This function returns no value.
 
 :content
-`ob_start()` starts a new output buffer for the active request. It returns no value. Output after the call goes to this buffer until `ob_get`, `ob_get_close`, or `ob_close` uses it.
+`ob_start()` starts an output buffer for the active request.
 
-Use `ob_start`, `ob_get`, `ob_get_close`, and `ob_close` for normal Capy output capture. Capy does not expose `context.ob`.
-
-## C++ API
-
-`Request::ob_start()` creates the active `context.ob` buffer.
-
+Output after this call goes to the buffer. Use `ob_get`, `ob_get_close`, or `ob_close` to read or close it.
 
 :example capy render
 ob_start()
 print("fragment")
 var captured := ob_get_close()
 print("captured: ", captured, "\n")
+
+:see
+0_Request
+ob_get_close

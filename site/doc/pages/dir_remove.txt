@@ -1,34 +1,26 @@
 :sig
-bool dir_remove(String path, bool recursive = false)
+function dir_remove(path : string, recursive : bool = false) bool
 
 :params
-path : directory path to remove
+path : the directory path to remove
 recursive : `true` removes the directory and its contents
 
 :returns
-`true` on success
+`true` on success.
 
 :content
-`dir_remove()` removes a directory from a Capy path.
+`dir_remove()` removes a directory.
 
-Pass the directory path. Without `recursive`, the directory must be empty. With `recursive = true`, it removes all contents.
-
-Use the recursive form only when you intend to delete every contained file and directory.
-
-The Capy call has the same arguments.
+Without `recursive`, the directory must be empty. With `recursive = true`, it removes every contained file and directory.
 
 :example capy render
-var root := file_temp("/tmp/capy-doc-rmdir-")
+var root := file_temp("/tmp/capy-doc-dir-remove-")
 file_unlink(root)
 mkdir(root)
 file_put_contents(path_join(root, "child.txt"), "x")
-dir_remove(root, true)
-if bool(file_stat(root)["exists"]) { print("still there\n") } else { print("removed\n") }
+print(dir_remove(root, true), "\n")
+
 :see
->sys
 mkdir
+dir_list
 file_unlink
-file_truncate
-file_temp
-file_copy
-file_chmod

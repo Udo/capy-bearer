@@ -1,22 +1,21 @@
 :sig
-DValue brb_decode(String encoded)
-bool brb_decode(String encoded, DValue& out, String* error_out = 0)
+function brb_decode(encoded : string) dval
+
+:params
+encoded : BRRB data
+
+:returns
+a decoded `dval` value
+
+:content
+`brb_decode` decodes BRRB data into a `dval` value.
+
+Use it to read data from `brb_encode`.
+
+:example capy render
+var value := brb_decode(brb_encode(dval({"name": "Ada"})))
+print(value["name"], "\n")
 
 :see
 brb_encode
-0_DValue
 json_decode
-
-:content
-Capy's `brb_decode(encoded)` returns the decoded `dval` value. Pass BRRB2 bytes from `brb_encode()`.
-
-Invalid input returns an empty string value. Capy has no error-output form. It does not modify another value.
-
-BRRB preserves the distinct `N` tag for `none`. A decoded `N` value remains `none` in Capy and C++.
-
-The C++ one-argument `DValue` form has the same result. Its three-argument form also returns a success flag and an error string.
-
-:example capy render
-var original := dval({"n": "7", "missing": none})
-var restored := brb_decode(brb_encode(original))
-print(restored.n, " / ", restored.missing?, "\n")

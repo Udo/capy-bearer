@@ -1,28 +1,24 @@
-:sig
-0_StringMap
+:title
+String map
 
-:see
->types
-0_Request
-parse_query
-encode_query
-array_merge
+:sig
+type dval (map of strings)
 
 :content
-Use a map-shaped `dval` for string-keyed values in Capy. Create one with `dval({"key": "value"})`.
+Use a map-shaped `dval` for string-keyed values. Create one with `dval({"key": "value"})`.
 
-Use `value["key"]` to read a copied child. Use `dval_has(value, "key")` to test for a child. `dval_put(value, "key", "value")` mutates the map and returns that same identity.
+Use `value["key"]` to read a child. Use `dval_has` to test for a key. Use `dval_put` to change a map.
 
-`parse_query(query)` returns a map-shaped `dval`. `encode_query(map)` returns a query string. `array_merge(left, right)` returns a merged `dval`.
+`parse_query` returns a map-shaped `dval`. `encode_query` creates a query string from a map.
 
-## Capy Limit
-
-Capy has no `StringMap` type. A Capy map holds DValue children and shares identity inside one workspace. It does not expose C++ map references or mutation through `operator[]`. A C++ boundary copies BRRB.
-
-## C++ API
-
-C++ `StringMap` is `std::map<String, String>`. C++ `map["key"]` creates an empty entry when the key is missing.
+Capy has no separate `StringMap` type. Use a map-shaped `dval` instead.
 
 :example capy render
 var params := dval({"page": "docs"})
 print(params["page"], "\n")
+
+:see
+0_Request
+parse_query
+encode_query
+array_merge

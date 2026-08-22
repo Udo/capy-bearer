@@ -1,20 +1,21 @@
+:title
+Call a function for each string
+
 :sig
-DValue::each(String callback) (legacy `StringList` page)
+function each(items : dval, callback : function(value : string) string)
+
+:returns
+This function returns no value.
 
 :content
-`each(items, callback)` takes a list-shaped `dval` and a callback that takes one string. It calls the callback once for each item in numeric list order. It returns no value.
+`each` calls `callback` once for each item in a list-shaped `dval`.
 
-Use a list from `split` or `dval([...])`. Capy has no separate `StringList` type. It uses list-shaped DValues. Callback values are copied strings.
-
-## C++ API
-
-`DValue::each()` provides the legacy StringList operation.
-
-:see
-0_DValue
-2_DValue_each
+The callback receives a string value. `each` processes items in list order.
 
 :example capy render
 var items := split("one,two", ",")
 each(items, function(value : string) string { print(value); return "" })
 print("\n")
+
+:see
+0_StringList

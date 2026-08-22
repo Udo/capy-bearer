@@ -9,20 +9,16 @@ function data(input : dval) dval {
         page["slug"] = "f64"
         page["route"] = "/doc/api/f64/"
         page["title"] = "f64"
-        page["content"] = "Use `f64` to convert input to a floating-point value.\n\n`f64(dval, fallback)` accepts scalar `bool`, finite `f64`, and decimal text. `true` becomes `1.0`, and `false` becomes `0.0`.\n\n`f64(string, fallback)` trims spaces and then applies the same rules. The parser requires complete text, so `3.5ms` returns `fallback`.\n"
-        page["returns"] = "converted `f64`, or `fallback`"
-        page["errors"] = "`f64` does not throw. It returns `fallback` for empty input, malformed text, maps, lists, and non-finite values."
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction f64(value : dval, fallback : f64 = 0.0) f64\nfunction f64(value : string, fallback : f64 = 0.0) f64\n\n`f64` converts a `dval` or a string to a floating-point value. The string form removes leading and trailing spaces. The value must contain a complete decimal number.\n"
+        page["returns"] = "An `f64` value, or `fallback`."
+        page["errors"] = "`f64` does not trap for an invalid conversion. It returns `fallback`."
         page["label"] = "f64"
-        page["sig_lines"] = dval(["f64(value : dval, fallback : f64 = 0.0) f64", "f64(value : string, fallback : f64 = 0.0) f64", ""])
         page["capy_sig_lines"] = dval(["function f64(value : dval, fallback : f64 = 0.0) f64", "function f64(value : string, fallback : f64 = 0.0) f64"])
-        page["param_lines"] = dval(["value : source value to convert", "fallback : value returned when conversion fails", ""])
+        page["param_lines"] = dval(["value : value to convert", "fallback : value to return when conversion fails", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "2_DValue_to_f64", "2_DValue_to_s64", "2_DValue_to_u64", "2_DValue_to_bool", "2_DValue_to_string"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">types", "2_DValue_to_f64", "s64", "u64"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(f64(\" 3.5 \"), \"\\n\")\nprint(f64(\"not a number\", 9.0), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

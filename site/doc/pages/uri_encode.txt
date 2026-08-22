@@ -1,11 +1,11 @@
 :sig
-String uri_encode(String s)
+function uri_encode(value : string) string
 
 :params
-s : string that should be encoded
+value : string to encode
 
 :returns
-an URI-encoded version of 's'
+URI-encoded string
 
 :see
 >uri
@@ -15,13 +15,9 @@ parse_uri
 parse_query
 session_id_create
 route_path_sanitize
+
 :content
-`uri_encode(value)` accepts a `string` and returns its URI-encoded `string` form.
-
-Use it before you place text in a URI component. The API has no error return.
-
-C++ uses the signature above. Its `String` input and return value correspond to Capy `string` values.
-
+`uri_encode` encodes a string for a URI component.
 
 :example capy render
 print(uri_encode("Ada Lovelace"), "\n")

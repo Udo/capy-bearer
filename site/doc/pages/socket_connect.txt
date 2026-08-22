@@ -1,28 +1,12 @@
 :sig
-u64 socket_connect(String host, u16 port)
-
-:params
-host : IPv4 address in dotted-quad form, such as `127.0.0.1`
-port : port number from 0 through 65535
+function socket_connect(host : string, port : s32) u64
 
 :returns
-socket handle, or zero when the connection fails
+Socket handle, or zero when the connection fails.
 
-:see
->socket
-socket_close
-socket_read
-http_request_async
-socket_write
-http_request
 :content
-Capy `socket_connect(host, port)` opens a socket to an IPv4 address and port. Give it a dotted-quad address and a port from 0 through 65535.
-
-It returns a socket handle. It returns zero when it cannot connect. Use a nonzero handle with `socket_read()`, `socket_write()`, and `socket_close()`.
-
-Capy does not resolve host names. Use an IPv4 address. The C++ API uses `u16` for `port`. Capy accepts `s32` and rejects values outside the valid port range.
+Use `socket_connect` to open a socket to an IPv4 address and port. Pass a nonzero handle to the socket functions.
 
 :example capy render
-var fd := socket_connect("127.0.0.1", 80)
-if fd != 0 { print("connected to the local server\n") } else { print("connect failed\n") }
-socket_close(fd)
+var handle := socket_connect("127.0.0.1", 80)
+print(handle, "\n")

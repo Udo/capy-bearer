@@ -1,27 +1,23 @@
 :sig
-u32 gen_noise32(u32 index, u32 seed = 0)
+function gen_noise32(index : u64, seed : u64 = 0) u64
 
 :params
 index : deterministic input position
-seed : deterministic input seed, default `0`
+seed : deterministic input seed
 
 :returns
-deterministic noise value
+A deterministic `u64` value.
 
-:see
->noise
-gen_noise01
-gen_noise64
-draw_int
-gen_float
-draw_float
-gen_int
 :content
-`gen_noise32()` returns a deterministic unsigned noise value for `index` and `seed`. Capy represents the result as `u64`.
+`gen_noise32()` returns deterministic integer noise for an index and seed.
 
-Use it for repeatable integer noise. Capy returns the `u32` value shown above.
-
+Use the same inputs to reproduce a value.
 
 :example capy render
-var generated := gen_noise32(1, 2)
-print("noise32\n")
+var value := gen_noise32(u64(1), u64(2))
+print(value, "\n")
+
+:see
+gen_noise01
+gen_noise64
+gen_int

@@ -1,23 +1,21 @@
 :sig
-String ob_get_close()
+function ob_get_close() string
 
 :returns
 the current output buffer contents
 
 :content
-`ob_get_close()` returns the current output buffer as a `string` and closes it. Output returns to the previous buffer.
+`ob_get_close()` returns the current output buffer contents and closes the buffer.
 
-Use this to capture output before you change or print it.
+Output then returns to the previous buffer.
 
 :example capy render
 ob_start()
-print("hello ")
-print("world")
-var html := ob_get_close()
-print("captured ", length(html), " chars: ", html, "\n")
+print("captured")
+var output := ob_get_close()
+print(output, "\n")
 
 :see
 >ob
 ob_start
 ob_get
-ob_close

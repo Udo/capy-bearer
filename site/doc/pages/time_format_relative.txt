@@ -1,16 +1,16 @@
 :sig
-String time_format_relative(u64 timestamp, String format_very_recent = "", u64 medium_recency_seconds = 0, String format_medium_recent = "", u64 not_recent_seconds = 0, String format_not_recent = "")
+function time_format_relative(timestamp : u64, very_recent : string = "", medium_seconds : u64 = 0, medium_recent : string = "", not_recent_seconds : u64 = 0, not_recent : string = "") string
 
 :params
-timestamp : Capy Unix timestamp to compare with the current time
-format_very_recent : text for recent timestamps. An empty value uses `just now`.
-medium_recency_seconds : recent cutoff in seconds. Zero uses `90`.
-format_medium_recent : text after the recent cutoff. An empty value uses `%deltaM minutes ago`.
-not_recent_seconds : older cutoff in seconds. Zero uses `5400`.
-format_not_recent : text after the older cutoff. An empty value uses `%deltaH hours ago`.
+timestamp : Unix timestamp
+very_recent : text for very recent timestamps
+medium_seconds : very recent cutoff in seconds
+medium_recent : text after the very recent cutoff
+not_recent_seconds : medium recent cutoff in seconds
+not_recent : text after the medium recent cutoff
 
 :returns
-formatted relative-time string
+formatted relative time
 
 :see
 >time
@@ -22,17 +22,9 @@ time
 time_parse
 time_precise
 usleep
+
 :content
-Use `time_format_relative` to show a Capy timestamp relative to the current time. Pass the timestamp. You can also set the three output formats and their two cutoffs. The function returns a Capy `string`.
-
-The formatter uses `format_very_recent` before `medium_recency_seconds`. It uses `format_medium_recent` before `not_recent_seconds`. It uses `format_not_recent` at or after that cutoff.
-
-All time formatters support relative-time delta tokens.
-
-Default behavior examples:
-
-
-Capy uses `u64` and `string` values. Capy uses `u64` and `String`, as the signature shows.
+`time_format_relative` formats a timestamp relative to the current time.
 
 :example capy render
-print(time_format_relative(0), "\n")
+print(time_format_relative(time()), "\n")

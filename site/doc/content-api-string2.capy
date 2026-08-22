@@ -9,20 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "string-2"
         page["route"] = "/doc/api/string-2/"
         page["title"] = "string"
-        page["content"] = "Use `string` to convert scalar data to text.\n\n`string(dval, fallback)` accepts scalar `string`, `bool`, and finite `f64` values. It returns `fallback` for an empty string, map, or list.\n\n`string(string, fallback)` trims spaces and then applies the same rules. Use it for user input that can contain accidental whitespace.\n"
-        page["returns"] = "converted string, or `fallback`"
-        page["errors"] = "`string` does not throw. It returns `fallback` for unsupported shapes and empty text."
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction string(value : dval, fallback : string = \"\") string\n\nUse `string` to convert a `dval` value to text. It returns `fallback` when conversion fails.\n"
+        page["returns"] = "Converted text, or `fallback`."
         page["label"] = "string"
-        page["sig_lines"] = dval(["string(value : dval, fallback : string = \"\") string", "string(value : string, fallback : string = \"\") string", ""])
         page["capy_sig_lines"] = dval(["function string(value : dval, fallback : string = \"\") string"])
-        page["param_lines"] = dval(["value : source value to convert", "fallback : value returned when conversion fails", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_String", "2_DValue_to_string", "2_DValue_to_bool", "2_DValue_to_s64", "2_DValue_to_u64", "2_DValue_to_f64"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(string(dval(42)), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

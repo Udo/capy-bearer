@@ -1,13 +1,13 @@
 :sig
-bool ws_send_to(String connection_id, String message, bool binary = false)
+function ws_send_to(connection_id : string, message : string, binary : bool) bool
 
 :params
-connection_id : ID of the target WebSocket client
-message : message payload to send
-binary : set to true to send a binary frame instead of a text frame
+connection_id : client ID
+message : message bytes to send
+binary : `true` for a binary frame
 
 :returns
-true if the target connection exists and the message was queued
+`true` when the server queues the message.
 
 :see
 >websocket
@@ -17,14 +17,9 @@ ws_opcode
 ws_message
 ws_is_binary
 ws_connections
+
 :content
-`ws_send_to(connection_id, message, binary)` sends one message to the selected WebSocket client.
+`ws_send_to()` sends a message to one client.
 
-Both IDs and messages are `string` values. Set `binary` to `true` for a binary message. The function returns `true` when it finds the client and queues the message.
-
-In Capy, use `request.websocket.connection_id` or `request.websocket.connections` to select an ID. In C++, use `ws_connection_id()` or `ws_connections()`. A `false` return is the normal missing-client result.
-
-C++ uses the signature above. Its `String` and `bool` inputs correspond to Capy `string` and `bool` values.
-
-:example capy render
-if ws_send_to("example-connection-id", "direct message", false) { print("message queued\n") } else { print("no such connection\n") }
+:example capy ws
+ws_send_to(string(request.websocket.connection_id, ""), "hello", false)

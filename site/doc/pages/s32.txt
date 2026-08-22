@@ -1,35 +1,16 @@
 :sig
-s32(value : dval, fallback : s32 = 0) s32
-s32(value : string, fallback : s32 = 0) s32
+function s32(value : dval, fallback : s32 = 0) s32
+function s32(value : string, fallback : s32 = 0) s32
 
 :params
-value : source value to convert
-fallback : value returned when conversion fails
+value : value to convert
+fallback : value for a failed conversion
 
 :returns
-converted `s32`, or `fallback`
+A signed 32-bit integer, or `fallback`.
 
 :content
-Use `s32` to convert input to a 32-bit signed integer.
+`s32()` converts supported scalar values and integer text. It returns `fallback` when conversion fails.
 
-`s32(dval, fallback)` accepts scalar `bool`, finite `f64`, and exact decimal text. `true` maps to `1`, and `false` maps to `0`.
-
-`s32(string, fallback)` trims spaces and then applies the same rules. Out-of-range values return `fallback`. A float input truncates toward zero.
-
-:errors
-`s32` does not throw. It returns `fallback` for invalid text, `none`, maps, lists, or out-of-range values.
-
-:example capy render s32() parses integer text and numbers
-print(s32("42"), "\n")
-print(s32(dval(8.9), -1), "\n")
-
-:example capy render s32() returns the fallback for empty text
-print(s32("", -1), "\n")
-
-:see
->types
-2_DValue_to_s64
-2_DValue_to_u64
-2_DValue_to_f64
-2_DValue_to_bool
-s64
+:example capy render
+print(s32("42", -1), "\n")

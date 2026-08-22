@@ -1,9 +1,5 @@
-
 :sig
-u8 ws_opcode()
-
-:returns
-opcode of the current WebSocket message
+No Capy signature.
 
 :see
 >websocket
@@ -14,9 +10,6 @@ ws_is_binary
 ws_send
 ws_connections
 ws_send_to
-:capy-status cpp-specific
 
 :content
-`ws_opcode()` is a C++ API. It returns the current WebSocket message opcode. Text messages use `1`, and binary messages use `2`. Outside a WebSocket handler, it returns `0`.
-
-Capy does not expose `ws_opcode`. In a Capy `WS` handler, read `request.websocket.opcode`.
+Capy has no native `ws_opcode` signature. In a `WS` handler, use `request.websocket.opcode`.

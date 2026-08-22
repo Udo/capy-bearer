@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "runtime-perf"
         page["route"] = "/doc/api/runtime-perf/"
         page["title"] = "runtime_perf"
-        page["content"] = "`runtime_perf()` returns diagnostic data for an active Capy request workspace. Outside that workspace, it returns an invalid DValue. It does not read request input.\n\nThe result can include request, transport, workspace, guest, hostcall, unit-load, component, and connector timing data. The enabled profiling options and completed work control the available fields. `hostcall_cpu_profiled` and `thread_runtime_profiled` show whether optional counters are available.\n\nC++ keeps `request_perf()` with the signature above. Capy uses `runtime_perf()`.\n"
-        page["returns"] = "performance data for the active request workspace"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction runtime_perf() dval\n\n`runtime_perf()` returns data for the active request workspace.\n"
+        page["returns"] = "Runtime performance data."
         page["label"] = "runtime_perf"
-        page["sig_lines"] = dval(["DValue request_perf()", ""])
         page["capy_sig_lines"] = dval(["function runtime_perf() dval"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">0_Request", ">request_perf", ">time_precise"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var perf := runtime_perf()\nprint(dval_get_type_name(perf), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -32,19 +28,15 @@ function data(input : dval) dval {
         page["slug"] = "runtime-safe-key"
         page["route"] = "/doc/api/runtime-safe-key/"
         page["title"] = "runtime_safe_key"
-        page["content"] = "Use this function to make a stable runtime key from a non-empty name.\n\nThe function trims `key` and returns its SHA-1 value. Use the result for runtime task names or file names. An empty key is an error. `label` identifies that key in the error message.\n"
-        page["returns"] = "stable SHA-1 key"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction runtime_safe_key(key : string, label : string = \"runtime key\") string\n\nThe function trims `key`. It reports an error for an empty key.\n"
+        page["returns"] = "A stable SHA-1 key."
         page["label"] = "runtime_safe_key"
-        page["sig_lines"] = dval(["String runtime_safe_key(String key, String label = \"runtime key\")", ""])
         page["capy_sig_lines"] = dval(["function runtime_safe_key(key : string, label : string = \"runtime key\") string"])
-        page["param_lines"] = dval(["key : caller-provided runtime key", "label : error label for an empty key", ""])
+        page["param_lines"] = dval(["key : runtime key", "label : name for an empty-key error", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", ">gen_sha1", "request_perf", "process_start_directory", "path_real", "path_is_within", "file_fsync", "file_symlink"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(runtime_safe_key(\"docs task\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

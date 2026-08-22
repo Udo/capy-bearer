@@ -9,20 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "mysql-connect"
         page["route"] = "/doc/api/mysql-connect/"
         page["title"] = "mysql_connect"
-        page["content"] = "This function returns an opaque request-local `u64` handle. Pass all four arguments.\n\nUse `mysql_connected()` before work that needs a live server connection.\n\nEach call creates a lease. `mysql_disconnect()` releases that lease. Bearer can retain the server connection in its worker pool instead of closing it immediately.\n\nThe C++ API returns `MySQL*` instead.\n"
-        page["returns"] = "an opaque request-local MySQL handle. A failed connection can still return a nonzero handle."
-        page["errors"] = "A connection failure does not necessarily return zero. Use `mysql_connected()` to test the handle. Use `mysql_error()` to read its diagnostic."
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction mysql_connect(host : string, username : string, password : string, database : string) u64\n\n`mysql_connect()` creates a MySQL connection lease and returns its handle.\n\nCall `mysql_connected()` before database work. Call `mysql_disconnect()` after use. A failed connection can return a nonzero handle.\n"
+        page["returns"] = "a request-local MySQL connection handle"
         page["label"] = "mysql_connect"
-        page["sig_lines"] = dval(["MySQL* mysql_connect(String host = \"localhost\", String username = \"root\", String password = \"\", String database = \"\")", ""])
         page["capy_sig_lines"] = dval(["function mysql_connect(host : string, username : string, password : string, database : string) u64"])
-        page["param_lines"] = dval(["host : MySQL server host", "username : MySQL user name", "password : MySQL password", "database : initial database name", ""])
+        page["param_lines"] = dval(["host : the MySQL server host", "username : the MySQL user name", "password : the MySQL password", "database : the initial database name", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">mysql", "mysql_connected", "mysql_disconnect", "mysql_error", "mysql_escape", "mysql_insert_id", "mysql_affected_rows"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">mysql", "mysql_connected", "mysql_disconnect", "mysql_error"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var database := mysql_connect(\"localhost\", \"root\", \"\", \"\")\nif mysql_connected(database) { print(\"connected\\n\") } else { print(mysql_error(database), \"\\n\") }\nif database != u64(0) { mysql_disconnect(database) }\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -33,19 +28,15 @@ function data(input : dval) dval {
         page["slug"] = "mysql-connected"
         page["route"] = "/doc/api/mysql-connected/"
         page["title"] = "mysql_connected"
-        page["content"] = "Pass the opaque `u64` handle from `mysql_connect()`.\n\nThis function distinguishes a failed connection wrapper from a live server connection. It returns `false` for a failed wrapper in both Capy and C++.\n"
+        page["content"] = "## sig\n\nfunction mysql_connected(handle : u64) bool\n\n`mysql_connected()` tests whether a MySQL handle has a live server connection.\n\nUse `mysql_error()` to get the diagnostic when it returns `false`.\n"
         page["returns"] = "`true` when the handle has a live server connection"
-        page["example_error"] = "expected contiguous :example cpp render"
         page["label"] = "mysql_connected"
-        page["sig_lines"] = dval(["bool mysql_connected(MySQL* m)", ""])
         page["capy_sig_lines"] = dval(["function mysql_connected(handle : u64) bool"])
-        page["param_lines"] = dval(["m : Capy MySQL handle", ""])
+        page["param_lines"] = dval(["handle : the MySQL connection handle", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">mysql", "mysql_connect", "mysql_disconnect", "mysql_error", "mysql_escape", "mysql_insert_id", "mysql_affected_rows"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">mysql", "mysql_connect", "mysql_error"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var database := mysql_connect(\"localhost\", \"root\", \"\", \"\")\nprint(mysql_connected(database), \"\\n\")\nif database != u64(0) { mysql_disconnect(database) }\n"}])
         page["guide_examples"] = dval([])
         return page
     }

@@ -1,35 +1,28 @@
 :sig
-dval(value : string) dval
-dval(value : s32) dval
-dval(value : s64) dval
-dval(value : u64) dval
-dval(value : f64) dval
-dval(value : bool) dval
-dval(value : dval) dval
+function dval(value : string) dval
+function dval(value : s32) dval
+function dval(value : s64) dval
+function dval(value : u64) dval
+function dval(value : f64) dval
+function dval(value : bool) dval
+function dval(value : dval) dval
 
 :params
-value : scalar value, map or list literal, or existing `dval`
+value : a scalar, literal structure, or `dval`
 
 :returns
-new `dval` value
+A `dval` value.
 
 :content
-Use `dval()` to build a dynamic value from scalar values or a literal structure.
+`dval()` converts a scalar or literal structure to a dynamic value.
 
-It converts `string`, integer, float, and `bool` scalars into typed `dval` entries. It keeps existing `dval` input as `dval`.
-
-Use it for request and task payloads, JSON-like in-memory data, and nested maps and lists.
-
-:errors
-Compilation fails when `dval()` receives an unsupported input type. The compiler rejects map literals with duplicate keys.
+Use it for request payloads and nested map or list data. Existing `dval` input stays a `dval` value.
 
 :example capy render
-var profile := dval({"name": "Ada", "scores": [1, 2, 3]})
-print(profile.name, " ", length(profile.scores), "\n")
+var profile := dval({name: "Ada", scores: [1, 2, 3]})
+print(string(profile.name), " ", length(profile.scores), "\n")
 
 :see
->types
-0_DValue
-2_DValue_is_array
-2_DValue_is_list
-2_DValue_to_string
+>0_DValue
+dval_put
+dval_set

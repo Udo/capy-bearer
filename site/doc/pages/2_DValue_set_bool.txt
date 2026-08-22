@@ -1,23 +1,19 @@
+:title
+Store a Boolean value
+
 :sig
-void DValue::set_bool(bool b)
+function dval_set_bool(value : dval, flag : bool) dval
 
 :params
-b : boolean value to store
+value : target value
+flag : Boolean value to store
 
 :returns
-none
-
-:see
-0_DValue
-2_DValue_to_bool
+The changed target value.
 
 :content
-`dval_set_bool(value, flag)` stores the Boolean in the target. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid.
-
-## C++ API
-
-`DValue::set_bool()` changes the object in place and can follow an internal reference.
+`dval_set_bool` stores `flag` in `value`. It changes and returns the target value.
 
 :example capy render
 var flag := dval_set_bool(dval(""), true)
-if bool(flag) { print("true\n") } else { print("false\n") }
+print(bool(flag), "\n")

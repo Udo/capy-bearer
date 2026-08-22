@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "xml-encode"
         page["route"] = "/doc/api/xml-encode/"
         page["title"] = "xml_encode"
-        page["content"] = "`xml_encode(value)` accepts a `dval` and returns XML as a `string`. `xml_encode(value, root_name)` uses the supplied root name.\n\nUse it to write application data as simple XML. It escapes text and attribute values. List values use repeated `item` elements.\n\nThe function does not validate schema, DTD, or namespace rules. The declaration has no error return.\n\nC++ uses `DValue` and `String` values through the signatures above.\n"
-        page["returns"] = "XML string"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction xml_encode(value : dval, root_name : string = \"root\") string\n\n`xml_encode()` encodes a `dval` as XML. The default root name is `root`.\n"
+        page["returns"] = "The XML source."
         page["label"] = "xml_encode"
-        page["sig_lines"] = dval(["String xml_encode(DValue t)", "String xml_encode(DValue t, String root_name)", ""])
         page["capy_sig_lines"] = dval(["function xml_encode(value : dval, root_name : string = \"root\") string"])
-        page["param_lines"] = dval(["t : tree to serialize as XML", "root_name : optional element name to use when `t` is not already an element-shaped tree, defaults to `root`", ""])
+        page["param_lines"] = dval(["value : value to encode", "root_name : root element name", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">markup", "xml_decode", "json_encode", "0_DValue", "html_escape"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(xml_encode(dval({name: \"Ada\"})), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

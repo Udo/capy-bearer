@@ -1,26 +1,16 @@
-
 :sig
-DValue request_route_from_raw_path(String raw_path, String default_path = "index")
+function route_from_raw_path(raw_path : string, default_path : string = "index") dval
 
 :params
 raw_path : route text to validate
 default_path : route for empty input
 
 :returns
-route metadata as a `dval`
-
-:see
->0_Request
->request_route_from_raw_path
->route_path_sanitize
+Route data with `path`, `page`, `raw_path`, and `valid`.
 
 :content
-`route_from_raw_path(raw_path, default_path)` is the Capy route utility. It does not read the active request. C++ keeps the `request_route_from_raw_path()` signature above.
-
-The Capy result has `path`, `page`, `raw_path`, and `valid`. `raw_path` is normalized diagnostic input. `path` is the safe route, or an empty string when validation fails. `page` is the first route segment. `valid` is true when `path` is safe.
-
-The utility uses `default_path` for empty input. Use only `path` below an application-controlled route root. Use `request.route` for a handler request route.
+Use `path` only below an application-controlled route root. It is empty when the route is unsafe.
 
 :example capy render
-var route := route_from_raw_path("blog/2024/hello-world")
+var route := route_from_raw_path("docs/api")
 print(string(route.page, ""), "\n")

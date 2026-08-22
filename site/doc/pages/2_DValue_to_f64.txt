@@ -1,27 +1,19 @@
+:title
+Convert to f64
+
 :sig
-f64 DValue::to_f64(f64 default_value = 0) const
+function f64(value : dval, fallback : f64 = 0.0) f64
+function f64(value : string, fallback : f64 = 0.0) f64
 
 :params
-f64 : fallback returned when conversion is not possible
+value : value to convert
+fallback : value to return when conversion fails
 
 :returns
-converted value or the fallback
-
-:see
->types
-0_DValue
-2_DValue_to_string
-2_DValue_require
+The `f64` value or `fallback`.
 
 :content
-`f64(value)` is Capy's f64 constructor for a `dval`. `f64(value, fallback)` returns the fallback for `none` or a failed conversion.
-
-Exact numeric strings, finite f64 values, and booleans can convert. Empty, invalid, and non-finite strings return the fallback. Maps and lists also return the fallback.
-
-## C++ API
-
-`DValue::to_f64()` also converts C++ pointers, resolved references, and one-child maps. These C++ rules do not change the Capy constructor rules.
+`f64(value)` converts a dynamic value to `f64`. Use the optional fallback for invalid input.
 
 :example capy render
-var value := dval("12.5")
-print(f64(value), "\n")
+print(f64(dval("12.5")), "\n")

@@ -1,26 +1,19 @@
 :sig
-void cwd_set(String path)
+function cwd_set(path : string)
 
 :params
-path : new working directory path
+path : the new working directory path
 
-:see
->sys
-path_join
-shell_escape
-mkdir
-shell_exec
-ls
-shell_spawn
 :content
-`cwd_set()` changes the current working directory to a Capy string path.
+`cwd_set()` changes the worker process working directory.
 
-Pass the destination path. Save the current path with `cwd_get()` and restore it after temporary use. This change affects the worker process.
-
-The Capy call has the same arguments.
+Save the current directory with `cwd_get()`. Restore it after temporary use.
 
 :example capy render
-var old := cwd_get()
+var old_path := cwd_get()
 cwd_set("/tmp")
-print("cwd is now ", cwd_get(), "\n")
-cwd_set(old)
+print(cwd_get(), "\n")
+cwd_set(old_path)
+
+:see
+cwd_get

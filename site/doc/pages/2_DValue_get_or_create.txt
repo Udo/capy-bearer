@@ -1,24 +1,21 @@
+:title
+Get or create a child
+
 :sig
-DValue* DValue::get_or_create(String s)
+function dval_get_or_create(value : dval, key : string) dval
 
 :params
-s : child key to create or return
+value : target value
+key : child key
 
 :returns
-pointer to the child node
-
-:see
-0_DValue
-2_DValue_key
-2_DValue_has
+The target value.
 
 :content
-Use `dval_get_or_create(value, key)` in Capy to create an empty child when needed. It mutates `value` and returns that same target identity, not a child alias. All workspace aliases observe the mutation. Assigning the result back remains valid. A nonnumeric key changes a list into a map.
-
-C++ `get_or_create(key)` returns a pointer to the child. It creates the child when needed.
-
+`dval_get_or_create` creates an empty child when `key` is missing. It changes and returns `value`.
 
 :example capy render
-var config := dval_get_or_create(dval({:}), "host")
+var config := dval({:})
+config = dval_get_or_create(config, "host")
 config = dval_put(config, "host", "localhost")
-if dval_has(config, "host") { print(config["host"], "\n") } else { print("missing\n") }
+print(config.host, "\n")

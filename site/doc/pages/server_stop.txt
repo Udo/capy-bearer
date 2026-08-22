@@ -1,25 +1,14 @@
 :sig
-bool server_stop(String key)
+function server_stop(key : string) bool
 
 :params
-key : runtime-wide listener key from `server_start_http()`
+key : listener key
 
 :returns
-`true` when no listener remains or Bearer stopped it
+`true` if no listener remains.
 
-:see
->sys
-server_start_http
-file_open
-gz_uncompress
-file_read
-gz_compress
-file_pread
 :content
-Use this function to stop a custom HTTP listener that `server_start_http()` created.
-
-It removes the listener configuration for `key`. It returns true if no listener exists for that key. It returns false for an empty key or when the stop operation fails.
+`server_stop()` removes the custom HTTP listener for `key`.
 
 :example capy render
-server_start_http("doc-demo-stop", "/tmp/bearer/custom-servers/doc-stop.sock", "examples/sample_unit.capy", "RENDER")
-if server_stop("doc-demo-stop") { print("server stopped\n") } else { print("no such server\n") }
+print(server_stop("docs-server"), "\n")

@@ -1,11 +1,11 @@
 :sig
-String yaml_encode(DValue t)
+function yaml_encode(value : dval) string
 
 :params
-t : tree to serialize as YAML
+value : value to encode
 
 :returns
-YAML string
+The YAML source.
 
 :see
 >markup
@@ -14,14 +14,7 @@ json_encode
 0_DValue
 
 :content
-`yaml_encode(value)` accepts a `dval` and returns YAML as a `string`.
-
-Use it to write configuration data. It writes nested maps, lists, strings, booleans, numeric f64 values, and `none`.
-
-`none` encodes as YAML `null`. It does not write YAML tags, anchors, aliases, or custom schema features.
-
-C++ uses `DValue` and `String` values through the signature above.
+`yaml_encode()` encodes a `dval` as YAML.
 
 :example capy render
-var value := dval({"name": "Ada", "middle": none})
-print(yaml_encode(value))
+print(yaml_encode(dval({name: "Ada"})))

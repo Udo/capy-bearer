@@ -9,20 +9,16 @@ function data(input : dval) dval {
         page["slug"] = "length"
         page["route"] = "/doc/api/length/"
         page["title"] = "length"
-        page["content"] = "Use `length()` to measure text size or container size.\n\nFor `string` and `markup`, the result is a byte count. For `dval`, `length()` counts map and list entries. It traps for scalar `dval` values. For arrays, it returns the element count.\n\nCapy code uses the matching container method, such as `size()`.\n"
-        page["returns"] = "byte count for string and markup values, or entry count for DValue and arrays"
-        page["errors"] = "Compilation fails when `length()` receives the wrong argument count or an unsupported type. Runtime traps when a scalar `dval` reaches `length()`."
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction length(value : string) s32\nfunction length(value : markup) s32\nfunction length(value : dval) s32\nfunction length(value : [T]) s32\n\n`length()` counts bytes in strings and markup. It counts entries in `dval` maps and lists, and elements in arrays.\n"
+        page["returns"] = "A byte count for text and markup, or an entry count for maps, lists, and arrays."
+        page["errors"] = "`length()` traps when a scalar `dval` reaches it."
         page["label"] = "length"
-        page["sig_lines"] = dval(["s32 length(string value)", "s32 length(markup value)", "s32 length(dval value)", "s32 length([T] value)", ""])
         page["capy_sig_lines"] = dval(["function length(value : string) s32", "function length(value : markup) s32", "function length(value : dval) s32", "function length(value : [T]) s32"])
-        page["param_lines"] = dval(["value : string, markup, DValue map/list, or static array", ""])
+        page["param_lines"] = dval(["value : text, markup, a `dval` map or list, or an array", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "substr", "replace", "split", "split_utf8", "contains"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["split", "join"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(length(\"capy docs\"), \" / \", length(dval([\"a\", \"b\"])), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

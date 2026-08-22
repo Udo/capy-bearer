@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "json-decode"
         page["route"] = "/doc/api/json-decode/"
         page["title"] = "json_decode"
-        page["content"] = "This function decodes JSON text into `dval` data.\n\nJSON objects become map-shaped values. JSON arrays become list-shaped values. JSON booleans become bool values. JSON strings and numbers become string values.\n\nJSON `null` becomes `none` in Capy and C++. Use a constructor fallback when you read it as a scalar.\n\nMalformed JSON returns empty or partial data without an error. Use safe reads or constructors to read the result.\n"
-        page["returns"] = "decoded `dval` data"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction json_decode(value : string) dval\n\n`json_decode()` converts JSON text to a `dval` value. Objects become maps, arrays become lists, and `null` becomes `none`.\n"
+        page["returns"] = "The decoded `dval` value."
         page["label"] = "json_decode"
-        page["sig_lines"] = dval(["DValue json_decode(String s)", ""])
         page["capy_sig_lines"] = dval(["function json_decode(value : string) dval"])
-        page["param_lines"] = dval(["s : text that contains JSON data", ""])
+        page["param_lines"] = dval(["value : JSON text", ""])
         page["notes"] = dval([])
-        page["warnings"] = dval(["Malformed JSON can return partial data without an error. Validate required keys before you trust the result."])
-        page["see"] = dval(["0_DValue", "json_encode", "2_DValue_to_bool", "2_DValue_to_f64", "2_DValue_to_u64"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["json_encode", "dval"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var value := json_decode(\"{\\\"name\\\":\\\"Ada\\\",\\\"tags\\\":[\\\"x\\\",\\\"y\\\"]}\")\nprint(value[\"name\"], \" has \", length(value[\"tags\"]), \" tags\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

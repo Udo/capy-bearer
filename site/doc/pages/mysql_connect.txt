@@ -1,36 +1,27 @@
 :sig
-MySQL* mysql_connect(String host = "localhost", String username = "root", String password = "", String database = "")
+function mysql_connect(host : string, username : string, password : string, database : string) u64
 
 :params
-host : MySQL server host
-username : MySQL user name
-password : MySQL password
-database : initial database name
+host : the MySQL server host
+username : the MySQL user name
+password : the MySQL password
+database : the initial database name
 
 :returns
-an opaque request-local MySQL handle. A failed connection can still return a nonzero handle.
+a request-local MySQL connection handle
+
+:content
+`mysql_connect()` creates a MySQL connection lease and returns its handle.
+
+Call `mysql_connected()` before database work. Call `mysql_disconnect()` after use. A failed connection can return a nonzero handle.
+
+:example capy render
+var database := mysql_connect("localhost", "root", "", "")
+if mysql_connected(database) { print("connected\n") } else { print(mysql_error(database), "\n") }
+if database != u64(0) { mysql_disconnect(database) }
 
 :see
 >mysql
 mysql_connected
 mysql_disconnect
 mysql_error
-mysql_escape
-mysql_insert_id
-mysql_affected_rows
-:content
-This function returns an opaque request-local `u64` handle. Pass all four arguments.
-
-Use `mysql_connected()` before work that needs a live server connection.
-
-Each call creates a lease. `mysql_disconnect()` releases that lease. Bearer can retain the server connection in its worker pool instead of closing it immediately.
-
-The C++ API returns `MySQL*` instead.
-
-:errors
-A connection failure does not necessarily return zero. Use `mysql_connected()` to test the handle. Use `mysql_error()` to read its diagnostic.
-
-:example capy render
-var db := mysql_connect("localhost", "root", "", "")
-if mysql_connected(db) { print("connected to MySQL\n") } else { print("no MySQL server reachable with these credentials\n") }
-if db != 0 { mysql_disconnect(db) }

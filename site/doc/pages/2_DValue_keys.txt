@@ -1,23 +1,17 @@
+:title
+Get child keys
+
 :sig
-StringList DValue::keys() const
+function dval_keys(value : dval) dval
+
+:params
+value : source value
 
 :returns
-child keys for map or list values. Scalars return an empty list
-
-:see
->types
-0_DValue
-2_DValue_each
-0_StringList
+A list of child keys.
 
 :content
-`dval_keys(value)` takes a `dval` and returns a list-shaped `dval` of its child keys. Map keys use map order. List keys are numeric strings in list order. A scalar has no child keys, so it returns an empty list.
-
-Capy returns a copied value. It does not expose a mutable child alias.
-
-## C++ API
-
-`DValue::keys()` has the same result.
+`dval_keys` returns a new list of child keys. A scalar returns an empty list.
 
 :example capy render
 var user := dval({"name": "Ada", "role": "admin"})

@@ -1,29 +1,25 @@
 :sig
-u64 gen_int(u64 from, u64 to, u64 index, u64 seed = 0)
+function gen_int(from : u64, to : u64, index : u64, seed : u64 = 0) u64
 
 :params
-from : first range endpoint
-to : second range endpoint
+from : first range value
+to : second range value
 index : deterministic input position
-seed : deterministic input seed, default `0`
+seed : deterministic input seed
 
 :returns
-deterministic `u64` noise value
+A deterministic `u64` value.
 
-:see
->noise
-gen_float
-gen_sha1
-gen_noise64
-sha256
-gen_noise32
-sha256_hex
 :content
-`gen_int()` returns a deterministic `u64` noise value for `index` and `seed`. `from` and `to` set the output range.
+`gen_int()` returns a deterministic value for the range values, index, and seed.
 
-Use the same inputs to reproduce procedural integer values. The Capy call uses the declaration above.
-
+Use the same inputs to reproduce a value.
 
 :example capy render
-var generated := gen_int(1, 1, 10)
-print("int\n")
+var value := gen_int(u64(1), u64(10), u64(1))
+print(value, "\n")
+
+:see
+gen_float
+gen_noise32
+draw_int

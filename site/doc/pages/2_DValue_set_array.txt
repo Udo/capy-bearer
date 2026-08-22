@@ -1,22 +1,19 @@
+:title
+Make an empty list
+
 :sig
-void DValue::set_array()
+function dval_set_array(value : dval) dval
+
+:params
+value : target value
 
 :returns
-none
-
-:see
-0_DValue
-2_DValue_push
-2_DValue_is_list
+The changed target value.
 
 :content
-`dval_set_array(value)` makes the target an empty list. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid. Later `dval_push` calls use numeric keys from `0`.
-
-## C++ API
-
-`DValue::set_array()` changes the object in place.
+`dval_set_array` makes `value` an empty list. Later `dval_push` calls start at index `0`.
 
 :example capy render
-var list := dval_push(dval_set_array(dval("")), "first")
-if dval_is_list(list) { print("is_list=yes") } else { print("is_list=no") }
-if dval_has(list, "0") { print(" count=1\n") } else { print(" count=0\n") }
+var list := dval_set_array(dval(""))
+list = dval_push(list, "first")
+print(dval_is_list(list), " ", list[0], "\n")

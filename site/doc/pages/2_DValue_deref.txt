@@ -1,20 +1,15 @@
-:sig
-DValue& DValue::deref()
-const DValue& DValue::deref() const
+:title
+Dereference a dynamic value
 
-:returns
-referenced target when resolvable, otherwise this value
+:sig
+No Capy declaration.
 
 :see
 0_DValue
-2_DValue_is_reference
-
-:content
-Capy has no `dval_deref` API. DValues share identity inside one workspace, but Capy does not expose C++ pointers or internal reference nodes. Thus, no explicit dereference operation is available.
-
-C++ `deref()` follows internal reference links. It returns the resolved target when possible. Otherwise, it returns this value. Most C++ accessors dereference values automatically.
-
 
 :capy-status unsupported
 
-Capy exposes no host pointer or internal reference-node identity, so dereferencing has no equivalent.
+:content
+Capy does not provide a dereference operation. Capy values do not expose host pointers or reference nodes.
+
+No Capy alternative exists.

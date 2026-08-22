@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "ws-close"
         page["route"] = "/doc/api/ws-close/"
         page["title"] = "ws_close"
-        page["content"] = "`ws_close()` closes the current WebSocket connection. `ws_close(connection_id)` accepts a connection ID and closes that connection.\n\nThe function returns `true` when it finds the target connection and queues its close. It returns `false` when the target does not exist.\n\nUse it in a WebSocket handler when a client must disconnect. The false return is the normal missing-connection result.\n\nC++ uses the optional `String` input in the signature above. Capy provides separate zero-input and one-input declarations.\n"
-        page["returns"] = "true if the target connection exists and was scheduled to close"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction ws_close(connection_id : string = \"\") bool\n\n`ws_close()` closes the current WebSocket client. Pass a client ID to close that client.\n"
+        page["returns"] = "`true` when the server queues the close."
         page["label"] = "ws_close"
-        page["sig_lines"] = dval(["bool ws_close(String connection_id = \"\")", ""])
         page["capy_sig_lines"] = dval(["function ws_close(connection_id : string = \"\") bool"])
-        page["param_lines"] = dval(["connection_id : optional target client ID, defaults to the current WebSocket client", ""])
+        page["param_lines"] = dval(["connection_id : client ID. The default is the current client.", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">websocket", "ws_connection_count", "ws_connection_id", "ws_connections", "ws_is_binary", "ws_message", "ws_opcode"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "ws", caption: "", body: "ws_close()\n"}])
         page["guide_examples"] = dval([])
         return page
     }

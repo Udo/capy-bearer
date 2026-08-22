@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "filter"
         page["route"] = "/doc/api/filter/"
         page["title"] = "filter"
-        page["content"] = "`filter()` reads each `dval` list value as a string. It returns a new `dval` list with values where `f` returns `true`.\n\nUse it to select string values without changing `items`. In Capy, use `DValue` and a lambda that accepts `String`.\n\n"
-        page["returns"] = "new `dval` list of selected string values"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction filter(items : dval, predicate : function(value : string) bool) dval\n\n`filter` calls `predicate` for each value. It keeps values for which the predicate returns `true`.\n"
+        page["returns"] = "A new list of selected values."
         page["label"] = "filter"
-        page["sig_lines"] = dval(["DValue filter(DValue items, function<bool (String)> f)", "DValue::filter(function<bool (String)> f)", ""])
         page["capy_sig_lines"] = dval(["function filter(items : dval, predicate : function(value : string) bool) dval"])
-        page["param_lines"] = dval(["items : `dval` list whose values are read as strings", "f : Capy function that returns `bool` for each string", ""])
+        page["param_lines"] = dval(["items : list of values", "predicate : function that selects a value", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "contains", "first", "base64_encode", "join", "base64_decode", "json_consume_space"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var names := split(\"ada,bob,amy\", \",\")\nvar selected := filter(names, function(value : string) bool { return str_starts_with(value, \"a\") })\nprint(join(selected, \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

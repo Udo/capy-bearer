@@ -1,22 +1,15 @@
 :sig
-void session_destroy(String session_name = "bearer-session")
+function session_destroy(name : string = "bearer-session") dval
 
 :params
-session_name : session cookie name
+name : session cookie name
 
-:see
->session
-session_remove
-response_cookie
-session_set
-session_start
-session_id_create
+:returns
+The resulting session state.
+
 :content
-Use this function to end the named session.
-
-It expires the cookie and removes the matching server-side session file. In Capy, `session_destroy` returns `{id, name, values}` for the resulting state. The fields are empty for the destroyed session. C++ keeps its documented `void` behavior.
+`session_destroy()` expires the named session cookie and removes its server-side data.
 
 :example capy render
-var session := session_start("bearer-doc-example-destroy")
-session = session_destroy("bearer-doc-example-destroy")
-if string(session.id, "") == "" { print("destroyed\n") } else { print("active\n") }
+var session := session_destroy("docs-session")
+print(string(session.id, ""), "\n")

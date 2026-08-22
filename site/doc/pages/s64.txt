@@ -1,35 +1,16 @@
 :sig
-s64(value : dval, fallback : s64 = 0) s64
-s64(value : string, fallback : s64 = 0) s64
+function s64(value : dval, fallback : s64 = 0) s64
+function s64(value : string, fallback : s64 = 0) s64
 
 :params
-value : source value to convert
-fallback : value returned when conversion fails
+value : value to convert
+fallback : value for a failed conversion
 
 :returns
-converted `s64`, or `fallback`
+A signed 64-bit integer, or `fallback`.
 
 :content
-Use `s64` to convert input to a 64-bit signed integer.
+`s64()` converts supported scalar values and integer text. It returns `fallback` when conversion fails.
 
-`s64(dval, fallback)` accepts scalar `bool`, finite `f64`, and exact decimal text. Decimal text must contain a whole number.
-
-`s64(string, fallback)` trims spaces and then applies the same rules. A float input truncates toward zero.
-
-:errors
-`s64` does not throw. It returns `fallback` for invalid text, `none`, maps, lists, or out-of-range values.
-
-:example capy render s64() parses integer text and numbers
-print(s64("64"), "\n")
-print(s64(dval(-12.8), -1), "\n")
-
-:example capy render s64() returns the fallback for empty text
-print(s64("", -1), "\n")
-
-:see
->types
-2_DValue_to_s64
-2_DValue_to_u64
-2_DValue_to_f64
-2_DValue_to_bool
-s32
+:example capy render
+print(s64("64", -1), "\n")

@@ -8,20 +8,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-has"
         page["route"] = "/doc/api/dvalue-has/"
-        page["title"] = "DValue::has"
-        page["content"] = "Use `dval_has(value, key)` in Capy to test a DValue key. It returns `true` when the value is map-shaped and contains the key. It does not create a child. It returns `false` for scalars and missing keys.\n\nC++ `has(key)` applies the same test after it dereferences the value.\n"
-        page["returns"] = "true when the dereferenced value is map-shaped and contains the key"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "DValue::has"
-        page["sig_lines"] = dval(["bool DValue::has(String s) const", ""])
+        page["title"] = "Test for a child"
+        page["content"] = "## sig\n\ndval_has(value : dval, key : string) bool\n\n`dval_has` tests for a child without creating it. It returns `false` for a missing key or a scalar.\n"
+        page["returns"] = "`true` when the key exists."
+        page["label"] = "dval_has"
         page["capy_sig_lines"] = dval(["dval_has(value : dval, key : string) bool"])
-        page["param_lines"] = dval(["s : child key to test", ""])
+        page["param_lines"] = dval(["value : value to test", "key : child key", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "2_DValue_key", "2_DValue_get_by_path"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var user := dval({\"name\": \"Ada\"})\nprint(dval_has(user, \"name\"), \" \", dval_has(user, \"age\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "job-cancel"
         page["route"] = "/doc/api/job-cancel/"
         page["title"] = "job_cancel"
-        page["content"] = "`job_cancel()` requests cancellation of a job.\n\nUse it to stop a job that no longer has a useful result. Its status then reports `cancelled`.\n\nIn Capy, pass the job ID as `dval`. In Capy, pass the `u64` job ID shown above.\n"
-        page["returns"] = "`true` when Bearer cancels an active job. Otherwise, `false`."
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction job_cancel(job : dval) bool\n\n`job_cancel()` requests cancellation of a job. A canceled job reports the `cancelled` state.\n"
+        page["returns"] = "`true` when the system cancels an active job. Otherwise, `false`."
         page["label"] = "job_cancel"
-        page["sig_lines"] = dval(["bool job_cancel(u64 job_id)", ""])
         page["capy_sig_lines"] = dval(["function job_cancel(job : dval) bool"])
-        page["param_lines"] = dval(["job : the Capy `dval` job ID. Capy uses a `u64` ID.", ""])
+        page["param_lines"] = dval(["job : a job ID as `dval`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "job_await", "file_unlink", "job_result", "zip_create", "job_status", "zip_list"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["job_await", "job_result", "job_status"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var job := shell_spawn(dval({\"cmd\": \"sleep 5\", \"timeout_ms\": 10000}))\nprint(job_cancel(job), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

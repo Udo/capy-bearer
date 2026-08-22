@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "trim"
         page["route"] = "/doc/api/trim/"
         page["title"] = "trim"
-        page["content"] = "Call `trim(raw)` to return a `string` without leading or trailing whitespace.\n\nUse it to normalize text before validation or comparison. C++ uses the same input and return value.\n\n"
-        page["returns"] = "`raw` without leading or trailing whitespace"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction trim(raw : string) string\n\n`trim` removes leading and trailing whitespace.\n"
+        page["returns"] = "text without leading or trailing whitespace"
         page["label"] = "trim"
-        page["sig_lines"] = dval(["String trim(String raw)", ""])
         page["capy_sig_lines"] = dval(["function trim(raw : string) string"])
         page["param_lines"] = dval(["raw : text to trim", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">string", "to_upper", "float_val", "to_lower", "int_val", "regex_split", "html_escape"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(trim(\"  docs  \"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

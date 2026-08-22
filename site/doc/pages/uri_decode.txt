@@ -1,11 +1,11 @@
 :sig
-String uri_decode(String s)
+function uri_decode(value : string) string
 
 :params
-s : string containing URI encoded data
+value : URI-encoded string
 
 :returns
-a string that contains the decoded version of 's'
+decoded string
 
 :see
 >uri
@@ -15,13 +15,9 @@ parse_query
 request_route_from_raw_path
 session_id_create
 route_path_sanitize
+
 :content
-`uri_decode(value)` accepts a URI-encoded `string` and returns the decoded `string`.
-
-Use it to read URI data such as a query value. The API has no error return.
-
-C++ uses the signature above. Its `String` input and return value correspond to Capy `string` values.
-
+`uri_decode` decodes a URI-encoded string.
 
 :example capy render
 print(uri_decode("Ada%20Lovelace"), "\n")

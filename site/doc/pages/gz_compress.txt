@@ -1,26 +1,23 @@
 :sig
-String gz_compress(String src)
+function gz_compress(source : string) string
 
 :params
-src : uncompressed input bytes
+source : uncompressed bytes
 
 :returns
-gzip-format compressed bytes
+Gzip-compressed bytes as a string.
+
+:content
+`gz_compress()` compresses a string with gzip.
+
+The result contains binary data. Pass it to `gz_uncompress()` to restore the source.
+
+:example capy render
+var source := "archive data"
+var packed := gz_compress(source)
+print(gz_uncompress(packed), "\n")
 
 :see
->sys
 gz_uncompress
 zip_create
 zip_read
-
-:content
-`gz_compress()` returns gzip-compressed bytes for a string. The returned string is binary data.
-
-Pass the result to `gz_uncompress()`, write it to a file, or send it with the correct HTTP encoding. Use it to create gzip payloads.
-
-The result uses the standard gzip format, including CRC32 and uncompressed-size fields.
-
-:example capy render
-var original := "hello hello hello hello hello"
-var packed := gz_compress(original)
-print("restores to: ", gz_uncompress(packed), "\n")

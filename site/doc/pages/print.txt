@@ -1,26 +1,17 @@
 :sig
-void print(...val)
+function print(...values : as string)
 
 :params
-...val : zero or more values to output
+values : the values to output
 
-:see
->string
-nibble
-strpos
-map
-str_ends_with
-json_encode
-str_starts_with
 :content
-`print(...values : as string)` constructs each non-string value as `string` and writes the values in order.
+`print()` converts each value to a string and writes the values in order.
 
-Use `print(...array)` to spread a `[string]` array. When an output buffer is active, `print()` writes to that buffer. Otherwise, it writes to the response.
-
-A markup literal is a value. It does not write to the response by itself. Pass it to `print()` when a handler must send HTML.
+It writes to the active output buffer when one exists. Otherwise, it writes to the response.
 
 :example capy render
 print("hello docs\n")
 
-:example capy render
-print(<><p>Hello docs</p></>)
+:see
+>string
+ob_start

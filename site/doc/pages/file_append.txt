@@ -1,17 +1,20 @@
 :sig
-void file_append(String file_name, ...val)
+function file_append(path : string, content : string) bool
+function file_append(path : string, first : string, second : string) bool
+function file_append(path : string, first : string, second : string, third : string) bool
 
 :params
-file_name : path of the file to append
-...val : C++ values to append in order
+path : path of the file to update
+content : text to append
+first : first text value to append
+second : second text value to append
+third : third text value to append
 
 :returns
-Capy `true` on success. C++ has no return value
+`true` when Capy appends the text. Otherwise, it returns `false`.
 
 :content
-`file_append()` adds text to a file. In Capy, pass a path and one, two, or three strings. It returns `true` on success and `false` on failure.
-
-Use it to add text without replacing existing content. It creates the file when it does not exist. In Capy, pass one or more values. It does not return a value.
+`file_append` adds text to the end of a file. Use `file_put_contents` to replace a file.
 
 :example capy render
 file_unlink("/tmp/doc-append.txt")
@@ -22,7 +25,4 @@ print(file_get_contents("/tmp/doc-append.txt"), "\n")
 >sys
 file_put_contents
 file_get_contents
-expand_path
 file_exists
-dirname
-basename

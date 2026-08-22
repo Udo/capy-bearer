@@ -1,48 +1,18 @@
 :sig
-pid_t server_start_http(String key, String socket_fn_or_port, String call_bearer_filename, String call_function = "")
+function server_start_http(key : string, bind : string, file : string, callback : string = "") s32
 
 :params
-key : runtime-wide listener key
-socket_fn_or_port : TCP port number or Unix socket path
-call_bearer_filename : `.capy` or `.capy` file that contains the handler
-call_function : optional named handler
+key : listener key
+bind : TCP port or Unix socket path
+file : handler file
+callback : optional handler name
 
 :returns
-listener process PID, or `0` if Bearer cannot start it
+The listener process ID, or `0`.
 
-:see
->sys
-server_stop
-task
-gz_uncompress
-gz_compress
-file_open
-zip_extract
 :content
-This function starts or updates a custom HTTP listener. It supports custom HTTP listeners only.
-
-The key identifies one runtime-wide listener. A second call with the same key and bind target updates the handler without a restart. A changed bind target stops the old listener and starts another one.
-
-Pass a numeric TCP port such as `"19091"` or a Unix socket path. Bearer accepts handler files only below its configured custom-server root. Runtime settings also limit ports, socket paths, and listener count.
-
-A Capy handler file uses `SERVE_HTTP`:
-
-```capy
-function SERVE_HTTP(request : dval) {
-    response_header("Content-Type", "text/plain; charset=utf-8")
-    print("hello from custom HTTP\n")
-}
-
-function SERVE_HTTP:admin(request : dval) {
-    print("named handler\n")
-}
-```
-
-The handler can read normal request data. A long-running handler delays its listener.
-
-The paired example starts the existing C++ `examples/sample_unit.capy` handler. Pass a `.capy` path and an empty handler name to call its default `SERVE_HTTP` handler.
+`server_start_http()` starts or updates a custom HTTP listener. The handler file must define `SERVE_HTTP`.
 
 :example capy render
-var pid := server_start_http("doc-demo-server", "/tmp/bearer/custom-servers/doc-demo.sock", "examples/sample_unit.capy", "RENDER")
-if pid > 0 { print("custom HTTP server started\n") } else { print("start failed\n") }
-server_stop("doc-demo-server")
+var pid := server_start_http("docs-server", "29994", "servers/http.capy", "named")
+print(pid, "\n")

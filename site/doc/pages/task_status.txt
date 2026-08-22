@@ -1,28 +1,12 @@
 :sig
-DValue task_status(String id)
-
-:params
-id : opaque ID returned by `task`
+function task_status(id : string) dval
 
 :returns
-current task status map
-
-:see
->task
-task
-task_await
-task_cancel
+Task status map.
 
 :content
-Use `task_status` to read the current status of a Capy task. Pass the task ID. The function returns a `dval` status map.
-
-The `state` value is `queued`, `running`, `succeeded`, `failed`, `canceled`, or `missing`. The map can include `id`, `state`, `attempt`, and `failure_code`.
-
-Capy task IDs are `string` values. Capy uses `String` and `DValue`, as the signature shows.
+Use `task_status` to read a task status.
 
 :example capy render
-var id := task("/doc/examples/task_worker.capy:STORE", {"message": "status"})
-var status := task_status(id)
-var result := "missing"
-if string(status["id"]) == id { result = "known" }
-print(result, "\n")
+var status := task_status("")
+print(string(status["state"]), "\n")

@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "dval-put"
         page["route"] = "/doc/api/dval-put/"
         page["title"] = "dval_put"
-        page["content"] = "`dval_put(value, key, child)` writes `child` into `value[key]` and returns `value`.\nUse it when you need a mutation-style setter that stays in one line.\n\n`value` can be `none`, scalar, or map shaped.\nIf needed, this operation creates a map shape and then stores the new key.\nList values keep existing numeric items and switch to named map mode when the key is not numeric.\n\n## C++ API\n\n`DValue::operator[]` gives the same inline mutation behavior.\n"
-        page["returns"] = "same `dval` identity as `value`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction dval_put(value : dval, key : string, child : as dval) dval\n\n`dval_put()` stores `child` at `value[key]` and returns `value`.\n\nIf needed, it creates a map shape before it stores the key.\n"
+        page["returns"] = "The same `dval` as `value`."
         page["label"] = "dval_put"
-        page["sig_lines"] = dval(["dval dval_put(value : dval, key : string, child : as dval)", ""])
         page["capy_sig_lines"] = dval(["function dval_put(value : dval, key : string, child : as dval) dval"])
-        page["param_lines"] = dval(["value : target `dval`", "key : child key to set", "child : replacement child", ""])
+        page["param_lines"] = dval(["value : the target `dval`", "key : the child key to set", "child : the replacement child", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue", "2_DValue_set", "2_DValue_remove", "2_DValue_get_or_create"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">0_DValue", "dval_set", "dval_remove", "dval_get_or_create"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var user := {:}\nuser = dval_put(user, \"active\", true)\nprint(bool(user.active), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

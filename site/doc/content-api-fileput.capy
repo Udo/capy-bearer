@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "file-put-contents"
         page["route"] = "/doc/api/file-put-contents/"
         page["title"] = "file_put_contents"
-        page["content"] = "`file_put_contents()` writes a `string` to a complete file. Use it to create or replace a small file. It returns `false` when Capy cannot write the file.\n\nCapy uses `String` and returns the same Boolean result.\n"
-        page["returns"] = "true when Capy writes the file, otherwise false"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction file_put_contents(path : string, content : string) bool\n\n`file_put_contents` writes a complete string to a file. It creates or replaces a small file.\n"
+        page["returns"] = "`true` when Capy writes the file. Otherwise, it returns `false`."
         page["label"] = "file_put_contents"
-        page["sig_lines"] = dval(["bool file_put_contents(String file_name, String content)", ""])
         page["capy_sig_lines"] = dval(["function file_put_contents(path : string, content : string) bool"])
-        page["param_lines"] = dval(["file_name : path of the file to write", "content : Capy `string` that replaces existing content", ""])
+        page["param_lines"] = dval(["path : path of the file to write", "content : text that replaces the file content", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">sys", "file_get_contents", "file_append", "file_open"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-put.txt\", \"first\")\nfile_put_contents(\"/tmp/doc-put.txt\", \"second\")\nprint(file_get_contents(\"/tmp/doc-put.txt\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

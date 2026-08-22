@@ -1,27 +1,22 @@
 :sig
-String var_dump(StringMap t, String prefix = "", String postfix = "\n")
-String var_dump(DValue t, String prefix = "", String postfix = "\n")
+function var_dump(value : dval, prefix : string = "", postfix : string = "") string
 
 :params
-t : object to be dumped into a string
+value : value to format
+prefix : text before the formatted value
+postfix : text after the formatted value
 
 :returns
-string containing a human-friendly representation of 't'
+formatted string
 
 :see
 >types
 0_DValue
-0_StringMap
 json_encode
 print
 
 :content
-`var_dump(value)` accepts a `dval` and returns a readable `string` representation.
-
-Use it to inspect a value while you debug. The API has no error return.
-
-Capy supports a `dval` input only. C++ also provides the `StringMap` overload and optional prefix and postfix inputs shown above.
+`var_dump` formats a `dval` as a string.
 
 :example capy render
-var user := dval({"name": "Ada", "role": "engineer"})
-print(var_dump(user))
+print(var_dump(dval({"name": "Ada"})), "\n")

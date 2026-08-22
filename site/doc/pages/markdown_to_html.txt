@@ -1,30 +1,22 @@
 :sig
-String markdown_to_html(String src)
-String markdown_to_html(String src, DValue options)
+function markdown_to_html(source : string) string
+function markdown_to_html(source : string, options : dval) string
 
 :params
-src : Markdown text
-options : optional `dval` options
+source : the Markdown source text
+options : render options
 
 :returns
-HTML text
+the HTML text
+
+:content
+`markdown_to_html()` renders Markdown source as HTML.
+
+Raw HTML stays escaped unless `options["allow_html"]` is true. Only enable it for trusted source.
+
+:example capy render
+print(markdown_to_html("**bold**"), "\n")
 
 :see
 >markup
 markdown_to_ast
-component
-component_render
-json_decode
-0_String
-
-:content
-This function renders Markdown text as HTML.
-
-Use it to render trusted Markdown in a response. When `allow_html` is true, it outputs stored raw HTML without escaping it.
-
-Component hooks need an active request context. Without one, the function uses default HTML. Capy cannot pass a previously returned AST to this function.
-
-The C++ API has the same source-text rendering model.
-
-:example capy render
-print(markdown_to_html("**bold**"), "\n")

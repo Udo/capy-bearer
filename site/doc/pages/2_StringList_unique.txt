@@ -1,18 +1,20 @@
+:title
+Get unique strings
+
 :sig
-DValue::unique() (legacy `StringList` page)
+function unique(items : dval) dval
+
+:returns
+This function returns a new list-shaped `dval`.
 
 :content
-`unique(items)` takes a list-shaped `dval` and returns a new list-shaped `dval`. It keeps the first instance of each string and keeps input order.
+`unique` keeps the first copy of each string in a list-shaped `dval`.
 
-Capy has no separate `StringList` type. It uses list-shaped DValues. This pure transformation returns a new list.
-
-## C++ API
-
-`DValue::unique()` provides the legacy StringList operation.
-
-:see
-0_DValue
+The result keeps input order. This function does not change `items`.
 
 :example capy render
 var items := split("one,two,one", ",")
 print(join(unique(items), ","), "\n")
+
+:see
+0_StringList

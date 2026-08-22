@@ -1,9 +1,5 @@
-
 :sig
-String ws_connection_id()
-
-:returns
-connection ID of the current WebSocket client
+No Capy signature.
 
 :see
 >websocket
@@ -14,11 +10,6 @@ ws_close
 ws_is_binary
 ws_message
 ws_opcode
-:capy-status cpp-specific
 
 :content
-`ws_connection_id()` is a C++ API. It returns the current WebSocket client connection ID. Outside a WebSocket handler, it returns an empty string.
-
-Use the ID with `ws_send_to()` or `ws_close()` to select one client.
-
-Capy does not expose `ws_connection_id`. In a Capy `WS` handler, read `request.websocket.connection_id`.
+Capy has no native `ws_connection_id` signature. In a `WS` handler, use `request.websocket.connection_id`.

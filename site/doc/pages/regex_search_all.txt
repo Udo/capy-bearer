@@ -1,31 +1,17 @@
 :sig
-DValue regex_search_all(String pattern, String subject)
-DValue regex_search_all(String pattern, String subject, String flags)
+function regex_search_all(pattern : string, subject : string, flags : string = "") dval
 
 :params
-pattern : PCRE2 regular expression pattern
+pattern : regular expression
 subject : text to search
-flags : optional regex flags
+flags : regular expression flags
 
 :returns
-`dval` match data
-
-:see
->string
->regex
-regex_match
-regex_search
-regex_replace
-regex_split
-0_DValue
+Data for all non-overlapping matches.
 
 :content
-Use this function to find all non-overlapping matches in text.
-
-It returns `dval` match data. Each result has `matched`, `count`, `matches`, `pattern`, and `flags` fields. `matches` contains entries with the same shape as `regex_search()`.
-
-The function advances after a zero-length match. This prevents an infinite search.
+The result contains `matched`, `count`, and `matches`.
 
 :example capy render
-var matches := regex_search_all("[a-z]+", "bearer docs")
-if dval_is_list(matches) { print("matches\n") } else { print("none\n") }
+var matches := regex_search_all("[a-z]+", "capy docs")
+print(s32(matches.count), "\n")

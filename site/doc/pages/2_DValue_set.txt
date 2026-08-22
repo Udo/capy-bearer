@@ -1,34 +1,20 @@
+:title
+Replace a dynamic value
+
 :sig
-void DValue::set(String s)
-void DValue::set(void* p)
-void DValue::set(f64 f)
-void DValue::set(DValue source)
-void DValue::set(StringMap source)
+function dval_set(value : dval, source : as dval) dval
 
 :params
-value : Capy `dval` to replace
-source : replacement `dval`
-s, p, f : C++-only string, pointer, and `f64` overload values
+value : target value
+source : replacement value
 
 :returns
-replacement `dval` in Capy. C++ changes the receiver and returns nothing
-
-:see
-0_DValue
-2_DValue_set_bool
-2_DValue_set_array
+The changed target value.
 
 :content
-`dval_set(value, source)` replaces the target content. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid.
-
-A custom export or C++ boundary copies BRRB. Identity does not cross that boundary.
-
-Capy does not accept a C++ pointer or `StringMap` overload. Use `dval(...)` to create the source value.
-
-## C++ API
-
-`DValue::set()` changes the object in place. C++ overloads accept a string, pointer, f64, `DValue`, or `StringMap`.
+`dval_set` replaces the content of `value`. It changes and returns the target value.
 
 :example capy render
-var value := dval_set(dval(""), "hello")
+var value := dval("")
+value = dval_set(value, "hello")
 print(value, "\n")

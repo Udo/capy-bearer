@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "time-parse"
         page["route"] = "/doc/api/time-parse/"
         page["title"] = "time_parse"
-        page["content"] = "Call `time_parse(value)` with date or time text.\n\nThe function returns a `u64` Unix timestamp. It returns zero when it cannot parse `value`. Use it to convert external time text before you compare or format a timestamp.\n\nC++ uses the legacy `time_string` parameter in the signature above. Its normal use case is the same.\n\n"
-        page["returns"] = "the parsed Unix timestamp, or zero when Capy cannot parse the text"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction time_parse(value : string) u64\n\n`time_parse` converts date or time text to a Unix timestamp.\n"
+        page["returns"] = "parsed Unix timestamp, or zero when parsing fails"
         page["label"] = "time_parse"
-        page["sig_lines"] = dval(["u64 time_parse(String time_string)", ""])
         page["capy_sig_lines"] = dval(["function time_parse(value : string) u64"])
-        page["param_lines"] = dval(["time_string : text that contains a date, time, or both", ""])
+        page["param_lines"] = dval(["value : date or time text", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">time", "time_format_utc", "time_format_relative", "time_format_local", "time", "time_precise", "usleep"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(time_parse(\"1970-01-01 00:00:05 UTC\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

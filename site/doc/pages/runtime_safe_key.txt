@@ -1,26 +1,15 @@
 :sig
-String runtime_safe_key(String key, String label = "runtime key")
+function runtime_safe_key(key : string, label : string = "runtime key") string
 
 :params
-key : caller-provided runtime key
-label : error label for an empty key
+key : runtime key
+label : name for an empty-key error
 
 :returns
-stable SHA-1 key
+A stable SHA-1 key.
 
-:see
->sys
->gen_sha1
-request_perf
-process_start_directory
-path_real
-path_is_within
-file_fsync
-file_symlink
 :content
-Use this function to make a stable runtime key from a non-empty name.
-
-The function trims `key` and returns its SHA-1 value. Use the result for runtime task names or file names. An empty key is an error. `label` identifies that key in the error message.
+The function trims `key`. It reports an error for an empty key.
 
 :example capy render
-print(runtime_safe_key("  My Task Name  "), "\n")
+print(runtime_safe_key("docs task"), "\n")

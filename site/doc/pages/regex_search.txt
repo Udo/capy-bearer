@@ -1,39 +1,17 @@
 :sig
-DValue regex_search(String pattern, String subject)
-DValue regex_search(String pattern, String subject, String flags)
+function regex_search(pattern : string, subject : string, flags : string = "") dval
 
 :params
-pattern : PCRE2 regular expression pattern
+pattern : regular expression
 subject : text to search
-flags : optional PCRE2 flags
+flags : regular expression flags
 
 :returns
-first-match data as a `dval`
-
-:see
->string
->regex
-regex_match
-regex_search_all
-regex_replace
-regex_split
-0_DValue
+Data for the first match.
 
 :content
-Use this function to find the first match in a string. It returns a DValue, not a Boolean.
-
-The result has these fields:
-
-- `matched` is true when a match exists.
-- `pattern` and `flags` contain the supplied values. `flags` is `default` when none were supplied.
-- `match` is the complete matched text.
-- `start` and `end` are byte offsets in `subject`.
-- `captures` contains capture data. Capture `0` is the complete match.
-- `named` maps each named capture to its text.
-- `named_offsets` maps each named capture to `index`, `start`, and `end`.
-
-When no match exists, `matched` is false. The result omits match-specific fields.
+The result contains `matched`. A matching result also contains `match`, `start`, `end`, `captures`, and `named`.
 
 :example capy render
-var match := regex_search("docs", "bearer docs")
-print(match["match"], "\n")
+var match := regex_search("[a-z]+", "123 capy")
+print(string(match.match, ""), "\n")

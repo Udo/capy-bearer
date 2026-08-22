@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "memcache-command"
         page["route"] = "/doc/api/memcache-command/"
         page["title"] = "memcache_command"
-        page["content"] = "Pass the `u64` handle from `memcache_connect()`.\n\nThis function appends CRLF to `command` and sends it to the server. It makes one bounded read for the response. It does not guarantee a complete multi-chunk response.\n\nUse a dedicated helper when it supports the operation.\n"
-        page["returns"] = "one bounded server response read"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction memcache_command(connection : u64, command : string) string\n\n`memcache_command()` sends `command` to the server and returns one bounded response read.\n\nUse a dedicated Memcache function when one is available. This function does not guarantee a complete multi-part response.\n"
+        page["returns"] = "one server response read"
         page["label"] = "memcache_command"
-        page["sig_lines"] = dval(["String memcache_command(u64 connection, String command)", ""])
         page["capy_sig_lines"] = dval(["function memcache_command(connection : u64, command : string) string"])
-        page["param_lines"] = dval(["connection : open connection handle", "command : Memcache command text", ""])
+        page["param_lines"] = dval(["connection : the connection handle", "command : the Memcache command text", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">memcache", "memcache_connect", "memcache_delete", "memcache_get", "memcache_get_multiple", "memcache_set", "memcache_escape_key"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">memcache", "memcache_connect"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var connection := memcache_connect()\nif connection != u64(0) { print(memcache_command(connection, \"version\"), \"\\n\") }\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -32,19 +28,15 @@ function data(input : dval) dval {
         page["slug"] = "memcache-connect"
         page["route"] = "/doc/api/memcache-connect/"
         page["title"] = "memcache_connect"
-        page["content"] = "This function returns a `u64` connection handle.\n\nIt returns zero when it cannot connect. Do not use a zero handle with another Memcache function.\n\nThe C++ API also returns zero on failure. Capy exposes `port` as `s32`. The C++ declaration uses `u16`.\n"
-        page["returns"] = "connection handle, or zero on failure"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction memcache_connect(host : string = \"127.0.0.1\", port : s32 = 11211) u64\n\n`memcache_connect()` opens a connection to a Memcache server.\n\nDo not pass a zero handle to another Memcache function.\n"
+        page["returns"] = "a connection handle, or zero on failure"
         page["label"] = "memcache_connect"
-        page["sig_lines"] = dval(["u64 memcache_connect(String host = \"127.0.0.1\", u16 port = 11211)", ""])
         page["capy_sig_lines"] = dval(["function memcache_connect(host : string = \"127.0.0.1\", port : s32 = 11211) u64"])
-        page["param_lines"] = dval(["host : server host name. The default is `127.0.0.1`", "port : server port. The default is `11211`", ""])
+        page["param_lines"] = dval(["host : the server host name", "port : the server port", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">memcache", "memcache_command", "memcache_delete", "memcache_get", "memcache_get_multiple", "memcache_set", "memcache_escape_key"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">memcache", "memcache_get", "memcache_set"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var connection := memcache_connect()\nif connection != u64(0) { print(\"connected\\n\") } else { print(\"not connected\\n\") }\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -55,19 +47,15 @@ function data(input : dval) dval {
         page["slug"] = "memcache-delete"
         page["route"] = "/doc/api/memcache-delete/"
         page["title"] = "memcache_delete"
-        page["content"] = "Pass the `u64` handle from `memcache_connect()`.\n\nThis function deletes the entry for `key`. It returns `true` only when the trimmed server response is exactly `DELETED`.\n"
-        page["returns"] = "`true` only for a `DELETED` server response"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction memcache_delete(connection : u64, key : string) bool\n\n`memcache_delete()` deletes the entry for `key`.\n\nIt returns `true` only when the server returns `DELETED`.\n"
+        page["returns"] = "`true` when the server deletes the entry"
         page["label"] = "memcache_delete"
-        page["sig_lines"] = dval(["bool memcache_delete(u64 connection, String key)", ""])
         page["capy_sig_lines"] = dval(["function memcache_delete(connection : u64, key : string) bool"])
-        page["param_lines"] = dval(["connection : open connection handle", "key : entry key", ""])
+        page["param_lines"] = dval(["connection : the connection handle", "key : the entry key", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">memcache", "memcache_connect", "memcache_get", "memcache_command", "memcache_get_multiple", "memcache_set", "memcache_escape_key"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">memcache", "memcache_connect", "memcache_get"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var connection := memcache_connect()\nif connection != u64(0) { print(memcache_delete(connection, \"doc-key\"), \"\\n\") }\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -78,19 +66,15 @@ function data(input : dval) dval {
         page["slug"] = "memcache-escape-key"
         page["route"] = "/doc/api/memcache-escape-key/"
         page["title"] = "memcache_escape_key"
-        page["content"] = "Use this function to replace whitespace in a Memcache key with underscores.\n\nIt replaces only characters for which C++ `isspace()` returns true. It does not reject or escape every invalid Memcache protocol byte.\n"
-        page["returns"] = "key with whitespace characters replaced by underscores"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction memcache_escape_key(key : string) string\n\n`memcache_escape_key()` replaces whitespace characters in a key with underscores.\n\nIt does not validate every Memcache protocol byte.\n"
+        page["returns"] = "the key with whitespace replaced by underscores"
         page["label"] = "memcache_escape_key"
-        page["sig_lines"] = dval(["String memcache_escape_key(String key)", ""])
         page["capy_sig_lines"] = dval(["function memcache_escape_key(key : string) string"])
-        page["param_lines"] = dval(["key : key text", ""])
+        page["param_lines"] = dval(["key : the key text", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", ">memcache_escape_keys", "basename", "dirname", "expand_path", "file_append", "file_exists", "file_get_contents"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">memcache", "memcache_escape_keys"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(memcache_escape_key(\"a key\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -101,19 +85,15 @@ function data(input : dval) dval {
         page["slug"] = "memcache-escape-keys"
         page["route"] = "/doc/api/memcache-escape-keys/"
         page["title"] = "memcache_escape_keys"
-        page["content"] = "This function converts each input item to a string and returns a new `dval` list.\n\nIt applies `memcache_escape_key()` to every item. The C++ API uses the same `DValue` input and result model.\n"
-        page["returns"] = "new `dval` list of escaped keys"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction memcache_escape_keys(keys : dval) dval\n\n`memcache_escape_keys()` converts each input item to a string and escapes it as a Memcache key.\n"
+        page["returns"] = "a list of escaped keys"
         page["label"] = "memcache_escape_keys"
-        page["sig_lines"] = dval(["DValue memcache_escape_keys(DValue keys)", ""])
         page["capy_sig_lines"] = dval(["function memcache_escape_keys(keys : dval) dval"])
-        page["param_lines"] = dval(["keys : input `dval` values", ""])
+        page["param_lines"] = dval(["keys : the input values", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", ">memcache_escape_key", "basename", "dirname", "expand_path", "file_append", "file_exists", "file_get_contents"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">memcache", "memcache_escape_key"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var keys := memcache_escape_keys(dval([\"a key\", \"b\\tkey\"]))\nprint(join(keys, \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -124,19 +104,15 @@ function data(input : dval) dval {
         page["slug"] = "memcache-get-multiple"
         page["route"] = "/doc/api/memcache-get-multiple/"
         page["title"] = "memcache_get_multiple"
-        page["content"] = "This function returns a `dval` map of entries parsed from `VALUE` responses.\n\nUse it to read several keys through one connection. Missing keys are absent from the map.\n\nThe C++ API returns `StringMap` instead.\n"
-        page["returns"] = "`dval` map of returned entries"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction memcache_get_multiple(connection : u64, keys : dval) dval\n\n`memcache_get_multiple()` reads several keys through one connection.\n\nMissing keys do not occur in the returned map.\n"
+        page["returns"] = "a map of returned entries"
         page["label"] = "memcache_get_multiple"
-        page["sig_lines"] = dval(["StringMap memcache_get_multiple(u64 connection, DValue keys)", ""])
         page["capy_sig_lines"] = dval(["function memcache_get_multiple(connection : u64, keys : dval) dval"])
-        page["param_lines"] = dval(["connection : open connection handle", "keys : `dval` list of entry keys", ""])
+        page["param_lines"] = dval(["connection : the connection handle", "keys : the entry keys", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">memcache", "memcache_get", "memcache_set", "memcache_delete", "memcache_escape_key", "memcache_connect", "memcache_escape_keys"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">memcache", "memcache_get", "memcache_set"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var connection := memcache_connect()\nif connection != u64(0) { print(memcache_get_multiple(connection, dval([\"first\", \"second\"]))[\"first\"], \"\\n\") }\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -147,19 +123,15 @@ function data(input : dval) dval {
         page["slug"] = "memcache-get"
         page["route"] = "/doc/api/memcache-get/"
         page["title"] = "memcache_get"
-        page["content"] = "Pass the `u64` handle from `memcache_connect()`.\n\nThis function returns the stored value for `key`. It returns `default_value` for a missing key, malformed response, truncated value body, or non-`VALUE` response.\n"
-        page["returns"] = "stored value or `default_value`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction memcache_get(connection : u64, key : string, default_value : string = \"\") string\n\n`memcache_get()` reads the value for `key`.\n\nIt returns `default_value` for a missing key or an incomplete response.\n"
+        page["returns"] = "the stored value or `default_value`"
         page["label"] = "memcache_get"
-        page["sig_lines"] = dval(["String memcache_get(u64 connection, String key, String default_value = \"\")", ""])
         page["capy_sig_lines"] = dval(["function memcache_get(connection : u64, key : string, default_value : string = \"\") string"])
-        page["param_lines"] = dval(["connection : open connection handle", "key : entry key", "default_value : value returned when no complete value is available", ""])
+        page["param_lines"] = dval(["connection : the connection handle", "key : the entry key", "default_value : the value for a missing or invalid response", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">memcache", "memcache_delete", "memcache_get_multiple", "memcache_connect", "memcache_set", "memcache_command", "memcache_escape_key"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">memcache", "memcache_connect", "memcache_set"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var connection := memcache_connect()\nif connection != u64(0) { print(memcache_get(connection, \"doc-key\", \"missing\"), \"\\n\") }\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -170,19 +142,15 @@ function data(input : dval) dval {
         page["slug"] = "memcache-set"
         page["route"] = "/doc/api/memcache-set/"
         page["title"] = "memcache_set"
-        page["content"] = "Pass the `u64` handle from `memcache_connect()`.\n\nThis function stores `value` under `key`. It sends the value length in bytes. It returns `true` only when the trimmed server response is exactly `STORED`.\n"
-        page["returns"] = "`true` only for a `STORED` server response"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction memcache_set(connection : u64, key : string, value : string, expires_in : u64 = 3600) bool\n\n`memcache_set()` stores `value` under `key`.\n\nIt returns `true` only when the server returns `STORED`.\n"
+        page["returns"] = "`true` when the server stores the entry"
         page["label"] = "memcache_set"
-        page["sig_lines"] = dval(["bool memcache_set(u64 connection, String key, String value, u64 expires_in = 60*60)", ""])
         page["capy_sig_lines"] = dval(["function memcache_set(connection : u64, key : string, value : string, expires_in : u64 = 3600) bool"])
-        page["param_lines"] = dval(["connection : open connection handle", "key : entry key", "value : value text", "expire : lifetime in seconds", ""])
+        page["param_lines"] = dval(["connection : the connection handle", "key : the entry key", "value : the value text", "expires_in : the lifetime in seconds", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">memcache", "memcache_get_multiple", "memcache_escape_key", "memcache_get", "memcache_escape_keys", "memcache_delete", "memcache_connect"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">memcache", "memcache_connect", "memcache_get"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var connection := memcache_connect()\nif connection != u64(0) { print(memcache_set(connection, \"doc-key\", \"value\"), \"\\n\") }\n"}])
         page["guide_examples"] = dval([])
         return page
     }

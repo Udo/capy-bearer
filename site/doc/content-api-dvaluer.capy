@@ -8,20 +8,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-reference-target"
         page["route"] = "/doc/api/dvalue-reference-target/"
-        page["title"] = "DValue::reference_target"
-        page["content"] = "Capy does not support `reference_target`. DValues share identity inside one workspace, but Capy does not expose host pointers or C++ internal reference nodes.\n\n## C++ API\n\n`DValue::reference_target()` follows an internal reference chain and returns its final non-reference target pointer. It returns `0` for a non-reference, a null or self reference, or an unresolved chain.\n\n"
-        page["returns"] = "resolved target pointer, or 0 when this node is not a usable reference"
+        page["title"] = "Get a reference target"
+        page["content"] = "## sig\n\nNo Capy declaration.\n\nCapy does not expose reference targets or host pointers.\n\nNo Capy alternative exists.\n"
         page["capy_status"] = "unsupported"
-        page["label"] = "DValue::reference_target"
-        page["sig_lines"] = dval(["DValue* DValue::reference_target()", "const DValue* DValue::reference_target() const", ""])
+        page["label"] = "dval_reference_target"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue", "2_DValue_is_reference", "2_DValue_deref"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["0_DValue"])
+        page["examples"] = dval([])
         page["guide_examples"] = dval([])
         return page
     }
@@ -31,20 +27,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-remove"
         page["route"] = "/doc/api/dvalue-remove/"
-        page["title"] = "DValue::remove"
-        page["content"] = "`dval_remove(value, key)` removes the string key from `value`. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid.\n\nThe operation makes a scalar map-shaped. A missing key causes no other change. Removing the last child resets the next numeric index to zero.\n\n## C++ API\n\n`DValue::remove()` changes the object in place.\n"
-        page["returns"] = "none"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "DValue::remove"
-        page["sig_lines"] = dval(["void DValue::remove(String s)", ""])
+        page["title"] = "Remove a child"
+        page["content"] = "## sig\n\nfunction dval_remove(value : dval, key : string) dval\n\n`dval_remove` removes `key` from `value`. A missing key leaves the value unchanged.\n"
+        page["returns"] = "The changed target value."
+        page["label"] = "dval_remove"
         page["capy_sig_lines"] = dval(["function dval_remove(value : dval, key : string) dval"])
-        page["param_lines"] = dval(["s : child key to erase", ""])
+        page["param_lines"] = dval(["value : target value", "key : child key", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue", "2_DValue_clear", "2_DValue_has"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var user := dval({\"name\": \"Ada\", \"role\": \"admin\"})\nuser = dval_remove(user, \"role\")\nprint(dval_has(user, \"role\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -54,20 +46,17 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-require"
         page["route"] = "/doc/api/dvalue-require/"
-        page["title"] = "DValue::require"
-        page["content"] = "Use `dval_require(value, key)` or `dval_require(value, index)` for a strict Capy read.\n\nCapy traps when the child is missing or the value cannot use the selector. C++ `key` returns a null pointer for a missing key. Check the pointer before use.\n\nThe documentation renderer cannot safely run a trap example. The example uses a present key.\n"
-        page["returns"] = "copied child in Capy, or a child pointer in C++"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "DValue::require"
-        page["sig_lines"] = dval(["DValue* DValue::key(String s)", "const DValue* DValue::key(String s) const", ""])
+        page["title"] = "Require a child"
+        page["content"] = "## sig\n\nfunction dval_require(value : dval, key : string) dval\nfunction dval_require(value : dval, index : s32) dval\n\n`dval_require` reads a required child. Use it when a missing child is an error.\n"
+        page["returns"] = "The copied child."
+        page["errors"] = "The program traps when the child is missing or the selector is unusable."
+        page["label"] = "dval_require"
         page["capy_sig_lines"] = dval(["function dval_require(value : dval, key : string) dval", "function dval_require(value : dval, index : s32) dval"])
-        page["param_lines"] = dval(["key or index : required child selector", ""])
+        page["param_lines"] = dval(["value : source value", "key : required child key", "index : required list index", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue", "2_DValue_key", "2_DValue_get_by_path"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var user := dval({\"name\": \"Ada\"})\nprint(dval_require(user, \"name\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

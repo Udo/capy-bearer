@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "dir-list"
         page["route"] = "/doc/api/dir-list/"
         page["title"] = "dir_list"
-        page["content"] = "`dir_list()` returns entries from a directory as a Capy `dval` list.\n\nPass a directory path. Each returned entry is a map with `name`, `type`, `size`, and `mtime`. The `type` value is `file`, `dir`, `symlink`, or `other`.\n\nUse this function when Capy must inspect directory entries. Read map fields with DValue access functions.\n\nThe Capy call returns the same DValue data.\n"
-        page["returns"] = "`dval` list of entry maps with `name`, `type`, `size`, and `mtime`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction dir_list(path : string) dval\n\n`dir_list()` returns one map for each directory entry.\n\nEach map has `name`, `type`, `size`, and `mtime`. The `type` value is `file`, `dir`, `symlink`, or `other`.\n"
+        page["returns"] = "A `dval` list of entry maps."
         page["label"] = "dir_list"
-        page["sig_lines"] = dval(["DValue dir_list(String path)", ""])
         page["capy_sig_lines"] = dval(["function dir_list(path : string) dval"])
-        page["param_lines"] = dval(["path : directory path to list", ""])
+        page["param_lines"] = dval(["path : the directory path to list", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "file_stat", "mkdir", "ls"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["ls", "file_stat", "dir_remove"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var root := file_temp(\"/tmp/capy-doc-dir-list-\")\nfile_unlink(root)\nmkdir(root)\nfile_put_contents(path_join(root, \"note.txt\"), \"hi\")\nfor item, key := dir_list(root) { print(string(item.name), \"\\n\") }\ndir_remove(root, true)\n"}])
         page["guide_examples"] = dval([])
         return page
     }

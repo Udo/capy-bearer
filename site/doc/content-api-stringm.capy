@@ -8,19 +8,15 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "string-map"
         page["route"] = "/doc/api/string-map/"
-        page["title"] = "StringMap"
-        page["content"] = "Use a map-shaped `dval` for string-keyed values in Capy. Create one with `dval({\"key\": \"value\"})`.\n\nUse `value[\"key\"]` to read a copied child. Use `dval_has(value, \"key\")` to test for a child. `dval_put(value, \"key\", \"value\")` mutates the map and returns that same identity.\n\n`parse_query(query)` returns a map-shaped `dval`. `encode_query(map)` returns a query string. `array_merge(left, right)` returns a merged `dval`.\n\n## Capy Limit\n\nCapy has no `StringMap` type. A Capy map holds DValue children and shares identity inside one workspace. It does not expose C++ map references or mutation through `operator[]`. A C++ boundary copies BRRB.\n\n## C++ API\n\nC++ `StringMap` is `std::map<String, String>`. C++ `map[\"key\"]` creates an empty entry when the key is missing.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["title"] = "String map"
+        page["content"] = "## sig\n\ntype dval (map of strings)\n\nUse a map-shaped `dval` for string-keyed values. Create one with `dval({\"key\": \"value\"})`.\n\nUse `value[\"key\"]` to read a child. Use `dval_has` to test for a key. Use `dval_put` to change a map.\n\n`parse_query` returns a map-shaped `dval`. `encode_query` creates a query string from a map.\n\nCapy has no separate `StringMap` type. Use a map-shaped `dval` instead.\n"
         page["label"] = "StringMap"
-        page["sig_lines"] = dval(["0_StringMap", ""])
         page["capy_sig_lines"] = dval(["type dval (map of strings)"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_Request", "parse_query", "encode_query", "array_merge"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["0_Request", "parse_query", "encode_query", "array_merge"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var params := dval({\"page\": \"docs\"})\nprint(params[\"page\"], \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

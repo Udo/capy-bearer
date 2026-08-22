@@ -1,8 +1,8 @@
 :sig
-DValue units_list()
+function units_list() dval
 
 :returns
-a `dval` list of known unit paths
+a `dval` list of unit paths
 
 :see
 >runtime
@@ -11,13 +11,9 @@ unit_compile
 unit_load
 
 :content
-Call `units_list()` to inspect the units that the current runtime can load.
-
-The list includes known `.capy` units and units already loaded by the current runtime process.
-
-C++ returns a `DValue` list through the signature above. Use the same normal use case.
+`units_list` returns known unit paths.
 
 :example capy render
-var count := 0
-for item := units_list() { count = count + 1 }
-print("unit list available\n")
+for path := units_list() {
+    print(path, "\n")
+}

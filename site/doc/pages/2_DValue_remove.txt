@@ -1,27 +1,20 @@
+:title
+Remove a child
+
 :sig
-void DValue::remove(String s)
+function dval_remove(value : dval, key : string) dval
 
 :params
-s : child key to erase
+value : target value
+key : child key
 
 :returns
-none
-
-:see
-0_DValue
-2_DValue_clear
-2_DValue_has
+The changed target value.
 
 :content
-`dval_remove(value, key)` removes the string key from `value`. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid.
-
-The operation makes a scalar map-shaped. A missing key causes no other change. Removing the last child resets the next numeric index to zero.
-
-## C++ API
-
-`DValue::remove()` changes the object in place.
+`dval_remove` removes `key` from `value`. A missing key leaves the value unchanged.
 
 :example capy render
-var user := dval_remove(dval({"a": "1", "b": "2"}), "a")
-if dval_has(user, "a") { print("has a: yes") } else { print("has a: no") }
-if dval_has(user, "b") { print(", has b: yes\n") } else { print(", has b: no\n") }
+var user := dval({"name": "Ada", "role": "admin"})
+user = dval_remove(user, "role")
+print(dval_has(user, "role"), "\n")

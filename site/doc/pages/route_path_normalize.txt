@@ -1,18 +1,14 @@
 :sig
-String route_path_normalize(String path)
+function route_path_normalize(path : string) string
 
-:see
->uri
-route_path_sanitize
-route_path_is_safe
-0_Request
+:params
+path : route text to normalize
+
+:returns
+Normalized route text.
 
 :content
-Use this function only to prepare route text for display or diagnostics.
-
-It removes outer whitespace and leading and trailing `/`. It does not validate the result.
-
-Before you compose a file path, use `route_path_sanitize()` or `ROUTE_PATH`.
+This function removes outer whitespace and leading and trailing slashes. It does not validate the result.
 
 :example capy render
-print(route_path_normalize("/docs/index/"), "\n")
+print(route_path_normalize(" /docs/api/ "), "\n")

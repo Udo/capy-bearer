@@ -10,17 +10,14 @@ function data(input : dval) dval {
         page["route"] = "/doc/api/documentation-format/"
         page["title"] = "Documentation format"
         page["content"] = "Each page describes one Capy API. Use `:sig` for an existing Capy signature. Use `:content` for normal use. Use `:params`, `:returns`, and `:errors` for verified behavior.\n\nUse `:example capy ENTRY` for a runnable Capy example. Put `:output` after a render example. ENTRY can be `render`, `cli`, `component`, `init`, `once`, or `ws`.\n\n`capyc` reads Capy declarations from `src/capy/stdlib.capy`. The generator validates documented signatures and examples.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["example_error"] = "output must follow a Capy guide example"
         page["label"] = "Documentation format"
-        page["sig_lines"] = dval([])
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "function RENDER(request : dval) {\n    print(\"ok\")\n}\n"}])
         page["guide_examples"] = dval([])
         return page
     }

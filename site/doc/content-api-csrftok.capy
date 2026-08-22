@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "csrf-token"
         page["route"] = "/doc/api/csrf-token/"
         page["title"] = "csrf_token"
-        page["content"] = "`csrf_token()` returns a stable Capy CSRF token for one session and token namespace.\n\nPass the session name and token namespace. It starts the named session when necessary. Use different token namespaces when forms need separate tokens.\n\nUse the returned value in a hidden form field. Call `csrf_valid()` before you apply a browser-submitted change.\n\nThe Capy call has the same arguments.\n"
-        page["returns"] = "printable CSRF token for the active session"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction csrf_token(session_name : string = \"bearer-session\", token_name : string = \"csrf_token\") string\n\n`csrf_token()` returns a stable token for one session and token namespace.\n\nUse the result in a hidden form field. Call `csrf_valid()` before you apply a browser-submitted change.\n"
+        page["returns"] = "The active CSRF token."
         page["label"] = "csrf_token"
-        page["sig_lines"] = dval(["String csrf_token(String session_name = \"bearer-session\", String token_name = \"csrf_token\")", ""])
         page["capy_sig_lines"] = dval(["function csrf_token(session_name : string = \"bearer-session\", token_name : string = \"csrf_token\") string"])
-        page["param_lines"] = dval(["session_name : session and cookie name", "token_name : token namespace in the session", ""])
+        page["param_lines"] = dval(["session_name : the session and cookie name", "token_name : the token namespace in the session", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">session", "csrf_valid", "csrf_field", "csrf_rotate", "session_start", "random_bytes"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["csrf_field", "csrf_valid", "csrf_rotate"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var token := csrf_token(\"capy-doc-session\")\nprint(length(token) > 0, \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

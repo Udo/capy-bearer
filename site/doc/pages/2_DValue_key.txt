@@ -1,25 +1,19 @@
+:title
+Get a named child
+
 :sig
-DValue* DValue::key(String s)
-const DValue* DValue::key(String s) const
+function dval_key(value : dval, key : string) dval
 
 :params
-s : child key to find
+value : source value
+key : child key
 
 :returns
-pointer to an existing child, or 0
-
-:see
-0_DValue
-2_DValue_require
-2_DValue_get_by_path
+The copied child, or `none`.
 
 :content
-Use `dval_key(value, key)` in Capy to get a copied named child. It does not create a child.
-
-Capy returns `none` for a scalar value or a missing key. Use a constructor fallback when you need a scalar fallback.
-
-C++ `key(key)` returns a pointer to an existing child or `0`. Its non-const overload follows internal references.
+`dval_key` reads a named child without creating it. It returns `none` for a missing key or a scalar.
 
 :example capy render
 var user := dval({"email": "ada@example.test"})
-print(dval_key(user, "email"), " / ", string(dval_key(user, "phone"), "absent"), "\n")
+print(dval_key(user, "email"), "\n")

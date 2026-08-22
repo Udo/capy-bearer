@@ -1,29 +1,19 @@
 :sig
-void json_consume_space(String s, u32& i)
+function json_consume_space(source : string, index : s32) s32
 
 :params
 source : JSON source text
-index : byte offset where scanning starts
+index : byte offset where the scan starts
 
 :returns
-Capy byte offset after JSON whitespace
+The byte offset after JSON whitespace.
 
-:see
->string
-json_encode
-json_decode
-join
-first
-map
-filter
 :content
-This internal helper returns the byte offset after JSON whitespace in `source`.
-
-Use `json_decode()` for application code. Keep this helper for codec tests and parser work.
-
-The C++ API advances its `u32&` offset argument. Both APIs scan byte positions.
+`json_consume_space()` skips JSON whitespace from `index`. Use `json_decode()` for normal JSON parsing.
 
 :example capy render
-var index := json_consume_space("   value", 0)
-if index == 3 { print("advanced\n") }
-else { print("not advanced\n") }
+print(json_consume_space(" \t\nvalue", 0), "\n")
+
+:see
+json_decode
+json_encode

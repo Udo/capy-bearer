@@ -1,27 +1,21 @@
 :sig
-String encode_query(StringMap map)
+function encode_query(map : dval) string
 
 :params
-map : `dval` map of URL parameters in Capy
+map : map-shaped `dval` of URL parameters
 
 :returns
-encoded query string
+URL query string
 
 :see
 >uri
 redirect
 request_context_params
-request_base_url
-request_query_path
-request_query_route
-request_script_url
 :content
-`encode_query()` converts a Capy `dval` map into an encoded URL query string.
+`encode_query()` converts a map-shaped `dval` to a URL query string.
 
-Pass the parameter map. It returns one string that you can append after a URL `?`. Use it to make query parameters from structured values.
-
-Capy uses a `StringMap` instead of a Capy `dval` map.
+Pass the returned string after `?` in a URL.
 
 :example capy render
-var query := dval({"name": "Ada Lovelace"})
+var query := dval({"name": "Ada"})
 print(encode_query(query), "\n")

@@ -58,7 +58,7 @@ struct CompileOptions
 	// remains diagnostic-only, so distinct diagnostic paths never share ASTs.
 	std::string canonical_source_identity;
 	ParsedSourceCache* parsed_source_cache = nullptr;
-	std::function<std::vector<std::string>(const std::string& path, const std::string& current_source)> import_type_metadata;
+	std::function<std::vector<std::string>(const std::string& path)> import_type_metadata;
 };
 
 struct CompileResult

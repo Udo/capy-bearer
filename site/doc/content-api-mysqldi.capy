@@ -9,18 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "mysql-disconnect"
         page["route"] = "/doc/api/mysql-disconnect/"
         page["title"] = "mysql_disconnect"
-        page["content"] = "Pass the opaque `u64` handle from `mysql_connect()`.\n\nThis function releases the connection lease. It does not necessarily close a pooled server connection immediately. Do not use the handle after this call.\n\nThe C++ API accepts `MySQL*` instead.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction mysql_disconnect(handle : u64)\n\n`mysql_disconnect()` releases the MySQL connection lease.\n\nDo not use the handle after this call.\n"
         page["label"] = "mysql_disconnect"
-        page["sig_lines"] = dval(["void mysql_disconnect(MySQL* m)", ""])
         page["capy_sig_lines"] = dval(["function mysql_disconnect(handle : u64)"])
-        page["param_lines"] = dval(["m : Capy MySQL handle", ""])
+        page["param_lines"] = dval(["handle : the MySQL connection handle", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">mysql", "mysql_connected", "mysql_error", "mysql_connect", "mysql_escape", "mysql_insert_id", "mysql_affected_rows"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">mysql", "mysql_connect", "mysql_connected"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var database := mysql_connect(\"localhost\", \"root\", \"\", \"\")\nif database != u64(0) { mysql_disconnect(database) }\nprint(\"connection released\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

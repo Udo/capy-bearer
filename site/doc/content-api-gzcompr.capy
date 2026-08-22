@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "gz-compress"
         page["route"] = "/doc/api/gz-compress/"
         page["title"] = "gz_compress"
-        page["content"] = "`gz_compress()` returns gzip-compressed bytes for a string. The returned string is binary data.\n\nPass the result to `gz_uncompress()`, write it to a file, or send it with the correct HTTP encoding. Use it to create gzip payloads.\n\nThe result uses the standard gzip format, including CRC32 and uncompressed-size fields.\n"
-        page["returns"] = "gzip-format compressed bytes"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction gz_compress(source : string) string\n\n`gz_compress()` compresses a string with gzip.\n\nThe result contains binary data. Pass it to `gz_uncompress()` to restore the source.\n"
+        page["returns"] = "Gzip-compressed bytes as a string."
         page["label"] = "gz_compress"
-        page["sig_lines"] = dval(["String gz_compress(String src)", ""])
         page["capy_sig_lines"] = dval(["function gz_compress(source : string) string"])
-        page["param_lines"] = dval(["src : uncompressed input bytes", ""])
+        page["param_lines"] = dval(["source : uncompressed bytes", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "gz_uncompress", "zip_create", "zip_read"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["gz_uncompress", "zip_create", "zip_read"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var source := \"archive data\"\nvar packed := gz_compress(source)\nprint(gz_uncompress(packed), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

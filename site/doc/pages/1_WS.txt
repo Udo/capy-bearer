@@ -2,23 +2,18 @@
 WS
 
 :sig
-WS(Request& context)
-
-:see
->0_Request
->1_RENDER
->1_COMPONENT
->1_CLI
->1_WS
+function WS(request : dval)
 
 :content
-`function WS(request : dval)` defines the Capy WebSocket message handler.
+`WS` defines the WebSocket message handler.
 
-Every Capy Bearer handler has exactly one parameter. The parameter name is `request`. Its type is `dval`. The value is a copied request snapshot. `request.body` contains the current message payload. `request.websocket.connections` contains current-scope connection IDs.
+The handler has one parameter named `request` with type `dval`. Read the message from `request.body`. Read connection data from `request.websocket`.
 
-Read input from the request fields. Use response, session, output, and WebSocket functions for effects. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.
+Use `ws_send`, `ws_send_to`, or `ws_close` to affect the connection.
 
-C++ declares `WS(Request& context)`. It reads the payload from `context.in`, metadata from `context.params["WS_..."]`, and persistent connection state from `context.connection`. The connection value starts empty and persists for later calls on that socket.
+:example capy ws
+ws_send("echo: " + string(request.body, ""), false)
 
-:example capy render
-print(string(request.method, ""), "\n")
+:see
+0_Request
+1_RENDER

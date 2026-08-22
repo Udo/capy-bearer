@@ -1,13 +1,5 @@
-
 :sig
-s64 to_s64(String s, s64 fallback = 0)
-
-:params
-s : C++ text to parse
-fallback : value for empty or invalid text
-
-:returns
-parsed C++ `s64` or `fallback`
+No Capy signature.
 
 :see
 >types
@@ -17,9 +9,6 @@ to_u64
 to_bool
 brb_encode
 2_DValue_to_u64
-:capy-status cpp-specific
 
 :content
-`to_s64()` is a C++ API. It parses a base-10 integer from complete trimmed text. Empty or partial text, such as `-12px`, returns `fallback`.
-
-Capy does not expose `to_s64`. Use `s64(value, fallback)`.
+Capy has no native `to_s64` signature. Use `s64(value, fallback)`.

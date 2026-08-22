@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "nibble"
         page["route"] = "/doc/api/nibble/"
         page["title"] = "nibble"
-        page["content"] = "`nibble()` returns the text before the first `delim`.\n\nC++ also removes that text and the delimiter from `haystack`.\n\nCapy currently returns the same head text. It does not yet change the caller's string binding.\n\nIf `delim` does not occur, it returns all of `haystack`.\n"
-        page["returns"] = "the text before the first `delim`"
-        page["example_error"] = "expected contiguous :example cpp cli"
+        page["content"] = "## sig\n\nfunction nibble(haystack : string, delim : string) string\n\n`nibble()` returns the text before the first `delim`.\n\nIt does not change `haystack`. If `delim` does not occur, it returns all of `haystack`.\n"
+        page["returns"] = "the text before the first delimiter"
         page["label"] = "nibble"
-        page["sig_lines"] = dval(["String nibble(String& haystack, String delim)", ""])
         page["capy_sig_lines"] = dval(["function nibble(haystack : string, delim : string) string"])
         page["param_lines"] = dval(["haystack : the string to split", "delim : the delimiter", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "map", "print", "json_encode", "strpos", "json_consume_space", "str_ends_with"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">string", "map", "print"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var path := \"docs/index\"\nprint(nibble(path, \"/\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

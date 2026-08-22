@@ -1,28 +1,23 @@
 :sig
-bool file_fsync(u64 h)
+function file_fsync(handle : u64) bool
 
 :params
-h : writable handle from `file_open()`
+handle : writable handle returned by `file_open`
 
 :returns
-true when Capy flushes the handle, otherwise false
+`true` when Capy flushes the handle. Otherwise, it returns `false`.
 
 :content
-`file_fsync` flushes writes for a handle. Use it before `file_close()` when durable storage matters. It returns false when the flush fails. Capy uses the same handle and Boolean result.
+`file_fsync` flushes pending writes for a handle. Call it before `file_close` when the file system must receive the writes first.
 
 :example capy render
 var handle := file_open("/tmp/doc-fsync.txt", "w")
 file_write(handle, "durable")
-var result := "fsync failed"
-if file_fsync(handle) { result = "flushed to disk" }
-print(result, "\n")
+print(file_fsync(handle), "\n")
 file_close(handle)
 
 :see
 >sys
 file_write
 file_close
-file_symlink
-path_is_within
-file_chmod
-path_real
+file_open

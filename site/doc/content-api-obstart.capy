@@ -9,19 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "ob-start"
         page["route"] = "/doc/api/ob-start/"
         page["title"] = "ob_start"
-        page["content"] = "`ob_start()` starts a new output buffer. Later `print()` calls write to this buffer instead of the response.\n\nCall `ob_get_close()` to get the contents. Call `ob_close()` to discard them. Buffers can nest.\n"
-        page["returns"] = "no value"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction ob_start()\n\n`ob_start()` starts a new output buffer.\n\nLater `print()` calls write to this buffer. Use `ob_get_close()` to get its text, or `ob_close()` to discard it.\n"
         page["label"] = "ob_start"
-        page["sig_lines"] = dval(["void ob_start()", ""])
         page["capy_sig_lines"] = dval(["function ob_start()"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">ob", "ob_get_close", "ob_get", "ob_close"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">ob", "ob_get_close", "ob_close"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "ob_start()\nprint(\"buffered\")\nprint(ob_get_close(), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

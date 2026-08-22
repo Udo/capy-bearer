@@ -1,12 +1,12 @@
 :sig
-String zip_read(String zip_file_name, String entry_name)
+function zip_read(path : string, entry : string) string
 
 :params
-zip_file_name : path to the ZIP archive
-entry_name : member name to read from the archive
+path : archive path
+entry : entry name
 
 :returns
-uncompressed entry contents
+The uncompressed entry bytes.
 
 :see
 >sys
@@ -15,16 +15,10 @@ zip_list
 zip_extract
 
 :content
-`zip_read(path, entry)` accepts an archive path and member name. It returns the uncompressed member bytes as a `string`.
-
-Use `zip_list()` to discover member names before you read them. Member names cannot be empty, absolute, drive-qualified, or contain `..` path segments.
-
-The call rejects invalid member names. The declaration has no separate error return.
-
-C++ returns the same data as `String` through the signature above.
+`zip_read()` returns one ZIP archive entry.
 
 :example capy render
-var archive := "/tmp/capy-doc-zipread.zip"
-zip_create(archive, dval({"greeting.txt": "hello world"}))
-print(zip_read(archive, "greeting.txt"), "\n")
+var archive := file_temp("/tmp/capy-zip-") + ".zip"
+zip_create(archive, dval({"note.txt": "hello"}))
+print(zip_read(archive, "note.txt"), "\n")
 file_unlink(archive)

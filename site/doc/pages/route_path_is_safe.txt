@@ -1,19 +1,14 @@
 :sig
-bool route_path_is_safe(String path)
+function route_path_is_safe(path : string) bool
 
-:see
->uri
-route_path_sanitize
-route_path_normalize
-request_query_path
-request_query_route
+:params
+path : route text to test
+
+:returns
+`true` if the path is safe.
 
 :content
-Use this function to test whether route text is safe after normalization.
-
-A safe route has non-empty segments. Each segment can contain ASCII letters, digits, `_`, and `-`. The function rejects `.` and `..` segments.
-
-For handler routes, use `request.route` or `ROUTE_PATH`. These APIs parse and sanitize request input.
+A safe route has non-empty segments. Segments can contain ASCII letters, digits, `_`, and `-`.
 
 :example capy render
-if route_path_is_safe("docs/index") { print("safe\n") } else { print("unsafe\n") }
+print(route_path_is_safe("docs/api"), "\n")

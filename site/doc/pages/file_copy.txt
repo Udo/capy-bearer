@@ -1,15 +1,15 @@
 :sig
-bool file_copy(String from, String to)
+function file_copy(from : string, to : string) bool
 
 :params
-from : path of the source file
-to : path of the destination file
+from : source path
+to : destination path
 
 :returns
-true when Capy copies the file, otherwise false
+`true` when Capy copies the file. Otherwise, it returns `false`.
 
 :content
-`file_copy` copies one file to another path. Use it to keep the source and create a second file. The call reports failure with false. Capy uses the same paths and Boolean result.
+`file_copy` copies a file to another path. The source path remains available after a successful copy.
 
 :example capy render
 file_put_contents("/tmp/doc-copy-src.txt", "payload")
@@ -20,7 +20,4 @@ print(file_get_contents("/tmp/doc-copy-dst.txt"), "\n")
 >sys
 file_rename
 file_put_contents
-file_truncate
-dir_list
-dir_remove
 file_stat

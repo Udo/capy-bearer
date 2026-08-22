@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "sqlite-error"
         page["route"] = "/doc/api/sqlite-error/"
         page["title"] = "sqlite_error"
-        page["content"] = "Capy `sqlite_error(db)` returns the latest SQLite status or error message for a handle. Give it a handle from `sqlite_connect()`.\n\nCall it after `sqlite_connect()` or `sqlite_query()` when you need error text. A failed operation sets an error message. The C++ API uses an `SQLite*` pointer. Capy uses a `u64` handle.\n"
-        page["returns"] = "latest SQLite status or error message"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction sqlite_error(handle : u64) string\n\nUse `sqlite_error` after a SQLite operation when you need its diagnostic text.\n"
+        page["returns"] = "Latest SQLite error text."
         page["label"] = "sqlite_error"
-        page["sig_lines"] = dval(["String sqlite_error(SQLite* db)", ""])
         page["capy_sig_lines"] = dval(["function sqlite_error(handle : u64) string"])
-        page["param_lines"] = dval(["db : SQLite handle from `sqlite_connect()`", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sqlite", "sqlite_query", "sqlite_disconnect", "sqlite_connect", "sqlite_insert_id", "sqlite_affected_rows"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var db := sqlite_connect(\":memory:\")\nsqlite_query(db, \"select * from missing_table\")\nprint(sqlite_error(db), \"\\n\")\nsqlite_disconnect(db)\n"}])
         page["guide_examples"] = dval([])
         return page
     }

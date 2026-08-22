@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "file-copy"
         page["route"] = "/doc/api/file-copy/"
         page["title"] = "file_copy"
-        page["content"] = "`file_copy` copies one file to another path. Use it to keep the source and create a second file. The call reports failure with false. Capy uses the same paths and Boolean result.\n"
-        page["returns"] = "true when Capy copies the file, otherwise false"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction file_copy(from : string, to : string) bool\n\n`file_copy` copies a file to another path. The source path remains available after a successful copy.\n"
+        page["returns"] = "`true` when Capy copies the file. Otherwise, it returns `false`."
         page["label"] = "file_copy"
-        page["sig_lines"] = dval(["bool file_copy(String from, String to)", ""])
         page["capy_sig_lines"] = dval(["function file_copy(from : string, to : string) bool"])
-        page["param_lines"] = dval(["from : path of the source file", "to : path of the destination file", ""])
+        page["param_lines"] = dval(["from : source path", "to : destination path", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "file_rename", "file_put_contents", "file_truncate", "dir_list", "dir_remove", "file_stat"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">sys", "file_rename", "file_put_contents", "file_stat"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-copy-src.txt\", \"payload\")\nfile_copy(\"/tmp/doc-copy-src.txt\", \"/tmp/doc-copy-dst.txt\")\nprint(file_get_contents(\"/tmp/doc-copy-dst.txt\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

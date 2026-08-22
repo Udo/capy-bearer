@@ -1,26 +1,17 @@
 :sig
-String random_bytes(u64 n)
+function random_bytes(count : u64) string
 
 :params
-n : the number of random bytes to request
+count : number of bytes to request
 
 :returns
-cryptographically random bytes
+Random bytes as a string.
 
 :content
-`random_bytes()` returns cryptographically secure bytes as a `string`. The API returns no more than 1 MiB. It can return fewer bytes, including an empty string, if the random source fails.
+`random_bytes()` returns random bytes. The result can contain binary data.
 
-Use these bytes for session IDs, tokens, and salts. The result can contain binary bytes. Use `base64_encode()` or `sha256_hex()` when you need printable text.
+Use `base64_encode()` when you need printable text.
 
 :example capy render
-var token := base64_encode(random_bytes(16))
-print(length(random_bytes(16)), " raw bytes; as base64 token: ", length(token), " chars\n")
-
-:see
->sys
-base64_encode
-sha256_hex
-basename
-dirname
-expand_path
-file_append
+var token := base64_encode(random_bytes(u64(16)))
+print(token, "\n")

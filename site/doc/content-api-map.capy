@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "map"
         page["route"] = "/doc/api/map/"
         page["title"] = "map"
-        page["content"] = "This function calls `f` for each list item and returns a new list.\n\nUse it to transform each string in a list. Capy converts each input item with `string()` before it calls `f`.\n\nUse `filter()` when you want to keep matching items instead.\n"
-        page["returns"] = "new list of transformed strings"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction map(items : dval, mapper : function(value : string) string) dval\n\n`map()` calls `mapper` for each item in `items`.\n\nIt converts each item to a string before it calls `mapper`. The function returns a new `dval` list.\n"
+        page["returns"] = "a new list of transformed strings"
         page["label"] = "map"
-        page["sig_lines"] = dval(["DValue map(DValue items, function<String (String)> f)", "DValue::map(function<String (String)> f)", ""])
         page["capy_sig_lines"] = dval(["function map(items : dval, mapper : function(value : string) string) dval"])
-        page["param_lines"] = dval(["items : list of string items to transform", "f : function that returns one string for each item", ""])
+        page["param_lines"] = dval(["items : the input list", "mapper : the function that transforms each item", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "filter", "0_DValue", "json_encode", "nibble", "json_consume_space", "print"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">string", "filter", "print"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var names := dval([\"ada\", \"grace\"])\nvar names_upper := map(names, function(name : string) string { return upper(name) })\nprint(join(names_upper, \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

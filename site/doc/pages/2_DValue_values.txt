@@ -1,25 +1,19 @@
+:title
+Get child values
+
 :sig
-DValue DValue::values() const
+function dval_values(value : dval) dval
+
+:params
+value : source value
 
 :returns
-a list-shaped `dval` containing each child value
-
-:see
->types
-0_DValue
-2_DValue_each
-2_DValue_push
+A list of copied child values.
 
 :content
-`dval_values(value)` takes a `dval` and returns a list-shaped `dval` of its child values. It copies each child. Map values use map order. List values use numeric list order.
-
-A scalar produces a one-item list that contains the scalar. Capy returns copied values.
-
-## C++ API
-
-`DValue::values()` has the same result.
+`dval_values` returns a new list of child values. A scalar returns a one-item list.
 
 :example capy render
 var user := dval({"name": "Ada", "role": "admin"})
 var values := dval_values(user)
-if dval_is_list(values) { print("list\n") } else { print("map\n") }
+print(dval_is_list(values), " ", length(values), "\n")

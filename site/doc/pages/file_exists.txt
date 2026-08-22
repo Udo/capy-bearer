@@ -1,28 +1,21 @@
 :sig
-bool file_exists(String path)
+function file_exists(path : string) bool
 
 :params
-path : path to check
+path : path to test
 
 :returns
-true when a regular file exists, otherwise false
+`true` when a regular file exists. Otherwise, it returns `false`.
 
 :content
-`file_exists` tests whether a regular file exists at `path`. Use it before a file read or after a file write. It returns false for a directory. Use `file_stat()` and its `is_dir` field to test a directory.
+`file_exists` tests for a regular file. It returns `false` for a directory. Use `file_stat` to inspect another path type.
 
 :example capy render
 file_put_contents("/tmp/doc-exists.txt", "x")
-var first_status := "missing"
-if file_exists("/tmp/doc-exists.txt") { first_status = "exists" }
-var second_status := "missing"
-if file_exists("/tmp/doc-not-here-xyz.txt") { second_status = "exists" }
-print(first_status, " / ", second_status, "\n")
+print(file_exists("/tmp/doc-exists.txt"), "\n")
 
 :see
 >sys
 file_stat
 file_unlink
-file_append
 file_get_contents
-expand_path
-file_mtime

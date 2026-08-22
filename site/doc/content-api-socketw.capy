@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "socket-write"
         page["route"] = "/doc/api/socket-write/"
         page["title"] = "socket_write"
-        page["content"] = "Capy `socket_write(sockfd, data)` sends a string to a socket. Give it a socket handle and the data to send.\n\nIt returns `true` when the write succeeds. It returns `false` when it fails. Use it after `socket_connect()` to send a request.\n"
-        page["returns"] = "`true` when the write succeeds, otherwise `false`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction socket_write(handle : u64, data : string) bool\n\nUse `socket_write` to send data to a socket.\n"
+        page["returns"] = "`true` when the write succeeds."
         page["label"] = "socket_write"
-        page["sig_lines"] = dval(["bool socket_write(u64 sockfd, String data)", ""])
         page["capy_sig_lines"] = dval(["function socket_write(handle : u64, data : string) bool"])
-        page["param_lines"] = dval(["sockfd : socket handle from `socket_connect()`", "data : string to send", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">socket", "socket_read", "socket_connect", "socket_close", "http_request_async", "http_request"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var handle := socket_connect(\"127.0.0.1\", 1)\nif handle != 0 { print(socket_write(handle, \"hello\"), \"\\n\"); socket_close(handle) }\n"}])
         page["guide_examples"] = dval([])
         return page
     }

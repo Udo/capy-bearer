@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "job-status"
         page["route"] = "/doc/api/job-status/"
         page["title"] = "job_status"
-        page["content"] = "`job_status()` checks a job without waiting. The status map can include `state`, `done`, `kind`, `pid`, and `job_id`.\n\n`state` can be `pending`, `running`, `done`, `failed`, `cancelled`, or `missing`. Use it to poll without waiting for a result.\n\nIn Capy, pass the job ID as `dval`. In Capy, pass the `u64` job ID shown above.\n"
-        page["returns"] = "a `dval` status map"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction job_status(job : dval) dval\n\n`job_status()` checks a job without waiting. The map can include `state`, `done`, `kind`, `pid`, and `job_id`.\n\nThe `state` value can be `pending`, `running`, `done`, `failed`, `cancelled`, or `missing`.\n"
+        page["returns"] = "A job status map."
         page["label"] = "job_status"
-        page["sig_lines"] = dval(["DValue job_status(u64 job_id)", ""])
         page["capy_sig_lines"] = dval(["function job_status(job : dval) dval"])
-        page["param_lines"] = dval(["job : the Capy `dval` job ID. Capy uses a `u64` ID.", ""])
+        page["param_lines"] = dval(["job : a job ID as `dval`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "shell_spawn", "job_result", "shell_exec", "job_await", "shell_escape", "job_cancel"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["job_result", "job_await", "job_cancel"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var job := shell_spawn(dval({\"cmd\": \"printf x\", \"timeout_ms\": 1000}))\njob_await(job, 3000)\nprint(job_status(job)[\"state\"], \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

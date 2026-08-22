@@ -1,25 +1,22 @@
-
 :sig
-String to_upper(String s)
+function upper(value : string) string
 
 :params
-value : Capy string to convert
+value : string to convert
 
 :returns
 string with lowercase ASCII characters changed to uppercase
 
 :see
 >string
-to_upper
 string
 length
 clone
 ascii_safe_name
 base64_decode
-:content
-`upper(value)` converts lowercase ASCII characters to uppercase. It does not convert Unicode case.
 
-C++ uses `to_upper()` with the signature above.
+:content
+`upper` changes lowercase ASCII characters to uppercase.
 
 :example capy render
 print(upper("bearer"), "\n")

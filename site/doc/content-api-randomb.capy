@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "random-bytes"
         page["route"] = "/doc/api/random-bytes/"
         page["title"] = "random_bytes"
-        page["content"] = "`random_bytes()` returns cryptographically secure bytes as a `string`. The API returns no more than 1 MiB. It can return fewer bytes, including an empty string, if the random source fails.\n\nUse these bytes for session IDs, tokens, and salts. The result can contain binary bytes. Use `base64_encode()` or `sha256_hex()` when you need printable text.\n"
-        page["returns"] = "cryptographically random bytes"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction random_bytes(count : u64) string\n\n`random_bytes()` returns random bytes. The result can contain binary data.\n\nUse `base64_encode()` when you need printable text.\n"
+        page["returns"] = "Random bytes as a string."
         page["label"] = "random_bytes"
-        page["sig_lines"] = dval(["String random_bytes(u64 n)", ""])
         page["capy_sig_lines"] = dval(["function random_bytes(count : u64) string"])
-        page["param_lines"] = dval(["n : the number of random bytes to request", ""])
+        page["param_lines"] = dval(["count : number of bytes to request", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "base64_encode", "sha256_hex", "basename", "dirname", "expand_path", "file_append"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var token := base64_encode(random_bytes(u64(16)))\nprint(token, \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

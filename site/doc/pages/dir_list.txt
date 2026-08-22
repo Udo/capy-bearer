@@ -1,32 +1,26 @@
 :sig
-DValue dir_list(String path)
+function dir_list(path : string) dval
 
 :params
-path : directory path to list
+path : the directory path to list
 
 :returns
-`dval` list of entry maps with `name`, `type`, `size`, and `mtime`
+A `dval` list of entry maps.
 
 :content
-`dir_list()` returns entries from a directory as a Capy `dval` list.
+`dir_list()` returns one map for each directory entry.
 
-Pass a directory path. Each returned entry is a map with `name`, `type`, `size`, and `mtime`. The `type` value is `file`, `dir`, `symlink`, or `other`.
-
-Use this function when Capy must inspect directory entries. Read map fields with DValue access functions.
-
-The Capy call returns the same DValue data.
+Each map has `name`, `type`, `size`, and `mtime`. The `type` value is `file`, `dir`, `symlink`, or `other`.
 
 :example capy render
-var root := file_temp("/tmp/capy-doc-dirlist-")
+var root := file_temp("/tmp/capy-doc-dir-list-")
 file_unlink(root)
 mkdir(root)
 file_put_contents(path_join(root, "note.txt"), "hi")
-var found := false
-for item, key := dir_list(root) { if string(item["name"]) == "note.txt" { found = true } }
+for item, key := dir_list(root) { print(string(item.name), "\n") }
 dir_remove(root, true)
-if found { print("note.txt listed: yes\n") } else { print("note.txt listed: no\n") }
+
 :see
->sys
-file_stat
-mkdir
 ls
+file_stat
+dir_remove

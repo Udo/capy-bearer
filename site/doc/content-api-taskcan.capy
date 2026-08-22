@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "task-cancel"
         page["route"] = "/doc/api/task-cancel/"
         page["title"] = "task_cancel"
-        page["content"] = "Use `task_cancel` to request cancellation of a Capy task. Pass the task ID. The function returns the current status after it processes the request.\n\nA queued task becomes `canceled`. A running task can finish before cancellation takes effect. In that case, its completed status remains valid. Check the returned status because cancellation can race with task completion.\n\nCapy task IDs are `string` values, and task status is a `dval` value. Capy uses `String` and `DValue`, as the signature shows.\n"
-        page["returns"] = "current task status after the cancellation request"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction task_cancel(id : string) dval\n\nUse `task_cancel` to request task cancellation. Check the returned status because a task can finish first.\n"
+        page["returns"] = "Task status map."
         page["label"] = "task_cancel"
-        page["sig_lines"] = dval(["DValue task_cancel(String id)", ""])
         page["capy_sig_lines"] = dval(["function task_cancel(id : string) dval"])
-        page["param_lines"] = dval(["id : opaque ID returned by `task`", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">task", "task", "task_status", "task_await"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var status := task_cancel(\"\")\nprint(string(status[\"state\"]), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

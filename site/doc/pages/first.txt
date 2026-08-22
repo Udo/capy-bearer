@@ -1,25 +1,21 @@
 :sig
-String first(String... args)
+function first() string
+function first(one : string) string
+function first(one : string, two : string) string
+function first(one : string, two : string, three : string) string
+function first(one : string, two : string, three : string, four : string) string
 
 :params
-args : zero or more strings, in selection order
+one : first value
+two : second value
+three : third value
+four : fourth value
 
 :returns
-first nonblank string, or an empty string
+The first nonblank value. Returns `""` if no value is nonblank.
 
-:see
->string
-filter
-join
-contains
-json_consume_space
-base64_encode
-json_encode
 :content
-`first()` returns the first nonblank string. It returns an empty string when no argument is nonblank.
-
-It ignores leading and trailing whitespace when it tests each argument. Use it to select a fallback string.
-
+`first` checks values in order. It ignores values that contain only whitespace.
 
 :example capy render
-print(first("", "fallback", "other"), "\n")
+print(first("", "  ", "fallback", "other"), "\n")

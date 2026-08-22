@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "file-pwrite"
         page["route"] = "/doc/api/file-pwrite/"
         page["title"] = "file_pwrite"
-        page["content"] = "`file_pwrite()` writes `string` bytes at an absolute offset without changing the handle position.\n\nUse a writable handle, such as one opened with `\"r+\"`, for an in-place edit. It returns zero for an invalid, closed, or non-writable handle.\n"
-        page["returns"] = "number of bytes written"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction file_pwrite(handle : u64, offset : u64, data : string) u64\n\n`file_pwrite` writes text at an absolute byte offset. It does not change the handle position.\n"
+        page["returns"] = "The number of bytes written."
         page["label"] = "file_pwrite"
-        page["sig_lines"] = dval(["u64 file_pwrite(u64 h, u64 offset, String data)", ""])
         page["capy_sig_lines"] = dval(["function file_pwrite(handle : u64, offset : u64, data : string) u64"])
-        page["param_lines"] = dval(["h : writable handle from `file_open()`", "offset : absolute byte offset", "data : Capy `string` data to write", ""])
+        page["param_lines"] = dval(["handle : writable handle returned by `file_open`", "offset : absolute byte offset", "data : text to write", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">sys", "file_write", "file_pread", "file_open"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var handle := file_open(\"/tmp/doc-pwrite.txt\", \"w\")\nfile_write(handle, \"hello world\")\nfile_close(handle)\nvar editor := file_open(\"/tmp/doc-pwrite.txt\", \"r+\")\nfile_pwrite(editor, u64(6), \"earth\")\nfile_close(editor)\nprint(file_get_contents(\"/tmp/doc-pwrite.txt\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

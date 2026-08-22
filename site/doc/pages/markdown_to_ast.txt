@@ -1,41 +1,26 @@
 :sig
-DValue markdown_to_ast(String src)
-DValue markdown_to_ast(String src, DValue options)
+function markdown_to_ast(source : string) dval
+function markdown_to_ast(source : string, options : dval) dval
 
 :params
-src : Markdown text
-options : optional `dval` options
+source : the Markdown source text
+options : parser options
 
 :returns
-`dval` document tree
+the Markdown document tree
+
+:content
+`markdown_to_ast()` parses Markdown into a `dval` document tree.
+
+The root node contains a `children` list. Nodes contain a `type` field and fields for their content. The default options support GitHub-flavored Markdown.
+
+Set `gfm` to control GitHub-flavored extensions. Set `allow_html` to retain raw HTML nodes.
+
+:example capy render
+var document := markdown_to_ast("# Title")
+print(document["type"], "\n")
 
 :see
 >markup
 markdown_to_html
-component
-component_render
 json_encode
-0_DValue
-
-:content
-This function parses Markdown text into a `dval` document tree.
-
-The root is a map-shaped document node. Its `children` field is a list-shaped value. The parser stores component data but does not call component hooks during parsing.
-
-By default, the parser supports GitHub-flavored headings, paragraphs, blockquotes, lists, task items, code blocks, and tables.
-
-It also supports rules, emphasis, links, images, autolinks, code spans, and `:::` directive blocks.
-
-Each node has a `type` field and node-specific fields. Common fields include `level`, `text`, `lang`, `href`, `src`, `name`, `argument`, `attrs`, and `children`.
-
-Common block types are `heading`, `paragraph`, `blockquote`, `list`, `list_item`, `code_block`, `table`, `directive`, and `hr`. Common inline types are `text`, `code`, `strong`, `em`, `strike`, `link`, `image`, and `raw_html`.
-
-Options:
-
-- `options["gfm"]` enables tables, task lists, strikethrough, and bare URL autolinks. The default is `true`.
-- `options["allow_html"]` captures raw HTML nodes for later output. The default is `false`.
-- `options["components"]` stores hooks for `markdown_to_html()`.
-
-:example capy render
-var ast := markdown_to_ast("# Title")
-if dval_is_array(ast) { print("ast\n") } else { print("empty\n") }

@@ -1,30 +1,23 @@
 :sig
-String csrf_token(String session_name = "bearer-session", String token_name = "csrf_token")
+function csrf_token(session_name : string = "bearer-session", token_name : string = "csrf_token") string
 
 :params
-session_name : session and cookie name
-token_name : token namespace in the session
+session_name : the session and cookie name
+token_name : the token namespace in the session
 
 :returns
-printable CSRF token for the active session
+The active CSRF token.
 
 :content
-`csrf_token()` returns a stable Capy CSRF token for one session and token namespace.
+`csrf_token()` returns a stable token for one session and token namespace.
 
-Pass the session name and token namespace. It starts the named session when necessary. Use different token namespaces when forms need separate tokens.
-
-Use the returned value in a hidden form field. Call `csrf_valid()` before you apply a browser-submitted change.
-
-The Capy call has the same arguments.
+Use the result in a hidden form field. Call `csrf_valid()` before you apply a browser-submitted change.
 
 :example capy render
-var token := csrf_token("bearer-doc-session")
-if length(token) > 0 { print("token ready\n") }
-else { print("token missing\n") }
+var token := csrf_token("capy-doc-session")
+print(length(token) > 0, "\n")
+
 :see
->session
-csrf_valid
 csrf_field
+csrf_valid
 csrf_rotate
-session_start
-random_bytes

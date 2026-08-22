@@ -9,20 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "u64"
         page["route"] = "/doc/api/u64/"
         page["title"] = "u64"
-        page["content"] = "Use `u64` to convert input to a 64-bit unsigned integer.\n\n`u64(dval, fallback)` accepts scalar `bool`, finite `f64`, and exact decimal text. Decimal strings may use a leading `+`.\n\n`u64(string, fallback)` trims spaces and then applies the same rules. Negative strings, overflow, and fractions return `fallback`.\n"
+        page["content"] = "## sig\n\nfunction u64(value : dval, fallback : u64 = 0) u64\nfunction u64(value : string, fallback : u64 = 0) u64\n\n`u64` converts a `dval` or `string` to `u64`.\n"
         page["returns"] = "converted `u64`, or `fallback`"
-        page["errors"] = "`u64` does not throw. It returns `fallback` for invalid text, `none`, maps, lists, negative numbers, or out-of-range values."
-        page["example_error"] = "expected contiguous :example cpp render"
         page["label"] = "u64"
-        page["sig_lines"] = dval(["u64(value : dval, fallback : u64 = 0) u64", "u64(value : string, fallback : u64 = 0) u64", ""])
         page["capy_sig_lines"] = dval(["function u64(value : dval, fallback : u64 = 0) u64", "function u64(value : string, fallback : u64 = 0) u64"])
-        page["param_lines"] = dval(["value : source value to convert", "fallback : value returned when conversion fails", ""])
+        page["param_lines"] = dval(["value : value to convert", "fallback : value to return if conversion fails", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">types", "2_DValue_to_u64", "2_DValue_to_s64", "2_DValue_to_f64", "2_DValue_to_bool", "2_DValue_to_string"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(u64(\"42\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

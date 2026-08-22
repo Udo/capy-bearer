@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "backtrace-capture"
         page["route"] = "/doc/api/backtrace-capture/"
         page["title"] = "backtrace_capture"
-        page["content"] = "Capy's `backtrace_capture()` returns a formatted `string` for the current call stack. Use it for diagnostic output.\n\nThe zero-argument form captures up to 32 frames and skips none. The two-argument form accepts `max_frames` and `skip_frames`. The function returns an empty string when no trace is available. It does not report errors.\n\nC++ uses the same operation with `u32` arguments. Native runtime error paths also use it.\n\n"
-        page["returns"] = "formatted backtrace string"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction backtrace_capture() string\nfunction backtrace_capture(max_frames : s32, skip_frames : s32) string\n\n`backtrace_capture` gets a backtrace for the current call stack.\n\nCall it with no arguments. You can also set the maximum frame count and skip count.\n"
+        page["returns"] = "a backtrace string"
         page["label"] = "backtrace_capture"
-        page["sig_lines"] = dval(["String backtrace_capture(u32 max_frames = 32, u32 skip_frames = 0)", ""])
         page["capy_sig_lines"] = dval(["function backtrace_capture() string", "function backtrace_capture(max_frames : s32, skip_frames : s32) string"])
-        page["param_lines"] = dval(["max_frames : maximum number of frames to capture", "skip_frames : number of newest frames to omit", ""])
+        page["param_lines"] = dval(["max_frames : maximum number of frames", "skip_frames : number of newest frames to omit", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">runtime", "backtrace_get_frames", "signal_name", "error_pages", "trap", "unit_info", "units_list"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["backtrace_get_frames"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(backtrace_capture(), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -32,19 +28,15 @@ function data(input : dval) dval {
         page["slug"] = "backtrace-get-frames"
         page["route"] = "/doc/api/backtrace-get-frames/"
         page["title"] = "backtrace_get_frames"
-        page["content"] = "Capy's `backtrace_get_frames()` returns a source-mapped guest backtrace as a `string`. Use it for Capy diagnostic output.\n\nThe zero-argument form uses 32 frames and skips none. The other forms accept a maximum frame count and an optional skip count. The function returns an empty string when no frames are available. It does not report errors.\n\nCapy does not accept native frame pointers. The C++ `backtrace_get_frames` function formats a `void*` frame array. Use `backtrace_capture()` for normal C++ page code.\n"
-        page["returns"] = "formatted backtrace string"
-        page["example_error"] = "expected contiguous :example cpp cli"
+        page["content"] = "## sig\n\nfunction backtrace_get_frames(max_frames : s32 = 32, skip_frames : s32 = 0) string\n\n`backtrace_get_frames` gets source-mapped frames for the current Capy call stack.\n\nSet `max_frames` to limit the result. Set `skip_frames` to omit the newest frames.\n"
+        page["returns"] = "a backtrace string"
         page["label"] = "backtrace_get_frames"
-        page["sig_lines"] = dval(["String backtrace_get_frames(void* const* frames, size_t size, u32 skip_frames = 0)", ""])
         page["capy_sig_lines"] = dval(["function backtrace_get_frames(max_frames : s32 = 32, skip_frames : s32 = 0) string"])
-        page["param_lines"] = dval(["frames : frame pointer array returned by native backtrace collection", "size : number of frames in the array", "skip_frames : number of newest frames to omit", ""])
-        page["notes"] = dval(["The examples are compile-only because the documentation renderer cannot capture its own native frame array."])
+        page["param_lines"] = dval(["max_frames : maximum number of frames", "skip_frames : number of newest frames to omit", ""])
+        page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">runtime", "backtrace_capture", "signal_name", "trap", "error_pages", "unit_info", "units_list"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["backtrace_capture"])
+        page["examples"] = dval([{entry: "cli", caption: "", body: "print(backtrace_get_frames(4, 0), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

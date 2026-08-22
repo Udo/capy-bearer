@@ -1,27 +1,21 @@
+:title
+String list
+
 :sig
-DValue list (legacy `StringList` spelling)
+type dval (list of strings)
 
 :content
-Use a list-shaped `dval` for an ordered string list in Capy. Create one with `dval([...])` or use a result from `split`, `split_utf8`, `regex_split`, `ls`, `units_list`, or `request.websocket.connections` in a `WS` handler.
+Use a list-shaped `dval` for an ordered string list. Create one with `dval([...])` or `split`.
 
-List functions take a list-shaped `dval` and return a `dval`, a `string`, or a `bool`. Use `join`, `map`, `filter`, `keys`, `unique`, `sort`, `some`, `every`, and `string_list_find` for normal list work.
+Use `join`, `map`, `filter`, `keys`, `unique`, `sort`, `some`, and `every` for list work. These functions return a new value unless stated otherwise.
 
-`dval_push` and `dval_pop` mutate the target list and return that same identity. Assigning the result back remains valid.
-
-## Capy Limit
-
-Capy has no separate `StringList` type or representation. It uses mutable DValue reference values inside a workspace. A C++ boundary copies BRRB and does not expose a container alias.
-
-## C++ API
-
-`StringList` is a C++ name for a list-shaped `DValue`. Capy uses a list-shaped `dval` instead.
+Capy has no separate `StringList` type. Use a list-shaped `dval` instead.
 
 :example capy render
 var labels := map(unique(split("a,b,a", ",")), function(item : string) string { return upper(item) })
 print(join(labels, ","), "\n")
 
 :see
->types
 0_DValue
 split
 join

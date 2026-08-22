@@ -1,27 +1,21 @@
 :sig
-URI parse_uri(String uri_string)
+function parse_uri(uri : string) dval
 
 :params
-uri_string : the URI or URL text
+uri : the URI or URL text
 
 :returns
-URI data as a `dval`. C++ returns a `URI` value
-
-:see
->uri
-parse_query
-uri_decode
-uri_encode
+the URI data
 
 :content
 `parse_uri()` returns URI parts as a `dval`.
 
-Read the `parts` and `query` maps from the result. `query` uses the same rules as `parse_query()`.
-
-For an absolute URL, `parts` can contain `scheme`, `host`, `port`, `path`, `query`, and `fragment`. `path` does not start with `/`.
-
-Use `parse_uri()` for a complete URL. Use `parse_query()` for query text only.
+Read the `parts` and `query` maps from the result. Use `parse_query()` when you only have query text.
 
 :example capy render
-var uri := parse_uri("https://example.test/docs?name=Ada")
-print(uri["parts"]["path"], " ", uri["query"]["name"], "\n")
+var parsed := parse_uri("https://example.test/docs?name=Ada")
+print(parsed["parts"]["path"], " ", parsed["query"]["name"], "\n")
+
+:see
+>uri
+parse_query

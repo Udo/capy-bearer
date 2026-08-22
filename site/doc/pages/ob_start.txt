@@ -1,22 +1,17 @@
 :sig
-void ob_start()
-
-:returns
-no value
+function ob_start()
 
 :content
-`ob_start()` starts a new output buffer. Later `print()` calls write to this buffer instead of the response.
+`ob_start()` starts a new output buffer.
 
-Call `ob_get_close()` to get the contents. Call `ob_close()` to discard them. Buffers can nest.
+Later `print()` calls write to this buffer. Use `ob_get_close()` to get its text, or `ob_close()` to discard it.
 
 :example capy render
 ob_start()
-print("buffered text")
-var captured := ob_get_close()
-print("captured: ", captured, "\n")
+print("buffered")
+print(ob_get_close(), "\n")
 
 :see
 >ob
 ob_get_close
-ob_get
 ob_close

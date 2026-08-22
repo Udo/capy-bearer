@@ -1,9 +1,5 @@
-
 :sig
-bool ws_is_binary()
-
-:returns
-true for the current binary WebSocket message
+No Capy signature.
 
 :see
 >websocket
@@ -14,11 +10,6 @@ ws_connection_id
 ws_opcode
 ws_connection_count
 ws_scope
-:capy-status cpp-specific
 
 :content
-`ws_is_binary()` is a C++ API. It returns true for the current binary WebSocket message. It returns false for a text message and outside a WebSocket handler.
-
-Use it before you parse `ws_message()`.
-
-Capy does not expose `ws_is_binary`. In a Capy `WS` handler, read `request.websocket.binary`.
+Capy has no native `ws_is_binary` signature. In a `WS` handler, use `request.websocket.binary`.

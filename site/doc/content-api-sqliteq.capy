@@ -9,20 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "sqlite-query"
         page["route"] = "/doc/api/sqlite-query/"
         page["title"] = "sqlite_query"
-        page["content"] = "Use `sqlite_query` to run one SQL statement on a Capy SQLite connection. Pass the SQL string. You can also pass a `dval` map for named values. The function returns result rows as a `dval` value.\n\nUse `:name` placeholders with the parameter map. Check `sqlite_affected_rows` or `sqlite_insert_id` after a statement that does not return rows.\n\nRows use column names as keys. SQLite integers, floats, text, blobs, and null values convert to `dval` values. Blob values return as byte strings.\n\nCapy uses a connection value and a `dval` map. Capy uses an `SQLite*`, `String`, and `StringMap`, as the signatures show.\n"
-        page["returns"] = "Capy `dval` value that contains the result rows"
-        page["errors"] = "The API rejects positional `?`, `@name`, and `$name` placeholders. It also rejects SQL strings that contain more than one statement. Use `sqlite_error()` to read the SQLite diagnostic."
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction sqlite_query(handle : u64, query : string) dval\nfunction sqlite_query(handle : u64, query : string, params : dval) dval\n\nUse `sqlite_query` to run one SQL statement. Use `:name` placeholders with a parameter map.\n"
+        page["returns"] = "Query result as `dval`."
         page["label"] = "sqlite_query"
-        page["sig_lines"] = dval(["DValue sqlite_query(SQLite* db, String q)", "DValue sqlite_query(SQLite* db, String q, StringMap params)", ""])
         page["capy_sig_lines"] = dval(["function sqlite_query(handle : u64, query : string) dval", "function sqlite_query(handle : u64, query : string, params : dval) dval"])
-        page["param_lines"] = dval(["db : Capy SQLite connection value", "q : one SQL statement", "params : optional Capy `dval` map of named parameter values", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sqlite", "sqlite_connect", "sqlite_error", "sqlite_insert_id", "sqlite_affected_rows", "0_DValue"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var db := sqlite_connect(\":memory:\")\nvar rows := sqlite_query(db, \"select :name as name\", dval({\"name\": \"Ada\"}))\nprint(rows[0][\"name\"], \"\\n\")\nsqlite_disconnect(db)\n"}])
         page["guide_examples"] = dval([])
         return page
     }

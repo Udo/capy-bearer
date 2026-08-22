@@ -1,26 +1,20 @@
 :sig
-String basename(String fn)
+function basename(path : string) string
 
 :params
-fn : a path
+path : a path string
 
 :returns
 the final path component
 
 :content
-Capy's `basename(path)` returns the final path component as a `string`. Pass a path string.
+`basename` returns the final component of a path.
 
-Use it to get a file or directory name without its parent directories. The function does not access the file system. It does not report errors.
-
-The C++ `String` function has the same input and result.
+It does not access the file system.
 
 :example capy render
 print(basename("/var/www/site/index.capy"), "\n")
+
 :see
->sys
 dirname
 path_join
-expand_path
-file_append
-file_exists
-file_get_contents

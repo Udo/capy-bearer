@@ -1,27 +1,21 @@
 :sig
-bool component_exists(String name)
+function component_exists(name : string) bool
 
 :params
-name : component path with an optional named handler
+name : a component path with an optional named handler
 
 :returns
-`true` when Bearer resolves the component file. Otherwise, `false`.
+`true` if Bearer resolves the component file. Otherwise, `false`.
+
+:content
+`component_exists()` checks whether Bearer can resolve a component file.
+
+A named handler does not affect this check. Use this function before you render an optional component.
+
+:example capy render
+if component_exists("/tests/capy-request-context.capy") { print("exists\n") } else { print("missing\n") }
 
 :see
->ob
 component
 component_render
 component_resolve
-1_COMPONENT
-
-:content
-`component_exists()` tests whether Capy can resolve a component file.
-
-A colon and handler name do not affect this check.
-
-Use this function before rendering an optional component. Its name resolution matches `component_resolve()`.
-
-:example capy render
-if component_exists("examples/sample_unit") { print("exists") } else { print("not found") }
-print(" / ")
-if component_exists("no_such_component") { print("exists\n") } else { print("not found\n") }

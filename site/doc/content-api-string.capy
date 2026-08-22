@@ -9,18 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "string"
         page["route"] = "/doc/api/string/"
         page["title"] = "String"
-        page["content"] = "`string` is Capy's text and byte value type. Use string literals, variables, parameters, and return values directly.\n\nString functions take `string` inputs and return `string`, numeric, or boolean values. Common functions include `length`, `find`, `contains`, `replace`, `lower`, `upper`, `substr`, `split`, and `split_utf8`.\n\nCapy passes strings by value. A function call does not expose a mutable C++ string reference.\n\nA `string` can contain raw bytes. Use `split_utf8()` when you must split UTF-8 text by characters. Do not treat each byte as one character.\n\n## C++ API\n\nC++ uses `String`, an alias for `std::string`. The same value can hold text or raw bytes.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\ntype string\n\n`string` stores text or raw bytes in Capy.\n\nUse string literals, variables, parameters, and return values directly. Use `length`, `find`, `contains`, `replace`, `lower`, `upper`, and `substr` for common text work.\n\nUse `split_utf8` when you must split UTF-8 text by characters.\n"
         page["label"] = "String"
-        page["sig_lines"] = dval(["0_String", ""])
         page["capy_sig_lines"] = dval(["type string"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", ">string", "split_utf8", "substr", "html_escape"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["split_utf8", "substr", "html_escape"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var name := \"Ada\"\nprint(upper(name), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

@@ -498,8 +498,8 @@ int main()
 		"function CLI(request : dval) { var loaded : module = unit_load(\"child.capy\"); var returned : module = pass(loaded); identity(returned).call(\"invoke\") }\n", options);
 	assert(capy::wasm::validate_bearer_unit(module_passthrough.wasm, {.bearer_abi_version = "11"}).valid);
 	capy::CompileOptions import_options = options;
-	import_options.import_type_metadata = [](const std::string& path, const std::string& current) {
-		assert(path == "child.capy" && current == "native-test.capy");
+	import_options.import_type_metadata = [](const std::string& path) {
+		assert(path == "child.capy");
 		return std::vector<std::string>({"capy type struct Shape{value:s32}", "capy type alias Other=struct:Shape"});
 	};
 	const auto imported_types = capy::compile_bearer_unit(

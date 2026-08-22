@@ -2,23 +2,17 @@
 COMPONENT
 
 :sig
-COMPONENT(Request& context)
-
-:see
->0_Request
->1_RENDER
->1_COMPONENT
->1_CLI
->1_WS
+function COMPONENT(request : dval)
+function COMPONENT:NAME(request : dval)
 
 :content
-`function COMPONENT(request : dval)` defines the Capy component entrypoint.
+`COMPONENT` defines a component entrypoint. Use `COMPONENT:NAME` for a named component.
 
-Every Capy Bearer handler has exactly one parameter. The parameter name is `request`. Its type is `dval`. The value is a copied request snapshot. Use `COMPONENT:NAME` for a named component.
+The handler has one parameter named `request` with type `dval`. Read component properties from `request.props`. Use `print` to write component output.
 
-Read input from the request fields. Use response, session, output, and WebSocket functions for effects. Use `print` for markup values that the component must send. A bare markup expression does not write output. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.
+:example capy component
+print(string(request.props.name, "guest"))
 
-C++ declares `COMPONENT(Request& context)` or `COMPONENT:NAME(Request& context)`. C++ reads live component props from `context.props` and passes the live context to component helpers.
-
-:example capy render
-print(string(request.method, ""), "\n")
+:see
+0_Request
+1_RENDER

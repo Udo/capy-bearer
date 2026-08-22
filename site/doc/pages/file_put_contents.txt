@@ -1,17 +1,15 @@
 :sig
-bool file_put_contents(String file_name, String content)
+function file_put_contents(path : string, content : string) bool
 
 :params
-file_name : path of the file to write
-content : Capy `string` that replaces existing content
+path : path of the file to write
+content : text that replaces the file content
 
 :returns
-true when Capy writes the file, otherwise false
+`true` when Capy writes the file. Otherwise, it returns `false`.
 
 :content
-`file_put_contents()` writes a `string` to a complete file. Use it to create or replace a small file. It returns `false` when Capy cannot write the file.
-
-Capy uses `String` and returns the same Boolean result.
+`file_put_contents` writes a complete string to a file. It creates or replaces a small file.
 
 :example capy render
 file_put_contents("/tmp/doc-put.txt", "first")

@@ -1,13 +1,5 @@
-
 :sig
-u64 to_u64(String s, u64 fallback = 0)
-
-:params
-s : C++ text to parse
-fallback : value for empty or invalid text
-
-:returns
-parsed C++ `u64` or `fallback`
+No Capy signature.
 
 :see
 >types
@@ -17,9 +9,6 @@ brb_encode
 to_f64
 brb_decode
 to_bool
-:capy-status cpp-specific
 
 :content
-`to_u64()` is a C++ API. It accepts a leading `+`. Negative, overflowing, empty, or partial text returns `fallback`.
-
-Capy does not expose `to_u64`. Use `u64(value, fallback)`.
+Capy has no native `to_u64` signature. Use `u64(value, fallback)`.

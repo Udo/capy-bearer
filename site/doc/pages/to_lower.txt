@@ -1,12 +1,5 @@
-
 :sig
-String to_lower(String s)
-
-:params
-s : C++ text to convert
-
-:returns
-`s` with uppercase ASCII characters changed to lowercase
+No Capy signature.
 
 :see
 >string
@@ -16,9 +9,6 @@ to_upper
 regex_replace
 trim
 regex_search_all
-:capy-status cpp-specific
 
 :content
-`to_lower()` is a C++ API. It normalizes ASCII text. It does not convert Unicode case.
-
-Capy does not expose `to_lower`. Use `lower(value)`.
+Capy has no native `to_lower` signature. Use `lower(value)`.

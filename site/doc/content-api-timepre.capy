@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "time-precise"
         page["route"] = "/doc/api/time-precise/"
         page["title"] = "time_precise"
-        page["content"] = "Call `time_precise()` to get the current Unix timestamp as an `f64`.\n\nUse this value to measure elapsed time within an operation. C++ uses the same no-input call and return value.\n\n"
-        page["returns"] = "current Unix timestamp as an `f64`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction time_precise() f64\n\n`time_precise` returns the current Unix timestamp with fractional seconds.\n"
+        page["returns"] = "current Unix timestamp with fractional seconds"
         page["label"] = "time_precise"
-        page["sig_lines"] = dval(["f64 time_precise()", ""])
         page["capy_sig_lines"] = dval(["function time_precise() f64"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">time", "usleep", "time", "time_format_local", "time_format_relative", "time_format_utc", "time_parse"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(time_precise(), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

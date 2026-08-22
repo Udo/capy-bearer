@@ -1,31 +1,12 @@
-
 :sig
-String cli_arg(Request& context, String key, String default_value = "")
-
-:params
-context : live C++ request context
-key : CLI input name
-default_value : value returned for an absent or empty value
-
-:returns
-resolved CLI string value
-
-:see
->ob
->1_CLI
->cli_input
->0_Request
-cli_input
-unit_call
-1_CLI
-component
-1_RENDER
-component_exists
-:capy-status cpp-specific
+`cli_arg` is not available in Capy.
 
 :content
-`cli_arg()` is a C++ API. It returns one CLI input value. It returns `default_value` when the value is absent or empty.
+Capy does not provide the retired CLI argument reader.
 
-Capy does not expose `cli_arg`. In a Capy `CLI` handler, read `request.query`, `request.form`, or `request.body`. Choose the field that matches the input source.
+In a `CLI` handler, read the required value from `request.query`, `request.form`, or `request.body`. Select the field that matches the input source.
 
-Capy code passes the live `Request& context` as the first argument.
+:see
+>1_CLI
+>0_Request
+cli_input

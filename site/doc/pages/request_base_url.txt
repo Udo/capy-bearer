@@ -1,22 +1,8 @@
-
 :sig
-String request_base_url(Request& context)
-
-:params
-context : live C++ request context
-
-:returns
-canonical directory URL for the current script
-
-:see
->uri
-request_script_url
-request_query_route
-0_Request
-
-:capy-status cpp-specific
+Not available in Capy.
 
 :content
-`request_base_url()` is a C++ API. It returns the canonical directory URL for the current script. Use it to make links to sibling assets or query-routed pages.
+Use `request.url.base` in a handler to read the base URL.
 
-Capy does not expose `request_base_url`. In a Capy `RENDER` handler, read `request.url.base`.
+:example capy render
+print(string(request.url.base, ""), "\n")

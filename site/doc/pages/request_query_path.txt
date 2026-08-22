@@ -1,28 +1,8 @@
-
 :sig
-String request_query_path(Request& context, String default_path = "index")
-
-:params
-context : live C++ request context
-default_path : route for empty input
-
-:returns
-safe keyless query route
-
-:see
->uri
-request_query_route
-request_context_params
-route_path_sanitize
-route_path_is_safe
-parse_query
-0_Request
-
-:capy-status cpp-specific
+Not available in Capy.
 
 :content
-`request_query_path()` is a C++ API. It returns the first keyless query-string segment as a safe route path. For `/?workspace/projects&theme=dark`, it returns `workspace/projects`.
+Use `request.route.path` in a handler to read the safe query route.
 
-It returns `default_path` when no keyless route exists. It returns an empty string when the route is unsafe. Unsafe input includes dot segments, empty interior segments, backslashes, filename dots, and characters outside route segments.
-
-Capy does not expose `request_query_path`. In a Capy `RENDER` handler, read `request.route.path`.
+:example capy render
+print(string(request.route.path, ""), "\n")

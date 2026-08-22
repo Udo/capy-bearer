@@ -1,41 +1,16 @@
 :sig
-bool regex_match(String pattern, String subject)
-bool regex_match(String pattern, String subject, String flags)
+function regex_match(pattern : string, subject : string, flags : string = "") bool
 
 :params
-pattern : the PCRE2 regular expression
-subject : the string to test
-flags : optional regular expression flags
+pattern : regular expression
+subject : text to test
+flags : regular expression flags
 
 :returns
-`true` if the entire subject matches the pattern
-
-:see
->string
->regex
-regex_search
-regex_search_all
-regex_replace
-regex_split
-0_String
+`true` if the complete subject matches the pattern.
 
 :content
-`regex_match()` returns `true` when all of `subject` matches `pattern`.
-
-This is not a substring search. Use `regex_search()` to find the first match in a string.
-
-Supported flags:
-
-- `i` ignores case.
-- `m` enables multiline `^` and `$`.
-- `s` lets `.` match a newline.
-- `x` enables extended pattern syntax.
-- `u` enables UTF-8 and Unicode properties.
-- `a` uses ASCII-oriented matching instead.
-
-Bearer uses PCRE2 UTF-8 and Unicode properties by default. For example, `\\p{L}+` matches Unicode letters.
-
-Invalid patterns and flags raise a request-visible runtime error with the PCRE2 diagnostic.
+Use `regex_match()` to test a complete string. Use `regex_search()` to find text within a string.
 
 :example capy render
-if regex_match("^[a-z]+$", "docs") { print("match\n") } else { print("no\n") }
+print(regex_match("[a-z]+", "Capy", "i"), "\n")

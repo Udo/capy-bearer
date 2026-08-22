@@ -9,18 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "print"
         page["route"] = "/doc/api/print/"
         page["title"] = "print"
-        page["content"] = "`print(...values : as string)` constructs each non-string value as `string` and writes the values in order.\n\nUse `print(...array)` to spread a `[string]` array. When an output buffer is active, `print()` writes to that buffer. Otherwise, it writes to the response.\n\nA markup literal is a value. It does not write to the response by itself. Pass it to `print()` when a handler must send HTML.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction print(...values : as string)\n\n`print()` converts each value to a string and writes the values in order.\n\nIt writes to the active output buffer when one exists. Otherwise, it writes to the response.\n"
         page["label"] = "print"
-        page["sig_lines"] = dval(["void print(...val)", ""])
         page["capy_sig_lines"] = dval(["function print(...values : as string)"])
-        page["param_lines"] = dval(["...val : zero or more values to output", ""])
+        page["param_lines"] = dval(["values : the values to output", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "nibble", "strpos", "map", "str_ends_with", "json_encode", "str_starts_with"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">string", "ob_start"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(\"hello docs\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

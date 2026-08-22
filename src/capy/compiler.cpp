@@ -651,6 +651,7 @@ struct FunctionLowerer
 	std::vector<std::unordered_map<std::string, std::pair<unsigned, std::string>>> scopes_;
 	std::vector<std::vector<std::pair<unsigned, std::string>>> owned_scopes_;
 	std::set<unsigned> borrowed_managed_slots_;
+	std::unordered_map<unsigned, unsigned> borrowed_managed_rebind_flags_;
 	std::set<unsigned> owned_local_dval_slots_;
 	unsigned local_count_ = 0;
 	std::vector<std::string> local_types_;
@@ -712,7 +713,7 @@ struct FunctionLowerer
 struct Module
 {
 	Module(std::vector<Expr*> items, std::vector<std::string> sources, std::string source, std::string module, unsigned abi, CancellationCallback cancelled,
-		std::function<std::vector<std::string>(const std::string&, const std::string&)> import_type_metadata = {})
+		std::function<std::vector<std::string>(const std::string&)> import_type_metadata = {})
 		: items_(std::move(items)), sources_(std::move(sources)), source_(std::move(source)), module_(std::move(module)), abi_(abi), cancelled_(std::move(cancelled)),
 		  import_type_metadata_(std::move(import_type_metadata))
 	{
@@ -1327,7 +1328,7 @@ struct Module
 	std::unordered_map<std::string, HostDeclaration> hosts_;
 	std::map<std::string, TypeAlias*> aliases_;
 	std::map<std::string, std::map<std::string, std::string>> imported_types_;
-	std::function<std::vector<std::string>(const std::string&, const std::string&)> import_type_metadata_;
+	std::function<std::vector<std::string>(const std::string&)> import_type_metadata_;
 	std::map<std::string, std::string> resolved_aliases_;
 	std::set<std::string> resolving_aliases_;
 	std::set<std::string> used_hosts_;
@@ -1486,6 +1487,17 @@ Bytes FunctionLowerer::cleanup_scopes(unsigned first) const
 			wasm::append_uleb(code, value->first);
 			code.push_back(0x10);
 			wasm::append_uleb(code, module_.release_index());
+		}
+	if (first == 0)
+		for (const auto& [slot, flag] : borrowed_managed_rebind_flags_)
+		{
+			code.push_back(0x20);
+			wasm::append_uleb(code, flag);
+			code.insert(code.end(), {0x04, 0x40, 0x20});
+			wasm::append_uleb(code, slot);
+			code.push_back(0x10);
+			wasm::append_uleb(code, module_.release_index());
+			code.push_back(0x0b);
 		}
 	return code;
 }
@@ -4433,8 +4445,15 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				throw Error(value->location, "expected " + expected + ", found " + actual);
 			if (managed_type(expected))
 			{
-				const bool was_borrowed = borrowed_managed_slots_.erase(slot) > 0;
+				const auto borrowed = borrowed_managed_slots_.contains(slot);
 				const unsigned temporary = add_local("", expected, value->location);
+				unsigned rebind_flag = 0;
+				if (borrowed)
+				{
+					auto [entry, inserted] = borrowed_managed_rebind_flags_.emplace(slot, 0);
+					if (inserted) entry->second = add_local("", "bool", value->location);
+					rebind_flag = entry->second;
+				}
 				code.push_back(0x21);
 				wasm::append_uleb(code, temporary);
 				if (!expression_is_owned(binary->right))
@@ -4444,19 +4463,34 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 					code.push_back(0x10);
 					wasm::append_uleb(code, module_.retain_index());
 				}
-				if (!was_borrowed)
+				if (borrowed)
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, rebind_flag);
+					code.insert(code.end(), {0x04, 0x40, 0x20});
+					wasm::append_uleb(code, slot);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.release_index());
+					code.push_back(0x0b);
+				}
+				else
 				{
 					code.push_back(0x20);
 					wasm::append_uleb(code, slot);
 					code.push_back(0x10);
 					wasm::append_uleb(code, module_.release_index());
 				}
-				else
-					owned_scopes_.back().push_back({slot, expected});
 				code.push_back(0x20);
 				wasm::append_uleb(code, temporary);
 				code.push_back(0x22);
 				wasm::append_uleb(code, slot);
+				if (borrowed)
+				{
+					code.push_back(0x41);
+					code.push_back(0x01);
+					code.push_back(0x21);
+					wasm::append_uleb(code, rebind_flag);
+				}
 				return {code, actual};
 			}
 			code.push_back(0x22);
@@ -6364,7 +6398,7 @@ void Module::collect()
 			std::vector<std::string> metadata;
 			try
 			{
-				metadata = import_type_metadata_(import->path, source_);
+				metadata = import_type_metadata_(import->path);
 			}
 			catch (const Error& error)
 			{
@@ -8191,7 +8225,7 @@ std::shared_ptr<const Program> parsed_source(std::string_view source, const std:
 
 CompileResult compile_program(const Program& program, const std::string& source_path, const std::string& module_name, unsigned abi_version,
 	CancellationCallback cancelled, ParsedSourceCache* cache,
-	std::function<std::vector<std::string>(const std::string&, const std::string&)> import_type_metadata = {})
+	std::function<std::vector<std::string>(const std::string&)> import_type_metadata = {})
 {
 	auto library = parsed_source(stdlib::text, "capy://stdlib.capy", "capy://stdlib.capy", abi_version, cancelled, cache, true);
 	std::set<std::string> public_names;

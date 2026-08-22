@@ -1,33 +1,24 @@
 :sig
-DValue ls(String path)
+function ls(path : string) dval
 
 :params
-directory : directory to list
+path : directory path to list
 
 :returns
-copied `dval` list of names
+A `dval` list of entry names.
 
 :content
-This function returns a copied `dval` list of directory entry names.
-
-Use it when you need to inspect a directory. Handle an empty result when the directory has no entries or cannot be listed.
-
-The C++ API returns a native `DValue`.
+`ls()` returns the names in a directory. It returns an empty list when it cannot list the directory.
 
 :example capy render
-var root := file_temp("/tmp/doc-ls-")
+var root := file_temp("/tmp/capy-doc-ls-")
 file_unlink(root)
 mkdir(root)
 file_put_contents(path_join(root, "one.txt"), "1")
-file_put_contents(path_join(root, "two.txt"), "2")
 print(join(sort(ls(root)), ","), "\n")
 dir_remove(root, true)
 
 :see
->sys
 dir_list
-0_DValue
-cwd_get
 mkdir
-file_put_contents
 path_join

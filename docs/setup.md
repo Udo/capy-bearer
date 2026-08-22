@@ -1,6 +1,6 @@
-# BEARER Runtime Setup
+# Capy on Bearer setup
 
-This guide describes how to run BEARER behind nginx or Apache. BEARER is a FastCGI application server for `.capy` units; the web server should serve static files directly and forward dynamic `.capy` requests to the BEARER runtime.
+This guide describes how to run Capy units on Bearer behind nginx or Apache. Bearer is a FastCGI application server. The web server serves static files and forwards dynamic `.capy` requests to Bearer.
 
 ## Deployment shape
 
@@ -419,46 +419,54 @@ nginx/Apache forwards the request to `FCGI_SOCKET_PATH` as FastCGI. The web serv
 - `REQUEST_URI` — original request URI including query string.
 - standard request variables such as method, query string, content type, body length, cookies, and headers.
 
-BEARER resolves the unit, compiles it to wasm if needed, creates a request workspace, and calls:
+Bearer resolves the Capy unit, compiles it to Wasm when needed, creates a request workspace, and calls:
 
-```cpp
-RENDER(Request& context)
+```capy
+function RENDER(request : dval) {
+    print("response body")
+}
 ```
 
-The unit writes output with template literals or `print()`. Response headers and status are set through `context.header` and `context.set_status()`.
+The handler reads its copied request snapshot from `request`. Use `print()` to write output. Use `response_header()` and `response_status()` to set the response.
 
-### Component and sub-render calls
+### Component and unit calls
 
-Inside a request, BEARER code can call other units:
+Capy code can render a component or call an exported function in another unit:
 
-```cpp
-component("components/card", props, context);
-unit_render("other-page.capy", context);
+```capy
+function RENDER(request : dval) {
+    component_render("components/card.capy", {title: "News"})
+}
 ```
 
-These calls stay inside the BEARER runtime. They are not new HTTP requests and do not go back through nginx or Apache.
+These calls stay inside Bearer. They do not create HTTP requests and do not return through nginx or Apache.
 
 ### WebSocket pages
 
-Any `.capy` unit can provide both an ordinary page render and WebSocket message handling:
+A Capy unit can provide HTTP rendering and WebSocket message handling:
 
-```cpp
-RENDER(Request& context) { ... }  // normal page load
-WS(Request& context) { ... }      // later WebSocket messages
+```capy
+function RENDER(request : dval) {
+    print("ready")
+}
+
+function WS(request : dval) {
+    ws_send(string(request.body, ""), false)
+}
 ```
 
-The nginx and Apache examples below split traffic by checking for a WebSocket upgrade request on `.capy` paths. A file such as `chat.capy` or `events.capy` can expose `WS(Request& context)`.
+The nginx and Apache examples below split WebSocket upgrades on `.capy` paths. A file such as `chat.capy` can expose `function WS(request : dval)`.
 
 Routing split:
 
-- Plain `GET /demo/chat.capy` should use FastCGI, just like any other page render.
-- WebSocket upgrade requests for `/demo/chat.capy` should proxy to the Bearer HTTP/WebSocket listener at `HTTP_SOCKET_PATH`. An explicitly configured TCP listener is also supported.
+- Plain `GET /demo/chat.capy` uses FastCGI, like every page request.
+- A WebSocket upgrade for `/demo/chat.capy` proxies to the Bearer listener at `HTTP_SOCKET_PATH`. You can also configure a TCP listener.
 
-The built-in listener owns the socket lifecycle. When a message arrives, the broker forwards a render-style invocation back to the worker pool so `WS(Request& context)` runs inside the same wasm runtime model as normal pages.
+The listener owns the socket lifecycle. When a message arrives, Bearer invokes `function WS(request : dval)` in a request workspace.
 
 ### CLI requests
 
-`CLI(Request& context)` handlers are not public web endpoints. They are invoked over `CLI_SOCKET_PATH`:
+`function CLI(request : dval)` handlers are not public web endpoints. Bearer invokes them over `CLI_SOCKET_PATH`:
 
 ```bash
 scripts/bearer-cli /tests/cli.capy action=echo message=hello
@@ -469,7 +477,7 @@ Use CLI units for local tests, admin commands, and maintenance tools. Do not exp
 
 ### Custom runtime HTTP servers
 
-BEARER code can start local custom HTTP listeners with `server_start_http()`. Those are runtime-managed listeners for app-specific local services. They are separate from the public nginx/Apache entry point and should be firewalled or bound locally unless you explicitly want them reachable.
+Capy can start local custom HTTP listeners with `server_start_http()`. These listeners are separate from the public nginx or Apache entry point. Bind them locally or protect them with a firewall unless clients must reach them.
 
 ## nginx configuration
 
@@ -678,7 +686,7 @@ scripts/bearer-cli /tests/cli.capy action=echo message=hello
 scripts/run_cli_tests.sh
 ```
 
-Check WebSocket routing with a WebSocket client against a `.capy` endpoint that defines `WS(Request& context)` through nginx/Apache, not directly against `HTTP_PORT`:
+Check WebSocket routing with a client against a `.capy` endpoint that defines `function WS(request : dval)` through nginx or Apache. Do not test it directly against `HTTP_PORT`:
 
 ```bash
 python3 - <<'PY'
@@ -783,4 +791,4 @@ Check:
 - `CLI_SOCKET_PATH` in `/etc/bearer/settings.cfg`
 - `/run/bearer/cli.sock` exists
 - `scripts/bearer-cli --socket /run/bearer/cli.sock /ping` works
-- the target unit defines `CLI(Request& context)`
+- the target Capy unit defines `function CLI(request : dval)`

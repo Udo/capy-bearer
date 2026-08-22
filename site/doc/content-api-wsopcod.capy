@@ -9,19 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "ws-opcode"
         page["route"] = "/doc/api/ws-opcode/"
         page["title"] = "ws_opcode"
-        page["content"] = "`ws_opcode()` is a C++ API. It returns the current WebSocket message opcode. Text messages use `1`, and binary messages use `2`. Outside a WebSocket handler, it returns `0`.\n\nCapy does not expose `ws_opcode`. In a Capy `WS` handler, read `request.websocket.opcode`.\n"
-        page["returns"] = "opcode of the current WebSocket message"
-        page["capy_status"] = "cpp-specific"
+        page["content"] = "## sig\n\nNo Capy signature.\n\nCapy has no native `ws_opcode` signature. In a `WS` handler, use `request.websocket.opcode`.\n"
         page["label"] = "ws_opcode"
-        page["sig_lines"] = dval(["u8 ws_opcode()", ""])
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">websocket", ">0_Request", "ws_message", "ws_scope", "ws_is_binary", "ws_send", "ws_connections", "ws_send_to"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([])
         page["guide_examples"] = dval([])
         return page
     }

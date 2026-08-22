@@ -1,34 +1,11 @@
 :sig
-s64 strpos(String haystack, String needle, s64 offset = 0)
-
-:params
-haystack : Capy string to search
-needle : Capy string to find
-offset : optional start position. Negative values count from the end.
+function strpos(haystack : string, needle : string, offset : s64 = 0) s64
 
 :returns
-zero-based first match position, or `-1` when no match exists
+First match position, or `-1`.
 
-:see
->string
-print
-str_ends_with
-nibble
-str_starts_with
-map
-substr
 :content
-Use `strpos` to find the first `needle` in a Capy string. Pass the string, the text to find, and an optional start position. The function returns a zero-based position or `-1`.
+Use `strpos` to find text in a string. The result uses a zero-based position.
 
-An empty `needle` returns the normalized start position. This differs from PHP `strpos`, which returns `false` when no match exists.
-
-Capy uses `string` values. Capy uses `String` and `s64`, as the signature shows.
-
-:example capy render strpos() finds a string
+:example capy render
 print(strpos("bearer docs", "docs"), "\n")
-
-:example capy render strpos() with a negative offset
-print(strpos("bearer docs docs", "docs", -5), "\n")
-
-:example capy render strpos() with an empty needle
-print(strpos("bearer docs", "", 3), "\n")

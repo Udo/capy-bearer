@@ -1,27 +1,20 @@
 :sig
-String join(DValue l, String delim = "\n")
+function join(items : dval, delimiter : string = "\n") string
 
 :params
-l : `dval` list whose values are read as strings
-delim : separator string, default newline
+items : a `dval` list
+delimiter : text between values
 
 :returns
-string with all list values separated by `delim`
+One string with the values separated by `delimiter`.
 
-:see
->string
-first
-json_consume_space
-filter
-json_encode
-contains
-map
 :content
-`join()` reads every `dval` list value as a string and returns one string. It inserts `delim` between values.
-
-It uses a newline when `delim` is omitted. Use it to make text from a list. In Capy, use `DValue`.
-
+`join()` reads each list value as text. It uses a newline when you omit the delimiter.
 
 :example capy render
-var parts := split("a,b,c", ",")
-print(join(parts, "-"), "\n")
+print(join(split("a,b,c", ","), "-"), "\n")
+
+:see
+split
+json_encode
+map

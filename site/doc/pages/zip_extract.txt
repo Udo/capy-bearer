@@ -1,12 +1,12 @@
 :sig
-bool zip_extract(String zip_file_name, String destination_directory)
+function zip_extract(path : string, destination : string) bool
 
 :params
-zip_file_name : path to the ZIP archive
-destination_directory : directory that should receive extracted files
+path : archive path
+destination : destination directory
 
 :returns
-`true` when extraction completes
+`true` when the server extracts the archive.
 
 :see
 >sys
@@ -15,18 +15,12 @@ zip_list
 zip_read
 
 :content
-`zip_extract(path, destination)` accepts an archive path and destination path. It returns `true` when extraction completes.
-
-Use it to extract all archive members. Bearer creates the destination and required child directories.
-
-Member names cannot be empty, absolute, drive-qualified, or contain `..` path segments. The call rejects those names.
-
-The declaration has no separate error return. C++ uses `String` values through the signature above.
+`zip_extract()` extracts every entry from a ZIP archive.
 
 :example capy render
-var archive := "/tmp/capy-doc-zipext.zip"
-var destination := "/tmp/capy-doc-zipext-out"
-zip_create(archive, dval({"note.txt": "extracted content"}))
+var archive := file_temp("/tmp/capy-zip-") + ".zip"
+var destination := archive + ".out"
+zip_create(archive, dval({"note.txt": "hello"}))
 zip_extract(archive, destination)
 print(file_get_contents(destination + "/note.txt"), "\n")
 dir_remove(destination, true)

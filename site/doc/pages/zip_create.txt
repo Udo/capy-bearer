@@ -1,12 +1,12 @@
 :sig
-bool zip_create(String zip_file_name, DValue entries)
+function zip_create(path : string, entries : dval) bool
 
 :params
-zip_file_name : path to the archive to create
-entries : map or list of archive entries
+path : archive path
+entries : archive entries
 
 :returns
-`true` when the archive is written
+`true` when the server creates the archive.
 
 :see
 >sys
@@ -16,16 +16,10 @@ zip_extract
 0_DValue
 
 :content
-`zip_create(path, entries)` accepts an archive path and a `dval` of entries. It returns `true` when it writes the archive.
-
-Use a map when each key is a member name and each value is its content. An entry can also name a source file with `file`.
-
-Member names cannot be empty, absolute, drive-qualified, or contain `..` path segments. The call rejects those names.
-
-The declaration has no separate error return. C++ uses `String` and `DValue` values through the signature above.
+`zip_create()` creates a ZIP archive from a `dval` map of entry names and content.
 
 :example capy render
-var archive := "/tmp/capy-doc-zip.zip"
-zip_create(archive, dval({"readme.txt": "hello from BEARER", "license.txt": "MIT license"}))
-print("readme.txt in archive: ", zip_read(archive, "readme.txt"), "\n")
+var archive := file_temp("/tmp/capy-zip-") + ".zip"
+zip_create(archive, dval({"note.txt": "hello"}))
+print(zip_read(archive, "note.txt"), "\n")
 file_unlink(archive)

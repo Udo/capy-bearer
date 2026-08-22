@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "regex-search-all"
         page["route"] = "/doc/api/regex-search-all/"
         page["title"] = "regex_search_all"
-        page["content"] = "Use this function to find all non-overlapping matches in text.\n\nIt returns `dval` match data. Each result has `matched`, `count`, `matches`, `pattern`, and `flags` fields. `matches` contains entries with the same shape as `regex_search()`.\n\nThe function advances after a zero-length match. This prevents an infinite search.\n"
-        page["returns"] = "`dval` match data"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction regex_search_all(pattern : string, subject : string, flags : string = \"\") dval\n\nThe result contains `matched`, `count`, and `matches`.\n"
+        page["returns"] = "Data for all non-overlapping matches."
         page["label"] = "regex_search_all"
-        page["sig_lines"] = dval(["DValue regex_search_all(String pattern, String subject)", "DValue regex_search_all(String pattern, String subject, String flags)", ""])
         page["capy_sig_lines"] = dval(["function regex_search_all(pattern : string, subject : string, flags : string = \"\") dval"])
-        page["param_lines"] = dval(["pattern : PCRE2 regular expression pattern", "subject : text to search", "flags : optional regex flags", ""])
+        page["param_lines"] = dval(["pattern : regular expression", "subject : text to search", "flags : regular expression flags", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", ">regex", "regex_match", "regex_search", "regex_replace", "regex_split", "0_DValue"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var matches := regex_search_all(\"[a-z]+\", \"capy docs\")\nprint(s32(matches.count), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -32,19 +28,15 @@ function data(input : dval) dval {
         page["slug"] = "regex-search"
         page["route"] = "/doc/api/regex-search/"
         page["title"] = "regex_search"
-        page["content"] = "Use this function to find the first match in a string. It returns a DValue, not a Boolean.\n\nThe result has these fields:\n\n- `matched` is true when a match exists.\n- `pattern` and `flags` contain the supplied values. `flags` is `default` when none were supplied.\n- `match` is the complete matched text.\n- `start` and `end` are byte offsets in `subject`.\n- `captures` contains capture data. Capture `0` is the complete match.\n- `named` maps each named capture to its text.\n- `named_offsets` maps each named capture to `index`, `start`, and `end`.\n\nWhen no match exists, `matched` is false. The result omits match-specific fields.\n"
-        page["returns"] = "first-match data as a `dval`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction regex_search(pattern : string, subject : string, flags : string = \"\") dval\n\nThe result contains `matched`. A matching result also contains `match`, `start`, `end`, `captures`, and `named`.\n"
+        page["returns"] = "Data for the first match."
         page["label"] = "regex_search"
-        page["sig_lines"] = dval(["DValue regex_search(String pattern, String subject)", "DValue regex_search(String pattern, String subject, String flags)", ""])
         page["capy_sig_lines"] = dval(["function regex_search(pattern : string, subject : string, flags : string = \"\") dval"])
-        page["param_lines"] = dval(["pattern : PCRE2 regular expression pattern", "subject : text to search", "flags : optional PCRE2 flags", ""])
+        page["param_lines"] = dval(["pattern : regular expression", "subject : text to search", "flags : regular expression flags", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", ">regex", "regex_match", "regex_search_all", "regex_replace", "regex_split", "0_DValue"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var match := regex_search(\"[a-z]+\", \"123 capy\")\nprint(string(match.match, \"\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

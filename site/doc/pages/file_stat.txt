@@ -1,26 +1,16 @@
 :sig
-DValue file_stat(String path)
+function file_stat(path : string) dval
 
 :params
 path : path to inspect
 
 :returns
-a `dval` map with `exists`, `is_file`, `is_dir`, `is_symlink`, `size`, `mode`, `mtime`, and `ctime`
+A `dval` with file metadata.
 
 :content
-`file_stat()` returns file metadata in a map-shaped `dval`. Use it to test a path type or read its size and times.
-
-The `exists` field is `false` when the path does not exist. Read fields with functions such as `bool()`.
+`file_stat` returns metadata for a path. The result includes `exists`, `is_file`, `is_dir`, `is_symlink`, and `size`.
 
 :example capy render
 file_put_contents("/tmp/doc-stat.txt", "12345")
 var stat := file_stat("/tmp/doc-stat.txt")
-var type_status := "no"
-if bool(stat["is_file"]) { type_status = "yes" }
-print("size=", s32(stat["size"]), " is_file=", type_status, "\n")
-
-:see
->sys
-dir_list
-file_exists
-file_mtime
+print(u64(stat["size"]), "\n")

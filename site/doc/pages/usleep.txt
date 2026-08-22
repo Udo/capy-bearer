@@ -1,11 +1,11 @@
 :sig
-s32 usleep(u32 usec)
+function usleep(usec : s32) s32
 
 :params
 usec : microseconds to sleep
 
 :returns
-`0` after sleeping
+`0` after the sleep
 
 :see
 >time
@@ -15,14 +15,9 @@ time_format_local
 time_format_relative
 time_format_utc
 time_parse
+
 :content
-`usleep(usec)` accepts a microsecond count and returns `0` after the wait.
-
-Use it for a short wait in a local test, polling loop, or task. Long waits hold a worker for the wait duration.
-
-Use `sleep()` for whole-second waits. The API has no error return.
-
-C++ uses the signature above. Its input type differs from the Capy `s32` declaration.
+`usleep` pauses the current handler for `usec` microseconds.
 
 :example capy render
 usleep(1000)

@@ -1,28 +1,26 @@
+:title
+Set the response status
+
 :sig
-void Request::set_status(s32 code, String reason = "")
+function response_status(code : s32, reason : string = "")
 
 :params
-code : HTTP status code
-reason : optional reason phrase override
+code : The HTTP status code.
+reason : An optional reason phrase.
 
 :returns
-none
-
-:see
->types
-0_Request
-redirect
-response_cookie
+This function returns no value.
 
 :content
-`response_status(code, reason)` sets the active response status. It takes an HTTP status code and an optional reason string. It returns no value.
+`response_status` sets the status for the active response.
 
-If you omit `reason`, common HTTP codes use their standard reason phrase. Use this function before response output. Capy does not expose `context.flags.status`.
-
-## C++ API
-
-`Request::set_status()` also stores the numeric code in `context.flags.status`. FastCGI requests use a `Status:` prefix. Other requests use `HTTP/1.1`.
+If `reason` is empty, Bearer uses the standard phrase for common HTTP status codes. Set the status before you write response output.
 
 :example capy render
 response_status(200, "OK")
 print("200\n")
+
+:see
+0_Request
+redirect
+response_cookie

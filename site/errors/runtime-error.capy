@@ -10,9 +10,9 @@ function RENDER(request : dval) {
     if signal_name != "" {
         print("<p class=\"meta\">Signal: ", html_escape(signal_name), "</p>")
     }
-    var trace := string(error.trace, "")
-    if trace != "" {
-        print("<pre>", html_escape(trace), "</pre>")
+    var stack := string(error.trace, "")
+    if stack != "" {
+        print("<pre>", html_escape(stack), "</pre>")
     }
     print("</main></body></html>")
 }

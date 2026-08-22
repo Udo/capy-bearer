@@ -92,7 +92,7 @@ mutable_aggregate_expected="98335618|0|thirdfirstsecond1|aBaBctemporaryaB|2|1233
 expect_equal "stable mutable arrays and struct fields" \
 	"$mutable_aggregate_expected" "$(scripts/bearer-cli /tests/capy-mutable-array-struct.capy)"
 expect_equal "managed parameter rebinding, nibble, and aggregate mutation" \
-	"go!|go|api:api/length|78|425|9|5" "$(scripts/bearer-cli /tests/capy-managed-parameter-rebind.capy)"
+	"go!|go|api:api/length|cc/dd?:cc/dd:zz|0|78|425|9|8" "$(scripts/bearer-cli /tests/capy-managed-parameter-rebind.capy)"
 (
 	cycle_dir=$(mktemp -d "$site_directory/tests/capy-cycle.XXXXXX")
 	trap 'rm -rf -- "$cycle_dir"' EXIT

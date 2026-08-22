@@ -9,19 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "ob-close"
         page["route"] = "/doc/api/ob-close/"
         page["title"] = "ob_close"
-        page["content"] = "`ob_close()` discards the current output buffer and returns to the previous buffer.\n\nUse this when you do not need captured output.\n"
-        page["returns"] = "no value"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction ob_close()\n\n`ob_close()` discards the current output buffer and returns to the previous buffer.\n\nUse it when you do not need the buffered output.\n"
         page["label"] = "ob_close"
-        page["sig_lines"] = dval(["void ob_close()", ""])
         page["capy_sig_lines"] = dval(["function ob_close()"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">ob", "ob_get_close", "ob_start", "load", "ob_get", "component_resolve", "component_exists"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">ob", "ob_start", "ob_get_close"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "ob_start()\nprint(\"discarded\")\nob_close()\nprint(\"kept\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

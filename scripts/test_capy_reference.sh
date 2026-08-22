@@ -42,8 +42,7 @@ constructor=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=2_DValue_to_
 	echo "Capy constructor API page did not render" >&2
 	exit 1
 }
-[[ "$constructor" == *"DValue::to_string"* && "$constructor" == *"function string(value : dval"* &&
-	"$constructor" != *"DOC EXAMPLE ERROR"* ]] || {
+[[ "$constructor" == *"function string(value : dval"* && "$constructor" != *"DOC EXAMPLE ERROR"* ]] || {
 	echo "Capy constructor API page omitted its Capy signature" >&2
 	exit 1
 }

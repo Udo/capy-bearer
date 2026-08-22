@@ -28,7 +28,7 @@ GUIDE_REDIRECTS = {
     "14-errors-debugging-and-style": "12-errors-testing-and-style",
 }
 
-SECTION_NAMES = {"title", "sig", "params", "returns", "errors", "note", "warning", "content", "see", "output"}
+SECTION_NAMES = {"title", "params", "returns", "errors", "note", "warning", "content", "see", "output"}
 STOP_WORDS = {"the", "and", "for", "how", "with", "to", "of", "in"}
 
 
@@ -52,10 +52,16 @@ def guide_canonical(name: str) -> str:
 
 def method_label(page: str) -> str:
     rest = page.split("_", 1)[1] if "_" in page else page
-    parts = rest.split("_", 1)
-    if len(parts) == 1:
-        return parts[0]
-    return parts[0] + "::" + parts[1]
+    owner, _, name = rest.partition("_")
+    if owner == "DValue":
+        return "dval_" + name
+    if owner == "Request":
+        return "ob_start" if name == "ob_start" else "response_status"
+    if owner == "StringList":
+        return name
+    if owner == "StringMap":
+        return name
+    return name or owner
 
 
 def default_title(page: str) -> str:
@@ -87,6 +93,14 @@ def index_label(page: str) -> str:
     return page
 
 
+def legacy_index_label(page: str) -> str:
+    if not page.startswith("2_"):
+        return index_label(page)
+    rest = page.split("_", 1)[1]
+    owner, _, name = rest.partition("_")
+    return owner + "::" + name
+
+
 def slugify(value: str) -> str:
     value = value.replace("::", "-").replace("C++", "cpp")
     value = value.replace("DValue", "dvalue").replace("StringList", "string-list").replace("StringMap", "string-map")
@@ -104,33 +118,17 @@ def unique_slug(base: str, used: set[str]) -> str:
     return slug
 
 
-def add_example(page: dict, source_page: str, language: str, entry: str, caption: str, body: str, pending: dict) -> None:
-    if language == "legacy":
-        page["legacy_examples"].append({"entry": "render", "caption": "", "body": body})
+def add_example(page: dict, source_page: str, language: str, entry: str, caption: str, body: str) -> None:
+    if language != "capy":
+        page["example_error"] = "examples must use :example capy ENTRY"
         return
     if entry not in {"render", "cli", "component", "init", "once", "ws"}:
         page["example_error"] = "unknown example entry: " + entry
         return
-    if not pending:
-        if source_page.startswith("capy-") and language == "capy":
-            page["guide_examples"].append({"entry": entry, "caption": caption, "body": body})
-        elif language == "cpp" and page["capy_status"]:
-            page["cpp_only_examples"].append({"entry": entry, "caption": caption, "body": body})
-        elif language != "capy":
-            page["example_error"] = "typed examples must start with capy, got " + language
-        else:
-            pending.update({"entry": entry, "caption": caption, "body": body})
-        return
-    if language != "cpp" or entry != pending["entry"]:
-        page["example_error"] = "expected contiguous :example cpp " + pending["entry"]
-        return
-    page["example_pairs"].append({
-        "entry": pending["entry"],
-        "caption": pending["caption"],
-        "capy_body": pending["body"],
-        "cpp_body": body,
-    })
-    pending.clear()
+    if source_page.startswith("capy-"):
+        page["guide_examples"].append({"entry": entry, "caption": caption, "body": body})
+    else:
+        page["examples"].append({"entry": entry, "caption": caption, "body": body})
 
 
 def flush_section(page: dict, source_page: str, section: str, lines: list[str], content: list[str]) -> None:
@@ -140,8 +138,6 @@ def flush_section(page: dict, source_page: str, section: str, lines: list[str], 
         title = "\n".join(lines).strip()
         if title != source_page:
             page["title"] = title
-    elif section == "sig":
-        page["sig_lines"].extend(lines)
     elif section == "params":
         page["param_lines"].extend(lines)
     elif section == "returns":
@@ -158,10 +154,6 @@ def flush_section(page: dict, source_page: str, section: str, lines: list[str], 
             page["warnings"].append(text)
     elif section == "see":
         page["see"].extend(line.strip() for line in lines if line.strip())
-    elif section == "example":
-        text = "\n".join(lines).strip("\n")
-        if text.strip():
-            page["legacy_examples"].append({"entry": "render", "caption": "", "body": text})
     elif section == "output":
         if not page["guide_examples"]:
             page["example_error"] = "output must follow a Capy guide example"
@@ -180,7 +172,6 @@ def parse_doc(source_page: str, source: str) -> dict:
         "kind": "guide" if source_page.startswith("capy-") else "api",
         "title": "",
         "content": "",
-        "sig_lines": [],
         "capy_sig_lines": [],
         "param_lines": [],
         "returns": "",
@@ -188,9 +179,7 @@ def parse_doc(source_page: str, source: str) -> dict:
         "notes": [],
         "warnings": [],
         "see": [],
-        "example_pairs": [],
-        "cpp_only_examples": [],
-        "legacy_examples": [],
+        "examples": [],
         "guide_examples": [],
         "capy_status": "",
         "example_error": "",
@@ -198,11 +187,9 @@ def parse_doc(source_page: str, source: str) -> dict:
     current = ""
     current_lines: list[str] = []
     content: list[str] = []
-    pending: dict[str, str] = {}
     ex_language = ""
     ex_entry = ""
     ex_caption = ""
-    in_typed_example = False
 
     for line in source.split("\n"):
         if current == "output" and line.startswith("## "):
@@ -215,7 +202,7 @@ def parse_doc(source_page: str, source: str) -> dict:
                 if not body.strip():
                     page["example_error"] = "empty example block"
                 else:
-                    add_example(page, source_page, ex_language, ex_entry, ex_caption, body, pending)
+                    add_example(page, source_page, ex_language, ex_entry, ex_caption, body)
                     if source_page.startswith("capy-") and ex_language == "capy":
                         content.extend(["```capy", *body.split("\n"), "```", ""])
             else:
@@ -234,15 +221,12 @@ def parse_doc(source_page: str, source: str) -> dict:
                         ex_language = parts[0]
                         ex_entry = parts[1]
                         ex_caption = parts[2].strip() if len(parts) == 3 else ""
-                        in_typed_example = True
                     else:
                         page["example_error"] = "invalid example header: " + section
                 continue
-            if in_typed_example and pending:
-                page["example_error"] = "expected contiguous :example cpp " + pending["entry"]
             if section.startswith("capy-status "):
                 status = section[12:].strip()
-                if status in {"unsupported", "cpp-specific"}:
+                if status == "unsupported":
                     page["capy_status"] = status
                 else:
                     page["example_error"] = "unknown Capy status: " + status
@@ -265,13 +249,11 @@ def parse_doc(source_page: str, source: str) -> dict:
         if not body.strip():
             page["example_error"] = "empty example block"
         else:
-            add_example(page, source_page, ex_language, ex_entry, ex_caption, body, pending)
+            add_example(page, source_page, ex_language, ex_entry, ex_caption, body)
             if source_page.startswith("capy-") and ex_language == "capy":
                 content.extend(["```capy", *body.split("\n"), "```", ""])
     else:
         flush_section(page, source_page, current, current_lines, content)
-    if pending:
-        page["example_error"] = "expected contiguous :example cpp " + pending["entry"]
     page["content"] = "\n".join(content)
     page["title"] = page["title"].strip()
     return page
@@ -311,7 +293,7 @@ def write_content_module(path: Path, page: dict) -> None:
     lines = ["#exports data", "", "function data(input : dval) dval {", "    var page := dval({source_page: \"\"})"]
     for key in ["source_page", "kind", "slug", "route", "title", "content", "returns", "errors", "capy_status", "example_error", "label"]:
         lines.extend(assign_string(key, page.get(key, "")))
-    for key in ["sig_lines", "capy_sig_lines", "param_lines", "notes", "warnings", "see", "example_pairs", "cpp_only_examples", "legacy_examples", "guide_examples"]:
+    for key in ["capy_sig_lines", "param_lines", "notes", "warnings", "see", "examples", "guide_examples"]:
         lines.append(f"    page[{capy_string(key)}] = {dval_array(page.get(key, []))}")
     lines.extend(["    return page", "}", ""])
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -378,7 +360,7 @@ def main() -> None:
         page = parse_doc(source_page, txt.read_text(encoding="utf-8"))
         page["label"] = index_label(source_page)
         page["title"] = page["title"] or default_title(source_page)
-        page["slug"] = unique_slug(slugify(page["label"]), used_api)
+        page["slug"] = unique_slug(slugify(legacy_index_label(source_page)), used_api)
         page["route"] = "/doc/api/" + page["slug"] + "/"
         page["capy_sig_lines"] = signatures.get(source_page, [])
         pages.append(page)

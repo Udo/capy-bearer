@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "join"
         page["route"] = "/doc/api/join/"
         page["title"] = "join"
-        page["content"] = "`join()` reads every `dval` list value as a string and returns one string. It inserts `delim` between values.\n\nIt uses a newline when `delim` is omitted. Use it to make text from a list. In Capy, use `DValue`.\n\n"
-        page["returns"] = "string with all list values separated by `delim`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction join(items : dval, delimiter : string = \"\\n\") string\n\n`join()` reads each list value as text. It uses a newline when you omit the delimiter.\n"
+        page["returns"] = "One string with the values separated by `delimiter`."
         page["label"] = "join"
-        page["sig_lines"] = dval(["String join(DValue l, String delim = \"\\n\")", ""])
         page["capy_sig_lines"] = dval(["function join(items : dval, delimiter : string = \"\\n\") string"])
-        page["param_lines"] = dval(["l : `dval` list whose values are read as strings", "delim : separator string, default newline", ""])
+        page["param_lines"] = dval(["items : a `dval` list", "delimiter : text between values", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "first", "json_consume_space", "filter", "json_encode", "contains", "map"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["split", "json_encode", "map"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(join(split(\"a,b,c\", \",\"), \"-\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

@@ -9,18 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "sqlite-disconnect"
         page["route"] = "/doc/api/sqlite-disconnect/"
         page["title"] = "sqlite_disconnect"
-        page["content"] = "Capy `sqlite_disconnect(db)` closes an SQLite handle from `sqlite_connect()`. It does not return a value.\n\nCall it when you finish database work. Do not use the handle after this call. The C++ API uses an `SQLite*` pointer. Capy uses a `u64` handle.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction sqlite_disconnect(handle : u64)\n\nUse `sqlite_disconnect` to close an SQLite connection. Do not use the handle after this call.\n"
         page["label"] = "sqlite_disconnect"
-        page["sig_lines"] = dval(["void sqlite_disconnect(SQLite* db)", ""])
         page["capy_sig_lines"] = dval(["function sqlite_disconnect(handle : u64)"])
-        page["param_lines"] = dval(["db : SQLite handle from `sqlite_connect()`", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sqlite", "sqlite_connect", "sqlite_error", "sqlite_query", "sqlite_insert_id", "sqlite_affected_rows"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var db := sqlite_connect(\":memory:\")\nif db != 0 { sqlite_disconnect(db) }\n"}])
         page["guide_examples"] = dval([])
         return page
     }

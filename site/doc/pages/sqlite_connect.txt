@@ -1,27 +1,13 @@
 :sig
-SQLite* sqlite_connect(String path)
-
-:params
-path : database file path, or `:memory:` for an in-memory database
+function sqlite_connect(path : string) u64
 
 :returns
-SQLite handle, or zero when the connection fails
-
-:see
->sqlite
-sqlite_query
-sqlite_error
-sqlite_disconnect
+SQLite handle, or zero when the connection fails.
 
 :content
-Capy `sqlite_connect(path)` opens an SQLite database and returns a `u64` handle. Give it a database file path, or `:memory:` for an in-memory database.
-
-It returns zero when it cannot open the database. Use the handle with `sqlite_query()`, `sqlite_error()`, and `sqlite_disconnect()`. Call `sqlite_disconnect()` when you finish with the handle.
-
-The C++ API returns an `SQLite*` pointer. Capy uses a `u64` handle.
+Use `sqlite_connect` to open an SQLite database. Call `sqlite_disconnect` when you finish with the handle.
 
 :example capy render
 var db := sqlite_connect(":memory:")
-sqlite_query(db, "create table t(id integer primary key, name text)")
-if db != 0 { print("connected\n") } else { print("failed to connect\n") }
-sqlite_disconnect(db)
+print(db != 0, "\n")
+if db != 0 { sqlite_disconnect(db) }

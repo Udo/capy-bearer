@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "float-val"
         page["route"] = "/doc/api/float-val/"
         page["title"] = "float_val"
-        page["content"] = "`float_val()` extracts a floating-point value from a string. It returns `0` when it cannot identify a usable number.\n\nUse it when input text can contain a numeric value. In Capy, the same call returns `f64`.\n"
-        page["returns"] = "parsed `f64`, or `0` when no usable number exists"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction float_val(raw : string) f64\n\n`float_val` reads a floating-point value from text.\n"
+        page["returns"] = "The parsed floating-point value. Returns `0` if no usable number exists."
         page["label"] = "float_val"
-        page["sig_lines"] = dval(["f64 float_val(String s)", ""])
         page["capy_sig_lines"] = dval(["function float_val(raw : string) f64"])
-        page["param_lines"] = dval(["s : string that can contain a number", ""])
+        page["param_lines"] = dval(["raw : text that contains a number", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "int_val", "0_String", "trim", "to_upper", "html_escape", "to_lower"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(float_val(\"3.14\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

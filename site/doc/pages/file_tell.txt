@@ -1,26 +1,17 @@
 :sig
-s64 file_tell(u64 h)
+function file_tell(handle : u64) s64
 
 :params
-h : handle from `file_open()`
+handle : handle from `file_open`
 
 :returns
-current absolute byte offset
+The current byte offset.
 
 :content
-`file_tell` returns the current byte offset for a handle. Use it to record the position after `file_read()`, `file_write()`, or `file_seek()`. Capy uses the same numeric result.
+`file_tell` returns the current position for a file handle.
 
 :example capy render
 var handle := file_open("/tmp/doc-tell.txt", "w")
 file_write(handle, "hello")
-print("offset is ", file_tell(handle), "\n")
+print(file_tell(handle), "\n")
 file_close(handle)
-
-:see
->sys
-file_seek
-file_open
-file_close
-file_pwrite
-file_stat
-file_write

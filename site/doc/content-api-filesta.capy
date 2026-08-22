@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "file-stat"
         page["route"] = "/doc/api/file-stat/"
         page["title"] = "file_stat"
-        page["content"] = "`file_stat()` returns file metadata in a map-shaped `dval`. Use it to test a path type or read its size and times.\n\nThe `exists` field is `false` when the path does not exist. Read fields with functions such as `bool()`.\n"
-        page["returns"] = "a `dval` map with `exists`, `is_file`, `is_dir`, `is_symlink`, `size`, `mode`, `mtime`, and `ctime`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction file_stat(path : string) dval\n\n`file_stat` returns metadata for a path. The result includes `exists`, `is_file`, `is_dir`, `is_symlink`, and `size`.\n"
+        page["returns"] = "A `dval` with file metadata."
         page["label"] = "file_stat"
-        page["sig_lines"] = dval(["DValue file_stat(String path)", ""])
         page["capy_sig_lines"] = dval(["function file_stat(path : string) dval"])
         page["param_lines"] = dval(["path : path to inspect", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "dir_list", "file_exists", "file_mtime"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-stat.txt\", \"12345\")\nvar stat := file_stat(\"/tmp/doc-stat.txt\")\nprint(u64(stat[\"size\"]), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

@@ -1,18 +1,20 @@
+:title
+Sort strings
+
 :sig
-DValue::sort() (legacy `StringList` page)
+function sort(items : dval) dval
+
+:returns
+This function returns a new list-shaped `dval` in ascending order.
 
 :content
-`sort(items)` takes a list-shaped `dval` and returns a new list-shaped `dval` with strings in ascending order. It does not change `items`.
+`sort` sorts the strings in a list-shaped `dval`.
 
-Capy has no separate `StringList` type. It uses list-shaped DValues. This pure transformation returns a new list.
-
-## C++ API
-
-`DValue::sort()` provides the legacy StringList operation.
-
-:see
-0_DValue
+This function does not change `items`.
 
 :example capy render
 var items := split("two,one", ",")
 print(join(sort(items), ","), "\n")
+
+:see
+0_StringList

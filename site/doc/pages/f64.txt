@@ -1,35 +1,26 @@
 :sig
-f64(value : dval, fallback : f64 = 0.0) f64
-f64(value : string, fallback : f64 = 0.0) f64
+function f64(value : dval, fallback : f64 = 0.0) f64
+function f64(value : string, fallback : f64 = 0.0) f64
 
 :params
-value : source value to convert
-fallback : value returned when conversion fails
+value : value to convert
+fallback : value to return when conversion fails
 
 :returns
-converted `f64`, or `fallback`
+An `f64` value, or `fallback`.
 
 :content
-Use `f64` to convert input to a floating-point value.
-
-`f64(dval, fallback)` accepts scalar `bool`, finite `f64`, and decimal text. `true` becomes `1.0`, and `false` becomes `0.0`.
-
-`f64(string, fallback)` trims spaces and then applies the same rules. The parser requires complete text, so `3.5ms` returns `fallback`.
+`f64` converts a `dval` or a string to a floating-point value. The string form removes leading and trailing spaces. The value must contain a complete decimal number.
 
 :errors
-`f64` does not throw. It returns `fallback` for empty input, malformed text, maps, lists, and non-finite values.
+`f64` does not trap for an invalid conversion. It returns `fallback`.
 
-:example capy render f64() parses decimal text and booleans
-print(f64("35"), "\n")
-print(f64(false), "\n")
-
-:example capy render f64() returns the fallback for empty text
-print(f64("", 9.0), "\n")
+:example capy render
+print(f64(" 3.5 "), "\n")
+print(f64("not a number", 9.0), "\n")
 
 :see
 >types
 2_DValue_to_f64
-2_DValue_to_s64
-2_DValue_to_u64
-2_DValue_to_bool
-2_DValue_to_string
+s64
+u64

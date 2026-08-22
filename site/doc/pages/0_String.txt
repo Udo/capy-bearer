@@ -1,26 +1,21 @@
-:sig
-0_String
+:title
+String
 
-:see
->types
->string
-split_utf8
-substr
-html_escape
+:sig
+type string
 
 :content
-`string` is Capy's text and byte value type. Use string literals, variables, parameters, and return values directly.
+`string` stores text or raw bytes in Capy.
 
-String functions take `string` inputs and return `string`, numeric, or boolean values. Common functions include `length`, `find`, `contains`, `replace`, `lower`, `upper`, `substr`, `split`, and `split_utf8`.
+Use string literals, variables, parameters, and return values directly. Use `length`, `find`, `contains`, `replace`, `lower`, `upper`, and `substr` for common text work.
 
-Capy passes strings by value. A function call does not expose a mutable C++ string reference.
-
-A `string` can contain raw bytes. Use `split_utf8()` when you must split UTF-8 text by characters. Do not treat each byte as one character.
-
-## C++ API
-
-C++ uses `String`, an alias for `std::string`. The same value can hold text or raw bytes.
+Use `split_utf8` when you must split UTF-8 text by characters.
 
 :example capy render
 var name := "Ada"
 print(upper(name), "\n")
+
+:see
+split_utf8
+substr
+html_escape

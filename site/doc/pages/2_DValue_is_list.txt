@@ -1,20 +1,17 @@
+:title
+Test for a list
+
 :sig
-bool DValue::is_list() const
+function dval_is_list(value : dval) bool
+
+:params
+value : value to test
 
 :returns
-true when the value is an array with keys 0..n-1
-
-:see
->types
-0_DValue
-2_DValue_set_array
-2_DValue_push
+`true` for a list-shaped value.
 
 :content
-Use `dval_is_list(value)` in Capy to test whether a DValue is a list. It returns `true` for a list-shaped map with keys from `0` through `size - 1`. An empty map is a list only after `dval_set_array()` or a list operation.
-
-C++ `is_list()` applies the same rules after it dereferences the value.
+`dval_is_list` tests whether a value is a list. Use `dval_set_array` to make an empty list.
 
 :example capy render
-var list := dval_push(dval([]), "Ada")
-if dval_is_list(list) { print("list\n") } else { print("map\n") }
+print(dval_is_list(dval(["Ada"])), "\n")

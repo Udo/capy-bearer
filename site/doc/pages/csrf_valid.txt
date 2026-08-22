@@ -1,30 +1,25 @@
 :sig
-bool csrf_valid(String submitted_token, String session_name = "bearer-session", String token_name = "csrf_token")
+function csrf_valid(submitted : string, session_name : string = "bearer-session", token_name : string = "csrf_token") bool
 
 :params
-submitted_token : value from the request, usually `context.post["csrf_token"]`
-session_name : session and cookie name
-token_name : token namespace
+submitted : the value from the submitted form
+session_name : the session and cookie name
+token_name : the token namespace
 
 :returns
-`true` when the submitted token matches the session token
+`true` if `submitted` matches the active session token.
 
 :content
-`csrf_valid()` checks a submitted Capy CSRF token against the session token.
+`csrf_valid()` checks a submitted CSRF token against the session token.
 
-Pass the submitted value, session name, and token namespace. It returns `true` only for the active matching token. It starts the named session when necessary.
-
-It does not create a missing token. Use it before you apply a change from a browser-submitted request.
-
-The Capy call has the same arguments.
+It does not create a missing token. Check the token before you apply a browser-submitted change.
 
 :example capy render
-var token := csrf_token("bearer-doc-session")
-if csrf_valid(token, "bearer-doc-session") { print("valid\n") } else { print("invalid\n") }
-if csrf_valid("bad-token", "bearer-doc-session") { print("bad valid\n") } else { print("bad invalid\n") }
+var token := csrf_token("capy-doc-session")
+print(csrf_valid(token, "capy-doc-session"), "\n")
+
 :see
->session
 csrf_token
+csrf_field
 csrf_rotate
 crypto_equal
-session_start

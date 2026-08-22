@@ -1,27 +1,19 @@
 :sig
-bool file_symlink(String target, String linkpath)
+function file_symlink(target : string, linkpath : string) bool
 
 :params
-target : path that the new symbolic link points to
-linkpath : path of the symbolic link to create
+target : path for the symbolic link
+linkpath : path of the new symbolic link
 
 :returns
-true when Capy creates the link, otherwise false
+`true` if Capy creates the link. Otherwise, `false`.
 
 :content
-`file_symlink` creates a symbolic link at `linkpath`. The link points to `target`. Use it to give a file another path. It returns false when Capy cannot create the link. Use `path_real()` to resolve a link.
+`file_symlink` creates a symbolic link at `linkpath` that points to `target`.
 
 :example capy render
 file_put_contents("/tmp/doc-symlink-target.txt", "data")
 file_unlink("/tmp/doc-symlink-link.txt")
-file_symlink("/tmp/doc-symlink-target.txt", "/tmp/doc-symlink-link.txt")
-print(file_get_contents("/tmp/doc-symlink-link.txt"), "\n")
-
-:see
->sys
-path_real
-file_stat
-file_chmod
-file_fsync
-file_temp
-path_is_within
+if file_symlink("/tmp/doc-symlink-target.txt", "/tmp/doc-symlink-link.txt") {
+    print(file_get_contents("/tmp/doc-symlink-link.txt"), "\n")
+}

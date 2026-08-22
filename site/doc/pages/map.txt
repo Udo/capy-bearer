@@ -1,30 +1,24 @@
 :sig
-DValue map(DValue items, function<String (String)> f)
-DValue::map(function<String (String)> f)
+function map(items : dval, mapper : function(value : string) string) dval
 
 :params
-items : list of string items to transform
-f : function that returns one string for each item
+items : the input list
+mapper : the function that transforms each item
 
 :returns
-new list of transformed strings
+a new list of transformed strings
+
+:content
+`map()` calls `mapper` for each item in `items`.
+
+It converts each item to a string before it calls `mapper`. The function returns a new `dval` list.
+
+:example capy render
+var names := dval(["ada", "grace"])
+var names_upper := map(names, function(name : string) string { return upper(name) })
+print(join(names_upper, ","), "\n")
 
 :see
 >string
 filter
-0_DValue
-json_encode
-nibble
-json_consume_space
 print
-:content
-This function calls `f` for each list item and returns a new list.
-
-Use it to transform each string in a list. Capy converts each input item with `string()` before it calls `f`.
-
-Use `filter()` when you want to keep matching items instead.
-
-:example capy render
-var names := split("ada,grace", ",")
-var upper := map(names, function(item : string) string { return upper(item) })
-print(join(upper, ","), "\n")

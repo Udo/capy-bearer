@@ -9,20 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "regex-replace"
         page["route"] = "/doc/api/regex-replace/"
         page["title"] = "regex_replace"
-        page["content"] = "`regex_replace()` replaces every `pattern` match in `subject` and returns a new `string`.\n\nThe replacement uses PCRE2 substitution syntax. Use `$1` for a numbered capture. Use `${name}` for a named capture.\n\nUse `replace()` for a literal search. Use `regex_replace()` when you need a pattern, capture, character class, anchor, or flag.\n"
-        page["returns"] = "a new string with all matches replaced"
-        page["errors"] = "Invalid patterns, flags, and replacement syntax cause a request-visible runtime error."
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction regex_replace(pattern : string, replacement : string, subject : string, flags : string = \"\") string\n\nUse `$1` for a numbered capture in `replacement`.\n"
+        page["returns"] = "Text with all matches replaced."
         page["label"] = "regex_replace"
-        page["sig_lines"] = dval(["String regex_replace(String pattern, String replacement, String subject)", "String regex_replace(String pattern, String replacement, String subject, String flags)", ""])
         page["capy_sig_lines"] = dval(["function regex_replace(pattern : string, replacement : string, subject : string, flags : string = \"\") string"])
-        page["param_lines"] = dval(["pattern : the PCRE2 regular expression", "replacement : the replacement text", "subject : the string to change", "flags : optional regular expression flags", ""])
+        page["param_lines"] = dval(["pattern : regular expression", "replacement : replacement text", "subject : source text", "flags : regular expression flags", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", ">regex", "regex_match", "regex_search", "regex_search_all", "regex_split", "replace"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(regex_replace(\"([a-z]+)\", \"<$1>\", \"capy docs\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

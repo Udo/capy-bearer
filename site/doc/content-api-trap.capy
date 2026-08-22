@@ -9,20 +9,16 @@ function data(input : dval) dval {
         page["slug"] = "trap"
         page["route"] = "/doc/api/trap/"
         page["title"] = "trap"
-        page["content"] = "Use `trap()` to stop the current handler immediately after a failed guard.\n\n`trap()` has no arguments and no usable return value. Any reachable code after the call does not run.\n\nThe example keeps the condition false so the documentation page can render.\n"
+        page["content"] = "## sig\n\nfunction trap()\n\n`trap` stops the current handler.\n"
         page["returns"] = "no value because execution stops"
-        page["errors"] = "`trap()` always aborts execution when called. Calling it with arguments is a compile-time error."
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["errors"] = "`trap` always aborts execution."
         page["label"] = "trap"
-        page["sig_lines"] = dval(["void trap()", ""])
         page["capy_sig_lines"] = dval(["function trap()"])
-        page["param_lines"] = dval(["none", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">runtime", "error_pages", "unit_render", "unit_compile"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "if false { trap() }\nprint(\"handler continues\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

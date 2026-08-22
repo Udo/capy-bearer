@@ -1,11 +1,11 @@
 :sig
-module unit_load(String file_name)
+function unit_load(path : string) module
 
 :params
-file_name : unit source path
+path : unit path
 
 :returns
-a `module` value for the unit
+a `module` value
 
 :see
 >ob
@@ -18,16 +18,10 @@ component_render
 call
 print
 response_status
+
 :content
-Call `unit_load(path)` to get a `module` value for a readable unit.
-
-Call an exported function with `module.call(name[, input])` or `module.export_name(input)`. Inputs and results are `dval` values. The no-input form passes an empty `dval` value. A Capy unit uses `#exports` to declare callable functions and type metadata.
-
-Use `unit_load()` when several calls use one unit. A missing unit or export is an error.
-
-C++ cannot use a Capy `module` value. Use `unit_call()` with the `DValue*` API instead. C++ exports use `EXPORT DValue* name(DValue*)`.
+`unit_load` returns a `module` value for a unit.
 
 :example capy render
-var module := unit_load("/doc/examples/call_target.capy")
-var output := module.default_input()
-print(string(output), "\n")
+var target := unit_load("/tests/capy-module-target.capy")
+print(target.default_input(), "\n")

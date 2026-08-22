@@ -1,25 +1,23 @@
 :sig
-u64 file_pwrite(u64 h, u64 offset, String data)
+function file_pwrite(handle : u64, offset : u64, data : string) u64
 
 :params
-h : writable handle from `file_open()`
+handle : writable handle returned by `file_open`
 offset : absolute byte offset
-data : Capy `string` data to write
+data : text to write
 
 :returns
-number of bytes written
+The number of bytes written.
 
 :content
-`file_pwrite()` writes `string` bytes at an absolute offset without changing the handle position.
-
-Use a writable handle, such as one opened with `"r+"`, for an in-place edit. It returns zero for an invalid, closed, or non-writable handle.
+`file_pwrite` writes text at an absolute byte offset. It does not change the handle position.
 
 :example capy render
 var handle := file_open("/tmp/doc-pwrite.txt", "w")
 file_write(handle, "hello world")
 file_close(handle)
 var editor := file_open("/tmp/doc-pwrite.txt", "r+")
-file_pwrite(editor, 6, "earth")
+file_pwrite(editor, u64(6), "earth")
 file_close(editor)
 print(file_get_contents("/tmp/doc-pwrite.txt"), "\n")
 

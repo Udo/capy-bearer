@@ -1,12 +1,12 @@
 :sig
-String time_format_local(String format = "", u64 timestamp = 0)
+function time_format_local(format : string = "", timestamp : u64 = 0) string
 
 :params
-format : optional Capy format string
-timestamp : optional Unix timestamp. Omit it to use the current time.
+format : date format
+timestamp : Unix timestamp. Zero uses the current time
 
 :returns
-formatted local-time string
+formatted local time
 
 :see
 >time
@@ -17,20 +17,9 @@ time_precise
 time_format_utc
 usleep
 time_parse
+
 :content
-Use `time_format_local` to format a Unix timestamp in the server local time zone. Pass a format string and, if needed, a timestamp. The function returns a Capy `string`. Omit the timestamp to format the current time.
-
-The formatter supports core Linux `date` format tokens and the relative-time delta tokens.
-
-Supported format sequences:
-
-
-Padding and case flags may follow `%`:
-
-
-The `RFC1123` special format applies only to `time_format_utc`. Use that function for RFC 1123 output.
-
-Capy uses `String` and `u64`, as the signature shows.
+`time_format_local` formats a Unix timestamp in the server local time zone.
 
 :example capy render
-if time_format_local("%Y-%m-%d", 0) != "" { print("formatted\n") } else { print("empty\n") }
+print(time_format_local("%Y", u64(5)), "\n")

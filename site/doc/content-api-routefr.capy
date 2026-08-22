@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "route-from-raw-path"
         page["route"] = "/doc/api/route-from-raw-path/"
         page["title"] = "route_from_raw_path"
-        page["content"] = "`route_from_raw_path(raw_path, default_path)` is the Capy route utility. It does not read the active request. C++ keeps the `request_route_from_raw_path()` signature above.\n\nThe Capy result has `path`, `page`, `raw_path`, and `valid`. `raw_path` is normalized diagnostic input. `path` is the safe route, or an empty string when validation fails. `page` is the first route segment. `valid` is true when `path` is safe.\n\nThe utility uses `default_path` for empty input. Use only `path` below an application-controlled route root. Use `request.route` for a handler request route.\n"
-        page["returns"] = "route metadata as a `dval`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction route_from_raw_path(raw_path : string, default_path : string = \"index\") dval\n\nUse `path` only below an application-controlled route root. It is empty when the route is unsafe.\n"
+        page["returns"] = "Route data with `path`, `page`, `raw_path`, and `valid`."
         page["label"] = "route_from_raw_path"
-        page["sig_lines"] = dval(["DValue request_route_from_raw_path(String raw_path, String default_path = \"index\")", ""])
         page["capy_sig_lines"] = dval(["function route_from_raw_path(raw_path : string, default_path : string = \"index\") dval"])
         page["param_lines"] = dval(["raw_path : route text to validate", "default_path : route for empty input", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">0_Request", ">request_route_from_raw_path", ">route_path_sanitize"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var route := route_from_raw_path(\"docs/api\")\nprint(string(route.page, \"\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

@@ -1,19 +1,17 @@
+:title
+Get a dynamic value type name
+
 :sig
-String DValue::get_type_name() const
+function dval_get_type_name(value : dval) string
+
+:params
+value : value to inspect
 
 :returns
-one of String, f64, bool, array, none, pointer, reference, or unknown
-
-:see
-0_DValue
+The type name.
 
 :content
-Use `dval_get_type_name(value)` in Capy to get a DValue type name. It takes one value and returns a string. Normal results are `String`, `f64`, `bool`, `array`, `none`, `pointer`, `reference`, or `unknown`.
-
-C++ `get_type_name()` gets the name after it dereferences the value.
-
+`dval_get_type_name` returns the runtime type name for a dynamic value.
 
 :example capy render
-var scalar := dval("text")
-var map_value := {"k": "v"}
-print(dval_get_type_name(scalar), " / ", dval_get_type_name(map_value), "\n")
+print(dval_get_type_name(dval("text")), "\n")

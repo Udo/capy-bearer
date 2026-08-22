@@ -1,25 +1,11 @@
 :sig
-bool str_starts_with(String haystack, String needle)
-
-:params
-haystack : Capy string to inspect
-needle : prefix to compare
+function str_starts_with(haystack : string, needle : string) bool
 
 :returns
-`true` when the string starts with the prefix. Otherwise, `false`.
+`true` when the text starts with the prefix.
 
-:see
->string
-str_ends_with
-substr
-strpos
-split
-print
-split_http_headers
 :content
-Use `str_starts_with` to test whether a Capy string starts with a prefix. Pass the string and the prefix. The function returns a Boolean value.
-
-Capy uses `string` values. Capy uses `String`, as the signature shows.
+Use `str_starts_with` to test a string prefix.
 
 :example capy render
-if str_starts_with("/doc", "/") { print("yes\n") } else { print("no\n") }
+print(str_starts_with("/doc", "/"), "\n")

@@ -8,20 +8,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-assign"
         page["route"] = "/doc/api/dvalue-assign/"
-        page["title"] = "DValue::operator="
-        page["content"] = "Use `dval_assign(value, source)` in Capy to replace the target content. The function mutates `value` and returns that same identity. All workspace aliases observe the mutation. Existing code can still write `value = dval_assign(value, source)`.\n\nC++ `operator=` calls the matching `set(...)` overload. It assigns strings, numbers, pointers, `DValue` values, and `StringMap` values. Use `set_bool()` for C++ Boolean values.\n\n"
-        page["returns"] = "none"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "DValue::assign"
-        page["sig_lines"] = dval(["void DValue::operator=(String v)", "void DValue::operator=(f64 v)", "void DValue::operator=(void* v)", "void DValue::operator=(DValue v)", "void DValue::operator=(StringMap v)", ""])
+        page["title"] = "Assign a dynamic value"
+        page["content"] = "## sig\n\nfunction dval_assign(value : dval, source : as dval) dval\n\n`dval_assign(value, source)` replaces the content of `value`. It changes `value` and returns the same value.\n"
+        page["returns"] = "The target value."
+        page["label"] = "dval_assign"
         page["capy_sig_lines"] = dval(["function dval_assign(value : dval, source : as dval) dval"])
-        page["param_lines"] = dval(["v : assigned value", ""])
+        page["param_lines"] = dval(["value : target value", "source : replacement value", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue", "2_DValue_set", "2_DValue_set_bool"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var value := dval(\"old\")\nvalue = dval_assign(value, \"new\")\nprint(value, \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

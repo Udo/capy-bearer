@@ -1,20 +1,19 @@
+:title
+Clear a dynamic value
+
 :sig
-void DValue::clear()
+function dval_clear(value : dval) dval
+
+:params
+value : target value
 
 :returns
-none
-
-:see
-0_DValue
-2_DValue_set_array
+The cleared target value.
 
 :content
-Use `dval_clear(value)` in Capy to remove all children and make the target an empty map. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid. Use `dval_set_array()` for an empty list.
-
-C++ `clear()` empties this `DValue` and resets its array index. It does not set list mode.
-
+`dval_clear(value)` removes all children and makes `value` an empty map. Use `dval_set_array` for an empty list.
 
 :example capy render
-var user := dval({"a": "1", "b": "2"})
-user = dval_clear(user)
-if dval_has(user, "a") { print("after clear, has a: yes\n") } else { print("after clear, has a: no\n") }
+var value := dval({"name": "Ada"})
+value = dval_clear(value)
+print(dval_has(value, "name"), "\n")

@@ -1,27 +1,8 @@
-
 :sig
-DValue request_query_route(Request& context, String default_path = "index")
-
-:params
-context : live C++ request context
-default_path : route for empty input
-
-:returns
-C++ route metadata
-
-:see
->uri
-request_query_path
-request_context_params
-route_path_sanitize
-request_script_url
-0_Request
-
-:capy-status cpp-specific
+Not available in Capy.
 
 :content
-`request_query_route()` is a C++ API. It reads the first keyless query-string segment and returns route metadata.
+Use `request.route` in a handler to read route data. Its fields include `path`, `page`, `raw_path`, and `valid`.
 
-Its `raw_path` is normalized diagnostic input. Its `l_path` is the safe route, or an empty string when validation fails. Its `page` is the first `l_path` segment. Its `valid` value is true when `l_path` is safe.
-
-Capy does not expose `request_query_route`. In a Capy `RENDER` handler, read `request.route`. Its fields are `path`, `page`, `raw_path`, and `valid`.
+:example capy render
+print(string(request.route.page, ""), "\n")

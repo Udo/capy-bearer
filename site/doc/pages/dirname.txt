@@ -1,26 +1,20 @@
 :sig
-String dirname(String fn)
+function dirname(path : string) string
 
 :params
-fn : path to inspect
+path : the path to inspect
 
 :returns
-directory part of the path
+The directory part of the path.
 
 :content
-`dirname()` returns the directory part of a Capy path string.
+`dirname()` removes the final component from a path string.
 
-Pass a path with a final component. The returned string omits that final component. Use it to get a containing directory.
-
-The Capy call has the same arguments.
+The function does not access the file system.
 
 :example capy render
 print(dirname("/var/www/site/index.capy"), "\n")
+
 :see
->sys
 basename
 path_join
-expand_path
-file_append
-file_exists
-file_get_contents

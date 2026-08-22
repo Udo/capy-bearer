@@ -1,33 +1,23 @@
 :sig
-StringMap memcache_get_multiple(u64 connection, DValue keys)
+function memcache_get_multiple(connection : u64, keys : dval) dval
 
 :params
-connection : open connection handle
-keys : `dval` list of entry keys
+connection : the connection handle
+keys : the entry keys
 
 :returns
-`dval` map of returned entries
+a map of returned entries
+
+:content
+`memcache_get_multiple()` reads several keys through one connection.
+
+Missing keys do not occur in the returned map.
+
+:example capy render
+var connection := memcache_connect()
+if connection != u64(0) { print(memcache_get_multiple(connection, dval(["first", "second"]))["first"], "\n") }
 
 :see
 >memcache
 memcache_get
 memcache_set
-memcache_delete
-memcache_escape_key
-memcache_connect
-memcache_escape_keys
-:content
-This function returns a `dval` map of entries parsed from `VALUE` responses.
-
-Use it to read several keys through one connection. Missing keys are absent from the map.
-
-The C++ API returns `StringMap` instead.
-
-:example capy render
-var conn := memcache_connect()
-if conn != 0 {
-    memcache_set(conn, "doc_k1", "v1")
-    memcache_set(conn, "doc_k2", "v2")
-    var values := memcache_get_multiple(conn, dval(["doc_k1", "doc_k2"]))
-    print(values["doc_k1"], " / ", values["doc_k2"], "\n")
-} else { print("(requires a reachable memcached server)\n") }

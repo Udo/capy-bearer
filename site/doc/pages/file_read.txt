@@ -1,24 +1,22 @@
 :sig
-String file_read(u64 h, u64 len)
+function file_read(handle : u64, count : u64) string
 
 :params
-h : readable handle from `file_open()`
-len : maximum number of bytes to read
+handle : readable handle returned by `file_open`
+count : maximum number of bytes to read
 
 :returns
-a Capy `string` with up to `len` bytes from the current position
+A string with up to `count` bytes from the current position.
 
 :content
-`file_read()` returns a `string` from the current handle position. It advances the position by the bytes read.
-
-End of file can return fewer bytes or `""`. Use `file_pread()` to read an absolute offset without moving the position.
+`file_read` reads from the current handle position. It advances the position by the bytes read. It can return fewer bytes at the end of a file.
 
 :example capy render
 var writer := file_open("/tmp/doc-read.txt", "w")
 file_write(writer, "hello world")
 file_close(writer)
 var reader := file_open("/tmp/doc-read.txt", "r")
-print(file_read(reader, 5), "\n")
+print(file_read(reader, u64(5)), "\n")
 file_close(reader)
 
 :see

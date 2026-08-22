@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "uri-decode"
         page["route"] = "/doc/api/uri-decode/"
         page["title"] = "uri_decode"
-        page["content"] = "`uri_decode(value)` accepts a URI-encoded `string` and returns the decoded `string`.\n\nUse it to read URI data such as a query value. The API has no error return.\n\nC++ uses the signature above. Its `String` input and return value correspond to Capy `string` values.\n\n"
-        page["returns"] = "a string that contains the decoded version of 's'"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction uri_decode(value : string) string\n\n`uri_decode` decodes a URI-encoded string.\n"
+        page["returns"] = "decoded string"
         page["label"] = "uri_decode"
-        page["sig_lines"] = dval(["String uri_decode(String s)", ""])
         page["capy_sig_lines"] = dval(["function uri_decode(value : string) string"])
-        page["param_lines"] = dval(["s : string containing URI encoded data", ""])
+        page["param_lines"] = dval(["value : URI-encoded string", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">uri", "parse_uri", "uri_encode", "parse_query", "request_route_from_raw_path", "session_id_create", "route_path_sanitize"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(uri_decode(\"Ada%20Lovelace\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

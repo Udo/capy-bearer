@@ -1,27 +1,21 @@
 :sig
-StringMap array_merge(StringMap a, StringMap b)
-DValue array_merge(DValue a, DValue b)
+function array_merge(left : dval, right : dval) dval
 
 :params
-a : left-hand source map or tree
-b : right-hand source map or tree
+left : first value
+right : second value
 
 :returns
-merged result
-
-:see
->types
-0_DValue
-0_StringMap
-json_decode
+a merged `dval` value
 
 :content
-Capy's `array_merge(left, right)` returns a new `dval`. It does not change either input value.
+`array_merge` combines two `dval` values. It returns a new value.
 
-Pass two `dval` maps, lists, or scalar values. String keys in `right` replace matching keys in `left`. List values append. They use consecutive numeric keys. The function does not report errors.
-
-Use it to combine request, configuration, or JSON-shaped values. The C++ API also accepts `StringMap` values. Its `DValue` form has the same merge rules.
+For maps, values from `right` replace matching values from `left`. The function also merges lists.
 
 :example capy render
 var merged := array_merge(dval({"name": "Ada"}), dval({"role": "admin"}))
 print(merged["name"], " ", merged["role"], "\n")
+
+:see
+json_decode

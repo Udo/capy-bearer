@@ -1,23 +1,20 @@
 :sig
-String hmac_sha256(String key, String data)
+function hmac_sha256(key : string, value : string) string
 
 :params
-key : secret string bytes
-data : message string bytes
+key : secret key bytes
+value : message bytes
 
 :returns
-raw 32-byte HMAC-SHA256 string
+A raw 32-byte HMAC-SHA256 value.
 
 :content
-`hmac_sha256()` returns the raw 32-byte HMAC-SHA256 for `key` and `data`. The returned string contains binary bytes.
-
-Use it for binary protocols. Use `hmac_sha256_hex()` when you need printable text.
+`hmac_sha256()` returns a raw binary HMAC-SHA256 value. Use `hmac_sha256_hex()` when you need hexadecimal text.
 
 :example capy render
-print("hex = ", hmac_sha256_hex("key", "message"), "\n")
+print(length(hmac_sha256("key", "message")), "\n")
 
 :see
->sys
 hmac_sha256_hex
 sha256
 crypto_equal

@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "regex-split"
         page["route"] = "/doc/api/regex-split/"
         page["title"] = "regex_split"
-        page["content"] = "Use this function when a regular expression defines the separator. Use `split()` for a literal separator.\n\nThe result does not include separators. It keeps empty parts. If the pattern does not match, the result contains `subject` as one item. Zero-length matches advance safely.\n"
-        page["returns"] = "`dval` list of text parts"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction regex_split(pattern : string, subject : string, flags : string = \"\") dval\n\n`regex_split()` removes separators and keeps empty parts.\n"
+        page["returns"] = "A list of text parts."
         page["label"] = "regex_split"
-        page["sig_lines"] = dval(["DValue regex_split(String pattern, String subject)", "DValue regex_split(String pattern, String subject, String flags)", ""])
         page["capy_sig_lines"] = dval(["function regex_split(pattern : string, subject : string, flags : string = \"\") dval"])
-        page["param_lines"] = dval(["pattern : PCRE2 regular expression separator", "subject : text to split", "flags : optional PCRE2 flags", ""])
+        page["param_lines"] = dval(["pattern : regular expression separator", "subject : text to split", "flags : regular expression flags", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", ">regex", "regex_match", "regex_search", "regex_search_all", "regex_replace", "split", "join", "0_StringList"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var parts := regex_split(\",\", \"a,,b\")\nprint(parts[1], \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

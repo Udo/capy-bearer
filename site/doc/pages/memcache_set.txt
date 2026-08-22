@@ -1,29 +1,25 @@
 :sig
-bool memcache_set(u64 connection, String key, String value, u64 expires_in = 60*60)
+function memcache_set(connection : u64, key : string, value : string, expires_in : u64 = 3600) bool
 
 :params
-connection : open connection handle
-key : entry key
-value : value text
-expire : lifetime in seconds
+connection : the connection handle
+key : the entry key
+value : the value text
+expires_in : the lifetime in seconds
 
 :returns
-`true` only for a `STORED` server response
+`true` when the server stores the entry
+
+:content
+`memcache_set()` stores `value` under `key`.
+
+It returns `true` only when the server returns `STORED`.
+
+:example capy render
+var connection := memcache_connect()
+if connection != u64(0) { print(memcache_set(connection, "doc-key", "value"), "\n") }
 
 :see
 >memcache
-memcache_get_multiple
-memcache_escape_key
-memcache_get
-memcache_escape_keys
-memcache_delete
 memcache_connect
-:content
-Pass the `u64` handle from `memcache_connect()`.
-
-This function stores `value` under `key`. It sends the value length in bytes. It returns `true` only when the trimmed server response is exactly `STORED`.
-
-:example capy render
-var conn := memcache_connect()
-if conn != 0 { if memcache_set(conn, "doc_set_key", "value") { print("stored\n") } else { print("store failed\n") } }
-else { print("(requires a reachable memcached server)\n") }
+memcache_get

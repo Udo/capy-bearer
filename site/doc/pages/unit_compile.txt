@@ -1,8 +1,8 @@
 :sig
-bool unit_compile(String path = "")
+function unit_compile(path : string = "") bool
 
 :params
-path : optional unit path. If empty, recompiles the current unit
+path : unit path. An empty path selects the current unit
 
 :returns
 `true` if the compiler compiles the unit
@@ -14,12 +14,7 @@ units_list
 unit_call
 
 :content
-Call `unit_compile()` for the current unit. Call `unit_compile(path)` for another unit.
-
-The function returns `true` when compilation succeeds. It returns `false` when compilation fails. Use it when an operator must compile a unit explicitly.
-
-Relative paths use the unit path rules. Capy does not return a Capy unit object.
-
+`unit_compile` compiles a unit.
 
 :example capy render
-if unit_compile("examples/sample_unit.capy") { print("compiled the sample unit\n") } else { print("compile failed\n") }
+print(unit_compile("capy-files.capy"), "\n")

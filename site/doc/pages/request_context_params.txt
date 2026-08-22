@@ -1,33 +1,10 @@
-:title
-Request Context Params
-
 :sig
-SCRIPT_URL, BASE_URL, ROUTE_PATH, ROUTE_PAGE, ROUTE_PATH_RAW, ROUTE_VALID, BEARER_BIN_DIRECTORY
-
-:see
->uri
-request_script_url
-request_base_url
-request_query_path
-request_query_route
-route_path_sanitize
-route_path_is_safe
-0_Request
+handler request : dval
 
 :content
-Bearer adds these values to the live C++ request context before it runs a handler. Capy does not call `request_context_params`. A Capy handler receives the equivalent data in its copied `request : dval`.
+Handlers receive request data in `request`.
 
-- `SCRIPT_URL` is the canonical script URL. Capy reads `request.url.script`.
-- `BASE_URL` is the canonical directory URL for the script. Capy reads `request.url.base`.
-- `ROUTE_PATH` is the safe keyless query route. Capy reads `request.route.path`.
-- `ROUTE_PAGE` is the first route segment. Capy reads `request.route.page`.
-- `ROUTE_PATH_RAW` is normalized route input for diagnostics. Capy reads `request.route.raw_path`.
-- `ROUTE_VALID` is `1` for a safe route and `0` for a rejected route. Capy reads `request.route.valid`.
-- `BEARER_BIN_DIRECTORY` is the writable runtime cache directory from `BIN_DIRECTORY`. Capy reads `request.config.BIN_DIRECTORY`.
-
-Use only `ROUTE_PATH`, or `request.route.path`, below an application-controlled route root. The runtime rejects unsafe input and sets the path to an empty string. Unsafe input includes dot segments, empty interior segments, backslashes, filename dots, and characters outside route segments.
-
-This supports URLs such as `/?dashboard` and `/?workspace/projects`. Named query parameters can occur with the route.
+Use `request.url.script` for the script URL. Use `request.url.base` for the base URL. Use `request.route.path`, `request.route.page`, `request.route.raw_path`, and `request.route.valid` for route data.
 
 :example capy render
-print(string(request.url.script, ""), "\n")
+print(string(request.route.path, ""), "\n")

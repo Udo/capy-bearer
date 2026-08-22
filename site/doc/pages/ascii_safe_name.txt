@@ -1,26 +1,19 @@
 :sig
-String ascii_safe_name(String raw)
+function ascii_safe_name(raw : string) string
 
 :params
-raw : arbitrary input string
+raw : source text
 
 :returns
-an ASCII-only sanitized name
+an ASCII-safe name
 
 :content
-Capy's `ascii_safe_name(raw)` returns an ASCII-only `string` name. Pass any input string.
+`ascii_safe_name` converts text to an ASCII-safe name.
 
-The function transliterates or removes non-ASCII characters. Use it when a file name, header, or protocol requires ASCII. The function does not report errors.
-
-The C++ `String` function has the same input and result.
+Use it when a target accepts ASCII names only.
 
 :example capy render
-print(ascii_safe_name("Cafe Munchen 2024"), "\n")
+print(ascii_safe_name("Café file-1"), "\n")
+
 :see
->string
 safe_name
-clone
-base64_decode
-length
-base64_encode
-string

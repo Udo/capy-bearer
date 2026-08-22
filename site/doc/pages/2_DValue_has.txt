@@ -1,24 +1,19 @@
+:title
+Test for a child
+
 :sig
-bool DValue::has(String s) const
+dval_has(value : dval, key : string) bool
 
 :params
-s : child key to test
+value : value to test
+key : child key
 
 :returns
-true when the dereferenced value is map-shaped and contains the key
-
-:see
->types
-0_DValue
-2_DValue_key
-2_DValue_get_by_path
+`true` when the key exists.
 
 :content
-Use `dval_has(value, key)` in Capy to test a DValue key. It returns `true` when the value is map-shaped and contains the key. It does not create a child. It returns `false` for scalars and missing keys.
-
-C++ `has(key)` applies the same test after it dereferences the value.
+`dval_has` tests for a child without creating it. It returns `false` for a missing key or a scalar.
 
 :example capy render
 var user := dval({"name": "Ada"})
-if dval_has(user, "name") { print("has name") } else { print("no name") }
-if dval_has(user, "age") { print(" / has age\n") } else { print(" / no age\n") }
+print(dval_has(user, "name"), " ", dval_has(user, "age"), "\n")

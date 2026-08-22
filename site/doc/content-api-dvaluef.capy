@@ -8,20 +8,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-filter"
         page["route"] = "/doc/api/dvalue-filter/"
-        page["title"] = "DValue::filter"
-        page["content"] = "Use `dval_filter(value, predicate)` in Capy to make a copied `dval` that contains matching values. The predicate receives an item and key. The function returns a new value. A list result keeps list shape and reindexes kept items. A map result keeps its keys. A scalar result is a one-item list when the predicate accepts it.\n\nC++ also provides `filter(keys)`, which copies named children into a map. Its callback overload follows the same list, map, and scalar rules.\n"
-        page["returns"] = "filtered copy"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "DValue::filter"
-        page["sig_lines"] = dval(["DValue DValue::filter(DValue keys) const", "DValue DValue::filter(std::function<bool (const DValue& item, String key)> f) const", ""])
+        page["title"] = "Filter a dynamic value"
+        page["content"] = "## sig\n\nfunction dval_filter(value : dval, predicate : function(value : dval, key : string) bool) dval\n\n`dval_filter` returns children for which `predicate` returns `true`. It keeps map keys and keeps list shape.\n"
+        page["returns"] = "A new filtered value."
+        page["label"] = "dval_filter"
         page["capy_sig_lines"] = dval(["function dval_filter(value : dval, predicate : function(value : dval, key : string) bool) dval"])
-        page["param_lines"] = dval(["keys : child keys to copy when using the key-list overload", "f : predicate returning true for children to keep", ""])
+        page["param_lines"] = dval(["value : source value", "predicate : function that selects children", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "2_DValue_map", "2_DValue_keys"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var value := dval({\"name\": \"Ada\", \"role\": \"admin\"})\nvar result := dval_filter(value, function(item : dval, key : string) bool { return key == \"name\" })\nprint(result.name, \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

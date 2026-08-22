@@ -1,33 +1,22 @@
-
 :sig
-DValue job_await(u64 job_id, u64 timeout_ms)
+function job_await(job : dval, timeout_ms : s32) dval
 
 :params
-job : the Capy `dval` job ID. Capy uses a `u64` ID.
-timeout_ms : maximum wait in milliseconds
+job : a job ID as `dval`
+timeout_ms : maximum wait time in milliseconds
 
 :returns
-a `dval` status map. A completed job includes `result`.
+A job status map. A completed job includes `result`.
 
 :content
-`job_await()` waits for a job for up to `timeout_ms` milliseconds.
+`job_await()` waits for a job until the timeout expires. It returns the current status when the timeout expires.
 
-It returns a running status when the time limit expires. Use it after `shell_spawn()` or `http_request_async()` when you can wait for completion.
-
-In Capy, pass the job ID as `dval`. In Capy, pass the `u64` job ID shown above.
+:example capy render
+var job := shell_spawn(dval({"cmd": "printf hello", "timeout_ms": 1000}))
+var result := job_await(job, 3000)
+print(dval_get_by_path(result, "result/stdout"), "\n")
 
 :see
->sys
 job_result
-job_cancel
 job_status
-file_unlink
-shell_spawn
-zip_create
-:example capy render
-var spec := dval({"cmd": "printf hello-from-job", "timeout_ms": 1000})
-var job := shell_spawn(spec)
-var waited := job_await(job, 3000)
-var done := "false"
-if bool(waited["done"]) { done = "true" }
-print("done=", done, " stdout=", dval_get_by_path(waited, "result/stdout"), "\n")
+job_cancel

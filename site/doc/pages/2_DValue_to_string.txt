@@ -1,31 +1,18 @@
+:title
+Convert to string
+
 :sig
-String DValue::to_string(String default_value = "") const
+function string(value : dval, fallback : string = "") string
 
 :params
-String : fallback returned when conversion is not possible
+value : value to convert
+fallback : value to return when conversion fails
 
 :returns
-converted value or the fallback
-
-:see
->types
-0_DValue
-2_DValue_to_bool
-2_DValue_require
+The string value or `fallback`.
 
 :content
-`string(value)` is Capy's string constructor for a `dval`. `string(value, fallback)` returns the fallback for `none` or a failed conversion.
-
-It returns stored text, f64 text, and boolean text. Capy boolean text is `true` or `false`.
-
-An empty string, a map, or an unsupported value returns the fallback. Ordinary `print(value.member)` uses `as string` and has the same conversion.
-
-## C++ API
-
-`DValue::to_string()` also converts pointers. It returns the fallback for an unresolved reference or an unknown type.
-
-C++ `DValue::to_string()` returns `(true)` or `(false)` for boolean values. This differs from Capy boolean text.
+`string(value)` converts a dynamic value to `string`. Use the optional fallback for values that cannot convert.
 
 :example capy render
-var user := {"name": "Ada"}
-print(user.name, "\n")
+print(string(dval("Ada")), "\n")

@@ -1,13 +1,14 @@
 :sig
-DValue* unit_call(String file_name, String function_name, DValue* call_param = null)
+function unit_call(file_name : string, function_name : string) dval
+function unit_call(file_name : string, function_name : string, props : as dval) dval
 
 :params
 file_name : unit path
 function_name : exported function name
-call_param : optional function input
+props : function input
 
 :returns
-the function result
+exported function result
 
 :see
 >ob
@@ -18,16 +19,8 @@ unit_info
 1_COMPONENT
 
 :content
-Call `unit_call(file_name, function_name[, props])` to call an exported unit function.
-
-The input and result are `dval` values. The two-input form supplies an empty `dval` value. Use `unit_call()` for one direct call that returns data.
-
-For repeated calls, `unit_load(path)` gives a module value. Use `module.call(name[, input])` or `module.export_name(input)`. A Capy unit declares callable functions with `#exports`. For example, `#exports echo` exposes `echo(input : dval) dval`.
-
-A missing unit or export is an error. `unit_call()` also accepts `RENDER`, `RENDER:NAME`, `COMPONENT`, `COMPONENT:NAME`, `ONCE`, and `INIT`.
-
-C++ does not use the Capy `module` value. Use the `DValue*` API in the signature above. C++ exports use `EXPORT DValue* name(DValue*)`.
-
+`unit_call` calls an exported function in a unit.
 
 :example capy render
-var result := unit_call("examples/sample_unit.capy", "doc_greet")
+var result := unit_call("/tests/capy-module-target.capy", "echo", "hello")
+print(result, "\n")

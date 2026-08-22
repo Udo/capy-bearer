@@ -1,18 +1,20 @@
+:title
+Test every string
+
 :sig
-DValue::every(String predicate) (legacy `StringList` page)
+function every(items : dval, predicate : function(value : string) bool) bool
+
+:returns
+This function returns `true` when every item matches. It returns `true` for an empty list.
 
 :content
-`every(items, predicate)` takes a list-shaped `dval` and a string predicate. It returns true only if every item satisfies the predicate. An empty list returns true.
+`every` tests each string in a list-shaped `dval` with `predicate`.
 
-Use it with a list from `split` or `dval([...])`. Capy has no separate `StringList` type. It uses list-shaped DValues. This function does not mutate `items`.
-
-## C++ API
-
-`DValue::every()` provides the legacy StringList operation.
-
-:see
-0_DValue
+This function does not change `items`.
 
 :example capy render
 var items := split("one,two", ",")
-if every(items, function(value : string) bool { return value != "" }) { print("all\n") } else { print("not all\n") }
+print(every(items, function(value : string) bool { return value != "" }), "\n")
+
+:see
+0_StringList

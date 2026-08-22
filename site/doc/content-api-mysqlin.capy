@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "mysql-insert-id"
         page["route"] = "/doc/api/mysql-insert-id/"
         page["title"] = "mysql_insert_id"
-        page["content"] = "`mysql_insert_id()` returns the last automatic row ID as `u64`.\n\nCall this after an `INSERT` into a table with an `AUTO_INCREMENT` column.\n"
+        page["content"] = "## sig\n\nfunction mysql_insert_id(handle : u64) u64\n\n`mysql_insert_id()` returns the last automatic row ID for a connection.\n\nCall it after an insert into a table with an automatic ID column.\n"
         page["returns"] = "the last automatic row ID for this connection"
-        page["example_error"] = "expected contiguous :example cpp render"
         page["label"] = "mysql_insert_id"
-        page["sig_lines"] = dval(["u64 mysql_insert_id(MySQL* m)", ""])
         page["capy_sig_lines"] = dval(["function mysql_insert_id(handle : u64) u64"])
-        page["param_lines"] = dval(["m : an active MySQL connection. Capy uses a `u64` handle. C++ uses a pointer.", ""])
+        page["param_lines"] = dval(["handle : the MySQL connection handle", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">mysql", "mysql_escape", "mysql_affected_rows", "mysql_error", "mysql_query", "mysql_disconnect", "mysql_connected"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">mysql", "mysql_query", "mysql_connect"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var database := mysql_connect(\"localhost\", \"root\", \"\", \"\")\nif mysql_connected(database) { print(mysql_insert_id(database), \"\\n\") }\nif database != u64(0) { mysql_disconnect(database) }\n"}])
         page["guide_examples"] = dval([])
         return page
     }

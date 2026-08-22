@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "draw-float"
         page["route"] = "/doc/api/draw-float/"
         page["title"] = "draw_float"
-        page["content"] = "`draw_float()` returns a Capy `f64` noise value between two values.\n\nPass the range values and optional precision. Bearer uses the request random seed and advances its random index after each call.\n\nUse it when one request needs repeatable noise values from its random sequence.\n\nThe Capy call has the same arguments.\n"
-        page["returns"] = "`f64` noise value between `from` and `to`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction draw_float(from : f64, to : f64, precision : f64 = 0.000000000001) f64\n\n`draw_float()` returns the next floating-point value from the request random sequence.\n\nBearer uses the request random seed and advances the random index after each call.\n"
+        page["returns"] = "An `f64` value between the range values."
         page["label"] = "draw_float"
-        page["sig_lines"] = dval(["f64 draw_float(f64 from, f64 to, f64 decimal_precision = 0.000000000001)", ""])
         page["capy_sig_lines"] = dval(["function draw_float(from : f64, to : f64, precision : f64 = 0.000000000001) f64"])
-        page["param_lines"] = dval(["from : first range value", "to : second range value", "decimal_precision : output precision", ""])
+        page["param_lines"] = dval(["from : the first range value", "to : the second range value", "precision : the output precision", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">noise", "draw_int", "gen_noise01", "gen_noise32", "gen_noise64", "gen_float", "gen_int"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["draw_int", "gen_float", "gen_noise01"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var value := draw_float(0.0, 1.0)\nprint(value >= 0.0, \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

@@ -8,20 +8,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-key"
         page["route"] = "/doc/api/dvalue-key/"
-        page["title"] = "DValue::key"
-        page["content"] = "Use `dval_key(value, key)` in Capy to get a copied named child. It does not create a child.\n\nCapy returns `none` for a scalar value or a missing key. Use a constructor fallback when you need a scalar fallback.\n\nC++ `key(key)` returns a pointer to an existing child or `0`. Its non-const overload follows internal references.\n"
-        page["returns"] = "pointer to an existing child, or 0"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "DValue::key"
-        page["sig_lines"] = dval(["DValue* DValue::key(String s)", "const DValue* DValue::key(String s) const", ""])
+        page["title"] = "Get a named child"
+        page["content"] = "## sig\n\nfunction dval_key(value : dval, key : string) dval\n\n`dval_key` reads a named child without creating it. It returns `none` for a missing key or a scalar.\n"
+        page["returns"] = "The copied child, or `none`."
+        page["label"] = "dval_key"
         page["capy_sig_lines"] = dval(["function dval_key(value : dval, key : string) dval"])
-        page["param_lines"] = dval(["s : child key to find", ""])
+        page["param_lines"] = dval(["value : source value", "key : child key", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue", "2_DValue_require", "2_DValue_get_by_path"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var user := dval({\"email\": \"ada@example.test\"})\nprint(dval_key(user, \"email\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -31,20 +27,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-keys"
         page["route"] = "/doc/api/dvalue-keys/"
-        page["title"] = "DValue::keys"
-        page["content"] = "`dval_keys(value)` takes a `dval` and returns a list-shaped `dval` of its child keys. Map keys use map order. List keys are numeric strings in list order. A scalar has no child keys, so it returns an empty list.\n\nCapy returns a copied value. It does not expose a mutable child alias.\n\n## C++ API\n\n`DValue::keys()` has the same result.\n"
-        page["returns"] = "child keys for map or list values. Scalars return an empty list"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "DValue::keys"
-        page["sig_lines"] = dval(["StringList DValue::keys() const", ""])
+        page["title"] = "Get child keys"
+        page["content"] = "## sig\n\nfunction dval_keys(value : dval) dval\n\n`dval_keys` returns a new list of child keys. A scalar returns an empty list.\n"
+        page["returns"] = "A list of child keys."
+        page["label"] = "dval_keys"
         page["capy_sig_lines"] = dval(["function dval_keys(value : dval) dval"])
-        page["param_lines"] = dval([])
+        page["param_lines"] = dval(["value : source value", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "2_DValue_each", "0_StringList"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var user := dval({\"name\": \"Ada\", \"role\": \"admin\"})\nprint(join(sort(dval_keys(user)), \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

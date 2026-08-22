@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "zip-extract"
         page["route"] = "/doc/api/zip-extract/"
         page["title"] = "zip_extract"
-        page["content"] = "`zip_extract(path, destination)` accepts an archive path and destination path. It returns `true` when extraction completes.\n\nUse it to extract all archive members. Bearer creates the destination and required child directories.\n\nMember names cannot be empty, absolute, drive-qualified, or contain `..` path segments. The call rejects those names.\n\nThe declaration has no separate error return. C++ uses `String` values through the signature above.\n"
-        page["returns"] = "`true` when extraction completes"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction zip_extract(path : string, destination : string) bool\n\n`zip_extract()` extracts every entry from a ZIP archive.\n"
+        page["returns"] = "`true` when the server extracts the archive."
         page["label"] = "zip_extract"
-        page["sig_lines"] = dval(["bool zip_extract(String zip_file_name, String destination_directory)", ""])
         page["capy_sig_lines"] = dval(["function zip_extract(path : string, destination : string) bool"])
-        page["param_lines"] = dval(["zip_file_name : path to the ZIP archive", "destination_directory : directory that should receive extracted files", ""])
+        page["param_lines"] = dval(["path : archive path", "destination : destination directory", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">sys", "zip_create", "zip_list", "zip_read"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var archive := file_temp(\"/tmp/capy-zip-\") + \".zip\"\nvar destination := archive + \".out\"\nzip_create(archive, dval({\"note.txt\": \"hello\"}))\nzip_extract(archive, destination)\nprint(file_get_contents(destination + \"/note.txt\"), \"\\n\")\ndir_remove(destination, true)\nfile_unlink(archive)\n"}])
         page["guide_examples"] = dval([])
         return page
     }

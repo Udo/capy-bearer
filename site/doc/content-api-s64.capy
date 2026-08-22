@@ -9,20 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "s64"
         page["route"] = "/doc/api/s64/"
         page["title"] = "s64"
-        page["content"] = "Use `s64` to convert input to a 64-bit signed integer.\n\n`s64(dval, fallback)` accepts scalar `bool`, finite `f64`, and exact decimal text. Decimal text must contain a whole number.\n\n`s64(string, fallback)` trims spaces and then applies the same rules. A float input truncates toward zero.\n"
-        page["returns"] = "converted `s64`, or `fallback`"
-        page["errors"] = "`s64` does not throw. It returns `fallback` for invalid text, `none`, maps, lists, or out-of-range values."
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction s64(value : dval, fallback : s64 = 0) s64\nfunction s64(value : string, fallback : s64 = 0) s64\n\n`s64()` converts supported scalar values and integer text. It returns `fallback` when conversion fails.\n"
+        page["returns"] = "A signed 64-bit integer, or `fallback`."
         page["label"] = "s64"
-        page["sig_lines"] = dval(["s64(value : dval, fallback : s64 = 0) s64", "s64(value : string, fallback : s64 = 0) s64", ""])
         page["capy_sig_lines"] = dval(["function s64(value : dval, fallback : s64 = 0) s64", "function s64(value : string, fallback : s64 = 0) s64"])
-        page["param_lines"] = dval(["value : source value to convert", "fallback : value returned when conversion fails", ""])
+        page["param_lines"] = dval(["value : value to convert", "fallback : value for a failed conversion", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "2_DValue_to_s64", "2_DValue_to_u64", "2_DValue_to_f64", "2_DValue_to_bool", "s32"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(s64(\"64\", -1), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

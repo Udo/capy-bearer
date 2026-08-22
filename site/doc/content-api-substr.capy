@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "substr"
         page["route"] = "/doc/api/substr/"
         page["title"] = "substr"
-        page["content"] = "Use `substr` to get part of a Capy string. Pass the source string and a start position. Add a length to limit the result. The two-input form returns text from the start position to the end.\n\nA negative start position counts from the end. A negative length stops the result that many bytes before the end.\n\nCapy accepts `s32` or `s64` positions and lengths. Capy uses `String` and `s64`, as the signatures show.\n"
-        page["returns"] = "extracted string, or an empty string when the range is outside the source string"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction substr(value : string, start : s32) string\nfunction substr(value : string, start : s64) string\nfunction substr(value : string, start : s32, length : s32) string\nfunction substr(value : string, start : s64, length : s64) string\n\nUse `substr` to get part of a string. A negative start or length counts from the end.\n"
+        page["returns"] = "Extracted text."
         page["label"] = "substr"
-        page["sig_lines"] = dval(["String substr(String s, s64 start_pos)", "String substr(String s, s64 start_pos, s64 length)", ""])
         page["capy_sig_lines"] = dval(["function substr(value : string, start : s32) string", "function substr(value : string, start : s64) string", "function substr(value : string, start : s32, length : s32) string", "function substr(value : string, start : s64, length : s64) string"])
-        page["param_lines"] = dval(["s : Capy source string", "start_pos : zero-based start position. Negative values count from the end.", "length : optional result length. Negative values remove bytes from the end of the range.", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "str_starts_with", "split", "str_ends_with", "split_http_headers", "strpos", "split_kv"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(substr(\"documentation\", 0, 3), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

@@ -8,20 +8,15 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "dvalue-each"
         page["route"] = "/doc/api/dvalue-each/"
-        page["title"] = "DValue::each"
-        page["content"] = "Use `for item, key := value` in Capy. The item comes first and is a copied DValue. The key has type `string`. Lists use decimal index strings in order. Maps use string-key order. A scalar runs the loop once with an empty key.\n\nThe loop uses a live view and rechecks the current count. A loop that keeps growing `value` can continue.\n\nC++ `each(f)` does not modify the `DValue`. Its callback receives the child and key. It dereferences references before it iterates.\n"
-        page["returns"] = "none"
-        page["example_error"] = "expected contiguous :example cpp render"
-        page["label"] = "DValue::each"
-        page["sig_lines"] = dval(["void DValue::each(std::function<void (const DValue& item, String key)> f) const", ""])
+        page["title"] = "Iterate dynamic values"
+        page["content"] = "## sig\n\nfor value, key := input { ... }\n\nUse `for value, key := input` to iterate a dynamic value. `value` is a copied child and `key` is a string.\n\nLists use numeric keys in order. Maps use key order. A scalar runs the loop once with an empty key.\n"
+        page["label"] = "dval_each"
         page["capy_sig_lines"] = dval(["for value, key := input { ... }"])
-        page["param_lines"] = dval(["f : callback invoked for each child, or once for a scalar value", ""])
+        page["param_lines"] = dval(["input : value to iterate", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "2_DValue_map", "2_DValue_filter", "2_DValue_is_list"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var value := dval({\"name\": \"Ada\", \"role\": \"admin\"})\nfor item, key := value {\n    print(key, \"=\", item, \"\\n\")\n}\n"}])
         page["guide_examples"] = dval([])
         return page
     }

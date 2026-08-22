@@ -9,18 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "file-close"
         page["route"] = "/doc/api/file-close/"
         page["title"] = "file_close"
-        page["content"] = "`file_close` closes a handle from `file_open()`. Use it after the final read or write. The Capy API does not return an error value. Capy uses the same handle value and call.\n"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction file_close(handle : u64)\n\n`file_close` closes a handle from `file_open`. Close a handle after the final read or write.\n"
         page["label"] = "file_close"
-        page["sig_lines"] = dval(["void file_close(u64 h)", ""])
         page["capy_sig_lines"] = dval(["function file_close(handle : u64)"])
-        page["param_lines"] = dval(["h : handle returned by `file_open()`", ""])
+        page["param_lines"] = dval(["handle : handle returned by `file_open`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "file_open", "file_write", "file_read"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">sys", "file_open", "file_read", "file_write"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var handle := file_open(\"/tmp/doc-close.txt\", \"w\")\nfile_write(handle, \"done\")\nfile_close(handle)\nprint(file_get_contents(\"/tmp/doc-close.txt\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

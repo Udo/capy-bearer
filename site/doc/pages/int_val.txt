@@ -1,29 +1,20 @@
 :sig
-u64 int_val(String s, u32 base = 10)
+function int_val(raw : string) u64
+function int_val(raw : string, base : s32) u64
 
 :params
-s : string that can contain an integer
-base : number base, default `10`
+raw : text that can contain an integer
+base : number base
 
 :returns
-parsed `u64`, or `0` when no usable number exists
+A parsed unsigned integer, or `0` when no usable number exists.
 
-:see
->string
-float_val
-0_String
-html_escape
-trim
-trusted_markup
-to_upper
 :content
-`int_val()` extracts an unsigned integer from a string. It returns `0` when it cannot identify a usable number.
-
-`base` selects the number base and defaults to `10`. Use it for numeric input text. In Capy, the same call returns `u64`.
+`int_val()` extracts an unsigned integer from text. The one-argument form uses base 10.
 
 :example capy render
-var decimal := "0"
-if int_val("42") == 42 { decimal = "42" }
-var hexadecimal := "0"
-if int_val("ff", 16) == 255 { hexadecimal = "255" }
-print(decimal, " / ", hexadecimal, "\n")
+print(int_val("42"), " / ", int_val("ff", 16), "\n")
+
+:see
+float_val
+trim

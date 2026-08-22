@@ -1,23 +1,9 @@
 :sig
-void sqlite_disconnect(SQLite* db)
+function sqlite_disconnect(handle : u64)
 
-:params
-db : SQLite handle from `sqlite_connect()`
-
-:see
->sqlite
-sqlite_connect
-sqlite_error
-sqlite_query
-sqlite_insert_id
-sqlite_affected_rows
 :content
-Capy `sqlite_disconnect(db)` closes an SQLite handle from `sqlite_connect()`. It does not return a value.
-
-Call it when you finish database work. Do not use the handle after this call. The C++ API uses an `SQLite*` pointer. Capy uses a `u64` handle.
+Use `sqlite_disconnect` to close an SQLite connection. Do not use the handle after this call.
 
 :example capy render
 var db := sqlite_connect(":memory:")
-sqlite_query(db, "create table t(id integer)")
-sqlite_disconnect(db)
-print("connection closed\n")
+if db != 0 { sqlite_disconnect(db) }

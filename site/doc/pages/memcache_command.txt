@@ -1,29 +1,22 @@
 :sig
-String memcache_command(u64 connection, String command)
+function memcache_command(connection : u64, command : string) string
 
 :params
-connection : open connection handle
-command : Memcache command text
+connection : the connection handle
+command : the Memcache command text
 
 :returns
-one bounded server response read
+one server response read
+
+:content
+`memcache_command()` sends `command` to the server and returns one bounded response read.
+
+Use a dedicated Memcache function when one is available. This function does not guarantee a complete multi-part response.
+
+:example capy render
+var connection := memcache_connect()
+if connection != u64(0) { print(memcache_command(connection, "version"), "\n") }
 
 :see
 >memcache
 memcache_connect
-memcache_delete
-memcache_get
-memcache_get_multiple
-memcache_set
-memcache_escape_key
-:content
-Pass the `u64` handle from `memcache_connect()`.
-
-This function appends CRLF to `command` and sends it to the server. It makes one bounded read for the response. It does not guarantee a complete multi-chunk response.
-
-Use a dedicated helper when it supports the operation.
-
-:example capy render
-var conn := memcache_connect()
-if conn != 0 { if memcache_command(conn, "stats") != "" { print("stats command returned data\n") } else { print("no data\n") } }
-else { print("(requires a reachable memcached server)\n") }

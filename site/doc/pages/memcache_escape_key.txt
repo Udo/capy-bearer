@@ -1,25 +1,20 @@
 :sig
-String memcache_escape_key(String key)
+function memcache_escape_key(key : string) string
 
 :params
-key : key text
+key : the key text
 
 :returns
-key with whitespace characters replaced by underscores
+the key with whitespace replaced by underscores
 
-:see
->sys
->memcache_escape_keys
-basename
-dirname
-expand_path
-file_append
-file_exists
-file_get_contents
 :content
-Use this function to replace whitespace in a Memcache key with underscores.
+`memcache_escape_key()` replaces whitespace characters in a key with underscores.
 
-It replaces only characters for which C++ `isspace()` returns true. It does not reject or escape every invalid Memcache protocol byte.
+It does not validate every Memcache protocol byte.
 
 :example capy render
-print(memcache_escape_key("a key with spaces"), "\n")
+print(memcache_escape_key("a key"), "\n")
+
+:see
+>memcache
+memcache_escape_keys

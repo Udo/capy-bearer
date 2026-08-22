@@ -1,22 +1,20 @@
 :sig
-void file_close(u64 h)
+function file_close(handle : u64)
 
 :params
-h : handle returned by `file_open()`
+handle : handle returned by `file_open`
 
 :content
-`file_close` closes a handle from `file_open()`. Use it after the final read or write. The Capy API does not return an error value. Capy uses the same handle value and call.
+`file_close` closes a handle from `file_open`. Close a handle after the final read or write.
 
 :example capy render
 var handle := file_open("/tmp/doc-close.txt", "w")
 file_write(handle, "done")
 file_close(handle)
-var result := "missing"
-if file_exists("/tmp/doc-close.txt") { result = "written and closed" }
-print(result, "\n")
+print(file_get_contents("/tmp/doc-close.txt"), "\n")
 
 :see
 >sys
 file_open
-file_write
 file_read
+file_write

@@ -1,54 +1,24 @@
-
 :sig
-DValue http_request(DValue req)
+function http_request(request : dval) dval
 
 :params
-request : a `dval` map that describes the outbound request
+request : a map that describes an outbound request
 
 :returns
-a `dval` map with `status`, `headers`, `body`, and `error`
+A map with `status`, `headers`, `body`, and `error`.
 
 :content
-`http_request()` sends an outbound HTTP or HTTPS request from a `dval` request map.
+`http_request()` sends an outbound HTTP or HTTPS request. Set `method`, `url`, `headers`, `body`, `timeout_ms`, and `follow_redirects` as needed.
 
-Set `method`, `url`, `headers`, `body`, `timeout_ms`, and `follow_redirects` as needed. Use it for an outbound request when the request handler can wait for the response.
-
-For hardened HTTPS requests, set every `security` field to `true`: `https_only`, `public_dns_only`, `pin_dns`, `isolated_curl`, and `no_redirects`. A partial or false hardened policy returns `invalid_request`.
-
-In Capy, use `DValue` for the request and response.
-
-:note
-The examples are compile-only because they make outbound HTTP requests. Run them in a local test page when you control the target service.
+When you set a `security` field, set `https_only`, `public_dns_only`, `pin_dns`, `isolated_curl`, and `no_redirects` to `true`.
 
 :errors
-The hardened policy rejects non-HTTPS URLs, IP hosts, URL userinfo, unsafe DNS results, and redirects. It limits request and response bodies to 64 KiB. It limits response headers to 8 KiB.
+The result can report `invalid_request`, `unsafe_dns`, `timeout`, `response_too_large`, `redirect_not_allowed`, `http_status`, or `network_failure`.
 
-The `error` member can be `invalid_request`, `unsafe_dns`, `timeout`, `response_too_large`, `redirect_not_allowed`, `http_status`, or `network_failure`.
+:example capy cli
+var outbound := dval({"method": "GET", "url": "http://127.0.0.1/tests/capy-render.capy", "headers": {"Host": "bearer.openfu.com"}, "timeout_ms": 2000})
+var response := http_request(outbound)
+print("status=", s32(response["status"]), "\n")
 
 :see
->socket
 http_request_async
-socket_close
-socket_connect
-socket_read
-socket_write
-:example capy cli
-var outbound := dval({"method": "GET", "url": "http://127.0.0.1/doc/", "headers": {"Host": "uce.openfu.com"}, "timeout_ms": 2000})
-var response := http_request(outbound)
-print("HTTP ", s32(response["status"]), ", ", length(string(response["body"])), " bytes returned\n")
-
-:example capy cli
-// GitHub token exchange: client_secret stays in stdin body, not argv.
-var client_id := "example-client"
-var client_secret := "example-secret"
-var code := "example-code"
-var token := dval({"method": "POST", "url": "https://github.com/login/oauth/access_token", "headers": {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}, "body": "client_id=" + uri_encode(client_id) + "&client_secret=" + uri_encode(client_secret) + "&code=" + uri_encode(code), "security": {"https_only": true, "public_dns_only": true, "pin_dns": true, "isolated_curl": true, "no_redirects": true}})
-var token_response := http_request(token)
-print("hardened token exchange composed; status=", s32(token_response["status"]), " error=", token_response["error"], "\n")
-
-:example capy cli
-// ATProto metadata discovery uses the same generic policy; no provider operation name.
-var issuer_host := "example.com"
-var metadata_request := dval({"method": "GET", "url": "https://" + issuer_host + "/.well-known/oauth-authorization-server", "headers": {"Accept": "application/json"}, "security": {"https_only": true, "public_dns_only": true, "pin_dns": true, "isolated_curl": true, "no_redirects": true}})
-var metadata := http_request(metadata_request)
-print("hardened metadata discovery composed; error=", metadata["error"], "\n")

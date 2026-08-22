@@ -1,5 +1,5 @@
 :sig
-String path_join(String base, String child)
+function path_join(base : string, child : string) string
 
 :params
 base : the base path
@@ -9,17 +9,14 @@ child : the path to append
 the joined path
 
 :content
-`path_join()` returns a `string` that joins `base` and `child` with one `/` when needed.
+`path_join()` joins `base` and `child` with one slash when needed.
 
-If `child` starts with `/`, it replaces `base`. If either value is empty, the API returns the other value.
-
-This API does not resolve `.` or `..` segments. Use `path_real()` when you need a canonical existing path.
+An absolute `child` replaces `base`. This function does not resolve dot segments.
 
 :example capy render
 print(path_join("/var/www", "site/index.capy"), "\n")
 
 :see
 >sys
-basename
-dirname
 path_real
+path_is_within

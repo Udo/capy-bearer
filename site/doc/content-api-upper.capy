@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "upper"
         page["route"] = "/doc/api/upper/"
         page["title"] = "upper"
-        page["content"] = "`upper(value)` converts lowercase ASCII characters to uppercase. It does not convert Unicode case.\n\nC++ uses `to_upper()` with the signature above.\n"
+        page["content"] = "## sig\n\nfunction upper(value : string) string\n\n`upper` changes lowercase ASCII characters to uppercase.\n"
         page["returns"] = "string with lowercase ASCII characters changed to uppercase"
-        page["example_error"] = "expected contiguous :example cpp render"
         page["label"] = "upper"
-        page["sig_lines"] = dval(["String to_upper(String s)", ""])
         page["capy_sig_lines"] = dval(["function upper(value : string) string"])
-        page["param_lines"] = dval(["value : Capy string to convert", ""])
+        page["param_lines"] = dval(["value : string to convert", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "to_upper", "string", "length", "clone", "ascii_safe_name", "base64_decode"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">string", "string", "length", "clone", "ascii_safe_name", "base64_decode"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(upper(\"bearer\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

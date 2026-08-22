@@ -1,26 +1,22 @@
 :sig
-String ob_get()
+function ob_get() string
 
 :returns
 the current output buffer contents
 
 :content
-`ob_get()` returns the current output buffer as a `string`. The buffer stays active, so later `print()` calls add more output.
+`ob_get()` returns the current output buffer contents.
 
-Use `ob_get_close()` to get the contents and close the buffer.
+The buffer stays active after this call.
 
 :example capy render
 ob_start()
 print("partial")
-var snapshot := ob_get()
+var output := ob_get()
 ob_close()
-print("snapshot was: ", snapshot, "\n")
+print(output, "\n")
 
 :see
 >ob
-ob_get_close
 ob_start
-ob_close
-load
-component_resolve
-print
+ob_get_close

@@ -1,26 +1,21 @@
 :sig
-void csrf_rotate(String session_name = "bearer-session", String token_name = "csrf_token")
+function csrf_rotate(session_name : string = "bearer-session", token_name : string = "csrf_token")
 
 :params
-session_name : session and cookie name
-token_name : token namespace to clear
+session_name : the session and cookie name
+token_name : the token namespace to clear
 
 :content
-`csrf_rotate()` removes the active Capy CSRF token from a token namespace.
+`csrf_rotate()` removes the active CSRF token from a token namespace.
 
-Pass the session name and token namespace. It starts the named session when necessary. The next `csrf_token()` call creates a replacement token.
-
-Use it after a sensitive successful change when the same submitted form must not work again.
-
-The Capy call has the same arguments.
+The next `csrf_token()` call creates a replacement token. Use it after a sensitive successful change.
 
 :example capy render
-var old_token := csrf_token()
-csrf_rotate()
-var new_token := csrf_token()
-if old_token != new_token { print("rotated\n") } else { print("unchanged\n") }
+var old_token := csrf_token("capy-doc-session")
+csrf_rotate("capy-doc-session")
+var new_token := csrf_token("capy-doc-session")
+print(old_token != new_token, "\n")
+
 :see
->session
 csrf_token
 csrf_valid
-session_start

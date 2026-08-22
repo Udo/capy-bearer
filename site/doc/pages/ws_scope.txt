@@ -1,25 +1,15 @@
-
 :sig
-String ws_scope()
-
-:returns
-scope identifier of the current WebSocket endpoint
+No Capy signature.
 
 :see
 >websocket
->ws_connections
 >0_Request
+ws_connections
 ws_opcode
 ws_send
 ws_message
 ws_send_to
 ws_is_binary
-ws_connections
-:capy-status cpp-specific
 
 :content
-`ws_scope()` is a C++ API. It returns the current WebSocket scope. Outside a WebSocket handler, it returns an empty string.
-
-Use this value with `ws_send()`, `ws_connections()`, or `ws_connection_count()` when C++ code needs an explicit scope. Capy keeps `ws_send()` for effects.
-
-Capy does not expose `ws_scope`. In a Capy `WS` handler, read `request.websocket.scope`.
+Capy has no native `ws_scope` signature. In a `WS` handler, use `request.websocket.scope`.

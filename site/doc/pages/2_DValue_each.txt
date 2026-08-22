@@ -1,28 +1,19 @@
+:title
+Iterate dynamic values
+
 :sig
-void DValue::each(std::function<void (const DValue& item, String key)> f) const
+for value, key := input { ... }
 
 :params
-f : callback invoked for each child, or once for a scalar value
-
-:returns
-none
-
-:see
->types
-0_DValue
-2_DValue_map
-2_DValue_filter
-2_DValue_is_list
+input : value to iterate
 
 :content
-Use `for item, key := value` in Capy. The item comes first and is a copied DValue. The key has type `string`. Lists use decimal index strings in order. Maps use string-key order. A scalar runs the loop once with an empty key.
+Use `for value, key := input` to iterate a dynamic value. `value` is a copied child and `key` is a string.
 
-The loop uses a live view and rechecks the current count. A loop that keeps growing `value` can continue.
-
-C++ `each(f)` does not modify the `DValue`. Its callback receives the child and key. It dereferences references before it iterates.
+Lists use numeric keys in order. Maps use key order. A scalar runs the loop once with an empty key.
 
 :example capy render
-var user := dval({"name": "Ada", "role": "admin"})
-var keys := dval([])
-for item, key := user { keys = dval_push(keys, key) }
-print(join(sort(keys), ","), "\n")
+var value := dval({"name": "Ada", "role": "admin"})
+for item, key := value {
+    print(key, "=", item, "\n")
+}

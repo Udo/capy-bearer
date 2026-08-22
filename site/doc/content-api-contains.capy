@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "contains"
         page["route"] = "/doc/api/contains/"
         page["title"] = "contains"
-        page["content"] = "`contains()` checks whether one Capy string contains another string.\n\nPass the string to search and the substring to find. It returns `true` for an empty substring.\n\nUse this function for a simple substring check.\n"
-        page["returns"] = "`true` when `needle` occurs in `haystack`, otherwise `false`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction contains(haystack : string, needle : string) bool\n\n`contains()` checks for a substring.\n"
+        page["returns"] = "`true` if `needle` occurs in `haystack`. An empty `needle` matches."
         page["label"] = "contains"
-        page["sig_lines"] = dval(["bool contains(String haystack, String needle)", ""])
         page["capy_sig_lines"] = dval(["function contains(haystack : string, needle : string) bool"])
-        page["param_lines"] = dval(["haystack : string to search", "needle : substring to find", ""])
+        page["param_lines"] = dval(["haystack : the string to search", "needle : the substring to find", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "base64_encode", "filter", "base64_decode", "first", "ascii_safe_name", "join"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["find", "strpos"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "if contains(\"Capy docs\", \"docs\") { print(\"yes\\n\") } else { print(\"no\\n\") }\n"}])
         page["guide_examples"] = dval([])
         return page
     }

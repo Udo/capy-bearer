@@ -1,18 +1,19 @@
+:title
+Find text in a string
+
 :sig
-DValue::find(String predicate, String fallback = "") (legacy `StringList` page)
+function find(haystack : string, needle : string) s32
+
+:returns
+This function returns the byte position of `needle`. It returns `-1` when it does not find `needle`.
 
 :content
-`string_list_find(items, predicate, fallback)` takes a list-shaped `dval`, a string predicate, and a fallback string. It returns the first matching string. It returns the fallback when no item matches.
+`find` searches a string for another string.
 
-Capy has no separate `StringList` type. It uses list-shaped DValues. This function does not mutate `items`.
-
-## C++ API
-
-`DValue::find()` provides the legacy StringList operation.
-
-:see
-0_DValue
+For a list-shaped `dval`, use `some` to test for a matching item.
 
 :example capy render
-var items := split("one,two", ",")
-print(string_list_find(items, function(value : string) bool { return value == "two" }, "missing"), "\n")
+print(find("one,two", "two"), "\n")
+
+:see
+0_StringList

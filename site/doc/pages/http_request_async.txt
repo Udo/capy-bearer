@@ -1,25 +1,24 @@
-
 :sig
-u64 http_request_async(DValue req)
+function http_request_async(request : dval) u64
+
+:params
+request : a map that describes an outbound request
+
+:returns
+A job ID.
 
 :content
-`http_request_async()` starts an outbound request from a `dval` request map. It returns a `u64` job ID.
+`http_request_async()` starts an outbound request and returns its job ID. Use `job_await()` or `job_result()` to get the response map.
 
-Use `job_await()` or `job_result()` to get the response map from `http_request()`. Use it when the handler must continue before the request finishes.
+The request map follows the `http_request()` rules.
 
-The `security` map follows `http_request()` rules. Any recognized hardening field requires all five fields to be `true`, or the job reports `invalid_request`.
-
-`job_cancel()` cancels a hardened request and its child processes. In Capy, pass `DValue` and use the returned job ID.
-
-:see
->socket
-http_request
-socket_close
-socket_connect
-socket_read
-socket_write
 :example capy render
-var outbound := dval({"method": "GET", "url": "http://127.0.0.1/doc/", "headers": {"Host": "bearer.openfu.com"}, "timeout_ms": 2000})
+var outbound := dval({"method": "GET", "url": "http://127.0.0.1/tests/capy-render.capy", "headers": {"Host": "bearer.openfu.com"}, "timeout_ms": 2000})
 var job := http_request_async(outbound)
 var done := job_await(dval(job), 3000)
-print("async HTTP ", s32(dval_get_by_path(done, "result/status")), "\n")
+print(s32(dval_get_by_path(done, "result/status")), "\n")
+
+:see
+http_request
+job_await
+job_result

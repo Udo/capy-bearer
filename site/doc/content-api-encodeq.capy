@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "encode-query"
         page["route"] = "/doc/api/encode-query/"
         page["title"] = "encode_query"
-        page["content"] = "`encode_query()` converts a Capy `dval` map into an encoded URL query string.\n\nPass the parameter map. It returns one string that you can append after a URL `?`. Use it to make query parameters from structured values.\n\nCapy uses a `StringMap` instead of a Capy `dval` map.\n"
-        page["returns"] = "encoded query string"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction encode_query(map : dval) string\n\n`encode_query()` converts a map-shaped `dval` to a URL query string.\n\nPass the returned string after `?` in a URL.\n"
+        page["returns"] = "URL query string"
         page["label"] = "encode_query"
-        page["sig_lines"] = dval(["String encode_query(StringMap map)", ""])
         page["capy_sig_lines"] = dval(["function encode_query(map : dval) string"])
-        page["param_lines"] = dval(["map : `dval` map of URL parameters in Capy", ""])
+        page["param_lines"] = dval(["map : map-shaped `dval` of URL parameters", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">uri", "redirect", "request_context_params", "request_base_url", "request_query_path", "request_query_route", "request_script_url"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">uri", "redirect", "request_context_params"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var query := dval({\"name\": \"Ada\"})\nprint(encode_query(query), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

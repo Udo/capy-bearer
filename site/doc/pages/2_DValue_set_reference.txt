@@ -1,24 +1,15 @@
+:title
+Set a reference
+
 :sig
-void DValue::set_reference(DValue* target)
-
-:params
-target : target node pointer
-
-:returns
-none
+No Capy declaration.
 
 :see
 0_DValue
-2_DValue_reference_target
-
-:content
-Capy does not support `set_reference`. DValues share identity inside a workspace, but they cannot hold a C++ `DValue*` target.
-
-## C++ API
-
-`DValue::set_reference()` stores an internal reference to another `DValue`. Normal C++ reads and writes usually follow an existing reference.
-
 
 :capy-status unsupported
 
-Capy cannot create a C++ internal reference node.
+:content
+Capy cannot create host reference nodes in a dynamic value.
+
+No Capy alternative exists.

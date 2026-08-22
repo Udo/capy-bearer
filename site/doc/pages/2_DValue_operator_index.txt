@@ -1,31 +1,20 @@
 :title
-DValue::operator[]
+Read a child by index
 
 :sig
-DValue& DValue::operator[](String s)
+value[key]
 
 :params
-s : child key to return or create
+key : child key or list index
 
 :returns
-reference to the child node
-
-:see
-0_DValue
-2_DValue_get_or_create
-2_DValue_key
-2_DValue_has
+The copied child, or `none`.
 
 :content
-Use `value[key]` or `value[index]` to read a child from a `dval`. The result is a copied `dval`, not a mutable child alias. `dval_put` mutates its target and returns that same target identity. Assigning the result back remains valid.
+Use `value[key]` or `value[index]` to read a child. A missing child returns `none` and does not change the value.
 
-A missing child does not give Capy a writable child reference. Use `dval_has` or `dval_get_by_path` when you need to test a read.
-
-## C++ API
-
-`DValue::operator[]` returns a mutable child reference. It creates a missing child and follows an internal reference. Use `has`, `key`, or `get_by_path` for a C++ read that must not create a child.
-
+Use `dval_put` to set a named child.
 
 :example capy render
-var value := dval({"a": {"b": "nested"}})
-print(value["a"]["b"], "\n")
+var value := dval({"site": {"title": "Bearer"}})
+print(value["site"]["title"], "\n")

@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "parse-query"
         page["route"] = "/doc/api/parse-query/"
         page["title"] = "parse_query"
-        page["content"] = "`parse_query()` decodes query text such as `a=b&c=d` into a map-shaped `dval`.\n\n- `&` separates pairs.\n- The first raw `=` separates a key and value.\n- The API URL-decodes keys and values.\n- A key without `=` has an empty value.\n- Empty pairs, including a final `&`, are ignored.\n- The last value replaces an earlier value for the same key.\n\nUse this API for query text outside normal request parsing.\n\n"
-        page["returns"] = "decoded parameters as a map-shaped `dval`. C++ returns `StringMap`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction parse_query(query : string) dval\n\n`parse_query()` decodes URL query text into a map-shaped `dval`.\n\nAn ampersand separates pairs. The first equals sign separates a key and value. A key without an equals sign has an empty value. The last repeated key wins.\n"
+        page["returns"] = "the decoded parameters"
         page["label"] = "parse_query"
-        page["sig_lines"] = dval(["StringMap parse_query(String q)", ""])
         page["capy_sig_lines"] = dval(["function parse_query(query : string) dval"])
-        page["param_lines"] = dval(["q : query text in URL form", ""])
+        page["param_lines"] = dval(["query : the URL query text", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">uri", "encode_query", "request_context_params", "session_id_create", "parse_uri", "route_path_sanitize", "uri_decode"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">uri", "parse_uri"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var values := parse_query(\"name=Ada&role=admin\")\nprint(values[\"name\"], \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

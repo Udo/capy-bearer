@@ -1,29 +1,16 @@
 :sig
-dval session_remove(string key)
+function session_remove(key : string) dval
 
 :params
-key : session field name to delete
+key : session field name
 
 :returns
-session snapshot with `id`, `name`, and `values`
+The updated session state.
 
 :content
-Use `session_remove` to delete one session key.
-Call `session_start()` first so the key exists in the current snapshot.
-The function returns the updated session state.
-C++ can remove a key with `context.session.erase(key)`.
+Call `session_start()` before you remove a session field.
 
 :example capy render
-var session := session_start("capy-doc-session")
-session = session_remove("status")
-if length(string(session.values.status, "")) == 0 {
-    print("removed\n")
-} else {
-    print("present\n")
-}
-
-:see
->session
-session_start
-session_destroy
-session_set
+var session := session_start("docs-session")
+session = session_remove("theme")
+print(string(session.name, ""), "\n")

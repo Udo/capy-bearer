@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "ls"
         page["route"] = "/doc/api/ls/"
         page["title"] = "ls"
-        page["content"] = "This function returns a copied `dval` list of directory entry names.\n\nUse it when you need to inspect a directory. Handle an empty result when the directory has no entries or cannot be listed.\n\nThe C++ API returns a native `DValue`.\n"
-        page["returns"] = "copied `dval` list of names"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction ls(path : string) dval\n\n`ls()` returns the names in a directory. It returns an empty list when it cannot list the directory.\n"
+        page["returns"] = "A `dval` list of entry names."
         page["label"] = "ls"
-        page["sig_lines"] = dval(["DValue ls(String path)", ""])
         page["capy_sig_lines"] = dval(["function ls(path : string) dval"])
-        page["param_lines"] = dval(["directory : directory to list", ""])
+        page["param_lines"] = dval(["path : directory path to list", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "dir_list", "0_DValue", "cwd_get", "mkdir", "file_put_contents", "path_join"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval(["dir_list", "mkdir", "path_join"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var root := file_temp(\"/tmp/capy-doc-ls-\")\nfile_unlink(root)\nmkdir(root)\nfile_put_contents(path_join(root, \"one.txt\"), \"1\")\nprint(join(sort(ls(root)), \",\"), \"\\n\")\ndir_remove(root, true)\n"}])
         page["guide_examples"] = dval([])
         return page
     }

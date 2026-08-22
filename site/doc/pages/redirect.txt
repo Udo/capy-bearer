@@ -1,28 +1,12 @@
 :sig
-void redirect(String url, s32 code = 302)
+function redirect(url : string, code : s32 = 302)
 
 :params
-url : the redirect target URL
-code : the optional HTTP redirect status. The default is `302`.
+url : redirect target URL
+code : HTTP status code
 
-:see
->uri
-2_Request_set_status
-0_Request
-encode_query
-request_context_params
-request_base_url
-request_query_path
 :content
-`redirect()` sets the response `Location` header and status code.
+`redirect()` sets the response location and status. The default status is `302`.
 
-Call `redirect(url)` for status `302`. Use the two-argument form for another status.
-
-Use this API instead of setting the response header and status separately.
-
-:note
-The examples are compile-only because an executed redirect would replace the documentation response.
-
-:example capy cli
+:example capy render
 redirect("/next")
-print("redirect(\"/next\") sends an HTTP redirect.\n")

@@ -1,26 +1,15 @@
 :sig
-String session_start(String session_name = "bearer-session")
+function session_start(name : string = "bearer-session") dval
 
 :params
-session_name : optional session cookie name. The default is `bearer-session`.
+name : session cookie name
 
 :returns
-current session ID
+The current session state.
 
-:see
->session
-session_id_create
-session_set
-session_remove
-session_destroy
-response_cookie
 :content
-Use this function to start the named session or restore its existing session data.
-
-If a valid session cookie and server-side file exist, it restores that session. Otherwise, it creates a new ID and cookie. The cookie has `Path=/`, `HttpOnly`, and `SameSite=Lax`. It also has `Secure` when `SESSION_COOKIE_SECURE=1`.
-
-Capy `session_start`, `session_set`, `session_remove`, and `session_destroy` return `{id, name, values}`. Store the returned state when later code needs the changed session data. Bearer saves session changes after the request. C++ keeps the documented `String` and `void` behavior.
+`session_start()` restores the named session or creates one.
 
 :example capy render
-var session := session_start("bearer-doc-example")
-if string(session.id, "") != "" { print("started\n") } else { print("empty\n") }
+var session := session_start("docs-session")
+print(string(session.id, ""), "\n")

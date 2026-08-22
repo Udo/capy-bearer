@@ -9,19 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "ws-is-binary"
         page["route"] = "/doc/api/ws-is-binary/"
         page["title"] = "ws_is_binary"
-        page["content"] = "`ws_is_binary()` is a C++ API. It returns true for the current binary WebSocket message. It returns false for a text message and outside a WebSocket handler.\n\nUse it before you parse `ws_message()`.\n\nCapy does not expose `ws_is_binary`. In a Capy `WS` handler, read `request.websocket.binary`.\n"
-        page["returns"] = "true for the current binary WebSocket message"
-        page["capy_status"] = "cpp-specific"
+        page["content"] = "## sig\n\nNo Capy signature.\n\nCapy has no native `ws_is_binary` signature. In a `WS` handler, use `request.websocket.binary`.\n"
         page["label"] = "ws_is_binary"
-        page["sig_lines"] = dval(["bool ws_is_binary()", ""])
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([">websocket", ">0_Request", "ws_connections", "ws_message", "ws_connection_id", "ws_opcode", "ws_connection_count", "ws_scope"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([])
         page["guide_examples"] = dval([])
         return page
     }

@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "first"
         page["route"] = "/doc/api/first/"
         page["title"] = "first"
-        page["content"] = "`first()` returns the first nonblank string. It returns an empty string when no argument is nonblank.\n\nIt ignores leading and trailing whitespace when it tests each argument. Use it to select a fallback string.\n\n"
-        page["returns"] = "first nonblank string, or an empty string"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction first() string\nfunction first(one : string) string\nfunction first(one : string, two : string) string\nfunction first(one : string, two : string, three : string) string\nfunction first(one : string, two : string, three : string, four : string) string\n\n`first` checks values in order. It ignores values that contain only whitespace.\n"
+        page["returns"] = "The first nonblank value. Returns `\"\"` if no value is nonblank."
         page["label"] = "first"
-        page["sig_lines"] = dval(["String first(String... args)", ""])
         page["capy_sig_lines"] = dval(["function first() string", "function first(one : string) string", "function first(one : string, two : string) string", "function first(one : string, two : string, three : string) string", "function first(one : string, two : string, three : string, four : string) string"])
-        page["param_lines"] = dval(["args : zero or more strings, in selection order", ""])
+        page["param_lines"] = dval(["one : first value", "two : second value", "three : third value", "four : fourth value", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "filter", "join", "contains", "json_consume_space", "base64_encode", "json_encode"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(first(\"\", \"  \", \"fallback\", \"other\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

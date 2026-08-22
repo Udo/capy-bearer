@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "safe-name"
         page["route"] = "/doc/api/safe-name/"
         page["title"] = "safe_name"
-        page["content"] = "Use this function to remove unsafe characters from a name.\n\nThe result keeps only letters, digits, and `_`. It removes whitespace, separators, punctuation, and other characters. The result can be empty. Use `runtime_safe_key()` when you need a stable non-empty runtime key.\n"
-        page["returns"] = "text that contains only letters, digits, and `_`"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction safe_name(raw : string) string\n\n`safe_name()` removes all other characters. The result can be empty.\n"
+        page["returns"] = "Text that contains only letters, digits, and `_`."
         page["label"] = "safe_name"
-        page["sig_lines"] = dval(["String safe_name(String raw)", ""])
         page["capy_sig_lines"] = dval(["function safe_name(raw : string) string"])
         page["param_lines"] = dval(["raw : source text", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "ascii_safe_name", "runtime_safe_key", "trusted_markup", "var_dump", "html_escape", "json_decode"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(safe_name(\"Capy docs-2024\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

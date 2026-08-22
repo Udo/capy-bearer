@@ -1,31 +1,23 @@
 :sig
-String nibble(String& haystack, String delim)
+function nibble(haystack : string, delim : string) string
 
 :params
 haystack : the string to split
 delim : the delimiter
 
 :returns
-the text before the first `delim`
+the text before the first delimiter
+
+:content
+`nibble()` returns the text before the first `delim`.
+
+It does not change `haystack`. If `delim` does not occur, it returns all of `haystack`.
+
+:example capy render
+var path := "docs/index"
+print(nibble(path, "/"), "\n")
 
 :see
 >string
 map
 print
-json_encode
-strpos
-json_consume_space
-str_ends_with
-
-:content
-`nibble()` returns the text before the first `delim`.
-
-C++ also removes that text and the delimiter from `haystack`.
-
-Capy currently returns the same head text. It does not yet change the caller's string binding.
-
-If `delim` does not occur, it returns all of `haystack`.
-
-:example capy cli
-var path := "docs/index"
-print(nibble(path, "/"), " ", path, "\n")

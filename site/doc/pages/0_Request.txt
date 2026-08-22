@@ -2,31 +2,20 @@
 Request snapshot
 
 :sig
-Request& context
+handler request : dval
+
+:content
+Each Capy handler receives `request : dval`. This value is a request snapshot.
+
+The snapshot can contain `method`, `query`, `form`, `headers`, `cookies`, `body`, `files`, `route`, `url`, `server`, `session`, `props`, `config`, `call`, `connection`, `unit`, and `websocket`.
+
+Use `string`, `s32`, or `bool` with a fallback to read scalar values. Use response, session, output, and WebSocket functions to change the active request.
+
+:example capy render
+print(string(request.query.name, "guest"), "\n")
 
 :see
 >1_RENDER
 >1_COMPONENT
 >1_CLI
 >1_WS
->session_start
->route_from_raw_path
->runtime_perf
-
-:content
-Each Capy Bearer handler receives `request : dval`. Bearer copies this value at handler entry. Capy does not expose a public `request` type or a mutable C++ `Request` object.
-
-The snapshot has these fields: `method`, `query`, `form`, `headers`, `cookies`, `body`, `files`, `route`, `url`, `server`, `session`, `props`, `config`, `call`, `connection`, `unit`, and `websocket`.
-
-`route` has `path`, `page`, `raw_path`, and `valid`. `url` has `script` and `base`. `session` has `id`, `name`, and `values`. `websocket` has `connection_id`, `scope`, `opcode`, `binary`, and current-scope `connections`.
-
-Missing data is `none`. Convert scalar values with normal DValue conversions. Use `string(request.query.name, "")`, `s32(request.websocket.opcode, 0)`, and `bool(request.websocket.binary, false)`.
-
-Use response, session, output, and WebSocket functions for effects. A session effect returns `{id, name, values}`. Store that result when later code needs the live session state. `request.session` remains the entry snapshot.
-
-C++ handlers receive `Request& context`. The object contains request maps, response state, session data, output buffers, WebSocket data, and runtime fields.
-
-C++ code can update these fields directly. The C++ `Request` lifetime is one request. WebSocket connection state can persist in `context.connection`.
-
-:example capy render
-print(string(request.query.name, "guest"), "\n")

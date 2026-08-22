@@ -9,20 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "trusted-markup"
         page["route"] = "/doc/api/trusted-markup/"
         page["title"] = "trusted_markup"
-        page["content"] = "Use `trusted_markup()` when content is already trusted and must stay HTML, not escaped text.\n\nSecurity warning: use `trusted_markup()` only on strings that your code builds. Do not pass request data, remote responses, or database text directly.\n\n`trusted_markup()` returns a `markup` value. It still needs `print()` or interpolation before it affects output. `<?: expression ?>` inserts trusted markup in HTML text without extra escaping.\n"
-        page["returns"] = "trusted markup value"
-        page["errors"] = "Compilation fails when `trusted_markup()` receives the wrong argument count or a non-string input."
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction trusted_markup(value : string) markup\n\n`trusted_markup` prevents HTML escaping for the value.\n"
+        page["returns"] = "trusted markup"
         page["label"] = "trusted_markup"
-        page["sig_lines"] = dval(["markup trusted_markup(string text)", ""])
         page["capy_sig_lines"] = dval(["function trusted_markup(value : string) markup"])
-        page["param_lines"] = dval(["text : string content to mark as trusted", ""])
+        page["param_lines"] = dval(["value : trusted HTML text", ""])
         page["notes"] = dval([])
-        page["warnings"] = dval(["`trusted_markup()` disables HTML escaping. Do not pass request data, remote responses, or database text to it."])
+        page["warnings"] = dval(["Use only HTML text that your code creates. Do not pass request, remote, or database text."])
         page["see"] = dval([">markup", "html_escape", "markdown_to_html", "component", "component_render"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(trusted_markup(\"<strong>safe</strong>\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

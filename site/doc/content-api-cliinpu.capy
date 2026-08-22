@@ -9,19 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "cli-input"
         page["route"] = "/doc/api/cli-input/"
         page["title"] = "cli_input"
-        page["content"] = "`cli_input()` is a C++ API. It returns a map that merges query parameters, form parameters, and JSON object fields. Later sources replace earlier fields with the same name.\n\nA JSON scalar or list is stored at `input[\"_\"]`. Use this API when C++ code needs several input values or DValue values.\n\nCapy does not expose `cli_input`. In a Capy `CLI` handler, read `request.query`, `request.form`, and `request.body` directly. A Capy handler receives exactly one copied `request : dval`.\n"
-        page["returns"] = "merged CLI input values"
-        page["capy_status"] = "cpp-specific"
+        page["content"] = "## sig\n\n`cli_input` is not available in Capy.\n\nCapy does not provide the retired CLI input reader.\n\nIn a `CLI` handler, read `request.query`, `request.form`, and `request.body` directly. Each handler receives one copied `request : dval` value.\n"
         page["label"] = "cli_input"
-        page["sig_lines"] = dval(["DValue cli_input(Request& context)", ""])
         page["capy_sig_lines"] = dval([])
-        page["param_lines"] = dval(["context : live C++ request context", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">ob", ">1_CLI", ">json_decode", "0_DValue", ">0_Request", "1_CLI", "cli_arg", "1_RENDER", "unit_call", "component", "component_exists"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">1_CLI", ">0_Request", "cli_arg", "json_decode"])
+        page["examples"] = dval([])
         page["guide_examples"] = dval([])
         return page
     }

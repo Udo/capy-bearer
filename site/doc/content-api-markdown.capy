@@ -9,19 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "markdown-to-ast"
         page["route"] = "/doc/api/markdown-to-ast/"
         page["title"] = "markdown_to_ast"
-        page["content"] = "This function parses Markdown text into a `dval` document tree.\n\nThe root is a map-shaped document node. Its `children` field is a list-shaped value. The parser stores component data but does not call component hooks during parsing.\n\nBy default, the parser supports GitHub-flavored headings, paragraphs, blockquotes, lists, task items, code blocks, and tables.\n\nIt also supports rules, emphasis, links, images, autolinks, code spans, and `:::` directive blocks.\n\nEach node has a `type` field and node-specific fields. Common fields include `level`, `text`, `lang`, `href`, `src`, `name`, `argument`, `attrs`, and `children`.\n\nCommon block types are `heading`, `paragraph`, `blockquote`, `list`, `list_item`, `code_block`, `table`, `directive`, and `hr`. Common inline types are `text`, `code`, `strong`, `em`, `strike`, `link`, `image`, and `raw_html`.\n\nOptions:\n\n- `options[\"gfm\"]` enables tables, task lists, strikethrough, and bare URL autolinks. The default is `true`.\n- `options[\"allow_html\"]` captures raw HTML nodes for later output. The default is `false`.\n- `options[\"components\"]` stores hooks for `markdown_to_html()`.\n"
-        page["returns"] = "`dval` document tree"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction markdown_to_ast(source : string) dval\nfunction markdown_to_ast(source : string, options : dval) dval\n\n`markdown_to_ast()` parses Markdown into a `dval` document tree.\n\nThe root node contains a `children` list. Nodes contain a `type` field and fields for their content. The default options support GitHub-flavored Markdown.\n\nSet `gfm` to control GitHub-flavored extensions. Set `allow_html` to retain raw HTML nodes.\n"
+        page["returns"] = "the Markdown document tree"
         page["label"] = "markdown_to_ast"
-        page["sig_lines"] = dval(["DValue markdown_to_ast(String src)", "DValue markdown_to_ast(String src, DValue options)", ""])
         page["capy_sig_lines"] = dval(["function markdown_to_ast(source : string) dval", "function markdown_to_ast(source : string, options : dval) dval"])
-        page["param_lines"] = dval(["src : Markdown text", "options : optional `dval` options", ""])
+        page["param_lines"] = dval(["source : the Markdown source text", "options : parser options", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">markup", "markdown_to_html", "component", "component_render", "json_encode", "0_DValue"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">markup", "markdown_to_html", "json_encode"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var document := markdown_to_ast(\"# Title\")\nprint(document[\"type\"], \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -32,19 +28,15 @@ function data(input : dval) dval {
         page["slug"] = "markdown-to-html"
         page["route"] = "/doc/api/markdown-to-html/"
         page["title"] = "markdown_to_html"
-        page["content"] = "This function renders Markdown text as HTML.\n\nUse it to render trusted Markdown in a response. When `allow_html` is true, it outputs stored raw HTML without escaping it.\n\nComponent hooks need an active request context. Without one, the function uses default HTML. Capy cannot pass a previously returned AST to this function.\n\nThe C++ API has the same source-text rendering model.\n"
-        page["returns"] = "HTML text"
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction markdown_to_html(source : string) string\nfunction markdown_to_html(source : string, options : dval) string\n\n`markdown_to_html()` renders Markdown source as HTML.\n\nRaw HTML stays escaped unless `options[\"allow_html\"]` is true. Only enable it for trusted source.\n"
+        page["returns"] = "the HTML text"
         page["label"] = "markdown_to_html"
-        page["sig_lines"] = dval(["String markdown_to_html(String src)", "String markdown_to_html(String src, DValue options)", ""])
         page["capy_sig_lines"] = dval(["function markdown_to_html(source : string) string", "function markdown_to_html(source : string, options : dval) string"])
-        page["param_lines"] = dval(["src : Markdown text", "options : optional `dval` options", ""])
+        page["param_lines"] = dval(["source : the Markdown source text", "options : render options", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">markup", "markdown_to_ast", "component", "component_render", "json_decode", "0_String"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([">markup", "markdown_to_ast"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(markdown_to_html(\"**bold**\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

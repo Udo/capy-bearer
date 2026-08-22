@@ -1,23 +1,9 @@
 :sig
-void socket_close(u64 sockfd)
+function socket_close(handle : u64)
 
-:params
-sockfd : socket handle from `socket_connect()`
-
-:see
->socket
-http_request_async
-socket_connect
-http_request
-socket_read
-socket_write
 :content
-Capy `socket_close(sockfd)` closes a socket handle from `socket_connect()`. It does not return a value.
-
-Call it after you finish reading or writing the socket. Do not use the handle after you close it.
+Use `socket_close` after socket work. Do not use the handle after this call.
 
 :example capy render
-var fd := socket_connect("127.0.0.1", 80)
-if fd != 0 { print("opened a socket") } else { print("open failed") }
-print(", now closing it\n")
-socket_close(fd)
+var handle := socket_connect("127.0.0.1", 1)
+if handle != 0 { socket_close(handle) }

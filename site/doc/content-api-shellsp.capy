@@ -9,20 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "shell-spawn"
         page["route"] = "/doc/api/shell-spawn/"
         page["title"] = "shell_spawn"
-        page["content"] = "Capy `shell_spawn(spec)` starts a background shell job. Give it a `dval` with `cmd` and optional `stdin`, `env`, and `timeout_ms` values.\n\nUse the job ID with `job_status()`, `job_await()`, `job_result()`, or `job_cancel()`.\n\nThe C++ API returns a `u64` job ID. Capy uses a `dval` job ID instead.\n"
-        page["returns"] = "a `dval` job ID"
-        page["errors"] = "The shell interprets `cmd`. Do not build it from untrusted input. Start and command failures appear in the job status and result."
-        page["example_error"] = "expected contiguous :example cpp render"
+        page["content"] = "## sig\n\nfunction shell_spawn(spec : dval) dval\n\nUse `shell_spawn` to start a background shell job. The `cmd` value is a shell command.\n"
+        page["returns"] = "Job identifier value."
         page["label"] = "shell_spawn"
-        page["sig_lines"] = dval(["u64 shell_spawn(DValue spec)", ""])
         page["capy_sig_lines"] = dval(["function shell_spawn(spec : dval) dval"])
-        page["param_lines"] = dval(["spec : a `dval` map with `cmd` and optional `stdin`, `env`, and `timeout_ms` values", ""])
+        page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "shell_exec", "job_status", "shell_escape", "job_result", "cwd_set", "job_await"])
-        page["example_pairs"] = dval([])
-        page["cpp_only_examples"] = dval([])
-        page["legacy_examples"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var job := shell_spawn(dval({\"cmd\": \"printf hello\"}))\nprint(string(job), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

@@ -1,41 +1,21 @@
 :sig
-StringMap parse_query(String q)
+function parse_query(query : string) dval
 
 :params
-q : query text in URL form
+query : the URL query text
 
 :returns
-decoded parameters as a map-shaped `dval`. C++ returns `StringMap`
+the decoded parameters
+
+:content
+`parse_query()` decodes URL query text into a map-shaped `dval`.
+
+An ampersand separates pairs. The first equals sign separates a key and value. A key without an equals sign has an empty value. The last repeated key wins.
+
+:example capy render
+var values := parse_query("name=Ada&role=admin")
+print(values["name"], "\n")
 
 :see
 >uri
-encode_query
-request_context_params
-session_id_create
 parse_uri
-route_path_sanitize
-uri_decode
-:content
-`parse_query()` decodes query text such as `a=b&c=d` into a map-shaped `dval`.
-
-- `&` separates pairs.
-- The first raw `=` separates a key and value.
-- The API URL-decodes keys and values.
-- A key without `=` has an empty value.
-- Empty pairs, including a final `&`, are ignored.
-- The last value replaces an earlier value for the same key.
-
-Use this API for query text outside normal request parsing.
-
-
-:example capy render parse_query() decodes a value
-var query := parse_query("name=Ada&role=admin")
-print(query["name"], "\n")
-
-:example capy render parse_query() handles keys without values
-var query := parse_query("enabled&name=Ada")
-print(length(string(query["enabled"], "")), "\n")
-
-:example capy render parse_query() keeps the last repeated value
-var query := parse_query("name=Ada&name=Grace")
-print(query["name"], "\n")

@@ -1,13 +1,14 @@
 :sig
-bool ws_send(String message, bool binary = false, String scope = "")
+function ws_send(message : string, binary : bool) bool
+function ws_send(message : string, binary : bool, scope : string) bool
 
 :params
-message : message payload to send
-binary : set to true to send a binary frame instead of a text frame
-scope : optional scope identifier, defaults to the current WebSocket page scope
+message : message bytes to send
+binary : `true` for a binary frame
+scope : scope identifier
 
 :returns
-true if the message was queued for at least one connected client
+`true` when the server queues the message for a client.
 
 :see
 >websocket
@@ -17,14 +18,9 @@ ws_opcode
 ws_message
 ws_is_binary
 ws_connections
+
 :content
-`ws_send(message, binary)` sends to the current WebSocket scope. `ws_send(message, binary, scope)` accepts an explicit scope.
+`ws_send()` sends a message to every client in the current scope. Pass `scope` to select a scope.
 
-`message` is a `string`. Set `binary` to `true` for a binary message. The function returns `true` when it queues the message for at least one client.
-
-Use it to send one message to every client in a scope. A `false` return is the normal no-client result.
-
-C++ uses the optional `String` scope input in the signature above. Capy provides separate two-input and three-input declarations.
-
-:example capy render
-if ws_send("hello subscribers", false, "") { print("broadcast queued\n") } else { print("no active WS scope to broadcast to\n") }
+:example capy ws
+ws_send("hello", false)

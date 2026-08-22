@@ -2,23 +2,16 @@
 INIT
 
 :sig
-INIT(Request& context)
-
-:see
->0_Request
->1_RENDER
->1_COMPONENT
->1_CLI
->1_WS
+function INIT(request : dval)
 
 :content
-`function INIT(request : dval)` defines the Capy unit materialization hook.
+`INIT` defines the unit materialization hook.
 
-Every Capy Bearer handler has exactly one parameter. The parameter name is `request`. Its type is `dval`. The value is a copied request snapshot. Bearer runs this hook before dispatch in a request workspace.
+Bearer runs this hook before dispatch in a request workspace. The handler has one parameter named `request` with type `dval`.
 
-Read input from the request fields. Use response, session, output, and WebSocket functions for effects. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.
-
-C++ declares `INIT(Request& context)`. It receives the live request context after Bearer materializes the unit in that request workspace.
-
-:example capy render
+:example capy init
 print(string(request.method, ""), "\n")
+
+:see
+0_Request
+1_ONCE

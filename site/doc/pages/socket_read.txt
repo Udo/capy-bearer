@@ -1,29 +1,12 @@
 :sig
-String socket_read(u64 sockfd, u32 max_length = 1024*128, u32 timeout = 1);
-
-:params
-sockfd : socket handle from `socket_connect()`
-max_length : maximum number of bytes to read. Default: 131072
-timeout : read timeout in seconds. Default: 1
+function socket_read(handle : u64, max_length : s32 = 131072, timeout : s32 = 1) string
 
 :returns
-data read from the socket
+Data read from the socket.
 
-:see
->socket
-socket_connect
-socket_write
-socket_close
-http_request_async
-http_request
 :content
-Capy `socket_read(sockfd, max_length, timeout)` reads a string from a socket. Give it a socket handle, a byte limit, and a timeout in seconds.
-
-It returns the data that it reads. It can return an empty string when no data is available. Use it after `socket_connect()` or `socket_write()` when you expect a response.
+Use `socket_read` to read data from a socket. It can return an empty string when no data is available.
 
 :example capy render
-var fd := socket_connect("127.0.0.1", 80)
-socket_write(fd, "GET / HTTP/1.0\r\nHost: localhost\r\nConnection: close\r\n\r\n")
-var chunk := socket_read(fd, 1024, 2)
-socket_close(fd)
-if str_starts_with(chunk, "HTTP/") { print("read an HTTP response from the server\n") } else { print("no data\n") }
+var handle := socket_connect("127.0.0.1", 1)
+if handle != 0 { print(socket_read(handle, 64, 1), "\n"); socket_close(handle) }
