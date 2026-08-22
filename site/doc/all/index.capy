@@ -1,5 +1,5 @@
 function RENDER(request : dval) {
-    print("<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></meta><title>All documentation | Bearer Documentation</title><link rel=\"stylesheet\" href=\"/doc/style.css\"></link></head><body><h1><a href=\"/doc/\">BEARER Docs</a><span class=\"dim\"> / </span>All documentation</h1>")
+    print("<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></meta><title>All documentation | Capy-Bearer Documentation</title><link rel=\"stylesheet\" href=\"/doc/style.css\"></link></head><body><h1><a href=\"/doc/\">Capy-Bearer Documentation</a><span class=\"dim\"> / </span>All documentation</h1>")
     component_render("/doc/components/all.capy")
     print("</body></html>")
 }

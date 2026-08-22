@@ -1,11 +1,11 @@
 function render_shell(title : string, component_path : string) void {
-    print("<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></meta><title>", html_escape(title), "</title><link rel=\"stylesheet\" href=\"/doc/style.css\"></link></head><body><h1><a href=\"/doc/\">BEARER Docs</a></h1>")
+    print("<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></meta><title>", html_escape(title), "</title><link rel=\"stylesheet\" href=\"/doc/style.css\"></link></head><body><h1><a href=\"/doc/\">Capy-Bearer Documentation</a></h1>")
     component_render(component_path)
     print("</body></html>")
 }
 
 function render_page_shell(kind : string, slug : string) void {
-    print("<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></meta><title>Bearer Documentation</title><link rel=\"stylesheet\" href=\"/doc/style.css\"></link></head><body><h1><a href=\"/doc/\">BEARER Docs</a></h1>")
+    print("<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></meta><title>Capy-Bearer Documentation</title><link rel=\"stylesheet\" href=\"/doc/style.css\"></link></head><body><h1><a href=\"/doc/\">Capy-Bearer Documentation</a></h1>")
     component_render("/doc/components/page.capy", {kind: kind, slug: slug})
     print("</body></html>")
 }
@@ -366,5 +366,5 @@ function RENDER(request : dval) {
     var page := string(request.query.p, "")
     if render_legacy(page) { return }
     if page != "" { response_status(404, "Not Found"); print("<html><body><h1>Page not found</h1></body></html>"); return }
-    render_shell("Bearer Documentation", "/doc/components/index.capy")
+    render_shell("Capy-Bearer Documentation", "/doc/components/index.capy")
 }
