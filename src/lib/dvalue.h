@@ -14,7 +14,7 @@ struct DValue {
 	DValue(const DValue&) = default;
 	DValue(DValue&&) = default;
 
-	// Preserves existing .uce range-for ABI after StringList became DValue.
+	// Preserves the range-for ABI after StringList became DValue.
 	class StringIterator {
 		const DValue* value;
 		size_t position;

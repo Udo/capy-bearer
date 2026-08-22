@@ -196,6 +196,7 @@ inline constexpr DocCapySignature doc_capy_signatures[] = {
 	{"mysql_insert_id", "function mysql_insert_id(handle : u64) u64"},
 	{"mysql_query", "function mysql_query(handle : u64, query : string) dval"},
 	{"mysql_query", "function mysql_query(handle : u64, query : string, params : dval) dval"},
+	{"nibble", "function nibble(haystack : string, delim : string) string"},
 	{"ob_close", "function ob_close()"},
 	{"ob_get", "function ob_get() string"},
 	{"ob_get_close", "function ob_get_close() string"},

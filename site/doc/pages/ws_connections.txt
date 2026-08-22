@@ -23,7 +23,3 @@ ws_opcode
 `ws_connections()` is a C++ API. It returns the IDs connected to the selected scope. An omitted scope selects the current WebSocket page scope.
 
 Capy does not expose `ws_connections`. In a Capy `WS` handler, read `request.websocket.connections` for IDs in the current scope.
-
-:example cpp render
-DValue ids = ws_connections();
-print("active connections in this scope: ", ids.size(), "\n");

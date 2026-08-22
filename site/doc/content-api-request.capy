@@ -1,0 +1,234 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "request-base-url" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "request_base_url"
+        page["kind"] = "api"
+        page["slug"] = "request-base-url"
+        page["route"] = "/doc/api/request-base-url/"
+        page["title"] = "request_base_url"
+        page["content"] = "`request_base_url()` is a C++ API. It returns the canonical directory URL for the current script. Use it to make links to sibling assets or query-routed pages.\n\nCapy does not expose `request_base_url`. In a Capy `RENDER` handler, read `request.url.base`.\n"
+        page["returns"] = "canonical directory URL for the current script"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "request_base_url"
+        page["sig_lines"] = dval(["String request_base_url(Request& context)", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval(["context : live C++ request context", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">uri", "request_script_url", "request_query_route", "0_Request"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "request-context-params" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "request_context_params"
+        page["kind"] = "api"
+        page["slug"] = "request-context-params"
+        page["route"] = "/doc/api/request-context-params/"
+        page["title"] = "Request Context Params"
+        page["content"] = "Bearer adds these values to the live C++ request context before it runs a handler. Capy does not call `request_context_params`. A Capy handler receives the equivalent data in its copied `request : dval`.\n\n- `SCRIPT_URL` is the canonical script URL. Capy reads `request.url.script`.\n- `BASE_URL` is the canonical directory URL for the script. Capy reads `request.url.base`.\n- `ROUTE_PATH` is the safe keyless query route. Capy reads `request.route.path`.\n- `ROUTE_PAGE` is the first route segment. Capy reads `request.route.page`.\n- `ROUTE_PATH_RAW` is normalized route input for diagnostics. Capy reads `request.route.raw_path`.\n- `ROUTE_VALID` is `1` for a safe route and `0` for a rejected route. Capy reads `request.route.valid`.\n- `BEARER_BIN_DIRECTORY` is the writable runtime cache directory from `BIN_DIRECTORY`. Capy reads `request.config.BIN_DIRECTORY`.\n\nUse only `ROUTE_PATH`, or `request.route.path`, below an application-controlled route root. The runtime rejects unsafe input and sets the path to an empty string. Unsafe input includes dot segments, empty interior segments, backslashes, filename dots, and characters outside route segments.\n\nThis supports URLs such as `/?dashboard` and `/?workspace/projects`. Named query parameters can occur with the route.\n"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "request_context_params"
+        page["sig_lines"] = dval(["SCRIPT_URL, BASE_URL, ROUTE_PATH, ROUTE_PAGE, ROUTE_PATH_RAW, ROUTE_VALID, BEARER_BIN_DIRECTORY", ""])
+        page["capy_sig_lines"] = dval(["handler request : dval"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">uri", "request_script_url", "request_base_url", "request_query_path", "request_query_route", "route_path_sanitize", "route_path_is_safe", "0_Request"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "request-ob-start" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_Request_ob_start"
+        page["kind"] = "api"
+        page["slug"] = "request-ob-start"
+        page["route"] = "/doc/api/request-ob-start/"
+        page["title"] = "Request::ob_start"
+        page["content"] = "`ob_start()` starts a new output buffer for the active request. It returns no value. Output after the call goes to this buffer until `ob_get`, `ob_get_close`, or `ob_close` uses it.\n\nUse `ob_start`, `ob_get`, `ob_get_close`, and `ob_close` for normal Capy output capture. Capy does not expose `context.ob`.\n\n## C++ API\n\n`Request::ob_start()` creates the active `context.ob` buffer.\n\n"
+        page["returns"] = "none"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "Request::ob_start"
+        page["sig_lines"] = dval(["void Request::ob_start()", ""])
+        page["capy_sig_lines"] = dval(["function ob_start()"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_Request", "ob_start", "ob_get_close"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "request-perf" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "request_perf"
+        page["kind"] = "api"
+        page["slug"] = "request-perf"
+        page["route"] = "/doc/api/request-perf/"
+        page["title"] = "request_perf"
+        page["content"] = "`request_perf()` is a C++ API. It returns diagnostic data for an active Wasm request workspace. Outside that workspace, it returns an invalid DValue.\n\nThe result can include request, transport, workspace, guest, hostcall, unit-load, component, and connector timing data. Available fields depend on the enabled profiling options and completed work. `hostcall_cpu_profiled` and `thread_runtime_profiled` show whether optional counters are available.\n\nCapy does not expose `request_perf`. Use `runtime_perf()` in a Capy handler.\n"
+        page["returns"] = "performance data for the active C++ request workspace"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "request_perf"
+        page["sig_lines"] = dval(["DValue request_perf()", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", ">time_precise", ">runtime_perf", "process_start_directory", "runtime_safe_key", "path_real", "path_is_within", "file_fsync", "file_symlink"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "request-query-path" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "request_query_path"
+        page["kind"] = "api"
+        page["slug"] = "request-query-path"
+        page["route"] = "/doc/api/request-query-path/"
+        page["title"] = "request_query_path"
+        page["content"] = "`request_query_path()` is a C++ API. It returns the first keyless query-string segment as a safe route path. For `/?workspace/projects&theme=dark`, it returns `workspace/projects`.\n\nIt returns `default_path` when no keyless route exists. It returns an empty string when the route is unsafe. Unsafe input includes dot segments, empty interior segments, backslashes, filename dots, and characters outside route segments.\n\nCapy does not expose `request_query_path`. In a Capy `RENDER` handler, read `request.route.path`.\n"
+        page["returns"] = "safe keyless query route"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "request_query_path"
+        page["sig_lines"] = dval(["String request_query_path(Request& context, String default_path = \"index\")", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval(["context : live C++ request context", "default_path : route for empty input", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">uri", "request_query_route", "request_context_params", "route_path_sanitize", "route_path_is_safe", "parse_query", "0_Request"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "request-query-route" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "request_query_route"
+        page["kind"] = "api"
+        page["slug"] = "request-query-route"
+        page["route"] = "/doc/api/request-query-route/"
+        page["title"] = "request_query_route"
+        page["content"] = "`request_query_route()` is a C++ API. It reads the first keyless query-string segment and returns route metadata.\n\nIts `raw_path` is normalized diagnostic input. Its `l_path` is the safe route, or an empty string when validation fails. Its `page` is the first `l_path` segment. Its `valid` value is true when `l_path` is safe.\n\nCapy does not expose `request_query_route`. In a Capy `RENDER` handler, read `request.route`. Its fields are `path`, `page`, `raw_path`, and `valid`.\n"
+        page["returns"] = "C++ route metadata"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "request_query_route"
+        page["sig_lines"] = dval(["DValue request_query_route(Request& context, String default_path = \"index\")", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval(["context : live C++ request context", "default_path : route for empty input", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">uri", "request_query_path", "request_context_params", "route_path_sanitize", "request_script_url", "0_Request"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "request-route-from-raw-path" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "request_route_from_raw_path"
+        page["kind"] = "api"
+        page["slug"] = "request-route-from-raw-path"
+        page["route"] = "/doc/api/request-route-from-raw-path/"
+        page["title"] = "request_route_from_raw_path"
+        page["content"] = "`request_route_from_raw_path()` is a C++ API. It validates route text without reading the active request.\n\nThe result contains `raw_path`, `l_path`, `page`, and `valid`. `raw_path` is normalized diagnostic input. `l_path` is the safe route, or an empty string when validation fails. `page` is the first route segment. `valid` is true when `l_path` is safe.\n\nCapy does not expose `request_route_from_raw_path`. Use `route_from_raw_path(raw_path, default_path)` in Capy. Use only its `path` below an application-controlled route root.\n"
+        page["returns"] = "C++ route metadata as a `dval`"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "request_route_from_raw_path"
+        page["sig_lines"] = dval(["DValue request_route_from_raw_path(String raw_path, String default_path = \"index\")", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval(["raw_path : route text from a request or query string", "default_path : route for empty input", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">uri", "route_path_sanitize", "route_from_raw_path"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "request-script-url" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "request_script_url"
+        page["kind"] = "api"
+        page["slug"] = "request-script-url"
+        page["route"] = "/doc/api/request-script-url/"
+        page["title"] = "request_script_url"
+        page["content"] = "`request_script_url()` is a C++ API. It returns the script URL from `DOCUMENT_URI` or `SCRIPT_NAME`. For a front controller, it changes a URL that ends in `/index.capy` to the containing directory URL.\n\nCapy does not expose `request_script_url`. In a Capy `RENDER` handler, read `request.url.script`.\n"
+        page["returns"] = "canonical script URL"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "request_script_url"
+        page["sig_lines"] = dval(["String request_script_url(Request& context)", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval(["context : live C++ request context", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">uri", "request_base_url", "request_query_route", "0_Request"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "request-set-status" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_Request_set_status"
+        page["kind"] = "api"
+        page["slug"] = "request-set-status"
+        page["route"] = "/doc/api/request-set-status/"
+        page["title"] = "Request::set_status"
+        page["content"] = "`response_status(code, reason)` sets the active response status. It takes an HTTP status code and an optional reason string. It returns no value.\n\nIf you omit `reason`, common HTTP codes use their standard reason phrase. Use this function before response output. Capy does not expose `context.flags.status`.\n\n## C++ API\n\n`Request::set_status()` also stores the numeric code in `context.flags.status`. FastCGI requests use a `Status:` prefix. Other requests use `HTTP/1.1`.\n"
+        page["returns"] = "none"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "Request::set_status"
+        page["sig_lines"] = dval(["void Request::set_status(s32 code, String reason = \"\")", ""])
+        page["capy_sig_lines"] = dval(["function response_status(code : s32, reason : string = \"\")"])
+        page["param_lines"] = dval(["code : HTTP status code", "reason : optional reason phrase override", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "0_Request", "redirect", "response_cookie"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "request" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "0_Request"
+        page["kind"] = "api"
+        page["slug"] = "request"
+        page["route"] = "/doc/api/request/"
+        page["title"] = "Request snapshot"
+        page["content"] = "Each Capy Bearer handler receives `request : dval`. Bearer copies this value at handler entry. Capy does not expose a public `request` type or a mutable C++ `Request` object.\n\nThe snapshot has these fields: `method`, `query`, `form`, `headers`, `cookies`, `body`, `files`, `route`, `url`, `server`, `session`, `props`, `config`, `call`, `connection`, `unit`, and `websocket`.\n\n`route` has `path`, `page`, `raw_path`, and `valid`. `url` has `script` and `base`. `session` has `id`, `name`, and `values`. `websocket` has `connection_id`, `scope`, `opcode`, `binary`, and current-scope `connections`.\n\nMissing data is `none`. Convert scalar values with normal DValue conversions. Use `string(request.query.name, \"\")`, `s32(request.websocket.opcode, 0)`, and `bool(request.websocket.binary, false)`.\n\nUse response, session, output, and WebSocket functions for effects. A session effect returns `{id, name, values}`. Store that result when later code needs the live session state. `request.session` remains the entry snapshot.\n\nC++ handlers receive `Request& context`. The object contains request maps, response state, session data, output buffers, WebSocket data, and runtime fields.\n\nC++ code can update these fields directly. The C++ `Request` lifetime is one request. WebSocket connection state can persist in `context.connection`.\n"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "Request"
+        page["sig_lines"] = dval(["Request& context", ""])
+        page["capy_sig_lines"] = dval(["handler request : dval"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">1_RENDER", ">1_COMPONENT", ">1_CLI", ">1_WS", ">session_start", ">route_from_raw_path", ">runtime_perf"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

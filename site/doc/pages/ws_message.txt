@@ -22,6 +22,3 @@ ws_send
 Use `ws_is_binary()` or `ws_opcode()` before you parse the payload.
 
 Capy does not expose `ws_message`. In a Capy `WS` handler, read `request.body`.
-
-:example cpp render
-print("payload length in this non-WS context: ", ws_message().length(), "\n");

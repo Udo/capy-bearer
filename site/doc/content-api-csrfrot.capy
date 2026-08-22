@@ -1,0 +1,28 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "csrf-rotate" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "csrf_rotate"
+        page["kind"] = "api"
+        page["slug"] = "csrf-rotate"
+        page["route"] = "/doc/api/csrf-rotate/"
+        page["title"] = "csrf_rotate"
+        page["content"] = "`csrf_rotate()` removes the active Capy CSRF token from a token namespace.\n\nPass the session name and token namespace. It starts the named session when necessary. The next `csrf_token()` call creates a replacement token.\n\nUse it after a sensitive successful change when the same submitted form must not work again.\n\nThe Capy call has the same arguments.\n"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "csrf_rotate"
+        page["sig_lines"] = dval(["void csrf_rotate(String session_name = \"bearer-session\", String token_name = \"csrf_token\")", ""])
+        page["capy_sig_lines"] = dval(["function csrf_rotate(session_name : string = \"bearer-session\", token_name : string = \"csrf_token\")"])
+        page["param_lines"] = dval(["session_name : session and cookie name", "token_name : token namespace to clear", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">session", "csrf_token", "csrf_valid", "session_start"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

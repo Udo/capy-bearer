@@ -21,7 +21,3 @@ It validates the gzip header, CRC32 footer, and uncompressed-size footer. It rep
 :example capy render
 var packed := gz_compress("round trip data")
 print(gz_uncompress(packed), "\n")
-
-:example cpp render
-String packed = gz_compress("round trip data");
-print(gz_uncompress(packed), "\n");

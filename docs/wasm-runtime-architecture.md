@@ -107,7 +107,7 @@ unicode escapes: validate bounds before every read and return an empty/partial
 
 ## 3. Units, handlers, and export naming
 
-A `.uce` unit compiles to a wasm module that exports one symbol per **handler**.
+A `.capy` unit compiles to a wasm module that exports one symbol per **handler**.
 There is no per-mode machinery — a "CLI unit", "WebSocket unit", and "page" are
 the same compiled artifact invoked at different exports. The dispatcher passes a
 **handler string**; the host maps it to an export symbol:
@@ -216,11 +216,11 @@ processes consume that same deadline. Compiler children run in a dedicated
 process group; timeout kills the group, retains the previous generation, and
 never records a caller-budget timeout as a persisted source failure. Bounded
 compiles require a valid zero child exit, cap captured output, and stage
-generated C++, exports, source maps, Wasm, and metadata. Publication removes
+generated Capy artifact, exports, source maps, Wasm, and metadata. Publication removes
 the prior serialized module and diagnostics inside the same rollback-protected
 generation while repeatedly checking the live request deadline.
 
-C++ uses `request_perf()`. Capy uses `runtime_perf()` for the same request-workspace diagnostics.
+Capy uses `runtime_perf()` for request-workspace diagnostics.
 
 `request_perf()` reports worker module-cache hits and misses and divides a miss
 into artifact lookup, wasm read, custom-section parse, serialized-module
@@ -329,7 +329,7 @@ worker verifies the map hash, uses structured frame module offsets, and appends
 source locations to the error. A missing,
 stale, or malformed map is deliberately non-fatal: the ordinary named wasm
 backtrace remains available. Generated C++ uses a `#line` directive naming the
-original `.uce` file, so application frames resolve to application source rather
+original `.capy` file, so application frames resolve to application source rather
 than the generated cache file. Artifact invalidation removes the wasm, serialized
 module, and source map together.
 
@@ -385,7 +385,7 @@ envelope before moving those values into a fresh `Request`. Transport-only
 params, cookies, session data, and entry metadata no longer become duplicate
 `context.call` children. The historical by-value
 `DValue::operator=(DValue)` symbol remains exported so warmed side-module
-artifacts stay ABI-compatible. C++ calls `request_perf()` for these details. Capy calls `runtime_perf()`.
+artifacts stay ABI-compatible. Capy calls `runtime_perf()` for these details.
 `request_perf()` subdivides birth into policy,
 import materialization, core instantiation, export/table lookup, and initialization,
 and context transfer into bytes, host encode, guest allocation/write,
@@ -572,7 +572,7 @@ header free-functions are `inline`. The wasm backend exposes only declarations
 ## 10. Testing
 
 - **Regression gate**: `scripts/run_cli_tests.sh --include-wasm-kill` runs the
-  in-runtime CLI suite (`site/tests/cli_runner.uce`) plus the site test pages and
+  in-runtime CLI suite (`site/tests/cli_runner.capy`) plus the site test pages and
   `scripts/test_dependency_invalidation.sh`. The shell helper runs the CLI suite
   as named groups (`demo`, `http`, `site`, `doc-gate`, `security`,
   `task-lifetime`, `starter`, `tcp`, and optional `wasm-kill`) so a slow or
@@ -593,7 +593,7 @@ header free-functions are `inline`. The wasm backend exposes only declarations
   requests and asserts the observed worker PID set does not exceed
   `WORKER_COUNT`, guarding against accidental reintroduction of request-count
   recycling. It also races a source edit against an active unit compile after
-  the generated C++ snapshot has been written. The compiler must either retry
+  the generated Capy artifact snapshot has been written. The compiler must either retry
   and serve the post-edit source or fail closed; it must never stamp current
   source metadata onto wasm produced from an older snapshot.
 - **Metadata scanner deadline**: an isolated one-worker gate uses a targeted
@@ -622,7 +622,7 @@ header free-functions are `inline`. The wasm backend exposes only declarations
   `scripts/test_cold_component_deadline.sh` separately compiles a deliberately
   cold component that exceeds the development epoch window and proves the
   parent request still renders it. The focused shell gates create temporary
-  `.uce` units under `BEARER_TEST_SITE_DIRECTORY`, or under the installed
+  `.capy` units under `BEARER_TEST_SITE_DIRECTORY`, or under the installed
   `SITE_DIRECTORY` from `/etc/bearer/settings.cfg` when no override is supplied.
   The dependency-invalidation gate also holds parent and child compile locks
   across a transitive source edit, proves a warmed HTTP request returns the
@@ -638,7 +638,7 @@ header free-functions are `inline`. The wasm backend exposes only declarations
   canonical absolute paths: equivalent spellings containing `.` or `..` must
   share one source, compile, artifact, and module-cache identity. The compiler
   independently enforces the same canonical identity. Within one resolution,
-  identical entry/site bases and identical raw/`.uce` candidate spellings are
+  identical entry/site bases and identical raw/`.capy` candidate spellings are
   probed only once while first-match order is preserved. Persisted failures are
   reused only when their recorded source path matches the current request.
   `scripts/test_nested_component_props.sh` passes a large prop tree through an
@@ -660,6 +660,6 @@ header free-functions are `inline`. The wasm backend exposes only declarations
   retain the ordinary `BEARER compile error` operator signal.
 
 - **WebSocket end-to-end**: a headless client performs a raw WS handshake through
-  `HTTP_SOCKET_PATH` or an explicitly configured `HTTP_PORT`, with path `/site/tests/websockets.ws.uce` (self-resolving
+  `HTTP_SOCKET_PATH` or an explicitly configured `HTTP_PORT`, with path `/site/tests/websockets.ws.capy` (self-resolving
   `SCRIPT_FILENAME`) and asserts the `hello-ack` frame — exercising the full
   broker → worker → broker → client chain across process boundaries.

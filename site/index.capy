@@ -1,0 +1,3 @@
+function RENDER(request : dval) {
+    redirect("/info/")
+}

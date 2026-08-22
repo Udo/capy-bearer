@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "yaml-decode" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "yaml_decode"
+        page["kind"] = "api"
+        page["slug"] = "yaml-decode"
+        page["route"] = "/doc/api/yaml-decode/"
+        page["title"] = "yaml_decode"
+        page["content"] = "`yaml_decode(source)` accepts YAML source as a `string` and returns a `dval`.\n\nUse it to read configuration data. The parser supports indentation-based maps and lists, quoted strings, booleans, comments, and block strings.\n\nYAML `null` and `~` become `none` in Capy and C++. Numeric-looking values are strings. Use a constructor to read a numeric value.\n\nIt does not support anchors, aliases, tags, directives, or complex inline collections. Malformed input raises a request-visible runtime error.\n"
+        page["returns"] = "decoded `dval`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "yaml_decode"
+        page["sig_lines"] = dval(["DValue yaml_decode(String s)", ""])
+        page["capy_sig_lines"] = dval(["function yaml_decode(source : string) dval"])
+        page["param_lines"] = dval(["s : YAML source string", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">markup", "yaml_encode", "json_decode", "0_DValue", "2_DValue_to_string"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

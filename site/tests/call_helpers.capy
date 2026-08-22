@@ -1,0 +1,4 @@
+function RENDER(request : dval) {
+    response_header("Content-Type", "text/html; charset=utf-8")
+    print("<!doctype html><html><head><title>Unit Call Fixture</title></head><body><h1>Unit Call Fixture</h1><p>UNIT_RENDER_FIXTURE</p></body></html>")
+}

@@ -25,9 +25,3 @@ C++ uses `DValue` and `String` values through the signature above.
 :example capy render
 var value := dval({"name": "Ada", "middle": none})
 print(yaml_encode(value))
-
-:example cpp render
-DValue value;
-value["name"] = "Ada";
-value["middle"].set_none();
-print(yaml_encode(value));

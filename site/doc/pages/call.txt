@@ -37,11 +37,3 @@ var module := unit_load("/doc/examples/call_target.capy")
 var empty := call(module, "default_input")
 var echoed := call(module, "echo", {"name": "Ada"})
 print(string(empty), "|", string(echoed.name, ""), "\n")
-
-:example cpp render
-DValue empty;
-empty = "default";
-DValue input;
-input["name"] = "Ada";
-DValue* echoed = unit_call("/doc/examples/call_target.capy", "echo", &input);
-print(empty.to_string(), "|", (*echoed)["name"].to_string(), "\n");

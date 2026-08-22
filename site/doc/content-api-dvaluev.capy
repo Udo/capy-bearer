@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "dvalue-values" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_values"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-values"
+        page["route"] = "/doc/api/dvalue-values/"
+        page["title"] = "DValue::values"
+        page["content"] = "`dval_values(value)` takes a `dval` and returns a list-shaped `dval` of its child values. It copies each child. Map values use map order. List values use numeric list order.\n\nA scalar produces a one-item list that contains the scalar. Capy returns copied values.\n\n## C++ API\n\n`DValue::values()` has the same result.\n"
+        page["returns"] = "a list-shaped `dval` containing each child value"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::values"
+        page["sig_lines"] = dval(["DValue DValue::values() const", ""])
+        page["capy_sig_lines"] = dval(["function dval_values(value : dval) dval"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "0_DValue", "2_DValue_each", "2_DValue_push"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

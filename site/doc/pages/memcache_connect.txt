@@ -26,7 +26,3 @@ The C++ API also returns zero on failure. Capy exposes `port` as `s32`. The C++ 
 :example capy render
 var conn := memcache_connect()
 if conn != 0 { print("connected to memcached\n") } else { print("no memcached server reachable\n") }
-
-:example cpp render
-u64 conn = memcache_connect();
-print(conn != 0 ? "connected to memcached" : "no memcached server reachable", "\n");

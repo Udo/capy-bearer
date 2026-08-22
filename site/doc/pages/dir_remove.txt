@@ -15,7 +15,7 @@ Pass the directory path. Without `recursive`, the directory must be empty. With 
 
 Use the recursive form only when you intend to delete every contained file and directory.
 
-The C++ `.uce` call has the same arguments.
+The Capy call has the same arguments.
 
 :example capy render
 var root := file_temp("/tmp/capy-doc-rmdir-")
@@ -24,12 +24,6 @@ mkdir(root)
 file_put_contents(path_join(root, "child.txt"), "x")
 dir_remove(root, true)
 if bool(file_stat(root)["exists"]) { print("still there\n") } else { print("removed\n") }
-:example cpp render
-mkdir("/tmp/doc-rmdir");
-file_put_contents("/tmp/doc-rmdir/child.txt", "x");
-dir_remove("/tmp/doc-rmdir", true);
-print(file_stat("/tmp/doc-rmdir")["exists"].to_bool() ? "still there" : "removed", "\n");
-
 :see
 >sys
 mkdir

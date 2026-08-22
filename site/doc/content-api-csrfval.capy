@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "csrf-valid" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "csrf_valid"
+        page["kind"] = "api"
+        page["slug"] = "csrf-valid"
+        page["route"] = "/doc/api/csrf-valid/"
+        page["title"] = "csrf_valid"
+        page["content"] = "`csrf_valid()` checks a submitted Capy CSRF token against the session token.\n\nPass the submitted value, session name, and token namespace. It returns `true` only for the active matching token. It starts the named session when necessary.\n\nIt does not create a missing token. Use it before you apply a change from a browser-submitted request.\n\nThe Capy call has the same arguments.\n"
+        page["returns"] = "`true` when the submitted token matches the session token"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "csrf_valid"
+        page["sig_lines"] = dval(["bool csrf_valid(String submitted_token, String session_name = \"bearer-session\", String token_name = \"csrf_token\")", ""])
+        page["capy_sig_lines"] = dval(["function csrf_valid(submitted : string, session_name : string = \"bearer-session\", token_name : string = \"csrf_token\") bool"])
+        page["param_lines"] = dval(["submitted_token : value from the request, usually `context.post[\"csrf_token\"]`", "session_name : session and cookie name", "token_name : token namespace", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">session", "csrf_token", "csrf_rotate", "crypto_equal", "session_start"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

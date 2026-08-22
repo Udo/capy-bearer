@@ -275,6 +275,17 @@ function substr(value : string, start : s64) string { -> __bearer_string_substr(
 function substr(value : string, start : s32, length : s32) string { -> __bearer_string_substr(value, s64(start), s64(length)) }
 function substr(value : string, start : s64, length : s64) string { -> __bearer_string_substr(value, start, length) }
 function strpos(haystack : string, needle : string, offset : s64 = 0) s64 { -> __bearer_string_strpos(haystack, needle, offset) }
+function nibble(haystack : string, delim : string) string {
+    var idx := strpos(haystack, delim)
+    if idx < 0 {
+        var result := haystack
+        haystack = ""
+        return result
+    }
+    var result := substr(haystack, 0, idx)
+    haystack = substr(haystack, idx + s64(length(delim)))
+    return result
+}
 function dval_set(value : dval, source : as dval) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_set(), value, "", source)) }
 function dval_assign(value : dval, source : as dval) dval { -> dval_set(value, source) }
 function dval_push(value : dval, child : as dval) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_push(), value, "", child)) }
@@ -367,7 +378,7 @@ function dval_filter(value : dval, predicate : function(value : dval, key : stri
     return result
 }
 
-// Core utility adapters retain the C++ implementation as the semantic authority.
+// Core utility adapters retain the host implementation as the semantic authority.
 // text/parsing/collection operation order: names, scalars, predicates, query, split/sort
 function ascii_safe_name(raw : string) string { -> string(__bearer_text_parsing_brrb(__bearer_text_ascii_safe_name(), dval(raw), "", dval(""))) }
 function safe_name(raw : string) string { -> string(__bearer_text_parsing_brrb(__bearer_text_safe_name(), dval(raw), "", dval(""))) }
@@ -557,7 +568,7 @@ function socket_read(handle : u64, max_length : s32 = 131072, timeout : s32 = 1)
 function http_request(request : dval) dval { -> __bearer_network_http_brrb(__bearer_network_http_request(), request, "", dval("")) }
 function http_request_async(request : dval) u64 { -> u64(__bearer_network_http_brrb(__bearer_network_http_request_async(), request, "", dval("")), 0) }
 
-// C++ unit/component policy remains in the existing workspace dispatcher.
+// Unit and component policy remains in the existing workspace dispatcher.
 function component(name : string) string { -> component_capture(name) }
 function component(name : string, props : as dval) string { -> component_capture(name, props) }
 function unit_call(file_name : string, function_name : string) dval { -> unit_call(file_name, function_name, "") }

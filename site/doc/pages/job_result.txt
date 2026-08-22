@@ -3,7 +3,7 @@
 DValue job_result(u64 job_id)
 
 :params
-job : the Capy `dval` job ID. C++ `.uce` uses a `u64` ID.
+job : the Capy `dval` job ID. Capy uses a `u64` ID.
 
 :returns
 a `dval` status map. A completed job includes `result`.
@@ -11,7 +11,7 @@ a `dval` status map. A completed job includes `result`.
 :content
 `job_result()` checks a job with a short bounded wait.
 
-Use it to poll after `shell_spawn()` or `http_request_async()`. In Capy, pass the job ID as `dval`. In C++ `.uce`, pass the `u64` job ID shown above.
+Use it to poll after `shell_spawn()` or `http_request_async()`. In Capy, pass the job ID as `dval`. In Capy, pass the `u64` job ID shown above.
 
 :see
 >sys
@@ -26,9 +26,3 @@ var spec := dval({"cmd": "printf result-data", "timeout_ms": 1000})
 var job := shell_spawn(spec)
 job_await(job, 3000)
 print(dval_get_by_path(job_result(job), "result/stdout"), "\n")
-
-:example cpp render
-DValue spec; spec["cmd"] = "printf result-data"; spec["timeout_ms"] = (f64)1000;
-u64 job = shell_spawn(spec);
-job_await(job, 3000);
-print(job_result(job)["result"]["stdout"].to_string(), "\n");

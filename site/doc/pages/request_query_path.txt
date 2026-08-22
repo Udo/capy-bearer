@@ -26,6 +26,3 @@ parse_query
 It returns `default_path` when no keyless route exists. It returns an empty string when the route is unsafe. Unsafe input includes dot segments, empty interior segments, backslashes, filename dots, and characters outside route segments.
 
 Capy does not expose `request_query_path`. In a Capy `RENDER` handler, read `request.route.path`.
-
-:example cpp render
-print(request_query_path(context, "index") != "" ? "path\n" : "empty\n");

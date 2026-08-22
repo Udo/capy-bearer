@@ -22,6 +22,3 @@ C++ declares `INIT(Request& context)`. It receives the live request context afte
 
 :example capy render
 print(string(request.method, ""), "\n")
-
-:example cpp render
-print(context.params["REQUEST_METHOD"], "\n");

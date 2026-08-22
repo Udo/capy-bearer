@@ -23,7 +23,3 @@ file_symlink
 The result can include request, transport, workspace, guest, hostcall, unit-load, component, and connector timing data. Available fields depend on the enabled profiling options and completed work. `hostcall_cpu_profiled` and `thread_runtime_profiled` show whether optional counters are available.
 
 Capy does not expose `request_perf`. Use `runtime_perf()` in a Capy handler.
-
-:example cpp render
-DValue perf = request_perf();
-print(perf.get_type_name() != "invalid" ? "captured a timing snapshot" : "no data", "\n");

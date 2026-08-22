@@ -22,11 +22,6 @@ print("before\n")
 if false { trap() }
 print("after\n")
 
-:example cpp render
-print("before\n");
-if(false) { print("would trap\n"); }
-print("after\n");
-
 :see
 >runtime
 error_pages

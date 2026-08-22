@@ -23,21 +23,8 @@ Use `bool` to read scalar data as a Boolean value.
 print(bool("true"), "\n")
 print(bool("OFF"), "\n")
 
-:example cpp render bool() parses recognized text
-DValue yes;
-yes = "true";
-DValue no;
-no = "OFF";
-print(yes.to_bool() ? "true\n" : "false\n");
-print(no.to_bool() ? "true\n" : "false\n");
-
 :example capy render bool() returns the fallback for empty text
 print(bool("", true), "\n")
-
-:example cpp render bool() returns the fallback for empty text
-DValue value;
-value = "";
-print(value.to_bool(true) ? "true\n" : "false\n");
 
 :see
 >types

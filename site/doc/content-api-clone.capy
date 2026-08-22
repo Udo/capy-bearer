@@ -1,0 +1,30 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "clone" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "clone"
+        page["kind"] = "api"
+        page["slug"] = "clone"
+        page["route"] = "/doc/api/clone/"
+        page["title"] = "clone"
+        page["content"] = "Use `clone()` to copy a string before passing ownership across a boundary where you need a fresh value.\n\nMost Capy code does not need explicit clones. Use it only when normal ownership rules are not clear enough for the code you are writing.\n"
+        page["returns"] = "new string copy"
+        page["errors"] = "Compilation fails when `clone()` receives anything other than one string."
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "clone"
+        page["sig_lines"] = dval(["string clone(string value)", ""])
+        page["capy_sig_lines"] = dval(["function clone(value : string) string"])
+        page["param_lines"] = dval(["value : source string to copy", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "length", "0_String", "component"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

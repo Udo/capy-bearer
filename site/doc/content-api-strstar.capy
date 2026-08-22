@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "str-starts-with" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "str_starts_with"
+        page["kind"] = "api"
+        page["slug"] = "str-starts-with"
+        page["route"] = "/doc/api/str-starts-with/"
+        page["title"] = "str_starts_with"
+        page["content"] = "Use `str_starts_with` to test whether a Capy string starts with a prefix. Pass the string and the prefix. The function returns a Boolean value.\n\nCapy uses `string` values. Capy uses `String`, as the signature shows.\n"
+        page["returns"] = "`true` when the string starts with the prefix. Otherwise, `false`."
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "str_starts_with"
+        page["sig_lines"] = dval(["bool str_starts_with(String haystack, String needle)", ""])
+        page["capy_sig_lines"] = dval(["function str_starts_with(haystack : string, needle : string) bool"])
+        page["param_lines"] = dval(["haystack : Capy string to inspect", "needle : prefix to compare", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "str_ends_with", "substr", "strpos", "split", "print", "split_http_headers"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

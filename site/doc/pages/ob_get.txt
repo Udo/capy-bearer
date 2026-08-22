@@ -16,13 +16,6 @@ var snapshot := ob_get()
 ob_close()
 print("snapshot was: ", snapshot, "\n")
 
-:example cpp render
-ob_start();
-print("partial");
-String snapshot = ob_get();
-ob_close();
-print("snapshot was: ", snapshot, "\n");
-
 :see
 >ob
 ob_get_close

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "split-utf8" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "split_utf8"
+        page["kind"] = "api"
+        page["slug"] = "split-utf8"
+        page["route"] = "/doc/api/split-utf8/"
+        page["title"] = "split_utf8"
+        page["content"] = "Capy `split_utf8(str, compound_characters)` returns a list-shaped `dval` of UTF-8 strings. Give it UTF-8 text.\n\nBy default, it returns one entry for each code point. When `compound_characters` is true, it also joins characters linked by a Zero-Width Joiner. It joins two Regional Indicator Symbol Letters and attaches Variation Selectors to the previous entry.\n\nUse it when byte or ASCII splitting would break Unicode text. The C++ API calls the result `DValue`. Capy uses the `dval` value type.\n"
+        page["returns"] = "list-shaped `dval` with UTF-8 string entries"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "split_utf8"
+        page["sig_lines"] = dval(["DValue split_utf8(String str, bool compound_characters = false)", "", ""])
+        page["capy_sig_lines"] = dval(["function split_utf8(value : string, compound : bool = false) dval"])
+        page["param_lines"] = dval(["str : UTF-8 string to split", "compound_characters : when true, combine selected multi-code-point characters", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "split_space", "replace", "split_kv", "regex_match", "split_http_headers", "regex_search"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

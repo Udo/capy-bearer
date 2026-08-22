@@ -6,6 +6,7 @@ umask 077
 http_host="${BEARER_TEST_HTTP_HOST:-bearer.openfu.com}"
 http_base="${BEARER_TEST_HTTP_BASE:-http://127.0.0.1}"
 http_timeout="${BEARER_TEST_HTTP_TIMEOUT:-30}"
+abi_version=$(awk '/^#define BEARER_WASM_CORE_ABI_VERSION / {print $3; exit}' src/wasm/abi.h)
 site_directory="${BEARER_TEST_SITE_DIRECTORY:-site}"
 bin_directory="${BEARER_TEST_BIN_DIRECTORY:-/tmp/bearer/work}"
 
@@ -60,8 +61,8 @@ import sys
 from pathlib import Path
 
 root = Path.cwd()
-renderer = (root / "site/doc/index.uce").read_text()
-if 'return("function " + handler + "(request : dval) {\\n" + body + "\\n}\\n");' not in renderer:
+renderer = (root / "site/doc/components/page.capy").read_text()
+if "function COMPONENT(request : dval)" not in renderer:
     raise SystemExit("Capy documentation renderer must declare request : dval")
 checker_path = root / "scripts/check_capy_doc_examples.py"
 spec = importlib.util.spec_from_file_location("capy_doc_examples", checker_path)
@@ -113,7 +114,7 @@ mkdir -p "$snippet_build"
 snippet_count=0
 for snippet in "$test_directory"/snippets/*.capy; do
 	snippet_name=${snippet##*/}
-	if ! scripts/compile_wasm_unit "$test_directory/snippets" "$snippet_build" "$snippet" unused.cpp "$snippet_name.wasm" "$snippet_build"; then
+	if ! bin/capyc "$snippet" --bearer-unit --abi-version "$abi_version" -o "$snippet_build/$snippet_name.wasm" --source-map "$snippet_build/$snippet_name.wasm.source-map"; then
 		echo "Capy guide snippet failed to compile: $snippet_name" >&2
 		exit 1
 	fi

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "mysql-affected-rows" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "mysql_affected_rows"
+        page["kind"] = "api"
+        page["slug"] = "mysql-affected-rows"
+        page["route"] = "/doc/api/mysql-affected-rows/"
+        page["title"] = "mysql_affected_rows"
+        page["content"] = "Pass the opaque `u64` handle from `mysql_connect()`.\n\nThis function returns the rows changed by the most recent applicable successful statement. A valid connection without such a statement returns zero. A rejected query also returns zero.\n\nThe C++ API returns `u32`. Capy returns `u64`.\n"
+        page["returns"] = "number of changed rows as `u64`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "mysql_affected_rows"
+        page["sig_lines"] = dval(["u32 mysql_affected_rows(MySQL* m)", ""])
+        page["capy_sig_lines"] = dval(["function mysql_affected_rows(handle : u64) u64"])
+        page["param_lines"] = dval(["m : Capy MySQL handle", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">mysql", "mysql_query", "mysql_insert_id", "mysql_escape", "mysql_error", "mysql_disconnect", "mysql_connected"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

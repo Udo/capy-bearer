@@ -1,7 +1,0 @@
-TASK(Request& context) {
-	file_put_contents("/tmp/bearer-task-cpp.txt", context.props["nested"]["value"].to_string());
-}
-
-TASK:CPP(Request& context) {
-	file_put_contents("/tmp/bearer-task-cpp-named.txt", context.props["nested"]["value"].to_string());
-}

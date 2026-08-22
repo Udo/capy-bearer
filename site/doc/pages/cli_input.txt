@@ -28,7 +28,3 @@ component_exists
 A JSON scalar or list is stored at `input["_"]`. Use this API when C++ code needs several input values or DValue values.
 
 Capy does not expose `cli_input`. In a Capy `CLI` handler, read `request.query`, `request.form`, and `request.body` directly. A Capy handler receives exactly one copied `request : dval`.
-
-:example cpp render
-DValue input = cli_input(context);
-print("parsed ", input.keys().size(), " CLI arguments\n");

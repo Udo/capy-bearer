@@ -1,0 +1,121 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "dvalue-set-array" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_set_array"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-set-array"
+        page["route"] = "/doc/api/dvalue-set-array/"
+        page["title"] = "DValue::set_array"
+        page["content"] = "`dval_set_array(value)` makes the target an empty list. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid. Later `dval_push` calls use numeric keys from `0`.\n\n## C++ API\n\n`DValue::set_array()` changes the object in place.\n"
+        page["returns"] = "none"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::set_array"
+        page["sig_lines"] = dval(["void DValue::set_array()", ""])
+        page["capy_sig_lines"] = dval(["function dval_set_array(value : dval) dval"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "2_DValue_push", "2_DValue_is_list"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "dvalue-set-bool" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_set_bool"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-set-bool"
+        page["route"] = "/doc/api/dvalue-set-bool/"
+        page["title"] = "DValue::set_bool"
+        page["content"] = "`dval_set_bool(value, flag)` stores the Boolean in the target. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid.\n\n## C++ API\n\n`DValue::set_bool()` changes the object in place and can follow an internal reference.\n"
+        page["returns"] = "none"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::set_bool"
+        page["sig_lines"] = dval(["void DValue::set_bool(bool b)", ""])
+        page["capy_sig_lines"] = dval(["function dval_set_bool(value : dval, flag : bool) dval"])
+        page["param_lines"] = dval(["b : boolean value to store", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "2_DValue_to_bool"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "dvalue-set-reference" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_set_reference"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-set-reference"
+        page["route"] = "/doc/api/dvalue-set-reference/"
+        page["title"] = "DValue::set_reference"
+        page["content"] = "Capy does not support `set_reference`. DValues share identity inside a workspace, but they cannot hold a C++ `DValue*` target.\n\n## C++ API\n\n`DValue::set_reference()` stores an internal reference to another `DValue`. Normal C++ reads and writes usually follow an existing reference.\n\n"
+        page["returns"] = "none"
+        page["capy_status"] = "unsupported"
+        page["label"] = "DValue::set_reference"
+        page["sig_lines"] = dval(["void DValue::set_reference(DValue* target)", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval(["target : target node pointer", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "2_DValue_reference_target"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "dvalue-set-type" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_set_type"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-set-type"
+        page["route"] = "/doc/api/dvalue-set-type/"
+        page["title"] = "DValue::set_type"
+        page["content"] = "`dval_set_type(value, type)` changes the target to the specified internal type. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid.\n\nUse `dval_set`, `dval_set_bool`, or `dval_set_array` for normal Capy code. Setting map type clears children and resets list state and the next numeric index.\n\n## C++ API\n\n`DValue::set_type()` changes the object in place and can follow an internal reference.\n\n"
+        page["returns"] = "none"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::set_type"
+        page["sig_lines"] = dval(["void DValue::set_type(char t)", ""])
+        page["capy_sig_lines"] = dval(["function dval_set_type(value : dval, type : string) dval"])
+        page["param_lines"] = dval(["t : internal type tag such as S, F, B, M, P, or R", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "2_DValue_set", "2_DValue_set_array"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "dvalue-set" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_set"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-set"
+        page["route"] = "/doc/api/dvalue-set/"
+        page["title"] = "DValue::set"
+        page["content"] = "`dval_set(value, source)` replaces the target content. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid.\n\nA custom export or C++ boundary copies BRRB. Identity does not cross that boundary.\n\nCapy does not accept a C++ pointer or `StringMap` overload. Use `dval(...)` to create the source value.\n\n## C++ API\n\n`DValue::set()` changes the object in place. C++ overloads accept a string, pointer, f64, `DValue`, or `StringMap`.\n"
+        page["returns"] = "replacement `dval` in Capy. C++ changes the receiver and returns nothing"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::set"
+        page["sig_lines"] = dval(["void DValue::set(String s)", "void DValue::set(void* p)", "void DValue::set(f64 f)", "void DValue::set(DValue source)", "void DValue::set(StringMap source)", ""])
+        page["capy_sig_lines"] = dval(["function dval_set(value : dval, source : as dval) dval"])
+        page["param_lines"] = dval(["value : Capy `dval` to replace", "source : replacement `dval`", "s, p, f : C++-only string, pointer, and `f64` overload values", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "2_DValue_set_bool", "2_DValue_set_array"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

@@ -16,9 +16,6 @@ The C++ `String` function has the same input and result.
 
 :example capy render
 print(ascii_safe_name("Cafe Munchen 2024"), "\n")
-:example cpp render
-print(ascii_safe_name("Cafe Munchen 2024"), "\n");
-
 :see
 >string
 safe_name

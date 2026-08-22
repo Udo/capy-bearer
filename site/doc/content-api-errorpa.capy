@@ -1,0 +1,28 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "error-pages" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "error_pages"
+        page["kind"] = "api"
+        page["slug"] = "error-pages"
+        page["route"] = "/doc/api/error-pages/"
+        page["title"] = "Configurable Error Pages"
+        page["content"] = "Capy cannot configure Bearer error pages. Configure these runtime settings in `/etc/bearer/settings.cfg`.\n\nSet each optional key to a `.capy` error page path. The path can be absolute or relative to the server working directory. Bearer uses built-in plain text when a key is unset, missing, or fails.\n\nEach error page receives error data in `context.call[\"error\"]`. It includes `type` and `source`. Compiler errors also include compiler output, status, and details. Runtime errors also include title, details, request URI, signal data, and trace.\n\n`page_compiling` returns status 503 while proactive compilation builds a requested page. `page_compiler_error` returns status 500 after an entry page fails to build. `page_runtime_error` returns status 500 after a recovered fault or uncaught exception.\n\nAn error page can change the status and headers. Keep runtime error pages simple. Bearer uses built-in output if an error page fails, so error pages cannot recurse.\n"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "error_pages"
+        page["sig_lines"] = dval(["page_compiling=site/errors/compiling.capy", "page_compiler_error=site/errors/compiler-error.capy", "page_runtime_error=site/errors/runtime-error.capy", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval(["page_compiling : page rendered with status 503 while a requested page builds", "page_compiler_error : page rendered with status 500 when a requested page fails to build", "page_runtime_error : page rendered with status 500 after a recovered fault or uncaught exception", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">runtime", "0_Request", "0_DValue", "2_Request_set_status"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

@@ -27,7 +27,3 @@ C++ uses the signature above. Its input type differs from the Capy `s32` declara
 :example capy render
 usleep(1000)
 print("slept\n")
-
-:example cpp render
-usleep(1000);
-print("slept\n");

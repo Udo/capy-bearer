@@ -27,8 +27,3 @@ The C++ API advances its `u32&` offset argument. Both APIs scan byte positions.
 var index := json_consume_space("   value", 0)
 if index == 3 { print("advanced\n") }
 else { print("not advanced\n") }
-
-:example cpp render
-u32 i = 0;
-json_consume_space("   value", i);
-print(i == 3 ? "advanced\n" : "not advanced\n");

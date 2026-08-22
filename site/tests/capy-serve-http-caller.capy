@@ -1,0 +1,29 @@
+function CLI(request : dval) {
+    var pid := server_start_http("capy-serve-http-test", "19092", "capy-serve-http.capy", "")
+    usleep(500000)
+    var socket := socket_connect("127.0.0.1", 19092)
+    var response := ""
+    var wrote := false
+    if socket != 0 {
+        wrote = socket_write(socket, "GET /?alpha=wide HTTP/1.0\r\nHost: localhost\r\n\r\n")
+        var i := 0
+        while i < 4 {
+            var chunk := socket_read(socket, 4096, 2)
+            if chunk == "" { break }
+            response = response + chunk
+            i = i + 1
+        }
+        socket_close(socket)
+    }
+    var stopped := server_stop("capy-serve-http-test")
+    usleep(200000)
+    var stopped_socket := socket_connect("127.0.0.1", 19092)
+    var listener_closed := stopped_socket == 0
+    if stopped_socket != 0 { socket_close(stopped_socket) }
+    var passed := pid != 0 && wrote && contains(response, "HTTP/1.1 200 OK") && contains(response, "capy-serve-http|wide") && !contains(response, "\r\nHTTP/1.1 ") && stopped && listener_closed
+    if passed {
+        print("serve-ok")
+    } else {
+        print("serve-failed|pid=", pid, "|wrote=", wrote, "|stopped=", stopped, "|response=", response)
+    }
+}

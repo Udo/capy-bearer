@@ -26,7 +26,3 @@ It does not support anchors, aliases, tags, directives, or complex inline collec
 :example capy render
 var value := yaml_decode("name: Ada\n")
 print(value.name, "\n")
-
-:example cpp render
-DValue value = yaml_decode("name: Ada\n");
-print(value["name"].to_string(), "\n");

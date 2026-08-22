@@ -16,6 +16,3 @@ Before you compose a file path, use `route_path_sanitize()` or `ROUTE_PATH`.
 
 :example capy render
 print(route_path_normalize("/docs/index/"), "\n")
-
-:example cpp render
-print(route_path_normalize("/docs/index/"), "\n");

@@ -22,6 +22,3 @@ C++ declares `WS(Request& context)`. It reads the payload from `context.in`, met
 
 :example capy render
 print(string(request.method, ""), "\n")
-
-:example cpp render
-print(context.params["REQUEST_METHOD"], "\n");

@@ -3,7 +3,7 @@
 #include <string_view>
 namespace capy::parity {
 struct Evidence { std::string_view name, path, marker; };
-inline constexpr std::array<Evidence, 260> supported{{
+inline constexpr std::array<Evidence, 261> supported{{
     {"3_Documentation format","site/doc/pages/3_Documentation format.txt",":example capy render"},
     {"response_status","site/doc/pages/response_status.txt",":example capy render"},
     {"response_header","site/doc/pages/response_header.txt",":example capy render"},
@@ -264,15 +264,14 @@ inline constexpr std::array<Evidence, 260> supported{{
     {"mysql_query","site/tests/capy-mysql.capy","mysql_query("},
     {"mysql_insert_id","site/tests/capy-mysql.capy","mysql_insert_id("},
     {"mysql_affected_rows","site/tests/capy-mysql.capy","mysql_affected_rows("},
+    {"nibble","site/tests/capy-managed-parameter-rebind.capy","nibble("},
 }};
 inline constexpr std::array<Evidence, 0> partial{{}};
-inline constexpr std::array<std::string_view, 28> cpp_specific{{"3_Blocked functions","3_C++ Preprocessor","3_Coming from React","error_pages","load","2_DValue_to_json","2_DValue_to_stringmap","cli_arg","cli_input","request_base_url","request_perf","request_query_path","request_query_route","request_route_from_raw_path","request_script_url","to_bool","to_f64","to_lower","to_s64","to_u64","to_upper","ws_connection_count","ws_connection_id","ws_connections","ws_is_binary","ws_message","ws_opcode","ws_scope"}};
-inline constexpr std::array<Evidence, 5> unsupported_by_design{{
+inline constexpr std::array<Evidence, 4> unsupported_by_design{{
     {"2_DValue_is_reference","","Capy does not expose the C++ internal reference tag. BRRB boundaries do not preserve it."},
     {"2_DValue_reference_target","","Capy has no host DValue pointer/alias ABI by design."},
     {"2_DValue_deref","","Capy has no host DValue pointer/alias ABI by design."},
     {"2_DValue_set_reference","","Capy has no host DValue pointer/alias ABI by design."},
-    {"nibble","","The documented API mutates a caller String by reference; Capy strings are copied ARC values and expose no reference-parameter ABI."},
 }};
 inline constexpr std::array<Evidence, 0> missing_notes{{}};
 }

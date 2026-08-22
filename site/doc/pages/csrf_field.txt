@@ -16,15 +16,11 @@ Pass the session name, token namespace, and optional form field name. It starts 
 
 Use it in server-rendered forms that change state. Validate the submitted field with `csrf_valid()` before you change state.
 
-The C++ `.uce` call has the same arguments.
+The Capy call has the same arguments.
 
 :example capy render
 var field := csrf_field("bearer-doc-session", "profile_form", "csrf_token")
 print(strpos(field, "type=\"hidden\"") >= 0, "\n")
-:example cpp render
-String field = csrf_field("bearer-doc-session", "profile_form", "csrf_token");
-print(field.find("type=\"hidden\"") != String::npos ? "true\n" : "false\n");
-
 :see
 >session
 csrf_token

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "split-http-headers" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "split_http_headers"
+        page["kind"] = "api"
+        page["slug"] = "split-http-headers"
+        page["route"] = "/doc/api/split-http-headers/"
+        page["title"] = "split_http_headers"
+        page["content"] = "Capy `split_http_headers(s)` returns a map-shaped `dval` of HTTP fields. Give it a request line and headers, or header lines.\n\nFor a request line, the map includes `REQUEST_METHOD`, `REQUEST_URI`, `SCRIPT_NAME`, `QUERY_STRING`, and `SERVER_PROTOCOL`. It converts header names to uppercase keys. For example, `Host` becomes `HTTP_HOST`.\n\nMost page code should read `context.params`. Use this function to parse raw HTTP text in tests or protocol helpers.\n\nThe C++ API returns `StringMap`. Capy returns a map-shaped `dval`.\n"
+        page["returns"] = "map-shaped `dval` with parsed fields"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "split_http_headers"
+        page["sig_lines"] = dval(["StringMap split_http_headers(String s)", ""])
+        page["capy_sig_lines"] = dval(["function split_http_headers(value : string) dval"])
+        page["param_lines"] = dval(["s : HTTP request line and headers, or header lines", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "split_kv", "parse_query", "0_Request"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

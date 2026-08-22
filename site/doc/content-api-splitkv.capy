@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "split-kv" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "split_kv"
+        page["kind"] = "api"
+        page["slug"] = "split-kv"
+        page["route"] = "/doc/api/split-kv/"
+        page["title"] = "split_kv"
+        page["content"] = "Capy `split_kv(s, separator, trim_whitespace, uppercase_keys)` returns a map-shaped `dval`. Give it line-based text and a separator.\n\nIt ignores empty lines and lines that start with `#`. It splits each other line at the first separator. A line without a separator has an empty value.\n\nUse it for small configuration files, metadata blocks, and tests.\n\nThe C++ API accepts a `char` separator and returns `StringMap`. Capy accepts a string separator and returns a map-shaped `dval`.\n"
+        page["returns"] = "map-shaped `dval` of keys and values"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "split_kv"
+        page["sig_lines"] = dval(["StringMap split_kv(String s, char separator = '=', bool trim_whitespace = true, bool uppercase_keys = false)", ""])
+        page["capy_sig_lines"] = dval(["function split_kv(value : string, separator : string = \"=\", trim_whitespace : bool = true, uppercase_keys : bool = false) dval"])
+        page["param_lines"] = dval(["s : text with one key and value per line", "separator : separator string. Capy uses its first character", "trim_whitespace : trim keys and values when true", "uppercase_keys : convert keys to uppercase when true", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "split", "split_http_headers", "split_space", "split_utf8", "substr", "replace"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

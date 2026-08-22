@@ -18,7 +18,3 @@ Use a list from `split` or `dval([...])`. Capy has no separate `StringList` type
 var items := split("one,two", ",")
 each(items, function(value : string) string { print(value); return "" })
 print("\n")
-:example cpp render
-StringList items = split("one,two", ",");
-items.each([](String value) { print(value); });
-print("\n");

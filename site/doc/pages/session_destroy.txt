@@ -20,8 +20,3 @@ It expires the cookie and removes the matching server-side session file. In Capy
 var session := session_start("bearer-doc-example-destroy")
 session = session_destroy("bearer-doc-example-destroy")
 if string(session.id, "") == "" { print("destroyed\n") } else { print("active\n") }
-
-:example cpp render
-String id = session_start("bearer-doc-example-destroy");
-session_destroy("bearer-doc-example-destroy");
-print(id != "" ? "destroyed\n" : "empty\n");

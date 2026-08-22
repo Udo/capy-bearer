@@ -23,9 +23,3 @@ to_s64
 `to_bool()` is a C++ API. It ignores case and surrounding whitespace. It accepts `1`, `true`, `yes`, and `on` as true. It accepts `0`, `false`, `no`, and `off` as false.
 
 Capy does not expose `to_bool`. Use `bool(value, fallback)`.
-
-:example cpp render to_bool() parses yes and no text
-print(to_bool("yes") ? "true\n" : "false\n");
-
-:example cpp render to_bool() returns the fallback for unknown text
-print(to_bool("maybe", true) ? "true\n" : "false\n");

@@ -12,13 +12,10 @@ directory part of the path
 
 Pass a path with a final component. The returned string omits that final component. Use it to get a containing directory.
 
-The C++ `.uce` call has the same arguments.
+The Capy call has the same arguments.
 
 :example capy render
-print(dirname("/var/www/site/index.uce"), "\n")
-:example cpp render
-print(dirname("/var/www/site/index.uce"), "\n");
-
+print(dirname("/var/www/site/index.capy"), "\n")
 :see
 >sys
 basename

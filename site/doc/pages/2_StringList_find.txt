@@ -16,6 +16,3 @@ Capy has no separate `StringList` type. It uses list-shaped DValues. This functi
 :example capy render
 var items := split("one,two", ",")
 print(string_list_find(items, function(value : string) bool { return value == "two" }, "missing"), "\n")
-:example cpp render
-StringList items = split("one,two", ",");
-print(items.find([](String value) { return value == "two"; }, "missing"), "\n");

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "socket-read" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "socket_read"
+        page["kind"] = "api"
+        page["slug"] = "socket-read"
+        page["route"] = "/doc/api/socket-read/"
+        page["title"] = "socket_read"
+        page["content"] = "Capy `socket_read(sockfd, max_length, timeout)` reads a string from a socket. Give it a socket handle, a byte limit, and a timeout in seconds.\n\nIt returns the data that it reads. It can return an empty string when no data is available. Use it after `socket_connect()` or `socket_write()` when you expect a response.\n"
+        page["returns"] = "data read from the socket"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "socket_read"
+        page["sig_lines"] = dval(["String socket_read(u64 sockfd, u32 max_length = 1024*128, u32 timeout = 1);", ""])
+        page["capy_sig_lines"] = dval(["function socket_read(handle : u64, max_length : s32 = 131072, timeout : s32 = 1) string"])
+        page["param_lines"] = dval(["sockfd : socket handle from `socket_connect()`", "max_length : maximum number of bytes to read. Default: 131072", "timeout : read timeout in seconds. Default: 1", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">socket", "socket_connect", "socket_write", "socket_close", "http_request_async", "http_request"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-seek" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_seek"
+        page["kind"] = "api"
+        page["slug"] = "file-seek"
+        page["route"] = "/doc/api/file-seek/"
+        page["title"] = "file_seek"
+        page["content"] = "`file_seek` sets the read and write position for a handle. Use it before `file_read()` or `file_write()` for random access. It returns -1 when it cannot set the position. `file_tell()` returns the current position.\n"
+        page["returns"] = "new absolute byte offset, or -1 on error"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_seek"
+        page["sig_lines"] = dval(["s64 file_seek(u64 h, s64 offset, s64 whence)", ""])
+        page["capy_sig_lines"] = dval(["function file_seek(handle : u64, offset : s64, whence : s64) s64"])
+        page["param_lines"] = dval(["h : handle from `file_open()`", "offset : byte offset relative to `whence`", "whence : 0 for start, 1 for the current position, or 2 for end", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "file_tell", "file_read", "file_open"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

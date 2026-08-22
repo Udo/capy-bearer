@@ -16,6 +16,3 @@ Use it with a list from `split` or `dval([...])`. Capy has no separate `StringLi
 :example capy render
 var items := split("one,two", ",")
 if every(items, function(value : string) bool { return value != "" }) { print("all\n") } else { print("not all\n") }
-:example cpp render
-StringList items = split("one,two", ",");
-print(items.every([](String value) { return value != ""; }) ? "all\n" : "not all\n");

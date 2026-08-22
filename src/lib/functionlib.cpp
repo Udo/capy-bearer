@@ -694,7 +694,7 @@ StringMap split_http_headers(String s)
 
 	// A header line has its colon before any whitespace ("Host: x"); a request
 	// line has a space first even when the URI contains colons
-	// ("GET /x.uce?t=12:30 HTTP/1.1").
+	// ("GET /x.capy?t=12:30 HTTP/1.1").
 	bool first_line_is_header = false;
 	if(header_start < lines.size())
 	{

@@ -1,0 +1,28 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "unit-render" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "unit_render"
+        page["kind"] = "api"
+        page["slug"] = "unit-render"
+        page["route"] = "/doc/api/unit-render/"
+        page["title"] = "unit_render"
+        page["content"] = "Call `unit_render(name)` to run another unit's `RENDER` function.\n\nCapy has no `context` input. It uses the current request context. Use this function when the unit writes page output instead of returning a value.\n\nA missing unit or `RENDER` function is an error. For an optional unit, call `unit_info()` before `unit_render()`.\n\nC++ adds the `Request& context` overload in the signature above. If you omit it, C++ uses the active request context.\n\n"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "unit_render"
+        page["sig_lines"] = dval(["void unit_render(String file_name)", "void unit_render(String file_name, Request& context)", ""])
+        page["capy_sig_lines"] = dval(["function unit_render(name : string)"])
+        page["param_lines"] = dval(["file_name : unit path", "context : optional request context for the target page", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">ob", "unit_call", "unit_load", "1_RENDER", "component"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

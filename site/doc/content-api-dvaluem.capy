@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "dvalue-map" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_map"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-map"
+        page["route"] = "/doc/api/dvalue-map/"
+        page["title"] = "DValue::map"
+        page["content"] = "`dval_map(value, mapper)` takes a `dval` and a callback. The callback receives each child and its key. It returns a new `dval` with each child replaced by the callback result.\n\nA list stays a list and uses consecutive numeric keys. A map keeps its keys. A scalar calls the mapper once with an empty key and returns a one-item list. The callback items and returned DValue are copies.\n\n## C++ API\n\n`DValue::map()` uses a C++ callback and returns a new `DValue`.\n"
+        page["returns"] = "mapped copy"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::map"
+        page["sig_lines"] = dval(["DValue DValue::map(std::function<DValue (const DValue& item, String key)> f) const", ""])
+        page["capy_sig_lines"] = dval(["function dval_map(value : dval, mapper : function(value : dval, key : string) dval) dval"])
+        page["param_lines"] = dval(["f : mapper called for each iterated item", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "0_DValue", "2_DValue_each", "2_DValue_filter"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

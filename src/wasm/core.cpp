@@ -731,10 +731,9 @@ static std::map<String, String> wasm_component_errors;
 String component_normalize_path(String name)
 {
 	name = trim(name);
-	if((name.length() >= 4 && name.substr(name.length() - 4) == ".uce") ||
-		(name.length() >= 5 && name.substr(name.length() - 5) == ".capy"))
+	if(name.length() >= 5 && name.substr(name.length() - 5) == ".capy")
 		return(name);
-	return(name + ".uce");
+	return(name + ".capy");
 }
 
 void component_parse_target(String target, String& file_name, String& render_name)

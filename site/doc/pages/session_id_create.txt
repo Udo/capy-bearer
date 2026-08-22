@@ -18,6 +18,3 @@ It returns a new 64-character lowercase hexadecimal ID. Use `session_start()` fo
 
 :example capy render
 if length(session_id_create()) > 0 { print("session id\n") } else { print("empty\n") }
-
-:example cpp render
-print(session_id_create().length() > 0 ? "session id\n" : "empty\n");

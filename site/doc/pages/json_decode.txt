@@ -30,14 +30,6 @@ Malformed JSON can return partial data without an error. Validate required keys 
 var data := json_decode("{\"name\": \"Ada\", \"tags\": [\"x\", \"y\"]}")
 print(data.name, " has ", length(data.tags), " tags\n")
 
-:example cpp render json_decode() reads object and array data
-DValue data = json_decode("{\"name\": \"Ada\", \"tags\": [\"x\", \"y\"]}");
-print(data["name"].to_string(), " has ", data["tags"].keys().size(), " tags\n");
-
 :example capy render json_decode() with malformed input
 var data := json_decode("{\"name\": \"Ada\", ")
 print(string(data.name, "<missing>"), "\n")
-
-:example cpp render json_decode() with malformed input
-DValue data = json_decode("{\"name\": \"Ada\", ");
-print(data["name"].to_string("<missing>"), "\n");

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "unit-compile" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "unit_compile"
+        page["kind"] = "api"
+        page["slug"] = "unit-compile"
+        page["route"] = "/doc/api/unit-compile/"
+        page["title"] = "unit_compile"
+        page["content"] = "Call `unit_compile()` for the current unit. Call `unit_compile(path)` for another unit.\n\nThe function returns `true` when compilation succeeds. It returns `false` when compilation fails. Use it when an operator must compile a unit explicitly.\n\nRelative paths use the unit path rules. Capy does not return a Capy unit object.\n\n"
+        page["returns"] = "`true` if the compiler compiles the unit"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "unit_compile"
+        page["sig_lines"] = dval(["bool unit_compile(String path = \"\")", ""])
+        page["capy_sig_lines"] = dval(["function unit_compile(path : string = \"\") bool"])
+        page["param_lines"] = dval(["path : optional unit path. If empty, recompiles the current unit", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">runtime", "unit_info", "units_list", "unit_call"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

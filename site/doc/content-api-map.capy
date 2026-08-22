@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "map" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "map"
+        page["kind"] = "api"
+        page["slug"] = "map"
+        page["route"] = "/doc/api/map/"
+        page["title"] = "map"
+        page["content"] = "This function calls `f` for each list item and returns a new list.\n\nUse it to transform each string in a list. Capy converts each input item with `string()` before it calls `f`.\n\nUse `filter()` when you want to keep matching items instead.\n"
+        page["returns"] = "new list of transformed strings"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "map"
+        page["sig_lines"] = dval(["DValue map(DValue items, function<String (String)> f)", "DValue::map(function<String (String)> f)", ""])
+        page["capy_sig_lines"] = dval(["function map(items : dval, mapper : function(value : string) string) dval"])
+        page["param_lines"] = dval(["items : list of string items to transform", "f : function that returns one string for each item", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "filter", "0_DValue", "json_encode", "nibble", "json_consume_space", "print"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

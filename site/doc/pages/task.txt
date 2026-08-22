@@ -24,15 +24,10 @@ A task can later have a failed, timed out, or canceled status.
 :errors
 The call traps when Bearer cannot admit the task to the queue. A returned task ID only confirms admission. It does not confirm completion.
 
-Capy handlers use `function TASK(request : dval)` or `function TASK:NAME(request : dval)`. The C++ `.uce` forms are `TASK(Request& context)` and `TASK:NAME(Request& context)`.
+Capy handlers use `function TASK(request : dval)` or `function TASK:NAME(request : dval)`. The Capy forms are `TASK(Request& context)` and `TASK:NAME(Request& context)`.
 
 :example capy render
 var id := task("/doc/examples/task_worker.capy:STORE", {"message": "hello"})
 var result := "failed"
 if length(id) == 64 { result = "queued" }
 print(result, "\n")
-
-:example cpp render
-DValue props; props["message"] = "hello";
-String id = task("/doc/examples/task_worker.capy:STORE", props);
-print(id.size() == 64 ? "queued\n" : "failed\n");

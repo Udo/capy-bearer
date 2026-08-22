@@ -23,9 +23,3 @@ to_u64
 `to_f64()` is a C++ API. It requires complete trimmed text. Empty or partial text, such as `3.5ms`, returns `fallback`.
 
 Capy does not expose `to_f64`. Use `f64(value, fallback)`.
-
-:example cpp render to_f64() parses decimal text
-print(to_f64("3.5"), "\n");
-
-:example cpp render to_f64() returns the fallback for partial text
-print(to_f64("3.5ms", 9.0), "\n");

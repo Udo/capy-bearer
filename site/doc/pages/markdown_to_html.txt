@@ -28,6 +28,3 @@ The C++ API has the same source-text rendering model.
 
 :example capy render
 print(markdown_to_html("**bold**"), "\n")
-
-:example cpp render
-print(markdown_to_html("**bold**"), "\n");

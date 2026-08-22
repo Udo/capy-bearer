@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-pwrite" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_pwrite"
+        page["kind"] = "api"
+        page["slug"] = "file-pwrite"
+        page["route"] = "/doc/api/file-pwrite/"
+        page["title"] = "file_pwrite"
+        page["content"] = "`file_pwrite()` writes `string` bytes at an absolute offset without changing the handle position.\n\nUse a writable handle, such as one opened with `\"r+\"`, for an in-place edit. It returns zero for an invalid, closed, or non-writable handle.\n"
+        page["returns"] = "number of bytes written"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_pwrite"
+        page["sig_lines"] = dval(["u64 file_pwrite(u64 h, u64 offset, String data)", ""])
+        page["capy_sig_lines"] = dval(["function file_pwrite(handle : u64, offset : u64, data : string) u64"])
+        page["param_lines"] = dval(["h : writable handle from `file_open()`", "offset : absolute byte offset", "data : Capy `string` data to write", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "file_write", "file_pread", "file_open"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

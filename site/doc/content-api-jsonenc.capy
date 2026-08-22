@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "json-encode" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "json_encode"
+        page["kind"] = "api"
+        page["slug"] = "json-encode"
+        page["route"] = "/doc/api/json-encode/"
+        page["title"] = "json_encode"
+        page["content"] = "This function encodes a `string` or `dval` value as JSON text.\n\nUse it to send structured data in a response or store it as text. List-shaped `dval` values encode as JSON arrays. `none` encodes as JSON `null`.\n\nThe C++ API also accepts an optional quote character. Capy has no quote-character argument.\n"
+        page["returns"] = "JSON text"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "json_encode"
+        page["sig_lines"] = dval(["String json_encode(String s)", "String json_encode(DValue t)", ""])
+        page["capy_sig_lines"] = dval(["function json_encode(value : dval) string", "function json_encode(value : string) string"])
+        page["param_lines"] = dval(["value : string or `dval` value to encode", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", ">types", "json_decode", "0_DValue", "2_DValue_to_string", "html_escape"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

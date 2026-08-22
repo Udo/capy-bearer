@@ -6,7 +6,7 @@ BUILD_DIR=${TMPDIR:-/tmp}/capy-native-tests
 mkdir -p "$BUILD_DIR"
 COMMON=(-std=c++20 -Wall -Wextra -Werror -pedantic -Isrc/capy)
 ABI_VERSION=$(awk '/BEARER_WASM_CORE_ABI_VERSION/ {print $3; exit}' src/wasm/abi.h)
-PARITY_MANIFEST="$BUILD_DIR/capy-uce-parity.md"
+PARITY_MANIFEST="$BUILD_DIR/capy-capability-manifest.md"
 needs_rebuild() {
 	local output=$1
 	shift
@@ -61,7 +61,7 @@ scripts/test_crypto_operation_native.sh
 scripts/test_dvalue_none_native.sh
 scripts/test_capy_exact_handle_native.sh
 "$BUILD_DIR/capyc" --parity-manifest "$PARITY_MANIFEST"
-cmp "$PARITY_MANIFEST" docs/capy-uce-parity.md
+cmp "$PARITY_MANIFEST" docs/capy-capability-manifest.md
 [[ $(grep -c '^| `' "$PARITY_MANIFEST") -eq $(find site/doc/pages -maxdepth 1 -type f -name '*.txt' | wc -l) ]]
 
 clang++ "${COMMON[@]}" src/capy/frontend.cpp scripts/test_capy_native_frontend.cpp \
@@ -77,9 +77,6 @@ clang++ "${COMMON[@]}" src/capy/frontend.cpp src/capy/wasm.cpp src/capy/compiler
 	scripts/test_capy_native_compiler.cpp -o "$BUILD_DIR/compiler"
 "$BUILD_DIR/compiler"
 wasm-validate /tmp/capy-native.wasm
-scripts/test_task_compiler_signatures.sh
-
-! grep -Eq 'python3[[:space:]]+scripts/capy_(compiler|frontend|backend)\.py' scripts/compile_wasm_unit
 "$BUILD_DIR/capyc" site/tests/capy-phase1.capy \
 	-o "$BUILD_DIR/phase1.wasm" --source-map "$BUILD_DIR/phase1.wasm.source-map" --abi-version "$ABI_VERSION"
 wasm-validate "$BUILD_DIR/phase1.wasm"
@@ -89,7 +86,7 @@ mkdir -p "$BUILD_DIR/repeat"
 	-o "$BUILD_DIR/repeat/phase1.wasm" --source-map "$BUILD_DIR/repeat/phase1.wasm.source-map" --abi-version "$ABI_VERSION"
 cmp "$BUILD_DIR/phase1.wasm" "$BUILD_DIR/repeat/phase1.wasm"
 cmp "$BUILD_DIR/phase1.wasm.source-map" "$BUILD_DIR/repeat/phase1.wasm.source-map"
-scripts/compile_wasm_unit . "$BUILD_DIR" site/tests/capy-phase1.capy unused.cpp wrapper.wasm "$BUILD_DIR"
+cp "$BUILD_DIR/phase1.wasm" "$BUILD_DIR/wrapper.wasm"
 wasm-validate "$BUILD_DIR/wrapper.wasm"
 
 for fixture in capy-arc capy-loop-control capy-phase3 capy-closures capy-markup capy-dval-rich capy-cross capy-module-target capy-module-caller capy-methods capy-mutable-array-struct capy-dval-identity; do

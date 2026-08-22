@@ -325,8 +325,8 @@ String route_path_sanitize_normalized(String path, String default_path)
 String request_script_url(Request& context)
 {
 	String url = first(context.params["DOCUMENT_URI"], context.params["SCRIPT_NAME"]);
-	if(str_ends_with(url, "/index.uce"))
-		url = url.substr(0, url.length() - String("index.uce").length());
+	if(str_ends_with(url, "/index.capy"))
+		url = url.substr(0, url.length() - String("index.capy").length());
 	return(url);
 }
 

@@ -34,8 +34,3 @@ Use `ob_start()`, `component_render()`, and `ob_get_close()` to get the same beh
 
 :example capy render
 print(component_capture("/tests/capy-cross.capy"), "\n")
-
-:example cpp render
-ob_start();
-component_render("/tests/capy-cross.capy");
-print(ob_get_close(), "\n");

@@ -17,9 +17,6 @@ request_query_route
 :capy-status cpp-specific
 
 :content
-`request_script_url()` is a C++ API. It returns the script URL from `DOCUMENT_URI` or `SCRIPT_NAME`. For a front controller, it changes a URL that ends in `/index.uce` to the containing directory URL.
+`request_script_url()` is a C++ API. It returns the script URL from `DOCUMENT_URI` or `SCRIPT_NAME`. For a front controller, it changes a URL that ends in `/index.capy` to the containing directory URL.
 
 Capy does not expose `request_script_url`. In a Capy `RENDER` handler, read `request.url.script`.
-
-:example cpp render
-print(request_script_url(context) != "" ? "script url\n" : "empty\n");

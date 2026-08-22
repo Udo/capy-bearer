@@ -207,7 +207,7 @@ bool doc_example_entry_is_valid(String entry)
 
 String doc_example_language_label(String language)
 {
-	return(language == "capy" ? "Capy" : "C++ (.uce)");
+	return(language == "capy" ? "Capy" : "C++");
 }
 
 String doc_example_handler_name(String entry)

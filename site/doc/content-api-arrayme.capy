@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "array-merge" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "array_merge"
+        page["kind"] = "api"
+        page["slug"] = "array-merge"
+        page["route"] = "/doc/api/array-merge/"
+        page["title"] = "array_merge"
+        page["content"] = "Capy's `array_merge(left, right)` returns a new `dval`. It does not change either input value.\n\nPass two `dval` maps, lists, or scalar values. String keys in `right` replace matching keys in `left`. List values append. They use consecutive numeric keys. The function does not report errors.\n\nUse it to combine request, configuration, or JSON-shaped values. The C++ API also accepts `StringMap` values. Its `DValue` form has the same merge rules.\n"
+        page["returns"] = "merged result"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "array_merge"
+        page["sig_lines"] = dval(["StringMap array_merge(StringMap a, StringMap b)", "DValue array_merge(DValue a, DValue b)", ""])
+        page["capy_sig_lines"] = dval(["function array_merge(left : dval, right : dval) dval"])
+        page["param_lines"] = dval(["a : left-hand source map or tree", "b : right-hand source map or tree", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "0_DValue", "0_StringMap", "json_decode"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

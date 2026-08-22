@@ -1,5 +1,5 @@
 :sig
-#load "myfile.uce"
+#load "myfile.capy"
 
 :params
 file name : Bearer source file to include
@@ -20,9 +20,3 @@ Capy does not support the C++ `#load` directive.
 Use ordinary Capy declarations in one unit. Use `unit_load()` or runtime composition APIs when you must load another unit at runtime.
 
 The C++ `#load` directive includes another Bearer source file. Bearer tracks direct and nested dependencies. A changed dependency causes recompilation before the next execution.
-
-:example cpp render
-// #load "file.uce" includes another unit at COMPILE time (a preprocessor directive,
-// used at file top level). At RUNTIME, unit_render()/unit_call() invoke another unit:
-unit_render("examples/sample_unit.uce");
-print("\n");

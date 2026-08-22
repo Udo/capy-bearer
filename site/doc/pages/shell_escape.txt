@@ -22,6 +22,3 @@ Use it before `shell_exec()` when a command contains input from outside the prog
 
 :example capy render
 print(shell_escape("rm -rf /; echo pwned"), "\n")
-
-:example cpp render
-print(shell_escape("rm -rf /; echo pwned"), "\n");

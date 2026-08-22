@@ -18,7 +18,7 @@ Use `task_status` to read the current status of a Capy task. Pass the task ID. T
 
 The `state` value is `queued`, `running`, `succeeded`, `failed`, `canceled`, or `missing`. The map can include `id`, `state`, `attempt`, and `failure_code`.
 
-Capy task IDs are `string` values. C++ `.uce` uses `String` and `DValue`, as the signature shows.
+Capy task IDs are `string` values. Capy uses `String` and `DValue`, as the signature shows.
 
 :example capy render
 var id := task("/doc/examples/task_worker.capy:STORE", {"message": "status"})
@@ -26,9 +26,3 @@ var status := task_status(id)
 var result := "missing"
 if string(status["id"]) == id { result = "known" }
 print(result, "\n")
-
-:example cpp render
-DValue props; props["message"] = "status";
-String id = task("/doc/examples/task_worker.capy:STORE", props);
-DValue status = task_status(id);
-print(status["id"].to_string() == id ? "known\n" : "missing\n");

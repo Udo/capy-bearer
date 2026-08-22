@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "regex-split" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "regex_split"
+        page["kind"] = "api"
+        page["slug"] = "regex-split"
+        page["route"] = "/doc/api/regex-split/"
+        page["title"] = "regex_split"
+        page["content"] = "Use this function when a regular expression defines the separator. Use `split()` for a literal separator.\n\nThe result does not include separators. It keeps empty parts. If the pattern does not match, the result contains `subject` as one item. Zero-length matches advance safely.\n"
+        page["returns"] = "`dval` list of text parts"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "regex_split"
+        page["sig_lines"] = dval(["DValue regex_split(String pattern, String subject)", "DValue regex_split(String pattern, String subject, String flags)", ""])
+        page["capy_sig_lines"] = dval(["function regex_split(pattern : string, subject : string, flags : string = \"\") dval"])
+        page["param_lines"] = dval(["pattern : PCRE2 regular expression separator", "subject : text to split", "flags : optional PCRE2 flags", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", ">regex", "regex_match", "regex_search", "regex_search_all", "regex_replace", "split", "join", "0_StringList"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

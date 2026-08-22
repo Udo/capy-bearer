@@ -17,11 +17,8 @@ Bearer accepts the same names as `component()`. A colon selects a named handler.
 
 A missing component or handler causes a server error with status 500. Call `component_exists()` first when the component is optional.
 
-`component()` captures output in a string. In C++ `.uce`, pass `context` as the optional final argument when needed.
+`component()` captures output in a string. In Capy, pass `context` as the optional final argument when needed.
 
 :example capy render
 component_render("examples/sample_unit")
 print("\n")
-:example cpp render
-component_render("examples/sample_unit");
-print("\n");

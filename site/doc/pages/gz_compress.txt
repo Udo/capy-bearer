@@ -24,8 +24,3 @@ The result uses the standard gzip format, including CRC32 and uncompressed-size 
 var original := "hello hello hello hello hello"
 var packed := gz_compress(original)
 print("restores to: ", gz_uncompress(packed), "\n")
-
-:example cpp render
-String original = "hello hello hello hello hello";
-String packed = gz_compress(original);
-print("restores to: ", gz_uncompress(packed), "\n");

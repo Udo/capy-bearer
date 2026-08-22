@@ -25,7 +25,3 @@ request_script_url
 Its `raw_path` is normalized diagnostic input. Its `l_path` is the safe route, or an empty string when validation fails. Its `page` is the first `l_path` segment. Its `valid` value is true when `l_path` is safe.
 
 Capy does not expose `request_query_route`. In a Capy `RENDER` handler, read `request.route`. Its fields are `path`, `page`, `raw_path`, and `valid`.
-
-:example cpp render
-DValue route = request_query_route(context, "index");
-print(route.is_array() ? "route\n" : "empty\n");

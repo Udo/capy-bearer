@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "replace" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "replace"
+        page["kind"] = "api"
+        page["slug"] = "replace"
+        page["route"] = "/doc/api/replace/"
+        page["title"] = "replace"
+        page["content"] = "Use this function to replace every literal occurrence of `search` in `s`.\n\nThe function returns the changed text. It does not change `s`. Use `regex_replace()` when the search pattern is a regular expression.\n"
+        page["returns"] = "source text with every literal match replaced"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "replace"
+        page["sig_lines"] = dval(["String replace(String s, String search, String replace_with)", ""])
+        page["capy_sig_lines"] = dval(["function replace(value : string, needle : string, replacement : string) string"])
+        page["param_lines"] = dval(["s : source text", "search : literal text to replace", "replace_with : replacement text", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "split_utf8", "regex_match", "split_space", "regex_search", "split_kv", "regex_search_all"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

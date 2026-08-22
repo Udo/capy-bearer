@@ -32,10 +32,7 @@ All time formatters support relative-time delta tokens.
 Default behavior examples:
 
 
-Capy uses `u64` and `string` values. C++ `.uce` uses `u64` and `String`, as the signature shows.
+Capy uses `u64` and `string` values. Capy uses `u64` and `String`, as the signature shows.
 
 :example capy render
 print(time_format_relative(0), "\n")
-
-:example cpp render
-print(time_format_relative(0, 0), "\n");

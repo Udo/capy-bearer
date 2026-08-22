@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "split-space" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "split_space"
+        page["kind"] = "api"
+        page["slug"] = "split-space"
+        page["route"] = "/doc/api/split-space/"
+        page["title"] = "split_space"
+        page["content"] = "Capy `split_space(str)` returns a list-shaped `dval` of strings. Give it text with whitespace-separated values.\n\nIt treats each run of spaces, tabs, or line breaks as one separator. It does not create empty entries for repeated whitespace. Use it to parse simple whitespace-separated input.\n\nThe C++ API calls the result `DValue`. Capy uses the `dval` value type.\n"
+        page["returns"] = "list-shaped `dval` with string entries"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "split_space"
+        page["sig_lines"] = dval(["DValue split_space(String str)", ""])
+        page["capy_sig_lines"] = dval(["function split_space(value : string) dval"])
+        page["param_lines"] = dval(["str : string to split", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "split_kv", "split_utf8", "split_http_headers", "replace", "split", "regex_match"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

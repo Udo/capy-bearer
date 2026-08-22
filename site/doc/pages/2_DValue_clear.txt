@@ -18,9 +18,3 @@ C++ `clear()` empties this `DValue` and resets its array index. It does not set 
 var user := dval({"a": "1", "b": "2"})
 user = dval_clear(user)
 if dval_has(user, "a") { print("after clear, has a: yes\n") } else { print("after clear, has a: no\n") }
-
-:example cpp render
-DValue u;
-u["a"] = "1"; u["b"] = "2";
-u.clear();
-print("after clear, has a: ", u.has("a") ? "yes" : "no", "\n");

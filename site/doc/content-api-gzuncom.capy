@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "gz-uncompress" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "gz_uncompress"
+        page["kind"] = "api"
+        page["slug"] = "gz-uncompress"
+        page["route"] = "/doc/api/gz-uncompress/"
+        page["title"] = "gz_uncompress"
+        page["content"] = "`gz_uncompress()` returns the uncompressed bytes from a gzip string. Use it to read data made by `gz_compress()` or another gzip writer.\n\nIt validates the gzip header, CRC32 footer, and uncompressed-size footer. It reports an error for unsupported or invalid gzip data.\n"
+        page["returns"] = "uncompressed bytes"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "gz_uncompress"
+        page["sig_lines"] = dval(["String gz_uncompress(String compressed)", ""])
+        page["capy_sig_lines"] = dval(["function gz_uncompress(source : string) string"])
+        page["param_lines"] = dval(["compressed : gzip-format compressed bytes", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "gz_compress", "zip_list", "zip_extract"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

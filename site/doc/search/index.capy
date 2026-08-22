@@ -1,0 +1,5 @@
+function RENDER(request : dval) {
+    print("<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></meta><title>Search | Bearer Documentation</title><link rel=\"stylesheet\" href=\"/doc/style.css\"></link></head><body><h1><a href=\"/doc/\">BEARER Docs</a><span class=\"dim\"> / </span>Search</h1>")
+    component_render("/doc/components/search.capy")
+    print("</body></html>")
+}

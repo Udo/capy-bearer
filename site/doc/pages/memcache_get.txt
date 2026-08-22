@@ -26,8 +26,3 @@ This function returns the stored value for `key`. It returns `default_value` for
 var conn := memcache_connect()
 if conn != 0 { memcache_set(conn, "doc_get_key", "stored value"); print(memcache_get(conn, "doc_get_key"), "\n") }
 else { print("(requires a reachable memcached server)\n") }
-
-:example cpp render
-u64 conn = memcache_connect();
-if(conn != 0) { memcache_set(conn, "doc_get_key", "stored value"); print(memcache_get(conn, "doc_get_key"), "\n"); }
-else print("(requires a reachable memcached server)\n");

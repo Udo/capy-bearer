@@ -24,6 +24,3 @@ The function returns the changed text. It does not change `s`. Use `regex_replac
 
 :example capy render
 print(replace("hello docs", "docs", "BEARER"), "\n")
-
-:example cpp render
-print(replace("hello docs", "docs", "BEARER"), "\n");

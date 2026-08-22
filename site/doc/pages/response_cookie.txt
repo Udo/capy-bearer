@@ -18,10 +18,6 @@ C++ keeps the same effect through `set_cookie(name, value)`.
 response_cookie("demo", "yes")
 print("cookie queued\n")
 
-:example cpp render
-set_cookie("demo", "yes");
-print("cookie queued\n");
-
 :see
 >session
 session_start

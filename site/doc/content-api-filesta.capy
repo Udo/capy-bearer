@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-stat" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_stat"
+        page["kind"] = "api"
+        page["slug"] = "file-stat"
+        page["route"] = "/doc/api/file-stat/"
+        page["title"] = "file_stat"
+        page["content"] = "`file_stat()` returns file metadata in a map-shaped `dval`. Use it to test a path type or read its size and times.\n\nThe `exists` field is `false` when the path does not exist. Read fields with functions such as `bool()`.\n"
+        page["returns"] = "a `dval` map with `exists`, `is_file`, `is_dir`, `is_symlink`, `size`, `mode`, `mtime`, and `ctime`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_stat"
+        page["sig_lines"] = dval(["DValue file_stat(String path)", ""])
+        page["capy_sig_lines"] = dval(["function file_stat(path : string) dval"])
+        page["param_lines"] = dval(["path : path to inspect", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "dir_list", "file_exists", "file_mtime"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

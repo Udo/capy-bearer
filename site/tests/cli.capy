@@ -1,0 +1,10 @@
+function RENDER(request : dval) {
+    response_status(404, "Not Found")
+    print("bearer-unit-cli")
+}
+
+function CLI(request : dval) {
+    response_header("Content-Type", "text/plain; charset=utf-8")
+    print("hello-cli\n")
+    print("fallback\n")
+}

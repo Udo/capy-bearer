@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "to-lower" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "to_lower"
+        page["kind"] = "api"
+        page["slug"] = "to-lower"
+        page["route"] = "/doc/api/to-lower/"
+        page["title"] = "to_lower"
+        page["content"] = "`to_lower()` is a C++ API. It normalizes ASCII text. It does not convert Unicode case.\n\nCapy does not expose `to_lower`. Use `lower(value)`.\n"
+        page["returns"] = "`s` with uppercase ASCII characters changed to lowercase"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "to_lower"
+        page["sig_lines"] = dval(["String to_lower(String s)", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval(["s : C++ text to convert", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "lower", "regex_split", "to_upper", "regex_replace", "trim", "regex_search_all"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

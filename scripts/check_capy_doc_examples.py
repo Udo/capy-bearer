@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check API pairs and the canonical Capy guide grammar."""
+"""Check Capy API examples and the canonical Capy guide grammar."""
 from __future__ import annotations
 
 import argparse
@@ -18,7 +18,6 @@ CANONICAL_GUIDES = {
     "10-units-components-and-exports", "11-tasks-and-jobs", "12-errors-testing-and-style",
 }
 ARRAYS = ("supported", "partial", "unsupported_by_design", "missing_notes")
-CPP_SPECIFIC = "cpp_specific"
 EVIDENCE_ARRAY = re.compile(r"inline constexpr std::array<Evidence,\s*\d+>\s+(\w+)\s*\{\{(.*?)\}\};", re.S)
 STRING_ARRAY = re.compile(r"inline constexpr std::array<std::string_view,\s*\d+>\s+(\w+)\s*\{\{(.*?)\}\};", re.S)
 NAME = re.compile(r'\{\s*"([^"]+)"')
@@ -39,12 +38,6 @@ def manifest_statuses(path: Path) -> dict[str, str]:
                 if name in found:
                     raise ValueError(f"manifest entry appears more than once: {name}")
                 found[name] = labels[array]
-    for array, body in STRING_ARRAY.findall(text):
-        if array == CPP_SPECIFIC:
-            for name in re.findall(r'"([^"]+)"', body):
-                if name in found:
-                    raise ValueError(f"manifest entry appears more than once: {name}")
-                found[name] = "cpp-specific"
     if not found:
         raise ValueError("no parity entries found in manifest")
     return found
@@ -76,33 +69,27 @@ def parse_sections(page: Path) -> list[tuple[int, str, str]]:
     return result
 
 
-def check_example_body(page: Path, line: int, language: str, entry: str, body: str) -> list[str]:
+def check_example_body(page: Path, line: int, entry: str, body: str) -> list[str]:
     errors = []
     if entry not in ALLOWED_ENTRIES:
         errors.append(f"{page.name}:{line}: unknown example entry: {entry}")
     if not body:
-        errors.append(f"{page.name}:{line}: empty {language} example")
-    if language == "capy":
-        if "__bearer" in body:
-            errors.append(f"{page.name}:{line}: Capy example exposes private __bearer API")
-        checked = re.sub(r'"(?:\\.|[^"\\])*"', '""', body)
-        checked = re.sub(r"//[^\n]*", "", checked)
-        if page.stem not in CANONICAL_GUIDES and CPP_TOKENS.search(checked):
-            errors.append(f"{page.name}:{line}: Capy example contains C++ syntax or a C++ type")
-        if page.stem not in CANONICAL_GUIDES and CAPY_HANDLER.search(checked):
-            errors.append(f"{page.name}:{line}: API examples must contain a handler body, not a complete Capy handler")
-        if page.stem not in CANONICAL_GUIDES and CAPY_REQUEST_DECLARATION.search(checked):
-            errors.append(f"{page.name}:{line}: API examples cannot redeclare the handler request parameter")
-    elif page.stem not in CANONICAL_GUIDES and CPP_HANDLER.search(body):
-        errors.append(f"{page.name}:{line}: API examples must contain a handler body, not a complete C++ handler")
+        errors.append(f"{page.name}:{line}: empty Capy example")
+    if "__bearer" in body:
+        errors.append(f"{page.name}:{line}: Capy example exposes private __bearer API")
+    checked = re.sub(r'"(?:\\.|[^"\\])*"', '""', body)
+    checked = re.sub(r"//[^\n]*", "", checked)
+    if page.stem not in CANONICAL_GUIDES and CPP_TOKENS.search(checked):
+        errors.append(f"{page.name}:{line}: Capy example contains a host-language type")
+    if page.stem not in CANONICAL_GUIDES | {"3_Documentation format"} and CAPY_HANDLER.search(checked):
+        errors.append(f"{page.name}:{line}: API examples must contain a handler body, not a complete Capy handler")
+    if page.stem not in CANONICAL_GUIDES | {"3_Documentation format"} and CAPY_REQUEST_DECLARATION.search(checked):
+        errors.append(f"{page.name}:{line}: API examples cannot redeclare the handler request parameter")
     return errors
-
 
 def check_page(page: Path, status: str) -> list[str]:
     errors: list[str] = []
     sections = parse_sections(page)
-    directives = [(line, header, body) for line, header, body in sections if header.startswith("example")]
-    required_status = {"unsupported": "unsupported", "cpp-specific": "cpp-specific"}.get(status)
     headers = {header for _, header, _ in sections}
     for section_name in ("returns", "errors"):
         matching = [(line, body) for line, header, body in sections if header == section_name]
@@ -113,51 +100,22 @@ def check_page(page: Path, status: str) -> list[str]:
     for line, header, body in sections:
         if header == "params" and re.search(r"(?mi)^\s*return value\s*:", body):
             errors.append(f"{page.name}:{line}: move return value from :params to :returns")
-    if required_status and f"capy-status {required_status}" not in headers:
-        errors.append(f"{page.name}: missing :capy-status {required_status}")
+    if status == "unsupported" and "capy-status unsupported" not in headers:
+        errors.append(f"{page.name}: missing :capy-status unsupported")
     examples = []
-    for line, header, body in directives:
-        match = re.fullmatch(r"example\s+(capy|cpp)\s+([a-z]+)(?:\s+(.+))?", header)
+    for line, header, body in sections:
+        if not header.startswith("example"):
+            continue
+        match = re.fullmatch(r"example\s+capy\s+([a-z]+)(?:\s+(.+))?", header)
         if not match:
-            errors.append(f"{page.name}:{line}: bare or invalid example directive: :{header}")
+            errors.append(f"{page.name}:{line}: examples must use :example capy ENTRY")
             continue
-        language, entry, _caption = match.groups()
-        errors.extend(check_example_body(page, line, language, entry, body))
-        examples.append((line, language, entry))
-    capy = [example for example in examples if example[1] == "capy"]
-    if required_status:
-        if capy:
-            errors.append(f"{page.name}: {status} page must not contain a Capy example")
-        return errors
-    pairs = 0
-    index = 0
-    while index < len(sections):
-        line, header, _ = sections[index]
-        match = re.fullmatch(r"example\s+(capy|cpp)\s+([a-z]+)(?:\s+(.+))?", header)
-        if not match:
-            index += 1
-            continue
-        language, entry, _caption = match.groups()
-        if language == "cpp":
-            errors.append(f"{page.name}:{line}: C++ example is unpaired or reversed")
-            index += 1
-            continue
-        if index + 1 == len(sections):
-            errors.append(f"{page.name}:{line}: Capy example has no contiguous C++ pair")
-            index += 1
-            continue
-        next_line, next_header, _ = sections[index + 1]
-        next_match = re.fullmatch(r"example\s+cpp\s+([a-z]+)(?:\s+(.+))?", next_header)
-        if next_match is None or entry != next_match.group(1):
-            errors.append(f"{page.name}:{line}: Capy example needs a matching contiguous C++ pair")
-            index += 1
-            continue
-        pairs += 1
-        index += 2
-    if status == "supported" and not pairs:
-        errors.append(f"{page.name}: supported page needs a Capy/C++ pair")
+        entry, _caption = match.groups()
+        errors.extend(check_example_body(page, line, entry, body))
+        examples.append((line, entry))
+    if status == "supported" and not examples:
+        errors.append(f"{page.name}: supported page needs a Capy example")
     return errors
-
 
 def generated_capy_signature_pages(path: Path) -> set[str]:
     return set(re.findall(r'^\s*\{"([^"]+)", "', path.read_text(), re.M))
@@ -169,13 +127,12 @@ def check(pages: Path, manifest: Path, signatures: Path) -> list[str]:
     except (OSError, ValueError) as error:
         return [f"manifest: {error}"]
     actual = {path.stem for path in pages.glob("*.txt")}
-    errors = [f"page set: manifest page missing from docs: {name}" for name in sorted(set(statuses) - actual)]
-    errors += [f"page set: documentation page missing from manifest: {name}" for name in sorted(actual - set(statuses))]
+    errors = [f"page set: manifest page missing from docs: {name}" for name in sorted(set(statuses) - actual) if statuses[name] != "legacy"]
     for name in sorted(actual & set(statuses)):
         page = pages / f"{name}.txt"
         errors.extend(check_page(page, statuses[name]))
-        if name not in {"3_Blocked functions", "3_Documentation format"} and ":sig\n" not in page.read_text():
-            errors.append(f"{page.name}: missing C++ :sig declaration")
+        if name != "3_Documentation format" and ":sig\n" not in page.read_text():
+            errors.append(f"{page.name}: missing Capy :sig declaration")
     try:
         generated = generated_capy_signature_pages(signatures)
     except OSError as error:
@@ -234,7 +191,7 @@ def check_language_guides(guides: Path, pages: Path, redirect_header: Path) -> l
                 errors.append(f"{page.name}:{line}: guide examples must use :example capy")
                 continue
             entry = match.group(1)
-            errors.extend(check_example_body(page, line, "capy", entry, body))
+            errors.extend(check_example_body(page, line, entry, body))
             if entry == "render":
                 render_examples.append((line, body))
                 if index + 1 < len(sections) and sections[index + 1][1] == "output":
@@ -261,7 +218,7 @@ def check_language_guides(guides: Path, pages: Path, redirect_header: Path) -> l
 
 
 def fixture_manifest(path: Path) -> None:
-    path.write_text('inline constexpr std::array<Evidence, 1> supported{{{"ok","",""}}};\ninline constexpr std::array<Evidence, 0> partial{{}};\ninline constexpr std::array<Evidence, 0> unsupported_by_design{{}};\ninline constexpr std::array<Evidence, 0> missing_notes{{}};\ninline constexpr std::array<std::string_view, 0> cpp_specific{{}};\n')
+    path.write_text('inline constexpr std::array<Evidence, 1> supported{{{"ok","",""}}};\ninline constexpr std::array<Evidence, 0> partial{{}};\ninline constexpr std::array<Evidence, 0> unsupported_by_design{{}};\ninline constexpr std::array<Evidence, 0> missing_notes{{}};\n')
 
 
 def self_test() -> int:
@@ -271,26 +228,26 @@ def self_test() -> int:
         pages.mkdir(); guides.mkdir()
         manifest, signatures = root / "manifest.h", root / "signatures.h"
         fixture_manifest(manifest); signatures.write_text('{"ok", "function ok"},\n')
-        (pages / "ok.txt").write_text(':sig\nvoid ok()\n:example capy render\nprint("ok")\n:example cpp render\nprint("ok\\n");\n')
+        (pages / "ok.txt").write_text(':sig\nvoid ok()\n:example capy render\nprint("ok")\n')
         if check(pages, manifest, signatures):
             print("self-test API fixture failed")
             return 1
-        (pages / "ok.txt").write_text(':sig\nString ok()\n:params\nreturn value : old location\n:returns\n\n:example capy render\nprint("ok")\n:example cpp render\nprint("ok\\n");\n')
+        (pages / "ok.txt").write_text(':sig\nString ok()\n:params\nreturn value : old location\n:returns\n\n:example capy render\nprint("ok")\n')
         contract_errors = check(pages, manifest, signatures)
         if not any("move return value" in error for error in contract_errors) or not any("empty :returns" in error for error in contract_errors):
             print("self-test accepted an invalid return contract")
             return 1
-        (pages / "ok.txt").write_text(':sig\nvoid ok()\n:example capy render\nprint("ok")\n:example cpp render\nprint("ok\\n");\n')
-        if not check_example_body(pages / "ok.txt", 1, "capy", "render", "function RENDER(request : dval) {}"):
+        (pages / "ok.txt").write_text(':sig\nvoid ok()\n:example capy render\nprint("ok")\n')
+        if not check_example_body(pages / "ok.txt", 1, "render", "function RENDER(request : dval) {}"):
             print("self-test accepted a complete handler in an API example")
             return 1
-        if not check_example_body(pages / "ok.txt", 1, "capy", "render", "var request := dval({:})"):
+        if not check_example_body(pages / "ok.txt", 1, "render", "var request := dval({:})"):
             print("self-test accepted a handler request redeclaration")
             return 1
-        if check_example_body(pages / "ok.txt", 1, "capy", "render", "function value() s32 { -> 1 }"):
+        if check_example_body(pages / "ok.txt", 1, "render", "function value() s32 { -> 1 }"):
             print("self-test rejected a Capy block yield")
             return 1
-        if not check_example_body(pages / "ok.txt", 1, "capy", "render", "value->member"):
+        if not check_example_body(pages / "ok.txt", 1, "render", "value->member"):
             print("self-test accepted C++ member access in a Capy example")
             return 1
         pairs = []

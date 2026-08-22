@@ -1,0 +1,28 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "init" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "1_INIT"
+        page["kind"] = "api"
+        page["slug"] = "init"
+        page["route"] = "/doc/api/init/"
+        page["title"] = "INIT"
+        page["content"] = "`function INIT(request : dval)` defines the Capy unit materialization hook.\n\nEvery Capy Bearer handler has exactly one parameter. The parameter name is `request`. Its type is `dval`. The value is a copied request snapshot. Bearer runs this hook before dispatch in a request workspace.\n\nRead input from the request fields. Use response, session, output, and WebSocket functions for effects. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.\n\nC++ declares `INIT(Request& context)`. It receives the live request context after Bearer materializes the unit in that request workspace.\n"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "INIT"
+        page["sig_lines"] = dval(["INIT(Request& context)", ""])
+        page["capy_sig_lines"] = dval(["function INIT(request : dval)"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">0_Request", ">1_RENDER", ">1_COMPONENT", ">1_CLI", ">1_WS"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

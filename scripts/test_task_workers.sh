@@ -7,7 +7,7 @@ repo=$(cd "$(dirname "$0")/.." && pwd)
 # Wasmtime object; runtime acceptance is run by the deployment harness that has
 # the WASI SDK/Wasmtime toolchain and executes this same isolated fixture.
 compiler=$(command -v clang++ || command -v g++)
-id=$(sha256sum "$repo"/src/capy/*.{cpp,h} "$repo"/src/lib/compiler.cpp "$repo"/src/lib/compiler-parser.cpp | sha256sum | awk '{print $1}')
+id=$(sha256sum "$repo"/src/capy/*.{cpp,h} "$repo"/src/lib/compiler.cpp | sha256sum | awk '{print $1}')
 tmp=${TMPDIR:-/tmp}/capy-task-workers-main.$$.o
 trap 'rm -f "$tmp"' EXIT
 "$compiler" -c "$repo/src/linux_fastcgi.cpp" -D'EXEC_NAME="bearer_fastcgi"' -D'PLATFORM_NAME="linux"' -std=c++20 -fpermissive -w "-DCAPY_COMPILER_BUILD_ID=\"$id\"" -o "$tmp"

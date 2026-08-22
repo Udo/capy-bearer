@@ -19,7 +19,7 @@ to_upper
 :content
 `int_val()` extracts an unsigned integer from a string. It returns `0` when it cannot identify a usable number.
 
-`base` selects the number base and defaults to `10`. Use it for numeric input text. In C++ `.uce`, the same call returns `u64`.
+`base` selects the number base and defaults to `10`. Use it for numeric input text. In Capy, the same call returns `u64`.
 
 :example capy render
 var decimal := "0"
@@ -27,6 +27,3 @@ if int_val("42") == 42 { decimal = "42" }
 var hexadecimal := "0"
 if int_val("ff", 16) == 255 { hexadecimal = "255" }
 print(decimal, " / ", hexadecimal, "\n")
-
-:example cpp render
-print(int_val("42"), " / ", int_val("ff", 16), "\n");

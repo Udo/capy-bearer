@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "ls" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "ls"
+        page["kind"] = "api"
+        page["slug"] = "ls"
+        page["route"] = "/doc/api/ls/"
+        page["title"] = "ls"
+        page["content"] = "This function returns a copied `dval` list of directory entry names.\n\nUse it when you need to inspect a directory. Handle an empty result when the directory has no entries or cannot be listed.\n\nThe C++ API returns a native `DValue`.\n"
+        page["returns"] = "copied `dval` list of names"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "ls"
+        page["sig_lines"] = dval(["DValue ls(String path)", ""])
+        page["capy_sig_lines"] = dval(["function ls(path : string) dval"])
+        page["param_lines"] = dval(["directory : directory to list", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "dir_list", "0_DValue", "cwd_get", "mkdir", "file_put_contents", "path_join"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

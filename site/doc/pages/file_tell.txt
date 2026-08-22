@@ -8,19 +8,13 @@ h : handle from `file_open()`
 current absolute byte offset
 
 :content
-`file_tell` returns the current byte offset for a handle. Use it to record the position after `file_read()`, `file_write()`, or `file_seek()`. C++ .uce uses the same numeric result.
+`file_tell` returns the current byte offset for a handle. Use it to record the position after `file_read()`, `file_write()`, or `file_seek()`. Capy uses the same numeric result.
 
 :example capy render
 var handle := file_open("/tmp/doc-tell.txt", "w")
 file_write(handle, "hello")
 print("offset is ", file_tell(handle), "\n")
 file_close(handle)
-
-:example cpp render
-u64 h = file_open("/tmp/doc-tell.txt", "w");
-file_write(h, "hello");
-print("offset is ", file_tell(h), "\n");
-file_close(h);
 
 :see
 >sys

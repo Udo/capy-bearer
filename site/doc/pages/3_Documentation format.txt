@@ -1,45 +1,17 @@
 :title
 Documentation format
 
-:params
-- `:sig` — one or more real C++ `.uce` signatures, exactly as declared
-- `:content` — a direct description of the operation and its normal use
-- `:params` — `name : description` rows for each parameter
-- `:returns` — the returned value, including distinct success and failure values
-- `:errors` — traps, diagnostics, limits, or rejected input when they apply
-- `:note` — important behavior that affects correct use
-- `:warning` — dangerous or silent failure behavior
-- `:example capy render` — a Capy example, immediately followed by its C++ equivalent
-- `:example cpp render` — its equivalent C++ `.uce` example
-- `:see` — an area reference (`>area`) followed by closest sibling page slugs
-
-
 :content
-Follow the reference order used by the PHP manual. Start with the generated synopsis. Then give the description, parameters, return values, errors, examples, and related pages.
+Each page describes one Capy API. Use `:sig` for an existing Capy signature. Use `:content` for normal use. Use `:params`, `:returns`, and `:errors` for verified behavior.
 
-Write the Capy API first. State its value model and normal use in `:content`. Put each input in `:params`. Put the result in `:returns`. Use `:errors` only for verified failure behavior. Then describe the matching C++ `.uce` API. If Capy does not support a C++ feature, state that limit. Do not invent a Capy signature.
+Use `:example capy ENTRY` for a runnable Capy example. Put `:output` after a render example. ENTRY can be `render`, `cli`, `component`, `init`, `once`, or `ws`.
 
-`capyc` reads Capy declarations from `src/capy/stdlib.capy`. Compiler primitives and handlers use a checked catalog. The page's `:sig` section contains the existing C++ `.uce` declaration. Unsupported and C++-specific pages show their status.
-
-API pages live in `site/doc/pages/`. Ordered Capy language articles live in `site/doc/capy/`. Both use one parser, renderer, detail layout, search, single-page view, and runtime gate. Language articles require `:title` and `:content`.
-
-Use `:note` for behavior that changes how a reader should use the API. Use `:warning` for silent failure, data loss risk, or security risk.
-
-A typed example has two contiguous blocks. Put `:example capy ENTRY` before `:example cpp ENTRY`. Add an optional caption after ENTRY. ENTRY is `render`, `cli`, `component`, `init`, `once`, or `ws`. Both entries must match. The checker rejects unknown, reversed, and unpaired typed blocks. Bare `:example` is a legacy C++ render block. New examples must use typed pairs.
-
-Render pairs compile and run as Capy and C++ units. They must produce equal output and show their source and output or error. Other entries compile their actual handler only. Documentation does not simulate a CLI, component, lifecycle, or WebSocket call. Keep examples self-contained and deterministic.
+`capyc` reads Capy declarations from `src/capy/stdlib.capy`. The generator validates documented signatures and examples.
 
 :example capy render
-print("A doc page normally contains :sig, :params, :content, :example, and :see.\n")
-print("Examples must print deterministic output.\n")
+function RENDER(request : dval) {
+    print("ok")
+}
 
-:example cpp render
-print("A doc page normally contains :sig, :params, :content, :example, and :see.\n");
-print("Examples must print deterministic output.\n");
-
-:see
->runtime
-unit_compile
-unit_render
-ob_start
-ob_get_close
+:output
+ok

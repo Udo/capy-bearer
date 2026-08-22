@@ -24,9 +24,3 @@ var db := sqlite_connect(":memory:")
 sqlite_query(db, "select * from no_such_table")
 if sqlite_error(db) != "" { print("error reported\n") } else { print("no error\n") }
 sqlite_disconnect(db)
-
-:example cpp render
-SQLite* db = sqlite_connect("/tmp/doc-sqlite-error.db");
-sqlite_query(db, "select * from no_such_table");
-print(sqlite_error(db) != "" ? "error reported" : "no error", "\n");
-sqlite_disconnect(db);

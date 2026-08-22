@@ -17,6 +17,3 @@ For handler routes, use `request.route` or `ROUTE_PATH`. These APIs parse and sa
 
 :example capy render
 if route_path_is_safe("docs/index") { print("safe\n") } else { print("unsafe\n") }
-
-:example cpp render
-print(route_path_is_safe("docs/index") ? "safe\n" : "unsafe\n");

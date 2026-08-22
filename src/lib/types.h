@@ -75,15 +75,12 @@ struct SharedUnit {
 	String api_file_name;
 	String meta_file_name;
 	String compile_output_file_name;
-	String setup_file_name;
 	std::vector<String> api_declarations;
 
 	String src_path;
 	String bin_path;
-	String pre_path;
 	String src_file_name;
 	String wasm_file_name;
-	String pre_file_name;
 
 	String compiler_messages;
 	String compile_status = "unknown";
@@ -143,7 +140,7 @@ String nibble(String div, String& haystack);
 
 #include "dvalue.h"
 
-// .uce compatibility spelling: StringList is now the general DValue list.
+// StringList is now the general DValue list.
 using StringList = DValue;
 inline String operator+(const DValue& lhs, String rhs) { return(lhs.to_string() + rhs); }
 inline String operator+(String lhs, const DValue& rhs) { return(lhs + rhs.to_string()); }

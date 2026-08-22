@@ -28,8 +28,3 @@ Use `filter()` when you want to keep matching items instead.
 var names := split("ada,grace", ",")
 var upper := map(names, function(item : string) string { return upper(item) })
 print(join(upper, ","), "\n")
-
-:example cpp render
-DValue names = split("ada,grace", ",");
-DValue upper = map(names, [](String item) { return(to_upper(item)); });
-print(join(upper, ","), "\n");

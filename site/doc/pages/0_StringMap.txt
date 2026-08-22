@@ -26,8 +26,3 @@ C++ `StringMap` is `std::map<String, String>`. C++ `map["key"]` creates an empty
 :example capy render
 var params := dval({"page": "docs"})
 print(params["page"], "\n")
-
-:example cpp render
-StringMap params;
-params["page"] = "docs";
-print(params["page"], "\n");

@@ -22,22 +22,13 @@ Use `strpos` to find the first `needle` in a Capy string. Pass the string, the t
 
 An empty `needle` returns the normalized start position. This differs from PHP `strpos`, which returns `false` when no match exists.
 
-Capy uses `string` values. C++ `.uce` uses `String` and `s64`, as the signature shows.
+Capy uses `string` values. Capy uses `String` and `s64`, as the signature shows.
 
 :example capy render strpos() finds a string
 print(strpos("bearer docs", "docs"), "\n")
 
-:example cpp render strpos() finds a string
-print(strpos("bearer docs", "docs"), "\n");
-
 :example capy render strpos() with a negative offset
 print(strpos("bearer docs docs", "docs", -5), "\n")
 
-:example cpp render strpos() with a negative offset
-print(strpos("bearer docs docs", "docs", -5), "\n");
-
 :example capy render strpos() with an empty needle
 print(strpos("bearer docs", "", 3), "\n")
-
-:example cpp render strpos() with an empty needle
-print(strpos("bearer docs", "", 3), "\n");

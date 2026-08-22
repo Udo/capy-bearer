@@ -22,7 +22,3 @@ ws_opcode
 Use the ID with `ws_send_to()` or `ws_close()` to select one client.
 
 Capy does not expose `ws_connection_id`. In a Capy `WS` handler, read `request.websocket.connection_id`.
-
-:example cpp render
-String id = ws_connection_id();
-print(id == "" ? "(empty outside a WS handler)" : id, "\n");

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-chmod" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_chmod"
+        page["kind"] = "api"
+        page["slug"] = "file-chmod"
+        page["route"] = "/doc/api/file-chmod/"
+        page["title"] = "file_chmod"
+        page["content"] = "`file_chmod` sets permission bits on a path. Use it to restrict or grant file access. Capy receives `mode` as a number. The Capy example can use an octal literal such as `0600`.\n"
+        page["returns"] = "true when Capy changes the mode, otherwise false"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_chmod"
+        page["sig_lines"] = dval(["bool file_chmod(String path, u32 mode)", ""])
+        page["capy_sig_lines"] = dval(["function file_chmod(path : string, mode : s32) bool"])
+        page["param_lines"] = dval(["path : path of the file or directory", "mode : permission bits, such as 0644 or 0600", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "file_stat", "file_put_contents", "file_temp", "file_symlink", "dir_remove", "file_fsync"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

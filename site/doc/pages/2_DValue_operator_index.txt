@@ -29,8 +29,3 @@ A missing child does not give Capy a writable child reference. Use `dval_has` or
 :example capy render
 var value := dval({"a": {"b": "nested"}})
 print(value["a"]["b"], "\n")
-
-:example cpp render
-DValue m;
-m["a"]["b"] = "nested";
-print(m["a"]["b"].to_string(), "\n");

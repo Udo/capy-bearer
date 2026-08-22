@@ -23,11 +23,6 @@ if string(session.values.status, "") == "ok" {
     print("missing\n")
 }
 
-:example cpp render
-session_start("capy-doc-session");
-context.session["status"] = "ok";
-print(context.session["status"] != "" ? "stored\n" : "missing\n");
-
 :see
 >session
 session_start

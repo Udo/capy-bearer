@@ -19,10 +19,7 @@ split_http_headers
 :content
 Use `str_starts_with` to test whether a Capy string starts with a prefix. Pass the string and the prefix. The function returns a Boolean value.
 
-Capy uses `string` values. C++ `.uce` uses `String`, as the signature shows.
+Capy uses `string` values. Capy uses `String`, as the signature shows.
 
 :example capy render
 if str_starts_with("/doc", "/") { print("yes\n") } else { print("no\n") }
-
-:example cpp render
-print(str_starts_with("/doc", "/") ? "yes\n" : "no\n");

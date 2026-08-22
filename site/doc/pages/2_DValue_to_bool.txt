@@ -27,8 +27,3 @@ Capy boolean text is `true` or `false`. Use `bool(value)` for a typed boolean. D
 :example capy render
 var value := dval("true")
 print(bool(value), "\n")
-
-:example cpp render
-DValue value;
-value = "true";
-print(value.to_bool() ? "true\n" : "false\n");

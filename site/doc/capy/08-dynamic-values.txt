@@ -145,7 +145,7 @@ The key has type `string`. `dval` list keys are decimal strings. Each item is a 
 
 ## Boundaries
 
-A `dval` keeps identity only inside one workspace. Bearer, module, component, task, custom export or C++, codec, request, and serialization boundaries copy BRRB. Identity never crosses a boundary. JSON and YAML preserve `none` as `null`. XML writes `none` as empty text and cannot recover the distinction.
+A `dval` keeps identity only inside one workspace. Bearer, module, component, task, custom export, codec, request, and serialization boundaries copy BRRB. Identity never crosses a boundary. JSON and YAML preserve `none` as `null`. XML writes `none` as empty text and cannot recover the distinction.
 
 :see
 0_DValue

@@ -23,10 +23,10 @@ Inside a `script` element, a string becomes one self-contained JavaScript litera
 :example capy render
 function RENDER(request : dval) {
     var name := string(request.query.name, "guest")
-    <>
+    print(<>
         <script>const name = <?= name ?>;</script>
         <style>.name::before { content: <?= name ?>; }</style>
-    </>
+    </>)
 }
 
 :content
@@ -78,15 +78,29 @@ A markup expression starts with `<>` and ends with `</>`:
 :example capy render
 function RENDER(request : dval) {
     var title := "Report"
-    <>
+    print(<>
         <h1><?= title ?></h1>
         <p>Ready</p>
-    </>
+    </>)
 }
 
 :content
 
-The expression has type `markup`. It can be printed, returned from an ordinary function, or placed inside other markup. A component writes markup to response output.
+The expression has type `markup`. It is a value. It does not write to the response by itself. Use `print(markup_value)` to output it. You can also return `markup` from an ordinary function or insert it into other markup.
+
+:example capy render
+function badge(label : string) markup {
+    -> <><strong><?= label ?></strong></>
+}
+
+function RENDER(request : dval) {
+    print(badge("Ready"))
+}
+
+:output
+<strong>Ready</strong>
+
+:content
 
 ## Trusted markup
 
@@ -95,7 +109,7 @@ A `markup` value stays trusted when `<?= value ?>` inserts it into HTML text. In
 :example capy render
 function RENDER(request : dval) {
     var icon := trusted_markup("<strong>ready</strong>")
-    <><p><?: icon ?></p></>
+    print(<><p><?: icon ?></p></>)
 }
 
 :content

@@ -15,12 +15,6 @@ print("this output is discarded")
 ob_close()
 print("the buffered text never reached the response\n")
 
-:example cpp render
-ob_start();
-print("this output is discarded");
-ob_close();
-print("the buffered text never reached the response\n");
-
 :see
 >ob
 ob_get_close

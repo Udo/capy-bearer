@@ -1,47 +1,30 @@
 :title
-Coming from React, Next, or Remix
+Coming from React
 
 :sig
-BEARER orientation for React-framework developers
-
-:see
-1_RENDER
-1_COMPONENT
-component
-unit_render
-3_C++ Preprocessor
-map
-filter
-2_DValue_filter
-:capy-status cpp-specific
+Capy server components
 
 :content
-Capy uses typed `function RENDER` units. Capy has no C++ template-preprocessor workflow.
+Capy uses typed `function RENDER` units. Bearer renders on the server. It does not require a client-side virtual DOM or file router.
 
-This page describes the C++ Bearer workflow. Bearer renders on the server. It does not provide a client-side virtual DOM or a required file router.
+## Concept map
 
-## C++ concept map
+`function RENDER(request : dval)` renders a page. `function COMPONENT(request : dval)` renders reusable server content. A named component uses `function COMPONENT:NAME(request : dval)`. Read component input from `request.props`.
 
-`RENDER(Request& context)` renders a page. `COMPONENT(Request& context)` and `COMPONENT:NAME(Request& context)` render reusable server components. `context.props` holds component input.
+`request.call` holds request-local shared state. `function ONCE(request : dval)` prepares a unit for one request. `function INIT(request : dval)` prepares a loaded unit worker.
 
-`context.call` holds request-local shared state. `context.cfg` holds structured app data. `ONCE(Request& context)` prepares one unit for a request. `INIT(Request& context)` prepares a loaded worker unit.
-
-Use `<?= expression ?>` for context-aware output. Use `<?: expression ?>` only for trusted markup in HTML text. `component()` returns component HTML. `unit_render()` renders another page unit.
+Use markup literals for escaped output. Use `component()` when code needs component output as a value. Use `component_render()` or `unit_render()` when code writes directly to the response.
 
 ## Routes and data
 
-Keep routing in a front controller when that fits the app. The starter example checks page files and parent index handlers. This keeps route rules visible in application code.
+Keep routing in a front controller when it fits the application. The starter example checks page files and parent index handlers. This keeps route rules visible in application code.
 
-Use collection helpers for short transformations. Use explicit loops when the work has side effects or several steps.
+Use collection helpers for short transformations. Use explicit loops when work has effects or several steps.
 
 ## What Bearer does not provide
 
-Bearer does not provide a global asset registry or island registry. It does not require JSX-like component tags. C++ components do not have built-in child or slot syntax. Pass explicit props and call components instead.
+Bearer does not provide a global asset registry or island registry. It does not require JSX-like component tags. Capy components do not have built-in child or slot syntax. Pass explicit props and call components instead.
 
 ## Debugging
 
-Check generated C++ under `BIN_DIRECTORY` when a C++ unit does not compile. Bearer reports the source path and compiler output.
-
-:example cpp render
-// Components are BEARER's reusable, props-driven building blocks (like React components).
-print(component("examples/sample_unit"), "\n");
+Check the compiler output under `BIN_DIRECTORY` when a Capy unit does not compile. Bearer reports the source path and compiler output.

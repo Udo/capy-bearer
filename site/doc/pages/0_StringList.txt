@@ -20,10 +20,6 @@ Capy has no separate `StringList` type or representation. It uses mutable DValue
 var labels := map(unique(split("a,b,a", ",")), function(item : string) string { return upper(item) })
 print(join(labels, ","), "\n")
 
-:example cpp render
-DValue labels = split("a,b,a", ",").unique().map([](String item) { return(to_upper(item)); });
-print(join(labels, ","), "\n");
-
 :see
 >types
 0_DValue

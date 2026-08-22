@@ -25,8 +25,3 @@ C++ `get_by_path(path, delim)` also accepts a custom separator. Its default sepa
 :example capy render
 var cfg := {"site": {"title": "BEARER"}}
 print(dval_get_by_path(cfg, "site/title"), "\n")
-
-:example cpp render
-DValue cfg;
-cfg["site"]["title"] = "BEARER";
-print(cfg.get_by_path("site/title").to_string(), "\n");

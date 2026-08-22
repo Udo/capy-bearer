@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "draw-int" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "draw_int"
+        page["kind"] = "api"
+        page["slug"] = "draw-int"
+        page["route"] = "/doc/api/draw-int/"
+        page["title"] = "draw_int"
+        page["content"] = "`draw_int()` returns a Capy `u64` noise value between two values.\n\nPass the range values. Bearer uses the request random seed and advances its random index after each call.\n\nUse it when one request needs repeatable integer noise values from its random sequence.\n\nThe Capy call has the same arguments.\n"
+        page["returns"] = "`u64` noise value between `from` and `to`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "draw_int"
+        page["sig_lines"] = dval(["u64 draw_int(u64 from, u64 to)", ""])
+        page["capy_sig_lines"] = dval(["function draw_int(from : u64, to : u64) u64"])
+        page["param_lines"] = dval(["from : first range value", "to : second range value", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">noise", "draw_float", "gen_noise01", "gen_noise32", "gen_noise64", "gen_float", "gen_int"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

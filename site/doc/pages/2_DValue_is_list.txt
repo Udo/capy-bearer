@@ -18,9 +18,3 @@ C++ `is_list()` applies the same rules after it dereferences the value.
 :example capy render
 var list := dval_push(dval([]), "Ada")
 if dval_is_list(list) { print("list\n") } else { print("map\n") }
-
-:example cpp render
-DValue list;
-DValue item; item = "Ada";
-list.push(item);
-print(list.is_list() ? "list\n" : "map\n");

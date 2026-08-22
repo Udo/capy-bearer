@@ -21,8 +21,3 @@ none
 :example capy render
 var flag := dval_set_bool(dval(""), true)
 if bool(flag) { print("true\n") } else { print("false\n") }
-
-:example cpp render
-DValue flag;
-flag.set_bool(true);
-print(flag.to_bool() ? "true" : "false", "\n");

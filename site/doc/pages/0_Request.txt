@@ -30,6 +30,3 @@ C++ code can update these fields directly. The C++ `Request` lifetime is one req
 
 :example capy render
 print(string(request.query.name, "guest"), "\n")
-
-:example cpp render
-print(context.get["name"] == "" ? "guest\n" : context.get["name"] + "\n");

@@ -40,7 +40,6 @@ struct WasmEntryFreshnessState
 	String source_generation;
 	WasmEntryArtifactIdentity wasm;
 	WasmEntryArtifactIdentity metadata;
-	WasmEntryArtifactIdentity setup_template;
 };
 
 static std::mutex g_wasm_entry_freshness_mutex;
@@ -199,12 +198,9 @@ static bool wasm_artifact_exists(Request* context, const String& entry_unit)
 	f64 freshness_started = time_precise();
 	bool cache_allowed = wasm_entry_cache_allowed(context);
 	String metadata_path = compiler_unit_bin_directory(context) + entry_unit + ".meta.txt";
-	String setup_template_path = path_join(context->server->config["COMPILER_SYS_PATH"], context->server->config["SETUP_TEMPLATE"]);
 	String source_generation;
 	struct stat metadata_st;
-	struct stat setup_template_st;
 	bool metadata_exists = false;
-	bool setup_template_exists = false;
 	auto now = std::chrono::steady_clock::now();
 	if(cache_allowed)
 	{
@@ -212,16 +208,14 @@ static bool wasm_artifact_exists(Request* context, const String& entry_unit)
 		source_generation = compiler_source_generation(context);
 		context->stats.wasm_ready_source_generation_us += (u64)((time_precise() - phase_started) * 1000000.0);
 		metadata_exists = stat(metadata_path.c_str(), &metadata_st) == 0 && S_ISREG(metadata_st.st_mode);
-		setup_template_exists = stat(setup_template_path.c_str(), &setup_template_st) == 0 && S_ISREG(setup_template_st.st_mode);
-		if(source_generation != "" && metadata_exists && setup_template_exists)
+		if(source_generation != "" && metadata_exists)
 		{
 			std::lock_guard<std::mutex> lock(g_wasm_entry_freshness_mutex);
 			auto cached = g_wasm_entry_freshness.find(entry_unit);
 			if(cached != g_wasm_entry_freshness.end() && now - cached->second.checked_at < WASM_ENTRY_FRESHNESS_TTL &&
 				cached->second.source_generation == source_generation &&
 				wasm_entry_artifact_identity_matches(cached->second.wasm, wasm_st) &&
-				wasm_entry_artifact_identity_matches(cached->second.metadata, metadata_st) &&
-				wasm_entry_artifact_identity_matches(cached->second.setup_template, setup_template_st))
+				wasm_entry_artifact_identity_matches(cached->second.metadata, metadata_st))
 			{
 				context->stats.wasm_ready_freshness_cache_hit_count++;
 				context->stats.wasm_ready_freshness_us += (u64)((time_precise() - freshness_started) * 1000000.0);
@@ -232,8 +226,7 @@ static bool wasm_artifact_exists(Request* context, const String& entry_unit)
 		}
 	}
 	// Require the artifact to satisfy the full compiler freshness check. Source
-	// mtime alone misses runtime/unit ABI changes, setup-template changes, and
-	// metadata mismatches, which can leave stale wasm with old imports.
+	// mtime alone misses runtime and unit ABI changes or metadata mismatches.
 	bool source_missing = false;
 	phase_started = time_precise();
 	if(compiler_unit_needs_recompile(context, entry_unit, &source_missing, false, true))
@@ -257,21 +250,18 @@ static bool wasm_artifact_exists(Request* context, const String& entry_unit)
 	{
 		struct stat final_wasm_st;
 		struct stat final_metadata_st;
-		struct stat final_setup_template_st;
 		phase_started = time_precise();
 		String final_generation = compiler_source_generation(context);
 		context->stats.wasm_ready_source_generation_us += (u64)((time_precise() - phase_started) * 1000000.0);
 		if(final_generation == source_generation && stat(wasm_path.c_str(), &final_wasm_st) == 0 && S_ISREG(final_wasm_st.st_mode) &&
-			stat(metadata_path.c_str(), &final_metadata_st) == 0 && S_ISREG(final_metadata_st.st_mode) &&
-			stat(setup_template_path.c_str(), &final_setup_template_st) == 0 && S_ISREG(final_setup_template_st.st_mode))
+			stat(metadata_path.c_str(), &final_metadata_st) == 0 && S_ISREG(final_metadata_st.st_mode))
 		{
 			std::lock_guard<std::mutex> lock(g_wasm_entry_freshness_mutex);
 			if(g_wasm_entry_freshness.size() >= WASM_ENTRY_FRESHNESS_CACHE_MAX)
 				g_wasm_entry_freshness.clear();
 			g_wasm_entry_freshness[entry_unit] = {
 				std::chrono::steady_clock::now(), final_generation,
-				wasm_entry_artifact_identity(final_wasm_st), wasm_entry_artifact_identity(final_metadata_st),
-				wasm_entry_artifact_identity(final_setup_template_st)
+				wasm_entry_artifact_identity(final_wasm_st), wasm_entry_artifact_identity(final_metadata_st)
 			};
 		}
 	}

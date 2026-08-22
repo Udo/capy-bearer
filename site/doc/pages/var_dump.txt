@@ -25,9 +25,3 @@ Capy supports a `dval` input only. C++ also provides the `StringMap` overload an
 :example capy render
 var user := dval({"name": "Ada", "role": "engineer"})
 print(var_dump(user))
-
-:example cpp render
-DValue user;
-user["name"] = "Ada";
-user["role"] = "engineer";
-print(var_dump(user));

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "time-parse" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "time_parse"
+        page["kind"] = "api"
+        page["slug"] = "time-parse"
+        page["route"] = "/doc/api/time-parse/"
+        page["title"] = "time_parse"
+        page["content"] = "Call `time_parse(value)` with date or time text.\n\nThe function returns a `u64` Unix timestamp. It returns zero when it cannot parse `value`. Use it to convert external time text before you compare or format a timestamp.\n\nC++ uses the legacy `time_string` parameter in the signature above. Its normal use case is the same.\n\n"
+        page["returns"] = "the parsed Unix timestamp, or zero when Capy cannot parse the text"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "time_parse"
+        page["sig_lines"] = dval(["u64 time_parse(String time_string)", ""])
+        page["capy_sig_lines"] = dval(["function time_parse(value : string) u64"])
+        page["param_lines"] = dval(["time_string : text that contains a date, time, or both", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">time", "time_format_utc", "time_format_relative", "time_format_local", "time", "time_precise", "usleep"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

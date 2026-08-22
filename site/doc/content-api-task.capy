@@ -1,0 +1,30 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "task" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "task"
+        page["kind"] = "api"
+        page["slug"] = "task"
+        page["route"] = "/doc/api/task/"
+        page["title"] = "task"
+        page["content"] = "Use `task` to place background work in the task queue. Pass a Capy unit path and a `dval` input value. The function returns an opaque task ID without waiting for the task. Use that ID with `task_status`, `task_await`, or `task_cancel`.\n\nA target without a suffix calls `TASK`. A target with `:NAME` calls `TASK:NAME`. Each task gets a new request. Its `request.props` field contains only the copied input value. It does not receive the caller request, session, connections, resources, or memory state.\n\nA task can later have a failed, timed out, or canceled status.\n"
+        page["returns"] = "opaque task ID"
+        page["errors"] = "The call traps when Bearer cannot admit the task to the queue. A returned task ID only confirms admission. It does not confirm completion.\n\nCapy handlers use `function TASK(request : dval)` or `function TASK:NAME(request : dval)`. The Capy forms are `TASK(Request& context)` and `TASK:NAME(Request& context)`."
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "task"
+        page["sig_lines"] = dval(["String task(String target, DValue props)", ""])
+        page["capy_sig_lines"] = dval(["function task(target : string, props : as dval) string"])
+        page["param_lines"] = dval(["target : Capy unit path. Add `:NAME` to select a named task handler.", "props : Capy `dval` input available through `request.props`", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">task", "task_status", "task_await", "task_cancel"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

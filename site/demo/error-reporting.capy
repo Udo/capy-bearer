@@ -1,0 +1,8 @@
+function RENDER(request : dval) {
+    response_header("Content-Type", "text/html; charset=utf-8")
+    var mode := string(request.query.mode, "")
+    if mode == "trap" {
+        response_status(500, "Internal Server Error")
+    }
+    print("<!doctype html><title>Configurable error page</title><h1>Configurable error page</h1><p>mode=", html_escape(mode), "</p>")
+}

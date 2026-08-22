@@ -1,0 +1,75 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "time-format-local" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "time_format_local"
+        page["kind"] = "api"
+        page["slug"] = "time-format-local"
+        page["route"] = "/doc/api/time-format-local/"
+        page["title"] = "time_format_local"
+        page["content"] = "Use `time_format_local` to format a Unix timestamp in the server local time zone. Pass a format string and, if needed, a timestamp. The function returns a Capy `string`. Omit the timestamp to format the current time.\n\nThe formatter supports core Linux `date` format tokens and the relative-time delta tokens.\n\nSupported format sequences:\n\n\nPadding and case flags may follow `%`:\n\n\nThe `RFC1123` special format applies only to `time_format_utc`. Use that function for RFC 1123 output.\n\nCapy uses `String` and `u64`, as the signature shows.\n"
+        page["returns"] = "formatted local-time string"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "time_format_local"
+        page["sig_lines"] = dval(["String time_format_local(String format = \"\", u64 timestamp = 0)", ""])
+        page["capy_sig_lines"] = dval(["function time_format_local(format : string = \"\", timestamp : u64 = 0) string"])
+        page["param_lines"] = dval(["format : optional Capy format string", "timestamp : optional Unix timestamp. Omit it to use the current time.", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">time", ">time_format_relative", "time", "time_format_relative", "time_precise", "time_format_utc", "usleep", "time_parse"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "time-format-relative" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "time_format_relative"
+        page["kind"] = "api"
+        page["slug"] = "time-format-relative"
+        page["route"] = "/doc/api/time-format-relative/"
+        page["title"] = "time_format_relative"
+        page["content"] = "Use `time_format_relative` to show a Capy timestamp relative to the current time. Pass the timestamp. You can also set the three output formats and their two cutoffs. The function returns a Capy `string`.\n\nThe formatter uses `format_very_recent` before `medium_recency_seconds`. It uses `format_medium_recent` before `not_recent_seconds`. It uses `format_not_recent` at or after that cutoff.\n\nAll time formatters support relative-time delta tokens.\n\nDefault behavior examples:\n\n\nCapy uses `u64` and `string` values. Capy uses `u64` and `String`, as the signature shows.\n"
+        page["returns"] = "formatted relative-time string"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "time_format_relative"
+        page["sig_lines"] = dval(["String time_format_relative(u64 timestamp, String format_very_recent = \"\", u64 medium_recency_seconds = 0, String format_medium_recent = \"\", u64 not_recent_seconds = 0, String format_not_recent = \"\")", ""])
+        page["capy_sig_lines"] = dval(["function time_format_relative(timestamp : u64, very_recent : string = \"\", medium_seconds : u64 = 0, medium_recent : string = \"\", not_recent_seconds : u64 = 0, not_recent : string = \"\") string"])
+        page["param_lines"] = dval(["timestamp : Capy Unix timestamp to compare with the current time", "format_very_recent : text for recent timestamps. An empty value uses `just now`.", "medium_recency_seconds : recent cutoff in seconds. Zero uses `90`.", "format_medium_recent : text after the recent cutoff. An empty value uses `%deltaM minutes ago`.", "not_recent_seconds : older cutoff in seconds. Zero uses `5400`.", "format_not_recent : text after the older cutoff. An empty value uses `%deltaH hours ago`.", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">time", ">time_format_local", ">time_format_utc", "time_format_local", "time_format_utc", "time", "time_parse", "time_precise", "usleep"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "time-format-utc" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "time_format_utc"
+        page["kind"] = "api"
+        page["slug"] = "time-format-utc"
+        page["route"] = "/doc/api/time-format-utc/"
+        page["title"] = "time_format_utc"
+        page["content"] = "Use `time_format_utc` to format a Unix timestamp in UTC. Pass a format string and, if needed, a timestamp. The function returns a Capy `string`. Omit the timestamp to format the current time.\n\nThe formatter supports core Linux `date` format tokens and the relative-time delta tokens. Pass `RFC1123` to use the built-in RFC 1123 UTC format.\n\nSupported format sequences:\n\n\nPadding and case flags may follow `%`:\n\n\nCapy uses `string` and `u64` values. Capy uses `String` and `u64`, as the signature shows.\n"
+        page["returns"] = "formatted UTC string"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "time_format_utc"
+        page["sig_lines"] = dval(["String time_format_utc(String format = \"\", u64 timestamp = 0)", ""])
+        page["capy_sig_lines"] = dval(["function time_format_utc(format : string = \"\", timestamp : u64 = 0) string"])
+        page["param_lines"] = dval(["format : optional Capy format string", "timestamp : optional Unix timestamp. Omit it to use the current time.", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">time", ">time_format_relative", "time_format_relative", "time_parse", "time_format_local", "time", "time_precise", "usleep"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

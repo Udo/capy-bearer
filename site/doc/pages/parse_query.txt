@@ -32,22 +32,10 @@ Use this API for query text outside normal request parsing.
 var query := parse_query("name=Ada&role=admin")
 print(query["name"], "\n")
 
-:example cpp render parse_query() decodes a value
-StringMap q = parse_query("name=Ada&role=admin");
-print(q["name"], "\n");
-
 :example capy render parse_query() handles keys without values
 var query := parse_query("enabled&name=Ada")
 print(length(string(query["enabled"], "")), "\n")
 
-:example cpp render parse_query() handles keys without values
-StringMap q = parse_query("enabled&name=Ada");
-print(q["enabled"].size(), "\n");
-
 :example capy render parse_query() keeps the last repeated value
 var query := parse_query("name=Ada&name=Grace")
 print(query["name"], "\n")
-
-:example cpp render parse_query() keeps the last repeated value
-StringMap q = parse_query("name=Ada&name=Grace");
-print(q["name"], "\n");

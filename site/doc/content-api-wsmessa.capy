@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "ws-message" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "ws_message"
+        page["kind"] = "api"
+        page["slug"] = "ws-message"
+        page["route"] = "/doc/api/ws-message/"
+        page["title"] = "ws_message"
+        page["content"] = "`ws_message()` is a C++ API. It returns the current WebSocket message payload. Text messages return text. Binary messages return raw bytes in the `String` value. Outside a WebSocket handler, it returns an empty string.\n\nUse `ws_is_binary()` or `ws_opcode()` before you parse the payload.\n\nCapy does not expose `ws_message`. In a Capy `WS` handler, read `request.body`.\n"
+        page["returns"] = "payload of the current WebSocket message"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "ws_message"
+        page["sig_lines"] = dval(["String ws_message()", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">websocket", ">0_Request", "ws_is_binary", "ws_opcode", "ws_connections", "ws_scope", "ws_connection_id", "ws_send"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

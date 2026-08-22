@@ -17,11 +17,9 @@ component_render
 :content
 `component_resolve()` resolves a Capy component name.
 
-A name without a suffix resolves to its `.uce` file. An explicit `.capy` target resolves to its Capy source path. A colon and handler name do not affect the returned path.
+A name without a suffix resolves to its `.capy` file. An explicit `.capy` target resolves to its Capy source path. A colon and handler name do not affect the returned path.
 
 Use this function to inspect a shorthand name before you render a component. Its name resolution matches `component()` and `component_exists()`.
 
 :example capy render
 print("resolved path: ", component_resolve("examples/sample_unit"), "\n")
-:example cpp render
-print("resolved path: ", component_resolve("examples/sample_unit"), "\n");

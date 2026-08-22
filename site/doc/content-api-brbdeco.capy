@@ -1,0 +1,28 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "brb-decode" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "brb_decode"
+        page["kind"] = "api"
+        page["slug"] = "brb-decode"
+        page["route"] = "/doc/api/brb-decode/"
+        page["title"] = "brb_decode"
+        page["content"] = "Capy's `brb_decode(encoded)` returns the decoded `dval` value. Pass BRRB2 bytes from `brb_encode()`.\n\nInvalid input returns an empty string value. Capy has no error-output form. It does not modify another value.\n\nBRRB preserves the distinct `N` tag for `none`. A decoded `N` value remains `none` in Capy and C++.\n\nThe C++ one-argument `DValue` form has the same result. Its three-argument form also returns a success flag and an error string.\n"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "brb_decode"
+        page["sig_lines"] = dval(["DValue brb_decode(String encoded)", "bool brb_decode(String encoded, DValue& out, String* error_out = 0)", ""])
+        page["capy_sig_lines"] = dval(["function brb_decode(encoded : string) dval"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["brb_encode", "0_DValue", "json_decode"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

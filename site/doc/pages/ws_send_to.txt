@@ -28,7 +28,3 @@ C++ uses the signature above. Its `String` and `bool` inputs correspond to Capy 
 
 :example capy render
 if ws_send_to("example-connection-id", "direct message", false) { print("message queued\n") } else { print("no such connection\n") }
-
-:example cpp render
-bool sent = ws_send_to("example-connection-id", "direct message");
-print(sent ? "message queued" : "no such connection", "\n");

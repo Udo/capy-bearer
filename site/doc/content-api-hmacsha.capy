@@ -1,0 +1,52 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "hmac-sha256-hex" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "hmac_sha256_hex"
+        page["kind"] = "api"
+        page["slug"] = "hmac-sha256-hex"
+        page["route"] = "/doc/api/hmac-sha256-hex/"
+        page["title"] = "hmac_sha256_hex"
+        page["content"] = "`hmac_sha256_hex()` returns the HMAC-SHA256 for `key` and `data` as lowercase hexadecimal text.\n\nUse it when you need a printable signature. Compare received signatures with `crypto_equal()`.\n"
+        page["returns"] = "64-character lowercase hexadecimal HMAC-SHA256 string"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "hmac_sha256_hex"
+        page["sig_lines"] = dval(["String hmac_sha256_hex(String key, String data)", ""])
+        page["capy_sig_lines"] = dval(["function hmac_sha256_hex(key : string, value : string) string"])
+        page["param_lines"] = dval(["key : secret string bytes", "data : message string bytes", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "hmac_sha256", "sha256_hex", "crypto_equal"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "hmac-sha256" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "hmac_sha256"
+        page["kind"] = "api"
+        page["slug"] = "hmac-sha256"
+        page["route"] = "/doc/api/hmac-sha256/"
+        page["title"] = "hmac_sha256"
+        page["content"] = "`hmac_sha256()` returns the raw 32-byte HMAC-SHA256 for `key` and `data`. The returned string contains binary bytes.\n\nUse it for binary protocols. Use `hmac_sha256_hex()` when you need printable text.\n"
+        page["returns"] = "raw 32-byte HMAC-SHA256 string"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "hmac_sha256"
+        page["sig_lines"] = dval(["String hmac_sha256(String key, String data)", ""])
+        page["capy_sig_lines"] = dval(["function hmac_sha256(key : string, value : string) string"])
+        page["param_lines"] = dval(["key : secret string bytes", "data : message string bytes", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "hmac_sha256_hex", "sha256", "crypto_equal"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

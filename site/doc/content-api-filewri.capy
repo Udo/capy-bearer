@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-write" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_write"
+        page["kind"] = "api"
+        page["slug"] = "file-write"
+        page["route"] = "/doc/api/file-write/"
+        page["title"] = "file_write"
+        page["content"] = "`file_write()` writes string bytes at a file handle's current offset. It returns the `u64` number of bytes written and advances the offset.\n\nPass a handle from `file_open()` in `\"w\"`, `\"a\"`, or `\"r+\"` mode. Strings can contain NUL bytes and other binary data.\n\nIt returns zero for an invalid, closed, or non-writable handle. Use it for sequential file output.\n"
+        page["returns"] = "`u64` number of bytes written"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_write"
+        page["sig_lines"] = dval(["u64 file_write(u64 h, String data)", ""])
+        page["capy_sig_lines"] = dval(["function file_write(handle : u64, value : string) u64"])
+        page["param_lines"] = dval(["h : `u64` handle from `file_open()` in a writable mode", "data : string bytes to write at the current offset", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "file_open", "file_pwrite", "file_read", "file_close"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

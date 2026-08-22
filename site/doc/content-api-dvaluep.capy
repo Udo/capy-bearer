@@ -1,0 +1,52 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "dvalue-pop" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_pop"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-pop"
+        page["route"] = "/doc/api/dvalue-pop/"
+        page["title"] = "DValue::pop"
+        page["content"] = "`dval_pop(value)` removes one child. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid. An empty value becomes an empty map-shaped value.\n\nFor a list, it removes the last numeric child and resets the next list index. For a map, it removes the last key in reverse map order. Capy does not return the removed child.\n\n## C++ API\n\n`DValue::pop()` returns the removed child. It uses reverse `std::map` key order for maps.\n\n"
+        page["returns"] = "removed child as a `dval`, or an empty `dval` when no child exists"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::pop"
+        page["sig_lines"] = dval(["DValue DValue::pop()", ""])
+        page["capy_sig_lines"] = dval(["function dval_pop(value : dval) dval"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "2_DValue_push"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "dvalue-push" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_push"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-push"
+        page["route"] = "/doc/api/dvalue-push/"
+        page["title"] = "DValue::push"
+        page["content"] = "`dval_push(value, child)` appends `child` at the next numeric key. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid.\n\nAn empty value becomes a list. A contiguous list adds the child after its last item. A non-list map uses its next unused numeric key and remains a map.\n\n## C++ API\n\n`DValue::push()` changes the object in place.\n"
+        page["returns"] = "none"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::push"
+        page["sig_lines"] = dval(["void DValue::push(const DValue& child)", ""])
+        page["capy_sig_lines"] = dval(["function dval_push(value : dval, child : as dval) dval"])
+        page["param_lines"] = dval(["child : value to append/copy", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "2_DValue_pop", "2_DValue_set_array"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

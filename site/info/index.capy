@@ -1,0 +1,135 @@
+function card(href : string, title : string, body : string, meta : string) void {
+    component_render("/info/components/ui.capy:LINK_CARD", {href: href, title: title, body: body, meta: meta})
+}
+
+function feature(eyebrow : string, title : string, body : string) void {
+    component_render("/info/components/ui.capy:FEATURE", {eyebrow: eyebrow, title: title, body: body})
+}
+
+function signal(title : string, body : string) void {
+    component_render("/info/components/ui.capy:SIGNAL", {title: title, body: body})
+}
+
+function code_block(title : string, code : string) void {
+    component_render("/info/components/ui.capy:CODE_BLOCK", {title: title, code: code})
+}
+
+function RENDER(request : dval) {
+    var generated_at := time_format_utc("%Y-%m-%d %H:%M:%S UTC")
+    print("<!doctype html>")
+    print(<>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8"></meta>
+                <meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+                <title>BEARER: make dynamic websites like it is 2006</title>
+                <meta name="description" content="BEARER is a web runtime for Capy pages, components, FastCGI, and built-in WebSockets."></meta>
+                <link rel="stylesheet" href="style.css"></link>
+            </head>
+            <body>
+                <div class="page-shell">
+                    <header class="topbar">
+                        <a class="brand" href="/info/">BEARER</a>
+                        <nav>
+                            <a href="#why">Why</a>
+                            <a href="#examples">Examples</a>
+                            <a href="#deploy">Deploy</a>
+                            <a href="#explore">Explore</a>
+                        </nav>
+                        <a class="topbar-link" href="/doc/">Docs</a>
+                    </header>
+                    <main>
+                        <section class="hero-panel">
+                            <div class="hero-copy">
+                                <div class="eyebrow">Capy pages, Bearer runtime</div>
+                                <h1>Make dynamic websites like it is 2006.</h1>
+                                <p class="hero-lead">BEARER is a direct web runtime. Files are pages. Templates live next to control flow. nginx fronts the site. A request can compile into a WebAssembly module on first hit.</p>
+                                <div class="hero-actions">
+                                    <a class="button button-primary" href="/demo/">Open the demo area</a>
+                                    <a class="button button-secondary" href="/doc/">Read the docs</a>
+                                    <a class="button button-secondary" href="/examples/bearer-starter/">Browse the starter</a>
+                                </div>
+                                <div class="signal-grid">
+    </>)
+    signal("Files are routes", "A Capy page is the thing you edit and the thing nginx serves.")
+    signal("Compile on demand", "First request builds a WebAssembly module. Later requests reuse it.")
+    signal("WebSockets included", "The same runtime owns page handlers and socket handlers.")
+    print(<>
+                                </div>
+                            </div>
+                            <aside class="hero-aside">
+                                <div class="manual-card">
+                                    <div class="eyebrow">Runtime shape</div>
+                                    <h2>Dynamic pages without ceremony</h2>
+                                    <ul>
+                                        <li>Write request handlers as Capy functions.</li>
+                                        <li>Use markup expressions for escaped HTML.</li>
+                                        <li>Render components with structured props.</li>
+                                        <li>Run behind nginx over FastCGI.</li>
+                                    </ul>
+                                </div>
+                                <div class="manual-card compact">
+                                    <div class="eyebrow">Generated</div>
+                                    <p><?= generated_at ?></p>
+                                    <p>Shared-nothing requests. Request-local state. Small surface area.</p>
+                                </div>
+                            </aside>
+                        </section>
+                        <section class="section" id="why">
+                            <div class="section-heading">
+                                <div class="eyebrow">Why BEARER</div>
+                                <h2>The old web had the right instincts.</h2>
+                                <p>Put code where the page lives. Let runtime state die with the request. Keep deployment boring.</p>
+                            </div>
+                            <div class="feature-grid">
+    </>)
+    feature("templating", "Inline markup", "Capy keeps rendering local to the request logic that owns it.")
+    feature("composition", "Components and units", "Components are Capy units. Props cross boundaries as copied dynamic values.")
+    feature("transport", "FastCGI and sockets", "Normal pages use FastCGI. WebSocket routes use the built-in HTTP listener.")
+    feature("operations", "nginx and systemd", "Static files stay static. The runtime handles compilation and request execution.")
+    print(<>
+                            </div>
+                        </section>
+                        <section class="section" id="examples">
+                            <div class="section-heading">
+                                <div class="eyebrow">Examples</div>
+                                <h2>Small programs first.</h2>
+                            </div>
+                            <div class="code-grid">
+    </>)
+    code_block("A page", "function RENDER(request : dval) {\n    var name := string(request.query.name, \"guest\")\n    <><h1>Hello, <?= name ?>.</h1></>\n}")
+    code_block("A component", "function COMPONENT(request : dval) {\n    <><article><h3><?= string(request.props.title, \"\") ?></h3></article></>\n}")
+    code_block("Markdown", "function RENDER(request : dval) {\n    print(markdown_to_html(\"# Release notes\"))\n}")
+    print(<>
+                            </div>
+                        </section>
+                        <section class="section" id="deploy">
+                            <div class="section-heading">
+                                <div class="eyebrow">Deploy</div>
+                                <h2>Keep the edge boring.</h2>
+                                <p>nginx serves static files and forwards Capy units to Bearer over FastCGI.</p>
+                            </div>
+                        </section>
+                        <section class="section" id="explore">
+                            <div class="section-heading">
+                                <div class="eyebrow">Explore</div>
+                                <h2>Open the running examples.</h2>
+                            </div>
+                            <div class="link-grid">
+    </>)
+    card("/demo/", "Demo area", "Open the published Bearer demo pages.", "Try things")
+    card("/doc/", "Reference docs", "Browse the Capy and Bearer documentation.", "Manual")
+    card("/examples/bearer-starter/", "Starter", "Open the included starter application.", "Template")
+    print(<>
+                            </div>
+                        </section>
+                    </main>
+                    <footer>
+                        <p>BEARER is a web runtime for people who still think pages, handlers, sockets, and deployment scripts should be understandable.</p>
+                        <p><a href="/demo/">Demo</a> <span>/</span> <a href="/doc/">Docs</a> <span>/</span> <a href="/examples/bearer-starter/">Starter</a></p>
+                    </footer>
+                </div>
+            </body>
+        </html>
+    </>)
+}

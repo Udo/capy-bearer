@@ -15,10 +15,7 @@ time_parse
 :content
 Use `time` to get the current Capy Unix timestamp. The function takes no input. It returns a `u64` value with second precision. Use it for timestamps and time calculations.
 
-Capy and C++ `.uce` both return `u64`, as the signature shows.
+Capy and Capy both return `u64`, as the signature shows.
 
 :example capy render
 if time() > 0 { print("timestamp\n") } else { print("no timestamp\n") }
-
-:example cpp render
-print(time() > 0 ? "timestamp\n" : "no timestamp\n");

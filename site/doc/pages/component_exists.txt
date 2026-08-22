@@ -25,5 +25,3 @@ Use this function before rendering an optional component. Its name resolution ma
 if component_exists("examples/sample_unit") { print("exists") } else { print("not found") }
 print(" / ")
 if component_exists("no_such_component") { print("exists\n") } else { print("not found\n") }
-:example cpp render
-print(component_exists("examples/sample_unit") ? "exists" : "not found", " / ", component_exists("no_such_component") ? "exists" : "not found", "\n");

@@ -19,12 +19,9 @@ gen_int
 :content
 `gen_noise32()` returns a deterministic unsigned noise value for `index` and `seed`. Capy represents the result as `u64`.
 
-Use it for repeatable integer noise. C++ `.uce` returns the `u32` value shown above.
+Use it for repeatable integer noise. Capy returns the `u32` value shown above.
 
 
 :example capy render
 var generated := gen_noise32(1, 2)
 print("noise32\n")
-
-:example cpp render
-print(gen_noise32(1, 2) != 0 ? "noise32\n" : "zero\n");

@@ -1,0 +1,14 @@
+#exports doc_greet
+
+function RENDER(request : dval) {
+    print("hello from the sample unit")
+}
+
+function COMPONENT(request : dval) {
+    print("hello from the sample component")
+}
+
+function doc_greet(input : dval) dval {
+    print("doc_greet() was called")
+    -> none
+}

@@ -23,6 +23,3 @@ It ignores leading and trailing whitespace when it tests each argument. Use it t
 
 :example capy render
 print(first("", "fallback", "other"), "\n")
-
-:example cpp render
-print(first("", "fallback", "other"), "\n");

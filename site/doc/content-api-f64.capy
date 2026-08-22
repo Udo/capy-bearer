@@ -1,0 +1,30 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "f64" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "f64"
+        page["kind"] = "api"
+        page["slug"] = "f64"
+        page["route"] = "/doc/api/f64/"
+        page["title"] = "f64"
+        page["content"] = "Use `f64` to convert input to a floating-point value.\n\n`f64(dval, fallback)` accepts scalar `bool`, finite `f64`, and decimal text. `true` becomes `1.0`, and `false` becomes `0.0`.\n\n`f64(string, fallback)` trims spaces and then applies the same rules. The parser requires complete text, so `3.5ms` returns `fallback`.\n"
+        page["returns"] = "converted `f64`, or `fallback`"
+        page["errors"] = "`f64` does not throw. It returns `fallback` for empty input, malformed text, maps, lists, and non-finite values."
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "f64"
+        page["sig_lines"] = dval(["f64(value : dval, fallback : f64 = 0.0) f64", "f64(value : string, fallback : f64 = 0.0) f64", ""])
+        page["capy_sig_lines"] = dval(["function f64(value : dval, fallback : f64 = 0.0) f64", "function f64(value : string, fallback : f64 = 0.0) f64"])
+        page["param_lines"] = dval(["value : source value to convert", "fallback : value returned when conversion fails", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "2_DValue_to_f64", "2_DValue_to_s64", "2_DValue_to_u64", "2_DValue_to_bool", "2_DValue_to_string"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

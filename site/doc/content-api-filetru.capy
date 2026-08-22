@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-truncate" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_truncate"
+        page["kind"] = "api"
+        page["slug"] = "file-truncate"
+        page["route"] = "/doc/api/file-truncate/"
+        page["title"] = "file_truncate"
+        page["content"] = "`file_truncate` sets a file length to `size` bytes. Use it to remove trailing content or extend a file. A smaller size discards trailing bytes. It returns false when Capy cannot resize the file.\n"
+        page["returns"] = "true when Capy resizes the file, otherwise false"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_truncate"
+        page["sig_lines"] = dval(["bool file_truncate(String path, u64 size)", ""])
+        page["capy_sig_lines"] = dval(["function file_truncate(path : string, size : u64) bool"])
+        page["param_lines"] = dval(["path : path of the file to resize", "size : new length in bytes", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "file_put_contents", "file_stat", "file_copy", "dir_remove", "file_rename", "file_temp"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

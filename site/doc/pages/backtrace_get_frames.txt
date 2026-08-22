@@ -31,5 +31,3 @@ The examples are compile-only because the documentation renderer cannot capture 
 var frames := backtrace_get_frames()
 if frames == "" { print("(no frames available in the wasm sandbox)\n") }
 else { print("frames captured\n") }
-:example cpp cli
-print(backtrace_get_frames(0, 0) == "" ? "(no frames available in the wasm sandbox)" : "frames captured", "\n");

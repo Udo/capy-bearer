@@ -22,6 +22,3 @@ C++ declares `CLI(Request& context)`. Its live `context` provides query, POST, b
 
 :example capy render
 print(string(request.method, ""), "\n")
-
-:example cpp render
-print(context.params["REQUEST_METHOD"], "\n");

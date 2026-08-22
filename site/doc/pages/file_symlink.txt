@@ -17,12 +17,6 @@ file_unlink("/tmp/doc-symlink-link.txt")
 file_symlink("/tmp/doc-symlink-target.txt", "/tmp/doc-symlink-link.txt")
 print(file_get_contents("/tmp/doc-symlink-link.txt"), "\n")
 
-:example cpp render
-file_put_contents("/tmp/doc-symlink-target.txt", "data");
-file_unlink("/tmp/doc-symlink-link.txt");
-file_symlink("/tmp/doc-symlink-target.txt", "/tmp/doc-symlink-link.txt");
-print(file_get_contents("/tmp/doc-symlink-link.txt"), "\n");
-
 :see
 >sys
 path_real

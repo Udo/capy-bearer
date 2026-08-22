@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "gen-sha1" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "gen_sha1"
+        page["kind"] = "api"
+        page["slug"] = "gen-sha1"
+        page["route"] = "/doc/api/gen-sha1/"
+        page["title"] = "gen_sha1"
+        page["content"] = "`gen_sha1()` returns the SHA-1 digest of string bytes. It returns hexadecimal text by default, or raw digest bytes when `as_binary` is `true`.\n\nUse it only where SHA-1 compatibility is required. Use a current hash for new security-sensitive designs.\n\n"
+        page["returns"] = "SHA-1 digest string"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "gen_sha1"
+        page["sig_lines"] = dval(["String gen_sha1(String s, bool as_binary = false)", ""])
+        page["capy_sig_lines"] = dval(["function gen_sha1(value : string, as_binary : bool = false) string"])
+        page["param_lines"] = dval(["s : string bytes to hash", "as_binary : `false` for hexadecimal text, `true` for raw bytes", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">noise", "gen_int", "sha256", "gen_float", "sha256_hex", "gen_noise64", "hmac_sha256"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

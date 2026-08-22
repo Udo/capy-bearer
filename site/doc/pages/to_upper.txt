@@ -22,6 +22,3 @@ regex_replace
 `to_upper()` is a C++ API. It normalizes ASCII text. It does not convert Unicode case.
 
 Capy does not expose `to_upper`. Use `upper(value)`.
-
-:example cpp render
-print(to_upper("bearer"), "\n");

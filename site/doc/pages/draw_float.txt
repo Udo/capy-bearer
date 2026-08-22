@@ -24,9 +24,7 @@ Pass the range values and optional precision. Bearer uses the request random see
 
 Use it when one request needs repeatable noise values from its random sequence.
 
-The C++ `.uce` call has the same arguments.
+The Capy call has the same arguments.
 
 :example capy render
 if draw_float(1.0, 0.0, 1.0) >= 0.0 { print("float\n") } else { print("bad\n") }
-:example cpp render
-print(draw_float(1, 0, 1) >= 0 ? "float\n" : "bad\n");

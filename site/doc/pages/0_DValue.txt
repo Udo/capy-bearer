@@ -14,7 +14,7 @@ json_decode
 :content
 `dval` is Capy's structured value type. It stores scalars, maps, lists, and `none`.
 
-A `dval` is a mutable reference value inside one workspace. Assignment, parameters, returns, and captures share its identity. Bearer, module, component, task, custom export or C++, codec, request, and serialization boundaries copy BRRB. Identity never crosses a boundary.
+A `dval` is a mutable reference value inside one workspace. Assignment, parameters, returns, and captures share its identity. Bearer, module, component, task, custom export, codec, request, and serialization boundaries copy BRRB. Identity never crosses a boundary.
 
 ## Normal Use
 
@@ -70,9 +70,3 @@ C++ `key` returns a pointer or `0`. C++ `get_by_path` returns an empty string va
 :example capy render
 var user := {"name": "Ada", "active": true}
 print(user.name, "\n")
-
-:example cpp render
-DValue user;
-user["name"] = "Ada";
-user["active"] = true;
-print(user["name"].to_string(), "\n");

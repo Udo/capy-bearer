@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "html-escape" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "html_escape"
+        page["kind"] = "api"
+        page["slug"] = "html-escape"
+        page["route"] = "/doc/api/html-escape/"
+        page["title"] = "html_escape"
+        page["content"] = "`html_escape()` returns a string that is safe to insert as HTML text. Use it for text from users or other untrusted sources.\n\nIt escapes ampersands, angle brackets, and double quotes.\n"
+        page["returns"] = "string with HTML-sensitive characters replaced by entities"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "html_escape"
+        page["sig_lines"] = dval(["String html_escape(String s)", ""])
+        page["capy_sig_lines"] = dval(["function html_escape(value : string) string"])
+        page["param_lines"] = dval(["s : string to encode for HTML text", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "json_encode", "print", "component"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

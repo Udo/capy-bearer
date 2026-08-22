@@ -31,12 +31,3 @@ zip_extract(archive, destination)
 print(file_get_contents(destination + "/note.txt"), "\n")
 dir_remove(destination, true)
 file_unlink(archive)
-
-:example cpp render
-DValue entries;
-entries["note.txt"] = "extracted content";
-zip_create("/tmp/doc-zipext.zip", entries);
-mkdir("/tmp/doc-zipext-out");
-zip_extract("/tmp/doc-zipext.zip", "/tmp/doc-zipext-out");
-print(file_get_contents("/tmp/doc-zipext-out/note.txt"), "\n");
-dir_remove("/tmp/doc-zipext-out", true);

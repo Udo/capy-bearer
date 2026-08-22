@@ -23,9 +23,3 @@ The documentation renderer cannot safely run a trap example. The example uses a 
 :example capy render
 var user := dval({"name": "Ada"})
 print(dval_require(user, "name"), "\n")
-
-:example cpp render
-DValue user;
-user["name"] = "Ada";
-const DValue* name = user.key("name");
-print(name ? name->to_string() : "missing", "\n");

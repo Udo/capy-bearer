@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "xml-decode" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "xml_decode"
+        page["kind"] = "api"
+        page["slug"] = "xml-decode"
+        page["route"] = "/doc/api/xml-decode/"
+        page["title"] = "xml_decode"
+        page["content"] = "`xml_decode(source)` accepts XML source as a `string` and returns a structured `dval`.\n\nUse it to read XML data into the element shape that `xml_encode()` accepts. It reads the first root element.\n\nThe parser supports elements, quoted attributes, text, CDATA, comments, processing instructions, and XML entities. It does not validate schemas, DTDs, namespaces, or document types.\n\nMalformed XML raises a request-visible runtime error. C++ returns the same data as `DValue` through the signature above.\n"
+        page["returns"] = "element-shaped `dval`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "xml_decode"
+        page["sig_lines"] = dval(["DValue xml_decode(String s)", ""])
+        page["capy_sig_lines"] = dval(["function xml_decode(source : string) dval"])
+        page["param_lines"] = dval(["s : XML source string", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">markup", "xml_encode", "json_decode", "0_DValue", "0_String"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

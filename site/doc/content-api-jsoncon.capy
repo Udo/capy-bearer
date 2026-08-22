@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "json-consume-space" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "json_consume_space"
+        page["kind"] = "api"
+        page["slug"] = "json-consume-space"
+        page["route"] = "/doc/api/json-consume-space/"
+        page["title"] = "json_consume_space"
+        page["content"] = "This internal helper returns the byte offset after JSON whitespace in `source`.\n\nUse `json_decode()` for application code. Keep this helper for codec tests and parser work.\n\nThe C++ API advances its `u32&` offset argument. Both APIs scan byte positions.\n"
+        page["returns"] = "Capy byte offset after JSON whitespace"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "json_consume_space"
+        page["sig_lines"] = dval(["void json_consume_space(String s, u32& i)", ""])
+        page["capy_sig_lines"] = dval(["function json_consume_space(source : string, index : s32) s32"])
+        page["param_lines"] = dval(["source : JSON source text", "index : byte offset where scanning starts", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "json_encode", "json_decode", "join", "first", "map", "filter"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

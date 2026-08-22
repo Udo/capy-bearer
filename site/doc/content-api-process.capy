@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "process-start-directory" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "process_start_directory"
+        page["kind"] = "api"
+        page["slug"] = "process-start-directory"
+        page["route"] = "/doc/api/process-start-directory/"
+        page["title"] = "process_start_directory"
+        page["content"] = "`process_start_directory()` returns the worker's start directory as a `string`.\n\nThe value does not change when `cwd_set()` changes the current directory.\n"
+        page["returns"] = "the worker process start directory"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "process_start_directory"
+        page["sig_lines"] = dval(["String process_start_directory()", ""])
+        page["capy_sig_lines"] = dval(["function process_start_directory() string"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", ">cwd_get", ">cwd_set", "path_real", "request_perf", "path_is_within", "runtime_safe_key", "file_fsync", "file_symlink"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

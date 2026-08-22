@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "crypto-equal" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "crypto_equal"
+        page["kind"] = "api"
+        page["slug"] = "crypto-equal"
+        page["route"] = "/doc/api/crypto-equal/"
+        page["title"] = "crypto_equal"
+        page["content"] = "`crypto_equal()` compares two Capy byte strings in constant time.\n\nPass the expected secret and the submitted secret. It returns `true` when their bytes are equal. Use it for HMACs, tokens, and password hashes.\n\nDo not use `==` to compare secrets. Its time can reveal how many bytes matched.\n"
+        page["returns"] = "`true` when both byte strings are equal"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "crypto_equal"
+        page["sig_lines"] = dval(["bool crypto_equal(String a, String b)", ""])
+        page["capy_sig_lines"] = dval(["function crypto_equal(left : string, right : string) bool"])
+        page["param_lines"] = dval(["a : first byte string", "b : second byte string", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "hmac_sha256_hex", "sha256_hex", "basename", "dirname", "expand_path", "file_append"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

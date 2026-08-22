@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "base64-encode" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "base64_encode"
+        page["kind"] = "api"
+        page["slug"] = "base64-encode"
+        page["route"] = "/doc/api/base64-encode/"
+        page["title"] = "base64_encode"
+        page["content"] = "Capy's `base64_encode(raw)` returns Base64 text as a `string`. Capy strings can contain NUL and other binary bytes.\n\nPass source bytes, such as `random_bytes()` or a `sha256()` digest. Use the result in a text field, header, cookie, or JSON value. The function does not report errors.\n\nThe C++ `String` function has the same input and result.\n"
+        page["returns"] = "the Base64-encoded text"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "base64_encode"
+        page["sig_lines"] = dval(["String base64_encode(String raw)", ""])
+        page["capy_sig_lines"] = dval(["function base64_encode(value : string) string"])
+        page["param_lines"] = dval(["raw : binary-safe source bytes", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">uri", "base64_decode", "random_bytes", "encode_query", "redirect", "request_context_params", "request_base_url"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "usleep" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "usleep"
+        page["kind"] = "api"
+        page["slug"] = "usleep"
+        page["route"] = "/doc/api/usleep/"
+        page["title"] = "usleep"
+        page["content"] = "`usleep(usec)` accepts a microsecond count and returns `0` after the wait.\n\nUse it for a short wait in a local test, polling loop, or task. Long waits hold a worker for the wait duration.\n\nUse `sleep()` for whole-second waits. The API has no error return.\n\nC++ uses the signature above. Its input type differs from the Capy `s32` declaration.\n"
+        page["returns"] = "`0` after sleeping"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "usleep"
+        page["sig_lines"] = dval(["s32 usleep(u32 usec)", ""])
+        page["capy_sig_lines"] = dval(["function usleep(usec : s32) s32"])
+        page["param_lines"] = dval(["usec : microseconds to sleep", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">time", "time_precise", "time", "time_format_local", "time_format_relative", "time_format_utc", "time_parse"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

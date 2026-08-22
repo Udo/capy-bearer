@@ -1,0 +1,28 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "cwd-set" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "cwd_set"
+        page["kind"] = "api"
+        page["slug"] = "cwd-set"
+        page["route"] = "/doc/api/cwd-set/"
+        page["title"] = "cwd_set"
+        page["content"] = "`cwd_set()` changes the current working directory to a Capy string path.\n\nPass the destination path. Save the current path with `cwd_get()` and restore it after temporary use. This change affects the worker process.\n\nThe Capy call has the same arguments.\n"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "cwd_set"
+        page["sig_lines"] = dval(["void cwd_set(String path)", ""])
+        page["capy_sig_lines"] = dval(["function cwd_set(path : string)"])
+        page["param_lines"] = dval(["path : new working directory path", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "path_join", "shell_escape", "mkdir", "shell_exec", "ls", "shell_spawn"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

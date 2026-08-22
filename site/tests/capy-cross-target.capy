@@ -1,0 +1,18 @@
+#exports echo, structured, counted
+
+function RENDER(request : dval) {
+    print("capy-render-ok")
+}
+
+function echo(input : dval) dval {
+    -> input
+}
+
+function structured(input : dval) dval {
+    -> {source: "capy", name: string(input.user.name, "missing"), second: s32(input.items[1], -1)}
+}
+
+function counted(input : dval) dval {
+    print("counted;")
+    -> dval("1")
+}

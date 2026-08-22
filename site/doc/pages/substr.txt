@@ -23,28 +23,16 @@ Use `substr` to get part of a Capy string. Pass the source string and a start po
 
 A negative start position counts from the end. A negative length stops the result that many bytes before the end.
 
-Capy accepts `s32` or `s64` positions and lengths. C++ `.uce` uses `String` and `s64`, as the signatures show.
+Capy accepts `s32` or `s64` positions and lengths. Capy uses `String` and `s64`, as the signatures show.
 
 :example capy render substr() with a start and length
 print(substr("documentation", 0, 3), "\n")
 
-:example cpp render substr() with a start and length
-print(substr("documentation", 0, 3), "\n");
-
 :example capy render substr() with a negative start
 print(substr("documentation", -7), "\n")
-
-:example cpp render substr() with a negative start
-print(substr("documentation", -7), "\n");
 
 :example capy render substr() with a negative length
 print(substr("documentation", 0, -7), "\n")
 
-:example cpp render substr() with a negative length
-print(substr("documentation", 0, -7), "\n");
-
 :example capy render substr() with an out-of-range start
 print(length(substr("documentation", 99)), "\n")
-
-:example cpp render substr() with an out-of-range start
-print(substr("documentation", 99).size(), "\n");

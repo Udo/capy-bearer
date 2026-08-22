@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "shell-exec" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "shell_exec"
+        page["kind"] = "api"
+        page["slug"] = "shell-exec"
+        page["route"] = "/doc/api/shell-exec/"
+        page["title"] = "shell_exec"
+        page["content"] = "Capy `shell_exec(cmd)` runs a shell command and returns its output as a string. Give it a complete command string.\n\nThe returned string includes standard output and standard error. Capy does not return a separate exit status. Use it for a command when its text output is the result you need.\n\nEscape each input value with `shell_escape()` before you add it to `cmd`.\n"
+        page["returns"] = "combined standard output and standard error"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "shell_exec"
+        page["sig_lines"] = dval(["String shell_exec(String cmd)", ""])
+        page["capy_sig_lines"] = dval(["function shell_exec(command : string) string"])
+        page["param_lines"] = dval(["cmd : complete shell command string", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "shell_escape", "shell_spawn", "cwd_set", "job_status", "path_join", "job_result"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "dvalue-each" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_each"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-each"
+        page["route"] = "/doc/api/dvalue-each/"
+        page["title"] = "DValue::each"
+        page["content"] = "Use `for item, key := value` in Capy. The item comes first and is a copied DValue. The key has type `string`. Lists use decimal index strings in order. Maps use string-key order. A scalar runs the loop once with an empty key.\n\nThe loop uses a live view and rechecks the current count. A loop that keeps growing `value` can continue.\n\nC++ `each(f)` does not modify the `DValue`. Its callback receives the child and key. It dereferences references before it iterates.\n"
+        page["returns"] = "none"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::each"
+        page["sig_lines"] = dval(["void DValue::each(std::function<void (const DValue& item, String key)> f) const", ""])
+        page["capy_sig_lines"] = dval(["for value, key := input { ... }"])
+        page["param_lines"] = dval(["f : callback invoked for each child, or once for a scalar value", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "0_DValue", "2_DValue_map", "2_DValue_filter", "2_DValue_is_list"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

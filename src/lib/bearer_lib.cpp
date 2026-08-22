@@ -26,7 +26,6 @@ String component(String name, DValue props, Request& context);
 #include "../capy/frontend.cpp"
 #include "../capy/wasm.cpp"
 #include "../capy/compiler.cpp"
-#include "compiler-parser.cpp"
 #include "compiler.cpp"
 #include "markdown.cpp"
 #include "zip.cpp"

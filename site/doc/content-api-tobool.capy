@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "to-bool" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "to_bool"
+        page["kind"] = "api"
+        page["slug"] = "to-bool"
+        page["route"] = "/doc/api/to-bool/"
+        page["title"] = "to_bool"
+        page["content"] = "`to_bool()` is a C++ API. It ignores case and surrounding whitespace. It accepts `1`, `true`, `yes`, and `on` as true. It accepts `0`, `false`, `no`, and `off` as false.\n\nCapy does not expose `to_bool`. Use `bool(value, fallback)`.\n"
+        page["returns"] = "parsed C++ boolean or `fallback`"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "to_bool"
+        page["sig_lines"] = dval(["bool to_bool(String s, bool fallback = false)", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval(["s : C++ text to parse", "fallback : value for empty or unrecognized text", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "2_DValue_to_bool", "2_DValue_to_u64", "to_f64", "2_DValue_to_stringmap", "to_s64", "2_DValue_to_string"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

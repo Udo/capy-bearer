@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "strpos" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "strpos"
+        page["kind"] = "api"
+        page["slug"] = "strpos"
+        page["route"] = "/doc/api/strpos/"
+        page["title"] = "strpos"
+        page["content"] = "Use `strpos` to find the first `needle` in a Capy string. Pass the string, the text to find, and an optional start position. The function returns a zero-based position or `-1`.\n\nAn empty `needle` returns the normalized start position. This differs from PHP `strpos`, which returns `false` when no match exists.\n\nCapy uses `string` values. Capy uses `String` and `s64`, as the signature shows.\n"
+        page["returns"] = "zero-based first match position, or `-1` when no match exists"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "strpos"
+        page["sig_lines"] = dval(["s64 strpos(String haystack, String needle, s64 offset = 0)", ""])
+        page["capy_sig_lines"] = dval(["function strpos(haystack : string, needle : string, offset : s64 = 0) s64"])
+        page["param_lines"] = dval(["haystack : Capy string to search", "needle : Capy string to find", "offset : optional start position. Negative values count from the end.", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "print", "str_ends_with", "nibble", "str_starts_with", "map", "substr"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

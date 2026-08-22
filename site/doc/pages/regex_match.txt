@@ -39,6 +39,3 @@ Invalid patterns and flags raise a request-visible runtime error with the PCRE2 
 
 :example capy render
 if regex_match("^[a-z]+$", "docs") { print("match\n") } else { print("no\n") }
-
-:example cpp render
-print(regex_match("^[a-z]+$", "docs") ? "match\n" : "no\n");

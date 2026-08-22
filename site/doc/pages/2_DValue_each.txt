@@ -26,11 +26,3 @@ var user := dval({"name": "Ada", "role": "admin"})
 var keys := dval([])
 for item, key := user { keys = dval_push(keys, key) }
 print(join(sort(keys), ","), "\n")
-
-:example cpp render
-DValue user;
-user["name"] = "Ada";
-user["role"] = "admin";
-StringList keys;
-user.each([&](const DValue& item, String key) { keys.push_back(key); });
-print(join(keys.sort(), ","), "\n");

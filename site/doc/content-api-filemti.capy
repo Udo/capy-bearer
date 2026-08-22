@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-mtime" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_mtime"
+        page["kind"] = "api"
+        page["slug"] = "file-mtime"
+        page["route"] = "/doc/api/file-mtime/"
+        page["title"] = "file_mtime"
+        page["content"] = "`file_mtime` returns a file modification time as a `u64` Unix timestamp. Use it to compare file ages. It returns 0 when it cannot read a timestamp. Capy uses the same numeric result.\n"
+        page["returns"] = "last modification time as a Unix timestamp, or 0 when unavailable"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_mtime"
+        page["sig_lines"] = dval(["u64 file_mtime(String file_name)", ""])
+        page["capy_sig_lines"] = dval(["function file_mtime(path : string) u64"])
+        page["param_lines"] = dval(["file_name : path of the file to inspect", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "file_stat", "time", "file_get_contents", "file_put_contents", "file_exists", "cwd_get"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

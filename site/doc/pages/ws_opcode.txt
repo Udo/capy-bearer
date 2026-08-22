@@ -20,6 +20,3 @@ ws_send_to
 `ws_opcode()` is a C++ API. It returns the current WebSocket message opcode. Text messages use `1`, and binary messages use `2`. Outside a WebSocket handler, it returns `0`.
 
 Capy does not expose `ws_opcode`. In a Capy `WS` handler, read `request.websocket.opcode`.
-
-:example cpp render
-print("opcode: ", (u64)ws_opcode(), " (0 outside a WS frame)\n");

@@ -28,6 +28,3 @@ The result does not include separators. It keeps empty parts. If the pattern doe
 
 :example capy render
 print(join(regex_split("\\s+", "bearer docs api"), ","), "\n")
-
-:example cpp render
-print(join(regex_split("\\s+", "bearer docs api"), ","), "\n");

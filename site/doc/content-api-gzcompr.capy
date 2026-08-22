@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "gz-compress" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "gz_compress"
+        page["kind"] = "api"
+        page["slug"] = "gz-compress"
+        page["route"] = "/doc/api/gz-compress/"
+        page["title"] = "gz_compress"
+        page["content"] = "`gz_compress()` returns gzip-compressed bytes for a string. The returned string is binary data.\n\nPass the result to `gz_uncompress()`, write it to a file, or send it with the correct HTTP encoding. Use it to create gzip payloads.\n\nThe result uses the standard gzip format, including CRC32 and uncompressed-size fields.\n"
+        page["returns"] = "gzip-format compressed bytes"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "gz_compress"
+        page["sig_lines"] = dval(["String gz_compress(String src)", ""])
+        page["capy_sig_lines"] = dval(["function gz_compress(source : string) string"])
+        page["param_lines"] = dval(["src : uncompressed input bytes", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "gz_uncompress", "zip_create", "zip_read"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

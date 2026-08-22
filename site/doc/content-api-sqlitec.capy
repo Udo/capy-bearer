@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "sqlite-connect" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "sqlite_connect"
+        page["kind"] = "api"
+        page["slug"] = "sqlite-connect"
+        page["route"] = "/doc/api/sqlite-connect/"
+        page["title"] = "sqlite_connect"
+        page["content"] = "Capy `sqlite_connect(path)` opens an SQLite database and returns a `u64` handle. Give it a database file path, or `:memory:` for an in-memory database.\n\nIt returns zero when it cannot open the database. Use the handle with `sqlite_query()`, `sqlite_error()`, and `sqlite_disconnect()`. Call `sqlite_disconnect()` when you finish with the handle.\n\nThe C++ API returns an `SQLite*` pointer. Capy uses a `u64` handle.\n"
+        page["returns"] = "SQLite handle, or zero when the connection fails"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "sqlite_connect"
+        page["sig_lines"] = dval(["SQLite* sqlite_connect(String path)", ""])
+        page["capy_sig_lines"] = dval(["function sqlite_connect(path : string) u64"])
+        page["param_lines"] = dval(["path : database file path, or `:memory:` for an in-memory database", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sqlite", "sqlite_query", "sqlite_error", "sqlite_disconnect"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

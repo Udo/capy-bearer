@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "split" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "split"
+        page["kind"] = "api"
+        page["slug"] = "split"
+        page["route"] = "/doc/api/split/"
+        page["title"] = "split"
+        page["content"] = "Capy `split(str, delim)` returns a list-shaped `dval` of strings. Give it a string and an exact separator string.\n\nEach occurrence of `delim` starts the next entry. Empty entries remain in the result. Use it to separate text with a known delimiter.\n\nThe C++ API calls the result `DValue`. Capy uses the `dval` value type.\n"
+        page["returns"] = "list-shaped `dval` with string entries"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "split"
+        page["sig_lines"] = dval(["DValue split(String str, String delim)", ""])
+        page["capy_sig_lines"] = dval(["function split(value : string, delimiter : string) dval"])
+        page["param_lines"] = dval(["str : string to split", "delim : exact separator string", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "substr", "split_http_headers", "str_starts_with", "split_kv", "str_ends_with", "split_space"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

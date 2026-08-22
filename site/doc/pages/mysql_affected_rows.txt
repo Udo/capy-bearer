@@ -29,13 +29,3 @@ if db != 0 {
     print("rows updated: ", mysql_affected_rows(db), "\n")
     mysql_disconnect(db)
 } else { print("(requires a reachable MySQL server)\n") }
-
-:example cpp render
-MySQL* db = mysql_connect();
-if(db != 0)
-{
-    mysql_query(db, "update users set active=1 where active=0");
-    print("rows updated: ", mysql_affected_rows(db), "\n");
-    mysql_disconnect(db);
-}
-else print("(requires a reachable MySQL server)\n");

@@ -25,6 +25,3 @@ Use it only where SHA-1 compatibility is required. Use a current hash for new se
 :example capy render
 var digest := gen_sha1("hello")
 print("sha1\n")
-
-:example cpp render
-print(gen_sha1("hello") != "" ? "sha1\n" : "empty\n");

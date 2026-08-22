@@ -19,10 +19,6 @@ Capy updates the context header map. C++ code uses `context.header[name] = value
 response_header("X-Demo", "ok")
 print("header set\n")
 
-:example cpp render
-context.header["X-Demo"] = "ok";
-print("header set\n");
-
 :see
 >uri
 response_status

@@ -26,8 +26,3 @@ Capy does not resolve host names. Use an IPv4 address. The C++ API uses `u16` fo
 var fd := socket_connect("127.0.0.1", 80)
 if fd != 0 { print("connected to the local server\n") } else { print("connect failed\n") }
 socket_close(fd)
-
-:example cpp render
-u64 fd = socket_connect("127.0.0.1", 80);
-print(fd != 0 ? "connected to the local server" : "connect failed", "\n");
-socket_close(fd);

@@ -711,8 +711,10 @@ struct FunctionLowerer
 
 struct Module
 {
-	Module(std::vector<Expr*> items, std::vector<std::string> sources, std::string source, std::string module, unsigned abi, CancellationCallback cancelled)
-		: items_(std::move(items)), sources_(std::move(sources)), source_(std::move(source)), module_(std::move(module)), abi_(abi), cancelled_(std::move(cancelled))
+	Module(std::vector<Expr*> items, std::vector<std::string> sources, std::string source, std::string module, unsigned abi, CancellationCallback cancelled,
+		std::function<std::vector<std::string>(const std::string&, const std::string&)> import_type_metadata = {})
+		: items_(std::move(items)), sources_(std::move(sources)), source_(std::move(source)), module_(std::move(module)), abi_(abi), cancelled_(std::move(cancelled)),
+		  import_type_metadata_(std::move(import_type_metadata))
 	{
 	}
 
@@ -826,6 +828,16 @@ struct Module
 		resolving_aliases_.erase(name);
 		resolved_aliases_[name] = resolved;
 		return resolved;
+	}
+	std::string imported_type(const std::string& name_space, const std::string& name, const Location& location) const
+	{
+		auto found_space = imported_types_.find(name_space);
+		if (found_space == imported_types_.end())
+			throw Error(location, "unknown import namespace '" + name_space + "'");
+		auto found = found_space->second.find(name);
+		if (found == found_space->second.end())
+			throw Error(location, "import namespace '" + name_space + "' has no type '" + name + "'");
+		return found->second;
 	}
 	std::string named_type(const std::string& name, const Location& location)
 	{
@@ -1314,6 +1326,8 @@ struct Module
 	std::set<std::string> runtime_imports_;
 	std::unordered_map<std::string, HostDeclaration> hosts_;
 	std::map<std::string, TypeAlias*> aliases_;
+	std::map<std::string, std::map<std::string, std::string>> imported_types_;
+	std::function<std::vector<std::string>(const std::string&, const std::string&)> import_type_metadata_;
 	std::map<std::string, std::string> resolved_aliases_;
 	std::set<std::string> resolving_aliases_;
 	std::set<std::string> used_hosts_;
@@ -1326,6 +1340,8 @@ struct Module
 	bool dval_ = false, trace_host_ = false, use_trace_global_ = false;
 	unsigned trace_stack_offset_ = 0;
 	std::vector<std::pair<std::string, Definition*>> custom_exports_;
+	std::vector<std::string> function_exports_;
+	std::vector<std::string> type_exports_;
 	bool use_retain_ = false, use_release_ = false, use_clone_ = false, use_arc_global_ = false;
 	std::vector<Location> markers_;
 	std::vector<std::pair<std::vector<std::string>, std::string>> types_;
@@ -1413,6 +1429,12 @@ std::string Module::value_type(const Expr* expression, bool allow_void)
 	}
 	if (auto name = dynamic_cast<const Name*>(expression))
 		return named_type(name->value, name->location);
+	if (auto lookup = dynamic_cast<const ScopeLookup*>(expression))
+		if (auto name_space = dynamic_cast<const Name*>(lookup->value))
+			return imported_type(name_space->value, lookup->member, lookup->location);
+	if (auto member = dynamic_cast<const Member*>(expression))
+		if (auto name_space = dynamic_cast<const Name*>(member->value))
+			return imported_type(name_space->value, member->member, member->location);
 	return type_of_expression(expression, allow_void);
 }
 
@@ -1985,7 +2007,7 @@ std::string FunctionLowerer::infer(Expr* value)
 	if (auto member = dynamic_cast<Member*>(value))
 	{
 		const std::string object = infer(member->value);
-		if (object == "dval")
+		if (object == "dval" || object == "module")
 			return "dval";
 		if (object.rfind("struct:", 0) != 0)
 			throw Error(member->location, "member access requires a struct");
@@ -2021,6 +2043,12 @@ std::string FunctionLowerer::infer(Expr* value)
 		if (const Member* member = member_call(call))
 		{
 			const std::string receiver = infer(member->value);
+			if (receiver == "module" && member->member != "call")
+			{
+				if (call->arguments.size() > 1)
+					throw Error(call->location, "dynamic module member call accepts at most one dval input");
+				return "dval";
+			}
 			if (receiver.rfind("array<", 0) == 0)
 			{
 				const std::string element = receiver.substr(6, receiver.size() - 7);
@@ -3940,11 +3968,14 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 	}
 	if (auto member = dynamic_cast<Member*>(value))
 	{
-		if (infer(member->value) == "dval")
+		const std::string receiver_type = infer(member->value);
+		if (receiver_type == "dval")
 		{
 			String key(member->location, member->member);
 			return dval_lookup(member->value, &key, true);
 		}
+		if (receiver_type == "module")
+			throw Error(member->location, "module member access must be called");
 		auto [object_code, object_type] = expression(member->value);
 		if (object_type.rfind("struct:", 0) != 0)
 			throw Error(member->location, "member access requires a struct");
@@ -4402,8 +4433,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				throw Error(value->location, "expected " + expected + ", found " + actual);
 			if (managed_type(expected))
 			{
-				if (borrowed_managed_slots_.contains(slot))
-					throw Error(target->location, "cannot assign to a borrowed managed value; copy it into a local first");
+				const bool was_borrowed = borrowed_managed_slots_.erase(slot) > 0;
 				const unsigned temporary = add_local("", expected, value->location);
 				code.push_back(0x21);
 				wasm::append_uleb(code, temporary);
@@ -4414,10 +4444,15 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 					code.push_back(0x10);
 					wasm::append_uleb(code, module_.retain_index());
 				}
-				code.push_back(0x20);
-				wasm::append_uleb(code, slot);
-				code.push_back(0x10);
-				wasm::append_uleb(code, module_.release_index());
+				if (!was_borrowed)
+				{
+					code.push_back(0x20);
+					wasm::append_uleb(code, slot);
+					code.push_back(0x10);
+					wasm::append_uleb(code, module_.release_index());
+				}
+				else
+					owned_scopes_.back().push_back({slot, expected});
 				code.push_back(0x20);
 				wasm::append_uleb(code, temporary);
 				code.push_back(0x22);
@@ -4694,12 +4729,15 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 	if (auto call = dynamic_cast<Call*>(value))
 	{
 		const Member* member = member_call(call);
-		if (member && infer(member->value).rfind("array<", 0) == 0 &&
+		const std::string member_receiver_type = member ? infer(member->value) : "";
+		if (member && member_receiver_type.rfind("array<", 0) == 0 &&
 			(member->member == "capacity" || member->member == "push" || member->member == "pop" || member->member == "insert" ||
 			 member->member == "remove" || member->member == "clear" || member->member == "reserve" || member->member == "resize"))
 			return array_method(call, member);
 		std::vector<Expr*> method_arguments;
+		std::vector<std::unique_ptr<Expr>> module_call_synthetic;
 		const std::vector<Expr*>* arguments = &call->arguments;
+		bool dynamic_module_member = false;
 		std::optional<std::pair<unsigned, std::string>> method_local;
 		const Module::HostDeclaration* method_host = nullptr;
 		Definition* method_definition = nullptr;
@@ -4715,7 +4753,22 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				method_host = module_.host(member->member, types);
 			if (!method_local && !method_host)
 				method_definition = module_.compatible_definition(member->member, types, call->location);
-			if (method_local || method_host || method_definition)
+			if (!method_local && !method_host && !method_definition && member_receiver_type == "module" && member->member != "call")
+			{
+				if (call->arguments.size() > 1)
+					throw Error(call->location, "dynamic module member call accepts at most one dval input");
+				method_arguments.clear();
+				method_arguments.push_back(member->value);
+				module_call_synthetic.push_back(std::make_unique<String>(member->location, member->member));
+				method_arguments.push_back(module_call_synthetic.back().get());
+				method_arguments.insert(method_arguments.end(), call->arguments.begin(), call->arguments.end());
+				types.clear();
+				for (Expr* argument : method_arguments)
+					types.push_back(infer(argument));
+				method_definition = module_.compatible_definition("call", types, call->location);
+				dynamic_module_member = true;
+			}
+			if (method_local || method_host || method_definition || dynamic_module_member)
 				arguments = &method_arguments;
 		}
 		std::vector<Expr*> tuple_expanded_arguments;
@@ -4786,7 +4839,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			indirect_arguments.push_back(&indirect_pack);
 			return &indirect_arguments;
 		};
-		if (!named && (!member || (!method_local && !method_host && !method_definition)))
+		if (!named && (!member || (!method_local && !method_host && !method_definition && !dynamic_module_member)))
 		{
 			auto [function_code, function_type] = expression(call->function);
 			if (function_type.rfind("function#", 0) != 0)
@@ -4871,7 +4924,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			}
 			return {code, signature.second};
 		}
-		std::string callee = member ? member->member : named->value;
+		std::string callee = dynamic_module_member ? "call" : member ? member->member : named->value;
 		if (!member || method_local)
 		for (auto scope = scopes_.rbegin(); scope != scopes_.rend(); ++scope)
 			if (auto found = scope->find(callee); found != scope->end() && found->second.second.rfind("function#", 0) == 0)
@@ -6265,6 +6318,92 @@ Bytes Module::custom_export_body(const Definition& target)
 
 void Module::collect()
 {
+	auto split_top_level = [](const std::string& text)
+	{
+		std::vector<std::string> result;
+		std::size_t item = 0, depth = 0;
+		for (std::size_t cursor = 0; cursor <= text.size(); ++cursor)
+		{
+			if (cursor == text.size() || (text[cursor] == ',' && depth == 0))
+			{
+				result.push_back(text.substr(item, cursor - item));
+				item = cursor + 1;
+			}
+			else if (text[cursor] == '<')
+				++depth;
+			else if (text[cursor] == '>' && depth)
+				--depth;
+		}
+		return result;
+	};
+	std::function<std::string(std::string, const std::string&)> qualify_import_type = [&](std::string type, const std::string& alias) -> std::string
+	{
+		if (type.rfind("struct:", 0) == 0 && type.find('.') == std::string::npos)
+			return "struct:" + alias + "." + type.substr(7);
+		if (type.rfind("array<", 0) == 0)
+			return "array<" + qualify_import_type(type.substr(6, type.size() - 7), alias) + ">";
+		if (type.rfind("tuple<", 0) == 0)
+		{
+			std::string result = "tuple<";
+			auto elements = aggregate_elements(type);
+			for (std::size_t i = 0; i < elements.size(); ++i)
+				result += (i ? "," : "") + qualify_import_type(elements[i], alias);
+			return result + ">";
+		}
+		return type;
+	};
+	std::set<std::string> import_aliases;
+	for (Expr* item : items_)
+		if (auto import = dynamic_cast<Import*>(item))
+		{
+			if (!import_type_metadata_)
+				throw Error(import->location, "#import is not available for this compiler entry point");
+			if (!import_aliases.insert(import->alias).second || aliases_.contains(import->alias) || structs_.contains(import->alias))
+				throw Error(import->location, "import alias '" + import->alias + "' is already declared");
+			auto& imported = imported_types_[import->alias];
+			std::vector<std::string> metadata;
+			try
+			{
+				metadata = import_type_metadata_(import->path, source_);
+			}
+			catch (const Error& error)
+			{
+				throw Error(import->location, error.message);
+			}
+			for (const std::string& raw : metadata)
+			{
+				std::string line = raw.rfind("capy type ", 0) == 0 ? raw.substr(10) : raw;
+				if (line.rfind("struct ", 0) == 0)
+				{
+					std::size_t open = line.find('{'), close = line.rfind('}');
+					if (open == std::string::npos || close == std::string::npos || close < open)
+						throw Error(import->location, "malformed imported struct metadata");
+					std::string name = line.substr(7, open - 7);
+					std::string qualified = import->alias + "." + name;
+					Aggregate aggregate{next_aggregate_type_++, {}};
+					std::string fields = line.substr(open + 1, close - open - 1);
+					if (!fields.empty())
+						for (const std::string& field : split_top_level(fields))
+						{
+							std::size_t colon = field.find(':');
+							if (colon == std::string::npos)
+								throw Error(import->location, "malformed imported struct field metadata");
+							aggregate.fields.push_back({field.substr(0, colon), qualify_import_type(field.substr(colon + 1), import->alias)});
+						}
+					if (!structs_.emplace(qualified, std::move(aggregate)).second || !imported.emplace(name, "struct:" + qualified).second)
+						throw Error(import->location, "imported type '" + name + "' is already declared");
+				}
+				else if (line.rfind("alias ", 0) == 0)
+				{
+					std::size_t equals = line.find('=');
+					if (equals == std::string::npos)
+						throw Error(import->location, "malformed imported alias metadata");
+					std::string name = line.substr(6, equals - 6);
+					if (!imported.emplace(name, qualify_import_type(line.substr(equals + 1), import->alias)).second)
+						throw Error(import->location, "imported type '" + name + "' is already declared");
+				}
+			}
+		}
 	for (Expr* item : items_)
 		if (auto alias = dynamic_cast<TypeAlias*>(item))
 		{
@@ -6334,7 +6473,7 @@ void Module::collect()
 		auto function = dynamic_cast<Function*>(item);
 		if (!function)
 		{
-			if (dynamic_cast<Struct*>(item) || dynamic_cast<Exports*>(item) || dynamic_cast<TypeAlias*>(item))
+			if (dynamic_cast<Struct*>(item) || dynamic_cast<Exports*>(item) || dynamic_cast<Import*>(item) || dynamic_cast<TypeAlias*>(item))
 				continue;
 			throw Error(item->location, "top-level executable expressions are not implemented by the native backend");
 		}
@@ -6528,36 +6667,85 @@ void Module::collect()
 			}
 		}
 	}
+	auto add_function_export = [&](const std::string& line, const Location& location)
+	{
+		if (std::find(function_exports_.begin(), function_exports_.end(), line) != function_exports_.end())
+			throw Error(location, "function export is already declared");
+		function_exports_.push_back(line);
+	};
+	auto add_type_export = [&](const std::string& line, const Location& location)
+	{
+		if (std::find(type_exports_.begin(), type_exports_.end(), line) != type_exports_.end())
+			throw Error(location, "type export is already declared");
+		type_exports_.push_back(line);
+	};
+	auto function_export_line = [](const std::string& name, const std::vector<std::string>& parameters, const std::string& result)
+	{
+		std::string line = "capy function " + name + "(";
+		for (std::size_t i = 0; i < parameters.size(); ++i)
+		{
+			if (i)
+				line += ",";
+			line += parameters[i];
+		}
+		return line + "):" + result;
+	};
+	auto struct_export_line = [&](const std::string& name)
+	{
+		std::string line = "capy type struct " + name + "{";
+		const auto& fields = structs_.at(name).fields;
+		for (std::size_t i = 0; i < fields.size(); ++i)
+		{
+			if (i)
+				line += ",";
+			line += fields[i].first + ":" + fields[i].second;
+		}
+		return line + "}";
+	};
 	for (Expr* item : items_)
 		if (auto exports = dynamic_cast<Exports*>(item))
 			for (const std::string& name : exports->names)
 			{
+				bool exported_something = false;
 				if (std::any_of(custom_exports_.begin(), custom_exports_.end(), [&](const auto& existing) { return existing.first == name; }))
 					throw Error(exports->location, "custom DValue export '" + name + "' is already declared");
 				Definition* target = nullptr;
-				bool local = false, generic = false;
+				for (Definition& definition : definitions_)
+					if (definition.function && definition.function->location.file == source_ && definition.function->name == name &&
+						definition.parameters == std::vector<std::string>{"dval"} && definition.result == "dval")
+						target = &definition;
+				if (target)
+					add_custom_export(name, *target, exports->location);
 				for (Definition& definition : definitions_)
 					if (definition.function && definition.function->location.file == source_ && definition.function->name == name)
 					{
-						local = true;
-						if (definition.parameters == std::vector<std::string>{"dval"} && definition.result == "dval")
-							target = &definition;
+						add_function_export(function_export_line(name, definition.parameters, definition.result), exports->location);
+						exported_something = true;
 					}
 				if (auto found = generics_.find(name); found != generics_.end())
-					generic = std::any_of(found->second.begin(), found->second.end(), [&](const GenericDefinition& definition) { return definition.function->location.file == source_; });
-				if (!target)
+					for (const GenericDefinition& definition : found->second)
+						if (definition.function->location.file == source_)
+						{
+							std::string result = definition.dependent_result >= 0 ? ("$" + std::to_string(definition.dependent_result) + "::type") : definition.fixed_result;
+							add_function_export(function_export_line(name, definition.patterns, result), exports->location);
+							exported_something = true;
+						}
+				if (structs_.contains(name))
 				{
-					if (generic)
-						throw Error(exports->location, "EXPORTS name '" + name + "' must name a non-generic local function with signature (dval) dval");
-					if (local)
-						throw Error(exports->location, "EXPORTS name '" + name + "' must have signature (dval) dval");
-					throw Error(exports->location, "EXPORTS names unknown local function '" + name + "'");
+					add_type_export(struct_export_line(name), exports->location);
+					exported_something = true;
 				}
-				add_custom_export(name, *target, exports->location);
+				if (aliases_.contains(name))
+				{
+					add_type_export("capy type alias " + name + "=" + resolved_aliases_.at(name), exports->location);
+					exported_something = true;
+				}
+				if (!exported_something)
+					throw Error(exports->location, "#exports names unknown local function or type '" + name + "'");
 			}
 	bool any_export = std::any_of(definitions_.begin(), definitions_.end(), [](const Definition& d) { return !d.exported.empty(); });
-	if (!any_export && custom_exports_.empty())
-		throw Error({source_, 1, 1, 0}, "Capy Bearer unit exports no CLI, RENDER, WS, ONCE, or INIT handler");
+	if (!any_export && custom_exports_.empty() && function_exports_.empty() && type_exports_.empty())
+		throw Error({source_, 1, 1, 0}, "Capy Bearer unit exports no CLI, RENDER, WS, ONCE, INIT handler, or metadata");
 }
 
 // One-shot discovery for a fresh Module. Operation-specific capability sets remain
@@ -6697,6 +6885,8 @@ Module::Capabilities Module::discover_capabilities()
 			if (const Member* member = member_call(call))
 			{
 				const std::string receiver = scan_value_type(member->value);
+				if (receiver == "module")
+					return "dval";
 				if (receiver.rfind("array<", 0) == 0)
 				{
 					if (member->member == "capacity") return "s32";
@@ -7679,9 +7869,11 @@ CompileResult Module::compile()
 			throw Error(location, "source location is not registered in this Capy module");
 		map << "L\t" << std::hex << address << std::dec << "\t" << (source - sources_.begin()) + 1 << "\t" << location.line << "\t" << location.column << "\n";
 	}
-	CompileResult compiled{std::move(result), map.str(), {}};
+	CompileResult compiled{std::move(result), map.str(), {}, {}, {}};
 	for (const auto& [name, target] : custom_exports_)
 		compiled.custom_exports.push_back(name);
+	compiled.function_exports = function_exports_;
+	compiled.type_exports = type_exports_;
 	return compiled;
 }
 
@@ -7708,7 +7900,10 @@ void collect_stdlib_demand(Expr* expression, std::set<std::pair<std::string, std
 			// resolution; demand selection records that possible direct call without
 			// rewriting the parsed member expression.
 			if (!local(scopes, member->member))
+			{
 				calls.insert({member->member, call->arguments.size() + 1});
+				calls.insert({"call", call->arguments.size() + 2});
+			}
 			collect_stdlib_demand(member->value, calls, values, scopes);
 		}
 		else if (auto name = dynamic_cast<Name*>(call->function); name && !local(scopes, name->value))
@@ -7995,7 +8190,8 @@ std::shared_ptr<const Program> parsed_source(std::string_view source, const std:
 }
 
 CompileResult compile_program(const Program& program, const std::string& source_path, const std::string& module_name, unsigned abi_version,
-	CancellationCallback cancelled, ParsedSourceCache* cache)
+	CancellationCallback cancelled, ParsedSourceCache* cache,
+	std::function<std::vector<std::string>(const std::string&, const std::string&)> import_type_metadata = {})
 {
 	auto library = parsed_source(stdlib::text, "capy://stdlib.capy", "capy://stdlib.capy", abi_version, cancelled, cache, true);
 	std::set<std::string> public_names;
@@ -8013,7 +8209,7 @@ CompileResult compile_program(const Program& program, const std::string& source_
 	std::vector<std::string> sources{source_path};
 	if (!selected.empty())
 		sources.push_back("capy://stdlib.capy");
-	return Module(std::move(items), std::move(sources), source_path, module_name, abi_version, std::move(cancelled)).compile();
+	return Module(std::move(items), std::move(sources), source_path, module_name, abi_version, std::move(cancelled), std::move(import_type_metadata)).compile();
 }
 
 } // namespace
@@ -8022,7 +8218,7 @@ CompileResult compile_bearer_unit(std::string_view source, const CompileOptions&
 {
 	auto program = parsed_source(source, options.canonical_source_identity, options.source_path, options.abi_version,
 		options.cancelled, options.parsed_source_cache);
-	return compile_program(*program, options.source_path, options.module_name, options.abi_version, options.cancelled, options.parsed_source_cache);
+	return compile_program(*program, options.source_path, options.module_name, options.abi_version, options.cancelled, options.parsed_source_cache, options.import_type_metadata);
 }
 
 CompileResult compile_bearer_unit(const Program& program, const std::string& source_path, const std::string& module_name, unsigned abi_version,

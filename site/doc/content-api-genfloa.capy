@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "gen-float" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "gen_float"
+        page["kind"] = "api"
+        page["slug"] = "gen-float"
+        page["route"] = "/doc/api/gen-float/"
+        page["title"] = "gen_float"
+        page["content"] = "`gen_float()` returns a deterministic `f64` noise value for `index` and `seed`. `from` and `to` set the output range.\n\nUse the same inputs to reproduce procedural values. Capy calls the optional fifth input `precision`.\n\n"
+        page["returns"] = "deterministic `f64` noise value"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "gen_float"
+        page["sig_lines"] = dval(["f64 gen_float(f64 from, f64 to, u64 index, u64 seed = 0, f64 decimal_precision = 0.000000000001)", ""])
+        page["capy_sig_lines"] = dval(["function gen_float(from : f64, to : f64, index : u64, seed : u64 = 0, precision : f64 = 0.000000000001) f64"])
+        page["param_lines"] = dval(["from : first range endpoint", "to : second range endpoint", "index : deterministic input position", "seed : deterministic input seed, default `0`", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">noise", "gen_noise64", "gen_int", "gen_noise32", "gen_sha1", "gen_noise01", "sha256"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

@@ -24,8 +24,3 @@ json_encode
 `DValue::to_json()` is a C++ API. It escapes and quotes strings. It writes numbers as runtime numeric text. It writes booleans as `true` or `false`. Maps return `(array)`.
 
 C++ represents pointers as `(pointer)` and references as `(reference)`. Capy does not expose `dval_to_json`. Use `json_encode(value)` for JSON.
-
-:example cpp render
-DValue value;
-value = "Ada";
-print(value.to_json(), "\n");

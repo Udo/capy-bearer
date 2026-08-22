@@ -24,6 +24,3 @@ ws_opcode
 `ws_connection_count()` is a C++ API. It returns the number of clients in the selected scope. An omitted scope selects the current WebSocket page scope.
 
 Capy does not expose `ws_connection_count`. In a Capy `WS` handler, use `length(request.websocket.connections)` for the current-scope count.
-
-:example cpp render
-print("connection count in this scope: ", ws_connection_count(), "\n");

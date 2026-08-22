@@ -1,4 +1,6 @@
-EXPORTS echo, default_input
+#exports echo, default_input, VersionInfo
+
+struct VersionInfo { name : string }
 
 function echo(input : dval) dval {
     -> input

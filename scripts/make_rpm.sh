@@ -19,7 +19,6 @@ Environment:
   BEARER_RPM_ARCH                Override RPM architecture
   BEARER_RPM_WEBROOT             Public web root staged into the package (default: /var/www/html)
   BEARER_RPM_INCLUDE_TESTS       Include site/tests in the public web root (default: 0)
-  BEARER_RPM_BUNDLE_WASI_SDK     Bundle pinned /opt/wasi-sdk into the package (default: 1)
   BEARER_RPM_BUNDLE_WASMTIME     Bundle /opt/wasmtime into the package (default: 1)
 EOF
 }
@@ -61,6 +60,7 @@ copy_payload() {
 	install -m 0755 "$REPO_ROOT/bin/wasm/core.wasm" "$destination/bin/wasm/"
 	if [[ -d "$REPO_ROOT/bin/assets" ]]; then cp -a "$REPO_ROOT/bin/assets" "$destination/bin/"; fi
 	cp -a "$REPO_ROOT/etc/bearer" "$destination/etc/"
+	rm -f "$destination/scripts/install_wasi_sdk.sh" "$destination/scripts/build_core_wasm.sh"
 	cp -a "$REPO_ROOT/site/." "$stage_dir$webroot/"
 	if [[ "${BEARER_RPM_INCLUDE_TESTS:-0}" != "1" ]]; then
 		rm -rf -- "$stage_dir$webroot/tests"
@@ -76,14 +76,13 @@ validate_package_payload() {
 		/usr/lib/bearer/bin/bearer_fastcgi.linux.bin \
 		/usr/lib/bearer/bin/capyc \
 		/usr/lib/bearer/bin/wasm/core.wasm \
-		/usr/lib/bearer/scripts/compile_wasm_unit \
 		/etc/bearer/settings.cfg \
 		/usr/lib/systemd/system/bearer.service
 	do
 		grep -Fxq "$expected" <<<"$listing" || { echo "The RPM package is missing $expected." >&2; exit 1; }
 	done
 	grep -Fxq "${WEBROOT%/}" <<<"$listing" || { echo "The RPM package is missing the web root." >&2; exit 1; }
-	if grep -Eq '/usr/lib/bearer/bin/([^/]*\.o|\.build|capyc-request-dval|tmp/)' <<<"$listing"; then
+	if grep -Eq '/usr/lib/bearer/(scripts/(install_wasi_sdk\.sh|build_core_wasm\.sh)|opt/wasi-sdk|bin/([^/]*\.o|\.build|capyc-request-dval|tmp/))' <<<"$listing"; then
 		echo "The RPM package contains a build artifact." >&2
 		exit 1
 	fi
@@ -105,28 +104,8 @@ replacements = {
 for old, new in replacements.items():
     if old in s:
         s = s.replace(old, new)
-if "WASM_COMPILE_SCRIPT=" not in s:
-    s += "\nWASM_COMPILE_SCRIPT=scripts/compile_wasm_unit\n"
 Path(dst).write_text(s)
 PY
-}
-
-bundle_wasi_sdk() {
-	local stage_dir="$1"
-	local wasi_root="${WASI_SDK:-/opt/wasi-sdk}"
-	if [[ "${BEARER_RPM_BUNDLE_WASI_SDK:-1}" != "1" ]]; then
-		return
-	fi
-	if [[ ! -x "$wasi_root/bin/clang++" || ! -x "$wasi_root/bin/wasm-ld" || ! -x "$wasi_root/bin/llvm-nm" ]]; then
-		echo "BEARER_RPM_BUNDLE_WASI_SDK=1 but WASI_SDK does not point at a complete SDK: $wasi_root" >&2
-		exit 1
-	fi
-	local resolved base
-	resolved="$(readlink -f "$wasi_root")"
-	base="$(basename "$resolved")"
-	mkdir -p "$stage_dir/opt"
-	cp -a "$resolved" "$stage_dir/opt/$base"
-	ln -sfn "$base" "$stage_dir/opt/wasi-sdk"
 }
 
 bundle_wasmtime() {
@@ -206,7 +185,6 @@ rm -rf -- "$BUILD_ROOT"
 mkdir -p "$INSTALL_ROOT" "$STAGE_DIR/etc/bearer" "$STAGE_DIR/usr/lib/systemd/system" "$STAGE_DIR/var/cache/bearer" "$STAGE_DIR/var/lib/bearer" "$RPMBUILD_DIR"/{BUILD,RPMS,SOURCES,SPECS,SRPMS} "$DIST_DIR"
 
 copy_payload "$INSTALL_ROOT" "$WEBROOT" "$STAGE_DIR"
-bundle_wasi_sdk "$STAGE_DIR"
 bundle_wasmtime "$STAGE_DIR"
 write_packaged_settings "$STAGE_DIR/etc/bearer/settings.cfg" "$WEBROOT"
 install -m 0644 "$REPO_ROOT/scripts/deb/bearer.service" "$STAGE_DIR/usr/lib/systemd/system/bearer.service"

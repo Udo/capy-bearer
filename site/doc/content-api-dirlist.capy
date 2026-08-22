@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "dir-list" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "dir_list"
+        page["kind"] = "api"
+        page["slug"] = "dir-list"
+        page["route"] = "/doc/api/dir-list/"
+        page["title"] = "dir_list"
+        page["content"] = "`dir_list()` returns entries from a directory as a Capy `dval` list.\n\nPass a directory path. Each returned entry is a map with `name`, `type`, `size`, and `mtime`. The `type` value is `file`, `dir`, `symlink`, or `other`.\n\nUse this function when Capy must inspect directory entries. Read map fields with DValue access functions.\n\nThe Capy call returns the same DValue data.\n"
+        page["returns"] = "`dval` list of entry maps with `name`, `type`, `size`, and `mtime`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "dir_list"
+        page["sig_lines"] = dval(["DValue dir_list(String path)", ""])
+        page["capy_sig_lines"] = dval(["function dir_list(path : string) dval"])
+        page["param_lines"] = dval(["path : directory path to list", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "file_stat", "mkdir", "ls"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

@@ -23,15 +23,6 @@ file_pwrite(editor, 6, "earth")
 file_close(editor)
 print(file_get_contents("/tmp/doc-pwrite.txt"), "\n")
 
-:example cpp render
-u64 h = file_open("/tmp/doc-pwrite.txt", "w");
-file_write(h, "hello world");
-file_close(h);
-u64 e = file_open("/tmp/doc-pwrite.txt", "r+");
-file_pwrite(e, 6, "earth");
-file_close(e);
-print(file_get_contents("/tmp/doc-pwrite.txt"), "\n");
-
 :see
 >sys
 file_write

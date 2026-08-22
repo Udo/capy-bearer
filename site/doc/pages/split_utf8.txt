@@ -27,7 +27,3 @@ Use it when byte or ASCII splitting would break Unicode text. The C++ API calls 
 :example capy render
 var chars := split_utf8("Hi")
 print(join(chars, ","), "\n")
-
-:example cpp render
-DValue chars = split_utf8("Hi");
-print(join(chars, ","), "\n");

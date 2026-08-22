@@ -15,9 +15,6 @@ It returns the raw 32-byte digest of `data`. Use `sha256_hex()` when you need pr
 :example capy render
 print(length(sha256("abc")), " raw bytes, hex = ", sha256_hex("abc"), "\n")
 
-:example cpp render
-print(sha256("abc").length(), " raw bytes, hex = ", sha256_hex("abc"), "\n");
-
 :see
 >sys
 sha256_hex

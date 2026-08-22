@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "task-status" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "task_status"
+        page["kind"] = "api"
+        page["slug"] = "task-status"
+        page["route"] = "/doc/api/task-status/"
+        page["title"] = "task_status"
+        page["content"] = "Use `task_status` to read the current status of a Capy task. Pass the task ID. The function returns a `dval` status map.\n\nThe `state` value is `queued`, `running`, `succeeded`, `failed`, `canceled`, or `missing`. The map can include `id`, `state`, `attempt`, and `failure_code`.\n\nCapy task IDs are `string` values. Capy uses `String` and `DValue`, as the signature shows.\n"
+        page["returns"] = "current task status map"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "task_status"
+        page["sig_lines"] = dval(["DValue task_status(String id)", ""])
+        page["capy_sig_lines"] = dval(["function task_status(id : string) dval"])
+        page["param_lines"] = dval(["id : opaque ID returned by `task`", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">task", "task", "task_await", "task_cancel"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

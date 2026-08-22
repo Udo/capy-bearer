@@ -7,10 +7,6 @@ base="${BEARER_TEST_HTTP_BASE:-http://127.0.0.1}/examples/capy-reference"
 reference_dir=site/examples/capy-reference
 
 [[ -f "$reference_dir/index.capy" && -f "$reference_dir/style.css" ]]
-if find "$reference_dir" -type f -name '*.uce' -print -quit | grep -q .; then
-	echo "Capy reference must not contain C++ .uce units" >&2
-	exit 1
-fi
 
 pages=(index syntax types ownership interop status)
 targets=(
@@ -48,7 +44,7 @@ constructor=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=2_DValue_to_
 }
 [[ "$constructor" == *"DValue::to_string"* && "$constructor" == *"function string(value : dval"* &&
 	"$constructor" != *"DOC EXAMPLE ERROR"* ]] || {
-	echo "Capy constructor API page omitted its C++ or Capy signature" >&2
+	echo "Capy constructor API page omitted its Capy signature" >&2
 	exit 1
 }
 contract=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=http_request") || {
@@ -61,27 +57,29 @@ contract=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=http_request") 
 	echo "Structured API contract sections are incomplete" >&2
 	exit 1
 }
-legacy_headers=$(curl -fsS --max-time 30 -o /dev/null -D - -H "Host: $host" "$doc_base?p=capy-10-dvalues" | tr -d '\r')
-[[ "$legacy_headers" == *"HTTP/1.1 302"* && "$legacy_headers" == *"Location: /doc/?p=capy-08-dynamic-values"* ]] || {
-	echo "Legacy Capy guide URL did not redirect to its canonical page" >&2
+legacy=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=capy-10-dvalues") || {
+	echo "Legacy Capy guide URL did not render" >&2
 	exit 1
 }
-singlepage=$(curl -fsS --max-time 180 -H "Host: $host" "${doc_base}singlepage.uce") || {
-	echo "Combined documentation page did not render" >&2
+[[ "$legacy" == *"8. Dynamic values"* ]] || {
+	echo "Legacy Capy guide URL did not reach its canonical content" >&2
 	exit 1
 }
-[[ "$singlepage" == *'<pre><code class="language-capy">'* &&
-	"$singlepage" == *"function RENDER"* && "$singlepage" == *"<strong>Output</strong>"* &&
-	"$singlepage" == *'<h3>Return Values</h3>'* && "$singlepage" == *'<h3>Errors</h3>'* &&
-	"$singlepage" != *"Minimal executable example"* && "$singlepage" != *"guide-example"* ]] || {
-	echo "Combined documentation page misplaced guide examples or contract sections" >&2
+singlepage=$(curl -fsS --max-time 180 -H "Host: $host" "${doc_base}all/") || {
+	echo "Combined documentation route list did not render" >&2
 	exit 1
 }
-search=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}search.uce?q=http_request") || {
+[[ "$singlepage" == *'/doc/guide/install-and-first-program/'* &&
+	"$singlepage" == *'/doc/api/dvalue/'* && "$singlepage" == *'/doc/api/http-request/'* &&
+	"$singlepage" != *"Minimal executable example"* ]] || {
+	echo "Combined documentation route list omitted guide or API links" >&2
+	exit 1
+}
+search=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}search/?q=http_request") || {
 	echo "Documentation search did not render" >&2
 	exit 1
 }
-[[ "$search" == *'p=http_request'* && "$search" == *'http_request'* ]] || {
+[[ "$search" == *'/doc/api/http-request/'* && "$search" == *'http_request'* ]] || {
 	echo "Documentation search omitted a structured API page" >&2
 	exit 1
 }

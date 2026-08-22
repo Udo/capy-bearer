@@ -20,6 +20,3 @@ It escapes ampersands, angle brackets, and double quotes.
 
 :example capy render
 print(html_escape("<b>Tom & Jerry</b>"), "\n")
-
-:example cpp render
-print(html_escape("<b>Tom & Jerry</b>"), "\n");

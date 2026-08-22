@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-copy" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_copy"
+        page["kind"] = "api"
+        page["slug"] = "file-copy"
+        page["route"] = "/doc/api/file-copy/"
+        page["title"] = "file_copy"
+        page["content"] = "`file_copy` copies one file to another path. Use it to keep the source and create a second file. The call reports failure with false. Capy uses the same paths and Boolean result.\n"
+        page["returns"] = "true when Capy copies the file, otherwise false"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_copy"
+        page["sig_lines"] = dval(["bool file_copy(String from, String to)", ""])
+        page["capy_sig_lines"] = dval(["function file_copy(from : string, to : string) bool"])
+        page["param_lines"] = dval(["from : path of the source file", "to : path of the destination file", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "file_rename", "file_put_contents", "file_truncate", "dir_list", "dir_remove", "file_stat"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

@@ -23,5 +23,3 @@ C++ uses `to_lower()` with the signature above.
 
 :example capy render
 print(lower("BEARER"), "\n")
-:example cpp render
-print(to_lower("BEARER"), "\n");

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "zip-extract" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "zip_extract"
+        page["kind"] = "api"
+        page["slug"] = "zip-extract"
+        page["route"] = "/doc/api/zip-extract/"
+        page["title"] = "zip_extract"
+        page["content"] = "`zip_extract(path, destination)` accepts an archive path and destination path. It returns `true` when extraction completes.\n\nUse it to extract all archive members. Bearer creates the destination and required child directories.\n\nMember names cannot be empty, absolute, drive-qualified, or contain `..` path segments. The call rejects those names.\n\nThe declaration has no separate error return. C++ uses `String` values through the signature above.\n"
+        page["returns"] = "`true` when extraction completes"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "zip_extract"
+        page["sig_lines"] = dval(["bool zip_extract(String zip_file_name, String destination_directory)", ""])
+        page["capy_sig_lines"] = dval(["function zip_extract(path : string, destination : string) bool"])
+        page["param_lines"] = dval(["zip_file_name : path to the ZIP archive", "destination_directory : directory that should receive extracted files", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "zip_create", "zip_list", "zip_read"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

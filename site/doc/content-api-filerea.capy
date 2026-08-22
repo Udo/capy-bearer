@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-read" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_read"
+        page["kind"] = "api"
+        page["slug"] = "file-read"
+        page["route"] = "/doc/api/file-read/"
+        page["title"] = "file_read"
+        page["content"] = "`file_read()` returns a `string` from the current handle position. It advances the position by the bytes read.\n\nEnd of file can return fewer bytes or `\"\"`. Use `file_pread()` to read an absolute offset without moving the position.\n"
+        page["returns"] = "a Capy `string` with up to `len` bytes from the current position"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_read"
+        page["sig_lines"] = dval(["String file_read(u64 h, u64 len)", ""])
+        page["capy_sig_lines"] = dval(["function file_read(handle : u64, count : u64) string"])
+        page["param_lines"] = dval(["h : readable handle from `file_open()`", "len : maximum number of bytes to read", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "file_open", "file_pread", "file_seek", "file_close"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

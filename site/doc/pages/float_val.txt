@@ -18,11 +18,8 @@ to_lower
 :content
 `float_val()` extracts a floating-point value from a string. It returns `0` when it cannot identify a usable number.
 
-Use it when input text can contain a numeric value. In C++ `.uce`, the same call returns `f64`.
+Use it when input text can contain a numeric value. In Capy, the same call returns `f64`.
 
 :example capy render
 if float_val("3.14") + 1.0 > 4.13 { print("parsed\n") }
 else { print("not parsed\n") }
-
-:example cpp render
-print(float_val("3.14") + 1.0 > 4.13 ? "parsed\n" : "not parsed\n");

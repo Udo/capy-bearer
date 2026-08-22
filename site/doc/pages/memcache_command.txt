@@ -27,8 +27,3 @@ Use a dedicated helper when it supports the operation.
 var conn := memcache_connect()
 if conn != 0 { if memcache_command(conn, "stats") != "" { print("stats command returned data\n") } else { print("no data\n") } }
 else { print("(requires a reachable memcached server)\n") }
-
-:example cpp render
-u64 conn = memcache_connect();
-if(conn != 0) print(memcache_command(conn, "stats") != "" ? "stats command returned data" : "no data", "\n");
-else print("(requires a reachable memcached server)\n");

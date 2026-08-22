@@ -2,14 +2,14 @@
 10. Units and components
 
 :content
-Each Capy source file is an independent unit. A unit can expose `dval` functions to other units and can render named components.
+Each Capy source file is an independent unit. A unit can expose functions and type metadata to other units. It can also render named components.
 
 ## Export a function
 
-`EXPORTS` lists the functions that another unit can call:
+`#exports` lists the functions and types that another unit can inspect. A callable `(dval) dval` function can also be called through a module handle:
 
 :example capy render
-EXPORTS echo
+#exports echo
 
 function echo(input : dval) dval {
     -> input
@@ -24,14 +24,14 @@ function RENDER(request : dval) {
 ready
 
 :content
-An exported function has the exact signature `(dval) dval`. Private helper functions do not appear in `EXPORTS`.
+A module-callable function has the exact signature `(dval) dval`. Private helper functions do not appear in `#exports`.
 
 ## Call another unit
 
 A separate service unit can expose a data function:
 
 :example capy cli
-EXPORTS version
+#exports version
 
 function version(input : dval) dval {
     -> {name: "Capy"}
@@ -44,13 +44,13 @@ Load and call it from a neighboring page:
 :example capy render
 function RENDER(request : dval) {
     var service := unit_load("/doc/examples/call_target.capy")
-    var version := call(service, "default_input")
+    var version := service.default_input()
     print(string(version), "\n")
 }
 
 :content
 
-`unit_load` returns a request-local `module` handle. Module calls copy input and result `dval` values as BRRB. `unit_call(path, name, input)` performs the same operation without keeping a handle.
+`unit_load` returns a request-local `module` handle. Module member calls are dynamic. `service.default_input()` calls the exported function named `default_input` on that loaded unit. Module calls copy input and result `dval` values as BRRB. `unit_call(path, name, input)` performs the same operation without keeping a handle.
 
 Relative paths resolve from the calling unit. Use an absolute site path when the target must not depend on the caller directory.
 
@@ -58,16 +58,22 @@ Relative paths resolve from the calling unit. Use an absolute site path when the
 
 A module handle is a verified request-local capability. It can pass through typed locals, parameters, and results during that request. It cannot enter a `dval`, aggregate, closure, condition, or serialized boundary.
 
+## Static type imports
+
+Use `#import "path" as name` when the compiler must see exported Capy types from another unit. For example, `#import "/doc/examples/call_target.capy" as example` makes `example.VersionInfo` valid in type positions.
+
+A static import reads type metadata at compile time. It does not create a runtime module handle. Use `unit_load()` when the target unit must be selected at runtime.
+
 Do not retain a module handle for another request. A later request can load a newer valid source generation.
 
 ## Components
 
-A component writes reusable response content. A named component uses a handler name:
+A component writes reusable response content through output functions such as `print`. A named component uses a handler name:
 
 :example capy cli
 function COMPONENT:CARD(request : dval) {
     var props := request.props
-    <><article><?= string(props.title, "Untitled") ?></article></>
+    print(<><article><?= string(props.title, "Untitled") ?></article></>)
 }
 
 :content
@@ -85,7 +91,7 @@ Use `component_capture` when the caller needs the component output as a string. 
 
 ## Boundary rules
 
-Bearer copies `dval` values at module, component, task, export, C++, codec, request, and serialization boundaries. A target cannot mutate the caller's value through a boundary. The dynamic-values guide defines the identity rule.
+Bearer copies `dval` values at module, component, task, export, codec, request, and serialization boundaries. A target cannot mutate the caller's value through a boundary. The dynamic-values guide defines the identity rule.
 
 Missing units, missing exports, and incompatible exported signatures are errors.
 

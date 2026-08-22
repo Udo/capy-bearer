@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "path-is-within" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "path_is_within"
+        page["kind"] = "api"
+        page["slug"] = "path-is-within"
+        page["route"] = "/doc/api/path-is-within/"
+        page["title"] = "path_is_within"
+        page["content"] = "`path_is_within()` returns `true` when `path` is inside `root`. It resolves both paths with `path_real()`. Both paths must exist. Resolution follows symbolic links and removes `.` and `..` segments.\n\nUse this check before you open a user-supplied path.\n"
+        page["returns"] = "`true` if `path` is inside `root`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "path_is_within"
+        page["sig_lines"] = dval(["bool path_is_within(String path, String root)", ""])
+        page["capy_sig_lines"] = dval(["function path_is_within(path : string, root : string) bool"])
+        page["param_lines"] = dval(["path : the path to test", "root : the directory that must contain the path", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "path_real", "expand_path", "file_fsync", "file_symlink", "process_start_directory", "file_chmod"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

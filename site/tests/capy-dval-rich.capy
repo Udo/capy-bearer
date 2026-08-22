@@ -6,8 +6,8 @@ function EXPORT_enrich (input : dval) dval {
 
 function CLI(request : dval) {
     {
-        var cpp := unit_call("/tests/capy-cross-target.uce", "structured", {"user": {"name": "Ada"}, "items": [4, 9]})
-        print(cpp["source"], "|", cpp["name"], "|", s32(cpp["second"]), "|")
+        var child := unit_call("/tests/capy-cross-target.capy", "structured", {"user": {"name": "Ada"}, "items": [4, 9]})
+        print(child["source"], "|", child["name"], "|", s32(child["second"]), "|")
         var capy_input := {"origin": "capy"}
         var capy := unit_call("/tests/capy-dval-rich.capy", "enrich", capy_input)
         print(capy["language"], "|", capy["input"]["origin"], "|", dval_has(capy_input, "export_mutation"), "|")

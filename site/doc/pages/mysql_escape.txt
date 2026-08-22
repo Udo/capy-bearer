@@ -25,6 +25,3 @@ Use query parameters with `mysql_query()` when possible. Escape values only when
 
 :example capy render
 print(mysql_escape("O'Brien; DROP TABLE users", "'"), "\n")
-
-:example cpp render
-print(mysql_escape("O'Brien; DROP TABLE users", '\''), "\n");

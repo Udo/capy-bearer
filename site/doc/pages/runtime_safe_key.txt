@@ -24,6 +24,3 @@ The function trims `key` and returns its SHA-1 value. Use the result for runtime
 
 :example capy render
 print(runtime_safe_key("  My Task Name  "), "\n")
-
-:example cpp render
-print(runtime_safe_key("  My Task Name  "), "\n");

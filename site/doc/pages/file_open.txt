@@ -9,19 +9,13 @@ mode : `"r"` for reading, `"w"` for writing, `"a"` for appending, or `"r+"` for 
 a `u64` handle, or 0 when Capy cannot open the file
 
 :content
-`file_open` returns a handle for streamed file access. Use the handle with `file_read()`, `file_write()`, `file_seek()`, and `file_close()`. Use `file_get_contents()` or `file_put_contents()` for whole-file access. C++ `.uce` uses the same modes and handle value.
+`file_open` returns a handle for streamed file access. Use the handle with `file_read()`, `file_write()`, `file_seek()`, and `file_close()`. Use `file_get_contents()` or `file_put_contents()` for whole-file access. Capy uses the same modes and handle value.
 
 :example capy render
 var handle := file_open("/tmp/doc-open.txt", "w")
 file_write(handle, "streamed")
 file_close(handle)
 print(file_get_contents("/tmp/doc-open.txt"), "\n")
-
-:example cpp render
-u64 h = file_open("/tmp/doc-open.txt", "w");
-file_write(h, "streamed");
-file_close(h);
-print(file_get_contents("/tmp/doc-open.txt"), "\n");
 
 :see
 >sys

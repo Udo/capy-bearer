@@ -23,5 +23,3 @@ C++ uses `to_upper()` with the signature above.
 
 :example capy render
 print(upper("bearer"), "\n")
-:example cpp render
-print(to_upper("bearer"), "\n");

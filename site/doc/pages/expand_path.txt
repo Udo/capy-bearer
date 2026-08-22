@@ -15,13 +15,10 @@ Pass a path and an optional base directory. It resolves a relative path against 
 
 Use the returned path with file API functions.
 
-The C++ `.uce` call has the same arguments.
+The Capy call has the same arguments.
 
 :example capy render
-print(expand_path("sub/page.uce", "/var/www/site"), "\n")
-:example cpp render
-print(expand_path("sub/page.uce", "/var/www/site"), "\n");
-
+print(expand_path("sub/page.capy", "/var/www/site"), "\n")
 :see
 >sys
 path_join

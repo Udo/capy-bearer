@@ -1,6 +1,0 @@
-#load "../../lib/app.uce"
-
-COMPONENT(Request& context)
-{
-	print(context.call["fragments"]["main"].to_string());
-}

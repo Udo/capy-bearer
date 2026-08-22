@@ -12,7 +12,7 @@ Use `trusted_markup()` when content is already trusted and must stay HTML, not e
 
 Security warning: use `trusted_markup()` only on strings that your code builds. Do not pass request data, remote responses, or database text directly.
 
-`<?: expression ?>` inserts trusted markup in HTML text without extra escaping.
+`trusted_markup()` returns a `markup` value. It still needs `print()` or interpolation before it affects output. `<?: expression ?>` inserts trusted markup in HTML text without extra escaping.
 
 :warning
 `trusted_markup()` disables HTML escaping. Do not pass request data, remote responses, or database text to it.
@@ -23,10 +23,6 @@ Compilation fails when `trusted_markup()` receives the wrong argument count or a
 :example capy render
 var safe := trusted_markup("<strong>safe</strong>")
 print(safe, "\n")
-
-:example cpp render
-String safe = "<strong>safe</strong>";
-print(safe, "\n");
 
 :see
 >markup

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "filter" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "filter"
+        page["kind"] = "api"
+        page["slug"] = "filter"
+        page["route"] = "/doc/api/filter/"
+        page["title"] = "filter"
+        page["content"] = "`filter()` reads each `dval` list value as a string. It returns a new `dval` list with values where `f` returns `true`.\n\nUse it to select string values without changing `items`. In Capy, use `DValue` and a lambda that accepts `String`.\n\n"
+        page["returns"] = "new `dval` list of selected string values"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "filter"
+        page["sig_lines"] = dval(["DValue filter(DValue items, function<bool (String)> f)", "DValue::filter(function<bool (String)> f)", ""])
+        page["capy_sig_lines"] = dval(["function filter(items : dval, predicate : function(value : string) bool) dval"])
+        page["param_lines"] = dval(["items : `dval` list whose values are read as strings", "f : Capy function that returns `bool` for each string", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "contains", "first", "base64_encode", "join", "base64_decode", "json_consume_space"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

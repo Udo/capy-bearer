@@ -28,8 +28,4 @@ component_exists
 
 Capy does not expose `cli_arg`. In a Capy `CLI` handler, read `request.query`, `request.form`, or `request.body`. Choose the field that matches the input source.
 
-C++ `.uce` code passes the live `Request& context` as the first argument.
-
-:example cpp render
-String name = cli_arg(context, "name", "world");
-print("hello ", name, "\n");
+Capy code passes the live `Request& context` as the first argument.

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "time" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "time"
+        page["kind"] = "api"
+        page["slug"] = "time"
+        page["route"] = "/doc/api/time/"
+        page["title"] = "time"
+        page["content"] = "Use `time` to get the current Capy Unix timestamp. The function takes no input. It returns a `u64` value with second precision. Use it for timestamps and time calculations.\n\nCapy and Capy both return `u64`, as the signature shows.\n"
+        page["returns"] = "current Unix timestamp with second precision"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "time"
+        page["sig_lines"] = dval(["u64 time()", ""])
+        page["capy_sig_lines"] = dval(["function time() u64"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">time", "time_precise", "time_format_local", "usleep", "time_format_relative", "time_format_utc", "time_parse"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

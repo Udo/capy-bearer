@@ -15,9 +15,6 @@ It returns the SHA-256 digest of `data` as 64 lowercase hexadecimal characters. 
 :example capy render
 print(sha256_hex("abc"), "\n")
 
-:example cpp render
-print(sha256_hex("abc"), "\n");
-
 :see
 >sys
 sha256

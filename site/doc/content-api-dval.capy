@@ -1,0 +1,30 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "dval" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "dval"
+        page["kind"] = "api"
+        page["slug"] = "dval"
+        page["route"] = "/doc/api/dval/"
+        page["title"] = "dval"
+        page["content"] = "Use `dval()` to build a dynamic value from scalar values or a literal structure.\n\nIt converts `string`, integer, float, and `bool` scalars into typed `dval` entries. It keeps existing `dval` input as `dval`.\n\nUse it for request and task payloads, JSON-like in-memory data, and nested maps and lists.\n"
+        page["returns"] = "new `dval` value"
+        page["errors"] = "Compilation fails when `dval()` receives an unsupported input type. The compiler rejects map literals with duplicate keys."
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "dval"
+        page["sig_lines"] = dval(["dval(value : string) dval", "dval(value : s32) dval", "dval(value : s64) dval", "dval(value : u64) dval", "dval(value : f64) dval", "dval(value : bool) dval", "dval(value : dval) dval", ""])
+        page["capy_sig_lines"] = dval(["function dval(value : string) dval", "function dval(value : s32) dval", "function dval(value : s64) dval", "function dval(value : u64) dval", "function dval(value : f64) dval", "function dval(value : bool) dval", "function dval(value : dval) dval"])
+        page["param_lines"] = dval(["value : scalar value, map or list literal, or existing `dval`", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "0_DValue", "2_DValue_is_array", "2_DValue_is_list", "2_DValue_to_string"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

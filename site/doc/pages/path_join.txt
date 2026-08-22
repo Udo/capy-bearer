@@ -16,10 +16,7 @@ If `child` starts with `/`, it replaces `base`. If either value is empty, the AP
 This API does not resolve `.` or `..` segments. Use `path_real()` when you need a canonical existing path.
 
 :example capy render
-print(path_join("/var/www", "site/index.uce"), "\n")
-
-:example cpp render
-print(path_join("/var/www", "site/index.uce"), "\n");
+print(path_join("/var/www", "site/index.capy"), "\n")
 
 :see
 >sys

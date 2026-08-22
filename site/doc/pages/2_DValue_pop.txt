@@ -23,11 +23,3 @@ var list := dval_push(dval_push(dval([]), "first"), "last")
 var popped := list[1]
 list = dval_pop(list)
 if dval_has(list, "0") { print("popped ", popped, ", remaining 1\n") } else { print("popped ", popped, ", remaining 0\n") }
-
-:example cpp render
-DValue list;
-list.set_array();
-DValue a; a.set("first"); list.push(a);
-DValue b; b.set("last"); list.push(b);
-DValue popped = list.pop();
-print("popped ", popped.to_string(), ", remaining ", list.keys().size(), "\n");

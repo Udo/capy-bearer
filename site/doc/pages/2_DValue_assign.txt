@@ -28,9 +28,3 @@ C++ `operator=` calls the matching `set(...)` overload. It assigns strings, numb
 :example capy render
 var row := dval({"name": "Ada", "role": "engineer"})
 print(row["name"], " / ", row["role"], "\n")
-
-:example cpp render
-DValue row;
-row["name"] = "Ada";
-row["role"] = "engineer";
-print(row["name"].to_string(), " / ", row["role"].to_string(), "\n");

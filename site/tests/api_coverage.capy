@@ -1,0 +1,4 @@
+function RENDER(request : dval) {
+    response_header("Content-Type", "text/html; charset=utf-8")
+    print("<!doctype html><html><head><title>API Coverage Manifest</title></head><body><h1>API Coverage Manifest</h1><p>API Coverage Manifest</p></body></html>")
+}

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "float-val" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "float_val"
+        page["kind"] = "api"
+        page["slug"] = "float-val"
+        page["route"] = "/doc/api/float-val/"
+        page["title"] = "float_val"
+        page["content"] = "`float_val()` extracts a floating-point value from a string. It returns `0` when it cannot identify a usable number.\n\nUse it when input text can contain a numeric value. In Capy, the same call returns `f64`.\n"
+        page["returns"] = "parsed `f64`, or `0` when no usable number exists"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "float_val"
+        page["sig_lines"] = dval(["f64 float_val(String s)", ""])
+        page["capy_sig_lines"] = dval(["function float_val(raw : string) f64"])
+        page["param_lines"] = dval(["s : string that can contain a number", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "int_val", "0_String", "trim", "to_upper", "html_escape", "to_lower"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

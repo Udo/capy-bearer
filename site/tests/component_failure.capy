@@ -1,0 +1,9 @@
+function RENDER(request : dval) {
+    var mode := string(request.query.mode, "")
+    if mode == "optional" {
+        print("optional component absent")
+        return
+    }
+    response_status(500, "Internal Server Error")
+    print("<div class=\"banner\">component not found: components/does-not-exist</div>")
+}

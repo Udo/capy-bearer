@@ -24,7 +24,3 @@ C++ uses `String`, an alias for `std::string`. The same value can hold text or r
 :example capy render
 var name := "Ada"
 print(upper(name), "\n")
-
-:example cpp render
-String name = "Ada";
-print(to_upper(name), "\n");

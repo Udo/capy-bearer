@@ -289,8 +289,12 @@ int main()
 	const auto scalar_parameter_reassignment = capy::compile_bearer_unit(
 		"function change(value : s32) s32 { value = 2; -> value }\nfunction CLI(request : dval) { print(change(1)) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(scalar_parameter_reassignment.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto managed_parameter_reassignment = capy::compile_bearer_unit(
+		"function change_text(value : string) string { value = value + \"!\"; return value }\n"
+		"function change_array(values : [s32]) [s32] { values = [2]; return values }\n"
+		"function CLI(request : dval) { var text := \"x\"; var values := [1]; print(change_text(text), text, change_array(values)[0], values[0]) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(managed_parameter_reassignment.wasm, {.bearer_abi_version = "11"}).valid);
 	for (const auto& [source, expected] : {
-			 std::pair{"function change(values : [s32]) { values = [2] }\nfunction CLI(request : dval) {}\n", "cannot assign to a borrowed managed value"},
 			 std::pair{"function CLI(request : dval) { var pair := (1, 2); pair[0] = 3 }\n", "tuple elements are immutable"},
 			 std::pair{"function CLI(request : dval) { var value := 1; var closure := function() void { value = 2 } }\n", "cannot assign to captured binding 'value'. Captures are immutable"},
 			 std::pair{"function CLI(request : dval) { var value := clone(\"x\"); var closure := function() void { value = clone(\"y\") } }\n", "cannot assign to captured binding 'value'. Captures are immutable"},
@@ -467,29 +471,48 @@ int main()
 	for (const auto& imported : unused_conversion_validation.imports)
 		assert(imported.name.rfind("bearer_format_", 0) != 0);
 	const auto module_exports = capy::compile_bearer_unit(
-		"EXPORTS invoke\nEXPORTS other\nfunction invoke(value : dval) dval { -> value }\nfunction other(value : dval) dval { -> value }\n", options);
+		"#exports invoke\n#exports other\nfunction invoke(value : dval) dval { -> value }\nfunction other(value : dval) dval { -> value }\n", options);
 	assert(module_exports.custom_exports == std::vector<std::string>({"invoke", "other"}));
+	assert(module_exports.function_exports == std::vector<std::string>({"capy function invoke(dval):dval", "capy function other(dval):dval"}));
 	assert(module_exports.source_map.find("F\t1\tnative-test.capy\n") != std::string::npos);
 	assert(capy::wasm::validate_bearer_unit(module_exports.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto type_exports = capy::compile_bearer_unit(
+		"#exports echo, MyType, Alias\nstruct MyType { value : s32 }\ntype Alias = MyType\nfunction echo(value : dval) dval { -> value }\nfunction MyType(value : dval) MyType { -> MyType(1) }\n", options);
+	assert(type_exports.custom_exports == std::vector<std::string>({"echo"}));
+	assert(type_exports.function_exports == std::vector<std::string>({"capy function echo(dval):dval", "capy function MyType(dval):struct:MyType"}));
+	assert(type_exports.type_exports == std::vector<std::string>({"capy type struct MyType{value:s32}", "capy type alias Alias=struct:MyType"}));
 	const auto module_call = capy::compile_bearer_unit(
 		"function CLI(request : dval) { var loaded : module = unit_load(\"child.capy\"); loaded.call(\"invoke\") }\n", options);
 	const std::string module_call_bytes(module_call.wasm.begin(), module_call.wasm.end());
 	assert(module_call_bytes.find("bearer_unit_load") != std::string::npos && module_call_bytes.find("bearer_module_call_brrb") != std::string::npos);
 	assert(capy::wasm::validate_bearer_unit(module_call.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto module_member_call = capy::compile_bearer_unit(
+		"function CLI(request : dval) { var loaded : module = unit_load(\"child.capy\"); loaded.invoke(); loaded.invoke({value: 1}) }\n", options);
+	const std::string module_member_call_bytes(module_member_call.wasm.begin(), module_member_call.wasm.end());
+	assert(module_member_call_bytes.find("bearer_unit_load") != std::string::npos && module_member_call_bytes.find("bearer_module_call_brrb") != std::string::npos);
+	assert(capy::wasm::validate_bearer_unit(module_member_call.wasm, {.bearer_abi_version = "11"}).valid);
 	assert(module_call.source_map.find("F\t2\tcapy://stdlib.capy\n") != std::string::npos);
 	const auto module_passthrough = capy::compile_bearer_unit(
 		"function pass(value : module) module { -> value }\n"
 		"function identity(value : any) value::type { -> value }\n"
 		"function CLI(request : dval) { var loaded : module = unit_load(\"child.capy\"); var returned : module = pass(loaded); identity(returned).call(\"invoke\") }\n", options);
 	assert(capy::wasm::validate_bearer_unit(module_passthrough.wasm, {.bearer_abi_version = "11"}).valid);
+	capy::CompileOptions import_options = options;
+	import_options.import_type_metadata = [](const std::string& path, const std::string& current) {
+		assert(path == "child.capy" && current == "native-test.capy");
+		return std::vector<std::string>({"capy type struct Shape{value:s32}", "capy type alias Other=struct:Shape"});
+	};
+	const auto imported_types = capy::compile_bearer_unit(
+		"#import \"child.capy\" as child\ntype LocalShape = child.Shape\ntype LocalOther = child.Other\nfunction CLI(request : dval) {}\n", import_options);
+	assert(capy::wasm::validate_bearer_unit(imported_types.wasm, {.bearer_abi_version = "11"}).valid);
 	for (const auto& [source, expected] : {
-			 std::pair{"EXPORTS missing\nfunction CLI(request : dval) {}\n", "unknown local function 'missing'"},
-			 std::pair{"EXPORTS wrong\nfunction wrong(value : string) string { -> value }\nfunction CLI(request : dval) {}\n", "must have signature (dval) dval"},
-			 std::pair{"EXPORTS generic\nfunction generic(value : any) value::type { -> value }\nfunction CLI(request : dval) {}\n", "must name a non-generic local function"},
-			 std::pair{"EXPORTS invoke\nfunction EXPORT_invoke(value : dval) dval { -> value }\nfunction CLI(request : dval) {}\n", "already declared"},
+			 std::pair{"#exports missing\nfunction CLI(request : dval) {}\n", "unknown local function or type 'missing'"},
+			 std::pair{"#exports invoke\nfunction EXPORT_invoke(value : dval) dval { -> value }\nfunction CLI(request : dval) {}\n", "already declared"},
 			 std::pair{"function CLI(request : dval) { var loaded : module = unit_load(\"x\"); print(loaded + loaded) }\n", "unsupported operator + for module"},
 			 std::pair{"function CLI(request : dval) { var loaded : module = unit_load(\"x\"); if loaded {} }\n", "module is opaque and cannot be used as a condition"},
 			 std::pair{"function CLI(request : dval) { var loaded : module = unit_load(\"x\"); s32(loaded) }\n", "no overload s32(module)"},
+			 std::pair{"function CLI(request : dval) { var loaded : module = unit_load(\"x\"); loaded.echo({a: 1}, {b: 2}) }\n", "dynamic module member call accepts at most one dval input"},
+			 std::pair{"function CLI(request : dval) { var loaded : module = unit_load(\"x\"); var name := loaded.echo }\n", "module member access must be called"},
 			 std::pair{"function bad(value : as [s32]) {}\n", "requires a concrete named type constructor"},
 			 std::pair{"function left(value : as s64) {}\nfunction left(value : as u64) {}\nfunction CLI(request : dval) { left(1) }\n", "ambiguous converted overload"},
 			 std::pair{"function CLI(request : dval) { var callback : function(value : as s64) s64 = function(value : s64) s64 { -> value } }\n", "only variadic function-type parameters may request conversion"},

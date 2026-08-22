@@ -1,0 +1,30 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "bool" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "bool"
+        page["kind"] = "api"
+        page["slug"] = "bool"
+        page["route"] = "/doc/api/bool/"
+        page["title"] = "bool"
+        page["content"] = "Use `bool` to read scalar data as a Boolean value.\n\n`bool(dval, fallback)` reads `none`, scalar `string`, scalar `bool`, and scalar `f64` values. It returns `fallback` for maps, lists, and failed conversions.\n\n`bool(string, fallback)` trims spaces and then applies the same rules. Accepted text tokens are case-insensitive: `true`, `false`, `1`, `0`, `yes`, `no`, `on`, and `off`.\n"
+        page["returns"] = "converted boolean, or `fallback`"
+        page["errors"] = "`bool` does not throw. It returns `fallback` when conversion fails."
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "bool"
+        page["sig_lines"] = dval(["bool(value : dval, fallback : bool = false) bool", "bool(value : string, fallback : bool = false) bool", ""])
+        page["capy_sig_lines"] = dval(["function bool(value : dval, fallback : bool = false) bool", "function bool(value : string, fallback : bool = false) bool"])
+        page["param_lines"] = dval(["value : source value to convert", "fallback : value returned when conversion fails", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "2_DValue_to_bool", "2_DValue_to_f64", "2_DValue_to_s64", "2_DValue_to_u64", "2_DValue_to_string"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

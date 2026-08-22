@@ -1,0 +1,52 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "ws-send-to" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "ws_send_to"
+        page["kind"] = "api"
+        page["slug"] = "ws-send-to"
+        page["route"] = "/doc/api/ws-send-to/"
+        page["title"] = "ws_send_to"
+        page["content"] = "`ws_send_to(connection_id, message, binary)` sends one message to the selected WebSocket client.\n\nBoth IDs and messages are `string` values. Set `binary` to `true` for a binary message. The function returns `true` when it finds the client and queues the message.\n\nIn Capy, use `request.websocket.connection_id` or `request.websocket.connections` to select an ID. In C++, use `ws_connection_id()` or `ws_connections()`. A `false` return is the normal missing-client result.\n\nC++ uses the signature above. Its `String` and `bool` inputs correspond to Capy `string` and `bool` values.\n"
+        page["returns"] = "true if the target connection exists and the message was queued"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "ws_send_to"
+        page["sig_lines"] = dval(["bool ws_send_to(String connection_id, String message, bool binary = false)", ""])
+        page["capy_sig_lines"] = dval(["function ws_send_to(connection_id : string, message : string, binary : bool) bool"])
+        page["param_lines"] = dval(["connection_id : ID of the target WebSocket client", "message : message payload to send", "binary : set to true to send a binary frame instead of a text frame", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">websocket", "ws_send", "ws_scope", "ws_opcode", "ws_message", "ws_is_binary", "ws_connections"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "ws-send" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "ws_send"
+        page["kind"] = "api"
+        page["slug"] = "ws-send"
+        page["route"] = "/doc/api/ws-send/"
+        page["title"] = "ws_send"
+        page["content"] = "`ws_send(message, binary)` sends to the current WebSocket scope. `ws_send(message, binary, scope)` accepts an explicit scope.\n\n`message` is a `string`. Set `binary` to `true` for a binary message. The function returns `true` when it queues the message for at least one client.\n\nUse it to send one message to every client in a scope. A `false` return is the normal no-client result.\n\nC++ uses the optional `String` scope input in the signature above. Capy provides separate two-input and three-input declarations.\n"
+        page["returns"] = "true if the message was queued for at least one connected client"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "ws_send"
+        page["sig_lines"] = dval(["bool ws_send(String message, bool binary = false, String scope = \"\")", ""])
+        page["capy_sig_lines"] = dval(["function ws_send(message : string, binary : bool) bool", "function ws_send(message : string, binary : bool, scope : string) bool"])
+        page["param_lines"] = dval(["message : message payload to send", "binary : set to true to send a binary frame instead of a text frame", "scope : optional scope identifier, defaults to the current WebSocket page scope", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">websocket", "ws_scope", "ws_send_to", "ws_opcode", "ws_message", "ws_is_binary", "ws_connections"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

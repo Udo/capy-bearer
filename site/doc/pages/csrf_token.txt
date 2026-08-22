@@ -15,16 +15,12 @@ Pass the session name and token namespace. It starts the named session when nece
 
 Use the returned value in a hidden form field. Call `csrf_valid()` before you apply a browser-submitted change.
 
-The C++ `.uce` call has the same arguments.
+The Capy call has the same arguments.
 
 :example capy render
 var token := csrf_token("bearer-doc-session")
 if length(token) > 0 { print("token ready\n") }
 else { print("token missing\n") }
-:example cpp render
-String token = csrf_token("bearer-doc-session");
-print(token.size() > 0 ? "token ready\n" : "token missing\n");
-
 :see
 >session
 csrf_valid

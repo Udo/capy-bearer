@@ -12,19 +12,13 @@ Pass the session name and token namespace. It starts the named session when nece
 
 Use it after a sensitive successful change when the same submitted form must not work again.
 
-The C++ `.uce` call has the same arguments.
+The Capy call has the same arguments.
 
 :example capy render
 var old_token := csrf_token()
 csrf_rotate()
 var new_token := csrf_token()
 if old_token != new_token { print("rotated\n") } else { print("unchanged\n") }
-:example cpp render
-String old_token = csrf_token();
-csrf_rotate();
-String new_token = csrf_token();
-print(old_token != new_token ? "rotated\n" : "unchanged\n");
-
 :see
 >session
 csrf_token

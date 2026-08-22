@@ -31,6 +31,3 @@ This supports URLs such as `/?dashboard` and `/?workspace/projects`. Named query
 
 :example capy render
 print(string(request.url.script, ""), "\n")
-
-:example cpp render
-print(context.params["SCRIPT_URL"], "\n");

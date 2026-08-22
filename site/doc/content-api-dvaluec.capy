@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "dvalue-clear" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_clear"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-clear"
+        page["route"] = "/doc/api/dvalue-clear/"
+        page["title"] = "DValue::clear"
+        page["content"] = "Use `dval_clear(value)` in Capy to remove all children and make the target an empty map. It mutates `value` and returns that same identity. All workspace aliases observe the mutation. Assigning the result back remains valid. Use `dval_set_array()` for an empty list.\n\nC++ `clear()` empties this `DValue` and resets its array index. It does not set list mode.\n\n"
+        page["returns"] = "none"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::clear"
+        page["sig_lines"] = dval(["void DValue::clear()", ""])
+        page["capy_sig_lines"] = dval(["function dval_clear(value : dval) dval"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "2_DValue_set_array"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

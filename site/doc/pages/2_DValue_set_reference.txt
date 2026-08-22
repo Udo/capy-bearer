@@ -22,10 +22,3 @@ Capy does not support `set_reference`. DValues share identity inside a workspace
 :capy-status unsupported
 
 Capy cannot create a C++ internal reference node.
-
-:example cpp render
-DValue target;
-target.set("original");
-DValue ref;
-ref.set_reference(&target);
-print(ref.deref().to_string(), "\n");

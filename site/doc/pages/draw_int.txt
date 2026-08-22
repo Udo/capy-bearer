@@ -23,9 +23,7 @@ Pass the range values. Bearer uses the request random seed and advances its rand
 
 Use it when one request needs repeatable integer noise values from its random sequence.
 
-The C++ `.uce` call has the same arguments.
+The Capy call has the same arguments.
 
 :example capy render
 if draw_int(1, 10) >= 1 { print("int\n") } else { print("bad\n") }
-:example cpp render
-print(draw_int(1, 10) >= 1 ? "int\n" : "bad\n");

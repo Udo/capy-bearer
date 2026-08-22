@@ -20,10 +20,3 @@ The C++ one-argument `DValue` form has the same result. Its three-argument form 
 var original := dval({"n": "7", "missing": none})
 var restored := brb_decode(brb_encode(original))
 print(restored.n, " / ", restored.missing?, "\n")
-
-:example cpp render
-DValue original;
-original["n"] = "7";
-original["missing"].set_none();
-DValue restored = brb_decode(brb_encode(original));
-print(restored["n"].to_string(), " / ", restored["missing"].is_none() ? "false" : "true", "\n");

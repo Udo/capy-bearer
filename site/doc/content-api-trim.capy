@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "trim" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "trim"
+        page["kind"] = "api"
+        page["slug"] = "trim"
+        page["route"] = "/doc/api/trim/"
+        page["title"] = "trim"
+        page["content"] = "Call `trim(raw)` to return a `string` without leading or trailing whitespace.\n\nUse it to normalize text before validation or comparison. C++ uses the same input and return value.\n\n"
+        page["returns"] = "`raw` without leading or trailing whitespace"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "trim"
+        page["sig_lines"] = dval(["String trim(String raw)", ""])
+        page["capy_sig_lines"] = dval(["function trim(raw : string) string"])
+        page["param_lines"] = dval(["raw : text to trim", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "to_upper", "float_val", "to_lower", "int_val", "regex_split", "html_escape"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

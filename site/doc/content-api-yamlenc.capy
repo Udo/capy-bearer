@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "yaml-encode" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "yaml_encode"
+        page["kind"] = "api"
+        page["slug"] = "yaml-encode"
+        page["route"] = "/doc/api/yaml-encode/"
+        page["title"] = "yaml_encode"
+        page["content"] = "`yaml_encode(value)` accepts a `dval` and returns YAML as a `string`.\n\nUse it to write configuration data. It writes nested maps, lists, strings, booleans, numeric f64 values, and `none`.\n\n`none` encodes as YAML `null`. It does not write YAML tags, anchors, aliases, or custom schema features.\n\nC++ uses `DValue` and `String` values through the signature above.\n"
+        page["returns"] = "YAML string"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "yaml_encode"
+        page["sig_lines"] = dval(["String yaml_encode(DValue t)", ""])
+        page["capy_sig_lines"] = dval(["function yaml_encode(value : dval) string"])
+        page["param_lines"] = dval(["t : tree to serialize as YAML", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">markup", "yaml_decode", "json_encode", "0_DValue"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

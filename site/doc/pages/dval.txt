@@ -27,15 +27,6 @@ Compilation fails when `dval()` receives an unsupported input type. The compiler
 var profile := dval({"name": "Ada", "scores": [1, 2, 3]})
 print(profile.name, " ", length(profile.scores), "\n")
 
-:example cpp render
-DValue profile;
-profile["name"] = "Ada";
-profile["scores"].set_array();
-profile["scores"].push_back("1");
-profile["scores"].push_back("2");
-profile["scores"].push_back("3");
-print(profile["name"].to_string(), " ", profile["scores"].size(), "\n");
-
 :see
 >types
 0_DValue

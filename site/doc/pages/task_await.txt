@@ -19,7 +19,7 @@ Use `task_await` to wait for a Capy task status. Pass the task ID and a maximum 
 
 This call does not run the task in the caller. If the task remains nonterminal after the wait time, it continues to run. The wait time does not cancel it.
 
-Capy task IDs are `string` values, and task status is a `dval` value. C++ `.uce` uses `String`, `u64`, and `DValue`, as the signature shows.
+Capy task IDs are `string` values, and task status is a `dval` value. Capy uses `String`, `u64`, and `DValue`, as the signature shows.
 
 :example capy render
 var id := task("/doc/examples/task_worker.capy:STORE", {"message": "await"})
@@ -27,9 +27,3 @@ var status := task_await(id, 5000)
 var result := "not done"
 if string(status["state"]) == "succeeded" { result = "done" }
 print(result, "\n")
-
-:example cpp render
-DValue props; props["message"] = "await";
-String id = task("/doc/examples/task_worker.capy:STORE", props);
-DValue status = task_await(id, 5000);
-print(status["state"].to_string() == "succeeded" ? "done\n" : "not done\n");

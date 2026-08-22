@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "path-real" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "path_real"
+        page["kind"] = "api"
+        page["slug"] = "path-real"
+        page["route"] = "/doc/api/path-real/"
+        page["title"] = "path_real"
+        page["content"] = "`path_real()` returns the canonical absolute path as a `string`. It follows symbolic links and removes `.` and `..` segments.\n\nIt returns `\"\"` if it cannot resolve the path.\n\nUse `path_is_within()` after this call to check a user-supplied path against an allowed root.\n"
+        page["returns"] = "the canonical absolute path, or `\"\"` if resolution fails"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "path_real"
+        page["sig_lines"] = dval(["String path_real(String path)", ""])
+        page["capy_sig_lines"] = dval(["function path_real(path : string) string"])
+        page["param_lines"] = dval(["path : the path to resolve", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "path_is_within", "expand_path", "file_symlink"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

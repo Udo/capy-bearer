@@ -26,6 +26,3 @@ If you omit `reason`, common HTTP codes use their standard reason phrase. Use th
 :example capy render
 response_status(200, "OK")
 print("200\n")
-:example cpp render
-context.set_status(200, "OK");
-print(context.flags.status, "\n");

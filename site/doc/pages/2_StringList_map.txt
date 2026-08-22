@@ -18,6 +18,3 @@ Capy has no separate `StringList` type. It uses list-shaped DValues. The functio
 var items := split("one,two", ",")
 var upper := map(items, function(value : string) string { return upper(value) })
 print(join(upper, ","), "\n")
-:example cpp render
-StringList items = split("one,two", ",");
-print(join(items.map([](String value) { return to_upper(value); }), ","), "\n");

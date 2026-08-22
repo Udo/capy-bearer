@@ -26,7 +26,3 @@ The examples are compile-only because an executed redirect would replace the doc
 :example capy cli
 redirect("/next")
 print("redirect(\"/next\") sends an HTTP redirect.\n")
-
-:example cpp cli
-redirect("/next");
-print("redirect(\"/next\") sends an HTTP redirect.\n");

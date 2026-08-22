@@ -23,6 +23,3 @@ Use it to normalize text before validation or comparison. C++ uses the same inpu
 
 :example capy render
 print(trim("  docs  "), "\n")
-
-:example cpp render
-print(trim("  docs  "), "\n");

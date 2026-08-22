@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "sha256" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "sha256"
+        page["kind"] = "api"
+        page["slug"] = "sha256"
+        page["route"] = "/doc/api/sha256/"
+        page["title"] = "sha256"
+        page["content"] = "Use this function when another binary operation needs a SHA-256 digest.\n\nIt returns the raw 32-byte digest of `data`. Use `sha256_hex()` when you need printable text.\n"
+        page["returns"] = "raw 32-byte SHA-256 digest"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "sha256"
+        page["sig_lines"] = dval(["String sha256(String data)", ""])
+        page["capy_sig_lines"] = dval(["function sha256(value : string) string"])
+        page["param_lines"] = dval(["data : bytes to hash", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "sha256_hex", "hmac_sha256", "basename", "dirname", "expand_path", "file_append"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

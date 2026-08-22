@@ -21,9 +21,5 @@ Use this function to stop a custom HTTP listener that `server_start_http()` crea
 It removes the listener configuration for `key`. It returns true if no listener exists for that key. It returns false for an empty key or when the stop operation fails.
 
 :example capy render
-server_start_http("doc-demo-stop", "/tmp/bearer/custom-servers/doc-stop.sock", "examples/sample_unit.uce", "RENDER")
+server_start_http("doc-demo-stop", "/tmp/bearer/custom-servers/doc-stop.sock", "examples/sample_unit.capy", "RENDER")
 if server_stop("doc-demo-stop") { print("server stopped\n") } else { print("no such server\n") }
-
-:example cpp render
-server_start_http("doc-demo-stop", "/tmp/bearer/custom-servers/doc-stop.sock", "examples/sample_unit.uce", "RENDER");
-print(server_stop("doc-demo-stop") ? "server stopped" : "no such server", "\n");

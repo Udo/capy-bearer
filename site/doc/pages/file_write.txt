@@ -23,12 +23,6 @@ if count == 11 { count_text = "11" }
 file_close(handle)
 print(count_text, " bytes -> ", file_get_contents("/tmp/doc-write.txt"), "\n")
 
-:example cpp render
-u64 h = file_open("/tmp/doc-write.txt", "w");
-u64 n = file_write(h, "hello world");
-file_close(h);
-print(n, " bytes -> ", file_get_contents("/tmp/doc-write.txt"), "\n");
-
 :see
 >sys
 file_open

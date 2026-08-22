@@ -32,8 +32,3 @@ Capy does not accept a C++ pointer or `StringMap` overload. Use `dval(...)` to c
 :example capy render
 var value := dval_set(dval(""), "hello")
 print(value, "\n")
-
-:example cpp render
-DValue v;
-v.set("hello");
-print(v.to_string(), "\n");

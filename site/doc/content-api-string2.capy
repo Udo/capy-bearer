@@ -1,0 +1,30 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "string-2" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "string"
+        page["kind"] = "api"
+        page["slug"] = "string-2"
+        page["route"] = "/doc/api/string-2/"
+        page["title"] = "string"
+        page["content"] = "Use `string` to convert scalar data to text.\n\n`string(dval, fallback)` accepts scalar `string`, `bool`, and finite `f64` values. It returns `fallback` for an empty string, map, or list.\n\n`string(string, fallback)` trims spaces and then applies the same rules. Use it for user input that can contain accidental whitespace.\n"
+        page["returns"] = "converted string, or `fallback`"
+        page["errors"] = "`string` does not throw. It returns `fallback` for unsupported shapes and empty text."
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "string"
+        page["sig_lines"] = dval(["string(value : dval, fallback : string = \"\") string", "string(value : string, fallback : string = \"\") string", ""])
+        page["capy_sig_lines"] = dval(["function string(value : dval, fallback : string = \"\") string"])
+        page["param_lines"] = dval(["value : source value to convert", "fallback : value returned when conversion fails", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "0_String", "2_DValue_to_string", "2_DValue_to_bool", "2_DValue_to_s64", "2_DValue_to_u64", "2_DValue_to_f64"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

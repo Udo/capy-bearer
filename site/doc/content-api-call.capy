@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "call" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "call"
+        page["kind"] = "api"
+        page["slug"] = "call"
+        page["route"] = "/doc/api/call/"
+        page["title"] = "call"
+        page["content"] = "`call(handle, name[, input])` calls an exported function on a loaded module and returns the function result as `dval`.\nUse it after `unit_load()` when several calls should reuse the same module.\nThe handle is valid only for one request.\n\nThe two-argument form sends an empty `dval` when no input is needed.\n\nA missing handle or missing export is an error.\n\n## C++ API\n\nC++ has no direct module-handle `call()` helper.\nUse `unit_call(file_name, function_name, input)` with the same unit path and function name in C++.\n"
+        page["returns"] = "exported function result"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "call"
+        page["sig_lines"] = dval(["dval call(handle : module, name : string)", "dval call(handle : module, name : string, input : as dval)", ""])
+        page["capy_sig_lines"] = dval(["function call(handle : module, name : string) dval", "function call(handle : module, name : string, input : as dval) dval"])
+        page["param_lines"] = dval(["handle : module value returned by `unit_load()`", "name : exported function name", "input : optional `dval` input", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">ob", "unit_load", "unit_call", "unit_render", "response_status", "response_header", "component_capture"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

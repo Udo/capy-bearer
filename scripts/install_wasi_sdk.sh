@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Install the pinned WASI SDK used by BEARER's request-time wasm compiler.
-# This is a runtime dependency: BEARER compiles .uce units on demand and during
+# This is a build dependency for the Bearer WebAssembly core. It is not a runtime dependency.
 # proactive startup scans, so every deployment host needs the same toolchain.
 
 WASI_SDK_VERSION="${WASI_SDK_VERSION:-33.0}"

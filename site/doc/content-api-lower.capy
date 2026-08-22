@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "lower" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "lower"
+        page["kind"] = "api"
+        page["slug"] = "lower"
+        page["route"] = "/doc/api/lower/"
+        page["title"] = "lower"
+        page["content"] = "`lower(value)` converts uppercase ASCII characters to lowercase. It does not convert Unicode case.\n\nC++ uses `to_lower()` with the signature above.\n"
+        page["returns"] = "string with uppercase ASCII characters changed to lowercase"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "lower"
+        page["sig_lines"] = dval(["String to_lower(String s)", ""])
+        page["capy_sig_lines"] = dval(["function lower(value : string) string"])
+        page["param_lines"] = dval(["value : Capy string to convert", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "to_lower", "string", "length", "clone", "ascii_safe_name", "base64_decode"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "mysql-escape" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "mysql_escape"
+        page["kind"] = "api"
+        page["slug"] = "mysql-escape"
+        page["route"] = "/doc/api/mysql-escape/"
+        page["title"] = "mysql_escape"
+        page["content"] = "`mysql_escape(raw)` escapes `raw` and wraps it in single quotes. Use the two-argument form to select one wrapper character.\n\nUse an empty Capy string for no wrapper. In C++, pass `NULL` for no wrapper.\n\nUse query parameters with `mysql_query()` when possible. Escape values only when you must build SQL text.\n"
+        page["returns"] = "the escaped form of `raw`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "mysql_escape"
+        page["sig_lines"] = dval(["String mysql_escape(String raw, char quote_char)", ""])
+        page["capy_sig_lines"] = dval(["function mysql_escape(raw : string) string", "function mysql_escape(raw : string, quote : string) string"])
+        page["param_lines"] = dval(["raw : the string to escape", "quote_char : the character that wraps the result. Pass `NULL` for no wrapper.", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">mysql", "mysql_error", "mysql_insert_id", "mysql_disconnect", "mysql_affected_rows", "mysql_connected", "mysql_query"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

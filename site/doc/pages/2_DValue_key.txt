@@ -23,10 +23,3 @@ C++ `key(key)` returns a pointer to an existing child or `0`. Its non-const over
 :example capy render
 var user := dval({"email": "ada@example.test"})
 print(dval_key(user, "email"), " / ", string(dval_key(user, "phone"), "absent"), "\n")
-
-:example cpp render
-DValue user;
-user["email"] = "ada@example.test";
-const DValue* found = user.key("email");
-const DValue* missing = user.key("phone");
-print(found ? found->to_string() : "none", " / ", missing ? "present" : "absent", "\n");

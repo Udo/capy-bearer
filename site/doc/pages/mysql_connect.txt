@@ -34,8 +34,3 @@ A connection failure does not necessarily return zero. Use `mysql_connected()` t
 var db := mysql_connect("localhost", "root", "", "")
 if mysql_connected(db) { print("connected to MySQL\n") } else { print("no MySQL server reachable with these credentials\n") }
 if db != 0 { mysql_disconnect(db) }
-
-:example cpp render
-MySQL* db = mysql_connect();
-print(mysql_connected(db) ? "connected to MySQL" : "no MySQL server reachable with these credentials", "\n");
-if(db != 0) mysql_disconnect(db);

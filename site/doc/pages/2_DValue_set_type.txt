@@ -26,9 +26,3 @@ Use `dval_set`, `dval_set_bool`, or `dval_set_array` for normal Capy code. Setti
 var value := dval_set_type(dval(""), "M")
 value = dval_push(value, "x")
 print("type after set_array: ", dval_get_type_name(value), "\n")
-
-:example cpp render
-DValue v;
-v.set_array();
-DValue item; item.set("x"); v.push(item);
-print("type after set_array: ", v.get_type_name(), "\n");

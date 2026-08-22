@@ -1,4 +1,4 @@
-EXPORTS echo, counted, default_input
+#exports echo, counted, default_input
 
 function ONCE(request : dval) { print("handler-once;") }
 function RENDER(request : dval) { print("handler-render;") }

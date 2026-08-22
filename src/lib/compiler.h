@@ -1,28 +1,5 @@
 #pragma once
 
-#include <type_traits>
-
-#if defined(__BEARER_WASM_UNIT__)
-#define BEARER_UNIT_EXPORT __attribute__((visibility("default")))
-#else
-#define BEARER_UNIT_EXPORT
-#endif
-
-#define RENDER(X) extern "C" BEARER_UNIT_EXPORT void __bearer_render(X)
-#define COMPONENT(X) extern "C" BEARER_UNIT_EXPORT void __bearer_component(X)
-#define ONCE(X) extern "C" BEARER_UNIT_EXPORT void __bearer_once(X)
-#define INIT(X) extern "C" BEARER_UNIT_EXPORT void __bearer_init(X)
-#define WS(X) extern "C" BEARER_UNIT_EXPORT void __bearer_websocket(X)
-#define CLI(X) extern "C" BEARER_UNIT_EXPORT void __bearer_cli(X)
-#define SERVE_HTTP(X) extern "C" BEARER_UNIT_EXPORT void __bearer_serve_http(X)
-#define BEARER_TASK_SIGNATURE_ASSERT(SYMBOL) static_assert(std::is_same_v<decltype(&SYMBOL), void (*)(Request&)>, "TASK must have exact signature void(Request&)")
-#define TASK(X) extern "C" BEARER_UNIT_EXPORT void __bearer_task(X); BEARER_TASK_SIGNATURE_ASSERT(__bearer_task); extern "C" BEARER_UNIT_EXPORT void __bearer_task(X)
-#define BEARER_NAMED_TASK(SYMBOL, X) extern "C" BEARER_UNIT_EXPORT void SYMBOL X; BEARER_TASK_SIGNATURE_ASSERT(SYMBOL); extern "C" BEARER_UNIT_EXPORT void SYMBOL X
-#define EXPORT extern "C" BEARER_UNIT_EXPORT
-
-String preprocess_shared_unit(Request* context, SharedUnit* su);
-String compiler_generated_cpp_path(Request* context, String source_file);
-String compiler_generated_cpp_path(SharedUnit* su);
 #ifndef __BEARER_WASM_UNIT__
 String compiler_unit_bin_directory(Request* context);
 String compiler_unit_wasm_path(Request* context, String source_file);
@@ -31,7 +8,6 @@ void setup_unit_paths(Request* context, SharedUnit* su, String file_name);
 void compile_shared_unit(Request* context, SharedUnit* su);
 SharedUnit* get_shared_unit(Request* context, String file_name);
 #ifndef __BEARER_WASM_UNIT__
-SharedUnit* get_shared_unit_for_preprocess(Request* context, String file_name);
 SharedUnit* get_shared_unit_bounded(Request* context, String file_name, u64 timeout_ms, bool* timed_out);
 bool unit_compile_bounded(Request* context, String path, u64 timeout_ms, bool* timed_out, String* error = 0);
 #endif

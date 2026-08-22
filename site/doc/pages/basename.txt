@@ -15,10 +15,7 @@ Use it to get a file or directory name without its parent directories. The funct
 The C++ `String` function has the same input and result.
 
 :example capy render
-print(basename("/var/www/site/index.uce"), "\n")
-:example cpp render
-print(basename("/var/www/site/index.uce"), "\n");
-
+print(basename("/var/www/site/index.capy"), "\n")
 :see
 >sys
 dirname

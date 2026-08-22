@@ -76,7 +76,7 @@ int main()
     auto run = [&](int mode, u64 limit) {
         pid_t child = server(path, mode);
         if(child <= 0 || !wait_socket(path)) { ok = false; return(FcgiForwardResult()); }
-        StringMap params; params["SCRIPT_FILENAME"] = "/test.uce";
+        StringMap params; params["SCRIPT_FILENAME"] = "/test.capy";
         FcgiForwardResult result = fcgi_forward_request(path, params, "", 1, limit);
         int status = 0; waitpid(child, &status, 0);
         if(!WIFEXITED(status)) ok = false;

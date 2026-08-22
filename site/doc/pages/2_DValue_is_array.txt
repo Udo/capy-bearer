@@ -20,8 +20,3 @@ C++ `is_array()` tests the dereferenced value's `M` container type.
 :example capy render
 var user := dval({"name": "Ada"})
 if dval_is_array(user) { print("array\n") } else { print("scalar\n") }
-
-:example cpp render
-DValue user;
-user["name"] = "Ada";
-print(user.is_array() ? "array\n" : "scalar\n");

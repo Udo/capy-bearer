@@ -1,0 +1,28 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "mysql-disconnect" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "mysql_disconnect"
+        page["kind"] = "api"
+        page["slug"] = "mysql-disconnect"
+        page["route"] = "/doc/api/mysql-disconnect/"
+        page["title"] = "mysql_disconnect"
+        page["content"] = "Pass the opaque `u64` handle from `mysql_connect()`.\n\nThis function releases the connection lease. It does not necessarily close a pooled server connection immediately. Do not use the handle after this call.\n\nThe C++ API accepts `MySQL*` instead.\n"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "mysql_disconnect"
+        page["sig_lines"] = dval(["void mysql_disconnect(MySQL* m)", ""])
+        page["capy_sig_lines"] = dval(["function mysql_disconnect(handle : u64)"])
+        page["param_lines"] = dval(["m : Capy MySQL handle", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">mysql", "mysql_connected", "mysql_error", "mysql_connect", "mysql_escape", "mysql_insert_id", "mysql_affected_rows"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

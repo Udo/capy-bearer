@@ -37,7 +37,3 @@ When no match exists, `matched` is false. The result omits match-specific fields
 :example capy render
 var match := regex_search("docs", "bearer docs")
 print(match["match"], "\n")
-
-:example cpp render
-DValue match = regex_search("docs", "bearer docs");
-print(match["match"].to_string(), "\n");

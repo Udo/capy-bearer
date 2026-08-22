@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "dvalue-operator-index" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_operator_index"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-operator-index"
+        page["route"] = "/doc/api/dvalue-operator-index/"
+        page["title"] = "DValue::operator[]"
+        page["content"] = "Use `value[key]` or `value[index]` to read a child from a `dval`. The result is a copied `dval`, not a mutable child alias. `dval_put` mutates its target and returns that same target identity. Assigning the result back remains valid.\n\nA missing child does not give Capy a writable child reference. Use `dval_has` or `dval_get_by_path` when you need to test a read.\n\n## C++ API\n\n`DValue::operator[]` returns a mutable child reference. It creates a missing child and follows an internal reference. Use `has`, `key`, or `get_by_path` for a C++ read that must not create a child.\n\n"
+        page["returns"] = "reference to the child node"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::operator_index"
+        page["sig_lines"] = dval(["DValue& DValue::operator[](String s)", ""])
+        page["capy_sig_lines"] = dval(["value[key]"])
+        page["param_lines"] = dval(["s : child key to return or create", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "2_DValue_get_or_create", "2_DValue_key", "2_DValue_has"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

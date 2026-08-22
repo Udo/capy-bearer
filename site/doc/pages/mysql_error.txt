@@ -29,13 +29,3 @@ if db != 0 {
     if mysql_error(db) != "" { print("error reported\n") } else { print("no error\n") }
     mysql_disconnect(db)
 } else { print("(requires a reachable MySQL server)\n") }
-
-:example cpp render
-MySQL* db = mysql_connect();
-if(db != 0)
-{
-    mysql_query(db, "select * from no_such_table_xyz");
-    print(mysql_error(db) != "" ? "error reported" : "no error", "\n");
-    mysql_disconnect(db);
-}
-else print("(requires a reachable MySQL server)\n");

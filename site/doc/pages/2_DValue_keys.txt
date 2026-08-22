@@ -22,9 +22,3 @@ Capy returns a copied value. It does not expose a mutable child alias.
 :example capy render
 var user := dval({"name": "Ada", "role": "admin"})
 print(join(sort(dval_keys(user)), ","), "\n")
-
-:example cpp render
-DValue user;
-user["name"] = "Ada";
-user["role"] = "admin";
-print(join(user.keys().sort(), ","), "\n");

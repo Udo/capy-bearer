@@ -21,6 +21,3 @@ The value does not change when `cwd_set()` changes the current directory.
 
 :example capy render
 if process_start_directory() != "" { print("have a start directory\n") } else { print("none\n") }
-
-:example cpp render
-print(process_start_directory() != "" ? "have a start directory" : "none", "\n");

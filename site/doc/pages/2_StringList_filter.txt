@@ -18,6 +18,3 @@ Capy has no separate `StringList` type. It uses list-shaped DValues. The functio
 var items := split("one,two", ",")
 var kept := filter(items, function(value : string) bool { return value == "two" })
 print(join(kept, ","), "\n")
-:example cpp render
-StringList items = split("one,two", ",");
-print(join(items.filter([](String value) { return value == "two"; }), ","), "\n");

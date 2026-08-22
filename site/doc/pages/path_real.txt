@@ -20,10 +20,6 @@ file_put_contents(path, "x")
 print(path_real(path), "\n")
 file_unlink(path)
 
-:example cpp render
-file_put_contents("/tmp/doc-real.txt", "x");
-print(path_real("/tmp/../tmp/./doc-real.txt"), "\n");
-
 :see
 >sys
 path_is_within

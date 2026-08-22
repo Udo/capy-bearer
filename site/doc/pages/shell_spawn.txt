@@ -31,9 +31,3 @@ var spec := dval({"cmd": "printf 'spawned in the background'", "timeout_ms": 100
 var job := shell_spawn(spec)
 var done := job_await(job, 3000)
 print(dval_get_by_path(done, "result/stdout"), "\n")
-
-:example cpp render
-DValue spec; spec["cmd"] = "printf 'spawned in the background'"; spec["timeout_ms"] = (f64)1000;
-u64 job = shell_spawn(spec);
-DValue done = job_await(job, 3000);
-print(done["result"]["stdout"].to_string(), "\n");

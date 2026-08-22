@@ -182,8 +182,6 @@ void render_request_failure(Request& request, String title, String details, Stri
 		error_info["details"] = details;
 		error_info["source"] = request.params["SCRIPT_FILENAME"];
 		error_info["request_uri"] = first(request.params["REQUEST_URI"], request.params["SCRIPT_FILENAME"]);
-		if(request.server && request.params["SCRIPT_FILENAME"] != "")
-			error_info["generated_cpp"] = compiler_generated_cpp_path(&request, request.params["SCRIPT_FILENAME"]);
 		if(request_fault_signal != 0)
 		{
 			error_info["signal"] = (f64)request_fault_signal;
@@ -206,14 +204,7 @@ void render_request_failure(Request& request, String title, String details, Stri
 	body += "Error: " + title + "\n";
 	if(details != "")
 		body += "Details: " + details + "\n";
-	if(request.server && request.params["SCRIPT_FILENAME"] != "")
-	{
-		String generated = compiler_generated_cpp_path(&request, request.params["SCRIPT_FILENAME"]);
-		body += "Generated C++: " + generated + "\n";
-		body += "Hint: if this came from template code, inspect the generated C++ and the nearest .uce literal/code delimiter before changing runtime code.\n";
-	}
-	else
-		body += "Hint: inspect the requested .uce file, its generated C++, and any component/unit called immediately before this failure.\n";
+	body += "Hint: inspect the requested Capy unit and the component or unit called immediately before this failure.\n";
 	if(request_fault_signal != 0)
 	{
 		String sig_label = signal_name((int)request_fault_signal);
@@ -445,8 +436,7 @@ int handle_cli_complete(FastCGIRequest& request)
 		{
 			print("pid=", std::to_string(getpid()), "\nclients=", std::to_string(server.client_sockets.size()), "\n");
 		}
-		else if((command.length() >= 4 && command.substr(command.length() - 4) == ".uce") ||
-			(command.length() >= 5 && command.substr(command.length() - 5) == ".capy"))
+		else if(command.length() >= 5 && command.substr(command.length() - 5) == ".capy")
 		{
 			if(!cli_path_is_safe(command))
 			{

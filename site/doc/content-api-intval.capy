@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "int-val" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "int_val"
+        page["kind"] = "api"
+        page["slug"] = "int-val"
+        page["route"] = "/doc/api/int-val/"
+        page["title"] = "int_val"
+        page["content"] = "`int_val()` extracts an unsigned integer from a string. It returns `0` when it cannot identify a usable number.\n\n`base` selects the number base and defaults to `10`. Use it for numeric input text. In Capy, the same call returns `u64`.\n"
+        page["returns"] = "parsed `u64`, or `0` when no usable number exists"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "int_val"
+        page["sig_lines"] = dval(["u64 int_val(String s, u32 base = 10)", ""])
+        page["capy_sig_lines"] = dval(["function int_val(raw : string) u64", "function int_val(raw : string, base : s32) u64"])
+        page["param_lines"] = dval(["s : string that can contain an integer", "base : number base, default `10`", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "float_val", "0_String", "html_escape", "trim", "trusted_markup", "to_upper"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

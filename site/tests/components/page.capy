@@ -1,0 +1,15 @@
+function COMPONENT(request : dval) {
+    var title := string(request.props.title, "Test")
+    var marker := string(request.props.marker, title)
+    response_header("Content-Type", "text/html; charset=utf-8")
+    print("<!doctype html>")
+    print(<>
+        <html>
+            <head><title><?= title ?></title></head>
+            <body>
+                <h1><?= title ?></h1>
+                <p><?= marker ?></p>
+            </body>
+        </html>
+    </>)
+}

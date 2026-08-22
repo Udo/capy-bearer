@@ -23,10 +23,3 @@ to_bool
 `to_u64()` is a C++ API. It accepts a leading `+`. Negative, overflowing, empty, or partial text returns `fallback`.
 
 Capy does not expose `to_u64`. Use `u64(value, fallback)`.
-
-:example cpp render to_u64() parses unsigned text
-print(to_u64("7"), "\n");
-
-:example cpp render to_u64() returns the fallback for invalid text
-print(to_u64("-1", 99), "\n");
-print(to_u64("12px", 99), "\n");

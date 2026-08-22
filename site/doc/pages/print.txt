@@ -17,9 +17,10 @@ str_starts_with
 
 Use `print(...array)` to spread a `[string]` array. When an output buffer is active, `print()` writes to that buffer. Otherwise, it writes to the response.
 
+A markup literal is a value. It does not write to the response by itself. Pass it to `print()` when a handler must send HTML.
 
 :example capy render
 print("hello docs\n")
 
-:example cpp render
-print("hello docs\n");
+:example capy render
+print(<><p>Hello docs</p></>)

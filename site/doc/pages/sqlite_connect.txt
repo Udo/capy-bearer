@@ -25,9 +25,3 @@ var db := sqlite_connect(":memory:")
 sqlite_query(db, "create table t(id integer primary key, name text)")
 if db != 0 { print("connected\n") } else { print("failed to connect\n") }
 sqlite_disconnect(db)
-
-:example cpp render
-SQLite* db = sqlite_connect("/tmp/doc-sqlite-connect.db");
-sqlite_query(db, "create table if not exists t(id integer primary key, name text)");
-print(db != 0 ? "connected" : "failed to connect", "\n");
-sqlite_disconnect(db);

@@ -23,7 +23,3 @@ ws_connections
 Use this value with `ws_send()`, `ws_connections()`, or `ws_connection_count()` when C++ code needs an explicit scope. Capy keeps `ws_send()` for effects.
 
 Capy does not expose `ws_scope`. In a Capy `WS` handler, read `request.websocket.scope`.
-
-:example cpp render
-String scope = ws_scope();
-print(scope == "" ? "(no WS scope in this context)" : scope, "\n");

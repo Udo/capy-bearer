@@ -15,12 +15,6 @@ print("buffered text")
 var captured := ob_get_close()
 print("captured: ", captured, "\n")
 
-:example cpp render
-ob_start();
-print("buffered text");
-String captured = ob_get_close();
-print("captured: ", captured, "\n");
-
 :see
 >ob
 ob_get_close

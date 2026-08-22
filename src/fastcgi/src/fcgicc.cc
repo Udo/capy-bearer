@@ -910,7 +910,7 @@ FastCGIServer::process_http_request(FastCGIRequest& request, String& data)
 		request.params["SCRIPT_FILENAME"] = real_candidate;
 	}
 
-	// Any .uce unit may expose WS(Request&). The runtime accepts WebSocket
+	// Any Capy unit may expose WS(Request&). The runtime accepts WebSocket
 	// upgrades based on HTTP headers and dispatches messages to that handler.
 	if(to_lower(request.params["HTTP_UPGRADE"]) == "websocket")
 	{

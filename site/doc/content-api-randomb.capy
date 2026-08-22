@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "random-bytes" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "random_bytes"
+        page["kind"] = "api"
+        page["slug"] = "random-bytes"
+        page["route"] = "/doc/api/random-bytes/"
+        page["title"] = "random_bytes"
+        page["content"] = "`random_bytes()` returns cryptographically secure bytes as a `string`. The API returns no more than 1 MiB. It can return fewer bytes, including an empty string, if the random source fails.\n\nUse these bytes for session IDs, tokens, and salts. The result can contain binary bytes. Use `base64_encode()` or `sha256_hex()` when you need printable text.\n"
+        page["returns"] = "cryptographically random bytes"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "random_bytes"
+        page["sig_lines"] = dval(["String random_bytes(u64 n)", ""])
+        page["capy_sig_lines"] = dval(["function random_bytes(count : u64) string"])
+        page["param_lines"] = dval(["n : the number of random bytes to request", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "base64_encode", "sha256_hex", "basename", "dirname", "expand_path", "file_append"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

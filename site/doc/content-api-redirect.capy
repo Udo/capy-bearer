@@ -1,0 +1,28 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "redirect" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "redirect"
+        page["kind"] = "api"
+        page["slug"] = "redirect"
+        page["route"] = "/doc/api/redirect/"
+        page["title"] = "redirect"
+        page["content"] = "`redirect()` sets the response `Location` header and status code.\n\nCall `redirect(url)` for status `302`. Use the two-argument form for another status.\n\nUse this API instead of setting the response header and status separately.\n"
+        page["example_error"] = "expected contiguous :example cpp cli"
+        page["label"] = "redirect"
+        page["sig_lines"] = dval(["void redirect(String url, s32 code = 302)", ""])
+        page["capy_sig_lines"] = dval(["function redirect(url : string, code : s32 = 302)"])
+        page["param_lines"] = dval(["url : the redirect target URL", "code : the optional HTTP redirect status. The default is `302`.", ""])
+        page["notes"] = dval(["The examples are compile-only because an executed redirect would replace the documentation response."])
+        page["warnings"] = dval([])
+        page["see"] = dval([">uri", "2_Request_set_status", "0_Request", "encode_query", "request_context_params", "request_base_url", "request_query_path"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

@@ -1,0 +1,120 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "session-destroy" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "session_destroy"
+        page["kind"] = "api"
+        page["slug"] = "session-destroy"
+        page["route"] = "/doc/api/session-destroy/"
+        page["title"] = "session_destroy"
+        page["content"] = "Use this function to end the named session.\n\nIt expires the cookie and removes the matching server-side session file. In Capy, `session_destroy` returns `{id, name, values}` for the resulting state. The fields are empty for the destroyed session. C++ keeps its documented `void` behavior.\n"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "session_destroy"
+        page["sig_lines"] = dval(["void session_destroy(String session_name = \"bearer-session\")", ""])
+        page["capy_sig_lines"] = dval(["function session_destroy(name : string = \"bearer-session\") dval"])
+        page["param_lines"] = dval(["session_name : session cookie name", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">session", "session_remove", "response_cookie", "session_set", "session_start", "session_id_create"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "session-id-create" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "session_id_create"
+        page["kind"] = "api"
+        page["slug"] = "session-id-create"
+        page["route"] = "/doc/api/session-id-create/"
+        page["title"] = "session_id_create"
+        page["content"] = "Use this function only when you need a new session ID without starting a session.\n\nIt returns a new 64-character lowercase hexadecimal ID. Use `session_start()` for the normal cookie and session-data flow.\n"
+        page["returns"] = "new 64-character lowercase hexadecimal session ID"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "session_id_create"
+        page["sig_lines"] = dval(["String session_id_create()", ""])
+        page["capy_sig_lines"] = dval(["function session_id_create() string"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">session", "session_start", "session_set", "session_remove", "session_destroy", "response_cookie"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "session-remove" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "session_remove"
+        page["kind"] = "api"
+        page["slug"] = "session-remove"
+        page["route"] = "/doc/api/session-remove/"
+        page["title"] = "session_remove"
+        page["content"] = "Use `session_remove` to delete one session key.\nCall `session_start()` first so the key exists in the current snapshot.\nThe function returns the updated session state.\nC++ can remove a key with `context.session.erase(key)`.\n"
+        page["returns"] = "session snapshot with `id`, `name`, and `values`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "session_remove"
+        page["sig_lines"] = dval(["dval session_remove(string key)", ""])
+        page["capy_sig_lines"] = dval(["function session_remove(key : string) dval"])
+        page["param_lines"] = dval(["key : session field name to delete", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">session", "session_start", "session_destroy", "session_set"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "session-set" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "session_set"
+        page["kind"] = "api"
+        page["slug"] = "session-set"
+        page["route"] = "/doc/api/session-set/"
+        page["title"] = "session_set"
+        page["content"] = "Use `session_set` to write one key to the active session.\nCall `session_start()` first so values persist and return in a valid session snapshot.\nThe function returns the updated session state.\nC++ can write `context.session[key] = value` for the same data change.\n"
+        page["returns"] = "session snapshot with `id`, `name`, and `values`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "session_set"
+        page["sig_lines"] = dval(["dval session_set(string key, string value)", ""])
+        page["capy_sig_lines"] = dval(["function session_set(key : string, value : string) dval"])
+        page["param_lines"] = dval(["key : session field name", "value : value to write", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">session", "session_start", "session_destroy", "session_remove"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "session-start" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "session_start"
+        page["kind"] = "api"
+        page["slug"] = "session-start"
+        page["route"] = "/doc/api/session-start/"
+        page["title"] = "session_start"
+        page["content"] = "Use this function to start the named session or restore its existing session data.\n\nIf a valid session cookie and server-side file exist, it restores that session. Otherwise, it creates a new ID and cookie. The cookie has `Path=/`, `HttpOnly`, and `SameSite=Lax`. It also has `Secure` when `SESSION_COOKIE_SECURE=1`.\n\nCapy `session_start`, `session_set`, `session_remove`, and `session_destroy` return `{id, name, values}`. Store the returned state when later code needs the changed session data. Bearer saves session changes after the request. C++ keeps the documented `String` and `void` behavior.\n"
+        page["returns"] = "current session ID"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "session_start"
+        page["sig_lines"] = dval(["String session_start(String session_name = \"bearer-session\")", ""])
+        page["capy_sig_lines"] = dval(["function session_start(name : string = \"bearer-session\") dval"])
+        page["param_lines"] = dval(["session_name : optional session cookie name. The default is `bearer-session`.", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">session", "session_id_create", "session_set", "session_remove", "session_destroy", "response_cookie"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

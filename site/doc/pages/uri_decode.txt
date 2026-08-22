@@ -25,6 +25,3 @@ C++ uses the signature above. Its `String` input and return value correspond to 
 
 :example capy render
 print(uri_decode("Ada%20Lovelace"), "\n")
-
-:example cpp render
-print(uri_decode("Ada%20Lovelace"), "\n");

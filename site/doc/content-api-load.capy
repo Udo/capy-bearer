@@ -1,0 +1,28 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "load" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "load"
+        page["kind"] = "api"
+        page["slug"] = "load"
+        page["route"] = "/doc/api/load/"
+        page["title"] = "load"
+        page["content"] = "Capy does not support the C++ `#load` directive.\n\nUse ordinary Capy declarations in one unit. Use `unit_load()` or runtime composition APIs when you must load another unit at runtime.\n\nThe C++ `#load` directive includes another Bearer source file. Bearer tracks direct and nested dependencies. A changed dependency causes recompilation before the next execution.\n"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "load"
+        page["sig_lines"] = dval(["#load \"myfile.capy\"", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval(["file name : Bearer source file to include", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">ob", "component_resolve", "ob_close", "component_exists", "ob_get", "component", "ob_get_close"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

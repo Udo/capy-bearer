@@ -26,12 +26,3 @@ A list stays a list and uses consecutive numeric keys. A map keeps its keys. A s
 var names := dval(["ada", "grace"])
 var upper := dval_map(names, function(item : dval, key : string) dval { return dval(upper(string(item))) })
 print(upper[0], ",", upper[1], "\n")
-
-:example cpp render
-DValue names;
-DValue first; first = "ada";
-DValue second; second = "grace";
-names.push(first);
-names.push(second);
-DValue upper = names.map([](const DValue& item, String key) { DValue out; out = to_upper(item.to_string()); return(out); });
-print(upper["0"].to_string(), ",", upper["1"].to_string(), "\n");

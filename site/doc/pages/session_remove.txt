@@ -22,11 +22,6 @@ if length(string(session.values.status, "")) == 0 {
     print("present\n")
 }
 
-:example cpp render
-session_start("capy-doc-session");
-context.session.erase("status");
-print(context.session.find("status") == context.session.end() ? "removed\n" : "present\n");
-
 :see
 >session
 session_start

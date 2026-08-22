@@ -28,6 +28,3 @@ C++ uses the same operation with `u32` arguments. Native runtime error paths als
 var captured := backtrace_capture()
 if captured == "" { print("(empty in the wasm sandbox; populated by the native crash handler)\n") }
 else { print(captured, "\n") }
-:example cpp render
-String trace = backtrace_capture();
-print(trace == "" ? "(empty in the wasm sandbox; populated by the native crash handler)" : trace, "\n");

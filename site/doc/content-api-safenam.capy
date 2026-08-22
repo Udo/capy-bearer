@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "safe-name" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "safe_name"
+        page["kind"] = "api"
+        page["slug"] = "safe-name"
+        page["route"] = "/doc/api/safe-name/"
+        page["title"] = "safe_name"
+        page["content"] = "Use this function to remove unsafe characters from a name.\n\nThe result keeps only letters, digits, and `_`. It removes whitespace, separators, punctuation, and other characters. The result can be empty. Use `runtime_safe_key()` when you need a stable non-empty runtime key.\n"
+        page["returns"] = "text that contains only letters, digits, and `_`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "safe_name"
+        page["sig_lines"] = dval(["String safe_name(String raw)", ""])
+        page["capy_sig_lines"] = dval(["function safe_name(raw : string) string"])
+        page["param_lines"] = dval(["raw : source text", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "ascii_safe_name", "runtime_safe_key", "trusted_markup", "var_dump", "html_escape", "json_decode"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

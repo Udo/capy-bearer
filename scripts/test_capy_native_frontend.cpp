@@ -179,10 +179,15 @@ int main(int argc, char** argv)
 			bearer::MarkupContext::html_attribute, bearer::MarkupContext::javascript_value, bearer::MarkupContext::javascript_value, bearer::MarkupContext::css_value}));
 	}
 	{
-		Program p = parse("EXPORTS first, second\nEXPORTS third\n", "exports.capy");
+		Program p = parse("#exports first, second\n#exports third\n", "exports.capy");
 		auto* first = static_cast<Exports*>(p.items[0]);
 		auto* second = static_cast<Exports*>(p.items[1]);
 		assert(first->names == std::vector<std::string>({"first", "second"}) && second->names == std::vector<std::string>({"third"}));
+	}
+	{
+		Program p = parse("#import \"child.capy\" as child\n", "import.capy");
+		auto* import = static_cast<Import*>(p.items[0]);
+		assert(import->path == "child.capy" && import->alias == "child");
 	}
 	{
 		Program p = parse("function value(x : s32) s32 { return x }\nfunction value(x : as string) string { return x }\n", "overload.capy");
@@ -263,9 +268,11 @@ int main(int argc, char** argv)
 	expect_error("function CLI(request : dval) { while true { -> break } }\n", "block yield requires a value expression");
 	expect_error("function CLI(request : dval) { break junk }\n", "break does not accept arguments or operators");
 	expect_error("function CLI(request : dval) { continue() }\n", "continue does not accept arguments or operators");
-	expect_error("EXPORTS\n", "EXPORTS requires at least one function name");
-	expect_error("EXPORTS first,\n", "expected exported function name after ','");
-	expect_error("function CLI(request : dval) { EXPORTS first }\n", "EXPORTS is a reserved top-level directive");
+	expect_error("#exports\n", "#exports requires at least one name");
+	expect_error("#exports first,\n", "expected exported name after ','");
+	expect_error("function CLI(request : dval) { #exports first }\n", "#exports is a top-level directive");
+	expect_error("#import child.capy as child\n", "#import requires a string path");
+	expect_error("function CLI(request : dval) { #import \"child.capy\" as child }\n", "#import is a top-level directive");
 	expect_error("function meta(x : any) { #compile { emit(x) } }\n", "#compile compile-time metaprogramming is deferred beyond Capy phase 3");
 	expect_error("#wat", "unknown compiler directive #wat");
 	expect_error("@", "unexpected character '@'");

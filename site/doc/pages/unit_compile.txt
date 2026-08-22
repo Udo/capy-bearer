@@ -18,12 +18,8 @@ Call `unit_compile()` for the current unit. Call `unit_compile(path)` for anothe
 
 The function returns `true` when compilation succeeds. It returns `false` when compilation fails. Use it when an operator must compile a unit explicitly.
 
-Relative paths use the unit path rules. Capy does not return a C++ unit object.
+Relative paths use the unit path rules. Capy does not return a Capy unit object.
 
-C++ uses the optional `path` value in the signature above. It has the same success result.
 
 :example capy render
-if unit_compile("examples/sample_unit.uce") { print("compiled the sample unit\n") } else { print("compile failed\n") }
-
-:example cpp render
-print(unit_compile("examples/sample_unit.uce") ? "compiled the sample unit" : "compile failed", "\n");
+if unit_compile("examples/sample_unit.capy") { print("compiled the sample unit\n") } else { print("compile failed\n") }

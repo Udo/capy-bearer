@@ -23,6 +23,3 @@ It replaces only characters for which C++ `isspace()` returns true. It does not 
 
 :example capy render
 print(memcache_escape_key("a key with spaces"), "\n")
-
-:example cpp render
-print(memcache_escape_key("a key with spaces"), "\n");

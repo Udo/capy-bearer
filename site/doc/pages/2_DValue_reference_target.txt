@@ -21,10 +21,3 @@ Capy does not support `reference_target`. DValues share identity inside one work
 :capy-status unsupported
 
 Capy exposes no host DValue pointer or internal reference-node identity, so it cannot observe a C++ reference target.
-
-:example cpp render
-DValue target;
-target.set("data");
-DValue ref;
-ref.set_reference(&target);
-print(ref.reference_target() == &target ? "points to target" : "elsewhere", "\n");

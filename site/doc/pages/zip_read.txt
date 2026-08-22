@@ -28,9 +28,3 @@ var archive := "/tmp/capy-doc-zipread.zip"
 zip_create(archive, dval({"greeting.txt": "hello world"}))
 print(zip_read(archive, "greeting.txt"), "\n")
 file_unlink(archive)
-
-:example cpp render
-DValue entries;
-entries["greeting.txt"] = "hello world";
-zip_create("/tmp/doc-zipread.zip", entries);
-print(zip_read("/tmp/doc-zipread.zip", "greeting.txt"), "\n");

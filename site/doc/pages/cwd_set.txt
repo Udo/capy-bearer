@@ -17,15 +17,10 @@ shell_spawn
 
 Pass the destination path. Save the current path with `cwd_get()` and restore it after temporary use. This change affects the worker process.
 
-The C++ `.uce` call has the same arguments.
+The Capy call has the same arguments.
 
 :example capy render
 var old := cwd_get()
 cwd_set("/tmp")
 print("cwd is now ", cwd_get(), "\n")
 cwd_set(old)
-:example cpp render
-String old = cwd_get();
-cwd_set("/tmp");
-print("cwd is now ", cwd_get(), "\n");
-cwd_set(old);

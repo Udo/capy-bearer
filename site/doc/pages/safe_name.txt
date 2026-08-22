@@ -15,9 +15,6 @@ The result keeps only letters, digits, and `_`. It removes whitespace, separator
 :example capy render
 print(safe_name("My Report: 2024/Q1!"), "\n")
 
-:example cpp render
-print(safe_name("My Report: 2024/Q1!"), "\n");
-
 :see
 >string
 ascii_safe_name

@@ -1,0 +1,75 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "dvalue-get-by-path" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_get_by_path"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-get-by-path"
+        page["route"] = "/doc/api/dvalue-get-by-path/"
+        page["title"] = "DValue::get_by_path"
+        page["content"] = "Use `dval_get_by_path(value, path)` in Capy to get a copied nested child. Pass a slash-separated path. The function does not create nodes.\n\nIt returns an empty string value when a segment is missing or an intermediate value is not map-shaped. It does not return `none` for a failed path. Empty path segments have no effect.\n\nC++ `get_by_path(path, delim)` also accepts a custom separator. Its default separator is `/`.\n"
+        page["returns"] = "resolved child as a `dval`, or an empty string value when traversal fails"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::get_by_path"
+        page["sig_lines"] = dval(["DValue DValue::get_by_path(String path, String delim = \"/\") const", ""])
+        page["capy_sig_lines"] = dval(["function dval_get_by_path(value : dval, path : string) dval"])
+        page["param_lines"] = dval(["path : delimited child path to traverse", "delim : path separator string", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "0_DValue", "2_DValue_key", "2_DValue_to_string", "2_DValue_require"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "dvalue-get-or-create" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_get_or_create"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-get-or-create"
+        page["route"] = "/doc/api/dvalue-get-or-create/"
+        page["title"] = "DValue::get_or_create"
+        page["content"] = "Use `dval_get_or_create(value, key)` in Capy to create an empty child when needed. It mutates `value` and returns that same target identity, not a child alias. All workspace aliases observe the mutation. Assigning the result back remains valid. A nonnumeric key changes a list into a map.\n\nC++ `get_or_create(key)` returns a pointer to the child. It creates the child when needed.\n\n"
+        page["returns"] = "pointer to the child node"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::get_or_create"
+        page["sig_lines"] = dval(["DValue* DValue::get_or_create(String s)", ""])
+        page["capy_sig_lines"] = dval(["function dval_get_or_create(value : dval, key : string) dval"])
+        page["param_lines"] = dval(["s : child key to create or return", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "2_DValue_key", "2_DValue_has"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "dvalue-get-type-name" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_get_type_name"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-get-type-name"
+        page["route"] = "/doc/api/dvalue-get-type-name/"
+        page["title"] = "DValue::get_type_name"
+        page["content"] = "Use `dval_get_type_name(value)` in Capy to get a DValue type name. It takes one value and returns a string. Normal results are `String`, `f64`, `bool`, `array`, `none`, `pointer`, `reference`, or `unknown`.\n\nC++ `get_type_name()` gets the name after it dereferences the value.\n\n"
+        page["returns"] = "one of String, f64, bool, array, none, pointer, reference, or unknown"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::get_type_name"
+        page["sig_lines"] = dval(["String DValue::get_type_name() const", ""])
+        page["capy_sig_lines"] = dval(["function dval_get_type_name(value : dval) string"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

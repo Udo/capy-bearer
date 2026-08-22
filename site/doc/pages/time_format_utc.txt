@@ -28,10 +28,7 @@ Supported format sequences:
 Padding and case flags may follow `%`:
 
 
-Capy uses `string` and `u64` values. C++ `.uce` uses `String` and `u64`, as the signature shows.
+Capy uses `string` and `u64` values. Capy uses `String` and `u64`, as the signature shows.
 
 :example capy render
 print(time_format_utc("%Y-%m-%d", 0), "\n")
-
-:example cpp render
-print(time_format_utc("%Y-%m-%d", 0), "\n");

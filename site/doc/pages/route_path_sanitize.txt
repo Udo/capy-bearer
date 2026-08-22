@@ -18,6 +18,3 @@ It removes outer whitespace and leading and trailing `/`. Empty input becomes `d
 
 :example capy render
 print(route_path_sanitize("../secret", "index"), "\n")
-
-:example cpp render
-print(route_path_sanitize("../secret", "index"), "\n");

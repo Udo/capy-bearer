@@ -10,16 +10,16 @@ This is in the early stages of development. Don't use this for anything importan
 
 ## Overview
 
-Bearer is a PHP-inspired server-side runtime that lets you build web pages and handlers in C++ using a small `.uce` preprocessor plus a FastCGI application server.
+Bearer is a PHP-inspired server-side runtime that lets you build web pages and handlers in C++ using a small `.capy` preprocessor plus a FastCGI application server.
 
-- `.uce` pages compile to WebAssembly side modules on demand
+- `.capy` pages compile to WebAssembly side modules on demand
 - normal HTTP pages expose `RENDER(Request& context)`
 - WebSocket pages can additionally expose `WS(Request& context)`
 - local CLI/admin/test entrypoints can expose `CLI(Request& context)` and are invoked through the Unix CLI socket
 - sub-rendering and components pass structured data through `context.props`
-- nginx can forward normal `.uce` requests to the FastCGI socket, while WebSocket upgrade requests for `.uce` endpoints go to the built-in HTTP/WebSocket listener
+- nginx can forward normal `.capy` requests to the FastCGI socket, while WebSocket upgrade requests for `.capy` endpoints go to the built-in HTTP/WebSocket listener
 - the example application tree lives under `site/`; deployments should publish app files to a normal web root such as `/var/www/html`
-- you can include C++ code as much as you want, but only .uce files called via API functions and entry points will be pre-processed
+- you can include C++ code as much as you want, but only .capy files called via API functions and entry points will be pre-processed
 - the preprocessor has two jobs:
        - allow for inline HTML within C++ and the use of templating tags inside of that HTML
        - convenience directive and macro parsing so BEARER files don't need a lot of boiler plate
@@ -35,7 +35,7 @@ RENDER(Request& context)
 
 *The runtime is still experimental. This is not production-ready. Use at your own risk!*
 
-Capy is the new direct-to-WebAssembly language under development for Bearer. Its expression-based declaration grammar, compile-time polymorphism, direct side-module ABI, and ARC direction are documented in [`docs/capy-language.md`](docs/capy-language.md). A browsable reference implemented entirely as Capy units lives at [`site/examples/capy-reference/`](site/examples/capy-reference/) and is served from `/examples/capy-reference/`. C++ `.uce` units remain supported alongside `.capy` units.
+Capy is the new direct-to-WebAssembly language under development for Bearer. Its expression-based declaration grammar, compile-time polymorphism, direct side-module ABI, and ARC direction are documented in [`docs/capy-language.md`](docs/capy-language.md). A browsable reference implemented entirely as Capy units lives at [`site/examples/capy-reference/`](site/examples/capy-reference/) and is served from `/examples/capy-reference/`. Capy units remain supported alongside `.capy` units.
 
 ## Build
 
@@ -109,7 +109,7 @@ COMPONENT:BODY(Request& context)
 
 Those are intended for sub-rendering through helpers such as `component("components/card:BODY", props, context)` rather than direct page entry.
 
-Additional lifecycle hooks are also available on ordinary `.uce` units:
+Additional lifecycle hooks are also available on ordinary `.capy` units:
 
 - `INIT(Request& context)` runs once when a worker instantiates that unit's wasm module
 - `ONCE(Request& context)` runs once per request before the first `RENDER()`, `CLI()`, or `COMPONENT...` entrypoint from that file
@@ -117,12 +117,12 @@ Additional lifecycle hooks are also available on ordinary `.uce` units:
 CLI units can be invoked locally with the convenience wrapper or directly over HTTP-over-Unix:
 
 ```bash
-scripts/bearer-cli /tests/cli.uce action=echo message=hello
-scripts/bearer-cli --json '{"action":"echo","message":"hello"}' /tests/cli.uce
-curl --unix-socket /run/bearer/cli.sock http://localhost/tests/cli.uce
+scripts/bearer-cli /tests/cli.capy action=echo message=hello
+scripts/bearer-cli --json '{"action":"echo","message":"hello"}' /tests/cli.capy
+curl --unix-socket /run/bearer/cli.sock http://localhost/tests/cli.capy
 ```
 
-For C++ `.uce` structured CLI commands, prefer JSON POST bodies and read them with `cli_input(context)`.
+For Capy structured CLI commands, prefer JSON POST bodies and read them with `cli_input(context)`.
 
 Capy declares `function CLI(request : dval)`. Read CLI input from `request.query`, `request.form`, and `request.body`.
 
@@ -150,11 +150,11 @@ Use `<?: ... ?>` only for reviewed markup in HTML text. In Capy, a raw value mus
 
 The parser treats C++ `//` and `/* ... */` comments as comments in both normal code and `<? ... ?>` islands, so quotes or delimiter markers inside comments do not confuse template parsing.
 
-The shared markup-context scanner is `src/lib/markup-context.h`. Capy lexing and C++ preprocessing use this scanner. `compiler.cpp` owns unit compilation and cache orchestration. `compiler-parser.cpp` owns C++ source rewriting.
+The shared markup-context scanner is `src/lib/markup-context.h`. Capy lexing uses this scanner. `compiler.cpp` owns unit compilation and cache orchestration.
 
 ## Components
 
-BEARER includes a native component layer built on top of ordinary `.uce` files:
+BEARER includes a native component layer built on top of ordinary `.capy` files:
 
 - `component(name[, props[, context]])`
 - `component_render(name[, props[, context]])`
@@ -166,7 +166,7 @@ Component props are passed through `context.props`.
 Component names resolve:
 
 1. as the exact file name you supplied
-2. as that same name plus `.uce`
+2. as that same name plus `.capy`
 3. as those same two forms under `components/`
 
 When you want returned component markup inside a literal block, prefer:
@@ -200,9 +200,9 @@ The runtime keeps the socket lifecycle in-process and exposes this C++ API to pa
 - `ws_send_to(connection_id, message[, binary])`
 - `ws_close([connection_id])`
 
-By default, the WebSocket scope is the current page file, so `ws_send()` queues a message for clients connected to that same `.uce` endpoint.
+By default, the WebSocket scope is the current page file, so `ws_send()` queues a message for clients connected to that same `.capy` endpoint.
 
-In C++ `.uce`, each live WebSocket connection owns a broker-side `DValue` at `context.connection`. Changes to that tree persist for the socket lifetime. Later `WS(Request& context)` calls for that client can read them.
+In Capy, each live WebSocket connection owns a broker-side `DValue` at `context.connection`. Changes to that tree persist for the socket lifetime. Later `WS(Request& context)` calls for that client can read them.
 
 The current inbound payload is available directly as `context.in`. The runtime mirrors message metadata into `context.params` using keys such as `WS_CONNECTION_ID`, `WS_SCOPE`, `WS_CONNECTION_COUNT`, `WS_OPCODE`, `WS_MESSAGE_TYPE`, and `WS_DOCUMENT_URI`.
 
@@ -210,7 +210,7 @@ A Capy `WS` handler receives one copied `request : dval`. It reads the payload f
 
 Capy uses the copied handler snapshot. Read the payload from `request.body`. Read `connection_id`, `scope`, `opcode`, and `binary` from `request.websocket`. Use `ws_send`, `ws_send_to`, and `ws_close` for connection effects.
 
-In C++ `.uce`, `ws_message()` can read the payload through a helper API. Use `ws_opcode()` or `ws_is_binary()` to inspect the current inbound message type.
+In Capy, `ws_message()` can read the payload through a helper API. Use `ws_opcode()` or `ws_is_binary()` to inspect the current inbound message type.
 
 Set `binary = true` on `ws_send()` or `ws_send_to()` to queue a binary frame instead of a text frame.
 
@@ -220,7 +220,7 @@ The runtime accepts fragmented messages, validates reserved bits and UTF-8 for t
 
 Unhandled exceptions and recovered fatal request signals return a `500 Internal Server Error` response with a plain-text trace instead of simply dropping the upstream connection and leaving nginx to show a generic `502`.
 
-The demo page `site/test/error-reporting.uce` can be used to exercise:
+The demo page `site/test/error-reporting.capy` can be used to exercise:
 
 - uncaught exception handling
 - recovered `SIGABRT`
@@ -230,46 +230,46 @@ The current error page includes:
 
 - request URI
 - resolved script path
-- generated C++ path when available
+- generated Capy artifact path when available
 - high-level error summary
 - source/generated excerpts and raw compiler output paths for template/component/unit failure modes
 - signal number and name when applicable
 - a native backtrace
 
-Compile failures are also formatted with the source path, generated C++ path, compile-output artifact path, a nearby source/generated excerpt when a line can be identified, and the raw compiler output.
+Compile failures are also formatted with the source path, generated Capy artifact path, compile-output artifact path, a nearby source/generated excerpt when a line can be identified, and the raw compiler output.
 
 This recovery path currently covers normal request handling. It is not yet the universal recovery path for every runtime subsystem.
 
 ## Docs And Tests
 
-The most current user-facing reference lives under `site/doc/`, and the demo pages live under `site/test/`. Developers coming from React, Next, or Remix should start with `site/doc/pages/coming_from_react.txt` / `/doc/index.uce?p=coming_from_react` for the concept map and starter-router notes.
+The most current user-facing reference lives under `site/doc/`, and the demo pages live under `site/test/`. Developers coming from React, Next, or Remix should start with `site/doc/pages/coming_from_react.txt` / `/doc/index.capy?p=coming_from_react` for the concept map and starter-router notes.
 
 Useful entry points:
 
 - repo files:
-  - `site/doc/index.uce`
-  - `site/doc/singlepage.uce`
-  - `site/test/index.uce`
+  - `site/doc/index.capy`
+  - `site/doc/singlepage.capy`
+  - `site/test/index.capy`
 - published URLs:
-  - `/doc/index.uce`
-  - `/doc/singlepage.uce`
-  - `/test/index.uce`
+  - `/doc/index.capy`
+  - `/doc/singlepage.capy`
+  - `/test/index.capy`
 
 Representative test pages:
 
-- `site/test/components.uce`
-- `site/test/websockets.ws.uce`
-- `site/test/error-reporting.uce`
-- `site/test/post-multipart.uce`
-- `site/test/session.uce`
+- `site/test/components.capy`
+- `site/test/websockets.ws.capy`
+- `site/test/error-reporting.capy`
+- `site/test/post-multipart.capy`
+- `site/test/session.capy`
 
 ## Deploy Behind Nginx
 
 The intended production shape is:
 
 - nginx serves static files directly
-- nginx forwards ordinary `.uce` page loads to the BEARER FastCGI Unix socket
-- nginx proxies WebSocket upgrade requests for `.uce` endpoints to the runtime's built-in HTTP/WebSocket listener
+- nginx forwards ordinary `.capy` page loads to the BEARER FastCGI Unix socket
+- nginx proxies WebSocket upgrade requests for `.capy` endpoints to the runtime's built-in HTTP/WebSocket listener
 - systemd keeps the runtime built, started, and restarted on failure
 
 The repository ships the pieces used for this:
@@ -350,7 +350,7 @@ For nginx deployments, the most important setting is:
 
 - `FCGI_SOCKET_PATH=/run/bearer/fastcgi.sock`
 
-That is the Unix socket nginx should use for normal `.uce` requests. `CLI_SOCKET_PATH` is for local admin/test execution through `scripts/bearer-cli`; keep `CLI_SOCKET_MODE=0600` unless a trusted Unix group explicitly needs access.
+That is the Unix socket nginx should use for normal `.capy` requests. `CLI_SOCKET_PATH` is for local admin/test execution through `scripts/bearer-cli`; keep `CLI_SOCKET_MODE=0600` unless a trusted Unix group explicitly needs access.
 
 `FCGI_PORT` is optional. Leave it empty when nginx uses the Unix socket. To enable TCP FastCGI, set both `FCGI_PORT` and `FCGI_BIND_ADDRESS` explicitly.
 
@@ -365,11 +365,11 @@ HTTP_BIND_ADDRESS=
 
 Proactive compilation settings:
 
-- `SITE_DIRECTORY=/var/www/html` tells the runtime which public web tree to scan on startup for `.uce` files when `PRECOMPILE_FILES_IN` is left empty.
+- `SITE_DIRECTORY=/var/www/html` tells the runtime which public web tree to scan on startup for `.capy` files when `PRECOMPILE_FILES_IN` is left empty.
 - `PRECOMPILE_FILES_IN=` can override that startup scan root with a different absolute or runtime-relative directory.
-- `PROACTIVE_COMPILE_CHECK_INTERVAL=60` controls how often the low-priority background compiler rechecks known `.uce` files for stale or missing wasm modules.
+- `PROACTIVE_COMPILE_CHECK_INTERVAL=60` controls how often the low-priority background compiler rechecks known `.capy` files for stale or missing wasm modules.
 
-The runtime keeps a shared known-file registry under `BIN_DIRECTORY` and updates it as request handling discovers new `.uce` files, so proactive recompiles are not limited to the initial startup scan.
+The runtime keeps a shared known-file registry under `BIN_DIRECTORY` and updates it as request handling discovers new `.capy` files, so proactive recompiles are not limited to the initial startup scan.
 
 Recommended deployment notes:
 
@@ -433,14 +433,14 @@ That script:
 - writes Debian maintainer scripts for systemd reload/enable handling
 - follows a more PHP-like/FHS deployment shape with immutable runtime files under `/usr/lib`, config under `/etc`, cache/state under `/var`, and the FastCGI socket under `/run/bearer/`
 
-### 5. Configure nginx for `.uce` and WebSocket upgrades
+### 5. Configure nginx for `.capy` and WebSocket upgrades
 
-Any `.uce` unit can expose `WS(Request& context)`. WebSocket upgrade requests for `.uce` paths should be routed to the runtime's HTTP/WebSocket listener.
+Any `.capy` unit can expose `WS(Request& context)`. WebSocket upgrade requests for `.capy` paths should be routed to the runtime's HTTP/WebSocket listener.
 
-You need two transport paths for `.uce` endpoints:
+You need two transport paths for `.capy` endpoints:
 
-- FastCGI for ordinary `.uce` page renders
-- HTTP proxying only for WebSocket upgrade traffic on `.uce` endpoints
+- FastCGI for ordinary `.capy` page renders
+- HTTP proxying only for WebSocket upgrade traffic on `.capy` endpoints
 
 If you use WebSockets, add this `map` in the nginx `http` block:
 
@@ -459,7 +459,7 @@ server {
 	server_name example.com;
 	root /var/www/html;
 
-	index index.uce index.capy index.html;
+	index index.capy index.html;
 
 	location / {
 		try_files $uri $uri/ =404;
@@ -496,13 +496,13 @@ Important details:
 
 - `fastcgi_pass` should point at the same socket path as `FCGI_SOCKET_PATH`
 - `proxy_pass` should point at the same Unix socket as `HTTP_SOCKET_PATH`
-- ordinary `GET /page.uce` page renders should stay on FastCGI
-- only upgrade requests for `/page.uce` should go through the HTTP/WebSocket listener
-- `SCRIPT_FILENAME` should resolve to the requested `.uce` file on disk
+- ordinary `GET /page.capy` page renders should stay on FastCGI
+- only upgrade requests for `/page.capy` should go through the HTTP/WebSocket listener
+- `SCRIPT_FILENAME` should resolve to the requested `.capy` file on disk
 - `proxy_http_version 1.1` and the `Upgrade` / `Connection` headers are required for WebSockets
-- socket-capable pages are ordinary `.uce` units; route client WebSocket upgrade requests to the HTTP/WebSocket listener
+- socket-capable pages are ordinary `.capy` units; route client WebSocket upgrade requests to the HTTP/WebSocket listener
 
-The `location /` block only serves files from `/var/www/html`. If your app uses a front-controller pattern such as routing everything through `/index.uce`, change that block accordingly.
+The `location /` block only serves files from `/var/www/html`. If your app uses a front-controller pattern such as routing everything through `/index.capy`, change that block accordingly.
 
 ### 6. Think about document root and private files
 
@@ -531,11 +531,11 @@ Then verify:
 
 ```bash
 systemctl status bearer.service
-curl -i http://127.0.0.1/test/index.uce
-curl -i http://127.0.0.1/doc/index.uce
+curl -i http://127.0.0.1/test/index.capy
+curl -i http://127.0.0.1/doc/index.capy
 ```
 
-If WebSockets are enabled, also verify a `.uce` endpoint that defines `WS(Request& context)` through nginx rather than talking to the runtime directly.
+If WebSockets are enabled, also verify a `.capy` endpoint that defines `WS(Request& context)` through nginx rather than talking to the runtime directly.
 
 ### 8. Troubleshooting
 

@@ -20,6 +20,3 @@ request_query_route
 `request_base_url()` is a C++ API. It returns the canonical directory URL for the current script. Use it to make links to sibling assets or query-routed pages.
 
 Capy does not expose `request_base_url`. In a Capy `RENDER` handler, read `request.url.base`.
-
-:example cpp render
-print(request_base_url(context) != "" ? "base url\n" : "empty\n");

@@ -16,12 +16,9 @@ RENDER(Request& context)
 
 Every Capy Bearer handler has exactly one parameter. The parameter name is `request`. Its type is `dval`. The value is a copied request snapshot. The handler writes the HTTP response.
 
-Read input from the request fields. Use response, session, output, and WebSocket functions for effects. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.
+Read input from the request fields. Use response, session, output, and WebSocket functions for effects. Use `print` for markup values that the handler must send. A bare markup expression does not write output. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.
 
 C++ declares `RENDER(Request& context)`. It receives live parameters, cookies, POST data, session state, headers, uploaded files, and component props. `unit_render(file_name, context)` passes that live context to the callee.
 
 :example capy render
 print(string(request.method, ""), "\n")
-
-:example cpp render
-print(context.params["REQUEST_METHOD"], "\n");

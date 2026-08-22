@@ -17,13 +17,11 @@ load
 
 Pass a component name and optional `dval` props. The component reads copied props from `request.props`. Use `component()` when you need captured output, such as markup inside a larger value.
 
-Bearer first tries the exact name. Without a suffix, it also tries the `.uce` form. It checks both forms below `components/`. An explicit `.capy` name selects a Capy source file. A colon selects a named component handler. A name that starts with a colon selects a handler in the current file.
+Bearer first tries the exact name. Without a suffix, it also tries the `.capy` form. It checks both forms below `components/`. An explicit `.capy` name selects a Capy source file. A colon selects a named component handler. A name that starts with a colon selects a handler in the current file.
 
 A missing component or handler causes a server error with status 500. Call `component_exists()` first when the component is optional.
 
-`component_render()` writes output directly. In C++ `.uce`, pass `context` as the optional final argument when needed.
+`component_render()` writes output directly. In Capy, pass `context` as the optional final argument when needed.
 
 :example capy render
 print(component("examples/sample_unit"), "\n")
-:example cpp render
-print(component("examples/sample_unit"), "\n");

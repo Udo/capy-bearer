@@ -22,6 +22,3 @@ regex_search_all
 `to_lower()` is a C++ API. It normalizes ASCII text. It does not convert Unicode case.
 
 Capy does not expose `to_lower`. Use `lower(value)`.
-
-:example cpp render
-print(to_lower("BEARER"), "\n");

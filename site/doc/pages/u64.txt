@@ -23,21 +23,8 @@ Use `u64` to convert input to a 64-bit unsigned integer.
 print(u64("12"), "\n")
 print(u64(dval(12.9), 0), "\n")
 
-:example cpp render u64() parses unsigned text and numbers
-DValue text;
-text = "12";
-DValue number;
-number = 12.9;
-print(text.to_u64(), "\n");
-print(number.to_u64(0), "\n");
-
 :example capy render u64() returns the fallback for empty text
 print(u64("", 99), "\n")
-
-:example cpp render u64() returns the fallback for empty text
-DValue value;
-value = "";
-print(value.to_u64(99), "\n");
 
 :see
 >types

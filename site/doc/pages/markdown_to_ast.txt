@@ -39,7 +39,3 @@ Options:
 :example capy render
 var ast := markdown_to_ast("# Title")
 if dval_is_array(ast) { print("ast\n") } else { print("empty\n") }
-
-:example cpp render
-DValue ast = markdown_to_ast("# Title");
-print(ast.is_array() ? "ast\n" : "empty\n");

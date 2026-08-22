@@ -18,7 +18,7 @@ Use `task_cancel` to request cancellation of a Capy task. Pass the task ID. The 
 
 A queued task becomes `canceled`. A running task can finish before cancellation takes effect. In that case, its completed status remains valid. Check the returned status because cancellation can race with task completion.
 
-Capy task IDs are `string` values, and task status is a `dval` value. C++ `.uce` uses `String` and `DValue`, as the signature shows.
+Capy task IDs are `string` values, and task status is a `dval` value. Capy uses `String` and `DValue`, as the signature shows.
 
 :example capy render
 var id := task("/doc/examples/task_worker.capy:STORE", {"message": "cancel"})
@@ -26,9 +26,3 @@ var status := task_cancel(id)
 var result := "missing"
 if string(status["id"]) == id { result = "requested" }
 print(result, "\n")
-
-:example cpp render
-DValue props; props["message"] = "cancel";
-String id = task("/doc/examples/task_worker.capy:STORE", props);
-DValue status = task_cancel(id);
-print(status["id"].to_string() == id ? "requested\n" : "missing\n");

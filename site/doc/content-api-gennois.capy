@@ -1,0 +1,75 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "gen-noise01" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "gen_noise01"
+        page["kind"] = "api"
+        page["slug"] = "gen-noise01"
+        page["route"] = "/doc/api/gen-noise01/"
+        page["title"] = "gen_noise01"
+        page["content"] = "`gen_noise01()` returns a deterministic `f64` noise value from `0` to `1`. `index` and `seed` select the value.\n\nUse it for repeatable normalized noise. The Capy call uses the declaration above.\n\n"
+        page["returns"] = "deterministic `f64` noise value from `0` to `1`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "gen_noise01"
+        page["sig_lines"] = dval(["f64 gen_noise01(u64 index, u64 seed = 0)", ""])
+        page["capy_sig_lines"] = dval(["function gen_noise01(index : u64, seed : u64 = 0) f64"])
+        page["param_lines"] = dval(["index : deterministic input position", "seed : deterministic input seed, default `0`", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">noise", "draw_int", "gen_noise32", "draw_float", "gen_noise64", "gen_float", "gen_int"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "gen-noise32" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "gen_noise32"
+        page["kind"] = "api"
+        page["slug"] = "gen-noise32"
+        page["route"] = "/doc/api/gen-noise32/"
+        page["title"] = "gen_noise32"
+        page["content"] = "`gen_noise32()` returns a deterministic unsigned noise value for `index` and `seed`. Capy represents the result as `u64`.\n\nUse it for repeatable integer noise. Capy returns the `u32` value shown above.\n\n"
+        page["returns"] = "deterministic noise value"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "gen_noise32"
+        page["sig_lines"] = dval(["u32 gen_noise32(u32 index, u32 seed = 0)", ""])
+        page["capy_sig_lines"] = dval(["function gen_noise32(index : u64, seed : u64 = 0) u64"])
+        page["param_lines"] = dval(["index : deterministic input position", "seed : deterministic input seed, default `0`", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">noise", "gen_noise01", "gen_noise64", "draw_int", "gen_float", "draw_float", "gen_int"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "gen-noise64" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "gen_noise64"
+        page["kind"] = "api"
+        page["slug"] = "gen-noise64"
+        page["route"] = "/doc/api/gen-noise64/"
+        page["title"] = "gen_noise64"
+        page["content"] = "`gen_noise64()` returns a deterministic `u64` noise value for `index` and `seed`.\n\nUse it for repeatable 64-bit integer noise. The Capy call uses the declaration above.\n\n"
+        page["returns"] = "deterministic `u64` noise value"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "gen_noise64"
+        page["sig_lines"] = dval(["u64 gen_noise64(u64 index, u64 seed = 0)", ""])
+        page["capy_sig_lines"] = dval(["function gen_noise64(index : u64, seed : u64 = 0) u64"])
+        page["param_lines"] = dval(["index : deterministic input position", "seed : deterministic input seed, default `0`", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">noise", "gen_noise32", "gen_float", "gen_noise01", "gen_int", "draw_int", "gen_sha1"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

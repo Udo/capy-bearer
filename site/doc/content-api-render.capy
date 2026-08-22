@@ -1,0 +1,28 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "render" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "1_RENDER"
+        page["kind"] = "api"
+        page["slug"] = "render"
+        page["route"] = "/doc/api/render/"
+        page["title"] = "RENDER"
+        page["content"] = "`function RENDER(request : dval)` defines the Capy HTTP page entrypoint.\n\nEvery Capy Bearer handler has exactly one parameter. The parameter name is `request`. Its type is `dval`. The value is a copied request snapshot. The handler writes the HTTP response.\n\nRead input from the request fields. Use response, session, output, and WebSocket functions for effects. Use `print` for markup values that the handler must send. A bare markup expression does not write output. The compiler rejects zero parameters, other parameter types, extra parameters, return types, and handler overloads.\n\nC++ declares `RENDER(Request& context)`. It receives live parameters, cookies, POST data, session state, headers, uploaded files, and component props. `unit_render(file_name, context)` passes that live context to the callee.\n"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "RENDER"
+        page["sig_lines"] = dval(["RENDER(Request& context)", ""])
+        page["capy_sig_lines"] = dval(["function RENDER(request : dval)", "function RENDER:NAME(request : dval)"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">0_Request", ">1_RENDER", ">1_COMPONENT", ">1_CLI", ">1_WS"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

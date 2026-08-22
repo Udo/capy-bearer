@@ -23,13 +23,6 @@ file_put_contents(path_join(root, "two.txt"), "2")
 print(join(sort(ls(root)), ","), "\n")
 dir_remove(root, true)
 
-:example cpp render
-mkdir("/tmp/doc-ls");
-file_put_contents("/tmp/doc-ls/one.txt", "1");
-file_put_contents("/tmp/doc-ls/two.txt", "2");
-print(join(ls("/tmp/doc-ls").sort(), ","), "\n");
-dir_remove("/tmp/doc-ls", true);
-
 :see
 >sys
 dir_list

@@ -1791,7 +1791,6 @@ StringMap make_server_settings()
 	StringMap cfg;
 
 	cfg["BIN_DIRECTORY"] = "/tmp/bearer/work";
-	cfg["WASM_COMPILE_SCRIPT"] = "scripts/compile_wasm_unit";
 	cfg["WASM_BACKEND_VERBOSE"] = "0";
 	cfg["WASM_PROFILE_HOSTCALL_CPU"] = "0";
 	cfg["WASM_PROFILE_THREAD_RUNTIME"] = "0";
@@ -1799,7 +1798,6 @@ StringMap make_server_settings()
 	cfg["WASM_MEMORY_LIMIT_BYTES"] = std::to_string(512ull * 1024 * 1024);
 	cfg["WASM_EPOCH_DEADLINE_TICKS"] = "200";
 	cfg["WASM_EPOCH_PERIOD_MS"] = "50";
-	cfg["SETUP_TEMPLATE"] = "scripts/setup.h.template";
 	cfg["LIT_ESC"] = "3d5b5_1";
 	cfg["CONTENT_TYPE"] = "text/html; charset=utf-8";
 	cfg["FCGI_SOCKET_PATH"] = "/run/bearer/fastcgi.sock";

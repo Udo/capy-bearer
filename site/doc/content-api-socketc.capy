@@ -1,0 +1,51 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "socket-close" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "socket_close"
+        page["kind"] = "api"
+        page["slug"] = "socket-close"
+        page["route"] = "/doc/api/socket-close/"
+        page["title"] = "socket_close"
+        page["content"] = "Capy `socket_close(sockfd)` closes a socket handle from `socket_connect()`. It does not return a value.\n\nCall it after you finish reading or writing the socket. Do not use the handle after you close it.\n"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "socket_close"
+        page["sig_lines"] = dval(["void socket_close(u64 sockfd)", ""])
+        page["capy_sig_lines"] = dval(["function socket_close(handle : u64)"])
+        page["param_lines"] = dval(["sockfd : socket handle from `socket_connect()`", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">socket", "http_request_async", "socket_connect", "http_request", "socket_read", "socket_write"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "socket-connect" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "socket_connect"
+        page["kind"] = "api"
+        page["slug"] = "socket-connect"
+        page["route"] = "/doc/api/socket-connect/"
+        page["title"] = "socket_connect"
+        page["content"] = "Capy `socket_connect(host, port)` opens a socket to an IPv4 address and port. Give it a dotted-quad address and a port from 0 through 65535.\n\nIt returns a socket handle. It returns zero when it cannot connect. Use a nonzero handle with `socket_read()`, `socket_write()`, and `socket_close()`.\n\nCapy does not resolve host names. Use an IPv4 address. The C++ API uses `u16` for `port`. Capy accepts `s32` and rejects values outside the valid port range.\n"
+        page["returns"] = "socket handle, or zero when the connection fails"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "socket_connect"
+        page["sig_lines"] = dval(["u64 socket_connect(String host, u16 port)", ""])
+        page["capy_sig_lines"] = dval(["function socket_connect(host : string, port : s32) u64"])
+        page["param_lines"] = dval(["host : IPv4 address in dotted-quad form, such as `127.0.0.1`", "port : port number from 0 through 65535", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">socket", "socket_close", "socket_read", "http_request_async", "socket_write", "http_request"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

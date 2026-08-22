@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "to-u64" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "to_u64"
+        page["kind"] = "api"
+        page["slug"] = "to-u64"
+        page["route"] = "/doc/api/to-u64/"
+        page["title"] = "to_u64"
+        page["content"] = "`to_u64()` is a C++ API. It accepts a leading `+`. Negative, overflowing, empty, or partial text returns `fallback`.\n\nCapy does not expose `to_u64`. Use `u64(value, fallback)`.\n"
+        page["returns"] = "parsed C++ `u64` or `fallback`"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "to_u64"
+        page["sig_lines"] = dval(["u64 to_u64(String s, u64 fallback = 0)", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval(["s : C++ text to parse", "fallback : value for empty or invalid text", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "2_DValue_to_u64", "to_s64", "brb_encode", "to_f64", "brb_decode", "to_bool"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

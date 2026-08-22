@@ -32,6 +32,3 @@ Invalid patterns, flags, and replacement syntax cause a request-visible runtime 
 
 :example capy render
 print(regex_replace("docs", "manual", "bearer docs"), "\n")
-
-:example cpp render
-print(regex_replace("docs", "manual", "bearer docs"), "\n");

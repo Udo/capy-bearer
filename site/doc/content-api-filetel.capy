@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-tell" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_tell"
+        page["kind"] = "api"
+        page["slug"] = "file-tell"
+        page["route"] = "/doc/api/file-tell/"
+        page["title"] = "file_tell"
+        page["content"] = "`file_tell` returns the current byte offset for a handle. Use it to record the position after `file_read()`, `file_write()`, or `file_seek()`. Capy uses the same numeric result.\n"
+        page["returns"] = "current absolute byte offset"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_tell"
+        page["sig_lines"] = dval(["s64 file_tell(u64 h)", ""])
+        page["capy_sig_lines"] = dval(["function file_tell(handle : u64) s64"])
+        page["param_lines"] = dval(["h : handle from `file_open()`", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "file_seek", "file_open", "file_close", "file_pwrite", "file_stat", "file_write"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

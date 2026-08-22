@@ -1,0 +1,7 @@
+function RENDER(request : dval) {
+    component_render("/demo/components/page.capy", {
+        title: "components/card demo",
+        heading: "components/card demo",
+        body: "This included demo route now runs from native Capy through a shared component."
+    })
+}

@@ -25,6 +25,3 @@ C++ uses the legacy `time_string` parameter in the signature above. Its normal u
 
 :example capy render
 if time_parse("1970-01-01 00:00:00") >= 0 { print("parsed\n") } else { print("bad\n") }
-
-:example cpp render
-print(time_parse("1970-01-01 00:00:00") >= 0 ? "parsed\n" : "bad\n");

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "ob-start" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "ob_start"
+        page["kind"] = "api"
+        page["slug"] = "ob-start"
+        page["route"] = "/doc/api/ob-start/"
+        page["title"] = "ob_start"
+        page["content"] = "`ob_start()` starts a new output buffer. Later `print()` calls write to this buffer instead of the response.\n\nCall `ob_get_close()` to get the contents. Call `ob_close()` to discard them. Buffers can nest.\n"
+        page["returns"] = "no value"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "ob_start"
+        page["sig_lines"] = dval(["void ob_start()", ""])
+        page["capy_sig_lines"] = dval(["function ob_start()"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">ob", "ob_get_close", "ob_get", "ob_close"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

@@ -1,0 +1,32 @@
+struct Box { value : s32 }
+
+function rebind_text(value : string) string {
+    value = value + "!"
+    return value
+}
+
+function rebind_array(values : [s32]) [s32] {
+    values = [7, 8]
+    return values
+}
+
+function mutate_array(values : [s32]) void {
+    values[0] = 4
+    values.push(5)
+}
+
+function mutate_box(box : Box) void {
+    box.value = 9
+}
+
+function CLI(request : dval) {
+    var text := "go"
+    var path := "api/length"
+    var head := nibble(path, "/")
+    var values := [1, 2]
+    var box := Box(3)
+    var rebound := rebind_array(values)
+    mutate_array(values)
+    mutate_box(box)
+    print(rebind_text(text), "|", text, "|", head, ":", path, "|", rebound[0], rebound[1], "|", values[0], values[1], values[2], "|", box.value, "|", arc_live())
+}

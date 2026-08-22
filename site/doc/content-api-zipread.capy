@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "zip-read" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "zip_read"
+        page["kind"] = "api"
+        page["slug"] = "zip-read"
+        page["route"] = "/doc/api/zip-read/"
+        page["title"] = "zip_read"
+        page["content"] = "`zip_read(path, entry)` accepts an archive path and member name. It returns the uncompressed member bytes as a `string`.\n\nUse `zip_list()` to discover member names before you read them. Member names cannot be empty, absolute, drive-qualified, or contain `..` path segments.\n\nThe call rejects invalid member names. The declaration has no separate error return.\n\nC++ returns the same data as `String` through the signature above.\n"
+        page["returns"] = "uncompressed entry contents"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "zip_read"
+        page["sig_lines"] = dval(["String zip_read(String zip_file_name, String entry_name)", ""])
+        page["capy_sig_lines"] = dval(["function zip_read(path : string, entry : string) string"])
+        page["param_lines"] = dval(["zip_file_name : path to the ZIP archive", "entry_name : member name to read from the archive", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "zip_create", "zip_list", "zip_extract"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

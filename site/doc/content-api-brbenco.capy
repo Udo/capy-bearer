@@ -1,0 +1,28 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "brb-encode" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "brb_encode"
+        page["kind"] = "api"
+        page["slug"] = "brb-encode"
+        page["route"] = "/doc/api/brb-encode/"
+        page["title"] = "brb_encode"
+        page["content"] = "`brb_encode()` converts a Capy `dval` into a BRRB2 byte string.\n\nPass a `dval` that you will later decode with `brb_decode()`. The returned string can contain any byte, including NUL. BRRB preserves scalars, nested maps, lists, empty lists, and the `N` tag for `none`.\n\nUse this function for Bearer DValue data. Use JSON or YAML for text formats that people read.\n"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "brb_encode"
+        page["sig_lines"] = dval(["String brb_encode(DValue value)", ""])
+        page["capy_sig_lines"] = dval(["function brb_encode(value : dval) string"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["brb_decode", "0_DValue", "json_encode"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

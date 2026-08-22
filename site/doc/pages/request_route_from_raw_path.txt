@@ -22,11 +22,3 @@ route_from_raw_path
 The result contains `raw_path`, `l_path`, `page`, and `valid`. `raw_path` is normalized diagnostic input. `l_path` is the safe route, or an empty string when validation fails. `page` is the first route segment. `valid` is true when `l_path` is safe.
 
 Capy does not expose `request_route_from_raw_path`. Use `route_from_raw_path(raw_path, default_path)` in Capy. Use only its `path` below an application-controlled route root.
-
-:example cpp render request_route_from_raw_path() returns route metadata
-DValue route = request_route_from_raw_path("blog/2024/hello-world");
-print("page=", route["page"].to_string(), " valid=", route["valid"].to_bool() ? "yes" : "no", "\n");
-
-:example cpp render request_route_from_raw_path() marks traversal invalid
-DValue route = request_route_from_raw_path("../secret");
-print("path=", route["l_path"].to_string("<empty>"), " valid=", route["valid"].to_bool() ? "yes" : "no", "\n");

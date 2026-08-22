@@ -23,9 +23,5 @@ Use this function to inspect a unit before an optional call. Relative paths use 
 C++ returns a `DValue` through the signature above. Use the same path and result checks.
 
 :example capy render
-var info := unit_info("examples/sample_unit.uce")
+var info := unit_info("examples/sample_unit.capy")
 if dval_is_array(info) { print("unit_info() returns metadata for the unit\n") } else { print("empty metadata for the unit\n") }
-
-:example cpp render
-DValue info = unit_info("examples/sample_unit.uce");
-print(info.is_array() ? "unit_info() returns metadata for the unit\n" : "empty metadata for the unit\n");

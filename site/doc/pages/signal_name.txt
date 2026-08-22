@@ -22,6 +22,3 @@ It returns names such as `SIGSEGV`. It returns an empty string when the number i
 
 :example capy render
 print(signal_name(11), " / ", signal_name(6), "\n")
-
-:example cpp render
-print(signal_name(SIGSEGV), " / ", signal_name(SIGABRT), "\n");

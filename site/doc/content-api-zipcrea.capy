@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "zip-create" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "zip_create"
+        page["kind"] = "api"
+        page["slug"] = "zip-create"
+        page["route"] = "/doc/api/zip-create/"
+        page["title"] = "zip_create"
+        page["content"] = "`zip_create(path, entries)` accepts an archive path and a `dval` of entries. It returns `true` when it writes the archive.\n\nUse a map when each key is a member name and each value is its content. An entry can also name a source file with `file`.\n\nMember names cannot be empty, absolute, drive-qualified, or contain `..` path segments. The call rejects those names.\n\nThe declaration has no separate error return. C++ uses `String` and `DValue` values through the signature above.\n"
+        page["returns"] = "`true` when the archive is written"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "zip_create"
+        page["sig_lines"] = dval(["bool zip_create(String zip_file_name, DValue entries)", ""])
+        page["capy_sig_lines"] = dval(["function zip_create(path : string, entries : dval) bool"])
+        page["param_lines"] = dval(["zip_file_name : path to the archive to create", "entries : map or list of archive entries", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "zip_list", "zip_read", "zip_extract", "0_DValue"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

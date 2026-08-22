@@ -26,7 +26,3 @@ C++ uses the optional `String` input in the signature above. Capy provides separ
 
 :example capy render
 if ws_close("example-connection-id") { print("close queued\n") } else { print("no such connection to close\n") }
-
-:example cpp render
-bool closed = ws_close("example-connection-id");
-print(closed ? "close queued" : "no such connection to close", "\n");

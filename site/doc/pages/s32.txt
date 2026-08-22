@@ -23,21 +23,8 @@ Use `s32` to convert input to a 32-bit signed integer.
 print(s32("42"), "\n")
 print(s32(dval(8.9), -1), "\n")
 
-:example cpp render s32() parses integer text and numbers
-DValue text;
-text = "42";
-DValue number;
-number = 8.9;
-print(text.to_s64(), "\n");
-print(number.to_s64(-1), "\n");
-
 :example capy render s32() returns the fallback for empty text
 print(s32("", -1), "\n")
-
-:example cpp render s32() returns the fallback for empty text
-DValue value;
-value = "";
-print(value.to_s64(-1), "\n");
 
 :see
 >types

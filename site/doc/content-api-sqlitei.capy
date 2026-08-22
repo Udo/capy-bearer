@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "sqlite-insert-id" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "sqlite_insert_id"
+        page["kind"] = "api"
+        page["slug"] = "sqlite-insert-id"
+        page["route"] = "/doc/api/sqlite-insert-id/"
+        page["title"] = "sqlite_insert_id"
+        page["content"] = "Use `sqlite_insert_id` after `sqlite_query` inserts a row. Pass the Capy connection value. The function returns the last inserted row ID for that connection.\n\nIn C++, a null connection pointer returns `0`. Capy uses an `SQLite*` pointer, as the signature shows.\n"
+        page["returns"] = "last row ID for this connection"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "sqlite_insert_id"
+        page["sig_lines"] = dval(["u64 sqlite_insert_id(SQLite* db)", ""])
+        page["capy_sig_lines"] = dval(["function sqlite_insert_id(handle : u64) u64"])
+        page["param_lines"] = dval(["db : Capy SQLite connection value", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sqlite", "sqlite_query", "sqlite_affected_rows", "sqlite_error", "sqlite_disconnect", "sqlite_connect"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

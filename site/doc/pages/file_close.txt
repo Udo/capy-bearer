@@ -5,7 +5,7 @@ void file_close(u64 h)
 h : handle returned by `file_open()`
 
 :content
-`file_close` closes a handle from `file_open()`. Use it after the final read or write. The Capy API does not return an error value. C++ .uce uses the same handle value and call.
+`file_close` closes a handle from `file_open()`. Use it after the final read or write. The Capy API does not return an error value. Capy uses the same handle value and call.
 
 :example capy render
 var handle := file_open("/tmp/doc-close.txt", "w")
@@ -14,12 +14,6 @@ file_close(handle)
 var result := "missing"
 if file_exists("/tmp/doc-close.txt") { result = "written and closed" }
 print(result, "\n")
-
-:example cpp render
-u64 h = file_open("/tmp/doc-close.txt", "w");
-file_write(h, "done");
-file_close(h);
-print(file_exists("/tmp/doc-close.txt") ? "written and closed" : "missing", "\n");
 
 :see
 >sys

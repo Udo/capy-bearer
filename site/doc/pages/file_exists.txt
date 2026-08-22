@@ -18,11 +18,6 @@ var second_status := "missing"
 if file_exists("/tmp/doc-not-here-xyz.txt") { second_status = "exists" }
 print(first_status, " / ", second_status, "\n")
 
-:example cpp render
-file_put_contents("/tmp/doc-exists.txt", "x");
-print(file_exists("/tmp/doc-exists.txt") ? "exists" : "missing", " / ");
-print(file_exists("/tmp/doc-not-here-xyz.txt") ? "exists" : "missing", "\n");
-
 :see
 >sys
 file_stat

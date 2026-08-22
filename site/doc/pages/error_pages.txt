@@ -2,9 +2,9 @@
 Configurable Error Pages
 
 :sig
-page_compiling=site/errors/compiling.uce
-page_compiler_error=site/errors/compiler-error.uce
-page_runtime_error=site/errors/runtime-error.uce
+page_compiling=site/errors/compiling.capy
+page_compiler_error=site/errors/compiler-error.capy
+page_runtime_error=site/errors/runtime-error.capy
 
 :params
 page_compiling : page rendered with status 503 while a requested page builds
@@ -20,11 +20,11 @@ page_runtime_error : page rendered with status 500 after a recovered fault or un
 :capy-status cpp-specific
 
 :content
-Capy cannot configure Bearer error pages. Configure these C++ runtime settings in `/etc/bearer/settings.cfg` instead.
+Capy cannot configure Bearer error pages. Configure these runtime settings in `/etc/bearer/settings.cfg`.
 
-Set each optional key to a `.uce` error page path. The path can be absolute or relative to the server working directory. Bearer uses built-in plain text when a key is unset, missing, or fails.
+Set each optional key to a `.capy` error page path. The path can be absolute or relative to the server working directory. Bearer uses built-in plain text when a key is unset, missing, or fails.
 
-Each error page receives error data in `context.call["error"]`. It includes `type` and `source`. Compiler errors also include compiler output, generated C++, status, and details. Runtime errors also include title, details, request URI, signal data, trace, and generated C++.
+Each error page receives error data in `context.call["error"]`. It includes `type` and `source`. Compiler errors also include compiler output, status, and details. Runtime errors also include title, details, request URI, signal data, and trace.
 
 `page_compiling` returns status 503 while proactive compilation builds a requested page. `page_compiler_error` returns status 500 after an entry page fails to build. `page_runtime_error` returns status 500 after a recovered fault or uncaught exception.
 

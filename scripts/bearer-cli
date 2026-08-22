@@ -27,9 +27,9 @@ Options:
 
 Examples:
   scripts/bearer-cli /ping
-  scripts/bearer-cli /tests/cli.uce action=echo message=hello
-  scripts/bearer-cli --json '{"action":"echo","message":"hello"}' /tests/cli.uce
-  scripts/bearer-cli --get /tests/cli.uce action=echo message=hello
+  scripts/bearer-cli /tests/cli.capy action=echo message=hello
+  scripts/bearer-cli --json '{"action":"echo","message":"hello"}' /tests/cli.capy
+  scripts/bearer-cli --get /tests/cli.capy action=echo message=hello
 USAGE
 }
 

@@ -19,13 +19,9 @@ map
 :content
 `join()` reads every `dval` list value as a string and returns one string. It inserts `delim` between values.
 
-It uses a newline when `delim` is omitted. Use it to make text from a list. In C++ `.uce`, use `DValue`.
+It uses a newline when `delim` is omitted. Use it to make text from a list. In Capy, use `DValue`.
 
 
 :example capy render
 var parts := split("a,b,c", ",")
 print(join(parts, "-"), "\n")
-
-:example cpp render
-DValue parts = split("a,b,c", ",");
-print(join(parts, "-"), "\n");

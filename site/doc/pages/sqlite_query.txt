@@ -25,7 +25,7 @@ Use `:name` placeholders with the parameter map. Check `sqlite_affected_rows` or
 
 Rows use column names as keys. SQLite integers, floats, text, blobs, and null values convert to `dval` values. Blob values return as byte strings.
 
-Capy uses a connection value and a `dval` map. C++ `.uce` uses an `SQLite*`, `String`, and `StringMap`, as the signatures show.
+Capy uses a connection value and a `dval` map. Capy uses an `SQLite*`, `String`, and `StringMap`, as the signatures show.
 
 :errors
 The API rejects positional `?`, `@name`, and `$name` placeholders. It also rejects SQL strings that contain more than one statement. Use `sqlite_error()` to read the SQLite diagnostic.
@@ -37,15 +37,3 @@ sqlite_query(db, "insert into users(email) values(:email)", dval({"email": "ada@
 var rows := sqlite_query(db, "select email from users")
 print(rows[0]["email"], "\n")
 sqlite_disconnect(db)
-
-:example cpp render
-SQLite* db = sqlite_connect("/tmp/doc-sqlite-query.db");
-sqlite_query(db, "drop table if exists users");
-sqlite_query(db, "create table users(id integer primary key, email text)");
-StringMap params; params["email"] = "ada@example.test";
-sqlite_query(db, "insert into users(email) values(:email)", params);
-DValue rows = sqlite_query(db, "select email from users");
-String first = "none";
-rows.each([&](DValue row, String key) { first = row["email"].to_string(); });
-print(first, "\n");
-sqlite_disconnect(db);

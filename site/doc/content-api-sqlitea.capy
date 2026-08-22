@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "sqlite-affected-rows" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "sqlite_affected_rows"
+        page["kind"] = "api"
+        page["slug"] = "sqlite-affected-rows"
+        page["route"] = "/doc/api/sqlite-affected-rows/"
+        page["title"] = "sqlite_affected_rows"
+        page["content"] = "Capy `sqlite_affected_rows(db)` returns the row count for the last insert, update, or delete on `db`. Give it a handle from `sqlite_connect()`.\n\nUse it after a statement when you need its changed-row count. The C++ API uses an `SQLite*` pointer. Capy uses a `u64` handle.\n"
+        page["returns"] = "number of rows changed by the most recent statement"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "sqlite_affected_rows"
+        page["sig_lines"] = dval(["u32 sqlite_affected_rows(SQLite* db)", ""])
+        page["capy_sig_lines"] = dval(["function sqlite_affected_rows(handle : u64) u64"])
+        page["param_lines"] = dval(["db : SQLite handle from `sqlite_connect()`", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sqlite", "sqlite_query", "sqlite_insert_id", "sqlite_error", "sqlite_disconnect", "sqlite_connect"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

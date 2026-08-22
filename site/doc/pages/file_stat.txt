@@ -19,11 +19,6 @@ var type_status := "no"
 if bool(stat["is_file"]) { type_status = "yes" }
 print("size=", s32(stat["size"]), " is_file=", type_status, "\n")
 
-:example cpp render
-file_put_contents("/tmp/doc-stat.txt", "12345");
-DValue st = file_stat("/tmp/doc-stat.txt");
-print("size=", st["size"].to_u64(), " is_file=", st["is_file"].to_bool() ? "yes" : "no", "\n");
-
 :see
 >sys
 dir_list

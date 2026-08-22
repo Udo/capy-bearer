@@ -4,7 +4,7 @@ pid_t server_start_http(String key, String socket_fn_or_port, String call_bearer
 :params
 key : runtime-wide listener key
 socket_fn_or_port : TCP port number or Unix socket path
-call_bearer_filename : `.capy` or `.uce` file that contains the handler
+call_bearer_filename : `.capy` or `.capy` file that contains the handler
 call_function : optional named handler
 
 :returns
@@ -40,14 +40,9 @@ function SERVE_HTTP:admin(request : dval) {
 
 The handler can read normal request data. A long-running handler delays its listener.
 
-The paired example starts the existing C++ `examples/sample_unit.uce` handler. Pass a `.capy` path and an empty handler name to call its default `SERVE_HTTP` handler.
+The paired example starts the existing C++ `examples/sample_unit.capy` handler. Pass a `.capy` path and an empty handler name to call its default `SERVE_HTTP` handler.
 
 :example capy render
-var pid := server_start_http("doc-demo-server", "/tmp/bearer/custom-servers/doc-demo.sock", "examples/sample_unit.uce", "RENDER")
+var pid := server_start_http("doc-demo-server", "/tmp/bearer/custom-servers/doc-demo.sock", "examples/sample_unit.capy", "RENDER")
 if pid > 0 { print("custom HTTP server started\n") } else { print("start failed\n") }
 server_stop("doc-demo-server")
-
-:example cpp render
-pid_t pid = server_start_http("doc-demo-server", "/tmp/bearer/custom-servers/doc-demo.sock", "examples/sample_unit.uce", "RENDER");
-print(pid > 0 ? "custom HTTP server started" : "start failed", "\n");
-server_stop("doc-demo-server");

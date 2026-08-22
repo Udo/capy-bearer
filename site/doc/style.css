@@ -54,27 +54,6 @@
 	--radius: 10px;
 	--radius-lg: 16px;
 	--ease: cubic-bezier(0.4, 0, 0.2, 1);
-	color-scheme: dark;
-}
-
-@media (prefers-color-scheme: dark) {
-	:root {
-		--bg: #071225;
-		--bg-grad: linear-gradient(168deg, #0b1b36 0%, #071225 48%, #030814 100%);
-		--bg-surface: rgba(255, 255, 255, 0.045);
-		--bg-surface-hover: rgba(255, 255, 255, 0.08);
-		--bg-inset: rgba(0, 0, 0, 0.42);
-		--bg-code: rgba(0, 0, 0, 0.48);
-		--text: #eef3ff;
-		--text-dim: rgba(220, 230, 250, 0.68);
-		--text-muted: rgba(220, 230, 250, 0.42);
-		--accent: #ffd65a;
-		--accent-dim: rgba(255, 214, 90, 0.1);
-		--accent-hover: #ffe58a;
-		--accent-glow: rgba(255, 214, 90, 0.17);
-		--border: rgba(255, 255, 255, 0.08);
-		--border-strong: rgba(255, 255, 255, 0.18);
-	}
 }
 
 /* ── Reset ── */

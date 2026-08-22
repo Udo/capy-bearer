@@ -25,5 +25,3 @@ Use this function for a simple substring check.
 
 :example capy render
 if contains("bearer docs", "docs") { print("yes\n") } else { print("no\n") }
-:example cpp render
-print(contains("bearer docs", "docs") ? "yes\n" : "no\n");

@@ -14,7 +14,7 @@ Pass a directory path. Each returned entry is a map with `name`, `type`, `size`,
 
 Use this function when Capy must inspect directory entries. Read map fields with DValue access functions.
 
-The C++ `.uce` call returns the same DValue data.
+The Capy call returns the same DValue data.
 
 :example capy render
 var root := file_temp("/tmp/capy-doc-dirlist-")
@@ -25,17 +25,6 @@ var found := false
 for item, key := dir_list(root) { if string(item["name"]) == "note.txt" { found = true } }
 dir_remove(root, true)
 if found { print("note.txt listed: yes\n") } else { print("note.txt listed: no\n") }
-:example cpp render
-mkdir("/tmp/doc-dirlist");
-file_put_contents("/tmp/doc-dirlist/note.txt", "hi");
-DValue entries = dir_list("/tmp/doc-dirlist");
-String found = "no";
-entries.each([&](const DValue& item, String key) {
-    if(item.key("name") && item.key("name")->to_string() == "note.txt")
-        found = "yes";
-});
-print("note.txt listed: ", found, "\n");
-
 :see
 >sys
 file_stat

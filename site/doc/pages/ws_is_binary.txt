@@ -22,6 +22,3 @@ ws_scope
 Use it before you parse `ws_message()`.
 
 Capy does not expose `ws_is_binary`. In a Capy `WS` handler, read `request.websocket.binary`.
-
-:example cpp render
-print(ws_is_binary() ? "binary frame" : "text frame (default outside a WS handler)", "\n");

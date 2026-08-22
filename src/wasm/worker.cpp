@@ -119,7 +119,7 @@ struct WasmUnitImport
 
 struct WasmUnitModule
 {
-	String source_path;   // absolute .uce path
+	String source_path;   // absolute Capy source path
 	String wasm_path;     // artifact in the unit cache
 	u64 modified_ns = 0;
 	u64 changed_ns = 0;
@@ -1669,7 +1669,7 @@ struct WasmWorker
 
 		// Deployed runtime sources can be root-owned while workers run unprivileged.
 		// Keep the derived serialized core in the configured writable cache root.
-		String core_cached_path = path_join(cfg.cache_root, ".uce-core.cwasm");
+		String core_cached_path = path_join(cfg.cache_root, ".capy-core.cwasm");
 		String compile_error;
 		bool serialized_cache_hit = false;
 		auto compiled_or_cached = load_or_compile_cached_module(engine, core_cached_path, cfg.core_wasm_path, bytes, compile_error, serialized_cache_hit);
@@ -3429,10 +3429,9 @@ struct WasmWorkspace : public WasmRequestProfile
 	static String normalize_component_path(String name)
 	{
 		// mirrors component_normalize_path in compiler.cpp / core.cpp
-		if((name.length() >= 4 && name.substr(name.length() - 4) == ".uce") ||
-			(name.length() >= 5 && name.substr(name.length() - 5) == ".capy"))
+		if(name.length() >= 5 && name.substr(name.length() - 5) == ".capy")
 			return(name);
-		return(name + ".uce");
+		return(name + ".capy");
 	}
 
 	static bool file_exists_host(const String& path)
@@ -3722,6 +3721,11 @@ struct WasmWorkspace : public WasmRequestProfile
 			if(known_path != component_loaded_paths.end())
 				loaded = units_by_source.find(known_path->second);
 		}
+		if(loaded != units_by_source.end() && !file_exists_host(loaded->first))
+		{
+			units_by_source.erase(loaded);
+			loaded = units_by_source.end();
+		}
 		if(loaded != units_by_source.end())
 		{
 			resolved = loaded->first;
@@ -3735,7 +3739,8 @@ struct WasmWorkspace : public WasmRequestProfile
 			auto cached = worker.component_resolutions.find(cache_key);
 			auto now = std::chrono::steady_clock::now();
 			if(cacheable_read && cached != worker.component_resolutions.end() &&
-				std::chrono::duration_cast<std::chrono::seconds>(now - cached->second.checked_at).count() < 10)
+				std::chrono::duration_cast<std::chrono::seconds>(now - cached->second.checked_at).count() < 10 &&
+				file_exists_host(cached->second.resolved))
 				resolved = cached->second.resolved;
 			else
 			{

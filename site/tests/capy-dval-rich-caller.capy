@@ -1,0 +1,5 @@
+function CLI(request : dval) {
+    var input := {name: "Capy", nested: {value: "roundtrip"}}
+    var result := unit_call("/tests/capy-dval-rich.capy", "enrich", input)
+    print(result.language, "|", result.input.name, "|", result.input.nested.value, "|", result.items[2], "|", dval_has(input, "export_mutation"))
+}

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "nibble" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "nibble"
+        page["kind"] = "api"
+        page["slug"] = "nibble"
+        page["route"] = "/doc/api/nibble/"
+        page["title"] = "nibble"
+        page["content"] = "`nibble()` returns the text before the first `delim`.\n\nC++ also removes that text and the delimiter from `haystack`.\n\nCapy currently returns the same head text. It does not yet change the caller's string binding.\n\nIf `delim` does not occur, it returns all of `haystack`.\n"
+        page["returns"] = "the text before the first `delim`"
+        page["example_error"] = "expected contiguous :example cpp cli"
+        page["label"] = "nibble"
+        page["sig_lines"] = dval(["String nibble(String& haystack, String delim)", ""])
+        page["capy_sig_lines"] = dval(["function nibble(haystack : string, delim : string) string"])
+        page["param_lines"] = dval(["haystack : the string to split", "delim : the delimiter", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "map", "print", "json_encode", "strpos", "json_consume_space", "str_ends_with"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

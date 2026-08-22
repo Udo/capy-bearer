@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "to-f64" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "to_f64"
+        page["kind"] = "api"
+        page["slug"] = "to-f64"
+        page["route"] = "/doc/api/to-f64/"
+        page["title"] = "to_f64"
+        page["content"] = "`to_f64()` is a C++ API. It requires complete trimmed text. Empty or partial text, such as `3.5ms`, returns `fallback`.\n\nCapy does not expose `to_f64`. Use `f64(value, fallback)`.\n"
+        page["returns"] = "parsed C++ `f64` or `fallback`"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "to_f64"
+        page["sig_lines"] = dval(["f64 to_f64(String s, f64 fallback = 0)", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval(["s : C++ text to parse", "fallback : value for empty or invalid text", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "2_DValue_to_f64", "to_bool", "to_s64", "2_DValue_to_u64", "to_u64", "2_DValue_to_stringmap"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

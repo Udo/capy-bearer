@@ -10,7 +10,7 @@ file content as a Capy `string`, or `""` when Capy cannot read it
 :content
 `file_get_contents()` reads a complete file into a `string`. Use it for a small file that you need as one value. An unreadable file returns `""`.
 
-Use `file_open()` and `file_read()` for streamed reads. C++ `.uce` returns the same data as `String`.
+Use `file_open()` and `file_read()` for streamed reads. Capy returns the same data as `String`.
 
 :note
 `file_get_contents()` returns an empty string for an empty file and for an unreadable file. Use `file_exists()` first when you must tell these cases apart.
@@ -19,17 +19,9 @@ Use `file_open()` and `file_read()` for streamed reads. C++ `.uce` returns the s
 file_put_contents("/tmp/doc-get.txt", "hello")
 print(file_get_contents("/tmp/doc-get.txt"), "\n")
 
-:example cpp render file_get_contents() reads a small file
-file_put_contents("/tmp/doc-get.txt", "hello");
-print(file_get_contents("/tmp/doc-get.txt"), "\n");
-
 :example capy render file_get_contents() returns empty text for an empty file
 file_put_contents("/tmp/doc-empty.txt", "")
 print(length(file_get_contents("/tmp/doc-empty.txt")), "\n")
-
-:example cpp render file_get_contents() returns empty text for an empty file
-file_put_contents("/tmp/doc-empty.txt", "");
-print(file_get_contents("/tmp/doc-empty.txt").size(), "\n");
 
 :see
 >sys

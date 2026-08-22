@@ -16,6 +16,3 @@ Capy has no separate `StringList` type. It uses list-shaped DValues. This pure t
 :example capy render
 var items := split("one,two,one", ",")
 print(join(unique(items), ","), "\n")
-:example cpp render
-StringList items = split("one,two,one", ",");
-print(join(items.unique(), ","), "\n");

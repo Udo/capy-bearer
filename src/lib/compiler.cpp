@@ -1,5 +1,4 @@
 #include "compiler.h"
-#include "compiler-parser.h"
 #include "hash.h"
 #include "../wasm/abi.h"
 #include <algorithm>
@@ -38,7 +37,6 @@ struct SharedUnitFilesystemState
 	time_t compiled_time = 0;
 	time_t metadata_time = 0;
 	time_t compile_output_time = 0;
-	time_t setup_template_time = 0;
 	time_t compiler_abi_time = 0;
 	time_t required_time = 0;
 	u64 metadata_abi_version = 0;
@@ -109,7 +107,7 @@ struct UnitSourceSignatureEntry
 	u64 size = 0;
 	bool readable = false;
 	String content_hash;
-	std::vector<String> loaded_paths;
+	std::vector<String> dependency_paths;
 };
 
 const u64 BEARER_UNIT_SOURCE_SIGNATURE_CACHE_MAX = 4096;
@@ -172,7 +170,7 @@ StringMap compiler_parse_unit_metadata(String content)
 	return(metadata);
 }
 
-std::vector<String> compiler_unit_load_paths(String file_name, String content)
+std::vector<String> compiler_unit_dependency_paths(String file_name, String content)
 {
 	std::vector<String> paths;
 	u64 line_start = 0;
@@ -180,19 +178,21 @@ std::vector<String> compiler_unit_load_paths(String file_name, String content)
 	{
 		u64 line_end = content.find("\n", line_start);
 		if(line_end == String::npos)
-			break;
-		String line = content.substr(line_start, line_end - line_start);
-		if(str_starts_with(line, "#load "))
+			line_end = content.length();
+		String line = trim(content.substr(line_start, line_end - line_start));
+		if(str_starts_with(line, "#import"))
 		{
-			u64 first_quote = line.find('"', 6);
+			u64 first_quote = line.find('"');
 			u64 second_quote = first_quote == String::npos ? String::npos : line.find('"', first_quote + 1);
 			if(first_quote != String::npos && second_quote != String::npos)
 			{
-				String loaded = line.substr(first_quote + 1, second_quote - first_quote - 1);
-				if(loaded != "")
-					paths.push_back(loaded[0] == '/' ? loaded : expand_path(loaded, dirname(file_name)));
+				String imported = line.substr(first_quote + 1, second_quote - first_quote - 1);
+				if(imported != "")
+					paths.push_back(imported[0] == '/' ? imported : expand_path(imported, dirname(file_name)));
 			}
 		}
+		if(line_end == content.length())
+			break;
 		line_start = line_end + 1;
 	}
 	return(paths);
@@ -256,7 +256,7 @@ UnitSourceSignatureEntry compiler_unit_source_entry(String file_name, bool allow
 	}
 	String content = file_get_contents(file_name);
 	entry.content_hash = gen_sha1(content);
-	entry.loaded_paths = compiler_unit_load_paths(file_name, content);
+	entry.dependency_paths = compiler_unit_dependency_paths(file_name, content);
 	{
 		std::lock_guard<std::mutex> lock(unit_source_signature_cache_mutex);
 		if(unit_source_signature_cache.size() >= BEARER_UNIT_SOURCE_SIGNATURE_CACHE_MAX)
@@ -298,14 +298,14 @@ void compiler_append_unit_source_signature(String file_name, std::set<String>& v
 	if(!recent)
 		entry = compiler_unit_source_entry(normalized, allow_recent_stat);
 	signature += normalized + ":" + entry.content_hash + (entry.readable ? String("") : String(":unreadable")) + "\n";
-	for(String loaded : entry.loaded_paths)
+	for(String loaded : entry.dependency_paths)
 		compiler_append_unit_source_signature(loaded, visited, signature, allow_recent_stat, depth + 1);
 }
 
 String compiler_unit_source_signature(String file_name, bool allow_recent_stat = false)
 {
 	std::set<String> visited;
-	String signature = "bearer-load-graph-v1\n";
+	String signature = "capy-import-graph-v1\n";
 	compiler_append_unit_source_signature(file_name, visited, signature, allow_recent_stat);
 	return(gen_sha1(signature));
 }
@@ -314,7 +314,7 @@ bool compiler_find_unit_load_cycle(String file_name, std::vector<String>& stack,
 {
 	if(stack.size() >= 256 || ++nodes > 10000)
 	{
-		cycle = "#load dependency graph exceeds the 256-level or 10000-unit limit";
+		cycle = "#import dependency graph exceeds the 256-level or 10000-unit limit";
 		return(true);
 	}
 	String normalized = compiler_source_path_real(file_name);
@@ -333,7 +333,7 @@ bool compiler_find_unit_load_cycle(String file_name, std::vector<String>& stack,
 
 	stack.push_back(normalized);
 	auto entry = compiler_unit_source_entry(normalized, false);
-	for(const String& loaded : entry.loaded_paths)
+	for(const String& loaded : entry.dependency_paths)
 	{
 		if(compiler_find_unit_load_cycle(loaded, stack, complete, cycle, nodes))
 			return(true);
@@ -343,7 +343,7 @@ bool compiler_find_unit_load_cycle(String file_name, std::vector<String>& stack,
 	return(false);
 }
 
-String compiler_unit_load_cycle(String file_name)
+String compiler_unit_import_cycle(String file_name)
 {
 	std::vector<String> stack;
 	std::set<String> complete;
@@ -358,15 +358,10 @@ String compiler_unit_input_signature(Request* context, SharedUnit* su, bool allo
 	if(!context || !su || (!source_exists_known && !file_exists(su->file_name)))
 		return("");
 
-	String compiler_root = context->server->config["COMPILER_SYS_PATH"];
-	String setup_template = compiler_root + "/" + context->server->config["SETUP_TEMPLATE"];
-	bool capy_source = su->file_name.size() >= 5 && su->file_name.substr(su->file_name.size() - 5) == ".capy";
 	return(
 		compiler_unit_source_signature(su->file_name, allow_recent_source_stat) + ":" +
-		gen_sha1(file_get_contents(setup_template)) + ":" +
 		std::to_string(BEARER_UNIT_ABI_VERSION) + ":" +
-		std::to_string(BEARER_WASM_CORE_ABI_VERSION) +
-		(capy_source ? String(":") + CAPY_COMPILER_BUILD_ID : String(""))
+		std::to_string(BEARER_WASM_CORE_ABI_VERSION) + ":" + CAPY_COMPILER_BUILD_ID
 	);
 }
 
@@ -421,7 +416,7 @@ String compiler_cached_wasm_manifest_path(String wasm_path)
 	return(compiler_cached_wasm_path(wasm_path) + ".manifest");
 }
 
-static bool compiler_publish_staged_artifacts(SharedUnit* su, String staged_pre_name, String staged_api_name,
+static bool compiler_publish_staged_artifacts(SharedUnit* su, String staged_api_name,
 	String staged_wasm_name, String staged_map_name, String staged_meta_name, CompilerDeadline* deadline, String& error)
 {
 	struct Artifact
@@ -434,7 +429,6 @@ static bool compiler_publish_staged_artifacts(SharedUnit* su, String staged_pre_
 		bool published = false;
 	};
 	std::vector<Artifact> artifacts = {
-		{ staged_pre_name, compiler_generated_cpp_path(su), staged_pre_name + ".previous" },
 		{ staged_api_name, su->api_file_name, staged_api_name + ".previous" },
 		{ staged_map_name, compiler_source_map_path(su->wasm_name), staged_map_name + ".previous" },
 		{ "", compiler_cached_wasm_path(su->wasm_name), staged_wasm_name + ".cached.previous", true },
@@ -617,15 +611,6 @@ void compiler_unlink_unit_wasm_artifacts(SharedUnit* su)
 	file_unlink(compiler_source_map_path(su->wasm_name));
 }
 
-String compiler_wasm_compile_script(Request* context)
-{
-	String script = "scripts/compile_wasm_unit";
-	if(context && context->server)
-		script = first(context->server->config["WASM_COMPILE_SCRIPT"], script);
-	if(script != "" && script[0] != '/' && context && context->server)
-		script = path_join(context->server->config["COMPILER_SYS_PATH"], script);
-	return(script);
-}
 
 SharedUnitCompileCheck shared_unit_compile_check(const SharedUnitFilesystemState& state)
 {
@@ -658,7 +643,6 @@ bool compiler_failure_retry_deferred(Request* context, SharedUnit* su, const Sha
 		return(false);
 	auto required_failure_inputs_time = std::max({
 		state.source_time,
-		state.setup_template_time,
 		state.compiler_abi_time
 	});
 	return(state.compile_output_time >= required_failure_inputs_time);
@@ -823,10 +807,7 @@ String compiler_normalize_unit_path(Request* context, String file_name)
 
 bool compiler_is_known_unit_file(String file_name)
 {
-	return(
-		(file_name.length() >= 4 && file_name.substr(file_name.length() - 4) == ".uce") ||
-		(file_name.length() >= 5 && file_name.substr(file_name.length() - 5) == ".capy")
-	);
+	return(file_name.length() >= 5 && file_name.substr(file_name.length() - 5) == ".capy");
 }
 
 std::vector<String> compiler_normalize_unit_list(Request* context, std::vector<String> files)
@@ -901,10 +882,7 @@ SharedUnitFilesystemState inspect_shared_unit_filesystem(Request* context, Share
 		state.source_exists = true;
 		state.source_time = source_stat.st_mtime;
 	}
-	state.setup_template_time = file_mtime(
-		context->server->config["COMPILER_SYS_PATH"] + "/" +
-		context->server->config["SETUP_TEMPLATE"]
-	);
+
 	state.compiler_abi_time = compiler_runtime_abi_time(context);
 	state.metadata_time = file_mtime(su->meta_file_name);
 	state.compile_output_time = file_mtime(su->compile_output_file_name);
@@ -1162,21 +1140,6 @@ void compiler_tree_set_bool(DValue& tree, String key, bool value)
 
 }
 
-String preprocess_shared_unit(Request* context, SharedUnit* su)
-{
-	String content = file_get_contents(su->file_name);
-	if(su->file_name.length() >= 5 && su->file_name.substr(su->file_name.length() - 5) == ".capy")
-		return(content);
-	return(compiler_preprocess_source(context, su, content));
-}
-
-String compiler_generated_cpp_path(Request* context, String source_file)
-{
-	if(!context || !context->server || source_file == "")
-		return("");
-	return(compiler_unit_bin_directory(context) + dirname(source_file) + "/" + basename(source_file) + ".cpp");
-}
-
 String compiler_unit_bin_directory(Request* context)
 {
 	if(!context || !context->server)
@@ -1193,13 +1156,6 @@ String compiler_unit_wasm_path(Request* context, String source_file)
 	return(compiler_unit_bin_directory(context) + source_file + ".wasm");
 }
 
-String compiler_generated_cpp_path(SharedUnit* su)
-{
-	if(!su)
-		return("");
-	return(su->pre_path + "/" + su->pre_file_name);
-}
-
 void setup_unit_paths(Request* context, SharedUnit* su, String file_name)
 {
 	su->file_name = file_name;
@@ -1209,11 +1165,9 @@ void setup_unit_paths(Request* context, SharedUnit* su, String file_name)
 
 	su->src_path = dirname(file_name);
 	su->bin_path = compiler_unit_bin_directory(context) + su->src_path;
-	su->pre_path = compiler_unit_bin_directory(context) + su->src_path;
 
 	su->src_file_name = basename(file_name);
 	su->wasm_file_name = su->src_file_name + ".wasm";
-	su->pre_file_name = su->src_file_name + ".cpp";
 
 	su->wasm_name = su->bin_path + "/" + su->wasm_file_name;
 	su->wasm_check_file_name = su->bin_path + "/" + su->src_file_name + ".wasm-check.txt";
@@ -1223,17 +1177,6 @@ void setup_unit_paths(Request* context, SharedUnit* su, String file_name)
 	//su->setup_file_name = su->bin_path + "/" + su->src_file_name + ".setup.h";
 }
 
-/*String compile_setup_file(Request* context, SharedUnit* su)
-{
-	String result =
-		String("#ifndef BEARER_LIB_INCLUDED\n") +
-		"#define BEARER_LIB_INCLUDED\n" +
-		"#include \"bearer_lib.h\" \n"+
-		file_get_contents(
-			context->server->config["COMPILER_SYS_PATH"] + "/" + context->server->config["SETUP_TEMPLATE"]) +
-		"#endif \n";
-	return(result);
-}*/
 
 s64 compiler_first_error_line_for_path(String messages, String path)
 {
@@ -1279,28 +1222,15 @@ String compiler_source_excerpt(String file_name, s64 line_number, u64 radius = 3
 
 String compiler_format_compile_failure(Request* context, SharedUnit* su, String raw_messages)
 {
-	bool expected_cli_failure =
-		context &&
-		context->resources.is_cli &&
+	bool expected_cli_failure = context && context->resources.is_cli &&
 		first(context->get["__bearer_expected_compile_failure"], context->post["__bearer_expected_compile_failure"]) == "1";
-	String generated_file = compiler_generated_cpp_path(su);
 	String result = expected_cli_failure ? "BEARER expected compile error\n" : "BEARER compile error\n";
 	result += "Source: " + su->file_name + "\n";
-	result += "Generated C++: " + generated_file + "\n";
 	result += "Compile output: " + su->compile_output_file_name + "\n";
-
 	s64 source_line = compiler_first_error_line_for_path(raw_messages, su->file_name);
 	String excerpt = compiler_source_excerpt(su->file_name, source_line);
 	if(excerpt != "")
 		result += "\nSource excerpt:\n" + excerpt;
-	else
-	{
-		s64 generated_line = compiler_first_error_line_for_path(raw_messages, generated_file);
-		String generated_excerpt = compiler_source_excerpt(generated_file, generated_line);
-		if(generated_excerpt != "")
-			result += "\nGenerated C++ excerpt:\n" + generated_excerpt;
-	}
-
 	result += "\nCompiler output:\n" + trim(raw_messages) + "\n";
 	return(result);
 }
@@ -1322,311 +1252,158 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 {
 	f64 comp_start = time_precise();
 	bool preserve_last_known_good = compiler_preserve_last_known_good(context, su->file_name);
-	bool capy_source = su->file_name.size() >= 5 && su->file_name.substr(su->file_name.size() - 5) == ".capy";
-	bool stage_artifacts = deadline || preserve_last_known_good || capy_source;
-
 	if(!file_exists(su->file_name))
 	{
 		su->compiler_messages = "source file not found (" + su->file_name + ")";
 		file_put_contents(su->compile_output_file_name, su->compiler_messages + "\n");
-		if(!deadline)
-			compiler_untrack_known_unit(context, su->file_name);
+		if(!deadline) compiler_untrack_known_unit(context, su->file_name);
 		compiler_record_compile_result(su, time_precise() - comp_start, false, "missing_source", su->compiler_messages);
-		if(deadline)
-			compiler_mark_source_generation_nonblocking(context);
-		else
-			compiler_mark_source_generation(context);
+		if(deadline) compiler_mark_source_generation_nonblocking(context); else compiler_mark_source_generation(context);
 		return;
 	}
 	struct stat source_info;
 	int read_error = 0;
 	bool source_readable = stat(su->file_name.c_str(), &source_info) == 0 && compiler_source_readable(su->file_name, source_info, &read_error);
-	if(!source_readable && read_error == 0)
-		read_error = errno == 0 ? ENOENT : errno;
 	if(!source_readable)
 	{
+		if(read_error == 0) read_error = errno == 0 ? ENOENT : errno;
 		su->compiler_messages = "source file is not readable (" + su->file_name + "): " + std::strerror(read_error);
 		file_put_contents(su->compile_output_file_name, su->compiler_messages + "\n");
 		file_put_contents(su->wasm_check_file_name, su->compiler_messages + "\n");
 		file_put_contents(su->meta_file_name, compiler_unit_metadata_text(context, su));
-		if(!preserve_last_known_good)
-			compiler_unlink_unit_wasm_artifacts(su);
+		if(!preserve_last_known_good) compiler_unlink_unit_wasm_artifacts(su);
 		compiler_record_compile_result(su, time_precise() - comp_start, false, "compile_error", su->compiler_messages);
 		printf("%s \n", compiler_format_source_read_failure(context, su, su->compiler_messages).c_str());
-		if(deadline)
-			compiler_mark_source_generation_nonblocking(context);
-		else
-			compiler_mark_source_generation(context);
+		if(deadline) compiler_mark_source_generation_nonblocking(context); else compiler_mark_source_generation(context);
 		return;
 	}
 
-	String load_cycle = compiler_unit_load_cycle(su->file_name);
-	if(load_cycle != "")
+	String import_cycle = compiler_unit_import_cycle(su->file_name);
+	if(import_cycle != "")
 	{
-		su->compiler_messages = load_cycle.rfind("#load ", 0) == 0 ? load_cycle : "#load dependency cycle: " + load_cycle;
+		su->compiler_messages = import_cycle.rfind("#import ", 0) == 0 ? import_cycle : "#import dependency cycle: " + import_cycle;
 		file_put_contents(su->compile_output_file_name, su->compiler_messages + "\n");
 		file_put_contents(su->wasm_check_file_name, su->compiler_messages + "\n");
 		file_put_contents(su->meta_file_name, compiler_unit_metadata_text(context, su));
-		if(!preserve_last_known_good)
-			compiler_unlink_unit_wasm_artifacts(su);
+		if(!preserve_last_known_good) compiler_unlink_unit_wasm_artifacts(su);
 		compiler_record_compile_result(su, time_precise() - comp_start, false, "compile_error", su->compiler_messages);
 		printf("%s \n", compiler_format_compile_failure(context, su, su->compiler_messages).c_str());
-		if(deadline)
-			compiler_mark_source_generation_nonblocking(context);
-		else
-			compiler_mark_source_generation(context);
+		if(deadline) compiler_mark_source_generation_nonblocking(context); else compiler_mark_source_generation(context);
 		return;
 	}
 
-	mkdir(su->pre_path);
+	mkdir(su->bin_path);
 	String compiled_input_signature;
-	String staged_wasm_file_name;
 	String staged_wasm_name;
 	String staged_map_name;
-	String staged_pre_file_name;
-	String staged_pre_name;
 	String staged_api_name;
 	String staged_meta_name;
 	bool publication_failed = false;
-	if(stage_artifacts)
-	{
-		u64 stage_id = compiler_invocation_stage_counter.fetch_add(1, std::memory_order_relaxed) + 1;
-		String stage_suffix = ".invocation-" + std::to_string((u64)getpid()) + "-" + std::to_string(stage_id);
-		staged_wasm_file_name = su->src_file_name + stage_suffix + ".wasm";
-		staged_wasm_name = su->bin_path + "/" + staged_wasm_file_name;
-		staged_map_name = compiler_source_map_path(staged_wasm_name);
-		staged_pre_file_name = su->src_file_name + stage_suffix + ".cpp";
-		staged_pre_name = su->pre_path + "/" + staged_pre_file_name;
-		staged_api_name = su->bin_path + "/" + su->src_file_name + stage_suffix + ".exports.txt";
-		staged_meta_name = su->bin_path + "/" + su->src_file_name + stage_suffix + ".meta.txt";
-		file_unlink(staged_wasm_name);
-		file_unlink(staged_map_name);
-		file_unlink(staged_pre_name);
-		file_unlink(staged_api_name);
-		file_unlink(staged_meta_name);
-	}
+	u64 stage_id = compiler_invocation_stage_counter.fetch_add(1, std::memory_order_relaxed) + 1;
+	String stage_suffix = ".invocation-" + std::to_string((u64)getpid()) + "-" + std::to_string(stage_id);
+	staged_wasm_name = su->bin_path + "/" + su->src_file_name + stage_suffix + ".wasm";
+	staged_map_name = compiler_source_map_path(staged_wasm_name);
+	staged_api_name = su->bin_path + "/" + su->src_file_name + stage_suffix + ".exports.txt";
+	staged_meta_name = su->bin_path + "/" + su->src_file_name + stage_suffix + ".meta.txt";
+	file_unlink(staged_wasm_name);
+	file_unlink(staged_map_name);
+	file_unlink(staged_api_name);
+	file_unlink(staged_meta_name);
+
 	for(u64 attempt = 0; attempt < 2; attempt++)
 	{
-		if(deadline && deadline->expire_if_needed())
-			break;
+		if(deadline && deadline->expire_if_needed()) break;
 		su->api_declarations.clear();
 		compiled_input_signature = compiler_unit_input_signature(context, su);
-		String generated_source;
+		try
 		{
-			CompilerDeadlineScope deadline_scope(deadline);
-			generated_source = preprocess_shared_unit(context, su);
+			capy::CompileOptions options;
+			options.source_path = su->file_name;
+			options.canonical_source_identity = su->file_name;
+			if(!context->server->capy_parsed_source_cache)
+				context->server->capy_parsed_source_cache = std::make_shared<capy::ParsedSourceCache>();
+			options.parsed_source_cache = context->server->capy_parsed_source_cache.get();
+			options.module_name = su->wasm_file_name;
+			options.abi_version = BEARER_WASM_CORE_ABI_VERSION;
+			options.cancelled = [deadline]() { return deadline && deadline->expire_if_needed(); };
+			options.import_type_metadata = [context, deadline, current_source = su->file_name](const std::string& path, const std::string& current) {
+				(void)current;
+				String resolved = compiler_resolve_unit_path(context, path, dirname(current_source));
+				if(resolved == "") throw capy::Error({current_source, 1, 1, 0}, "#import path is not readable: " + path);
+				bool timed_out = false;
+				u64 remaining = deadline ? deadline->remaining_ms() : 30000;
+				SharedUnit* imported = get_shared_unit_bounded(context, resolved, remaining, &timed_out);
+				if(timed_out) throw capy::Error({current_source, 1, 1, 0}, "#import timed out: " + path);
+				if(!imported || trim(imported->compiler_messages) != "") throw capy::Error({current_source, 1, 1, 0}, "#import failed to compile: " + path);
+				std::vector<std::string> result;
+				for(const auto& line : compiler_unit_exports(imported)) if(trim(line).rfind("capy type ", 0) == 0) result.push_back(trim(line));
+				return result;
+			};
+			auto result = capy::compile_bearer_unit(file_get_contents(su->file_name), options);
+			auto validation = capy::wasm::validate_bearer_unit(result.wasm, { .bearer_abi_version = std::to_string(BEARER_WASM_CORE_ABI_VERSION) });
+			if(!validation.valid) throw std::runtime_error("native Capy compiler emitted invalid Wasm: " + validation.error);
+			for(const auto& name : result.custom_exports) su->api_declarations.push_back("DValue* " + name + "(DValue*);");
+			for(const auto& function : result.function_exports) su->api_declarations.push_back(function);
+			for(const auto& type : result.type_exports) su->api_declarations.push_back(type);
+			String wasm_content((const char*)result.wasm.data(), result.wasm.size());
+			if(!file_put_contents(staged_wasm_name, wasm_content) || !file_put_contents(staged_map_name, result.source_map) ||
+				!file_put_contents(staged_api_name, join_strings(su->api_declarations, "\n")))
+				throw std::runtime_error("could not write native Capy compiler artifacts");
+			su->compiler_messages = "";
 		}
-		if(deadline && deadline->dependency_failure)
+		catch(const std::exception& error)
 		{
-			su->compiler_messages = first(deadline->dependency_error, "transitive dependency compilation failed");
-			break;
-		}
-		if(deadline && (deadline->timed_out || deadline->operational_failure))
-			break;
-		if(!file_put_contents(stage_artifacts ? staged_pre_name : su->pre_path + "/" + su->pre_file_name, generated_source) ||
-			(!capy_source && !file_put_contents(stage_artifacts ? staged_api_name : su->api_file_name, join_strings(su->api_declarations, "\n"))))
-		{
-			su->compiler_messages = "could not write generated bounded compile inputs";
-			break;
-		}
-
-		String compiled_wasm_name = stage_artifacts ? staged_wasm_name : su->wasm_name;
-		String compiled_map_name = compiler_source_map_path(compiled_wasm_name);
-		if(capy_source)
-		{
-			try
-			{
-				capy::CompileOptions options;
-				options.source_path = su->file_name;
-				options.canonical_source_identity = su->file_name;
-				if(!context->server->capy_parsed_source_cache)
-					context->server->capy_parsed_source_cache = std::make_shared<capy::ParsedSourceCache>();
-				options.parsed_source_cache = context->server->capy_parsed_source_cache.get();
-				options.module_name = su->wasm_file_name;
-				options.abi_version = BEARER_WASM_CORE_ABI_VERSION;
-				options.cancelled = [deadline]() { return deadline && deadline->expire_if_needed(); };
-				auto result = capy::compile_bearer_unit(generated_source, options);
-				auto validation = capy::wasm::validate_bearer_unit(result.wasm,
-					{ .bearer_abi_version = std::to_string(BEARER_WASM_CORE_ABI_VERSION) });
-				if(!validation.valid)
-					throw std::runtime_error("native Capy compiler emitted invalid Wasm: " + validation.error);
-				su->api_declarations.clear();
-				for(const auto& name : result.custom_exports)
-					su->api_declarations.push_back("DValue* " + name + "(DValue*);");
-				String wasm_content((const char*)result.wasm.data(), result.wasm.size());
-				if(!file_put_contents(compiled_wasm_name, wasm_content) || !file_put_contents(compiled_map_name, result.source_map) ||
-					!file_put_contents(stage_artifacts ? staged_api_name : su->api_file_name, join_strings(su->api_declarations, "\n")))
-					throw std::runtime_error("could not write native Capy compiler artifacts");
-				su->compiler_messages = "";
-			}
-			catch(const std::exception& error)
-			{
-				su->compiler_messages = error.what();
-				file_unlink(compiled_wasm_name);
-				file_unlink(compiled_map_name);
-			}
-		}
-		else
-		{
-			String compile_command = "BEARER_UNIT_ABI_VERSION=" + std::to_string(BEARER_WASM_CORE_ABI_VERSION) + " " +
-				shell_escape(compiler_wasm_compile_script(context))+" "+
-				shell_escape(su->src_path)+" "+
-				shell_escape(su->bin_path)+" "+
-				shell_escape(su->file_name)+" "+
-				shell_escape(stage_artifacts ? staged_pre_file_name : su->pre_file_name)+" "+
-				shell_escape(stage_artifacts ? staged_wasm_file_name : su->wasm_file_name)+" "+
-				shell_escape(compiler_unit_bin_directory(context));
-			if(deadline)
-			{
-				u64 remaining_ms = deadline->remaining_ms();
-				if(remaining_ms == 0)
-				{
-					deadline->timed_out = true;
-					break;
-				}
-				DValue execution = process_exec(compile_command + " 2>&1", "", StringMap(), remaining_ms, 1024 * 1024);
-				if(execution["timed_out"].to_bool())
-				{
-					deadline->timed_out = true;
-					break;
-				}
-				su->compiler_messages = trim(execution["stdout"].to_string() + execution["stderr"].to_string());
-				if(execution["output_truncated"].to_bool())
-					su->compiler_messages += (su->compiler_messages == "" ? "" : "\n") + String("compiler output truncated at 1048576 bytes");
-				if(execution["exit_code"].to_s64(-1) != 0 && su->compiler_messages == "")
-					su->compiler_messages = "wasm compile script exited with status " + std::to_string(execution["exit_code"].to_s64(-1));
-			}
-			else
-				su->compiler_messages = trim(shell_exec(compile_command));
-		}
-
-		if(su->compiler_messages.length() == 0 && !file_exists(compiled_wasm_name))
-			su->compiler_messages = "wasm compile script completed without creating " + compiled_wasm_name;
-		if(su->compiler_messages.length() > 0)
-			break;
-		String current_input_signature = compiler_unit_input_signature(context, su);
-		if(current_input_signature == compiled_input_signature)
-		{
-			if(stage_artifacts)
-			{
-				if(deadline && deadline->expire_if_needed())
-					break;
-				String source_map = file_get_contents(staged_map_name);
-				if(source_map == "")
-					su->compiler_messages = "bounded wasm compile did not create a source map";
-				else
-			{
-					if(!file_put_contents(staged_map_name, replace(source_map, staged_pre_name, compiler_generated_cpp_path(su))) ||
-						!file_put_contents(staged_meta_name, compiler_unit_metadata_text(context, su, compiled_input_signature,
-							staged_wasm_name, staged_api_name, staged_map_name)))
-					{
-						su->compiler_messages = "could not stage bounded compile metadata";
-						publication_failed = true;
-					}
-					else
-						publication_failed = !compiler_publish_staged_artifacts(su, staged_pre_name, staged_api_name,
-							staged_wasm_name, staged_map_name, staged_meta_name, deadline, su->compiler_messages);
-				}
-			}
-			break;
-		}
-		if(stage_artifacts)
-		{
+			su->compiler_messages = error.what();
 			file_unlink(staged_wasm_name);
 			file_unlink(staged_map_name);
-			file_unlink(staged_pre_name);
-			file_unlink(staged_api_name);
-			file_unlink(staged_meta_name);
 		}
-		else
-			compiler_unlink_unit_wasm_artifacts(su);
-		if(attempt == 1)
-			su->compiler_messages = "source changed during wasm compile; retry required";
+		if(su->compiler_messages != "") break;
+		if(compiler_unit_input_signature(context, su) == compiled_input_signature)
+		{
+			if(deadline && deadline->expire_if_needed()) break;
+			if(!file_put_contents(staged_meta_name, compiler_unit_metadata_text(context, su, compiled_input_signature, staged_wasm_name, staged_api_name, staged_map_name)))
+			{
+				su->compiler_messages = "could not stage bounded compile metadata";
+				publication_failed = true;
+			}
+			else publication_failed = !compiler_publish_staged_artifacts(su, staged_api_name, staged_wasm_name, staged_map_name, staged_meta_name, deadline, su->compiler_messages);
+			break;
+		}
+		file_unlink(staged_wasm_name);
+		file_unlink(staged_map_name);
+		file_unlink(staged_api_name);
+		file_unlink(staged_meta_name);
+		if(attempt == 1) su->compiler_messages = "source changed during wasm compile; retry required";
 	}
 	if(deadline && deadline->timed_out)
-	{
-		file_unlink(staged_wasm_name);
-		file_unlink(staged_map_name);
-		file_unlink(staged_pre_name);
-		file_unlink(staged_api_name);
-		file_unlink(staged_meta_name);
 		su->compiler_messages = "BEARER_INVOCATION_TIMEOUT: unit compilation exceeded the invocation deadline";
-		compiler_record_compile_result(su, time_precise() - comp_start, false, "compile_timeout", su->compiler_messages);
-		return;
-	}
 	if(deadline && deadline->operational_failure)
-	{
-		file_unlink(staged_wasm_name);
-		file_unlink(staged_map_name);
-		file_unlink(staged_pre_name);
-		file_unlink(staged_api_name);
-		file_unlink(staged_meta_name);
 		su->compiler_messages = first(deadline->operational_error, "transitive dependency compilation failed");
-		compiler_record_compile_result(su, time_precise() - comp_start, false, "dependency_error", su->compiler_messages);
-		return;
-	}
-	if(publication_failed)
-	{
-		file_unlink(staged_wasm_name);
-		file_unlink(staged_map_name);
-		file_unlink(staged_pre_name);
-		file_unlink(staged_api_name);
-		file_unlink(staged_meta_name);
-		compiler_record_compile_result(su, time_precise() - comp_start, false, "publish_error", su->compiler_messages);
-		if(deadline)
-		{
-			deadline->operational_failure = true;
-			deadline->operational_error = su->compiler_messages;
-		}
-		return;
-	}
-	if(stage_artifacts)
-	{
-		file_unlink(staged_wasm_name);
-		file_unlink(staged_map_name);
-		file_unlink(staged_pre_name);
-		file_unlink(staged_api_name);
-		file_unlink(staged_meta_name);
-	}
-
-	if(su->compiler_messages.length() > 0)
+	file_unlink(staged_wasm_name);
+	file_unlink(staged_map_name);
+	file_unlink(staged_api_name);
+	file_unlink(staged_meta_name);
+	if(su->compiler_messages != "")
 	{
 		String raw_messages = su->compiler_messages;
 		file_put_contents(su->compile_output_file_name, raw_messages + "\n");
 		file_put_contents(su->wasm_check_file_name, raw_messages + "\n");
 		file_put_contents(su->meta_file_name, compiler_unit_metadata_text(context, su, compiled_input_signature));
-		if(!publication_failed && !preserve_last_known_good)
-			compiler_unlink_unit_wasm_artifacts(su);
-		compiler_record_compile_result(su, time_precise() - comp_start, false, "compile_error", raw_messages);
+		if(!publication_failed && !preserve_last_known_good) compiler_unlink_unit_wasm_artifacts(su);
+		compiler_record_compile_result(su, time_precise() - comp_start, false, deadline && deadline->timed_out ? "compile_timeout" : "compile_error", raw_messages);
 		printf("%s \n", compiler_format_compile_failure(context, su, raw_messages).c_str());
 	}
 	else
 	{
 		su->last_compiled = file_mtime(su->wasm_name);
-		if(!deadline)
-		{
-			file_unlink(compiler_cached_wasm_path(su->wasm_name));
-			file_unlink(compiler_cached_wasm_manifest_path(su->wasm_name));
-			file_put_contents(su->meta_file_name, compiler_unit_metadata_text(context, su, compiled_input_signature,
-				su->wasm_name, su->api_file_name));
-		}
+		file_unlink(compiler_cached_wasm_path(su->wasm_name));
+		file_unlink(compiler_cached_wasm_manifest_path(su->wasm_name));
 		file_unlink(su->compile_output_file_name);
 		file_unlink(su->wasm_check_file_name);
-		compiler_record_compile_result(
-			su,
-			time_precise() - comp_start,
-			file_exists(su->wasm_name),
-			(file_exists(su->wasm_name) ? "compiled" : "compile_error"),
-			compiler_error_status(su)
-		);
-		printf("(i) compiled wasm unit %s in %f s\n",
-			(su->pre_path + "/" + su->pre_file_name).c_str(),
-			time_precise() - comp_start);
+		compiler_record_compile_result(su, time_precise() - comp_start, file_exists(su->wasm_name), file_exists(su->wasm_name) ? "compiled" : "compile_error", compiler_error_status(su));
+		printf("(i) compiled Capy unit %s in %f s\n", su->file_name.c_str(), time_precise() - comp_start);
 	}
-	if(deadline)
-		compiler_mark_source_generation_nonblocking(context);
-	else
-		compiler_mark_source_generation(context);
+	if(deadline) compiler_mark_source_generation_nonblocking(context); else compiler_mark_source_generation(context);
 }
 
 void compile_shared_unit(Request* context, SharedUnit* su)
@@ -1736,28 +1513,6 @@ SharedUnit* compiler_get_shared_unit_internal(Request* context, String file_name
 SharedUnit* get_shared_unit(Request* context, String file_name)
 {
 	return(compiler_get_shared_unit_internal(context, file_name, false));
-}
-
-SharedUnit* get_shared_unit_for_preprocess(Request* context, String file_name)
-{
-	if(!compiler_active_deadline)
-		return(get_shared_unit(context, file_name));
-	auto result = compiler_get_shared_unit_internal(context, file_name, false, false, compiler_active_deadline);
-	if(result && trim(result->compiler_messages) != "")
-	{
-		compiler_active_deadline->dependency_failure = true;
-		compiler_active_deadline->dependency_error = "transitive dependency compilation failed: " + file_name + "\n" + trim(result->compiler_messages);
-		return(0);
-	}
-	if(!result)
-		return(0);
-	if(!file_exists(compiler_generated_cpp_path(result)))
-	{
-		compiler_active_deadline->dependency_failure = true;
-		compiler_active_deadline->dependency_error = "transitive dependency generated source unavailable: " + file_name;
-		return(0);
-	}
-	return(result);
 }
 
 SharedUnit* get_shared_unit_bounded(Request* context, String file_name, u64 timeout_ms, bool* timed_out)
@@ -2173,9 +1928,7 @@ DValue unit_info(String path)
 	info["file_name"] = su->file_name;
 	info["src_path"] = su->src_path;
 	info["bin_path"] = su->bin_path;
-	info["pre_path"] = su->pre_path;
 	info["src_file_name"] = su->src_file_name;
-	info["pre_file_name"] = su->pre_file_name;
 	info["wasm_file_name"] = su->wasm_file_name;
 	info["wasm_name"] = su->wasm_name;
 	info["wasm_exists"].set_bool(file_exists(su->wasm_name));
@@ -2208,7 +1961,6 @@ DValue unit_info(String path)
 	info["compiled_mtime"] = (f64)fs_state.compiled_time;
 	info["metadata_mtime"] = (f64)fs_state.metadata_time;
 	info["compile_output_mtime"] = (f64)fs_state.compile_output_time;
-	info["setup_template_mtime"] = (f64)fs_state.setup_template_time;
 	info["required_mtime"] = (f64)fs_state.required_time;
 	info["runtime_abi_version"] = (f64)fs_state.runtime_abi_version;
 	info["metadata_abi_version"] = (f64)fs_state.metadata_abi_version;
@@ -2234,7 +1986,32 @@ DValue unit_info(String path)
 	compiler_tree_set_bool(info, "has_websocket", false);
 	compiler_tree_set_bool(info, "has_setup", false);
 	compiler_tree_set_bool(info, "has_error", trim(compiler_error_status(su)) != "");
+	std::vector<String> function_exports, type_exports;
+	auto push_unique = [](std::vector<String>& values, const String& value) {
+		if(value != "" && std::find(values.begin(), values.end(), value) == values.end())
+			values.push_back(value);
+	};
+	for(const auto& declaration : exports)
+	{
+		String line = trim(declaration);
+		if(line.rfind("DValue* ", 0) == 0)
+		{
+			auto open = line.find('(');
+			String name = open == String::npos ? String("") : trim(line.substr(8, open - 8));
+			push_unique(function_exports, name);
+		}
+		else if(line.rfind("capy function ", 0) == 0)
+		{
+			auto open = line.find('(');
+			String name = open == String::npos ? String("") : trim(line.substr(14, open - 14));
+			push_unique(function_exports, name);
+		}
+		else if(line.rfind("capy type ", 0) == 0)
+			type_exports.push_back(line.substr(10));
+	}
 	compiler_tree_push_strings(info["exports"], exports);
+	compiler_tree_push_strings(info["function_exports"], function_exports);
+	compiler_tree_push_strings(info["type_exports"], type_exports);
 	info["exports_text"] = exports_text;
 	return(info);
 }

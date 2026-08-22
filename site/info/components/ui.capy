@@ -1,0 +1,49 @@
+function COMPONENT:LINK_CARD(request : dval) {
+    var href := string(request.props.href, "#")
+    var title := string(request.props.title, "")
+    var body := string(request.props.body, "")
+    var meta := string(request.props.meta, "")
+    print(<>
+        <a class="link-card" href="<?= href ?>">
+            <div class="link-meta"><?= meta ?></div>
+            <strong><?= title ?></strong>
+            <span><?= body ?></span>
+        </a>
+    </>)
+}
+
+function COMPONENT:FEATURE(request : dval) {
+    var eyebrow := string(request.props.eyebrow, "")
+    var title := string(request.props.title, "")
+    var body := string(request.props.body, "")
+    print(<>
+        <article class="feature-card">
+            <div class="eyebrow"><?= eyebrow ?></div>
+            <h3><?= title ?></h3>
+            <p><?= body ?></p>
+        </article>
+    </>)
+}
+
+function COMPONENT:SIGNAL(request : dval) {
+    var title := string(request.props.title, "")
+    var body := string(request.props.body, "")
+    print(<>
+        <article class="signal-card">
+            <strong><?= title ?></strong>
+            <span><?= body ?></span>
+        </article>
+    </>)
+}
+
+function COMPONENT:CODE_BLOCK(request : dval) {
+    var title := string(request.props.title, "")
+    var code := string(request.props.code, "")
+    print(<>
+        <article class="code-card">
+            <div class="eyebrow">Capy</div>
+            <h3><?= title ?></h3>
+            <pre><code><?= code ?></code></pre>
+        </article>
+    </>)
+}

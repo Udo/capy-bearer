@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "dvalue-assign" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_assign"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-assign"
+        page["route"] = "/doc/api/dvalue-assign/"
+        page["title"] = "DValue::operator="
+        page["content"] = "Use `dval_assign(value, source)` in Capy to replace the target content. The function mutates `value` and returns that same identity. All workspace aliases observe the mutation. Existing code can still write `value = dval_assign(value, source)`.\n\nC++ `operator=` calls the matching `set(...)` overload. It assigns strings, numbers, pointers, `DValue` values, and `StringMap` values. Use `set_bool()` for C++ Boolean values.\n\n"
+        page["returns"] = "none"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::assign"
+        page["sig_lines"] = dval(["void DValue::operator=(String v)", "void DValue::operator=(f64 v)", "void DValue::operator=(void* v)", "void DValue::operator=(DValue v)", "void DValue::operator=(StringMap v)", ""])
+        page["capy_sig_lines"] = dval(["function dval_assign(value : dval, source : as dval) dval"])
+        page["param_lines"] = dval(["v : assigned value", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "2_DValue_set", "2_DValue_set_bool"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

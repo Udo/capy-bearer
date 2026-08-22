@@ -25,9 +25,3 @@ The operation makes a scalar map-shaped. A missing key causes no other change. R
 var user := dval_remove(dval({"a": "1", "b": "2"}), "a")
 if dval_has(user, "a") { print("has a: yes") } else { print("has a: no") }
 if dval_has(user, "b") { print(", has b: yes\n") } else { print(", has b: no\n") }
-
-:example cpp render
-DValue u;
-u["a"] = "1"; u["b"] = "2";
-u.remove("a");
-print("has a: ", u.has("a") ? "yes" : "no", ", has b: ", u.has("b") ? "yes" : "no", "\n");

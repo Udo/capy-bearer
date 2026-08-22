@@ -1,6 +1,6 @@
 # Markdown Demo
 
-This page exercises **strong**, *emphasis*, ~~strikethrough~~, `code spans`, and a bare URL: https://example.com/doc/index.uce
+This page exercises **strong**, *emphasis*, ~~strikethrough~~, `code spans`, and a bare URL: https://example.com/doc/
 
 ## Task List
 

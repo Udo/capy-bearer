@@ -22,8 +22,3 @@ C++ `has(key)` applies the same test after it dereferences the value.
 var user := dval({"name": "Ada"})
 if dval_has(user, "name") { print("has name") } else { print("no name") }
 if dval_has(user, "age") { print(" / has age\n") } else { print(" / no age\n") }
-
-:example cpp render
-DValue u;
-u["name"] = "Ada";
-print(u.has("name") ? "has name" : "no name", " / ", u.has("age") ? "has age" : "no age", "\n");

@@ -23,13 +23,6 @@ if path_is_within(path, root) { print("inside / ") } else { print("outside / ") 
 if path_is_within(path_join(root, "../" + basename(root) + "/app.txt"), root) { print("inside\n") } else { print("outside\n") }
 dir_remove(root, true)
 
-:example cpp render
-mkdir("/tmp/doc-within");
-file_put_contents("/tmp/doc-within/app.txt", "x");
-print(path_is_within("/tmp/doc-within/app.txt", "/tmp/doc-within") ? "inside" : "outside", " / ");
-print(path_is_within("/tmp/doc-within/../doc-within/app.txt", "/tmp/doc-within") ? "inside" : "outside", "\n");
-dir_remove("/tmp/doc-within", true);
-
 :see
 >sys
 path_real

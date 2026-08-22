@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "units-list" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "units_list"
+        page["kind"] = "api"
+        page["slug"] = "units-list"
+        page["route"] = "/doc/api/units-list/"
+        page["title"] = "units_list"
+        page["content"] = "Call `units_list()` to inspect the units that the current runtime can load.\n\nThe list includes known `.capy` units and units already loaded by the current runtime process.\n\nC++ returns a `DValue` list through the signature above. Use the same normal use case.\n"
+        page["returns"] = "a `dval` list of known unit paths"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "units_list"
+        page["sig_lines"] = dval(["DValue units_list()", ""])
+        page["capy_sig_lines"] = dval(["function units_list() dval"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">runtime", "unit_info", "unit_compile", "unit_load"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

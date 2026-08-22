@@ -102,7 +102,7 @@ REMOVED_APIS = ["concat"]
 
 def all_test_text() -> str:
     parts = []
-    for pattern in ("*.uce", "*.capy"):
+    for pattern in ("*.capy",):
         for path in TEST_DIR.glob(pattern):
             parts.append(path.read_text(errors="ignore"))
     return "\n".join(parts)

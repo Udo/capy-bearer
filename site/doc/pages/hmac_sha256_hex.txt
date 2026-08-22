@@ -16,9 +16,6 @@ Use it when you need a printable signature. Compare received signatures with `cr
 :example capy render
 print(hmac_sha256_hex("key", "The quick brown fox jumps over the lazy dog"), "\n")
 
-:example cpp render
-print(hmac_sha256_hex("key", "The quick brown fox jumps over the lazy dog"), "\n");
-
 :see
 >sys
 hmac_sha256

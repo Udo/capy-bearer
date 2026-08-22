@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "uri-encode" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "uri_encode"
+        page["kind"] = "api"
+        page["slug"] = "uri-encode"
+        page["route"] = "/doc/api/uri-encode/"
+        page["title"] = "uri_encode"
+        page["content"] = "`uri_encode(value)` accepts a `string` and returns its URI-encoded `string` form.\n\nUse it before you place text in a URI component. The API has no error return.\n\nC++ uses the signature above. Its `String` input and return value correspond to Capy `string` values.\n\n"
+        page["returns"] = "an URI-encoded version of 's'"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "uri_encode"
+        page["sig_lines"] = dval(["String uri_encode(String s)", ""])
+        page["capy_sig_lines"] = dval(["function uri_encode(value : string) string"])
+        page["param_lines"] = dval(["s : string that should be encoded", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">uri", "uri_decode", "request_route_from_raw_path", "parse_uri", "parse_query", "session_id_create", "route_path_sanitize"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

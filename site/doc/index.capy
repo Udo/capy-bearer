@@ -1,0 +1,371 @@
+function render_shell(title : string, component_path : string) void {
+    print("<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></meta><title>", html_escape(title), "</title><link rel=\"stylesheet\" href=\"/doc/style.css\"></link></head><body><h1><a href=\"/doc/\">BEARER Docs</a></h1>")
+    component_render(component_path)
+    print("</body></html>")
+}
+
+function render_page_shell(kind : string, slug : string) void {
+    print("<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></meta><title>Bearer Documentation</title><link rel=\"stylesheet\" href=\"/doc/style.css\"></link></head><body><h1><a href=\"/doc/\">BEARER Docs</a></h1>")
+    component_render("/doc/components/page.capy", {kind: kind, slug: slug})
+    print("</body></html>")
+}
+
+function render_legacy(page : string) bool {
+    if page == "" || page == "index" { return false }
+    if page == "0_DValue" { render_page_shell("api", "dvalue"); return true }
+    if page == "0_Request" { render_page_shell("api", "request"); return true }
+    if page == "0_String" { render_page_shell("api", "string"); return true }
+    if page == "0_StringList" { render_page_shell("api", "string-list"); return true }
+    if page == "0_StringMap" { render_page_shell("api", "string-map"); return true }
+    if page == "1_CLI" { render_page_shell("api", "cli"); return true }
+    if page == "1_COMPONENT" { render_page_shell("api", "component"); return true }
+    if page == "1_INIT" { render_page_shell("api", "init"); return true }
+    if page == "1_ONCE" { render_page_shell("api", "once"); return true }
+    if page == "1_RENDER" { render_page_shell("api", "render"); return true }
+    if page == "1_WS" { render_page_shell("api", "ws"); return true }
+    if page == "2_DValue_assign" { render_page_shell("api", "dvalue-assign"); return true }
+    if page == "2_DValue_clear" { render_page_shell("api", "dvalue-clear"); return true }
+    if page == "2_DValue_deref" { render_page_shell("api", "dvalue-deref"); return true }
+    if page == "2_DValue_each" { render_page_shell("api", "dvalue-each"); return true }
+    if page == "2_DValue_filter" { render_page_shell("api", "dvalue-filter"); return true }
+    if page == "2_DValue_get_by_path" { render_page_shell("api", "dvalue-get-by-path"); return true }
+    if page == "2_DValue_get_or_create" { render_page_shell("api", "dvalue-get-or-create"); return true }
+    if page == "2_DValue_get_type_name" { render_page_shell("api", "dvalue-get-type-name"); return true }
+    if page == "2_DValue_has" { render_page_shell("api", "dvalue-has"); return true }
+    if page == "2_DValue_is_array" { render_page_shell("api", "dvalue-is-array"); return true }
+    if page == "2_DValue_is_list" { render_page_shell("api", "dvalue-is-list"); return true }
+    if page == "2_DValue_is_reference" { render_page_shell("api", "dvalue-is-reference"); return true }
+    if page == "2_DValue_key" { render_page_shell("api", "dvalue-key"); return true }
+    if page == "2_DValue_keys" { render_page_shell("api", "dvalue-keys"); return true }
+    if page == "2_DValue_map" { render_page_shell("api", "dvalue-map"); return true }
+    if page == "2_DValue_operator_index" { render_page_shell("api", "dvalue-operator-index"); return true }
+    if page == "2_DValue_pop" { render_page_shell("api", "dvalue-pop"); return true }
+    if page == "2_DValue_push" { render_page_shell("api", "dvalue-push"); return true }
+    if page == "2_DValue_reference_target" { render_page_shell("api", "dvalue-reference-target"); return true }
+    if page == "2_DValue_remove" { render_page_shell("api", "dvalue-remove"); return true }
+    if page == "2_DValue_require" { render_page_shell("api", "dvalue-require"); return true }
+    if page == "2_DValue_set" { render_page_shell("api", "dvalue-set"); return true }
+    if page == "2_DValue_set_array" { render_page_shell("api", "dvalue-set-array"); return true }
+    if page == "2_DValue_set_bool" { render_page_shell("api", "dvalue-set-bool"); return true }
+    if page == "2_DValue_set_reference" { render_page_shell("api", "dvalue-set-reference"); return true }
+    if page == "2_DValue_set_type" { render_page_shell("api", "dvalue-set-type"); return true }
+    if page == "2_DValue_to_bool" { render_page_shell("api", "dvalue-to-bool"); return true }
+    if page == "2_DValue_to_f64" { render_page_shell("api", "dvalue-to-f64"); return true }
+    if page == "2_DValue_to_json" { render_page_shell("api", "dvalue-to-json"); return true }
+    if page == "2_DValue_to_s64" { render_page_shell("api", "dvalue-to-s64"); return true }
+    if page == "2_DValue_to_string" { render_page_shell("api", "dvalue-to-string"); return true }
+    if page == "2_DValue_to_stringmap" { render_page_shell("api", "dvalue-to-stringmap"); return true }
+    if page == "2_DValue_to_u64" { render_page_shell("api", "dvalue-to-u64"); return true }
+    if page == "2_DValue_values" { render_page_shell("api", "dvalue-values"); return true }
+    if page == "2_Request_ob_start" { render_page_shell("api", "request-ob-start"); return true }
+    if page == "2_Request_set_status" { render_page_shell("api", "request-set-status"); return true }
+    if page == "2_StringList_each" { render_page_shell("api", "string-list-each"); return true }
+    if page == "2_StringList_every" { render_page_shell("api", "string-list-every"); return true }
+    if page == "2_StringList_filter" { render_page_shell("api", "string-list-filter"); return true }
+    if page == "2_StringList_find" { render_page_shell("api", "string-list-find"); return true }
+    if page == "2_StringList_keys" { render_page_shell("api", "string-list-keys"); return true }
+    if page == "2_StringList_map" { render_page_shell("api", "string-list-map"); return true }
+    if page == "2_StringList_some" { render_page_shell("api", "string-list-some"); return true }
+    if page == "2_StringList_sort" { render_page_shell("api", "string-list-sort"); return true }
+    if page == "2_StringList_unique" { render_page_shell("api", "string-list-unique"); return true }
+    if page == "3_Blocked functions" { render_page_shell("api", "blocked-functions"); return true }
+    if page == "3_C++ Preprocessor" { render_page_shell("api", "cpp-preprocessor"); return true }
+    if page == "3_Coming from React" { render_page_shell("api", "coming-from-react"); return true }
+    if page == "3_Documentation format" { render_page_shell("api", "documentation-format"); return true }
+    if page == "array_merge" { render_page_shell("api", "array-merge"); return true }
+    if page == "ascii_safe_name" { render_page_shell("api", "ascii-safe-name"); return true }
+    if page == "backtrace_capture" { render_page_shell("api", "backtrace-capture"); return true }
+    if page == "backtrace_get_frames" { render_page_shell("api", "backtrace-get-frames"); return true }
+    if page == "base64_decode" { render_page_shell("api", "base64-decode"); return true }
+    if page == "base64_encode" { render_page_shell("api", "base64-encode"); return true }
+    if page == "basename" { render_page_shell("api", "basename"); return true }
+    if page == "bool" { render_page_shell("api", "bool"); return true }
+    if page == "brb_decode" { render_page_shell("api", "brb-decode"); return true }
+    if page == "brb_encode" { render_page_shell("api", "brb-encode"); return true }
+    if page == "call" { render_page_shell("api", "call"); return true }
+    if page == "cli_arg" { render_page_shell("api", "cli-arg"); return true }
+    if page == "cli_input" { render_page_shell("api", "cli-input"); return true }
+    if page == "clone" { render_page_shell("api", "clone"); return true }
+    if page == "component" { render_page_shell("api", "component-2"); return true }
+    if page == "component_capture" { render_page_shell("api", "component-capture"); return true }
+    if page == "component_exists" { render_page_shell("api", "component-exists"); return true }
+    if page == "component_render" { render_page_shell("api", "component-render"); return true }
+    if page == "component_resolve" { render_page_shell("api", "component-resolve"); return true }
+    if page == "contains" { render_page_shell("api", "contains"); return true }
+    if page == "crypto_equal" { render_page_shell("api", "crypto-equal"); return true }
+    if page == "csrf_field" { render_page_shell("api", "csrf-field"); return true }
+    if page == "csrf_rotate" { render_page_shell("api", "csrf-rotate"); return true }
+    if page == "csrf_token" { render_page_shell("api", "csrf-token"); return true }
+    if page == "csrf_valid" { render_page_shell("api", "csrf-valid"); return true }
+    if page == "cwd_get" { render_page_shell("api", "cwd-get"); return true }
+    if page == "cwd_set" { render_page_shell("api", "cwd-set"); return true }
+    if page == "dir_list" { render_page_shell("api", "dir-list"); return true }
+    if page == "dir_remove" { render_page_shell("api", "dir-remove"); return true }
+    if page == "dirname" { render_page_shell("api", "dirname"); return true }
+    if page == "draw_float" { render_page_shell("api", "draw-float"); return true }
+    if page == "draw_int" { render_page_shell("api", "draw-int"); return true }
+    if page == "dval" { render_page_shell("api", "dval"); return true }
+    if page == "dval_put" { render_page_shell("api", "dval-put"); return true }
+    if page == "encode_query" { render_page_shell("api", "encode-query"); return true }
+    if page == "error_pages" { render_page_shell("api", "error-pages"); return true }
+    if page == "expand_path" { render_page_shell("api", "expand-path"); return true }
+    if page == "f64" { render_page_shell("api", "f64"); return true }
+    if page == "file_append" { render_page_shell("api", "file-append"); return true }
+    if page == "file_chmod" { render_page_shell("api", "file-chmod"); return true }
+    if page == "file_close" { render_page_shell("api", "file-close"); return true }
+    if page == "file_copy" { render_page_shell("api", "file-copy"); return true }
+    if page == "file_exists" { render_page_shell("api", "file-exists"); return true }
+    if page == "file_fsync" { render_page_shell("api", "file-fsync"); return true }
+    if page == "file_get_contents" { render_page_shell("api", "file-get-contents"); return true }
+    if page == "file_mtime" { render_page_shell("api", "file-mtime"); return true }
+    if page == "file_open" { render_page_shell("api", "file-open"); return true }
+    if page == "file_pread" { render_page_shell("api", "file-pread"); return true }
+    if page == "file_put_contents" { render_page_shell("api", "file-put-contents"); return true }
+    if page == "file_pwrite" { render_page_shell("api", "file-pwrite"); return true }
+    if page == "file_read" { render_page_shell("api", "file-read"); return true }
+    if page == "file_rename" { render_page_shell("api", "file-rename"); return true }
+    if page == "file_seek" { render_page_shell("api", "file-seek"); return true }
+    if page == "file_stat" { render_page_shell("api", "file-stat"); return true }
+    if page == "file_symlink" { render_page_shell("api", "file-symlink"); return true }
+    if page == "file_tell" { render_page_shell("api", "file-tell"); return true }
+    if page == "file_temp" { render_page_shell("api", "file-temp"); return true }
+    if page == "file_truncate" { render_page_shell("api", "file-truncate"); return true }
+    if page == "file_unlink" { render_page_shell("api", "file-unlink"); return true }
+    if page == "file_write" { render_page_shell("api", "file-write"); return true }
+    if page == "filter" { render_page_shell("api", "filter"); return true }
+    if page == "first" { render_page_shell("api", "first"); return true }
+    if page == "float_val" { render_page_shell("api", "float-val"); return true }
+    if page == "gen_float" { render_page_shell("api", "gen-float"); return true }
+    if page == "gen_int" { render_page_shell("api", "gen-int"); return true }
+    if page == "gen_noise01" { render_page_shell("api", "gen-noise01"); return true }
+    if page == "gen_noise32" { render_page_shell("api", "gen-noise32"); return true }
+    if page == "gen_noise64" { render_page_shell("api", "gen-noise64"); return true }
+    if page == "gen_sha1" { render_page_shell("api", "gen-sha1"); return true }
+    if page == "gz_compress" { render_page_shell("api", "gz-compress"); return true }
+    if page == "gz_uncompress" { render_page_shell("api", "gz-uncompress"); return true }
+    if page == "hmac_sha256" { render_page_shell("api", "hmac-sha256"); return true }
+    if page == "hmac_sha256_hex" { render_page_shell("api", "hmac-sha256-hex"); return true }
+    if page == "html_escape" { render_page_shell("api", "html-escape"); return true }
+    if page == "http_request" { render_page_shell("api", "http-request"); return true }
+    if page == "http_request_async" { render_page_shell("api", "http-request-async"); return true }
+    if page == "int_val" { render_page_shell("api", "int-val"); return true }
+    if page == "job_await" { render_page_shell("api", "job-await"); return true }
+    if page == "job_cancel" { render_page_shell("api", "job-cancel"); return true }
+    if page == "job_result" { render_page_shell("api", "job-result"); return true }
+    if page == "job_status" { render_page_shell("api", "job-status"); return true }
+    if page == "join" { render_page_shell("api", "join"); return true }
+    if page == "json_consume_space" { render_page_shell("api", "json-consume-space"); return true }
+    if page == "json_decode" { render_page_shell("api", "json-decode"); return true }
+    if page == "json_encode" { render_page_shell("api", "json-encode"); return true }
+    if page == "length" { render_page_shell("api", "length"); return true }
+    if page == "load" { render_page_shell("api", "load"); return true }
+    if page == "lower" { render_page_shell("api", "lower"); return true }
+    if page == "ls" { render_page_shell("api", "ls"); return true }
+    if page == "map" { render_page_shell("api", "map"); return true }
+    if page == "markdown_to_ast" { render_page_shell("api", "markdown-to-ast"); return true }
+    if page == "markdown_to_html" { render_page_shell("api", "markdown-to-html"); return true }
+    if page == "memcache_command" { render_page_shell("api", "memcache-command"); return true }
+    if page == "memcache_connect" { render_page_shell("api", "memcache-connect"); return true }
+    if page == "memcache_delete" { render_page_shell("api", "memcache-delete"); return true }
+    if page == "memcache_escape_key" { render_page_shell("api", "memcache-escape-key"); return true }
+    if page == "memcache_escape_keys" { render_page_shell("api", "memcache-escape-keys"); return true }
+    if page == "memcache_get" { render_page_shell("api", "memcache-get"); return true }
+    if page == "memcache_get_multiple" { render_page_shell("api", "memcache-get-multiple"); return true }
+    if page == "memcache_set" { render_page_shell("api", "memcache-set"); return true }
+    if page == "mkdir" { render_page_shell("api", "mkdir"); return true }
+    if page == "mysql_affected_rows" { render_page_shell("api", "mysql-affected-rows"); return true }
+    if page == "mysql_connect" { render_page_shell("api", "mysql-connect"); return true }
+    if page == "mysql_connected" { render_page_shell("api", "mysql-connected"); return true }
+    if page == "mysql_disconnect" { render_page_shell("api", "mysql-disconnect"); return true }
+    if page == "mysql_error" { render_page_shell("api", "mysql-error"); return true }
+    if page == "mysql_escape" { render_page_shell("api", "mysql-escape"); return true }
+    if page == "mysql_insert_id" { render_page_shell("api", "mysql-insert-id"); return true }
+    if page == "mysql_query" { render_page_shell("api", "mysql-query"); return true }
+    if page == "nibble" { render_page_shell("api", "nibble"); return true }
+    if page == "ob_close" { render_page_shell("api", "ob-close"); return true }
+    if page == "ob_get" { render_page_shell("api", "ob-get"); return true }
+    if page == "ob_get_close" { render_page_shell("api", "ob-get-close"); return true }
+    if page == "ob_start" { render_page_shell("api", "ob-start"); return true }
+    if page == "parse_query" { render_page_shell("api", "parse-query"); return true }
+    if page == "parse_uri" { render_page_shell("api", "parse-uri"); return true }
+    if page == "password_hash" { render_page_shell("api", "password-hash"); return true }
+    if page == "password_needs_rehash" { render_page_shell("api", "password-needs-rehash"); return true }
+    if page == "password_verify" { render_page_shell("api", "password-verify"); return true }
+    if page == "path_is_within" { render_page_shell("api", "path-is-within"); return true }
+    if page == "path_join" { render_page_shell("api", "path-join"); return true }
+    if page == "path_real" { render_page_shell("api", "path-real"); return true }
+    if page == "print" { render_page_shell("api", "print"); return true }
+    if page == "process_start_directory" { render_page_shell("api", "process-start-directory"); return true }
+    if page == "random_bytes" { render_page_shell("api", "random-bytes"); return true }
+    if page == "redirect" { render_page_shell("api", "redirect"); return true }
+    if page == "regex_match" { render_page_shell("api", "regex-match"); return true }
+    if page == "regex_replace" { render_page_shell("api", "regex-replace"); return true }
+    if page == "regex_search" { render_page_shell("api", "regex-search"); return true }
+    if page == "regex_search_all" { render_page_shell("api", "regex-search-all"); return true }
+    if page == "regex_split" { render_page_shell("api", "regex-split"); return true }
+    if page == "replace" { render_page_shell("api", "replace"); return true }
+    if page == "request_base_url" { render_page_shell("api", "request-base-url"); return true }
+    if page == "request_context_params" { render_page_shell("api", "request-context-params"); return true }
+    if page == "request_perf" { render_page_shell("api", "request-perf"); return true }
+    if page == "request_query_path" { render_page_shell("api", "request-query-path"); return true }
+    if page == "request_query_route" { render_page_shell("api", "request-query-route"); return true }
+    if page == "request_route_from_raw_path" { render_page_shell("api", "request-route-from-raw-path"); return true }
+    if page == "request_script_url" { render_page_shell("api", "request-script-url"); return true }
+    if page == "response_cookie" { render_page_shell("api", "response-cookie"); return true }
+    if page == "response_header" { render_page_shell("api", "response-header"); return true }
+    if page == "response_status" { render_page_shell("api", "response-status"); return true }
+    if page == "route_from_raw_path" { render_page_shell("api", "route-from-raw-path"); return true }
+    if page == "route_path_is_safe" { render_page_shell("api", "route-path-is-safe"); return true }
+    if page == "route_path_normalize" { render_page_shell("api", "route-path-normalize"); return true }
+    if page == "route_path_sanitize" { render_page_shell("api", "route-path-sanitize"); return true }
+    if page == "runtime_perf" { render_page_shell("api", "runtime-perf"); return true }
+    if page == "runtime_safe_key" { render_page_shell("api", "runtime-safe-key"); return true }
+    if page == "s32" { render_page_shell("api", "s32"); return true }
+    if page == "s64" { render_page_shell("api", "s64"); return true }
+    if page == "safe_name" { render_page_shell("api", "safe-name"); return true }
+    if page == "server_start_http" { render_page_shell("api", "server-start-http"); return true }
+    if page == "server_stop" { render_page_shell("api", "server-stop"); return true }
+    if page == "session_destroy" { render_page_shell("api", "session-destroy"); return true }
+    if page == "session_id_create" { render_page_shell("api", "session-id-create"); return true }
+    if page == "session_remove" { render_page_shell("api", "session-remove"); return true }
+    if page == "session_set" { render_page_shell("api", "session-set"); return true }
+    if page == "session_start" { render_page_shell("api", "session-start"); return true }
+    if page == "sha256" { render_page_shell("api", "sha256"); return true }
+    if page == "sha256_hex" { render_page_shell("api", "sha256-hex"); return true }
+    if page == "shell_escape" { render_page_shell("api", "shell-escape"); return true }
+    if page == "shell_exec" { render_page_shell("api", "shell-exec"); return true }
+    if page == "shell_spawn" { render_page_shell("api", "shell-spawn"); return true }
+    if page == "signal_name" { render_page_shell("api", "signal-name"); return true }
+    if page == "socket_close" { render_page_shell("api", "socket-close"); return true }
+    if page == "socket_connect" { render_page_shell("api", "socket-connect"); return true }
+    if page == "socket_read" { render_page_shell("api", "socket-read"); return true }
+    if page == "socket_write" { render_page_shell("api", "socket-write"); return true }
+    if page == "split" { render_page_shell("api", "split"); return true }
+    if page == "split_http_headers" { render_page_shell("api", "split-http-headers"); return true }
+    if page == "split_kv" { render_page_shell("api", "split-kv"); return true }
+    if page == "split_space" { render_page_shell("api", "split-space"); return true }
+    if page == "split_utf8" { render_page_shell("api", "split-utf8"); return true }
+    if page == "sqlite_affected_rows" { render_page_shell("api", "sqlite-affected-rows"); return true }
+    if page == "sqlite_connect" { render_page_shell("api", "sqlite-connect"); return true }
+    if page == "sqlite_disconnect" { render_page_shell("api", "sqlite-disconnect"); return true }
+    if page == "sqlite_error" { render_page_shell("api", "sqlite-error"); return true }
+    if page == "sqlite_insert_id" { render_page_shell("api", "sqlite-insert-id"); return true }
+    if page == "sqlite_query" { render_page_shell("api", "sqlite-query"); return true }
+    if page == "str_ends_with" { render_page_shell("api", "str-ends-with"); return true }
+    if page == "str_starts_with" { render_page_shell("api", "str-starts-with"); return true }
+    if page == "string" { render_page_shell("api", "string-2"); return true }
+    if page == "strpos" { render_page_shell("api", "strpos"); return true }
+    if page == "substr" { render_page_shell("api", "substr"); return true }
+    if page == "task" { render_page_shell("api", "task"); return true }
+    if page == "task_await" { render_page_shell("api", "task-await"); return true }
+    if page == "task_cancel" { render_page_shell("api", "task-cancel"); return true }
+    if page == "task_status" { render_page_shell("api", "task-status"); return true }
+    if page == "time" { render_page_shell("api", "time"); return true }
+    if page == "time_format_local" { render_page_shell("api", "time-format-local"); return true }
+    if page == "time_format_relative" { render_page_shell("api", "time-format-relative"); return true }
+    if page == "time_format_utc" { render_page_shell("api", "time-format-utc"); return true }
+    if page == "time_parse" { render_page_shell("api", "time-parse"); return true }
+    if page == "time_precise" { render_page_shell("api", "time-precise"); return true }
+    if page == "to_bool" { render_page_shell("api", "to-bool"); return true }
+    if page == "to_f64" { render_page_shell("api", "to-f64"); return true }
+    if page == "to_lower" { render_page_shell("api", "to-lower"); return true }
+    if page == "to_s64" { render_page_shell("api", "to-s64"); return true }
+    if page == "to_u64" { render_page_shell("api", "to-u64"); return true }
+    if page == "to_upper" { render_page_shell("api", "to-upper"); return true }
+    if page == "trap" { render_page_shell("api", "trap"); return true }
+    if page == "trim" { render_page_shell("api", "trim"); return true }
+    if page == "trusted_markup" { render_page_shell("api", "trusted-markup"); return true }
+    if page == "u64" { render_page_shell("api", "u64"); return true }
+    if page == "unit_call" { render_page_shell("api", "unit-call"); return true }
+    if page == "unit_compile" { render_page_shell("api", "unit-compile"); return true }
+    if page == "unit_info" { render_page_shell("api", "unit-info"); return true }
+    if page == "unit_load" { render_page_shell("api", "unit-load"); return true }
+    if page == "unit_render" { render_page_shell("api", "unit-render"); return true }
+    if page == "units_list" { render_page_shell("api", "units-list"); return true }
+    if page == "upper" { render_page_shell("api", "upper"); return true }
+    if page == "uri_decode" { render_page_shell("api", "uri-decode"); return true }
+    if page == "uri_encode" { render_page_shell("api", "uri-encode"); return true }
+    if page == "usleep" { render_page_shell("api", "usleep"); return true }
+    if page == "var_dump" { render_page_shell("api", "var-dump"); return true }
+    if page == "ws_close" { render_page_shell("api", "ws-close"); return true }
+    if page == "ws_connection_count" { render_page_shell("api", "ws-connection-count"); return true }
+    if page == "ws_connection_id" { render_page_shell("api", "ws-connection-id"); return true }
+    if page == "ws_connections" { render_page_shell("api", "ws-connections"); return true }
+    if page == "ws_is_binary" { render_page_shell("api", "ws-is-binary"); return true }
+    if page == "ws_message" { render_page_shell("api", "ws-message"); return true }
+    if page == "ws_opcode" { render_page_shell("api", "ws-opcode"); return true }
+    if page == "ws_scope" { render_page_shell("api", "ws-scope"); return true }
+    if page == "ws_send" { render_page_shell("api", "ws-send"); return true }
+    if page == "ws_send_to" { render_page_shell("api", "ws-send-to"); return true }
+    if page == "xml_decode" { render_page_shell("api", "xml-decode"); return true }
+    if page == "xml_encode" { render_page_shell("api", "xml-encode"); return true }
+    if page == "yaml_decode" { render_page_shell("api", "yaml-decode"); return true }
+    if page == "yaml_encode" { render_page_shell("api", "yaml-encode"); return true }
+    if page == "zip_create" { render_page_shell("api", "zip-create"); return true }
+    if page == "zip_extract" { render_page_shell("api", "zip-extract"); return true }
+    if page == "zip_list" { render_page_shell("api", "zip-list"); return true }
+    if page == "zip_read" { render_page_shell("api", "zip-read"); return true }
+    if page == "capy-01-install-and-first-program" { render_page_shell("guide", "install-and-first-program"); return true }
+    if page == "01-install-and-first-program" { render_page_shell("guide", "install-and-first-program"); return true }
+    if page == "capy-02-source-structure-and-syntax" { render_page_shell("guide", "source-structure-and-syntax"); return true }
+    if page == "02-source-structure-and-syntax" { render_page_shell("guide", "source-structure-and-syntax"); return true }
+    if page == "capy-03-values-and-types" { render_page_shell("guide", "values-and-types"); return true }
+    if page == "03-values-and-types" { render_page_shell("guide", "values-and-types"); return true }
+    if page == "capy-04-expressions-and-control-flow" { render_page_shell("guide", "expressions-and-control-flow"); return true }
+    if page == "04-expressions-and-control-flow" { render_page_shell("guide", "expressions-and-control-flow"); return true }
+    if page == "capy-05-functions-and-closures" { render_page_shell("guide", "functions-and-closures"); return true }
+    if page == "05-functions-and-closures" { render_page_shell("guide", "functions-and-closures"); return true }
+    if page == "capy-06-strings-and-markup" { render_page_shell("guide", "strings-and-markup"); return true }
+    if page == "06-strings-and-markup" { render_page_shell("guide", "strings-and-markup"); return true }
+    if page == "capy-07-collections-and-records" { render_page_shell("guide", "collections-and-records"); return true }
+    if page == "07-collections-and-records" { render_page_shell("guide", "collections-and-records"); return true }
+    if page == "capy-08-dynamic-values" { render_page_shell("guide", "dynamic-values"); return true }
+    if page == "08-dynamic-values" { render_page_shell("guide", "dynamic-values"); return true }
+    if page == "capy-09-web-handlers-and-requests" { render_page_shell("guide", "web-handlers-and-requests"); return true }
+    if page == "09-web-handlers-and-requests" { render_page_shell("guide", "web-handlers-and-requests"); return true }
+    if page == "capy-10-units-components-and-exports" { render_page_shell("guide", "units-components-and-exports"); return true }
+    if page == "10-units-components-and-exports" { render_page_shell("guide", "units-components-and-exports"); return true }
+    if page == "capy-11-tasks-and-jobs" { render_page_shell("guide", "tasks-and-jobs"); return true }
+    if page == "11-tasks-and-jobs" { render_page_shell("guide", "tasks-and-jobs"); return true }
+    if page == "capy-12-errors-testing-and-style" { render_page_shell("guide", "errors-testing-and-style"); return true }
+    if page == "12-errors-testing-and-style" { render_page_shell("guide", "errors-testing-and-style"); return true }
+    if page == "capy-01-getting-started" { render_page_shell("guide", "install-and-first-program"); return true }
+    if page == "capy-02-basic-syntax" { render_page_shell("guide", "source-structure-and-syntax"); return true }
+    if page == "capy-03-types" { render_page_shell("guide", "values-and-types"); return true }
+    if page == "capy-04-variables-scope-and-expressions" { render_page_shell("guide", "expressions-and-control-flow"); return true }
+    if page == "capy-05-operators-and-control-flow" { render_page_shell("guide", "expressions-and-control-flow"); return true }
+    if page == "capy-06-functions" { render_page_shell("guide", "functions-and-closures"); return true }
+    if page == "capy-07-strings-and-markup" { render_page_shell("guide", "strings-and-markup"); return true }
+    if page == "capy-08-arrays-tuples-and-structs" { render_page_shell("guide", "collections-and-records"); return true }
+    if page == "capy-09-function-values-closures-and-memory" { render_page_shell("guide", "functions-and-closures"); return true }
+    if page == "capy-10-dvalues" { render_page_shell("guide", "dynamic-values"); return true }
+    if page == "capy-11-web-handlers" { render_page_shell("guide", "web-handlers-and-requests"); return true }
+    if page == "capy-12-components-and-units" { render_page_shell("guide", "units-components-and-exports"); return true }
+    if page == "capy-13-tasks-and-jobs" { render_page_shell("guide", "tasks-and-jobs"); return true }
+    if page == "capy-14-errors-debugging-and-style" { render_page_shell("guide", "errors-testing-and-style"); return true }
+    return false
+}
+
+function RENDER(request : dval) {
+    var pretty := string(request.query.pretty, "")
+    if pretty != "" {
+        var slash := strpos(pretty, "/")
+        var kind := ""
+        var slug := ""
+        if slash >= 0 {
+            kind = substr(pretty, 0, slash)
+            slug = substr(pretty, slash + 1)
+        }
+        if (kind == "api" || kind == "guide") && slug != "" {
+            render_page_shell(kind, slug)
+            return
+        }
+        response_status(404, "Not Found")
+        print("<html><body><h1>Page not found</h1></body></html>")
+        return
+    }
+    var page := string(request.query.p, "")
+    if render_legacy(page) { return }
+    if page != "" { response_status(404, "Not Found"); print("<html><body><h1>Page not found</h1></body></html>"); return }
+    render_shell("Bearer Documentation", "/doc/components/index.capy")
+}

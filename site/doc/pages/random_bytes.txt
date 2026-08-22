@@ -16,10 +16,6 @@ Use these bytes for session IDs, tokens, and salts. The result can contain binar
 var token := base64_encode(random_bytes(16))
 print(length(random_bytes(16)), " raw bytes; as base64 token: ", length(token), " chars\n")
 
-:example cpp render
-String token = base64_encode(random_bytes(16));
-print(random_bytes(16).length(), " raw bytes; as base64 token: ", token.length(), " chars\n");
-
 :see
 >sys
 base64_encode

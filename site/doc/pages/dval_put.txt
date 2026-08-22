@@ -35,8 +35,3 @@ if bool(user.active) {
 } else {
     print("no\n")
 }
-
-:example cpp render
-DValue user;
-user["active"].set_bool(true);
-print(user["active"].to_bool() ? "yes\n" : "no\n");

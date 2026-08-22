@@ -17,8 +17,3 @@ C++ `get_type_name()` gets the name after it dereferences the value.
 var scalar := dval("text")
 var map_value := {"k": "v"}
 print(dval_get_type_name(scalar), " / ", dval_get_type_name(map_value), "\n")
-
-:example cpp render
-DValue s; s.set("text");
-DValue m; m["k"] = "v";
-print(s.get_type_name(), " / ", m.get_type_name(), "\n");

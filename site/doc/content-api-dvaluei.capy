@@ -1,0 +1,75 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "dvalue-is-array" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_is_array"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-is-array"
+        page["route"] = "/doc/api/dvalue-is-array/"
+        page["title"] = "DValue::is_array"
+        page["content"] = "Use `dval_is_array(value)` in Capy to test whether a DValue is map-shaped. It returns `true` for both maps and lists. It does not require numeric or contiguous keys. Use `dval_is_list()` to test for a list.\n\nC++ `is_array()` tests the dereferenced value's `M` container type.\n"
+        page["returns"] = "true when the dereferenced value is map-shaped"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::is_array"
+        page["sig_lines"] = dval(["bool DValue::is_array() const", ""])
+        page["capy_sig_lines"] = dval(["function dval_is_array(value : dval) bool"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "0_DValue", "2_DValue_is_list", "2_DValue_has", "2_DValue_get_by_path", "2_Request_set_status", "2_DValue_each"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "dvalue-is-list" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_is_list"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-is-list"
+        page["route"] = "/doc/api/dvalue-is-list/"
+        page["title"] = "DValue::is_list"
+        page["content"] = "Use `dval_is_list(value)` in Capy to test whether a DValue is a list. It returns `true` for a list-shaped map with keys from `0` through `size - 1`. An empty map is a list only after `dval_set_array()` or a list operation.\n\nC++ `is_list()` applies the same rules after it dereferences the value.\n"
+        page["returns"] = "true when the value is an array with keys 0..n-1"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "DValue::is_list"
+        page["sig_lines"] = dval(["bool DValue::is_list() const", ""])
+        page["capy_sig_lines"] = dval(["function dval_is_list(value : dval) bool"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">types", "0_DValue", "2_DValue_set_array", "2_DValue_push"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "dvalue-is-reference" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_is_reference"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-is-reference"
+        page["route"] = "/doc/api/dvalue-is-reference/"
+        page["title"] = "DValue::is_reference"
+        page["content"] = "Capy has no `dval_is_reference` API. DValues share identity inside one workspace, but Capy does not expose the C++ internal reference tag. Thus, this test has no Capy equivalent.\n\nC++ `is_reference()` tests this node's direct internal reference tag. Most C++ read methods dereference values automatically.\n\n"
+        page["returns"] = "true when this node itself is a reference node"
+        page["capy_status"] = "unsupported"
+        page["label"] = "DValue::is_reference"
+        page["sig_lines"] = dval(["bool DValue::is_reference() const", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "2_DValue_reference_target", "2_DValue_deref"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-open" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_open"
+        page["kind"] = "api"
+        page["slug"] = "file-open"
+        page["route"] = "/doc/api/file-open/"
+        page["title"] = "file_open"
+        page["content"] = "`file_open` returns a handle for streamed file access. Use the handle with `file_read()`, `file_write()`, `file_seek()`, and `file_close()`. Use `file_get_contents()` or `file_put_contents()` for whole-file access. Capy uses the same modes and handle value.\n"
+        page["returns"] = "a `u64` handle, or 0 when Capy cannot open the file"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_open"
+        page["sig_lines"] = dval(["u64 file_open(String path, String mode)", ""])
+        page["capy_sig_lines"] = dval(["function file_open(path : string, mode : string) u64"])
+        page["param_lines"] = dval(["path : path of the file to open", "mode : `\"r\"` for reading, `\"w\"` for writing, `\"a\"` for appending, or `\"r+\"` for reading and writing", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "file_read", "file_write", "file_close", "file_get_contents"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "zip-list" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "zip_list"
+        page["kind"] = "api"
+        page["slug"] = "zip-list"
+        page["route"] = "/doc/api/zip-list/"
+        page["title"] = "zip_list"
+        page["content"] = "`zip_list(path)` accepts an archive path and returns metadata as a `dval`.\n\nThe result contains `file`, `count`, and an `entries` list. Each entry contains `name`, `index`, `size`, `compressed_size`, `is_directory`, and `method`.\n\nUse it to inspect an archive or discover member names before `zip_read()`. The declaration has no error return.\n\nC++ returns the same data as `DValue` through the signature above.\n\n"
+        page["returns"] = "`dval` containing archive metadata and an `entries` list"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "zip_list"
+        page["sig_lines"] = dval(["DValue zip_list(String zip_file_name)", ""])
+        page["capy_sig_lines"] = dval(["function zip_list(path : string) dval"])
+        page["param_lines"] = dval(["zip_file_name : path to the ZIP archive to inspect", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "zip_create", "zip_read", "zip_extract", "0_DValue"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

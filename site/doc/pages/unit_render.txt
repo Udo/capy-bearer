@@ -24,7 +24,4 @@ C++ adds the `Request& context` overload in the signature above. If you omit it,
 
 
 :example capy render
-unit_render("examples/sample_unit.uce")
-
-:example cpp render
-unit_render("examples/sample_unit.uce");
+unit_render("examples/sample_unit.capy")

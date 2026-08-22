@@ -1,3 +1,0 @@
-#load "../common/page.uce"
-
-COMPONENT(Request& context) { render_common_theme_page(context); }

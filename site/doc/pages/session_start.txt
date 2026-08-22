@@ -24,7 +24,3 @@ Capy `session_start`, `session_set`, `session_remove`, and `session_destroy` ret
 :example capy render
 var session := session_start("bearer-doc-example")
 if string(session.id, "") != "" { print("started\n") } else { print("empty\n") }
-
-:example cpp render
-String id = session_start("bearer-doc-example");
-print(id != "" ? "started\n" : "empty\n");

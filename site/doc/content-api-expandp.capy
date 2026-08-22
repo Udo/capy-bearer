@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "expand-path" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "expand_path"
+        page["kind"] = "api"
+        page["slug"] = "expand-path"
+        page["route"] = "/doc/api/expand-path/"
+        page["title"] = "expand_path"
+        page["content"] = "`expand_path()` returns a normalized Capy path string.\n\nPass a path and an optional base directory. It resolves a relative path against the base directory. Without a base directory, it uses the current unit directory.\n\nUse the returned path with file API functions.\n\nThe Capy call has the same arguments.\n"
+        page["returns"] = "expanded path"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "expand_path"
+        page["sig_lines"] = dval(["String expand_path(String path, String relative_to_path = \"\")", ""])
+        page["capy_sig_lines"] = dval(["function expand_path(path : string, relative_to_path : string = \"\") string"])
+        page["param_lines"] = dval(["path : path to expand", "relative_to_path : base directory for a relative path", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "path_join", "path_real", "dirname", "file_append", "basename", "file_exists"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

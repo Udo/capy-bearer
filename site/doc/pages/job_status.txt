@@ -3,7 +3,7 @@
 DValue job_status(u64 job_id)
 
 :params
-job : the Capy `dval` job ID. C++ `.uce` uses a `u64` ID.
+job : the Capy `dval` job ID. Capy uses a `u64` ID.
 
 :returns
 a `dval` status map
@@ -13,7 +13,7 @@ a `dval` status map
 
 `state` can be `pending`, `running`, `done`, `failed`, `cancelled`, or `missing`. Use it to poll without waiting for a result.
 
-In Capy, pass the job ID as `dval`. In C++ `.uce`, pass the `u64` job ID shown above.
+In Capy, pass the job ID as `dval`. In Capy, pass the `u64` job ID shown above.
 
 :see
 >sys
@@ -28,9 +28,3 @@ var spec := dval({"cmd": "printf x", "timeout_ms": 1000})
 var job := shell_spawn(spec)
 job_await(job, 3000)
 print("state: ", job_status(job)["state"], "\n")
-
-:example cpp render
-DValue spec; spec["cmd"] = "printf x"; spec["timeout_ms"] = (f64)1000;
-u64 job = shell_spawn(spec);
-job_await(job, 3000);
-print("state: ", job_status(job)["state"].to_string(), "\n");

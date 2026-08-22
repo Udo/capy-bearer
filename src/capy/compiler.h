@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -57,6 +58,7 @@ struct CompileOptions
 	// remains diagnostic-only, so distinct diagnostic paths never share ASTs.
 	std::string canonical_source_identity;
 	ParsedSourceCache* parsed_source_cache = nullptr;
+	std::function<std::vector<std::string>(const std::string& path, const std::string& current_source)> import_type_metadata;
 };
 
 struct CompileResult
@@ -64,6 +66,8 @@ struct CompileResult
 	wasm::Bytes wasm;
 	std::string source_map;
 	std::vector<std::string> custom_exports;
+	std::vector<std::string> function_exports;
+	std::vector<std::string> type_exports;
 };
 
 // Compile source text to a Bearer direct Wasm side module.  Errors retain their

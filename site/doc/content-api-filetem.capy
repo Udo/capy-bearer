@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-temp" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_temp"
+        page["kind"] = "api"
+        page["slug"] = "file-temp"
+        page["route"] = "/doc/api/file-temp/"
+        page["title"] = "file_temp"
+        page["content"] = "`file_temp()` creates an empty temporary file and returns its path as a `string`. It adds a unique suffix to `prefix`.\n\nUse it for scratch files or before `file_rename()`. It returns `\"\"` when Capy cannot create a file.\n"
+        page["returns"] = "path of a new empty temporary file, or `\"\"` on failure"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_temp"
+        page["sig_lines"] = dval(["String file_temp(String prefix)", ""])
+        page["capy_sig_lines"] = dval(["function file_temp(prefix : string) string"])
+        page["param_lines"] = dval(["prefix : path prefix for the temporary file", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "file_rename", "file_put_contents", "dir_remove", "file_chmod", "file_truncate", "file_symlink"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

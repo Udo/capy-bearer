@@ -1,0 +1,126 @@
+function load_doc_page(kind : string, slug : string) dval {
+    if kind == "api" {
+        var shard := ascii_safe_name(substr(slug, 0, 8))
+        return unit_load("/doc/content-api-" + shard + ".capy").data({slug: slug})
+    }
+    return unit_load("/doc/content-" + kind + ".capy").data({slug: slug})
+}
+
+function section(title : string, body : string) void {
+    if trim(body) == "" { return }
+    print("<div class=\"doc-section\"><h3>", html_escape(title), "</h3>", markdown_to_html(body), "</div>")
+}
+
+function render_lines(title : string, lines : dval) void {
+    if length(lines) == 0 { return }
+    print("<div class=\"doc-section signatures\"><h3>", html_escape(title), "</h3><pre>")
+    var first := true
+    for line := lines {
+        if !first { print("\n") }
+        print(html_escape(string(line, "")))
+        first = false
+    }
+    print("</pre></div>")
+}
+
+function render_params(lines : dval) void {
+    if length(lines) == 0 { return }
+    print("<div class=\"doc-section params\"><h3>Parameters</h3>")
+    for line := lines {
+        var text := trim(string(line, ""))
+        if text != "" { print("<div>", markdown_to_html(text), "</div>") }
+    }
+    print("</div>")
+}
+
+function render_callouts(class_name : string, title : string, blocks : dval) void {
+    for body := blocks {
+        print("<div class=\"doc-section doc-callout ", html_escape(class_name), "\"><h3>", html_escape(title), "</h3>", markdown_to_html(string(body, "")), "</div>")
+    }
+}
+
+function render_examples(page : dval) void {
+    if string(page.example_error, "") != "" {
+        print("<div class=\"doc-section example error\"><h3>Example format error</h3><pre>", html_escape(string(page.example_error, "")), "</pre></div>")
+        return
+    }
+    for example := page.guide_examples {
+        print("<div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">", html_escape(string(example.body, "")), "</pre></div>")
+        if example.output? {
+            print("<p><strong>Output</strong></p><div class=\"example-output\"><div class=\"example-output-label\">Output</div><pre>", html_escape(string(example.output, "")), "</pre></div>")
+        } else {
+            print("<div class=\"example-compile-only\">Compile-only: this example is not executed by documentation rendering.</div>")
+        }
+        print("</div>")
+    }
+    for pair := page.example_pairs {
+        print("<div class=\"doc-section example paired-example\"><h3>Example</h3>")
+        print("<div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">", html_escape(string(pair.capy_body, "")), "</pre></div>")
+        print("<div class=\"example-language cpp\"><h4>C++ (.capy)</h4><pre class=\"example-source\">", html_escape(string(pair.cpp_body, "")), "</pre></div>")
+        if string(pair.entry, "") == "render" {
+            print("<div class=\"example-output\"><div class=\"example-output-label\">Output</div><pre>Example output is checked by the documentation example suite.</pre></div>")
+        } else {
+            print("<div class=\"example-compile-only\">Compile-only: this example is not executed by documentation rendering.</div>")
+        }
+        print("</div>")
+    }
+    for example := page.cpp_only_examples {
+        print("<div class=\"doc-section example cpp-only-example\"><h3>Example</h3><div class=\"example-language cpp\"><h4>C++ (.capy)</h4><pre class=\"example-source\">", html_escape(string(example.body, "")), "</pre></div>")
+        if string(example.entry, "") == "render" {
+            print("<div class=\"example-output\"><div class=\"example-output-label\">Output</div><pre>Example output is checked by the documentation example suite.</pre></div>")
+        } else {
+            print("<div class=\"example-compile-only\">Compile-only: this example is not executed by documentation rendering.</div>")
+        }
+        print("</div>")
+    }
+    for example := page.legacy_examples {
+        print("<div class=\"doc-section example legacy-example\"><h3>Legacy C++ example</h3><pre class=\"example-source\">", html_escape(string(example.body, "")), "</pre><div class=\"example-output\"><div class=\"example-output-label\">Output</div><pre>Example output is checked by the documentation example suite.</pre></div></div>")
+    }
+}
+
+function render_see(page : dval) void {
+    if length(page.see) == 0 { return }
+    print("<aside class=\"doc-section see-also\"><h3>See also</h3>")
+    for item := page.see {
+        var key := trim(string(item, ""))
+        if length(key) > 0 && substr(key, 0, 1) == ">" { key = trim(substr(key, 1)) }
+        if key != "" { print("<div class=\"related-link\">", html_escape(key), "</div>") }
+    }
+    print("</aside>")
+}
+
+function render_guide_navigation(page : dval) void {
+    if string(page.kind, "") != "guide" { return }
+    print("<nav class=\"guide-navigation\" aria-label=\"Capy guide navigation\"><div class=\"guide-previous\">Previous: <a href=\"/doc/\">Guide index</a></div><div class=\"guide-index\"><a href=\"/doc/\">Guide index</a></div><div class=\"guide-next\">Next: <a href=\"/doc/\">Guide index</a></div></nav>")
+}
+
+function render_page(page : dval) void {
+    print("<main class=\"content doc-page doc-detail\"><h2>", html_escape(string(page.title, string(page.label, "Documentation"))), "</h2>")
+    render_lines("Capy", page.capy_sig_lines)
+    render_lines("C++ (.capy)", page.sig_lines)
+    if string(page.content, "") != "" {
+        print("<div class=\"doc-section content\">")
+        if string(page.kind, "") == "api" { print("<h3>Description</h3>") }
+        print(markdown_to_html(string(page.content, "")), "</div>")
+    }
+    render_params(page.param_lines)
+    section("Return Values", string(page.returns, ""))
+    section("Errors", string(page.errors, ""))
+    render_callouts("note", "Note", page.notes)
+    render_callouts("warning", "Warning", page.warnings)
+    render_examples(page)
+    render_see(page)
+    render_guide_navigation(page)
+    print("</main>")
+}
+
+function COMPONENT(request : dval) {
+    var kind := string(request.props.kind, "")
+    var slug := string(request.props.slug, "")
+    if kind == "" || slug == "" {
+        response_status(404, "Not Found")
+        print("<main class=\"content doc-page\"><h2>Page not found</h2></main>")
+        return
+    }
+    render_page(load_doc_page(kind, slug))
+}

@@ -1,0 +1,5 @@
+function RENDER(request : dval) {
+    response_header("Content-Type", "text/plain; charset=utf-8")
+    var token := string(request.query.token, "")
+    print("fresh|", token, "|1")
+}

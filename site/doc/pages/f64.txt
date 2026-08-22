@@ -23,21 +23,8 @@ Use `f64` to convert input to a floating-point value.
 print(f64("35"), "\n")
 print(f64(false), "\n")
 
-:example cpp render f64() parses decimal text and booleans
-DValue text;
-text = "35";
-DValue flag;
-flag.set_bool(false);
-print(text.to_f64(), "\n");
-print(flag.to_f64(), "\n");
-
 :example capy render f64() returns the fallback for empty text
 print(f64("", 9.0), "\n")
-
-:example cpp render f64() returns the fallback for empty text
-DValue value;
-value = "";
-print(value.to_f64(9.0), "\n");
 
 :see
 >types

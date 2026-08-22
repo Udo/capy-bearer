@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "basename" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "basename"
+        page["kind"] = "api"
+        page["slug"] = "basename"
+        page["route"] = "/doc/api/basename/"
+        page["title"] = "basename"
+        page["content"] = "Capy's `basename(path)` returns the final path component as a `string`. Pass a path string.\n\nUse it to get a file or directory name without its parent directories. The function does not access the file system. It does not report errors.\n\nThe C++ `String` function has the same input and result.\n"
+        page["returns"] = "the final path component"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "basename"
+        page["sig_lines"] = dval(["String basename(String fn)", ""])
+        page["capy_sig_lines"] = dval(["function basename(path : string) string"])
+        page["param_lines"] = dval(["fn : a path", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "dirname", "path_join", "expand_path", "file_append", "file_exists", "file_get_contents"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

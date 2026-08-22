@@ -16,9 +16,6 @@ Use it for binary protocols. Use `hmac_sha256_hex()` when you need printable tex
 :example capy render
 print("hex = ", hmac_sha256_hex("key", "message"), "\n")
 
-:example cpp render
-print("hex = ", hmac_sha256_hex("key", "message"), "\n");
-
 :see
 >sys
 hmac_sha256_hex

@@ -18,9 +18,3 @@ C++ `is_reference()` tests this node's direct internal reference tag. Most C++ r
 :capy-status unsupported
 
 A boundary copies BRRB and does not preserve C++ internal reference tags. This predicate has no Capy equivalent.
-
-:example cpp render
-DValue target; target.set("x");
-DValue ref; ref.set_reference(&target);
-DValue plain; plain.set("y");
-print(ref.is_reference() ? "ref" : "plain", " / ", plain.is_reference() ? "ref" : "plain", "\n");

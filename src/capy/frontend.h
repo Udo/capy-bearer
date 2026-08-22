@@ -106,6 +106,7 @@ enum struct ExprKind
 	Function,
 	Struct,
 	Exports,
+	Import,
 	For,
 	If,
 	While,
@@ -295,6 +296,12 @@ struct Exports : Expr
 	std::vector<std::string> names;
 	explicit Exports(Location l);
 };
+struct Import : Expr
+{
+	std::string path;
+	std::string alias;
+	Import(Location l, std::string p, std::string a);
+};
 struct TypeAlias : Expr
 {
 	std::string name;
@@ -360,6 +367,7 @@ struct Parser
 	std::vector<Parameter> parameters(Expr*);
 	Expr* structure(Location);
 	Expr* exports(Location);
+	Expr* import_directive(Location);
 	Expr* type_alias(Location);
 	Expr* variable(Location);
 	Expr* result_expr(Location, bool yield);

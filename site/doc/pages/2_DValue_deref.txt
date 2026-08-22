@@ -18,10 +18,3 @@ C++ `deref()` follows internal reference links. It returns the resolved target w
 :capy-status unsupported
 
 Capy exposes no host pointer or internal reference-node identity, so dereferencing has no equivalent.
-
-:example cpp render
-DValue target;
-target.set("value");
-DValue ref;
-ref.set_reference(&target);
-print("through ref: ", ref.deref().to_string(), "\n");

@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "unit-call" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "unit_call"
+        page["kind"] = "api"
+        page["slug"] = "unit-call"
+        page["route"] = "/doc/api/unit-call/"
+        page["title"] = "unit_call"
+        page["content"] = "Call `unit_call(file_name, function_name[, props])` to call an exported unit function.\n\nThe input and result are `dval` values. The two-input form supplies an empty `dval` value. Use `unit_call()` for one direct call that returns data.\n\nFor repeated calls, `unit_load(path)` gives a module value. Use `module.call(name[, input])` or `module.export_name(input)`. A Capy unit declares callable functions with `#exports`. For example, `#exports echo` exposes `echo(input : dval) dval`.\n\nA missing unit or export is an error. `unit_call()` also accepts `RENDER`, `RENDER:NAME`, `COMPONENT`, `COMPONENT:NAME`, `ONCE`, and `INIT`.\n\nC++ does not use the Capy `module` value. Use the `DValue*` API in the signature above. C++ exports use `EXPORT DValue* name(DValue*)`.\n\n"
+        page["returns"] = "the function result"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "unit_call"
+        page["sig_lines"] = dval(["DValue* unit_call(String file_name, String function_name, DValue* call_param = null)", ""])
+        page["capy_sig_lines"] = dval(["function unit_call(file_name : string, function_name : string) dval", "function unit_call(file_name : string, function_name : string, props : as dval) dval"])
+        page["param_lines"] = dval(["file_name : unit path", "function_name : exported function name", "call_param : optional function input", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">ob", "unit_load", "unit_render", "unit_info", "1_RENDER", "1_COMPONENT"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

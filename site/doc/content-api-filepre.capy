@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-pread" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_pread"
+        page["kind"] = "api"
+        page["slug"] = "file-pread"
+        page["route"] = "/doc/api/file-pread/"
+        page["title"] = "file_pread"
+        page["content"] = "`file_pread()` reads from an absolute byte offset and returns a `string`. It does not change the handle position.\n\nUse it for random reads between sequential reads. An invalid handle returns an empty string.\n"
+        page["returns"] = "a Capy `string` with up to `len` bytes"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_pread"
+        page["sig_lines"] = dval(["String file_pread(u64 h, u64 offset, u64 len)", ""])
+        page["capy_sig_lines"] = dval(["function file_pread(handle : u64, offset : u64, length : u64) string"])
+        page["param_lines"] = dval(["h : readable handle from `file_open()`", "offset : absolute byte offset", "len : maximum number of bytes to read", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "file_read", "file_pwrite", "file_open"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

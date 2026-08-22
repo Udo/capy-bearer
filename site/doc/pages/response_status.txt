@@ -19,10 +19,6 @@ C++ keeps the same behavior through `context.set_status(code, reason)`.
 response_status(202, "Accepted")
 print("status set\n")
 
-:example cpp render
-context.set_status(202, "Accepted");
-print("status set\n");
-
 :see
 >uri
 response_header

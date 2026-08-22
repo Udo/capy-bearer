@@ -9,7 +9,7 @@ Use `job_await()` or `job_result()` to get the response map from `http_request()
 
 The `security` map follows `http_request()` rules. Any recognized hardening field requires all five fields to be `true`, or the job reports `invalid_request`.
 
-`job_cancel()` cancels a hardened request and its child processes. In C++ `.uce`, pass `DValue` and use the returned job ID.
+`job_cancel()` cancels a hardened request and its child processes. In Capy, pass `DValue` and use the returned job ID.
 
 :see
 >socket
@@ -23,10 +23,3 @@ var outbound := dval({"method": "GET", "url": "http://127.0.0.1/doc/", "headers"
 var job := http_request_async(outbound)
 var done := job_await(dval(job), 3000)
 print("async HTTP ", s32(dval_get_by_path(done, "result/status")), "\n")
-
-:example cpp render
-DValue req; req["method"] = "GET"; req["url"] = "http://127.0.0.1/doc/";
-req["headers"]["Host"] = "bearer.openfu.com"; req["timeout_ms"] = (f64)2000;
-u64 job = http_request_async(req);
-DValue done = job_await(job, 3000);
-print("async HTTP ", done["result"]["status"].to_u64(), "\n");

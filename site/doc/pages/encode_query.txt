@@ -20,12 +20,8 @@ request_script_url
 
 Pass the parameter map. It returns one string that you can append after a URL `?`. Use it to make query parameters from structured values.
 
-C++ `.uce` uses a `StringMap` instead of a Capy `dval` map.
+Capy uses a `StringMap` instead of a Capy `dval` map.
 
 :example capy render
 var query := dval({"name": "Ada Lovelace"})
 print(encode_query(query), "\n")
-:example cpp render
-StringMap q;
-q["name"] = "Ada Lovelace";
-print(encode_query(q), "\n");

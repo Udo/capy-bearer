@@ -36,16 +36,3 @@ if db != 0 {
     print(rows[0]["email"], " / total=", rows[0]["total"], "\n")
     mysql_disconnect(db)
 } else { print("(requires a reachable MySQL server)\n") }
-
-:example cpp cli
-MySQL* db = mysql_connect();
-if(db != 0)
-{
-    StringMap params; params["limit"] = "1";
-    DValue rows = mysql_query(db, "select 'ada@example.test' as email, 1 + 1 as total limit :limit!", params);
-    String email = "none"; String total = "?";
-    rows.each([&](DValue r, String key) { email = r["email"].to_string(); total = r["total"].to_string(); });
-    print(email, " / total=", total, "\n");
-    mysql_disconnect(db);
-}
-else print("(requires a reachable MySQL server)\n");

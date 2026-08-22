@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "ws-scope" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "ws_scope"
+        page["kind"] = "api"
+        page["slug"] = "ws-scope"
+        page["route"] = "/doc/api/ws-scope/"
+        page["title"] = "ws_scope"
+        page["content"] = "`ws_scope()` is a C++ API. It returns the current WebSocket scope. Outside a WebSocket handler, it returns an empty string.\n\nUse this value with `ws_send()`, `ws_connections()`, or `ws_connection_count()` when C++ code needs an explicit scope. Capy keeps `ws_send()` for effects.\n\nCapy does not expose `ws_scope`. In a Capy `WS` handler, read `request.websocket.scope`.\n"
+        page["returns"] = "scope identifier of the current WebSocket endpoint"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "ws_scope"
+        page["sig_lines"] = dval(["String ws_scope()", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">websocket", ">ws_connections", ">0_Request", "ws_opcode", "ws_send", "ws_message", "ws_send_to", "ws_is_binary", "ws_connections"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

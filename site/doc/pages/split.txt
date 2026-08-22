@@ -25,6 +25,3 @@ The C++ API calls the result `DValue`. Capy uses the `dval` value type.
 
 :example capy render
 print(join(split("a,b,c", ","), "|"), "\n")
-
-:example cpp render
-print(join(split("a,b,c", ","), "|"), "\n");

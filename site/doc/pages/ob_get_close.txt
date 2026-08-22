@@ -16,13 +16,6 @@ print("world")
 var html := ob_get_close()
 print("captured ", length(html), " chars: ", html, "\n")
 
-:example cpp render
-ob_start();
-print("hello ");
-print("world");
-String html = ob_get_close();
-print("captured ", html.length(), " chars: ", html, "\n");
-
 :see
 >ob
 ob_start

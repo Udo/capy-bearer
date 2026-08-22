@@ -20,10 +20,3 @@ none
 var list := dval_push(dval_set_array(dval("")), "first")
 if dval_is_list(list) { print("is_list=yes") } else { print("is_list=no") }
 if dval_has(list, "0") { print(" count=1\n") } else { print(" count=0\n") }
-
-:example cpp render
-DValue list;
-list.set_array();
-DValue item; item.set("first");
-list.push(item);
-print("is_list=", list.is_list() ? "yes" : "no", " count=", list.keys().size(), "\n");

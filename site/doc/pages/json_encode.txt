@@ -26,9 +26,3 @@ The C++ API also accepts an optional quote character. Capy has no quote-characte
 :example capy render
 var value := dval({"name": "Ada", "middle": none})
 print(json_encode(value), "\n")
-
-:example cpp render
-DValue value;
-value["name"] = "Ada";
-value["middle"].set_none();
-print(json_encode(value), "\n");

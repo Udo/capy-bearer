@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "dval-put" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "dval_put"
+        page["kind"] = "api"
+        page["slug"] = "dval-put"
+        page["route"] = "/doc/api/dval-put/"
+        page["title"] = "dval_put"
+        page["content"] = "`dval_put(value, key, child)` writes `child` into `value[key]` and returns `value`.\nUse it when you need a mutation-style setter that stays in one line.\n\n`value` can be `none`, scalar, or map shaped.\nIf needed, this operation creates a map shape and then stores the new key.\nList values keep existing numeric items and switch to named map mode when the key is not numeric.\n\n## C++ API\n\n`DValue::operator[]` gives the same inline mutation behavior.\n"
+        page["returns"] = "same `dval` identity as `value`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "dval_put"
+        page["sig_lines"] = dval(["dval dval_put(value : dval, key : string, child : as dval)", ""])
+        page["capy_sig_lines"] = dval(["function dval_put(value : dval, key : string, child : as dval) dval"])
+        page["param_lines"] = dval(["value : target `dval`", "key : child key to set", "child : replacement child", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "2_DValue_set", "2_DValue_remove", "2_DValue_get_or_create"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

@@ -1,1 +1,0 @@
-RENDER(Request& context) { auto s = split("a,b,c", ","); print(s.size(), "|", s.get_type_name(), "|", s[0].to_string(), s[1].to_string()); }

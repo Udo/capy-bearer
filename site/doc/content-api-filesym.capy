@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-symlink" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_symlink"
+        page["kind"] = "api"
+        page["slug"] = "file-symlink"
+        page["route"] = "/doc/api/file-symlink/"
+        page["title"] = "file_symlink"
+        page["content"] = "`file_symlink` creates a symbolic link at `linkpath`. The link points to `target`. Use it to give a file another path. It returns false when Capy cannot create the link. Use `path_real()` to resolve a link.\n"
+        page["returns"] = "true when Capy creates the link, otherwise false"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_symlink"
+        page["sig_lines"] = dval(["bool file_symlink(String target, String linkpath)", ""])
+        page["capy_sig_lines"] = dval(["function file_symlink(target : string, linkpath : string) bool"])
+        page["param_lines"] = dval(["target : path that the new symbolic link points to", "linkpath : path of the symbolic link to create", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "path_real", "file_stat", "file_chmod", "file_fsync", "file_temp", "path_is_within"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

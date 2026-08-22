@@ -29,8 +29,3 @@ C++ `DValue::to_string()` returns `(true)` or `(false)` for boolean values. This
 :example capy render
 var user := {"name": "Ada"}
 print(user.name, "\n")
-
-:example cpp render
-DValue user;
-user["name"] = "Ada";
-print(user["name"].to_string(), "\n");

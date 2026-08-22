@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "contains" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "contains"
+        page["kind"] = "api"
+        page["slug"] = "contains"
+        page["route"] = "/doc/api/contains/"
+        page["title"] = "contains"
+        page["content"] = "`contains()` checks whether one Capy string contains another string.\n\nPass the string to search and the substring to find. It returns `true` for an empty substring.\n\nUse this function for a simple substring check.\n"
+        page["returns"] = "`true` when `needle` occurs in `haystack`, otherwise `false`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "contains"
+        page["sig_lines"] = dval(["bool contains(String haystack, String needle)", ""])
+        page["capy_sig_lines"] = dval(["function contains(haystack : string, needle : string) bool"])
+        page["param_lines"] = dval(["haystack : string to search", "needle : substring to find", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "base64_encode", "filter", "base64_decode", "first", "ascii_safe_name", "join"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

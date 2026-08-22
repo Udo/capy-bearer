@@ -3,7 +3,7 @@
 DValue job_await(u64 job_id, u64 timeout_ms)
 
 :params
-job : the Capy `dval` job ID. C++ `.uce` uses a `u64` ID.
+job : the Capy `dval` job ID. Capy uses a `u64` ID.
 timeout_ms : maximum wait in milliseconds
 
 :returns
@@ -14,7 +14,7 @@ a `dval` status map. A completed job includes `result`.
 
 It returns a running status when the time limit expires. Use it after `shell_spawn()` or `http_request_async()` when you can wait for completion.
 
-In Capy, pass the job ID as `dval`. In C++ `.uce`, pass the `u64` job ID shown above.
+In Capy, pass the job ID as `dval`. In Capy, pass the `u64` job ID shown above.
 
 :see
 >sys
@@ -31,9 +31,3 @@ var waited := job_await(job, 3000)
 var done := "false"
 if bool(waited["done"]) { done = "true" }
 print("done=", done, " stdout=", dval_get_by_path(waited, "result/stdout"), "\n")
-
-:example cpp render
-DValue spec; spec["cmd"] = "printf hello-from-job"; spec["timeout_ms"] = (f64)1000;
-u64 job = shell_spawn(spec);
-DValue waited = job_await(job, 3000);
-print("done=", waited["done"].to_bool() ? "true" : "false", " stdout=", waited["result"]["stdout"].to_string(), "\n");

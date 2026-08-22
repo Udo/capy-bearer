@@ -29,7 +29,3 @@ The function advances after a zero-length match. This prevents an infinite searc
 :example capy render
 var matches := regex_search_all("[a-z]+", "bearer docs")
 if dval_is_list(matches) { print("matches\n") } else { print("none\n") }
-
-:example cpp render
-DValue matches = regex_search_all("[a-z]+", "bearer docs");
-print(matches.is_list() ? "matches\n" : "none\n");

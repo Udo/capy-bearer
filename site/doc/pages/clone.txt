@@ -20,11 +20,6 @@ var source := "token"
 var copy := clone(source)
 print(length(source), " ", length(copy), "\n")
 
-:example cpp render
-String source = "token";
-String copy = source;
-print(source.size(), " ", copy.size(), "\n");
-
 :see
 >string
 length

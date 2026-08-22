@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "join" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "join"
+        page["kind"] = "api"
+        page["slug"] = "join"
+        page["route"] = "/doc/api/join/"
+        page["title"] = "join"
+        page["content"] = "`join()` reads every `dval` list value as a string and returns one string. It inserts `delim` between values.\n\nIt uses a newline when `delim` is omitted. Use it to make text from a list. In Capy, use `DValue`.\n\n"
+        page["returns"] = "string with all list values separated by `delim`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "join"
+        page["sig_lines"] = dval(["String join(DValue l, String delim = \"\\n\")", ""])
+        page["capy_sig_lines"] = dval(["function join(items : dval, delimiter : string = \"\\n\") string"])
+        page["param_lines"] = dval(["l : `dval` list whose values are read as strings", "delim : separator string, default newline", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">string", "first", "json_consume_space", "filter", "json_encode", "contains", "map"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

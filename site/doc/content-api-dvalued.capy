@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "dvalue-deref" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "2_DValue_deref"
+        page["kind"] = "api"
+        page["slug"] = "dvalue-deref"
+        page["route"] = "/doc/api/dvalue-deref/"
+        page["title"] = "DValue::deref"
+        page["content"] = "Capy has no `dval_deref` API. DValues share identity inside one workspace, but Capy does not expose C++ pointers or internal reference nodes. Thus, no explicit dereference operation is available.\n\nC++ `deref()` follows internal reference links. It returns the resolved target when possible. Otherwise, it returns this value. Most C++ accessors dereference values automatically.\n\n"
+        page["returns"] = "referenced target when resolvable, otherwise this value"
+        page["capy_status"] = "unsupported"
+        page["label"] = "DValue::deref"
+        page["sig_lines"] = dval(["DValue& DValue::deref()", "const DValue& DValue::deref() const", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "2_DValue_is_reference"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

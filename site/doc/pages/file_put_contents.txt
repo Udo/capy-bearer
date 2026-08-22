@@ -11,17 +11,12 @@ true when Capy writes the file, otherwise false
 :content
 `file_put_contents()` writes a `string` to a complete file. Use it to create or replace a small file. It returns `false` when Capy cannot write the file.
 
-C++ `.uce` uses `String` and returns the same Boolean result.
+Capy uses `String` and returns the same Boolean result.
 
 :example capy render
 file_put_contents("/tmp/doc-put.txt", "first")
 file_put_contents("/tmp/doc-put.txt", "second")
 print(file_get_contents("/tmp/doc-put.txt"), "\n")
-
-:example cpp render
-file_put_contents("/tmp/doc-put.txt", "first");
-file_put_contents("/tmp/doc-put.txt", "second");
-print(file_get_contents("/tmp/doc-put.txt"), "\n");
 
 :see
 >sys

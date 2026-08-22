@@ -1,0 +1,30 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "trusted-markup" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "trusted_markup"
+        page["kind"] = "api"
+        page["slug"] = "trusted-markup"
+        page["route"] = "/doc/api/trusted-markup/"
+        page["title"] = "trusted_markup"
+        page["content"] = "Use `trusted_markup()` when content is already trusted and must stay HTML, not escaped text.\n\nSecurity warning: use `trusted_markup()` only on strings that your code builds. Do not pass request data, remote responses, or database text directly.\n\n`trusted_markup()` returns a `markup` value. It still needs `print()` or interpolation before it affects output. `<?: expression ?>` inserts trusted markup in HTML text without extra escaping.\n"
+        page["returns"] = "trusted markup value"
+        page["errors"] = "Compilation fails when `trusted_markup()` receives the wrong argument count or a non-string input."
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "trusted_markup"
+        page["sig_lines"] = dval(["markup trusted_markup(string text)", ""])
+        page["capy_sig_lines"] = dval(["function trusted_markup(value : string) markup"])
+        page["param_lines"] = dval(["text : string content to mark as trusted", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval(["`trusted_markup()` disables HTML escaping. Do not pass request data, remote responses, or database text to it."])
+        page["see"] = dval([">markup", "html_escape", "markdown_to_html", "component", "component_render"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

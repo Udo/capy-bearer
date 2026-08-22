@@ -19,7 +19,6 @@ Environment:
   BEARER_DEB_ARCH                 Override package architecture
   BEARER_DEB_WEBROOT              Public web root staged into the package (default: /var/www/html)
   BEARER_DEB_INCLUDE_TESTS        Include site/tests in the public web root (default: 0)
-  BEARER_DEB_BUNDLE_WASI_SDK      Bundle pinned /opt/wasi-sdk into the package (default: 1)
   BEARER_DEB_BUNDLE_WASMTIME      Bundle /opt/wasmtime into the package (default: 1)
 EOF
 }
@@ -65,6 +64,7 @@ copy_payload() {
 	install -m 0755 "$REPO_ROOT/bin/wasm/core.wasm" "$destination/bin/wasm/"
 	if [[ -d "$REPO_ROOT/bin/assets" ]]; then cp -a "$REPO_ROOT/bin/assets" "$destination/bin/"; fi
 	cp -a "$REPO_ROOT/etc/bearer" "$destination/etc/"
+	rm -f "$destination/scripts/install_wasi_sdk.sh" "$destination/scripts/build_core_wasm.sh"
 	cp -a "$REPO_ROOT/site/." "$stage_dir$webroot/"
 	if [[ "${BEARER_DEB_INCLUDE_TESTS:-0}" != "1" ]]; then
 		rm -rf -- "$stage_dir$webroot/tests"
@@ -89,8 +89,6 @@ replacements = {
 for old, new in replacements.items():
     if old in s:
         s = s.replace(old, new)
-if "WASM_COMPILE_SCRIPT=" not in s:
-    s += "\nWASM_COMPILE_SCRIPT=scripts/compile_wasm_unit\n"
 Path(dst).write_text(s)
 PY
 }
@@ -107,25 +105,6 @@ write_control_file() {
 		-e "s/@ARCH@/$arch/g" \
 		-e "s/@INSTALLED_SIZE@/$installed_size/g" \
 		"$DEB_ASSET_DIR/control.in" > "$output_file"
-}
-
-bundle_wasi_sdk() {
-	local stage_dir="$1"
-	local wasi_root="${WASI_SDK:-/opt/wasi-sdk}"
-	if [[ "${BEARER_DEB_BUNDLE_WASI_SDK:-1}" != "1" ]]; then
-		return
-	fi
-	if [[ ! -x "$wasi_root/bin/clang++" || ! -x "$wasi_root/bin/wasm-ld" || ! -x "$wasi_root/bin/llvm-nm" ]]; then
-		echo "BEARER_DEB_BUNDLE_WASI_SDK=1 but WASI_SDK does not point at a complete SDK: $wasi_root" >&2
-		exit 1
-	fi
-	local resolved
-	resolved="$(readlink -f "$wasi_root")"
-	local base
-	base="$(basename "$resolved")"
-	mkdir -p "$stage_dir/opt"
-	cp -a "$resolved" "$stage_dir/opt/$base"
-	ln -sfn "$base" "$stage_dir/opt/wasi-sdk"
 }
 
 bundle_wasmtime() {
@@ -164,14 +143,13 @@ validate_package_payload() {
 		/usr/lib/bearer/bin/bearer_fastcgi.linux.bin \
 		/usr/lib/bearer/bin/capyc \
 		/usr/lib/bearer/bin/wasm/core.wasm \
-		/usr/lib/bearer/scripts/compile_wasm_unit \
 		/etc/bearer/settings.cfg \
 		/lib/systemd/system/bearer.service
 	do
 		grep -Fq " .$expected" <<<"$listing" || { echo "The Debian package is missing $expected." >&2; exit 1; }
 	done
 	grep -Fq " .${WEBROOT%/}/" <<<"$listing" || { echo "The Debian package is missing the web root." >&2; exit 1; }
-	if grep -Eq '/usr/lib/bearer/bin/([^/]*\.o|\.build|capyc-request-dval|tmp/)' <<<"$listing"; then
+	if grep -Eq '/usr/lib/bearer/(scripts/(install_wasi_sdk\.sh|build_core_wasm\.sh)|opt/wasi-sdk|bin/([^/]*\.o|\.build|capyc-request-dval|tmp/))' <<<"$listing"; then
 		echo "The Debian package contains a build artifact." >&2
 		exit 1
 	fi
@@ -232,7 +210,6 @@ rm -rf -- "$STAGE_DIR"
 mkdir -p "$DEBIAN_DIR" "$INSTALL_ROOT" "$STAGE_DIR/etc/bearer" "$STAGE_DIR/lib/systemd/system" "$DIST_DIR"
 
 copy_payload "$INSTALL_ROOT" "$WEBROOT" "$STAGE_DIR"
-bundle_wasi_sdk "$STAGE_DIR"
 bundle_wasmtime "$STAGE_DIR"
 
 write_packaged_settings "$STAGE_DIR/etc/bearer/settings.cfg" "$WEBROOT"

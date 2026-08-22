@@ -1,0 +1,135 @@
+function route_path(request : dval) string {
+    var raw := string(request.route.raw_path, "")
+    if raw == "" {
+        return ""
+    }
+    if !bool(request.route.valid, true) {
+        return "__invalid__"
+    }
+    return string(request.route.path, "")
+}
+
+function page(title : string, extra_css : string, body : markup) void {
+    component_render("/examples/bearer-starter/components/chrome.capy:HEAD", {title: title, extra_css: extra_css})
+    print(body)
+    component_render("/examples/bearer-starter/components/chrome.capy:FOOT")
+}
+
+function home() void {
+    page("Home", "views/marketing.css", <>
+        <section class="hero marketing">
+            <p class="eyebrow">BEARER starter</p>
+            <h1>Stunning Apps</h1>
+            <p>This starter shows a small server-rendered Capy application.</p>
+            <p><a href="?dashboard">Open the dashboard</a> <a href="?workspace">Open the workspace</a></p>
+        </section>
+    </>)
+}
+
+function dashboard() void {
+    page("Dashboard", "views/dashboard.css", <>
+        <section class="dashboard">
+            <h1>Dashboard</h1>
+            <p>The Capy starter dashboard is running from the native Capy front controller.</p>
+            <div class="metric-grid"><article><strong>12</strong><span>Open tasks</span></article><article><strong>4</strong><span>Deploy targets</span></article></div>
+        </section>
+    </>)
+}
+
+function gauges() void {
+    page("Gauges", "themes/common/css/gauges.css", <>
+        <section>
+            <h1>Gauges</h1>
+            <p>Native Capy renders this starter view.</p>
+        </section>
+    </>)
+}
+
+function features() void {
+    page("Features", "views/marketing.css", <>
+        <section>
+            <h1>Features</h1>
+            <ul><li>Capy pages</li><li>Server-rendered HTML</li><li>Static assets</li></ul>
+        </section>
+    </>)
+}
+
+function components() void {
+    page("Components", "views/marketing.css", <>
+        <section>
+            <h1>Components</h1>
+            <p>This page replaces the old starter component gallery with native Capy markup.</p>
+        </section>
+    </>)
+}
+
+function page2() void {
+    page("Page 2", "views/marketing.css", <>
+        <section>
+            <h1>Page 2</h1>
+            <p>Server-rendered starter content.</p>
+        </section>
+    </>)
+}
+
+function page2_section1() void {
+    response_header("Content-Type", "text/html; charset=utf-8")
+    print("<section><h2>BEARER starter AJAX fragment response</h2><p>This fragment is native Capy.</p></section>")
+}
+
+function workspace(path : string) void {
+    page("Workspace", "themes/common/css/workspace.css", <>
+        <section class="workspace">
+            <h1>Workspace</h1>
+            <p>Workspace route: <?= path ?></p>
+            <div class="workspace-layout"><aside>Projects</aside><article>Native Capy workspace content.</article></div>
+        </section>
+    </>)
+}
+
+function not_found() void {
+    response_status(404, "Not Found")
+    page("404 Not Found", "", <>
+        <section>
+            <h1>404 Not Found</h1>
+            <p>The requested page does not exist.</p>
+        </section>
+    </>)
+}
+
+function RENDER(request : dval) {
+    var path := route_path(request)
+    if path == "" {
+        home()
+        return
+    }
+    if path == "dashboard" {
+        dashboard()
+        return
+    }
+    if path == "gauges" {
+        gauges()
+        return
+    }
+    if path == "features" {
+        features()
+        return
+    }
+    if path == "page1" {
+        components()
+        return
+    }
+    if path == "page2" {
+        page2()
+        return
+    }
+    if path == "page2-section1" {
+        page2_section1()
+        return
+    }
+    if path == "workspace" || path == "workspace/projects" {
+        workspace(path)
+        return
+    }
+    not_found()
+}

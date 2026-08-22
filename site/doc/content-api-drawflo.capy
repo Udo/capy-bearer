@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "draw-float" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "draw_float"
+        page["kind"] = "api"
+        page["slug"] = "draw-float"
+        page["route"] = "/doc/api/draw-float/"
+        page["title"] = "draw_float"
+        page["content"] = "`draw_float()` returns a Capy `f64` noise value between two values.\n\nPass the range values and optional precision. Bearer uses the request random seed and advances its random index after each call.\n\nUse it when one request needs repeatable noise values from its random sequence.\n\nThe Capy call has the same arguments.\n"
+        page["returns"] = "`f64` noise value between `from` and `to`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "draw_float"
+        page["sig_lines"] = dval(["f64 draw_float(f64 from, f64 to, f64 decimal_precision = 0.000000000001)", ""])
+        page["capy_sig_lines"] = dval(["function draw_float(from : f64, to : f64, precision : f64 = 0.000000000001) f64"])
+        page["param_lines"] = dval(["from : first range value", "to : second range value", "decimal_precision : output precision", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">noise", "draw_int", "gen_noise01", "gen_noise32", "gen_noise64", "gen_float", "gen_int"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

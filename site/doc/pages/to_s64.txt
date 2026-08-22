@@ -23,9 +23,3 @@ brb_encode
 `to_s64()` is a C++ API. It parses a base-10 integer from complete trimmed text. Empty or partial text, such as `-12px`, returns `fallback`.
 
 Capy does not expose `to_s64`. Use `s64(value, fallback)`.
-
-:example cpp render to_s64() parses signed text
-print(to_s64("-7"), "\n");
-
-:example cpp render to_s64() returns the fallback for partial text
-print(to_s64("-12px", 99), "\n");

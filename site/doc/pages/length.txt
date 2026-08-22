@@ -15,17 +15,13 @@ Use `length()` to measure text size or container size.
 
 For `string` and `markup`, the result is a byte count. For `dval`, `length()` counts map and list entries. It traps for scalar `dval` values. For arrays, it returns the element count.
 
-C++ `.uce` code uses the matching container method, such as `size()`.
+Capy code uses the matching container method, such as `size()`.
 
 :errors
 Compilation fails when `length()` receives the wrong argument count or an unsupported type. Runtime traps when a scalar `dval` reaches `length()`.
 
 :example capy render
 print(length("capy docs"), "\n")
-
-:example cpp render
-String text = "capy docs";
-print(text.size(), "\n");
 
 :see
 >string

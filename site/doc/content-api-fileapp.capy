@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "file-append" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "file_append"
+        page["kind"] = "api"
+        page["slug"] = "file-append"
+        page["route"] = "/doc/api/file-append/"
+        page["title"] = "file_append"
+        page["content"] = "`file_append()` adds text to a file. In Capy, pass a path and one, two, or three strings. It returns `true` on success and `false` on failure.\n\nUse it to add text without replacing existing content. It creates the file when it does not exist. In Capy, pass one or more values. It does not return a value.\n"
+        page["returns"] = "Capy `true` on success. C++ has no return value"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "file_append"
+        page["sig_lines"] = dval(["void file_append(String file_name, ...val)", ""])
+        page["capy_sig_lines"] = dval(["function file_append(path : string, content : string) bool", "function file_append(path : string, first : string, second : string) bool", "function file_append(path : string, first : string, second : string, third : string) bool"])
+        page["param_lines"] = dval(["file_name : path of the file to append", "...val : C++ values to append in order", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "file_put_contents", "file_get_contents", "expand_path", "file_exists", "dirname", "basename"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

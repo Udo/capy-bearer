@@ -19,12 +19,9 @@ gen_int
 :content
 `gen_noise01()` returns a deterministic `f64` noise value from `0` to `1`. `index` and `seed` select the value.
 
-Use it for repeatable normalized noise. The C++ `.uce` call uses the declaration above.
+Use it for repeatable normalized noise. The Capy call uses the declaration above.
 
 
 :example capy render
 var generated := gen_noise01(1, 2)
 print("noise\n")
-
-:example cpp render
-print(gen_noise01(1, 2) >= 0 ? "noise\n" : "bad\n");

@@ -1,17 +1,17 @@
 function CLI(request : dval) {
     {
         var capy := unit_load("/tests/capy-module-target.capy")
-        var empty := capy.call("default_input")
+        var empty := capy.default_input()
         var boundary_input := {nested: {value: "input"}}
-        var boundary_result := capy.call("echo", boundary_input)
+        var boundary_result := capy.echo(boundary_input)
         boundary_result.nested.value = "result"
         var nested := capy.call("echo", {nested: {value: "nested"}})
         var once := unit_call("/tests/capy-module-target.capy", "counted", "once")
         unit_call("/tests/capy-module-target.capy", "RENDER")
-        var cpp := unit_load("/tests/capy-cross-target.uce").call("structured", {user: {name: "Ada"}, items: [4, 9]})
-        var legacy := unit_call("/tests/capy-cross-target.uce", "echo", "legacy")
+        var cross := unit_load("/tests/capy-cross-target.capy").call("structured", {user: {name: "Ada"}, items: [4, 9]})
+        var legacy := unit_call("/tests/capy-cross-target.capy", "echo", "legacy")
         var absent := capy.call("echo", none)
-        print(empty, "|", nested.nested.value, "|", once, "|", cpp.source, "|", legacy, "|", absent?, "|", boundary_input.nested.value, boundary_result.nested.value)
+        print(empty, "|", nested.nested.value, "|", once, "|", cross.source, "|", legacy, "|", absent?, "|", boundary_input.nested.value, boundary_result.nested.value)
     }
     print("|", arc_live())
 }

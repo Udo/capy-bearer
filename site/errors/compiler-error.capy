@@ -1,0 +1,5 @@
+function RENDER(request : dval) {
+    var error := request.call.error
+    response_header("Content-Type", "text/html; charset=utf-8")
+    print("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"></meta><title>Build failed</title><style>body{font-family:system-ui,sans-serif;background:#1c1017;color:#fde8e8;margin:0;min-height:100vh}main{max-width:60rem;margin:0 auto;padding:3rem 2rem}h1{color:#f87171}code{color:#fca5a5}pre{background:#0f0a0d;color:#e2e8f0;padding:1rem;border-radius:.5rem;overflow-x:auto}.meta{color:#9f8a93;font-size:.9rem}</style></head><body><main><h1>This page failed to build</h1><p>Source: <code>", html_escape(string(error.source, "")), "</code></p><p class=\"meta\">Generated C++: <code>", html_escape(string(error.generated_cpp, "")), "</code></p><pre>", html_escape(string(error.compiler_output, "")), "</pre></main></body></html>")
+}

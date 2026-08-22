@@ -17,10 +17,3 @@ Use this function for Bearer DValue data. Use JSON or YAML for text formats that
 var original := dval({"msg": "hello", "missing": none})
 var packed := brb_encode(original)
 print("encoded ", length(packed), " bytes. ", brb_decode(packed).msg, "\n")
-
-:example cpp render
-DValue original;
-original["msg"] = "hello";
-original["missing"].set_none();
-String packed = brb_encode(original);
-print("encoded ", packed.length(), " bytes. ", brb_decode(packed)["msg"].to_string(), "\n");

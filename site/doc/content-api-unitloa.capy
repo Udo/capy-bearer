@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "unit-load" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "unit_load"
+        page["kind"] = "api"
+        page["slug"] = "unit-load"
+        page["route"] = "/doc/api/unit-load/"
+        page["title"] = "unit_load"
+        page["content"] = "Call `unit_load(path)` to get a `module` value for a readable unit.\n\nCall an exported function with `module.call(name[, input])` or `module.export_name(input)`. Inputs and results are `dval` values. The no-input form passes an empty `dval` value. A Capy unit uses `#exports` to declare callable functions and type metadata.\n\nUse `unit_load()` when several calls use one unit. A missing unit or export is an error.\n\nC++ cannot use a Capy `module` value. Use `unit_call()` with the `DValue*` API instead. C++ exports use `EXPORT DValue* name(DValue*)`.\n"
+        page["returns"] = "a `module` value for the unit"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "unit_load"
+        page["sig_lines"] = dval(["module unit_load(String file_name)", ""])
+        page["capy_sig_lines"] = dval(["function unit_load(path : string) module"])
+        page["param_lines"] = dval(["file_name : unit source path", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">ob", ">unit_compile", ">unit_info", ">unit_call", "component_capture", "unit_render", "component_render", "call", "print", "response_status"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

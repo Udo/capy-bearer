@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "socket-write" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "socket_write"
+        page["kind"] = "api"
+        page["slug"] = "socket-write"
+        page["route"] = "/doc/api/socket-write/"
+        page["title"] = "socket_write"
+        page["content"] = "Capy `socket_write(sockfd, data)` sends a string to a socket. Give it a socket handle and the data to send.\n\nIt returns `true` when the write succeeds. It returns `false` when it fails. Use it after `socket_connect()` to send a request.\n"
+        page["returns"] = "`true` when the write succeeds, otherwise `false`"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "socket_write"
+        page["sig_lines"] = dval(["bool socket_write(u64 sockfd, String data)", ""])
+        page["capy_sig_lines"] = dval(["function socket_write(handle : u64, data : string) bool"])
+        page["param_lines"] = dval(["sockfd : socket handle from `socket_connect()`", "data : string to send", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">socket", "socket_read", "socket_connect", "socket_close", "http_request_async", "http_request"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

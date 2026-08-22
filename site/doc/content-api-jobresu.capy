@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "job-result" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "job_result"
+        page["kind"] = "api"
+        page["slug"] = "job-result"
+        page["route"] = "/doc/api/job-result/"
+        page["title"] = "job_result"
+        page["content"] = "`job_result()` checks a job with a short bounded wait.\n\nUse it to poll after `shell_spawn()` or `http_request_async()`. In Capy, pass the job ID as `dval`. In Capy, pass the `u64` job ID shown above.\n"
+        page["returns"] = "a `dval` status map. A completed job includes `result`."
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "job_result"
+        page["sig_lines"] = dval(["DValue job_result(u64 job_id)", ""])
+        page["capy_sig_lines"] = dval(["function job_result(job : dval) dval"])
+        page["param_lines"] = dval(["job : the Capy `dval` job ID. Capy uses a `u64` ID.", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "job_status", "job_await", "shell_spawn", "job_cancel", "shell_exec", "file_unlink"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

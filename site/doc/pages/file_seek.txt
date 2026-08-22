@@ -21,15 +21,6 @@ file_seek(reader, 6, 0)
 print(file_read(reader, 5), "\n")
 file_close(reader)
 
-:example cpp render
-u64 w = file_open("/tmp/doc-seek.txt", "w");
-file_write(w, "hello world");
-file_close(w);
-u64 r = file_open("/tmp/doc-seek.txt", "r");
-file_seek(r, 6, 0);
-print(file_read(r, 5), "\n");
-file_close(r);
-
 :see
 >sys
 file_tell

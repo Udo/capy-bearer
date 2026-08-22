@@ -1,0 +1,27 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "coming-from-react" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "3_Coming from React"
+        page["kind"] = "api"
+        page["slug"] = "coming-from-react"
+        page["route"] = "/doc/api/coming-from-react/"
+        page["title"] = "Coming from React"
+        page["content"] = "Capy uses typed `function RENDER` units. Bearer renders on the server. It does not require a client-side virtual DOM or file router.\n\n## Concept map\n\n`function RENDER(request : dval)` renders a page. `function COMPONENT(request : dval)` renders reusable server content. A named component uses `function COMPONENT:NAME(request : dval)`. Read component input from `request.props`.\n\n`request.call` holds request-local shared state. `function ONCE(request : dval)` prepares a unit for one request. `function INIT(request : dval)` prepares a loaded unit worker.\n\nUse markup literals for escaped output. Use `component()` when code needs component output as a value. Use `component_render()` or `unit_render()` when code writes directly to the response.\n\n## Routes and data\n\nKeep routing in a front controller when it fits the application. The starter example checks page files and parent index handlers. This keeps route rules visible in application code.\n\nUse collection helpers for short transformations. Use explicit loops when work has effects or several steps.\n\n## What Bearer does not provide\n\nBearer does not provide a global asset registry or island registry. It does not require JSX-like component tags. Capy components do not have built-in child or slot syntax. Pass explicit props and call components instead.\n\n## Debugging\n\nCheck the compiler output under `BIN_DIRECTORY` when a Capy unit does not compile. Bearer reports the source path and compiler output.\n"
+        page["label"] = "Coming from React"
+        page["sig_lines"] = dval(["Capy server components", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

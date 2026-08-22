@@ -31,15 +31,3 @@ var listing := zip_list(archive)
 var entries := listing["entries"]
 print(s32(listing["count"]), " entries: ", entries[0]["name"], ", ", entries[1]["name"], "\n")
 file_unlink(archive)
-
-:example cpp render
-DValue entries;
-entries["a.txt"] = "alpha";
-entries["b.txt"] = "beta";
-zip_create("/tmp/doc-ziplist.zip", entries);
-DValue listing = zip_list("/tmp/doc-ziplist.zip");
-String names = "";
-listing["entries"].each([&](DValue e, String key) {
-    names += (names == "" ? "" : ", ") + e["name"].to_string();
-});
-print(listing["count"].to_u64(), " entries: ", names, "\n");

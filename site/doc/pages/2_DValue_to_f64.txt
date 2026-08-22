@@ -25,8 +25,3 @@ Exact numeric strings, finite f64 values, and booleans can convert. Empty, inval
 :example capy render
 var value := dval("12.5")
 print(f64(value), "\n")
-
-:example cpp render
-DValue value;
-value = "12.5";
-print(value.to_f64(), "\n");

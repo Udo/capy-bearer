@@ -6,7 +6,7 @@ This document specifies the Capy source language. The compiler and runtime must 
 
 A Capy source file uses the `.capy` suffix. Source text is case-sensitive.
 
-Spaces, tabs, and newlines are whitespace. A newline does not end an expression. Grammar delimiters end expressions. A semicolon separates adjacent expressions when the grammar would otherwise be ambiguous. Commas separate call arguments, array items, tuple items, map entries, parameters, and names in `EXPORTS`.
+Spaces, tabs, and newlines are whitespace. A newline does not end an expression. Grammar delimiters end expressions. A semicolon separates adjacent expressions when the grammar would otherwise be ambiguous. Commas separate call arguments, array items, tuple items, map entries, parameters, and names in `#exports`.
 
 A line comment starts with `//` and ends at the next newline.
 
@@ -20,7 +20,7 @@ An unconstrained literal prefers an exact `s32` overload. If no `s32` overload m
 
 `none` is a reserved literal. It has type `dval`.
 
-The directives `#compile`, `#callsite`, and `emit` are reserved. They are not part of executable Capy.
+The directive `#exports` declares exported unit metadata. The directive `#import` imports exported type metadata into a compile-time namespace. The directives `#compile`, `#callsite`, and `emit` are reserved. They are not part of executable Capy.
 
 ## 2. Program structure
 
@@ -32,12 +32,13 @@ host function declaration
 trace host function declaration
 struct declaration
 type alias
-EXPORTS declaration
+#exports directive
+#import directive
 ```
 
 Application source cannot declare host functions. Host declarations are valid only in the embedded standard library.
 
-A block starts with `{` and ends with `}`. Blocks contain expressions. `type` and `EXPORTS` are top-level only. Capy has no `const` declaration.
+A block starts with `{` and ends with `}`. Blocks contain expressions. `type`, `#exports`, and `#import` are top-level only. Capy has no `const` declaration.
 
 ## 3. Type expressions
 
@@ -266,6 +267,18 @@ Selected standard-library value parameters use `as dval`. They can insert one DV
 
 Strings preserve bytes. String indexing is not a source-language operation. Standard-library functions provide byte lengths, search, slicing, replacement, and case conversion.
 
+A markup literal starts with `<>` and ends with `</>`. It creates a `markup` value. It does not write to the response by itself. `RENDER` and `COMPONENT` do not give bare markup expressions special output behavior. Use `print(<><p>Ready</p></>)` to output markup from a handler or component. Return `markup` from helper functions when the caller should choose where to print it.
+
+```capy
+function badge(label : string) markup {
+    -> <><strong><?= label ?></strong></>
+}
+
+function RENDER(request : dval) {
+    print(badge("Ready"))
+}
+```
+
 `<?= value ?>` selects an encoding from its markup context. HTML text and quoted attributes use HTML escaping. A string in a `script` element becomes one self-contained JavaScript literal. A string in a `style` element becomes one self-contained CSS literal. Integer and Boolean values remain scalar values in those elements. `f64` interpolation is not supported in `script` or `style` elements.
 
 Script and style interpolation must start at a value boundary. Static source after the interpolation can apply an operator or a CSS unit. Interpolation cannot occur inside a quoted string, template literal, or comment. An attribute value must be quoted. Tag names and attribute names cannot contain interpolation. URL, event-handler, and inline-style attributes still use HTML attribute escaping. Validate their application-specific value before interpolation.
@@ -303,9 +316,13 @@ A handler cannot be overloaded, generic, variadic, coercive, or value-returning.
 
 `INIT` runs after Bearer materializes the unit in a request workspace and before its first dispatch. Bearer creates a new workspace for each request, so `INIT` can run again for the next request. It does not provide persistent worker-local state. `ONCE` runs before the first entry or component call for one resolved unit in one request. It runs at most once for that unit in that request.
 
-`EXPORTS name` exposes an ordinary local function with the exact signature `(dval) dval`. It does not execute code. `module.call(name)` supplies an empty DValue. `module.call(name, input)` copies its input and result through the Bearer membrane.
+`#exports name` exposes local unit metadata. If `name` is a callable `(dval) dval` function, Bearer also exposes it to dynamic module calls. If `name` is a function and a type, Capy exports both metadata entries.
 
-Capy and C++ units share no language object layout. DValues cross custom export and C++ boundaries as copied BRRB values. Module values are request-local verified capabilities. Components, tasks, jobs, requests, files, databases, codecs, serialization, and network operations follow their online API pages.
+`module.call(name)` supplies an empty DValue. `module.call(name, input)` copies its input and result through the Bearer membrane. A member call on a module is dynamic sugar for the same operation. For example, `service.echo(input)` is equivalent to `service.call("echo", input)`.
+
+`#import "path" as alias` is compile-time only. It imports exported Capy type metadata from another unit. Imported types are available in type positions as `alias.TypeName`. Static imports do not load a runtime module and do not make `unit_load()` static.
+
+Capy units do not expose language object layouts. DValues cross custom export boundaries as copied BRRB values. Module values are request-local verified capabilities. Components, tasks, jobs, requests, files, databases, codecs, serialization, and network operations follow their online API pages.
 
 ## 13. Errors, traps, and source locations
 

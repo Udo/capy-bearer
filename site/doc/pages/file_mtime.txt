@@ -8,17 +8,13 @@ file_name : path of the file to inspect
 last modification time as a Unix timestamp, or 0 when unavailable
 
 :content
-`file_mtime` returns a file modification time as a `u64` Unix timestamp. Use it to compare file ages. It returns 0 when it cannot read a timestamp. C++ .uce uses the same numeric result.
+`file_mtime` returns a file modification time as a `u64` Unix timestamp. Use it to compare file ages. It returns 0 when it cannot read a timestamp. Capy uses the same numeric result.
 
 :example capy render
 file_put_contents("/tmp/doc-mtime.txt", "x")
 var result := "missing"
 if file_mtime("/tmp/doc-mtime.txt") > 0 { result = "has a modification time" }
 print(result, "\n")
-
-:example cpp render
-file_put_contents("/tmp/doc-mtime.txt", "x");
-print(file_mtime("/tmp/doc-mtime.txt") > 0 ? "has a modification time" : "missing", "\n");
 
 :see
 >sys

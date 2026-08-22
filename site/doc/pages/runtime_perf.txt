@@ -20,7 +20,3 @@ C++ keeps `request_perf()` with the signature above. Capy uses `runtime_perf()`.
 :example capy render
 var perf := runtime_perf()
 print(dval_get_type_name(perf), "\n")
-
-:example cpp render
-DValue perf = request_perf();
-print(perf.get_type_name(), "\n");

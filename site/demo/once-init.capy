@@ -1,0 +1,7 @@
+function RENDER(request : dval) {
+    component_render("/demo/components/page.capy", {
+        title: "once-init demo",
+        heading: "once-init demo",
+        body: "This included demo route now runs from native Capy through a shared component."
+    })
+}

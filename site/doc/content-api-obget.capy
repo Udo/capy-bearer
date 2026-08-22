@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "ob-get" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "ob_get"
+        page["kind"] = "api"
+        page["slug"] = "ob-get"
+        page["route"] = "/doc/api/ob-get/"
+        page["title"] = "ob_get"
+        page["content"] = "`ob_get()` returns the current output buffer as a `string`. The buffer stays active, so later `print()` calls add more output.\n\nUse `ob_get_close()` to get the contents and close the buffer.\n"
+        page["returns"] = "the current output buffer contents"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "ob_get"
+        page["sig_lines"] = dval(["String ob_get()", ""])
+        page["capy_sig_lines"] = dval(["function ob_get() string"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">ob", "ob_get_close", "ob_start", "ob_close", "load", "component_resolve", "print"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

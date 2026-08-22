@@ -1,0 +1,46 @@
+function COMPONENT:HEAD(request : dval) {
+    var title := string(request.props.title, "Home")
+    var extra_css := string(request.props.extra_css, "")
+    response_header("Content-Type", "text/html; charset=utf-8")
+    print("<!doctype html>")
+    print(<>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8"></meta>
+                <meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+                <title><?= title ?> | BEARER Starter</title>
+                <link rel="stylesheet" href="themes/light/css/style.css"></link>
+                <script src="js/site.js"></script>
+    </>)
+    if extra_css != "" {
+        print(<><link rel="stylesheet" href="<?= extra_css ?>"></link></>)
+    }
+    print(<>
+            </head>
+            <body>
+                <div class="starter-shell">
+                    <header>
+                        <a href="/examples/bearer-starter/">BEARER Starter</a>
+                        <nav>
+                            <a href="?dashboard">Dashboard</a>
+                            <a href="?features">Features</a>
+                            <a href="?page1">Components</a>
+                            <a href="?workspace">Workspace</a>
+                        </nav>
+                    </header>
+                    <main>
+    </>)
+}
+
+function COMPONENT:FOOT(request : dval) {
+    print(<>
+                    </main>
+                    <footer>
+                        <a href="/doc/">Docs</a>
+                        <a href="/info/">Info</a>
+                    </footer>
+                </div>
+            </body>
+        </html>
+    </>)
+}

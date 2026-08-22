@@ -17,11 +17,6 @@ var result := "gone"
 if file_exists("/tmp/doc-unlink.txt") { result = "exists" }
 print(result, "\n")
 
-:example cpp render
-file_put_contents("/tmp/doc-unlink.txt", "x");
-file_unlink("/tmp/doc-unlink.txt");
-print(file_exists("/tmp/doc-unlink.txt") ? "exists" : "gone", "\n");
-
 :see
 >sys
 file_exists

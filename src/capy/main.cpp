@@ -91,7 +91,6 @@ int main(int argc, char** argv)
 				source_map = value(argument.c_str());
 			else if (argument == "--abi-version")
 				abi_version = static_cast<unsigned>(std::stoul(value(argument.c_str())));
-			// Retained for compatibility with scripts/compile_wasm_unit; capyc always emits Bearer units.
 			else if (argument == "--bearer-unit")
 			{
 			}

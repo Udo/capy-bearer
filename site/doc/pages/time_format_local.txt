@@ -30,10 +30,7 @@ Padding and case flags may follow `%`:
 
 The `RFC1123` special format applies only to `time_format_utc`. Use that function for RFC 1123 output.
 
-C++ `.uce` uses `String` and `u64`, as the signature shows.
+Capy uses `String` and `u64`, as the signature shows.
 
 :example capy render
 if time_format_local("%Y-%m-%d", 0) != "" { print("formatted\n") } else { print("empty\n") }
-
-:example cpp render
-print(time_format_local("%Y-%m-%d", 0) != "" ? "formatted\n" : "empty\n");

@@ -24,6 +24,3 @@ Escape each input value with `shell_escape()` before you add it to `cmd`.
 
 :example capy render
 print(shell_exec("echo hello from the shell"))
-
-:example cpp render
-print(shell_exec("echo hello from the shell"));

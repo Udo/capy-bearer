@@ -475,6 +475,7 @@ Lambda::Lambda(Location l) : Expr(ExprKind::Lambda, std::move(l)), return_type(n
 Function::Function(Location l, std::string n) : Expr(ExprKind::Function, std::move(l)), name(std::move(n)), return_type(nullptr), body(nullptr) {}
 Struct::Struct(Location l, std::string n) : Expr(ExprKind::Struct, std::move(l)), name(std::move(n)) {}
 Exports::Exports(Location l) : Expr(ExprKind::Exports, std::move(l)) {}
+Import::Import(Location l, std::string p, std::string a) : Expr(ExprKind::Import, std::move(l)), path(std::move(p)), alias(std::move(a)) {}
 TypeAlias::TypeAlias(Location l, std::string n, Expr* v) : Expr(ExprKind::TypeAlias, std::move(l)), name(std::move(n)), value(v) {}
 For::For(Location l) : Expr(ExprKind::For, std::move(l)), iterable(nullptr), body(nullptr) {}
 If::If(Location l) : Expr(ExprKind::If, std::move(l)), condition(nullptr), then_body(nullptr), else_body(nullptr) {}
@@ -655,6 +656,10 @@ Expr* Parser::prefix()
 	}
 	if (current.kind == TokenKind::directive)
 	{
+		if (current.text == "exports")
+			return exports(current.location);
+		if (current.text == "import")
+			return import_directive(current.location);
 		if (current.text == "compile" || current.text == "callsite")
 			fail(current.location, "#" + current.text + " compile-time metaprogramming is deferred beyond Capy phase 3");
 		fail(current.location, "unknown compiler directive #" + current.text);
@@ -677,7 +682,7 @@ Expr* Parser::prefix()
 		if (current.text == "struct")
 			return structure(current.location);
 		if (current.text == "EXPORTS")
-			return exports(current.location);
+			fail(current.location, "EXPORTS was replaced by #exports");
 		if (current.text == "const")
 			fail(current.location, "const declarations were removed; use a local value or function");
 		if (current.text == "type" && token().kind == TokenKind::identifier)
@@ -810,6 +815,10 @@ Block* Parser::block(Location location)
 	{
 		if (token().text == "EXPORTS")
 			fail(token().location, "EXPORTS is a reserved top-level directive");
+		if (token().kind == TokenKind::directive && token().text == "exports")
+			fail(token().location, "#exports is a top-level directive");
+		if (token().kind == TokenKind::directive && token().text == "import")
+			fail(token().location, "#import is a top-level directive");
 		if (token().text == "const")
 			fail(token().location, "const declarations were removed; use a local value or function");
 		if (token().text == "type" && position_ + 1 < tokens_.size() && tokens_[position_ + 1].kind == TokenKind::identifier)
@@ -964,16 +973,28 @@ Expr* Parser::exports(Location location)
 {
 	Exports* result = program_.make<Exports>(location);
 	if (token().kind != TokenKind::identifier)
-		fail(token().location, "EXPORTS requires at least one function name");
+		fail(token().location, "#exports requires at least one name");
 	while (true)
 	{
-		result->names.push_back(require_identifier("exported function name").text);
+		result->names.push_back(require_identifier("exported name").text);
 		if (!match(","))
 			break;
 		if (token().kind != TokenKind::identifier)
-			fail(token().location, "expected exported function name after ','");
+			fail(token().location, "expected exported name after ','");
 	}
 	return result;
+}
+
+Expr* Parser::import_directive(Location location)
+{
+	if (token().kind != TokenKind::string)
+		fail(token().location, "#import requires a string path");
+	std::string path = take().text;
+	Token as_token = require_identifier("as");
+	if (as_token.text != "as")
+		fail(as_token.location, "#import requires 'as'");
+	Token alias = require_identifier("import alias");
+	return program_.make<Import>(location, std::move(path), alias.text);
 }
 
 Expr* Parser::type_alias(Location location)

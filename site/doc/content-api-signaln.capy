@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "signal-name" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "signal_name"
+        page["kind"] = "api"
+        page["slug"] = "signal-name"
+        page["route"] = "/doc/api/signal-name/"
+        page["title"] = "signal_name"
+        page["content"] = "Capy `signal_name(sig)` returns the POSIX name for a signal number. Give it a numeric signal value.\n\nIt returns names such as `SIGSEGV`. It returns an empty string when the number is unknown. Use it to add a signal name to an error message or diagnostic output.\n"
+        page["returns"] = "signal name, or an empty string for an unknown number"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "signal_name"
+        page["sig_lines"] = dval(["String signal_name(s32 sig)", ""])
+        page["capy_sig_lines"] = dval(["function signal_name(signal : s32) string"])
+        page["param_lines"] = dval(["sig : POSIX signal number", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">runtime", "backtrace_capture", "backtrace_get_frames", "error_pages", "unit_info", "units_list", "unit_compile"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

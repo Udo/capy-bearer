@@ -1,0 +1,75 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "ws-connection-count" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "ws_connection_count"
+        page["kind"] = "api"
+        page["slug"] = "ws-connection-count"
+        page["route"] = "/doc/api/ws-connection-count/"
+        page["title"] = "ws_connection_count"
+        page["content"] = "`ws_connection_count()` is a C++ API. It returns the number of clients in the selected scope. An omitted scope selects the current WebSocket page scope.\n\nCapy does not expose `ws_connection_count`. In a Capy `WS` handler, use `length(request.websocket.connections)` for the current-scope count.\n"
+        page["returns"] = "number of connected C++ WebSocket clients in that scope"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "ws_connection_count"
+        page["sig_lines"] = dval(["u64 ws_connection_count(String scope = \"\")", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval(["scope : optional C++ WebSocket scope identifier", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">websocket", ">ws_connections", ">0_Request", "ws_close", "ws_connection_id", "ws_connections", "ws_is_binary", "ws_message", "ws_opcode"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "ws-connection-id" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "ws_connection_id"
+        page["kind"] = "api"
+        page["slug"] = "ws-connection-id"
+        page["route"] = "/doc/api/ws-connection-id/"
+        page["title"] = "ws_connection_id"
+        page["content"] = "`ws_connection_id()` is a C++ API. It returns the current WebSocket client connection ID. Outside a WebSocket handler, it returns an empty string.\n\nUse the ID with `ws_send_to()` or `ws_close()` to select one client.\n\nCapy does not expose `ws_connection_id`. In a Capy `WS` handler, read `request.websocket.connection_id`.\n"
+        page["returns"] = "connection ID of the current WebSocket client"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "ws_connection_id"
+        page["sig_lines"] = dval(["String ws_connection_id()", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">websocket", ">0_Request", "ws_connection_count", "ws_connections", "ws_close", "ws_is_binary", "ws_message", "ws_opcode"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "ws-connections" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "ws_connections"
+        page["kind"] = "api"
+        page["slug"] = "ws-connections"
+        page["route"] = "/doc/api/ws-connections/"
+        page["title"] = "ws_connections"
+        page["content"] = "`ws_connections()` is a C++ API. It returns the IDs connected to the selected scope. An omitted scope selects the current WebSocket page scope.\n\nCapy does not expose `ws_connections`. In a Capy `WS` handler, read `request.websocket.connections` for IDs in the current scope.\n"
+        page["returns"] = "C++ list of connection IDs in that scope"
+        page["capy_status"] = "cpp-specific"
+        page["label"] = "ws_connections"
+        page["sig_lines"] = dval(["DValue ws_connections(String scope = \"\")", ""])
+        page["capy_sig_lines"] = dval([])
+        page["param_lines"] = dval(["scope : optional C++ WebSocket scope identifier", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">websocket", ">0_Request", "ws_connection_id", "ws_is_binary", "ws_connection_count", "ws_message", "ws_close", "ws_opcode"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

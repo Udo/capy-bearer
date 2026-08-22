@@ -1,0 +1,7 @@
+function RENDER(request : dval) {
+    component_render("/demo/components/page.capy", {
+        title: "unit-browser demo",
+        heading: "unit-browser demo",
+        body: "This included demo route now runs from native Capy through a shared component."
+    })
+}

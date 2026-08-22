@@ -11,17 +11,12 @@ Capy `true` on success. C++ has no return value
 :content
 `file_append()` adds text to a file. In Capy, pass a path and one, two, or three strings. It returns `true` on success and `false` on failure.
 
-Use it to add text without replacing existing content. It creates the file when it does not exist. In C++ `.uce`, pass one or more values. It does not return a value.
+Use it to add text without replacing existing content. It creates the file when it does not exist. In Capy, pass one or more values. It does not return a value.
 
 :example capy render
 file_unlink("/tmp/doc-append.txt")
 file_append("/tmp/doc-append.txt", "a", "b", "c")
 print(file_get_contents("/tmp/doc-append.txt"), "\n")
-
-:example cpp render
-file_unlink("/tmp/doc-append.txt");
-file_append("/tmp/doc-append.txt", "a", "b", "c");
-print(file_get_contents("/tmp/doc-append.txt"), "\n");
 
 :see
 >sys

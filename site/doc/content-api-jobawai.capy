@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "job-await" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "job_await"
+        page["kind"] = "api"
+        page["slug"] = "job-await"
+        page["route"] = "/doc/api/job-await/"
+        page["title"] = "job_await"
+        page["content"] = "`job_await()` waits for a job for up to `timeout_ms` milliseconds.\n\nIt returns a running status when the time limit expires. Use it after `shell_spawn()` or `http_request_async()` when you can wait for completion.\n\nIn Capy, pass the job ID as `dval`. In Capy, pass the `u64` job ID shown above.\n"
+        page["returns"] = "a `dval` status map. A completed job includes `result`."
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "job_await"
+        page["sig_lines"] = dval(["DValue job_await(u64 job_id, u64 timeout_ms)", ""])
+        page["capy_sig_lines"] = dval(["function job_await(job : dval, timeout_ms : s32) dval"])
+        page["param_lines"] = dval(["job : the Capy `dval` job ID. Capy uses a `u64` ID.", "timeout_ms : maximum wait in milliseconds", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sys", "job_result", "job_cancel", "job_status", "file_unlink", "shell_spawn", "zip_create"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

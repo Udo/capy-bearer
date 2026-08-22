@@ -1,0 +1,29 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "mysql-insert-id" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "mysql_insert_id"
+        page["kind"] = "api"
+        page["slug"] = "mysql-insert-id"
+        page["route"] = "/doc/api/mysql-insert-id/"
+        page["title"] = "mysql_insert_id"
+        page["content"] = "`mysql_insert_id()` returns the last automatic row ID as `u64`.\n\nCall this after an `INSERT` into a table with an `AUTO_INCREMENT` column.\n"
+        page["returns"] = "the last automatic row ID for this connection"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "mysql_insert_id"
+        page["sig_lines"] = dval(["u64 mysql_insert_id(MySQL* m)", ""])
+        page["capy_sig_lines"] = dval(["function mysql_insert_id(handle : u64) u64"])
+        page["param_lines"] = dval(["m : an active MySQL connection. Capy uses a `u64` handle. C++ uses a pointer.", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">mysql", "mysql_escape", "mysql_affected_rows", "mysql_error", "mysql_query", "mysql_disconnect", "mysql_connected"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

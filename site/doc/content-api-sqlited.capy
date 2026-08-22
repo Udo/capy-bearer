@@ -1,0 +1,28 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "sqlite-disconnect" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "sqlite_disconnect"
+        page["kind"] = "api"
+        page["slug"] = "sqlite-disconnect"
+        page["route"] = "/doc/api/sqlite-disconnect/"
+        page["title"] = "sqlite_disconnect"
+        page["content"] = "Capy `sqlite_disconnect(db)` closes an SQLite handle from `sqlite_connect()`. It does not return a value.\n\nCall it when you finish database work. Do not use the handle after this call. The C++ API uses an `SQLite*` pointer. Capy uses a `u64` handle.\n"
+        page["example_error"] = "expected contiguous :example cpp render"
+        page["label"] = "sqlite_disconnect"
+        page["sig_lines"] = dval(["void sqlite_disconnect(SQLite* db)", ""])
+        page["capy_sig_lines"] = dval(["function sqlite_disconnect(handle : u64)"])
+        page["param_lines"] = dval(["db : SQLite handle from `sqlite_connect()`", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([">sqlite", "sqlite_connect", "sqlite_error", "sqlite_query", "sqlite_insert_id", "sqlite_affected_rows"])
+        page["example_pairs"] = dval([])
+        page["cpp_only_examples"] = dval([])
+        page["legacy_examples"] = dval([])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}
