@@ -68,9 +68,9 @@ PUBLIC_APIS = [
     ("time_format_relative", True, "public"), ("time_parse", True, "public"),
     ("backtrace_get_frames", False, "public"), ("backtrace_capture", False, "public"),
     ("signal_name", False, "public"), ("memcache_escape_key", True, "public"),
-    ("memcache_escape_keys", True, "public"), ("memcache_command", True, "public"),
+    ("memcache_command", True, "public"),
     ("memcache_get_multiple", True, "public"), ("runtime_safe_key", True, "public"),
-    ("float_val", True, "public"), ("nibble", True, "public"), ("json_consume_space", False, "internal"),
+    ("nibble", True, "public"), ("json_consume_space", False, "internal"),
     ("array_merge", True, "public"), ("safe_name", True, "public"), ("ascii_safe_name", True, "public"),
     ("remove", False, "public"), ("clear", False, "public"),
     ("gen_sha1", True, "public"), ("sha256", True, "public"), ("sha256_hex", True, "public"),
@@ -85,7 +85,6 @@ PUBLIC_APIS = [
     ("route_from_raw_path", True, "public"), ("unit_compile", True, "public"),
     ("cleanup_sqlite_connections", False, "internal"), ("cleanup_mysql_connections", False, "internal"),
     ("mysql_connect", True, "integration"), ("mysql_query", True, "integration"),
-    ("mysql_affected_rows", True, "integration"),
 ]
 
 REMOVED_APIS = ["concat"]
@@ -114,7 +113,7 @@ def stdlib_public_functions() -> set[str]:
 def compiler_intrinsics() -> set[str]:
     source = (ROOT / "src" / "capy" / "compiler.cpp").read_text(errors="ignore")
     names = set(re.findall(r'!member && callee == "([A-Za-z_][A-Za-z0-9_]*)"', source))
-    names.update(re.findall(r'name->value == "(trusted_markup|trap|clone)"', source))
+    names.update(re.findall(r'name->value == "(trap|clone)"', source))
     return {name for name in names if not name.startswith("__")}
 
 

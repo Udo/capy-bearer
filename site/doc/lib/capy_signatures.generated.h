@@ -237,7 +237,6 @@ inline constexpr DocCapySignature doc_capy_signatures[] = {
 	{"time_precise", "function time_precise() f64"},
 	{"trap", "function trap()"},
 	{"trim", "function trim(raw : string) string"},
-	{"trusted_markup", "function trusted_markup(value : string) markup"},
 	{"type/dvalue", "type dval"},
 	{"type/request", "handler request : dval"},
 	{"type/string", "type string"},

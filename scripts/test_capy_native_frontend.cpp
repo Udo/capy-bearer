@@ -253,7 +253,9 @@ int main(int argc, char** argv)
 	expect_error("<><style>.x { color-name-<?= value ?>: red; }</style></>", "CSS value boundary");
 	expect_error("<><style>/* <?= value ?> */</style></>", "CSS comment");
 	expect_error("<><!-- <?= value ?> --></>", "HTML comment or declaration");
-	expect_error("<><script><?: trusted ?></script></>", "raw markup interpolation is only allowed in HTML text");
+	expect_error("<><p title=\"<?: value ?>\"></p></>", "raw markup interpolation is only allowed in HTML text");
+	expect_error("<><script><?: value ?></script></>", "raw markup interpolation is only allowed in HTML text");
+	expect_error("<><style><?: value ?></style></>", "raw markup interpolation is only allowed in HTML text");
 	expect_error("<><p>missing", "unterminated markup expression");
 	{
 		Program p = parse("function value() s32 { ->\n42 }\nfunction returned() s32 { return\n7 }\nfunction stop() { return\n}\n", "results.capy");

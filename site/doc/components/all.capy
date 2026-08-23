@@ -219,7 +219,6 @@ function COMPONENT(request : dval) {
     print("<div class=\"func-item\"><a href=\"/doc/api/time-precise/\">time_precise</a></div>")
     print("<div class=\"func-item\"><a href=\"/doc/api/trap/\">trap</a></div>")
     print("<div class=\"func-item\"><a href=\"/doc/api/trim/\">trim</a></div>")
-    print("<div class=\"func-item\"><a href=\"/doc/api/trusted-markup/\">trusted_markup</a></div>")
     print("<div class=\"func-item\"><a href=\"/doc/api/u64/\">u64</a></div>")
     print("<div class=\"func-item\"><a href=\"/doc/api/unit-call/\">unit_call</a></div>")
     print("<div class=\"func-item\"><a href=\"/doc/api/unit-compile/\">unit_compile</a></div>")

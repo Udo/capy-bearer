@@ -33,7 +33,6 @@ regex_split
 trim
 int_val
 html_escape
-trusted_markup
 safe_name
 var_dump
 json_decode

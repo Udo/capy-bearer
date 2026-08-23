@@ -39,7 +39,6 @@ PAGE_SIGNATURES = {
         "function length(value : [T]) s32",
     ],
     "trap": ["function trap()"],
-    "trusted_markup": ["function trusted_markup(value : string) markup"],
     "mysql_info": ["function mysql_info(handle : u64, key : string) dval"],
     "sqlite_info": ["function sqlite_info(handle : u64, key : string) dval"],
     "posix_info": ["function posix_info(key : string, value : dval) dval"],

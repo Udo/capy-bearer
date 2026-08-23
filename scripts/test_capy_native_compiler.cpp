@@ -139,6 +139,8 @@ int main()
 	assert(validated.valid);
 	assert(validated.bearer_module == "native-test.wasm");
 	assert(result.source_map.starts_with("BEARER_SOURCE_MAP_V1\tnative-test.wasm\n"));
+	const auto raw_markup = capy::compile_bearer_unit("function CLI(request : dval) { print(<><p><?: clone(\"<Ada>\") ?></p></>) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(raw_markup.wasm, {.bearer_abi_version = "11"}).valid);
 	const auto defaults = capy::compile_bearer_unit(
 		"type Count = s64\n"
 		"function add(left : s32, right : s32 = 2) s32 { -> left + right }\n"
@@ -176,6 +178,7 @@ int main()
 			 std::pair{"function CLI(request : dval) { <><script>const value = <?= 1.5 ?>;</script></> }\n", "f64 markup interpolation is not supported"},
 			 std::pair{"function CLI(request : dval) { <><script>const value = \"<?= \"x\" ?>\";</script></> }\n", "JavaScript string"},
 			 std::pair{"function CLI(request : dval) { <><div title=<?= \"x\" ?>></div></> }\n", "requires a quoted attribute value"},
+			 std::pair{"function CLI(request : dval) { var value := dval(\"x\"); <><p><?= value ?></p></> }\n", "markup interpolation does not support dval"},
 		 })
 	{
 		try { capy::compile_bearer_unit(source, options); assert(false); }

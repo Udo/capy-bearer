@@ -53,7 +53,7 @@ function RENDER(request : dval) {
 
 :content
 
-`print` writes the markup value to the response. A markup expression alone does not produce output. The markup chapter explains escaping and trusted markup.
+`print` writes the markup value to the response. A markup expression alone does not produce output. The markup chapter explains escaping.
 
 ## If it does not run
 

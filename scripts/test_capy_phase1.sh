@@ -353,7 +353,7 @@ string_output=$(scripts/bearer-cli /tests/capy-strings.capy)
 	exit 1
 }
 markup_output=$(scripts/bearer-cli /tests/capy-markup.capy)
-[[ "$markup_output" == '<p>static</p>|once;<main>&lt;side&gt;&lt;&amp;&gt;&quot;&#39;<strong>&lt;&amp;&gt;&quot;&#39;</strong><em>trusted</em><trust><em>trusted</em></trust><trusted-context title="&lt;em&gt;trusted&lt;/em&gt;"><script>const trusted = "\u003Cem\u003Etrusted\u003C\/em\u003E";</script><style>.trusted::after { content: "\3C em\3E trusted\3C /em\3E "; }</style></trusted-context><i>&lt;&amp;&gt;&quot;&#39;</i><aside>-2147483648:0:2147483647:true:false</aside><wide>-9223372036854775808:18446744073709551615:-1.5</wide></main>|-2147483648|0' ]] || {
+[[ "$markup_output" == "<p>static</p>|once;<main>&lt;side&gt;&lt;&amp;&gt;&quot;&#39;<&>\"'<strong>&lt;&amp;&gt;&quot;&#39;</strong>&lt;i&gt;&amp;lt;&amp;amp;&amp;gt;&amp;quot;&amp;#39;&lt;/i&gt;<aside>-2147483648:0:2147483647:true:false</aside><wide>-9223372036854775808:18446744073709551615:-1.5</wide></main>|-2147483648|0" ]] || {
 	echo "Capy markup output mismatch: $markup_output" >&2
 	exit 1
 }

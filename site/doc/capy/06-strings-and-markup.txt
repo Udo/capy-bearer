@@ -102,19 +102,11 @@ function RENDER(request : dval) {
 
 :content
 
-## Trusted markup
+## Interpolation rule
 
-A `markup` value stays trusted when `<?= value ?>` inserts it into HTML text. In attributes, scripts, and styles, Capy escapes it as a string for that context. `<?: value ?>` also inserts a `markup` value without escaping it again. Raw interpolation works only in HTML text:
+`<?= value ?>` escapes output at the interpolation site. `<?: value ?>` emits output without escaping. It works only in HTML text.
 
-:example capy render
-function RENDER(request : dval) {
-    var icon := trusted_markup("<strong>ready</strong>")
-    print(<><p><?: icon ?></p></>)
-}
-
-:content
-
-Use `trusted_markup` only at a reviewed trust boundary. Do not apply it to request input, database text, or remote content.
+The interpolation form selects escaping. The value type does not.
 
 ## Common string operations
 
@@ -129,5 +121,4 @@ capy-05-functions-and-closures
 capy-09-web-handlers-and-requests
 string
 length
-trusted_markup
 clone

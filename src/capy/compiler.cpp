@@ -2237,7 +2237,6 @@ std::string FunctionLowerer::infer(Expr* value)
 			return infer(call->arguments.at(0));
 		if (name->value == "length" || name->value == "arc_live") return "s32";
 		if (name->value == "has") return "bool";
-		if (name->value == "trusted_markup") return "markup";
 		if (name->value == "trap")
 			return "void";
 		if (const Module::HostDeclaration* declaration = module_.host(name->value, arguments))
@@ -4071,8 +4070,6 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			}
 			if (type != "string" && type != "markup" && type != "s32" && type != "bool")
 				throw Error(field->location, "markup interpolation does not support " + type);
-			if (!field->escaped && type != "markup")
-				throw Error(field->location, "raw markup interpolation requires a markup value");
 			const unsigned local = add_local("", type, field->location);
 			append(code, field_code);
 			code.push_back(0x21);
@@ -4091,7 +4088,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		wasm::append_uleb(code, total);
 		for (const Field& field : compiled)
 		{
-			const bool escape_text = field.type == "string" || (field.type == "markup" && field.node->context != bearer::MarkupContext::html_text);
+			const bool escape_text = field.type == "string" || field.type == "markup";
 			if (field.node->escaped && escape_text && !field.formatted_scalar)
 				append(code, markup_escape_length(field.local, total, field.node->context, field.node->location));
 			else if (field.type == "s32")
@@ -4174,7 +4171,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				continue;
 			}
 			auto field = std::find_if(compiled.begin(), compiled.end(), [&](const Field& item) { return item.node == part; });
-			const bool escape_text = field->type == "string" || (field->type == "markup" && field->node->context != bearer::MarkupContext::html_text);
+			const bool escape_text = field->type == "string" || field->type == "markup";
 			if (field->node->escaped && escape_text && !field->formatted_scalar)
 				append(code, markup_escape_write(field->local, cursor, field->node->context, field->node->location));
 			else if (field->type == "s32")
@@ -5166,13 +5163,6 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			append(code, dval_replace(target, replacement, call->location, expression_is_owned(call->arguments[1])));
 			if (expression_is_owned(call->arguments[0])) owned_expression_results_.insert(value);
 			return {code, "dval"};
-		}
-		if (!member && callee == "trusted_markup")
-		{
-			if (call->arguments.size() != 1) throw Error(value->location, "trusted_markup expects one string");
-			auto [source, type] = expression(call->arguments[0]);
-			if (type != "string") throw Error(call->arguments[0]->location, "expected string, found " + type);
-			return {std::move(source), "markup"};
 		}
 		if (!member && callee == "clone")
 		{
@@ -6953,7 +6943,6 @@ Module::Capabilities Module::discover_capabilities()
 				if (name->value == "clone") return call->arguments.empty() ? "" : scan_value_type(call->arguments.front());
 				if (name->value == "length" || name->value == "arc_live") return "s32";
 				if (name->value == "has") return "bool";
-										if (name->value == "trusted_markup") return "markup";
 				std::vector<std::string> arguments;
 				for (Expr* argument : call->arguments)
 					arguments.push_back(scan_value_type(argument));
