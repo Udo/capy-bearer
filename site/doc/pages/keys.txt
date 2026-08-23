@@ -19,5 +19,4 @@ print(join(sort(keys(user)), ","), "\n")
 
 :see
 0_DValue
-0_StringList
 values

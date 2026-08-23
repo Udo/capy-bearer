@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_StringList"])
+        page["see"] = dval([])
         page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\neach(items, function(value : string) string { print(value); return \"\" })\nprint(\"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
@@ -35,7 +35,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_StringList"])
+        page["see"] = dval([])
         page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\nprint(every(items, function(value : string) bool { return value != \"\" }), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
@@ -54,7 +54,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_StringList"])
+        page["see"] = dval([])
         page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\nvar kept := filter(items, function(value : string) bool { return value == \"two\" })\nprint(join(kept, \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
@@ -73,7 +73,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_StringList"])
+        page["see"] = dval([])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(find(\"one,two\", \"two\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
@@ -92,7 +92,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_StringList"])
+        page["see"] = dval([])
         page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\nvar names := map(items, function(value : string) string { return upper(value) })\nprint(join(names, \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
@@ -111,7 +111,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_StringList"])
+        page["see"] = dval([])
         page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\nprint(some(items, function(value : string) bool { return value == \"two\" }), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
@@ -130,7 +130,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_StringList"])
+        page["see"] = dval([])
         page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"two,one\", \",\")\nprint(join(sort(items), \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
@@ -149,26 +149,8 @@ function data(input : dval) dval {
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_StringList"])
+        page["see"] = dval([])
         page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two,one\", \",\")\nprint(join(unique(items), \",\"), \"\\n\")\n"}])
-        page["guide_examples"] = dval([])
-        return page
-    }
-    if slug == "string-list" {
-        var page := dval({source_page: ""})
-        page["source_page"] = "0_StringList"
-        page["kind"] = "api"
-        page["slug"] = "string-list"
-        page["route"] = "/doc/api/string-list/"
-        page["title"] = "String list"
-        page["content"] = "Use a list-shaped `dval` for an ordered string list. Create one with `dval([...])` or `split`.\n\nUse `join`, `map`, `filter`, `keys`, `unique`, `sort`, `some`, and `every` for list work. These functions return a new value unless stated otherwise.\n\nCapy has no separate `StringList` type. Use a list-shaped `dval` instead.\n"
-        page["label"] = "StringList"
-        page["capy_sig_lines"] = dval(["type dval (list of strings)"])
-        page["param_lines"] = dval([])
-        page["notes"] = dval([])
-        page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue", "split", "join"])
-        page["examples"] = dval([{entry: "render", caption: "", body: "var labels := map(unique(split(\"a,b,a\", \",\")), function(item : string) string { return upper(item) })\nprint(join(labels, \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

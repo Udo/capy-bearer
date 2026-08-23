@@ -12,7 +12,7 @@ the stored value or `default_value`
 :content
 `memcache_get()` reads the value for `key`.
 
-It returns `default_value` for a missing key or an incomplete response.
+It returns `default_value` for a missing key or an incomplete response. It escapes the key before it sends the request.
 
 :example capy render
 var connection := memcache_connect()

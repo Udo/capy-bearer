@@ -13,15 +13,14 @@ a request-local MySQL connection handle
 :content
 `mysql_connect()` creates a MySQL connection lease and returns its handle.
 
-Call `mysql_connected()` before database work. Call `mysql_disconnect()` after use. A failed connection can return a nonzero handle.
+Use `mysql_info(database, "connection")` before database work. Call `mysql_disconnect()` after use. A failed connection can return a nonzero handle.
 
 :example capy render
 var database := mysql_connect("localhost", "root", "", "")
-if mysql_connected(database) { print("connected\n") } else { print(mysql_error(database), "\n") }
+if bool(mysql_info(database, "connection"), false) { print("connected\n") } else { print(string(mysql_info(database, "error"), ""), "\n") }
 if database != u64(0) { mysql_disconnect(database) }
 
 :see
 >mysql
-mysql_connected
+mysql_info
 mysql_disconnect
-mysql_error

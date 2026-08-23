@@ -27,7 +27,6 @@ push
 set
 values
 0_String
-0_StringList
 2_StringList_filter
 2_StringList_map
 2_StringList_each
@@ -36,7 +35,6 @@ values
 2_StringList_some
 2_StringList_every
 2_StringList_find
-0_StringMap
 set
 bool
 f64

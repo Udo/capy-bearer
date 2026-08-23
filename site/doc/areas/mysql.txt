@@ -2,10 +2,7 @@ MySQL Functions
 :order 140
 
 mysql_connect
-mysql_connected
 mysql_disconnect
-mysql_error
 mysql_escape
-mysql_insert_id
-mysql_affected_rows
+mysql_info
 mysql_query

@@ -1,0 +1,1 @@
+function CLI(request : dval) { mysql_info(u64(0), "missing") }

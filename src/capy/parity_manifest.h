@@ -3,7 +3,7 @@
 #include <string_view>
 namespace capy::parity {
 struct Evidence { std::string_view name, path, marker; };
-inline constexpr std::array<Evidence, 243> supported{{
+inline constexpr std::array<Evidence, 234> supported{{
     {"response_status","site/doc/pages/response_status.txt",":example capy render"},
     {"response_header","site/doc/pages/response_header.txt",":example capy render"},
     {"response_cookie","site/doc/pages/response_cookie.txt",":example capy render"},
@@ -94,7 +94,6 @@ inline constexpr std::array<Evidence, 243> supported{{
     {"regex_replace","site/tests/capy-regex.capy","regex_replace("},
     {"regex_split","site/tests/capy-regex.capy","regex_split("},
     {"contains","site/tests/capy-strings.capy","contains("},
-    {"0_StringList","site/tests/capy-string-lists.capy","split("},
     {"2_StringList_every","site/tests/capy-coreutil.capy","every("},
     {"2_StringList_filter","site/tests/capy-coreutil.capy","filter("},
     {"2_StringList_find","site/tests/capy-coreutil.capy","find("},
@@ -110,7 +109,6 @@ inline constexpr std::array<Evidence, 243> supported{{
     {"backtrace_capture","site/tests/capy-coreutil.capy","backtrace_capture("},
     {"backtrace_get_frames","site/tests/capy-backtrace.capy","backtrace_get_frames("},
     {"encode_query","site/tests/capy-coreutil.capy","encode_query("},
-    {"float_val","site/tests/capy-coreutil.capy","float_val("},
     {"int_val","site/tests/capy-coreutil.capy","int_val("},
     {"parse_query","site/tests/capy-coreutil.capy","parse_query("},
     {"replace","site/tests/capy-strings.capy","replace("},
@@ -119,7 +117,7 @@ inline constexpr std::array<Evidence, 243> supported{{
     {"route_path_sanitize","site/tests/capy-coreutil.capy","route_path_sanitize("},
     {"runtime_safe_key","site/tests/capy-coreutil.capy","runtime_safe_key("},
     {"safe_name","site/tests/capy-coreutil.capy","safe_name("},
-    {"signal_name","site/tests/capy-coreutil.capy","signal_name("},
+    {"posix_info","site/doc/pages/posix_info.txt",":example capy render"},
     {"split_http_headers","site/tests/capy-coreutil.capy","split_http_headers("},
     {"split_space","site/tests/capy-coreutil.capy","split_space("},
     {"split_utf8","site/tests/capy-coreutil.capy","split_utf8("},
@@ -138,10 +136,8 @@ inline constexpr std::array<Evidence, 243> supported{{
     {"first","site/tests/capy-string-lists.capy","first("},
     {"sqlite_connect","site/tests/capy-sqlite.capy","sqlite_connect("},
     {"sqlite_disconnect","site/tests/capy-sqlite.capy","sqlite_disconnect("},
-    {"sqlite_error","site/tests/capy-sqlite.capy","sqlite_error("},
     {"sqlite_query","site/tests/capy-sqlite.capy","sqlite_query("},
-    {"sqlite_insert_id","site/tests/capy-sqlite.capy","sqlite_insert_id("},
-    {"sqlite_affected_rows","site/tests/capy-sqlite.capy","sqlite_affected_rows("},
+    {"sqlite_info","site/doc/pages/sqlite_info.txt",":example capy render"},
     {"base64_encode","site/tests/capy-codecs.capy","base64_encode("},
     {"base64_decode","site/tests/capy-codecs.capy","base64_decode("},
     {"uri_encode","site/tests/capy-codecs.capy","uri_encode("},
@@ -197,7 +193,6 @@ inline constexpr std::array<Evidence, 243> supported{{
     {"memcache_set","site/tests/capy-memcache.capy","memcache_set("},
     {"memcache_delete","site/tests/capy-memcache.capy","memcache_delete("},
     {"memcache_escape_key","site/tests/capy-memcache.capy","memcache_escape_key("},
-    {"memcache_escape_keys","site/tests/capy-memcache.capy","memcache_escape_keys("},
     {"task","site/tests/capy-jobs.capy","task("},
     {"task_status","site/tests/capy-jobs.capy","task_status("},
     {"task_await","site/tests/capy-jobs.capy","task_await("},
@@ -236,16 +231,12 @@ inline constexpr std::array<Evidence, 243> supported{{
     {"zip_list","site/tests/capy-final-parity.capy","zip_list("},
     {"zip_read","site/tests/capy-final-parity.capy","zip_read("},
     {"split_kv","site/tests/capy-final-parity.capy","split_kv("},
-    {"0_StringMap","site/tests/capy-coreutil.capy","parse_uri("},
     {"parse_uri","site/tests/capy-coreutil.capy","parse_uri("},
     {"mysql_connect","site/tests/capy-mysql.capy","mysql_connect("},
-    {"mysql_connected","site/tests/capy-mysql.capy","mysql_connected("},
     {"mysql_disconnect","site/tests/capy-mysql.capy","mysql_disconnect("},
-    {"mysql_error","site/tests/capy-mysql.capy","mysql_error("},
     {"mysql_escape","site/tests/capy-mysql.capy","mysql_escape("},
     {"mysql_query","site/tests/capy-mysql.capy","mysql_query("},
-    {"mysql_insert_id","site/tests/capy-mysql.capy","mysql_insert_id("},
-    {"mysql_affected_rows","site/tests/capy-mysql.capy","mysql_affected_rows("},
+    {"mysql_info","site/doc/pages/mysql_info.txt",":example capy render"},
     {"nibble","site/tests/capy-managed-parameter-rebind.capy","nibble("},
 }};
 inline constexpr std::array<Evidence, 0> partial{{}};

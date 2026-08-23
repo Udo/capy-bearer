@@ -18,4 +18,3 @@ var kept := filter(items, function(value : string) bool { return value == "two" 
 print(join(kept, ","), "\n")
 
 :see
-0_StringList

@@ -63,6 +63,7 @@ host function __bearer_mysql_escape(raw : string, quote : string) string
 host function __bearer_mysql_query(handle : u64, query : string, params : dval) dval
 host function __bearer_mysql_insert_id(handle : u64) u64
 host function __bearer_mysql_affected_rows(handle : u64) u64
+host function __bearer_hard_error(message : string)
 host function __bearer_response_set_header(name : string, value : string) bool
 host function __bearer_ws_send(message : string, binary : bool) bool
 host function __bearer_ws_send_scope(message : string, binary : bool, scope : string) bool
@@ -341,7 +342,6 @@ function unique(items : dval) dval {
 function ascii_safe_name(raw : string) string { -> string(__bearer_text_parsing_brrb(__bearer_text_ascii_safe_name(), dval(raw), "", dval(""))) }
 function safe_name(raw : string) string { -> string(__bearer_text_parsing_brrb(__bearer_text_safe_name(), dval(raw), "", dval(""))) }
 function trim(raw : string) string { -> string(__bearer_text_parsing_brrb(__bearer_text_trim(), dval(raw), "", dval(""))) }
-function float_val(raw : string) f64 { -> f64(__bearer_text_parsing_brrb(__bearer_text_float_val(), dval(raw), "", dval(0.0))) }
 function int_val(raw : string) u64 { -> u64(__bearer_text_parsing_brrb(__bearer_text_int_val(), dval(raw), "", dval(10.0)), 0) }
 function int_val(raw : string, base : s32) u64 { -> u64(__bearer_text_parsing_brrb(__bearer_text_int_val(), dval(raw), "", dval(base)), 0) }
 function str_starts_with(haystack : string, needle : string) bool { -> bool(__bearer_text_parsing_brrb(__bearer_text_str_starts_with(), dval(haystack), needle, dval(false))) }
@@ -369,7 +369,12 @@ function split_kv(value : string, separator : string = "=", trim_whitespace : bo
 function sort(items : dval) dval { -> __bearer_text_parsing_brrb(__bearer_text_sort(), items, "", dval("")) }
 function each(items : dval, callback : function(value : string) string) { for item, key := items { var ignored := callback(string(item)) } }
 // runtime-diagnostic operation order: signal, backtrace, sleep, value dump
-function signal_name(signal : s32) string { -> string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_signal_name(), dval(signal), "", dval(""))) }
+function posix_info(key : string, value : dval) dval {
+    if key == "signal_name" { return __bearer_runtime_diagnostics_brrb(__bearer_diagnostic_signal_name(), value, "", dval("")) }
+    __bearer_hard_error("posix_info: unknown key '" + key + "'. Valid keys: signal_name")
+    trap()
+    return dval("")
+}
 function backtrace_capture() string { -> string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_backtrace_capture(), dval(32.0), "", dval(0.0))) }
 function backtrace_capture(max_frames : s32, skip_frames : s32) string { -> string(__bearer_runtime_diagnostics_brrb(__bearer_diagnostic_backtrace_capture(), dval(max_frames), "", dval(skip_frames))) }
 // Capy exposes source-mapped guest frames rather than the native void* ABI.
@@ -463,23 +468,32 @@ function password_needs_rehash(encoded : string) bool { -> bool(__bearer_crypto_
 
 function sqlite_connect(path : string) u64 { -> __bearer_sqlite_connect(path) }
 function sqlite_disconnect(handle : u64) { __bearer_sqlite_disconnect(handle) }
-function sqlite_error(handle : u64) string { -> __bearer_sqlite_error(handle) }
 function sqlite_query(handle : u64, query : string) dval { -> __bearer_sqlite_query(handle, query, dval({:})) }
 function sqlite_query(handle : u64, query : string, params : dval) dval { -> __bearer_sqlite_query(handle, query, params) }
-function sqlite_insert_id(handle : u64) u64 { -> __bearer_sqlite_insert_id(handle) }
-function sqlite_affected_rows(handle : u64) u64 { -> __bearer_sqlite_affected_rows(handle) }
+function sqlite_info(handle : u64, key : string) dval {
+    if key == "error" { return dval(__bearer_sqlite_error(handle)) }
+    if key == "insert_id" { return dval(__bearer_sqlite_insert_id(handle)) }
+    if key == "affected_rows" { return dval(__bearer_sqlite_affected_rows(handle)) }
+    __bearer_hard_error("sqlite_info: unknown key '" + key + "'. Valid keys: error, insert_id, affected_rows")
+    trap()
+    return dval("")
+}
 
 function mysql_connect(host : string, username : string, password : string, database : string) u64 { -> __bearer_mysql_connect(host, username, password, database) }
-function mysql_connected(handle : u64) bool { -> __bearer_mysql_connected(handle) }
 function mysql_disconnect(handle : u64) { __bearer_mysql_disconnect(handle) }
-function mysql_error(handle : u64) string { -> __bearer_mysql_error(handle) }
-function mysql_escape(raw : string) string { -> mysql_escape_default(raw) }
+function mysql_escape(raw : string) string { -> __bearer_mysql_escape(raw, "'") }
 function mysql_escape(raw : string, quote : string) string { -> __bearer_mysql_escape(raw, quote) }
-function mysql_escape_default(raw : string) string { -> __bearer_mysql_escape(raw, "'") }
 function mysql_query(handle : u64, query : string) dval { -> __bearer_mysql_query(handle, query, dval({:})) }
 function mysql_query(handle : u64, query : string, params : dval) dval { -> __bearer_mysql_query(handle, query, params) }
-function mysql_insert_id(handle : u64) u64 { -> __bearer_mysql_insert_id(handle) }
-function mysql_affected_rows(handle : u64) u64 { -> __bearer_mysql_affected_rows(handle) }
+function mysql_info(handle : u64, key : string) dval {
+    if key == "connection" { return dval(__bearer_mysql_connected(handle)) }
+    if key == "error" { return dval(__bearer_mysql_error(handle)) }
+    if key == "insert_id" { return dval(__bearer_mysql_insert_id(handle)) }
+    if key == "affected_rows" { return dval(__bearer_mysql_affected_rows(handle)) }
+    __bearer_hard_error("mysql_info: unknown key '" + key + "'. Valid keys: connection, error, insert_id, affected_rows")
+    trap()
+    return dval("")
+}
 
 function random_bytes(count : u64) string { -> __bearer_random_bytes(count) }
 function gen_noise32(index : u64, seed : u64 = 0) u64 { -> __bearer_noise32(index, seed) }
@@ -498,7 +512,6 @@ function memcache_delete(connection : u64, key : string) bool { -> bool(__bearer
 function memcache_get(connection : u64, key : string, default_value : string = "") string { -> string(__bearer_cache_brrb(__bearer_cache_memcache_get(), dval(connection), key, dval(default_value))) }
 function memcache_get_multiple(connection : u64, keys : dval) dval { -> __bearer_cache_brrb(__bearer_cache_memcache_get_multiple(), dval(connection), "", keys) }
 function memcache_escape_key(key : string) string { -> string(__bearer_cache_brrb(__bearer_cache_memcache_escape_key(), dval(key), "", dval(""))) }
-function memcache_escape_keys(keys : dval) dval { -> __bearer_cache_brrb(__bearer_cache_memcache_escape_keys(), keys, "", dval("")) }
 
 function shell_escape(raw : string) string { -> string(__bearer_process_jobs_brrb(__bearer_process_shell_escape(), dval(raw), "", dval(""))) }
 function shell_exec(command : string) string { -> string(__bearer_process_jobs_brrb(__bearer_process_shell_exec(), dval(command), "", dval(""))) }

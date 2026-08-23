@@ -18,4 +18,3 @@ var names := map(items, function(value : string) string { return upper(value) })
 print(join(names, ","), "\n")
 
 :see
-0_StringList

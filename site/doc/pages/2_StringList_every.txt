@@ -17,4 +17,3 @@ var items := split("one,two", ",")
 print(every(items, function(value : string) bool { return value != "" }), "\n")
 
 :see
-0_StringList

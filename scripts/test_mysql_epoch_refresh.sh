@@ -34,8 +34,8 @@ function CLI(request : dval) {
     var first := mysql_query(db, "SELECT 1 AS value")
     mysql_epoch_burn($segment_seconds)
     var second := mysql_query(db, "SELECT 2 AS value")
-    if mysql_connected(db) && mysql_error(db) == "" { print("mysql-epoch-refresh-ok") }
-    else { print("mysql-query-failed:", mysql_error(db)) }
+    if bool(mysql_info(db, "connection"), false) && string(mysql_info(db, "error"), "") == "" { print("mysql-epoch-refresh-ok") }
+    else { print("mysql-query-failed:", string(mysql_info(db, "error"), "")) }
     mysql_disconnect(db)
 }
 EOF

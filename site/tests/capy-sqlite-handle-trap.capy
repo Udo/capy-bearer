@@ -1,5 +1,5 @@
 function CLI(request : dval) {
     var db := sqlite_connect(":memory:")
     sqlite_disconnect(db)
-    print(sqlite_error(db))
+    print(sqlite_info(db, "error"))
 }

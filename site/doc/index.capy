@@ -15,8 +15,6 @@ function render_legacy(page : string) bool {
     if page == "0_DValue" { render_page_shell("api", "dvalue"); return true }
     if page == "0_Request" { render_page_shell("api", "request"); return true }
     if page == "0_String" { render_page_shell("api", "string"); return true }
-    if page == "0_StringList" { render_page_shell("api", "string-list"); return true }
-    if page == "0_StringMap" { render_page_shell("api", "string-map"); return true }
     if page == "1_CLI" { render_page_shell("api", "cli"); return true }
     if page == "1_COMPONENT" { render_page_shell("api", "component"); return true }
     if page == "1_INIT" { render_page_shell("api", "init"); return true }
@@ -112,7 +110,6 @@ function render_legacy(page : string) bool {
     if page == "file_write" { render_page_shell("api", "file-write"); return true }
     if page == "filter" { render_page_shell("api", "filter"); return true }
     if page == "first" { render_page_shell("api", "first"); return true }
-    if page == "float_val" { render_page_shell("api", "float-val"); return true }
     if page == "gen_float" { render_page_shell("api", "gen-float"); return true }
     if page == "gen_int" { render_page_shell("api", "gen-int"); return true }
     if page == "gen_noise01" { render_page_shell("api", "gen-noise01"); return true }
@@ -145,18 +142,14 @@ function render_legacy(page : string) bool {
     if page == "memcache_connect" { render_page_shell("api", "memcache-connect"); return true }
     if page == "memcache_delete" { render_page_shell("api", "memcache-delete"); return true }
     if page == "memcache_escape_key" { render_page_shell("api", "memcache-escape-key"); return true }
-    if page == "memcache_escape_keys" { render_page_shell("api", "memcache-escape-keys"); return true }
     if page == "memcache_get" { render_page_shell("api", "memcache-get"); return true }
     if page == "memcache_get_multiple" { render_page_shell("api", "memcache-get-multiple"); return true }
     if page == "memcache_set" { render_page_shell("api", "memcache-set"); return true }
     if page == "mkdir" { render_page_shell("api", "mkdir"); return true }
-    if page == "mysql_affected_rows" { render_page_shell("api", "mysql-affected-rows"); return true }
     if page == "mysql_connect" { render_page_shell("api", "mysql-connect"); return true }
-    if page == "mysql_connected" { render_page_shell("api", "mysql-connected"); return true }
     if page == "mysql_disconnect" { render_page_shell("api", "mysql-disconnect"); return true }
-    if page == "mysql_error" { render_page_shell("api", "mysql-error"); return true }
     if page == "mysql_escape" { render_page_shell("api", "mysql-escape"); return true }
-    if page == "mysql_insert_id" { render_page_shell("api", "mysql-insert-id"); return true }
+    if page == "mysql_info" { render_page_shell("api", "mysql-info"); return true }
     if page == "mysql_query" { render_page_shell("api", "mysql-query"); return true }
     if page == "nibble" { render_page_shell("api", "nibble"); return true }
     if page == "ob_close" { render_page_shell("api", "ob-close"); return true }
@@ -206,7 +199,7 @@ function render_legacy(page : string) bool {
     if page == "shell_escape" { render_page_shell("api", "shell-escape"); return true }
     if page == "shell_exec" { render_page_shell("api", "shell-exec"); return true }
     if page == "shell_spawn" { render_page_shell("api", "shell-spawn"); return true }
-    if page == "signal_name" { render_page_shell("api", "signal-name"); return true }
+    if page == "posix_info" { render_page_shell("api", "posix-info"); return true }
     if page == "socket_close" { render_page_shell("api", "socket-close"); return true }
     if page == "socket_connect" { render_page_shell("api", "socket-connect"); return true }
     if page == "socket_read" { render_page_shell("api", "socket-read"); return true }
@@ -216,11 +209,9 @@ function render_legacy(page : string) bool {
     if page == "split_kv" { render_page_shell("api", "split-kv"); return true }
     if page == "split_space" { render_page_shell("api", "split-space"); return true }
     if page == "split_utf8" { render_page_shell("api", "split-utf8"); return true }
-    if page == "sqlite_affected_rows" { render_page_shell("api", "sqlite-affected-rows"); return true }
     if page == "sqlite_connect" { render_page_shell("api", "sqlite-connect"); return true }
     if page == "sqlite_disconnect" { render_page_shell("api", "sqlite-disconnect"); return true }
-    if page == "sqlite_error" { render_page_shell("api", "sqlite-error"); return true }
-    if page == "sqlite_insert_id" { render_page_shell("api", "sqlite-insert-id"); return true }
+    if page == "sqlite_info" { render_page_shell("api", "sqlite-info"); return true }
     if page == "sqlite_query" { render_page_shell("api", "sqlite-query"); return true }
     if page == "str_ends_with" { render_page_shell("api", "str-ends-with"); return true }
     if page == "str_starts_with" { render_page_shell("api", "str-starts-with"); return true }

@@ -2,22 +2,23 @@
 
 function data(input : dval) dval {
     var slug := string(input.slug, "")
-    if slug == "mysql-insert-id" {
+    if slug == "mysql-info" {
         var page := dval({source_page: ""})
-        page["source_page"] = "mysql_insert_id"
+        page["source_page"] = "mysql_info"
         page["kind"] = "api"
-        page["slug"] = "mysql-insert-id"
-        page["route"] = "/doc/api/mysql-insert-id/"
-        page["title"] = "mysql_insert_id"
-        page["content"] = "`mysql_insert_id()` returns the last automatic row ID for a connection.\n\nCall it after an insert into a table with an automatic ID column.\n"
-        page["returns"] = "the last automatic row ID for this connection"
-        page["label"] = "mysql_insert_id"
-        page["capy_sig_lines"] = dval(["function mysql_insert_id(handle : u64) u64"])
-        page["param_lines"] = dval(["handle : the MySQL connection handle", ""])
+        page["slug"] = "mysql-info"
+        page["route"] = "/doc/api/mysql-info/"
+        page["title"] = "mysql_info"
+        page["content"] = "`mysql_info()` reads connection state, the latest error text, the last automatic row ID, or the changed-row count.\n\nUse a converter with a fallback because the values have different types.\n"
+        page["returns"] = "The value for `key`."
+        page["errors"] = "The function stops with an error for an unknown key. The error lists the valid keys."
+        page["label"] = "mysql_info"
+        page["capy_sig_lines"] = dval(["function mysql_info(handle : u64, key : string) dval"])
+        page["param_lines"] = dval(["handle : the MySQL connection handle", "key : `connection`, `error`, `insert_id`, or `affected_rows`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">mysql", "mysql_query", "mysql_connect"])
-        page["examples"] = dval([{entry: "render", caption: "", body: "var database := mysql_connect(\"localhost\", \"root\", \"\", \"\")\nif mysql_connected(database) { print(mysql_insert_id(database), \"\\n\") }\nif database != u64(0) { mysql_disconnect(database) }\n"}])
+        page["see"] = dval([">mysql", "mysql_connect", "mysql_disconnect", "mysql_query"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var database := mysql_connect(\"localhost\", \"root\", \"\", \"\")\nvar live := bool(mysql_info(database, \"connection\"), false)\nvar message := string(mysql_info(database, \"error\"), \"\")\nvar id := u64(mysql_info(database, \"insert_id\"), 0)\nvar rows := u64(mysql_info(database, \"affected_rows\"), 0)\nprint(live, \" \", message, \" \", id, \" \", rows, \"\\n\")\nif database != u64(0) { mysql_disconnect(database) }\n"}])
         page["guide_examples"] = dval([])
         return page
     }

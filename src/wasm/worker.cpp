@@ -3993,6 +3993,12 @@ struct WasmWorkspace : public WasmRequestProfile
 			}
 		}
 
+		if(mod == "env" && name == "bearer_host_hard_error")
+			return(add([self](Caller, Span<const Val> args, Span<Val>) -> Result<std::monostate, Trap> {
+				String message;
+				self->hostcall_read(args[0].i32(), args[1].i32(), message);
+				return(Trap(message));
+			}));
 		if(mod == "env" && name == "bearer_host_time")
 			return(add([](Caller, Span<const Val>, Span<Val> results) -> Result<std::monostate, Trap> {
 				results[0] = Val((int64_t)::time(0));

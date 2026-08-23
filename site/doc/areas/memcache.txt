@@ -8,4 +8,3 @@ memcache_get
 memcache_get_multiple
 memcache_set
 memcache_escape_key
-memcache_escape_keys

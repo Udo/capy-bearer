@@ -17,4 +17,4 @@ print("connection released\n")
 :see
 >mysql
 mysql_connect
-mysql_connected
+mysql_info

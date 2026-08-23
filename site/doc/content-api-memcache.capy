@@ -66,34 +66,15 @@ function data(input : dval) dval {
         page["slug"] = "memcache-escape-key"
         page["route"] = "/doc/api/memcache-escape-key/"
         page["title"] = "memcache_escape_key"
-        page["content"] = "`memcache_escape_key()` replaces whitespace characters in a key with underscores.\n\nIt does not validate every Memcache protocol byte.\n"
+        page["content"] = "`memcache_escape_key()` replaces whitespace characters in a key with underscores.\n\nIt does not validate every Memcache protocol byte.\n\nThe dedicated Memcache operations escape keys before they send requests.\n"
         page["returns"] = "the key with whitespace replaced by underscores"
         page["label"] = "memcache_escape_key"
         page["capy_sig_lines"] = dval(["function memcache_escape_key(key : string) string"])
         page["param_lines"] = dval(["key : the key text", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">memcache", "memcache_escape_keys"])
+        page["see"] = dval([">memcache"])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(memcache_escape_key(\"a key\"), \"\\n\")\n"}])
-        page["guide_examples"] = dval([])
-        return page
-    }
-    if slug == "memcache-escape-keys" {
-        var page := dval({source_page: ""})
-        page["source_page"] = "memcache_escape_keys"
-        page["kind"] = "api"
-        page["slug"] = "memcache-escape-keys"
-        page["route"] = "/doc/api/memcache-escape-keys/"
-        page["title"] = "memcache_escape_keys"
-        page["content"] = "`memcache_escape_keys()` converts each input item to a string and escapes it as a Memcache key.\n"
-        page["returns"] = "a list of escaped keys"
-        page["label"] = "memcache_escape_keys"
-        page["capy_sig_lines"] = dval(["function memcache_escape_keys(keys : dval) dval"])
-        page["param_lines"] = dval(["keys : the input values", ""])
-        page["notes"] = dval([])
-        page["warnings"] = dval([])
-        page["see"] = dval([">memcache", "memcache_escape_key"])
-        page["examples"] = dval([{entry: "render", caption: "", body: "var keys := memcache_escape_keys(dval([\"a key\", \"b\\tkey\"]))\nprint(join(keys, \",\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -104,7 +85,7 @@ function data(input : dval) dval {
         page["slug"] = "memcache-get-multiple"
         page["route"] = "/doc/api/memcache-get-multiple/"
         page["title"] = "memcache_get_multiple"
-        page["content"] = "`memcache_get_multiple()` reads several keys through one connection.\n\nMissing keys do not occur in the returned map.\n"
+        page["content"] = "`memcache_get_multiple()` reads several keys through one connection.\n\nMissing keys do not occur in the returned map. It escapes each key before it sends the request.\n"
         page["returns"] = "a map of returned entries"
         page["label"] = "memcache_get_multiple"
         page["capy_sig_lines"] = dval(["function memcache_get_multiple(connection : u64, keys : dval) dval"])
@@ -123,7 +104,7 @@ function data(input : dval) dval {
         page["slug"] = "memcache-get"
         page["route"] = "/doc/api/memcache-get/"
         page["title"] = "memcache_get"
-        page["content"] = "`memcache_get()` reads the value for `key`.\n\nIt returns `default_value` for a missing key or an incomplete response.\n"
+        page["content"] = "`memcache_get()` reads the value for `key`.\n\nIt returns `default_value` for a missing key or an incomplete response. It escapes the key before it sends the request.\n"
         page["returns"] = "the stored value or `default_value`"
         page["label"] = "memcache_get"
         page["capy_sig_lines"] = dval(["function memcache_get(connection : u64, key : string, default_value : string = \"\") string"])
@@ -142,7 +123,7 @@ function data(input : dval) dval {
         page["slug"] = "memcache-set"
         page["route"] = "/doc/api/memcache-set/"
         page["title"] = "memcache_set"
-        page["content"] = "`memcache_set()` stores `value` under `key`.\n\nIt returns `true` only when the server returns `STORED`.\n"
+        page["content"] = "`memcache_set()` stores `value` under `key`.\n\nIt returns `true` only when the server returns `STORED`. It escapes the key before it sends the request.\n"
         page["returns"] = "`true` when the server stores the entry"
         page["label"] = "memcache_set"
         page["capy_sig_lines"] = dval(["function memcache_set(connection : u64, key : string, value : string, expires_in : u64 = 3600) bool"])

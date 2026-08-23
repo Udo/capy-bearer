@@ -16,5 +16,4 @@ A parsed unsigned integer, or `0` when no usable number exists.
 print(int_val("42"), " / ", int_val("ff", 16), "\n")
 
 :see
-float_val
 trim

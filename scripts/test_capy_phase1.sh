@@ -244,6 +244,21 @@ expect_equal "nested closure string DValue ARC" "BETA|ALPHA|0" "$(scripts/bearer
 sqlite_output=$(scripts/bearer-cli /tests/capy-sqlite.capy)
 expect_equal "SQLite lifecycle/query" "11|1Ada|true|1|0" "$sqlite_output"
 expect_equal "SQLite failed-connect diagnostic" "true|0" "$(scripts/bearer-cli /tests/capy-sqlite-failed.capy)"
+for info_case in \
+	"capy-mysql-info-trap|mysql_info: unknown key 'missing'. Valid keys: connection, error, insert_id, affected_rows" \
+	"capy-sqlite-info-trap|sqlite_info: unknown key 'missing'. Valid keys: error, insert_id, affected_rows" \
+	"capy-posix-info-trap|posix_info: unknown key 'missing'. Valid keys: signal_name"; do
+	info_fixture=${info_case%%|*}
+	info_message=${info_case#*|}
+	set +e
+	info_trap_output=$(scripts/bearer-cli "/tests/$info_fixture.capy" 2>&1)
+	info_trap_status=$?
+	set -e
+	[[ $info_trap_status -ne 0 && "$info_trap_output" == *"$info_message"* ]] || {
+		echo "Capy $info_fixture unknown-key diagnostic mismatch: $info_trap_output" >&2
+		exit 1
+	}
+done
 for sqlite_case in \
 	"capy-sqlite-handle-trap|4:11" \
 	"capy-sqlite-params-trap|3:5" \
@@ -323,7 +338,7 @@ string_list_trap_status=$?
 set -e
 [[ $string_list_trap_status -ne 0 && "$string_list_trap_output" == *"capy-string-list-scalar-trap.capy:2:11"* ]]
 expect_equal "split/join recovery" "$string_list_output" "$(scripts/bearer-cli /tests/capy-string-lists.capy)"
-expect_equal "core utility value adapters" "falsetruefalseBETA,ALPHA,BETA|alpha|beta,alpha|truetrue|alpha|0,1,2|bearer:BEARER|Caffile1:Caffile1:core|3.5:255:truetrue|1.5:-9:42|truetrue|a=one&b=last&flag=:last:example.test:docs:two|docs/index:true:|one,two,three:A,é:example.test|alpha,beta,beta:true:SIGSEGV:0:true:40|0" "$(scripts/bearer-cli /tests/capy-coreutil.capy)"
+expect_equal "core utility value adapters" "falsetruefalseBETA,ALPHA,BETA|alpha|beta,alpha|truetrue|alpha|0,1,2|bearer:BEARER|Caffile1:Caffile1:core|0:255:truetrue|1.5:-9:42|truetrue|a=one&b=last&flag=:last:example.test:docs:two|docs/index:true:|one,two,three:A,é:example.test|alpha,beta,beta:true:SIGSEGV:0:true:40|0" "$(scripts/bearer-cli /tests/capy-coreutil.capy)"
 set +e
 coreutil_trap_output=$(scripts/bearer-cli /tests/capy-coreutil-trap.capy 2>&1)
 coreutil_trap_status=$?

@@ -18,4 +18,3 @@ each(items, function(value : string) string { print(value); return "" })
 print("\n")
 
 :see
-0_StringList

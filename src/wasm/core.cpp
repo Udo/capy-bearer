@@ -27,6 +27,12 @@ extern "C" size_t bearer_host_zip(const char* in, size_t in_len, char* out, size
 extern "C" size_t bearer_host_units(const char* in, size_t in_len, char* out, size_t cap);
 extern "C" size_t bearer_host_regex_capy(const char* in, size_t in_len, char* out, size_t cap);
 extern "C" size_t bearer_host_capy_backtrace(s32 max_frames, s32 skip_frames, const char* stack, size_t depth, char* out, size_t cap);
+extern "C" void bearer_host_hard_error(const char* message, size_t message_len);
+
+extern "C" void bearer_hard_error(const char* message, size_t message_len)
+{
+	bearer_host_hard_error(message, message_len);
+}
 
 static DValue wasm_sized_hostcall(DValue request, size_t (*hostcall)(const char*, size_t, char*, size_t))
 {

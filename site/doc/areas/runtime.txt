@@ -3,7 +3,7 @@ Runtime
 trap
 backtrace_get_frames
 backtrace_capture
-signal_name
+posix_info
 unit_info
 units_list
 unit_compile

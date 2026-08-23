@@ -557,11 +557,12 @@ int main()
 	}
 	const auto boundary = capy::compile_bearer_unit("function CLI(request : dval) { print(-2147483648, 2147483647) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(boundary.wasm, {.bearer_abi_version = "11"}).valid);
-	const auto ordinary_sqlite = capy::compile_bearer_unit("function CLI(request : dval) { var db := sqlite_connect(\":memory:\"); print(sqlite_error(db)); sqlite_disconnect(db) }\n", options);
+	const auto ordinary_sqlite = capy::compile_bearer_unit("function CLI(request : dval) { var db := sqlite_connect(\":memory:\"); print(sqlite_info(db, \"error\")); sqlite_disconnect(db) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(ordinary_sqlite.wasm, {.bearer_abi_version = "11"}).valid);
 	const std::string sqlite_bytes(ordinary_sqlite.wasm.begin(), ordinary_sqlite.wasm.end());
 	assert(sqlite_bytes.find("bearer_sqlite_connect") != std::string::npos);
 	assert(sqlite_bytes.find("bearer_sqlite_error") != std::string::npos);
+	assert(sqlite_bytes.find("bearer_hard_error") != std::string::npos);
 	assert(sqlite_bytes.find("bearer_capy_backtrace") == std::string::npos);
 	assert(ordinary_sqlite.source_map.find("F\t2\tcapy://stdlib.capy\n") != std::string::npos);
 	bool sqlite_stdlib_marker = false;

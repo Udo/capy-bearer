@@ -17,4 +17,3 @@ var items := split("two,one", ",")
 print(join(sort(items), ","), "\n")
 
 :see
-0_StringList

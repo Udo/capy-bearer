@@ -1,0 +1,21 @@
+:sig
+function posix_info(key : string, value : dval) dval
+
+:params
+key : `signal_name`
+value : the value for `key`
+
+:returns
+The value for `key`.
+
+:errors
+The function stops with an error for an unknown key. The error lists the valid keys.
+
+:content
+`posix_info("signal_name", value)` returns the POSIX signal name for a signal number.
+
+:example capy render
+print(string(posix_info("signal_name", 11), ""), "\n")
+
+:see
+>runtime

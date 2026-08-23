@@ -1,6 +1,6 @@
 function CLI(request : dval) {
     {
-    var escaped := memcache_escape_keys(dval(["a b", "line\nkey"]))
+    var escaped := map(dval(["a b", "line\nkey"]), memcache_escape_key)
     var unreachable := memcache_connect("127.0.0.1", 1)
     var live := memcache_connect()
     var result := "skip"

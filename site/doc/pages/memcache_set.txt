@@ -13,7 +13,7 @@ expires_in : the lifetime in seconds
 :content
 `memcache_set()` stores `value` under `key`.
 
-It returns `true` only when the server returns `STORED`.
+It returns `true` only when the server returns `STORED`. It escapes the key before it sends the request.
 
 :example capy render
 var connection := memcache_connect()
