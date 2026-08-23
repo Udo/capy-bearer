@@ -203,6 +203,27 @@ int main()
 	const auto unrelated_dval_imports = capy::compile_bearer_unit("function CLI(request : dval) { print(\"plain\") }\n", options);
 	const std::string unrelated_dval_bytes(unrelated_dval_imports.wasm.begin(), unrelated_dval_imports.wasm.end());
 	assert(unrelated_dval_bytes.find("bearer_dv_extract_") == std::string::npos);
+	const auto plain_comparison_condition = capy::compile_bearer_unit("function CLI(request : dval) { if 1 == 1 { print(\"x\") } }\n", options);
+	const std::string plain_comparison_condition_bytes(plain_comparison_condition.wasm.begin(), plain_comparison_condition.wasm.end());
+	assert(plain_comparison_condition_bytes.find("bearer_dv_extract_") == std::string::npos);
+	const auto condition_coercions = capy::compile_bearer_unit(
+		"function CLI(request : dval) { "
+		"var nonzero_u64 := u64(7); var zero_u64 := u64(0); var nonzero_s32 := 5; var zero_s32 := 0; "
+		"var nonzero_dval := dval(u64(7)); var zero_dval := dval(u64(0)); var bool_dval := dval(true); var run := u64(1); var n := u64(0); "
+		"if nonzero_u64 { print(\"u64-nonzero\") } if zero_u64 { print(\"u64-zero\") } "
+		"if nonzero_s32 { print(\"s32-nonzero\") } if zero_s32 { print(\"s32-zero\") } "
+		"if nonzero_dval { print(\"dval-nonzero\") } if zero_dval { print(\"dval-zero\") } if bool_dval { print(\"dval-bool\") } "
+		"if true { print(\"bool\") } if \"true\" { print(\"string-true\") } if \"1\" { print(\"string-one\") } if \"yes\" { print(\"string-yes\") } "
+		"if \"hello\" { print(\"string-hello\") } if \"0\" { print(\"string-zero\") } if \"\" { print(\"string-empty\") } "
+		"while run { run = u64(0) } while n < u64(2) { n = u64(2) } "
+		"}\n", options);
+	assert(capy::wasm::validate_bearer_unit(condition_coercions.wasm, {.bearer_abi_version = "11"}).valid);
+	const std::string condition_coercion_bytes(condition_coercions.wasm.begin(), condition_coercions.wasm.end());
+	assert(condition_coercion_bytes.find("bearer_dv_extract_bool") != std::string::npos);
+	const auto coercive_parameter_reproducer = capy::compile_bearer_unit(
+		"function truth(flag : as bool) bool { -> flag }\n"
+		"function CLI(request : dval) { print(truth(\"hello\")) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(coercive_parameter_reproducer.wasm, {.bearer_abi_version = "11"}).valid);
 	for (const char* old_name : {"dval_string", "dval_bool", "dval_s32", "dval_f64", "dval_to_string", "dval_to_bool", "dval_to_f64", "dval_to_s64", "dval_to_u64"})
 		try { capy::compile_bearer_unit(std::string("function CLI(request : dval) { ") + old_name + "(dval(\"x\")) }\n", options); assert(false); }
 		catch (const capy::Error& error) { assert(error.message.find("no overload") != std::string::npos); }
@@ -803,8 +824,6 @@ int main()
 	for (const auto& [source, expected] : {
 			 std::pair{"function CLI(request : dval) { (1 + 2) := 3 }\n", "inferred declaration target must be a local name"},
 			 std::pair{"function CLI(request : dval) { print(1 && true) }\n", "logical operators require bool operands"},
-			 std::pair{"function CLI(request : dval) { if 1 { print(\"bad\") } }\n", "if condition must be bool"},
-			 std::pair{"function CLI(request : dval) { while u64(1) { break } }\n", "while condition must be bool"},
 			 std::pair{"function CLI(request : dval) { var held := clone(\"old\"); var replace := function() { held = clone(\"new\") } }\n", "cannot assign to captured binding 'held'. Captures are immutable"},
 			 std::pair{"struct Item { wide : s64; text : string }\nfunction CLI(request : dval) { var item := Item(s64(0), clone(\"x\")); item.wide = \"bad\" }\n", "expected s64, found string"},
 			 std::pair{"struct Item { wide : s64 }\nfunction CLI(request : dval) { var item := Item(s64(0)); item.missing = 1 }\n", "struct has no member 'missing'"},

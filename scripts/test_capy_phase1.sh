@@ -45,6 +45,7 @@ operator_output=$(scripts/bearer-cli /tests/capy-operators.capy)
 	exit 1
 }
 expect_equal "newline-independent expression parsing" "7|3|9" "$(scripts/bearer-cli /tests/capy-whitespace.capy)"
+expect_equal "condition constructors and dval bool extraction" "UuSsDdBbTTTTtttWC|true|false" "$(scripts/bearer-cli /tests/capy-condition-coercion.capy)"
 consistency_expected="1|-2|3|4.5|x|10.5|3|4|left|right|early|late|0"
 expect_equal "type aliases, value blocks, conditional values, and wide aggregates" \
 	"$consistency_expected" "$(scripts/bearer-cli /tests/capy-language-consistency.capy)"

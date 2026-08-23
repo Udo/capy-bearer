@@ -51,7 +51,9 @@ function RENDER(request : dval) {
 
 :content
 
-The condition must have type `bool`. `&&` and `||` stop as soon as the result is known.
+Capy evaluates each condition as `bool(condition)`. A condition can use any value with a `bool` constructor.
+
+String conditions use boolean-word parsing, not truthiness. `"true"`, `"1"`, and `"yes"` produce true. `"hello"`, `"0"`, and `""` produce false. `&&` and `||` stop as soon as the result is known.
 
 An `if` with `else` can also produce a value:
 

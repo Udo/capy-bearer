@@ -701,6 +701,8 @@ struct FunctionLowerer
 	BlockValue value_block(Block* block);
 	std::string infer_block(Block* block);
 	Bytes cleanup_scopes(unsigned first = 0) const;
+	bool condition_is_bool(const std::string& type) const;
+	Expr* coerce_condition(Expr* condition, const char* form, std::vector<std::unique_ptr<Expr>>& own);
 	bool expression_is_owned(const Expr* value);
 	std::pair<unsigned, std::string> lookup(const Name* name) const;
 	unsigned add_local(const std::string& name, const std::string& type, const Location& location);
@@ -1477,6 +1479,28 @@ FunctionLowerer::FunctionLowerer(Module& module, Definition& definition) : modul
 		}
 }
 
+// Conditions use the same bool constructor as `as bool` parameters.
+Expr* FunctionLowerer::coerce_condition(Expr* condition, const char* form, std::vector<std::unique_ptr<Expr>>& own)
+{
+	const std::string type = infer(condition);
+	if (type == "bool")
+		return condition;
+	if (!condition_is_bool(type))
+		throw Error(condition->location, type == "module"
+			? "module is opaque and cannot be used as a condition"
+			: std::string(form) + " condition must be bool");
+	own.push_back(std::make_unique<Name>(condition->location, "bool"));
+	auto call = std::make_unique<Call>(condition->location, own.back().get());
+	call->arguments.push_back(condition);
+	own.push_back(std::move(call));
+	return own.back().get();
+}
+
+bool FunctionLowerer::condition_is_bool(const std::string& type) const
+{
+	return type == "bool" || (type != "module" && module_.constructor_available(type, "bool"));
+}
+
 Bytes FunctionLowerer::cleanup_scopes(unsigned first) const
 {
 	Bytes code;
@@ -1827,7 +1851,7 @@ std::string FunctionLowerer::infer_block(Block* block_value)
 			result = "never";
 		else if (auto conditional = dynamic_cast<If*>(item); conditional && !final)
 		{
-			if (infer(conditional->condition) != "bool")
+			if (!condition_is_bool(infer(conditional->condition)))
 				throw Error(conditional->condition->location, "if condition must be bool");
 			result = "void";
 		}
@@ -1906,7 +1930,7 @@ std::string FunctionLowerer::infer(Expr* value)
 	{
 		const auto saved_scopes = scopes_;
 		const std::string condition = infer(conditional->condition);
-		if (condition != "bool")
+		if (!condition_is_bool(condition))
 			throw Error(conditional->condition->location, "if condition must be bool");
 		if (auto variable = dynamic_cast<Variable*>(conditional->condition))
 			scopes_.back()[variable->name] = {0, condition};
@@ -5549,9 +5573,9 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 	}
 	if (auto conditional = dynamic_cast<If*>(value))
 	{
-		auto [condition, type] = expression(conditional->condition);
-		if (type != "bool")
-			throw Error(conditional->condition->location, type == "module" ? "module is opaque and cannot be used as a condition" : "if condition must be bool");
+		std::vector<std::unique_ptr<Expr>> condition_synthetic;
+		Expr* condition_source = coerce_condition(conditional->condition, "if", condition_synthetic);
+		auto [condition, type] = expression(condition_source);
 		if (!conditional->else_body || !value_required)
 		{
 			condition.insert(condition.end(), {0x04, 0x40});
@@ -5599,10 +5623,10 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 	{
 		const auto previous_condition_scope = repeated_condition_scope_;
 		repeated_condition_scope_ = owned_scopes_.size();
-		auto [condition, type] = expression(loop->condition);
+		std::vector<std::unique_ptr<Expr>> condition_synthetic;
+		Expr* condition_source = coerce_condition(loop->condition, "while", condition_synthetic);
+		auto [condition, type] = expression(condition_source);
 		repeated_condition_scope_ = previous_condition_scope;
-		if (type != "bool")
-			throw Error(loop->condition->location, type == "module" ? "module is opaque and cannot be used as a condition" : "while condition must be bool");
 		const unsigned base = control_depth_, boundary = static_cast<unsigned>(owned_scopes_.size());
 		control_depth_ += 2;
 		loops_.push_back({base + 1, base + 2, boundary, {}, {}});
@@ -7910,6 +7934,17 @@ bool local(const std::vector<std::set<std::string>>& scopes, const std::string& 
 	return std::any_of(scopes.rbegin(), scopes.rend(), [&](const auto& scope) { return scope.contains(name); });
 }
 
+bool obvious_bool_condition(const Expr* expression)
+{
+	if (auto name = dynamic_cast<const Name*>(expression))
+		return name->value == "true" || name->value == "false";
+	if (auto binary = dynamic_cast<const Binary*>(expression))
+		return binary->operator_ == "postfix?" || binary->operator_ == "unary!" || binary->operator_ == "&&" || binary->operator_ == "||" ||
+			binary->operator_ == "==" || binary->operator_ == "!=" || binary->operator_ == "<" || binary->operator_ == ">" ||
+			binary->operator_ == "<=" || binary->operator_ == ">=";
+	return false;
+}
+
 void collect_stdlib_demand(Expr* expression, std::set<std::pair<std::string, std::size_t>>& calls,
 	std::set<FunctionKey, bool (*)(const FunctionKey&, const FunctionKey&)>& values, std::vector<std::set<std::string>>& scopes)
 {
@@ -7980,12 +8015,22 @@ void collect_stdlib_demand(Expr* expression, std::set<std::pair<std::string, std
 		collect_stdlib_demand(yielded->value, calls, values, scopes);
 	else if (auto conditional = dynamic_cast<If*>(expression))
 	{
+		if (!obvious_bool_condition(conditional->condition))
+		{
+			calls.insert({"bool", 1});
+			calls.insert({"bool", 2});
+		}
 		collect_stdlib_demand(conditional->condition, calls, values, scopes);
 		collect_stdlib_demand(conditional->then_body, calls, values, scopes);
 		collect_stdlib_demand(conditional->else_body, calls, values, scopes);
 	}
 	else if (auto loop = dynamic_cast<While*>(expression))
 	{
+		if (!obvious_bool_condition(loop->condition))
+		{
+			calls.insert({"bool", 1});
+			calls.insert({"bool", 2});
+		}
 		collect_stdlib_demand(loop->condition, calls, values, scopes);
 		collect_stdlib_demand(loop->body, calls, values, scopes);
 	}
@@ -8152,6 +8197,29 @@ std::vector<Expr*> selected_stdlib(const Program& unit, const Program& library)
 	std::vector<std::set<std::string>> scopes{{}};
 	for (Expr* item : unit.items)
 		collect_stdlib_demand(item, calls, values, scopes);
+	std::map<std::string, Expr*> aliases;
+	for (Expr* item : unit.items)
+		if (auto alias = dynamic_cast<TypeAlias*>(item))
+			aliases.emplace(alias->name, alias->value);
+	for (Expr* item : unit.items)
+		if (auto function = dynamic_cast<Function*>(item))
+			for (const auto& parameter : function->parameters)
+				if (parameter.convert)
+				{
+					std::string target = type_name(*parameter.type_expr);
+					for (std::size_t checked = 0; checked < aliases.size(); ++checked)
+					{
+						auto alias = aliases.find(target);
+						if (alias == aliases.end())
+							break;
+						const std::string next = type_name(*alias->second);
+						if (next == target)
+							break;
+						target = next;
+					}
+					calls.insert({target, 1});
+					calls.insert({target, 2});
+				}
 	std::vector<Function*> functions;
 	for (Expr* item : library.items)
 		if (auto function = dynamic_cast<Function*>(item))

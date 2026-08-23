@@ -1,0 +1,31 @@
+function CLI(request : dval) {
+    var wide := u64(7)
+    var zero_wide := u64(0)
+    var narrow := 5
+    var zero_narrow := 0
+    var numeric := dval(u64(7))
+    var zero_numeric := dval(u64(0))
+    var enabled := dval(true)
+    var disabled := dval(false)
+    var running := u64(1)
+    var count := u64(0)
+
+    if wide { print("U") } else { print("u") }
+    if zero_wide { print("U") } else { print("u") }
+    if narrow { print("S") } else { print("s") }
+    if zero_narrow { print("S") } else { print("s") }
+    if numeric { print("D") } else { print("d") }
+    if zero_numeric { print("D") } else { print("d") }
+    if enabled { print("B") } else { print("b") }
+    if disabled { print("B") } else { print("b") }
+    if true { print("T") } else { print("t") }
+    if "true" { print("T") } else { print("t") }
+    if "1" { print("T") } else { print("t") }
+    if "yes" { print("T") } else { print("t") }
+    if "hello" { print("T") } else { print("t") }
+    if "0" { print("T") } else { print("t") }
+    if "" { print("T") } else { print("t") }
+    while running { print("W"); running = u64(0) }
+    while count < u64(2) { print("C"); count = u64(2) }
+    print("|", bool(dval(u64(7))), "|", bool(dval("hello")))
+}

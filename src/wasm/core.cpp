@@ -3073,6 +3073,16 @@ s32 bearer_dv_extract_bool(const char* value, size_t value_len, s32 fallback)
 	if(!bearer_decode_brrb_span(value, value_len, decoded) || !bearer_dv_scalar(decoded, scalar)) return(fallback);
 	if(scalar->type == 'B') return(scalar->_bool ? 1 : 0);
 	if(scalar->type == 'F') return(std::isfinite(scalar->_float) ? (scalar->_float == 0 ? 0 : 1) : fallback);
+	// Exact wide integers ride in the string slot (see bearer_dv_extract_u64), so a
+	// u64-backed dval must test numerically before falling back to boolean words.
+	// Without this, bool(dval(u64(7))) answered false for every nonzero handle.
+	if(scalar->type == 'S')
+	{
+		s64 signed_value = 0;
+		if(bearer_dv_decimal_s64(scalar->_String, signed_value)) return(signed_value != 0 ? 1 : 0);
+		u64 unsigned_value = 0;
+		if(bearer_dv_decimal_u64(scalar->_String, unsigned_value)) return(unsigned_value != 0 ? 1 : 0);
+	}
 	return(to_bool(scalar->_String, fallback != 0) ? 1 : 0);
 }
 
