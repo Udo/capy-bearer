@@ -29,7 +29,7 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -p "$site" "$work" "$root/run" "$root/session" "$root/upload"
-sed -E '/^[[:space:]]*(BIN_DIRECTORY|PRECOMPILE_FILES_IN|SITE_DIRECTORY|FCGI_SOCKET_PATH|FCGI_PORT|CLI_SOCKET_PATH|WS_BROKER_SOCKET_PATH|HTTP_SOCKET_PATH|HTTP_SOCKET_MODE|HTTP_PORT|HTTP_BIND_ADDRESS|HTTP_DOCUMENT_ROOT|SESSION_PATH|TMP_UPLOAD_PATH|WASM_CORE_PATH|WASM_COMPILE_SCRIPT|WASM_INVOCATION_TIMEOUT_MS|WASM_EPOCH_PERIOD_MS|PROACTIVE_COMPILE_ENABLED|WORKER_COUNT|COMPILE_FAILURE_RETRY_SECONDS)[[:space:]]*=/d' \
+sed -E '/^[[:space:]]*(BIN_DIRECTORY|PRECOMPILE_FILES_IN|SITE_DIRECTORY|FCGI_SOCKET_PATH|FCGI_PORT|CLI_SOCKET_PATH|WS_BROKER_SOCKET_PATH|HTTP_SOCKET_PATH|HTTP_SOCKET_MODE|HTTP_PORT|HTTP_BIND_ADDRESS|HTTP_DOCUMENT_ROOT|SESSION_PATH|TMP_UPLOAD_PATH|WASM_CORE_PATH|WASM_COMPILE_SCRIPT|WASM_INVOCATION_TIMEOUT_MS|WASM_EPOCH_PERIOD_MS|PROACTIVE_COMPILE_ENABLED|WORKER_COUNT|COMPILE_FAILURE_RETRY_SECONDS|COMPILER_GRAPH_MAX_DEPTH)[[:space:]]*=/d' \
 	/etc/bearer/settings.cfg >"$settings"
 cat >>"$settings" <<CFG
 BIN_DIRECTORY=$work
@@ -50,6 +50,7 @@ WASM_EPOCH_PERIOD_MS=20
 PROACTIVE_COMPILE_ENABLED=0
 WORKER_COUNT=1
 COMPILE_FAILURE_RETRY_SECONDS=60
+COMPILER_GRAPH_MAX_DEPTH=1
 CFG
 mount --bind "$settings" /etc/bearer/settings.cfg
 
@@ -59,12 +60,25 @@ function CLI(request : dval) {
         print("health")
         return
     }
+    if string(request.query.graph, "") == "1" {
+        if unit_compile("graph-parent.capy") { print("graph-unlimited") } else { print("graph-limited") }
+        return
+    }
     if unit_compile("slow.capy") { print("compiled") } else { print("failed") }
 }
 CAPY
 printf '%s\n' 'function CLI(request : dval) { print("old") }' >"$site/slow.capy"
 
 timeout 40s env BEARER_PRECOMPILE_FILES_IN="$site" BEARER_PRECOMPILE_BIN_DIRECTORY="$work" BEARER_PRECOMPILE_JOBS=1 bin/bearer_fastcgi.linux.bin --precompile >"$root/precompile.log" 2>&1 || { cat "$root/precompile.log" >&2; exit 1; }
+cat >"$site/graph-child.capy" <<'CAPY'
+#exports GraphChild
+struct GraphChild { value : string }
+CAPY
+cat >"$site/graph-parent.capy" <<'CAPY'
+#import "graph-child.capy" as child
+type ImportedChild = child.GraphChild
+function CLI(request : dval) { print("graph") }
+CAPY
 cache="$(scripts/unit_cache_directory "$work")$(realpath "$site")"
 wasm="$cache/slow.capy.wasm"
 [[ -s "$wasm" ]]
@@ -108,6 +122,13 @@ for _ in $(seq 1 100); do
 	sleep 0.05
 done
 [[ "$(request '/driver.capy?health=1')" == health ]]
+[[ "$(request '/driver.capy?graph=1')" == graph-limited ]] || { echo "COMPILER_GRAPH_MAX_DEPTH=1 did not limit nested imports" >&2; exit 1; }
+stop_server
+settings_text=$(</etc/bearer/settings.cfg)
+settings_text=${settings_text/COMPILER_GRAPH_MAX_DEPTH=1/COMPILER_GRAPH_MAX_DEPTH=256}
+printf '%s' "$settings_text" >/etc/bearer/settings.cfg
+start_server
+[[ "$(request '/driver.capy?graph=1')" == graph-unlimited ]] || { echo "compiler graph did not compile after the configured limit increased" >&2; exit 1; }
 
 for i in $(seq 1 100000); do
 	printf 'function compile_timeout_pad_%s() s64 { -> %s }\n' "$i" "$i"

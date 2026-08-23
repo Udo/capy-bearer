@@ -85,8 +85,33 @@ struct CompilerDeadline
 };
 
 static std::atomic<u64> compiler_invocation_stage_counter(0);
-const u64 BEARER_IMPORT_COMPILE_TIMEOUT_MS = 30000;
 static thread_local CompilerDeadline* compiler_active_deadline = 0;
+
+struct CompilerLimits
+{
+	u64 graph_max_depth;
+	u64 graph_max_visited;
+	u64 import_compile_timeout_ms;
+	u64 source_signature_cache_max;
+};
+
+u64 compiler_config_limit(Request* context, String key, u64 fallback, u64 maximum)
+{
+	if(!context || !context->server)
+		return(fallback);
+	u64 value = to_u64(context->server->config[key], fallback);
+	return(value >= 1 && value <= maximum ? value : fallback);
+}
+
+CompilerLimits compiler_limits(Request* context)
+{
+	return(CompilerLimits{
+		compiler_config_limit(context, "COMPILER_GRAPH_MAX_DEPTH", 256, 4096),
+		compiler_config_limit(context, "COMPILER_GRAPH_MAX_VISITED", 10000, 1000000),
+		compiler_config_limit(context, "BEARER_IMPORT_COMPILE_TIMEOUT_MS", 30000, 86400000),
+		compiler_config_limit(context, "BEARER_UNIT_SOURCE_SIGNATURE_CACHE_MAX", 4096, 1000000)
+	});
+}
 
 struct CompilerDeadlineScope
 {
@@ -109,7 +134,6 @@ struct UnitSourceSignatureEntry
 	std::vector<String> dependency_paths;
 };
 
-const u64 BEARER_UNIT_SOURCE_SIGNATURE_CACHE_MAX = 4096;
 std::mutex unit_source_signature_cache_mutex;
 std::map<String, UnitSourceSignatureEntry> unit_source_signature_cache;
 
@@ -226,7 +250,7 @@ String compiler_source_path_real(String file_name)
 	return(result);
 }
 
-UnitSourceSignatureEntry compiler_unit_source_entry(String file_name, bool allow_recent_stat)
+UnitSourceSignatureEntry compiler_unit_source_entry(const CompilerLimits& limits, String file_name, bool allow_recent_stat)
 {
 	auto checked_at = std::chrono::steady_clock::now();
 	if(allow_recent_stat)
@@ -258,16 +282,16 @@ UnitSourceSignatureEntry compiler_unit_source_entry(String file_name, bool allow
 	entry.dependency_paths = compiler_unit_dependency_paths(file_name, content);
 	{
 		std::lock_guard<std::mutex> lock(unit_source_signature_cache_mutex);
-		if(unit_source_signature_cache.size() >= BEARER_UNIT_SOURCE_SIGNATURE_CACHE_MAX)
+		if(unit_source_signature_cache.size() >= limits.source_signature_cache_max)
 			unit_source_signature_cache.clear();
 		unit_source_signature_cache[file_name] = entry;
 	}
 	return(entry);
 }
 
-void compiler_append_unit_source_signature(String file_name, std::set<String>& visited, String& signature, bool allow_recent_stat, u32 depth = 0)
+void compiler_append_unit_source_signature(const CompilerLimits& limits, String file_name, std::set<String>& visited, String& signature, bool allow_recent_stat, u32 depth = 0)
 {
-	if(depth >= 256 || visited.size() >= 20000)
+	if(depth >= limits.graph_max_depth || visited.size() >= limits.graph_max_visited)
 	{
 		signature += "load-graph-limit\n";
 		return;
@@ -295,25 +319,25 @@ void compiler_append_unit_source_signature(String file_name, std::set<String>& v
 	visited.insert(normalized);
 
 	if(!recent)
-		entry = compiler_unit_source_entry(normalized, allow_recent_stat);
+		entry = compiler_unit_source_entry(limits, normalized, allow_recent_stat);
 	signature += normalized + ":" + entry.content_hash + (entry.readable ? String("") : String(":unreadable")) + "\n";
 	for(String loaded : entry.dependency_paths)
-		compiler_append_unit_source_signature(loaded, visited, signature, allow_recent_stat, depth + 1);
+		compiler_append_unit_source_signature(limits, loaded, visited, signature, allow_recent_stat, depth + 1);
 }
 
-String compiler_unit_source_signature(String file_name, bool allow_recent_stat = false)
+String compiler_unit_source_signature(Request* context, String file_name, bool allow_recent_stat = false)
 {
 	std::set<String> visited;
 	String signature = "capy-import-graph-v1\n";
-	compiler_append_unit_source_signature(file_name, visited, signature, allow_recent_stat);
+	compiler_append_unit_source_signature(compiler_limits(context), file_name, visited, signature, allow_recent_stat);
 	return(gen_sha1(signature));
 }
 
-bool compiler_find_unit_load_cycle(String file_name, std::vector<String>& stack, std::set<String>& complete, String& cycle, u64& nodes)
+bool compiler_find_unit_load_cycle(const CompilerLimits& limits, String file_name, std::vector<String>& stack, std::set<String>& complete, String& cycle, u64& nodes)
 {
-	if(stack.size() >= 256 || ++nodes > 10000)
+	if(stack.size() >= limits.graph_max_depth || ++nodes > limits.graph_max_visited)
 	{
-		cycle = "#import dependency graph exceeds the 256-level or 10000-unit limit";
+		cycle = "#import dependency graph exceeds the " + std::to_string(limits.graph_max_depth) + "-level or " + std::to_string(limits.graph_max_visited) + "-unit limit";
 		return(true);
 	}
 	String normalized = compiler_source_path_real(file_name);
@@ -331,10 +355,10 @@ bool compiler_find_unit_load_cycle(String file_name, std::vector<String>& stack,
 		return(false);
 
 	stack.push_back(normalized);
-	auto entry = compiler_unit_source_entry(normalized, false);
+	auto entry = compiler_unit_source_entry(limits, normalized, false);
 	for(const String& loaded : entry.dependency_paths)
 	{
-		if(compiler_find_unit_load_cycle(loaded, stack, complete, cycle, nodes))
+		if(compiler_find_unit_load_cycle(limits, loaded, stack, complete, cycle, nodes))
 			return(true);
 	}
 	stack.pop_back();
@@ -342,13 +366,13 @@ bool compiler_find_unit_load_cycle(String file_name, std::vector<String>& stack,
 	return(false);
 }
 
-String compiler_unit_import_cycle(String file_name)
+String compiler_unit_import_cycle(Request* context, String file_name)
 {
 	std::vector<String> stack;
 	std::set<String> complete;
 	String cycle;
 	u64 nodes = 0;
-	compiler_find_unit_load_cycle(file_name, stack, complete, cycle, nodes);
+	compiler_find_unit_load_cycle(compiler_limits(context), file_name, stack, complete, cycle, nodes);
 	return(cycle);
 }
 
@@ -358,7 +382,7 @@ String compiler_unit_input_signature(Request* context, SharedUnit* su, bool allo
 		return("");
 
 	return(
-		compiler_unit_source_signature(su->file_name, allow_recent_source_stat) + ":" +
+		compiler_unit_source_signature(context, su->file_name, allow_recent_source_stat) + ":" +
 		std::to_string(BEARER_UNIT_ABI_VERSION) + ":" +
 		std::to_string(BEARER_WASM_CORE_ABI_VERSION) + ":" + CAPY_COMPILER_BUILD_ID
 	);
@@ -1277,7 +1301,7 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 		return;
 	}
 
-	String import_cycle = compiler_unit_import_cycle(su->file_name);
+	String import_cycle = compiler_unit_import_cycle(context, su->file_name);
 	if(import_cycle != "")
 	{
 		su->compiler_messages = import_cycle.rfind("#import ", 0) == 0 ? import_cycle : "#import dependency cycle: " + import_cycle;
@@ -1330,7 +1354,7 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 				String resolved = compiler_resolve_unit_path(context, path, dirname(current_source));
 				if(resolved == "") throw capy::Error({current_source, 1, 1, 0}, "#import path is not readable: " + path);
 				bool timed_out = false;
-				u64 remaining = deadline ? deadline->remaining_ms() : BEARER_IMPORT_COMPILE_TIMEOUT_MS;
+				u64 remaining = deadline ? deadline->remaining_ms() : compiler_limits(context).import_compile_timeout_ms;
 				SharedUnit* imported = get_shared_unit_bounded(context, resolved, remaining, &timed_out);
 				if(timed_out) throw capy::Error({current_source, 1, 1, 0}, "#import timed out: " + path);
 				if(!imported || trim(imported->compiler_messages) != "") throw capy::Error({current_source, 1, 1, 0}, "#import failed to compile: " + path);

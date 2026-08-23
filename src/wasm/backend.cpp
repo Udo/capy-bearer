@@ -44,8 +44,15 @@ struct WasmEntryFreshnessState
 
 static std::mutex g_wasm_entry_freshness_mutex;
 static std::map<String, WasmEntryFreshnessState> g_wasm_entry_freshness;
-static constexpr u64 WASM_ENTRY_FRESHNESS_CACHE_MAX = 4096;
 static constexpr auto WASM_ENTRY_FRESHNESS_TTL = std::chrono::seconds(10);
+
+static u64 wasm_entry_freshness_cache_max(Request* context)
+{
+	if(!context || !context->server)
+		return(4096);
+	u64 value = to_u64(context->server->config["WASM_ENTRY_FRESHNESS_CACHE_MAX"], 4096);
+	return(value >= 1 && value <= 1000000 ? value : 4096);
+}
 
 static WasmEntryArtifactIdentity wasm_entry_artifact_identity(const struct stat& info)
 {
@@ -257,7 +264,7 @@ static bool wasm_artifact_exists(Request* context, const String& entry_unit)
 			stat(metadata_path.c_str(), &final_metadata_st) == 0 && S_ISREG(final_metadata_st.st_mode))
 		{
 			std::lock_guard<std::mutex> lock(g_wasm_entry_freshness_mutex);
-			if(g_wasm_entry_freshness.size() >= WASM_ENTRY_FRESHNESS_CACHE_MAX)
+			if(g_wasm_entry_freshness.size() >= wasm_entry_freshness_cache_max(context))
 				g_wasm_entry_freshness.clear();
 			g_wasm_entry_freshness[entry_unit] = {
 				std::chrono::steady_clock::now(), final_generation,
