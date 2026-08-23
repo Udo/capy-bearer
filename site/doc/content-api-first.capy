@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "first"
         page["route"] = "/doc/api/first/"
         page["title"] = "first"
-        page["content"] = "## sig\n\nfunction first() string\nfunction first(one : string) string\nfunction first(one : string, two : string) string\nfunction first(one : string, two : string, three : string) string\nfunction first(one : string, two : string, three : string, four : string) string\n\n`first` checks values in order. It ignores values that contain only whitespace.\n"
+        page["content"] = "`first` checks values in order. It ignores values that contain only whitespace.\n"
         page["returns"] = "The first nonblank value. Returns `\"\"` if no value is nonblank."
         page["label"] = "first"
         page["capy_sig_lines"] = dval(["function first() string", "function first(one : string) string", "function first(one : string, two : string) string", "function first(one : string, two : string, three : string) string", "function first(one : string, two : string, three : string, four : string) string"])

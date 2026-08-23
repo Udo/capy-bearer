@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "job-await"
         page["route"] = "/doc/api/job-await/"
         page["title"] = "job_await"
-        page["content"] = "## sig\n\nfunction job_await(job : dval, timeout_ms : s32) dval\n\n`job_await()` waits for a job until the timeout expires. It returns the current status when the timeout expires.\n"
+        page["content"] = "`job_await()` waits for a job until the timeout expires. It returns the current status when the timeout expires.\n"
         page["returns"] = "A job status map. A completed job includes `result`."
         page["label"] = "job_await"
         page["capy_sig_lines"] = dval(["function job_await(job : dval, timeout_ms : s32) dval"])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "yaml-decode"
         page["route"] = "/doc/api/yaml-decode/"
         page["title"] = "yaml_decode"
-        page["content"] = "## sig\n\nfunction yaml_decode(source : string) dval\n\n`yaml_decode()` decodes YAML source into a `dval`.\n"
+        page["content"] = "`yaml_decode()` decodes YAML source into a `dval`.\n"
         page["returns"] = "A `dval` that contains the decoded YAML."
         page["label"] = "yaml_decode"
         page["capy_sig_lines"] = dval(["function yaml_decode(source : string) dval"])

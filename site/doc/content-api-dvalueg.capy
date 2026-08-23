@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-get-by-path"
         page["route"] = "/doc/api/dvalue-get-by-path/"
         page["title"] = "Get a child by path"
-        page["content"] = "## sig\n\nfunction dval_get_by_path(value : dval, path : string) dval\n\n`dval_get_by_path` reads a nested child without creating nodes. Use a slash between path segments.\n"
+        page["content"] = "`dval_get_by_path` reads a nested child without creating nodes. Use a slash between path segments.\n"
         page["returns"] = "The copied child, or an empty string value when the path fails."
         page["label"] = "dval_get_by_path"
         page["capy_sig_lines"] = dval(["function dval_get_by_path(value : dval, path : string) dval"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-get-or-create"
         page["route"] = "/doc/api/dvalue-get-or-create/"
         page["title"] = "Get or create a child"
-        page["content"] = "## sig\n\nfunction dval_get_or_create(value : dval, key : string) dval\n\n`dval_get_or_create` creates an empty child when `key` is missing. It changes and returns `value`.\n"
+        page["content"] = "`dval_get_or_create` creates an empty child when `key` is missing. It changes and returns `value`.\n"
         page["returns"] = "The target value."
         page["label"] = "dval_get_or_create"
         page["capy_sig_lines"] = dval(["function dval_get_or_create(value : dval, key : string) dval"])
@@ -47,7 +47,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-get-type-name"
         page["route"] = "/doc/api/dvalue-get-type-name/"
         page["title"] = "Get a dynamic value type name"
-        page["content"] = "## sig\n\nfunction dval_get_type_name(value : dval) string\n\n`dval_get_type_name` returns the runtime type name for a dynamic value.\n"
+        page["content"] = "`dval_get_type_name` returns the runtime type name for a dynamic value.\n"
         page["returns"] = "The type name."
         page["label"] = "dval_get_type_name"
         page["capy_sig_lines"] = dval(["function dval_get_type_name(value : dval) string"])

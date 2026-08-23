@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "array-merge"
         page["route"] = "/doc/api/array-merge/"
         page["title"] = "array_merge"
-        page["content"] = "## sig\n\nfunction array_merge(left : dval, right : dval) dval\n\n`array_merge` combines two `dval` values. It returns a new value.\n\nFor maps, values from `right` replace matching values from `left`. The function also merges lists.\n"
+        page["content"] = "`array_merge` combines two `dval` values. It returns a new value.\n\nFor maps, values from `right` replace matching values from `left`. The function also merges lists.\n"
         page["returns"] = "a merged `dval` value"
         page["label"] = "array_merge"
         page["capy_sig_lines"] = dval(["function array_merge(left : dval, right : dval) dval"])

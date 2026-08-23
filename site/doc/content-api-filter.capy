@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "filter"
         page["route"] = "/doc/api/filter/"
         page["title"] = "filter"
-        page["content"] = "## sig\n\nfunction filter(items : dval, predicate : function(value : string) bool) dval\n\n`filter` calls `predicate` for each value. It keeps values for which the predicate returns `true`.\n"
+        page["content"] = "`filter` calls `predicate` for each value. It keeps values for which the predicate returns `true`.\n"
         page["returns"] = "A new list of selected values."
         page["label"] = "filter"
         page["capy_sig_lines"] = dval(["function filter(items : dval, predicate : function(value : string) bool) dval"])

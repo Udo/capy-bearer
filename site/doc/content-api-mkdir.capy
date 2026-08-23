@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "mkdir"
         page["route"] = "/doc/api/mkdir/"
         page["title"] = "mkdir"
-        page["content"] = "## sig\n\nfunction mkdir(path : string) bool\n\n`mkdir()` creates one directory at `path`.\n\nThe parent directory must exist. This function does not create parent directories.\n"
+        page["content"] = "`mkdir()` creates one directory at `path`.\n\nThe parent directory must exist. This function does not create parent directories.\n"
         page["returns"] = "`true` when the API creates the directory"
         page["label"] = "mkdir"
         page["capy_sig_lines"] = dval(["function mkdir(path : string) bool"])

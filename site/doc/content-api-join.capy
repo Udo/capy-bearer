@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "join"
         page["route"] = "/doc/api/join/"
         page["title"] = "join"
-        page["content"] = "## sig\n\nfunction join(items : dval, delimiter : string = \"\\n\") string\n\n`join()` reads each list value as text. It uses a newline when you omit the delimiter.\n"
+        page["content"] = "`join()` reads each list value as text. It uses a newline when you omit the delimiter.\n"
         page["returns"] = "One string with the values separated by `delimiter`."
         page["label"] = "join"
         page["capy_sig_lines"] = dval(["function join(items : dval, delimiter : string = \"\\n\") string"])

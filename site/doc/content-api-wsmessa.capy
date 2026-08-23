@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "ws-message"
         page["route"] = "/doc/api/ws-message/"
         page["title"] = "ws_message"
-        page["content"] = "## sig\n\nNo Capy signature.\n\nCapy has no native `ws_message` signature. In a `WS` handler, use `request.body`.\n"
+        page["content"] = "Capy has no native `ws_message` signature. In a `WS` handler, use `request.body`.\n"
         page["label"] = "ws_message"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])

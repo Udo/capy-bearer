@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "shell-spawn"
         page["route"] = "/doc/api/shell-spawn/"
         page["title"] = "shell_spawn"
-        page["content"] = "## sig\n\nfunction shell_spawn(spec : dval) dval\n\nUse `shell_spawn` to start a background shell job. The `cmd` value is a shell command.\n"
+        page["content"] = "Use `shell_spawn` to start a background shell job. The `cmd` value is a shell command.\n"
         page["returns"] = "Job identifier value."
         page["label"] = "shell_spawn"
         page["capy_sig_lines"] = dval(["function shell_spawn(spec : dval) dval"])

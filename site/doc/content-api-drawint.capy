@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "draw-int"
         page["route"] = "/doc/api/draw-int/"
         page["title"] = "draw_int"
-        page["content"] = "## sig\n\nfunction draw_int(from : u64, to : u64) u64\n\n`draw_int()` returns the next integer value from the request random sequence.\n\nBearer uses the request random seed and advances the random index after each call.\n"
+        page["content"] = "`draw_int()` returns the next integer value from the request random sequence.\n\nBearer uses the request random seed and advances the random index after each call.\n"
         page["returns"] = "A `u64` value between the range values."
         page["label"] = "draw_int"
         page["capy_sig_lines"] = dval(["function draw_int(from : u64, to : u64) u64"])

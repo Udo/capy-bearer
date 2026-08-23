@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-get-contents"
         page["route"] = "/doc/api/file-get-contents/"
         page["title"] = "file_get_contents"
-        page["content"] = "## sig\n\nfunction file_get_contents(path : string) string\n\n`file_get_contents` reads a complete file into a string. Use it for a small file that fits in one value. Use `file_open` and `file_read` for incremental reads.\n"
+        page["content"] = "`file_get_contents` reads a complete file into a string. Use it for a small file that fits in one value. Use `file_open` and `file_read` for incremental reads.\n"
         page["returns"] = "The file content, or `\"\"` when Capy cannot read the file."
         page["label"] = "file_get_contents"
         page["capy_sig_lines"] = dval(["function file_get_contents(path : string) string"])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "ws-send-to"
         page["route"] = "/doc/api/ws-send-to/"
         page["title"] = "ws_send_to"
-        page["content"] = "## sig\n\nfunction ws_send_to(connection_id : string, message : string, binary : bool) bool\n\n`ws_send_to()` sends a message to one client.\n"
+        page["content"] = "`ws_send_to()` sends a message to one client.\n"
         page["returns"] = "`true` when the server queues the message."
         page["label"] = "ws_send_to"
         page["capy_sig_lines"] = dval(["function ws_send_to(connection_id : string, message : string, binary : bool) bool"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "ws-send"
         page["route"] = "/doc/api/ws-send/"
         page["title"] = "ws_send"
-        page["content"] = "## sig\n\nfunction ws_send(message : string, binary : bool) bool\nfunction ws_send(message : string, binary : bool, scope : string) bool\n\n`ws_send()` sends a message to every client in the current scope. Pass `scope` to select a scope.\n"
+        page["content"] = "`ws_send()` sends a message to every client in the current scope. Pass `scope` to select a scope.\n"
         page["returns"] = "`true` when the server queues the message for a client."
         page["label"] = "ws_send"
         page["capy_sig_lines"] = dval(["function ws_send(message : string, binary : bool) bool", "function ws_send(message : string, binary : bool, scope : string) bool"])

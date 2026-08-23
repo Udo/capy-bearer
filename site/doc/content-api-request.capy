@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "request-base-url"
         page["route"] = "/doc/api/request-base-url/"
         page["title"] = "request_base_url"
-        page["content"] = "## sig\n\nNot available in Capy.\n\nUse `request.url.base` in a handler to read the base URL.\n"
+        page["content"] = "Use `request.url.base` in a handler to read the base URL.\n"
         page["label"] = "request_base_url"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])
@@ -27,7 +27,7 @@ function data(input : dval) dval {
         page["slug"] = "request-context-params"
         page["route"] = "/doc/api/request-context-params/"
         page["title"] = "request_context_params"
-        page["content"] = "## sig\n\nhandler request : dval\n\nHandlers receive request data in `request`.\n\nUse `request.url.script` for the script URL. Use `request.url.base` for the base URL. Use `request.route.path`, `request.route.page`, `request.route.raw_path`, and `request.route.valid` for route data.\n"
+        page["content"] = "Handlers receive request data in `request`.\n\nUse `request.url.script` for the script URL. Use `request.url.base` for the base URL. Use `request.route.path`, `request.route.page`, `request.route.raw_path`, and `request.route.valid` for route data.\n"
         page["label"] = "request_context_params"
         page["capy_sig_lines"] = dval(["handler request : dval"])
         page["param_lines"] = dval([])
@@ -45,7 +45,7 @@ function data(input : dval) dval {
         page["slug"] = "request-ob-start"
         page["route"] = "/doc/api/request-ob-start/"
         page["title"] = "Start an output buffer"
-        page["content"] = "## sig\n\nfunction ob_start()\n\n`ob_start()` starts an output buffer for the active request.\n\nOutput after this call goes to the buffer. Use `ob_get`, `ob_get_close`, or `ob_close` to read or close it.\n"
+        page["content"] = "`ob_start()` starts an output buffer for the active request.\n\nOutput after this call goes to the buffer. Use `ob_get`, `ob_get_close`, or `ob_close` to read or close it.\n"
         page["returns"] = "This function returns no value."
         page["label"] = "ob_start"
         page["capy_sig_lines"] = dval(["function ob_start()"])
@@ -64,7 +64,7 @@ function data(input : dval) dval {
         page["slug"] = "request-perf"
         page["route"] = "/doc/api/request-perf/"
         page["title"] = "request_perf"
-        page["content"] = "## sig\n\nNot available in Capy.\n\nUse `runtime_perf()` in a handler to read runtime performance data.\n"
+        page["content"] = "Use `runtime_perf()` in a handler to read runtime performance data.\n"
         page["label"] = "request_perf"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])
@@ -82,7 +82,7 @@ function data(input : dval) dval {
         page["slug"] = "request-query-path"
         page["route"] = "/doc/api/request-query-path/"
         page["title"] = "request_query_path"
-        page["content"] = "## sig\n\nNot available in Capy.\n\nUse `request.route.path` in a handler to read the safe query route.\n"
+        page["content"] = "Use `request.route.path` in a handler to read the safe query route.\n"
         page["label"] = "request_query_path"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])
@@ -100,7 +100,7 @@ function data(input : dval) dval {
         page["slug"] = "request-query-route"
         page["route"] = "/doc/api/request-query-route/"
         page["title"] = "request_query_route"
-        page["content"] = "## sig\n\nNot available in Capy.\n\nUse `request.route` in a handler to read route data. Its fields include `path`, `page`, `raw_path`, and `valid`.\n"
+        page["content"] = "Use `request.route` in a handler to read route data. Its fields include `path`, `page`, `raw_path`, and `valid`.\n"
         page["label"] = "request_query_route"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])
@@ -118,7 +118,7 @@ function data(input : dval) dval {
         page["slug"] = "request-route-from-raw-path"
         page["route"] = "/doc/api/request-route-from-raw-path/"
         page["title"] = "request_route_from_raw_path"
-        page["content"] = "## sig\n\nNot available in Capy.\n\nUse `route_from_raw_path()` to validate route text without reading the request.\n"
+        page["content"] = "Use `route_from_raw_path()` to validate route text without reading the request.\n"
         page["label"] = "request_route_from_raw_path"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])
@@ -136,7 +136,7 @@ function data(input : dval) dval {
         page["slug"] = "request-script-url"
         page["route"] = "/doc/api/request-script-url/"
         page["title"] = "request_script_url"
-        page["content"] = "## sig\n\nNot available in Capy.\n\nUse `request.url.script` in a handler to read the script URL.\n"
+        page["content"] = "Use `request.url.script` in a handler to read the script URL.\n"
         page["label"] = "request_script_url"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])
@@ -154,7 +154,7 @@ function data(input : dval) dval {
         page["slug"] = "request-set-status"
         page["route"] = "/doc/api/request-set-status/"
         page["title"] = "Set the response status"
-        page["content"] = "## sig\n\nfunction response_status(code : s32, reason : string = \"\")\n\n`response_status` sets the status for the active response.\n\nIf `reason` is empty, Bearer uses the standard phrase for common HTTP status codes. Set the status before you write response output.\n"
+        page["content"] = "`response_status` sets the status for the active response.\n\nIf `reason` is empty, Bearer uses the standard phrase for common HTTP status codes. Set the status before you write response output.\n"
         page["returns"] = "This function returns no value."
         page["label"] = "response_status"
         page["capy_sig_lines"] = dval(["function response_status(code : s32, reason : string = \"\")"])
@@ -173,14 +173,15 @@ function data(input : dval) dval {
         page["slug"] = "request"
         page["route"] = "/doc/api/request/"
         page["title"] = "Request snapshot"
-        page["content"] = "## sig\n\nhandler request : dval\n\nEach Capy handler receives `request : dval`. This value is a request snapshot.\n\nThe snapshot can contain `method`, `query`, `form`, `headers`, `cookies`, `body`, `files`, `route`, `url`, `server`, `session`, `props`, `config`, `call`, `connection`, `unit`, and `websocket`.\n\nUse `string`, `s32`, or `bool` with a fallback to read scalar values. Use response, session, output, and WebSocket functions to change the active request.\n"
+        page["content"] = "Every Capy handler receives one parameter, `request`, of type `dval`. It is a snapshot of the request taken when the handler is entered — reading it never touches the network, and reading the same field twice always gives the same answer.\n\nRead scalars through a converter with a fallback, so a key that is absent has a defined value rather than an error:\n\n    var name := string(request.query.name, \"guest\")\n    var page := s64(request.query.page, 1)\n    var debug := bool(request.query.debug, false)\n\nTest for presence with the `?` suffix, which is `true` when the key exists:\n\n    if request.query.token? { print(\"token supplied\\n\") }\n\n## Fields\n\n| Field | Type | Contains |\n| --- | --- | --- |\n| `method` | string | `GET`, `POST`, and so on |\n| `query` | map | parsed query-string parameters |\n| `form` | map | parsed form body parameters |\n| `body` | string | the raw request body |\n| `headers` | map | request headers, lowercased with dashes: `content-type`, `x-request-id` |\n| `cookies` | map | request cookies by name |\n| `files` | array | uploaded files, each with `name`, `size`, `temporary_path` |\n| `route` | map | `path`, `page`, `raw_path`, `valid` |\n| `url` | map | `script`, `base` |\n| `server` | map | remaining server and CGI variables, original uppercase names |\n| `session` | map | the current session snapshot |\n| `props` | map | properties passed by a component caller |\n| `config` | map | request-visible configuration |\n| `connection` | map | connection information |\n| `unit` | string | the source path of the unit currently executing |\n| `websocket` | map | `connection_id`, `scope`, `opcode`, `binary`, `connections` |\n| `call` | map | dispatch information for the current call |\n\n## Headers and server variables\n\n`headers` holds anything that arrived as an HTTP header, re"
+        page["content"] = string(page["content"], "") + "named for readability: the transport's `HTTP_X_REQUEST_ID` appears as `request.headers[\"x-request-id\"]`. `content-type` and `content-length` are included even though they arrive without the `HTTP_` prefix. Use bracket syntax for these, since the names contain dashes.\n\n`server` holds everything else — `QUERY_STRING`, `REMOTE_ADDR`, `SERVER_NAME` — under the original uppercase names. `method`, `route`, and `url` are lifted out of `server` into their own fields, so look for them there rather than in `server`.\n\n## Reading and writing\n\nThe snapshot is read-only in the sense that changing it does not change the request. To affect the response, call the response functions — `response_status()`, `response_header()`, `response_cookie()`, `redirect()` — and use the session functions to change session state. `print()` writes the body.\n\n`request.props` is the one field that changes during a request: a component call swaps in the caller's props for the duration of the call and restores the previous value on return.\n"
         page["label"] = "Request"
         page["capy_sig_lines"] = dval(["handler request : dval"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">1_RENDER", ">1_COMPONENT", ">1_CLI", ">1_WS"])
-        page["examples"] = dval([{entry: "render", caption: "", body: "print(string(request.query.name, \"guest\"), \"\\n\")\n"}])
+        page["see"] = dval([">1_RENDER", ">1_COMPONENT", ">1_CLI", ">1_WS", "string", "response_status", "response_header"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(string(request.query.name, \"guest\"), \"\\n\")\n"}, {entry: "render", caption: "branch on the method and read a form field", body: "if string(request.method, \"\") == \"POST\" {\n    print(\"saved \", string(request.form.answer, \"\"), \"\\n\")\n} else {\n    print(\"<form method=\\\"post\\\"><input name=\\\"answer\\\"></form>\", \"\\n\")\n}\n"}, {entry: "render", caption: "read a header and a cookie", body: "print(string(request.headers[\"user-agent\"], \"unknown\"), \"\\n\")\nprint(string(request.cookies.session, \"none\"), \"\\n\")\n"}, {entry: "render", caption: "list uploaded files", body: "for file := request.files {\n    print(string(file.name, \"\"), \" \", u64(file.size, 0), \"\\n\")\n}\n"}, {entry: "render", caption: "check presence before use", body: "if request.query.page? {\n    print(\"page \", s64(request.query.page, 1), \"\\n\")\n} else {\n    print(\"no page requested\\n\")\n}\n"}])
         page["guide_examples"] = dval([])
         return page
     }

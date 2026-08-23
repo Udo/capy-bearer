@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-mtime"
         page["route"] = "/doc/api/file-mtime/"
         page["title"] = "file_mtime"
-        page["content"] = "## sig\n\nfunction file_mtime(path : string) u64\n\n`file_mtime` returns the modification time of a file.\n"
+        page["content"] = "`file_mtime` returns the modification time of a file.\n"
         page["returns"] = "The modification time as a Unix timestamp, or `0` when it is unavailable."
         page["label"] = "file_mtime"
         page["capy_sig_lines"] = dval(["function file_mtime(path : string) u64"])

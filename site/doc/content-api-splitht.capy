@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "split-http-headers"
         page["route"] = "/doc/api/split-http-headers/"
         page["title"] = "split_http_headers"
-        page["content"] = "## sig\n\nfunction split_http_headers(value : string) dval\n\nUse `split_http_headers` to parse an HTTP header block.\n"
+        page["content"] = "Use `split_http_headers` to parse an HTTP header block.\n"
         page["returns"] = "Map-shaped `dval`."
         page["label"] = "split_http_headers"
         page["capy_sig_lines"] = dval(["function split_http_headers(value : string) dval"])

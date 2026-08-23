@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "time-parse"
         page["route"] = "/doc/api/time-parse/"
         page["title"] = "time_parse"
-        page["content"] = "## sig\n\nfunction time_parse(value : string) u64\n\n`time_parse` converts date or time text to a Unix timestamp.\n"
+        page["content"] = "`time_parse` converts date or time text to a Unix timestamp.\n"
         page["returns"] = "parsed Unix timestamp, or zero when parsing fails"
         page["label"] = "time_parse"
         page["capy_sig_lines"] = dval(["function time_parse(value : string) u64"])

@@ -3,21 +3,40 @@ function component_render(name : string)
 function component_render(name : string, props : as dval)
 
 :params
-name : a component name or named handler
-props : optional input for `request.props`
+name : a component path, optionally followed by `:HANDLER`
+props : optional input, readable inside the component as `request.props`
 
 :content
-`component_render()` writes component output to the current response.
+`component_render()` renders a component and writes its output straight into the current response. It returns nothing.
 
-Use `component()` or `component_capture()` when you need the output as a string. Bearer accepts a component path with or without `.capy`.
+This is the form to reach for in page layouts. `component()` and `component_capture()` open a capture buffer, collect everything the component prints, and hand you a string; `component_render()` skips that buffer entirely. When you are only going to print the result anyway, `component_render("card")` does less work than `print(component("card"))`.
 
-A colon selects a named handler. A leading colon selects a handler in the current file. Use `component_exists()` before an optional component.
+Use a capturing call instead when you need the output as a value — to measure it, wrap it, store it, or decide whether to emit it at all.
+
+Name resolution, `:HANDLER` suffixes, props scoping, and `ONCE` behaviour are identical to `component()`; that page documents the rules in full.
+
+:errors
+An unresolvable component does not raise an error. Bearer sets the response status to `500` and writes a banner element describing the failure into the response in place of the component output. Rendering continues. Call `component_exists()` first when a missing component should be skipped silently.
 
 :example capy render
-component_render("/tests/capy-request-context.capy", {name: "Capy"})
+component_render("/doc/examples/card.capy:CARD", {title: "Release notes"})
+
+:example capy render compose a page from fragments
+print("<main>")
+component_render("/doc/examples/card.capy:CARD", {title: "First"})
+component_render("/doc/examples/card.capy:CARD", {title: "Second"})
+print("</main>", "\n")
+
+:example capy render render each row without buffering
+var rows := ["Ada", "Grace", "Katherine"]
+for row := rows {
+    component_render("/doc/examples/card.capy:CARD", {title: row})
+}
+print("\n")
 
 :see
 component
 component_capture
 component_exists
 component_resolve
+1_COMPONENT

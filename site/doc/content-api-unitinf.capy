@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "unit-info"
         page["route"] = "/doc/api/unit-info/"
         page["title"] = "unit_info"
-        page["content"] = "## sig\n\nfunction unit_info(path : string = \"\") dval\n\n`unit_info` returns metadata for a unit.\n"
+        page["content"] = "`unit_info` returns metadata for a unit.\n"
         page["returns"] = "unit metadata"
         page["label"] = "unit_info"
         page["capy_sig_lines"] = dval(["function unit_info(path : string = \"\") dval"])

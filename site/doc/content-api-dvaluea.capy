@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-assign"
         page["route"] = "/doc/api/dvalue-assign/"
         page["title"] = "Assign a dynamic value"
-        page["content"] = "## sig\n\nfunction dval_assign(value : dval, source : as dval) dval\n\n`dval_assign(value, source)` replaces the content of `value`. It changes `value` and returns the same value.\n"
+        page["content"] = "`dval_assign(value, source)` replaces the content of `value`. It changes `value` and returns the same value.\n"
         page["returns"] = "The target value."
         page["label"] = "dval_assign"
         page["capy_sig_lines"] = dval(["function dval_assign(value : dval, source : as dval) dval"])

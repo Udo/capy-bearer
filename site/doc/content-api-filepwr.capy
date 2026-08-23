@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-pwrite"
         page["route"] = "/doc/api/file-pwrite/"
         page["title"] = "file_pwrite"
-        page["content"] = "## sig\n\nfunction file_pwrite(handle : u64, offset : u64, data : string) u64\n\n`file_pwrite` writes text at an absolute byte offset. It does not change the handle position.\n"
+        page["content"] = "`file_pwrite` writes text at an absolute byte offset. It does not change the handle position.\n"
         page["returns"] = "The number of bytes written."
         page["label"] = "file_pwrite"
         page["capy_sig_lines"] = dval(["function file_pwrite(handle : u64, offset : u64, data : string) u64"])

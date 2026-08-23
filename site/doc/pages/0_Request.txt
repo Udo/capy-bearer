@@ -5,17 +5,83 @@ Request snapshot
 handler request : dval
 
 :content
-Each Capy handler receives `request : dval`. This value is a request snapshot.
+Every Capy handler receives one parameter, `request`, of type `dval`. It is a snapshot of the request taken when the handler is entered — reading it never touches the network, and reading the same field twice always gives the same answer.
 
-The snapshot can contain `method`, `query`, `form`, `headers`, `cookies`, `body`, `files`, `route`, `url`, `server`, `session`, `props`, `config`, `call`, `connection`, `unit`, and `websocket`.
+Read scalars through a converter with a fallback, so a key that is absent has a defined value rather than an error:
 
-Use `string`, `s32`, or `bool` with a fallback to read scalar values. Use response, session, output, and WebSocket functions to change the active request.
+    var name := string(request.query.name, "guest")
+    var page := s64(request.query.page, 1)
+    var debug := bool(request.query.debug, false)
+
+Test for presence with the `?` suffix, which is `true` when the key exists:
+
+    if request.query.token? { print("token supplied\n") }
+
+## Fields
+
+| Field | Type | Contains |
+| --- | --- | --- |
+| `method` | string | `GET`, `POST`, and so on |
+| `query` | map | parsed query-string parameters |
+| `form` | map | parsed form body parameters |
+| `body` | string | the raw request body |
+| `headers` | map | request headers, lowercased with dashes: `content-type`, `x-request-id` |
+| `cookies` | map | request cookies by name |
+| `files` | array | uploaded files, each with `name`, `size`, `temporary_path` |
+| `route` | map | `path`, `page`, `raw_path`, `valid` |
+| `url` | map | `script`, `base` |
+| `server` | map | remaining server and CGI variables, original uppercase names |
+| `session` | map | the current session snapshot |
+| `props` | map | properties passed by a component caller |
+| `config` | map | request-visible configuration |
+| `connection` | map | connection information |
+| `unit` | string | the source path of the unit currently executing |
+| `websocket` | map | `connection_id`, `scope`, `opcode`, `binary`, `connections` |
+| `call` | map | dispatch information for the current call |
+
+## Headers and server variables
+
+`headers` holds anything that arrived as an HTTP header, renamed for readability: the transport's `HTTP_X_REQUEST_ID` appears as `request.headers["x-request-id"]`. `content-type` and `content-length` are included even though they arrive without the `HTTP_` prefix. Use bracket syntax for these, since the names contain dashes.
+
+`server` holds everything else — `QUERY_STRING`, `REMOTE_ADDR`, `SERVER_NAME` — under the original uppercase names. `method`, `route`, and `url` are lifted out of `server` into their own fields, so look for them there rather than in `server`.
+
+## Reading and writing
+
+The snapshot is read-only in the sense that changing it does not change the request. To affect the response, call the response functions — `response_status()`, `response_header()`, `response_cookie()`, `redirect()` — and use the session functions to change session state. `print()` writes the body.
+
+`request.props` is the one field that changes during a request: a component call swaps in the caller's props for the duration of the call and restores the previous value on return.
 
 :example capy render
 print(string(request.query.name, "guest"), "\n")
+
+:example capy render branch on the method and read a form field
+if string(request.method, "") == "POST" {
+    print("saved ", string(request.form.answer, ""), "\n")
+} else {
+    print("<form method=\"post\"><input name=\"answer\"></form>", "\n")
+}
+
+:example capy render read a header and a cookie
+print(string(request.headers["user-agent"], "unknown"), "\n")
+print(string(request.cookies.session, "none"), "\n")
+
+:example capy render list uploaded files
+for file := request.files {
+    print(string(file.name, ""), " ", u64(file.size, 0), "\n")
+}
+
+:example capy render check presence before use
+if request.query.page? {
+    print("page ", s64(request.query.page, 1), "\n")
+} else {
+    print("no page requested\n")
+}
 
 :see
 >1_RENDER
 >1_COMPONENT
 >1_CLI
 >1_WS
+string
+response_status
+response_header

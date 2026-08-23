@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-seek"
         page["route"] = "/doc/api/file-seek/"
         page["title"] = "file_seek"
-        page["content"] = "## sig\n\nfunction file_seek(handle : u64, offset : s64, whence : s64) s64\n\n`file_seek` sets the position for file reads and writes.\n"
+        page["content"] = "`file_seek` sets the position for file reads and writes.\n"
         page["returns"] = "The new byte offset. Returns `-1` on error."
         page["label"] = "file_seek"
         page["capy_sig_lines"] = dval(["function file_seek(handle : u64, offset : s64, whence : s64) s64"])

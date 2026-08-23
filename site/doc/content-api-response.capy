@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "response-cookie"
         page["route"] = "/doc/api/response-cookie/"
         page["title"] = "response_cookie"
-        page["content"] = "## sig\n\nfunction response_cookie(name : string, value : string)\n\n`response_cookie()` queues a response cookie.\n"
+        page["content"] = "`response_cookie()` queues a response cookie.\n"
         page["label"] = "response_cookie"
         page["capy_sig_lines"] = dval(["function response_cookie(name : string, value : string)"])
         page["param_lines"] = dval(["name : cookie name", "value : cookie value", ""])
@@ -27,7 +27,7 @@ function data(input : dval) dval {
         page["slug"] = "response-header"
         page["route"] = "/doc/api/response-header/"
         page["title"] = "response_header"
-        page["content"] = "## sig\n\nfunction response_header(name : string, value : string)\n\n`response_header()` sets a response header.\n"
+        page["content"] = "`response_header()` sets a response header.\n"
         page["label"] = "response_header"
         page["capy_sig_lines"] = dval(["function response_header(name : string, value : string)"])
         page["param_lines"] = dval(["name : header name", "value : header value", ""])
@@ -45,7 +45,7 @@ function data(input : dval) dval {
         page["slug"] = "response-status"
         page["route"] = "/doc/api/response-status/"
         page["title"] = "response_status"
-        page["content"] = "## sig\n\nfunction response_status(code : s32, reason : string = \"\")\n\n`response_status()` sets the response status.\n"
+        page["content"] = "`response_status()` sets the response status.\n"
         page["label"] = "response_status"
         page["capy_sig_lines"] = dval(["function response_status(code : s32, reason : string = \"\")"])
         page["param_lines"] = dval(["code : HTTP status code", "reason : optional reason phrase", ""])

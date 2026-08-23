@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "json-consume-space"
         page["route"] = "/doc/api/json-consume-space/"
         page["title"] = "json_consume_space"
-        page["content"] = "## sig\n\nfunction json_consume_space(source : string, index : s32) s32\n\n`json_consume_space()` skips JSON whitespace from `index`. Use `json_decode()` for normal JSON parsing.\n"
+        page["content"] = "`json_consume_space()` skips JSON whitespace from `index`. Use `json_decode()` for normal JSON parsing.\n"
         page["returns"] = "The byte offset after JSON whitespace."
         page["label"] = "json_consume_space"
         page["capy_sig_lines"] = dval(["function json_consume_space(source : string, index : s32) s32"])

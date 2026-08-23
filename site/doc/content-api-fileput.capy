@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-put-contents"
         page["route"] = "/doc/api/file-put-contents/"
         page["title"] = "file_put_contents"
-        page["content"] = "## sig\n\nfunction file_put_contents(path : string, content : string) bool\n\n`file_put_contents` writes a complete string to a file. It creates or replaces a small file.\n"
+        page["content"] = "`file_put_contents` writes a complete string to a file. It creates or replaces a small file.\n"
         page["returns"] = "`true` when Capy writes the file. Otherwise, it returns `false`."
         page["label"] = "file_put_contents"
         page["capy_sig_lines"] = dval(["function file_put_contents(path : string, content : string) bool"])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "brb-decode"
         page["route"] = "/doc/api/brb-decode/"
         page["title"] = "brb_decode"
-        page["content"] = "## sig\n\nfunction brb_decode(encoded : string) dval\n\n`brb_decode` decodes BRRB data into a `dval` value.\n\nUse it to read data from `brb_encode`.\n"
+        page["content"] = "`brb_decode` decodes BRRB data into a `dval` value.\n\nUse it to read data from `brb_encode`.\n"
         page["returns"] = "a decoded `dval` value"
         page["label"] = "brb_decode"
         page["capy_sig_lines"] = dval(["function brb_decode(encoded : string) dval"])

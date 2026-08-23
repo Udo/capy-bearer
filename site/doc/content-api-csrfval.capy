@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "csrf-valid"
         page["route"] = "/doc/api/csrf-valid/"
         page["title"] = "csrf_valid"
-        page["content"] = "## sig\n\nfunction csrf_valid(submitted : string, session_name : string = \"bearer-session\", token_name : string = \"csrf_token\") bool\n\n`csrf_valid()` checks a submitted CSRF token against the session token.\n\nIt does not create a missing token. Check the token before you apply a browser-submitted change.\n"
+        page["content"] = "`csrf_valid()` checks a submitted CSRF token against the session token.\n\nIt does not create a missing token. Check the token before you apply a browser-submitted change.\n"
         page["returns"] = "`true` if `submitted` matches the active session token."
         page["label"] = "csrf_valid"
         page["capy_sig_lines"] = dval(["function csrf_valid(submitted : string, session_name : string = \"bearer-session\", token_name : string = \"csrf_token\") bool"])

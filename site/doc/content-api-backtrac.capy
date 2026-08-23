@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "backtrace-capture"
         page["route"] = "/doc/api/backtrace-capture/"
         page["title"] = "backtrace_capture"
-        page["content"] = "## sig\n\nfunction backtrace_capture() string\nfunction backtrace_capture(max_frames : s32, skip_frames : s32) string\n\n`backtrace_capture` gets a backtrace for the current call stack.\n\nCall it with no arguments. You can also set the maximum frame count and skip count.\n"
+        page["content"] = "`backtrace_capture` gets a backtrace for the current call stack.\n\nCall it with no arguments. You can also set the maximum frame count and skip count.\n"
         page["returns"] = "a backtrace string"
         page["label"] = "backtrace_capture"
         page["capy_sig_lines"] = dval(["function backtrace_capture() string", "function backtrace_capture(max_frames : s32, skip_frames : s32) string"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "backtrace-get-frames"
         page["route"] = "/doc/api/backtrace-get-frames/"
         page["title"] = "backtrace_get_frames"
-        page["content"] = "## sig\n\nfunction backtrace_get_frames(max_frames : s32 = 32, skip_frames : s32 = 0) string\n\n`backtrace_get_frames` gets source-mapped frames for the current Capy call stack.\n\nSet `max_frames` to limit the result. Set `skip_frames` to omit the newest frames.\n"
+        page["content"] = "`backtrace_get_frames` gets source-mapped frames for the current Capy call stack.\n\nSet `max_frames` to limit the result. Set `skip_frames` to omit the newest frames.\n"
         page["returns"] = "a backtrace string"
         page["label"] = "backtrace_get_frames"
         page["capy_sig_lines"] = dval(["function backtrace_get_frames(max_frames : s32 = 32, skip_frames : s32 = 0) string"])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-map"
         page["route"] = "/doc/api/dvalue-map/"
         page["title"] = "Map a dynamic value"
-        page["content"] = "## sig\n\nfunction dval_map(value : dval, mapper : function(value : dval, key : string) dval) dval\n\n`dval_map` calls `mapper` for each child. It keeps map keys and list shape.\n"
+        page["content"] = "`dval_map` calls `mapper` for each child. It keeps map keys and list shape.\n"
         page["returns"] = "A new mapped value."
         page["label"] = "dval_map"
         page["capy_sig_lines"] = dval(["function dval_map(value : dval, mapper : function(value : dval, key : string) dval) dval"])

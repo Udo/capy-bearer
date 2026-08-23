@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "path-is-within"
         page["route"] = "/doc/api/path-is-within/"
         page["title"] = "path_is_within"
-        page["content"] = "## sig\n\nfunction path_is_within(path : string, root : string) bool\n\n`path_is_within()` resolves both paths and tests whether `root` contains `path`.\n\nBoth paths must exist. Resolution follows symbolic links and removes dot segments.\n"
+        page["content"] = "`path_is_within()` resolves both paths and tests whether `root` contains `path`.\n\nBoth paths must exist. Resolution follows symbolic links and removes dot segments.\n"
         page["returns"] = "`true` when `root` contains `path`"
         page["label"] = "path_is_within"
         page["capy_sig_lines"] = dval(["function path_is_within(path : string, root : string) bool"])

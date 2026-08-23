@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "cwd-set"
         page["route"] = "/doc/api/cwd-set/"
         page["title"] = "cwd_set"
-        page["content"] = "## sig\n\nfunction cwd_set(path : string)\n\n`cwd_set()` changes the worker process working directory.\n\nSave the current directory with `cwd_get()`. Restore it after temporary use.\n"
+        page["content"] = "`cwd_set()` changes the worker process working directory.\n\nSave the current directory with `cwd_get()`. Restore it after temporary use.\n"
         page["label"] = "cwd_set"
         page["capy_sig_lines"] = dval(["function cwd_set(path : string)"])
         page["param_lines"] = dval(["path : the new working directory path", ""])

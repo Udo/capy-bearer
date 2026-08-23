@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "mysql-connect"
         page["route"] = "/doc/api/mysql-connect/"
         page["title"] = "mysql_connect"
-        page["content"] = "## sig\n\nfunction mysql_connect(host : string, username : string, password : string, database : string) u64\n\n`mysql_connect()` creates a MySQL connection lease and returns its handle.\n\nCall `mysql_connected()` before database work. Call `mysql_disconnect()` after use. A failed connection can return a nonzero handle.\n"
+        page["content"] = "`mysql_connect()` creates a MySQL connection lease and returns its handle.\n\nCall `mysql_connected()` before database work. Call `mysql_disconnect()` after use. A failed connection can return a nonzero handle.\n"
         page["returns"] = "a request-local MySQL connection handle"
         page["label"] = "mysql_connect"
         page["capy_sig_lines"] = dval(["function mysql_connect(host : string, username : string, password : string, database : string) u64"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "mysql-connected"
         page["route"] = "/doc/api/mysql-connected/"
         page["title"] = "mysql_connected"
-        page["content"] = "## sig\n\nfunction mysql_connected(handle : u64) bool\n\n`mysql_connected()` tests whether a MySQL handle has a live server connection.\n\nUse `mysql_error()` to get the diagnostic when it returns `false`.\n"
+        page["content"] = "`mysql_connected()` tests whether a MySQL handle has a live server connection.\n\nUse `mysql_error()` to get the diagnostic when it returns `false`.\n"
         page["returns"] = "`true` when the handle has a live server connection"
         page["label"] = "mysql_connected"
         page["capy_sig_lines"] = dval(["function mysql_connected(handle : u64) bool"])

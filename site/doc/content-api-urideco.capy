@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "uri-decode"
         page["route"] = "/doc/api/uri-decode/"
         page["title"] = "uri_decode"
-        page["content"] = "## sig\n\nfunction uri_decode(value : string) string\n\n`uri_decode` decodes a URI-encoded string.\n"
+        page["content"] = "`uri_decode` decodes a URI-encoded string.\n"
         page["returns"] = "decoded string"
         page["label"] = "uri_decode"
         page["capy_sig_lines"] = dval(["function uri_decode(value : string) string"])

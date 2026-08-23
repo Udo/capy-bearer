@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-exists"
         page["route"] = "/doc/api/file-exists/"
         page["title"] = "file_exists"
-        page["content"] = "## sig\n\nfunction file_exists(path : string) bool\n\n`file_exists` tests for a regular file. It returns `false` for a directory. Use `file_stat` to inspect another path type.\n"
+        page["content"] = "`file_exists` tests for a regular file. It returns `false` for a directory. Use `file_stat` to inspect another path type.\n"
         page["returns"] = "`true` when a regular file exists. Otherwise, it returns `false`."
         page["label"] = "file_exists"
         page["capy_sig_lines"] = dval(["function file_exists(path : string) bool"])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "error-pages"
         page["route"] = "/doc/api/error-pages/"
         page["title"] = "Configurable Error Pages"
-        page["content"] = "## sig\n\n`error_pages` is not available in Capy.\n\nCapy does not provide error page configuration.\n\nNo Capy alternative is available.\n"
+        page["content"] = "Capy does not provide error page configuration.\n\nNo Capy alternative is available.\n"
         page["label"] = "error_pages"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])

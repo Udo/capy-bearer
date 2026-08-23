@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "string-list-each"
         page["route"] = "/doc/api/string-list-each/"
         page["title"] = "Call a function for each string"
-        page["content"] = "## sig\n\nfunction each(items : dval, callback : function(value : string) string)\n\n`each` calls `callback` once for each item in a list-shaped `dval`.\n\nThe callback receives a string value. `each` processes items in list order.\n"
+        page["content"] = "`each` calls `callback` once for each item in a list-shaped `dval`.\n\nThe callback receives a string value. `each` processes items in list order.\n"
         page["returns"] = "This function returns no value."
         page["label"] = "each"
         page["capy_sig_lines"] = dval(["function each(items : dval, callback : function(value : string) string)"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "string-list-every"
         page["route"] = "/doc/api/string-list-every/"
         page["title"] = "Test every string"
-        page["content"] = "## sig\n\nfunction every(items : dval, predicate : function(value : string) bool) bool\n\n`every` tests each string in a list-shaped `dval` with `predicate`.\n\nThis function does not change `items`.\n"
+        page["content"] = "`every` tests each string in a list-shaped `dval` with `predicate`.\n\nThis function does not change `items`.\n"
         page["returns"] = "This function returns `true` when every item matches. It returns `true` for an empty list."
         page["label"] = "every"
         page["capy_sig_lines"] = dval(["function every(items : dval, predicate : function(value : string) bool) bool"])
@@ -47,7 +47,7 @@ function data(input : dval) dval {
         page["slug"] = "string-list-filter"
         page["route"] = "/doc/api/string-list-filter/"
         page["title"] = "Filter strings"
-        page["content"] = "## sig\n\nfunction filter(items : dval, predicate : function(value : string) bool) dval\n\n`filter` keeps the strings for which `predicate` returns `true`.\n\nThe result keeps input order. This function does not change `items`.\n"
+        page["content"] = "`filter` keeps the strings for which `predicate` returns `true`.\n\nThe result keeps input order. This function does not change `items`.\n"
         page["returns"] = "This function returns a new list-shaped `dval`."
         page["label"] = "filter"
         page["capy_sig_lines"] = dval(["function filter(items : dval, predicate : function(value : string) bool) dval"])
@@ -66,7 +66,7 @@ function data(input : dval) dval {
         page["slug"] = "string-list-find"
         page["route"] = "/doc/api/string-list-find/"
         page["title"] = "Find text in a string"
-        page["content"] = "## sig\n\nfunction find(haystack : string, needle : string) s32\n\n`find` searches a string for another string.\n\nFor a list-shaped `dval`, use `some` to test for a matching item.\n"
+        page["content"] = "`find` searches a string for another string.\n\nFor a list-shaped `dval`, use `some` to test for a matching item.\n"
         page["returns"] = "This function returns the byte position of `needle`. It returns `-1` when it does not find `needle`."
         page["label"] = "find"
         page["capy_sig_lines"] = dval(["function find(haystack : string, needle : string) s32"])
@@ -85,7 +85,7 @@ function data(input : dval) dval {
         page["slug"] = "string-list-keys"
         page["route"] = "/doc/api/string-list-keys/"
         page["title"] = "Get list keys"
-        page["content"] = "## sig\n\nfunction keys(items : dval) dval\n\n`keys` returns the keys from a list-shaped `dval` in list order.\n\nUse `dval_keys` when you need keys from any `dval` map or list.\n"
+        page["content"] = "`keys` returns the keys from a list-shaped `dval` in list order.\n\nUse `dval_keys` when you need keys from any `dval` map or list.\n"
         page["returns"] = "This function returns a list-shaped `dval` of string keys."
         page["label"] = "keys"
         page["capy_sig_lines"] = dval(["function keys(items : dval) dval"])
@@ -104,7 +104,7 @@ function data(input : dval) dval {
         page["slug"] = "string-list-map"
         page["route"] = "/doc/api/string-list-map/"
         page["title"] = "Map strings"
-        page["content"] = "## sig\n\nfunction map(items : dval, mapper : function(value : string) string) dval\n\n`map` calls `mapper` for each string in a list-shaped `dval`.\n\nThe result keeps input order. This function does not change `items`.\n"
+        page["content"] = "`map` calls `mapper` for each string in a list-shaped `dval`.\n\nThe result keeps input order. This function does not change `items`.\n"
         page["returns"] = "This function returns a new list-shaped `dval`."
         page["label"] = "map"
         page["capy_sig_lines"] = dval(["function map(items : dval, mapper : function(value : string) string) dval"])
@@ -123,7 +123,7 @@ function data(input : dval) dval {
         page["slug"] = "string-list-some"
         page["route"] = "/doc/api/string-list-some/"
         page["title"] = "Test any string"
-        page["content"] = "## sig\n\nfunction some(items : dval, predicate : function(value : string) bool) bool\n\n`some` tests each string in a list-shaped `dval` with `predicate`.\n\nThis function does not change `items`.\n"
+        page["content"] = "`some` tests each string in a list-shaped `dval` with `predicate`.\n\nThis function does not change `items`.\n"
         page["returns"] = "This function returns `true` when any item matches. It returns `false` for an empty list."
         page["label"] = "some"
         page["capy_sig_lines"] = dval(["function some(items : dval, predicate : function(value : string) bool) bool"])
@@ -142,7 +142,7 @@ function data(input : dval) dval {
         page["slug"] = "string-list-sort"
         page["route"] = "/doc/api/string-list-sort/"
         page["title"] = "Sort strings"
-        page["content"] = "## sig\n\nfunction sort(items : dval) dval\n\n`sort` sorts the strings in a list-shaped `dval`.\n\nThis function does not change `items`.\n"
+        page["content"] = "`sort` sorts the strings in a list-shaped `dval`.\n\nThis function does not change `items`.\n"
         page["returns"] = "This function returns a new list-shaped `dval` in ascending order."
         page["label"] = "sort"
         page["capy_sig_lines"] = dval(["function sort(items : dval) dval"])
@@ -161,7 +161,7 @@ function data(input : dval) dval {
         page["slug"] = "string-list-unique"
         page["route"] = "/doc/api/string-list-unique/"
         page["title"] = "Get unique strings"
-        page["content"] = "## sig\n\nfunction unique(items : dval) dval\n\n`unique` keeps the first copy of each string in a list-shaped `dval`.\n\nThe result keeps input order. This function does not change `items`.\n"
+        page["content"] = "`unique` keeps the first copy of each string in a list-shaped `dval`.\n\nThe result keeps input order. This function does not change `items`.\n"
         page["returns"] = "This function returns a new list-shaped `dval`."
         page["label"] = "unique"
         page["capy_sig_lines"] = dval(["function unique(items : dval) dval"])
@@ -180,7 +180,7 @@ function data(input : dval) dval {
         page["slug"] = "string-list"
         page["route"] = "/doc/api/string-list/"
         page["title"] = "String list"
-        page["content"] = "## sig\n\ntype dval (list of strings)\n\nUse a list-shaped `dval` for an ordered string list. Create one with `dval([...])` or `split`.\n\nUse `join`, `map`, `filter`, `keys`, `unique`, `sort`, `some`, and `every` for list work. These functions return a new value unless stated otherwise.\n\nCapy has no separate `StringList` type. Use a list-shaped `dval` instead.\n"
+        page["content"] = "Use a list-shaped `dval` for an ordered string list. Create one with `dval([...])` or `split`.\n\nUse `join`, `map`, `filter`, `keys`, `unique`, `sort`, `some`, and `every` for list work. These functions return a new value unless stated otherwise.\n\nCapy has no separate `StringList` type. Use a list-shaped `dval` instead.\n"
         page["label"] = "StringList"
         page["capy_sig_lines"] = dval(["type dval (list of strings)"])
         page["param_lines"] = dval([])

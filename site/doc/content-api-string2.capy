@@ -9,15 +9,15 @@ function data(input : dval) dval {
         page["slug"] = "string-2"
         page["route"] = "/doc/api/string-2/"
         page["title"] = "string"
-        page["content"] = "## sig\n\nfunction string(value : dval, fallback : string = \"\") string\n\nUse `string` to convert a `dval` value to text. It returns `fallback` when conversion fails.\n"
-        page["returns"] = "Converted text, or `fallback`."
+        page["content"] = "`string()` reads a `dval` as text. It is the function you use on nearly every request, because everything arriving from outside a unit — query parameters, form fields, headers, cookies, component props, results from another unit — arrives as `dval`.\n\nAlways pass a fallback when the value may be absent:\n\n    var name := string(request.query.name, \"guest\")\n\nWith no fallback the default is the empty string, which is fine when empty is a sensible answer and misleading when it is not — `string(request.query.page)` cannot tell \"absent\" from \"supplied as empty\". Use the `?` suffix when that difference matters:\n\n    if request.query.page? { print(string(request.query.page, \"\"), \"\\n\") }\n\n## What converts\n\nText returns unchanged. Numbers render as runtime numeric text, and booleans as `true` or `false`. Absent keys and values with no text form — maps and arrays — return the fallback rather than raising an error.\n\nBecause a fallback is always available, `string()` never fails on well-formed input. That is deliberate: request data is untrusted, and a handler should not abort because a caller omitted a field.\n\n## The other converters\n\n`s64()`, `u64()`, `s32()`, `f64()`, and `bool()` follow the same shape — value first, fallback second — for numeric and boolean fields. Reach for the one matching the type you want rather than converting to text and parsing it.\n"
+        page["returns"] = "The converted text, or `fallback`."
         page["label"] = "string"
         page["capy_sig_lines"] = dval(["function string(value : dval, fallback : string = \"\") string"])
-        page["param_lines"] = dval([])
+        page["param_lines"] = dval(["value : the `dval` to convert", "fallback : text returned when the value is absent or cannot convert", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([])
-        page["examples"] = dval([{entry: "render", caption: "", body: "print(string(dval(42)), \"\\n\")\n"}])
+        page["see"] = dval(["0_Request", "bool", "dval", "s64", "u64"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(string(dval(42)), \"\\n\")\n"}, {entry: "render", caption: "supply a fallback for an absent key", body: "print(string(request.query.name, \"guest\"), \"\\n\")\n"}, {entry: "render", caption: "distinguish absent from empty", body: "if request.query.q? {\n    print(\"searched: \", string(request.query.q, \"\"), \"\\n\")\n} else {\n    print(\"no search term\\n\")\n}\n"}, {entry: "render", caption: "read a value returned by another unit", body: "var target := unit_load(\"/tests/capy-module-target.capy\")\nprint(string(target.echo({name: \"Ada\"}).name, \"unknown\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

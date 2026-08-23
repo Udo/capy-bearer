@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "gen-int"
         page["route"] = "/doc/api/gen-int/"
         page["title"] = "gen_int"
-        page["content"] = "## sig\n\nfunction gen_int(from : u64, to : u64, index : u64, seed : u64 = 0) u64\n\n`gen_int()` returns a deterministic value for the range values, index, and seed.\n\nUse the same inputs to reproduce a value.\n"
+        page["content"] = "`gen_int()` returns a deterministic value for the range values, index, and seed.\n\nUse the same inputs to reproduce a value.\n"
         page["returns"] = "A deterministic `u64` value."
         page["label"] = "gen_int"
         page["capy_sig_lines"] = dval(["function gen_int(from : u64, to : u64, index : u64, seed : u64 = 0) u64"])

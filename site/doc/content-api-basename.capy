@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "basename"
         page["route"] = "/doc/api/basename/"
         page["title"] = "basename"
-        page["content"] = "## sig\n\nfunction basename(path : string) string\n\n`basename` returns the final component of a path.\n\nIt does not access the file system.\n"
+        page["content"] = "`basename` returns the final component of a path.\n\nIt does not access the file system.\n"
         page["returns"] = "the final path component"
         page["label"] = "basename"
         page["capy_sig_lines"] = dval(["function basename(path : string) string"])

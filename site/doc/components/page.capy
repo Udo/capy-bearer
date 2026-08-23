@@ -60,9 +60,7 @@ function render_see(page : dval) void {
     if length(page.see) == 0 { return }
     print("<aside class=\"doc-section see-also\"><h3>See also</h3>")
     for item := page.see {
-        var key := trim(string(item, ""))
-        if length(key) > 0 && substr(key, 0, 1) == ">" { key = trim(substr(key, 1)) }
-        if key != "" { print("<a class=\"related-link\" href=\"/doc/?p=", html_escape(uri_encode(key)), "\">", html_escape(key), "</a>") }
+        component_render("/doc/components/doc_link.capy", {reference: string(item, "")})
     }
     print("</aside>")
 }

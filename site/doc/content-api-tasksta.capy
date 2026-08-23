@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "task-status"
         page["route"] = "/doc/api/task-status/"
         page["title"] = "task_status"
-        page["content"] = "## sig\n\nfunction task_status(id : string) dval\n\nUse `task_status` to read a task status.\n"
+        page["content"] = "Use `task_status` to read a task status.\n"
         page["returns"] = "Task status map."
         page["label"] = "task_status"
         page["capy_sig_lines"] = dval(["function task_status(id : string) dval"])

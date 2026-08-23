@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-pop"
         page["route"] = "/doc/api/dvalue-pop/"
         page["title"] = "Remove the final child"
-        page["content"] = "## sig\n\nfunction dval_pop(value : dval) dval\n\n`dval_pop` removes the final child and returns `value`. It does not return the removed child.\n"
+        page["content"] = "`dval_pop` removes the final child and returns `value`. It does not return the removed child.\n"
         page["returns"] = "The changed target value."
         page["label"] = "dval_pop"
         page["capy_sig_lines"] = dval(["function dval_pop(value : dval) dval"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-push"
         page["route"] = "/doc/api/dvalue-push/"
         page["title"] = "Append a child"
-        page["content"] = "## sig\n\nfunction dval_push(value : dval, child : as dval) dval\n\n`dval_push` appends `child` with the next numeric key. It changes and returns `value`.\n"
+        page["content"] = "`dval_push` appends `child` with the next numeric key. It changes and returns `value`.\n"
         page["returns"] = "The changed target value."
         page["label"] = "dval_push"
         page["capy_sig_lines"] = dval(["function dval_push(value : dval, child : as dval) dval"])

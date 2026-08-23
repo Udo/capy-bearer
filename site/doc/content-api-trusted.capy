@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "trusted-markup"
         page["route"] = "/doc/api/trusted-markup/"
         page["title"] = "trusted_markup"
-        page["content"] = "## sig\n\nfunction trusted_markup(value : string) markup\n\n`trusted_markup` prevents HTML escaping for the value.\n"
+        page["content"] = "`trusted_markup` prevents HTML escaping for the value.\n"
         page["returns"] = "trusted markup"
         page["label"] = "trusted_markup"
         page["capy_sig_lines"] = dval(["function trusted_markup(value : string) markup"])

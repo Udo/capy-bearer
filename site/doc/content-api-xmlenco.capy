@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "xml-encode"
         page["route"] = "/doc/api/xml-encode/"
         page["title"] = "xml_encode"
-        page["content"] = "## sig\n\nfunction xml_encode(value : dval, root_name : string = \"root\") string\n\n`xml_encode()` encodes a `dval` as XML. The default root name is `root`.\n"
+        page["content"] = "`xml_encode()` encodes a `dval` as XML. The default root name is `root`.\n"
         page["returns"] = "The XML source."
         page["label"] = "xml_encode"
         page["capy_sig_lines"] = dval(["function xml_encode(value : dval, root_name : string = \"root\") string"])

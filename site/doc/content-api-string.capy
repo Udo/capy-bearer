@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "string"
         page["route"] = "/doc/api/string/"
         page["title"] = "String"
-        page["content"] = "## sig\n\ntype string\n\n`string` stores text or raw bytes in Capy.\n\nUse string literals, variables, parameters, and return values directly. Use `length`, `find`, `contains`, `replace`, `lower`, `upper`, and `substr` for common text work.\n\nUse `split_utf8` when you must split UTF-8 text by characters.\n"
+        page["content"] = "`string` stores text or raw bytes in Capy.\n\nUse string literals, variables, parameters, and return values directly. Use `length`, `find`, `contains`, `replace`, `lower`, `upper`, and `substr` for common text work.\n\nUse `split_utf8` when you must split UTF-8 text by characters.\n"
         page["label"] = "String"
         page["capy_sig_lines"] = dval(["type string"])
         page["param_lines"] = dval([])

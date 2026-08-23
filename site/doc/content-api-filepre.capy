@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-pread"
         page["route"] = "/doc/api/file-pread/"
         page["title"] = "file_pread"
-        page["content"] = "## sig\n\nfunction file_pread(handle : u64, offset : u64, length : u64) string\n\n`file_pread` reads at an absolute byte offset. It does not change the handle position.\n"
+        page["content"] = "`file_pread` reads at an absolute byte offset. It does not change the handle position.\n"
         page["returns"] = "A string with up to `length` bytes."
         page["label"] = "file_pread"
         page["capy_sig_lines"] = dval(["function file_pread(handle : u64, offset : u64, length : u64) string"])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "regex-match"
         page["route"] = "/doc/api/regex-match/"
         page["title"] = "regex_match"
-        page["content"] = "## sig\n\nfunction regex_match(pattern : string, subject : string, flags : string = \"\") bool\n\nUse `regex_match()` to test a complete string. Use `regex_search()` to find text within a string.\n"
+        page["content"] = "Use `regex_match()` to test a complete string. Use `regex_search()` to find text within a string.\n"
         page["returns"] = "`true` if the complete subject matches the pattern."
         page["label"] = "regex_match"
         page["capy_sig_lines"] = dval(["function regex_match(pattern : string, subject : string, flags : string = \"\") bool"])

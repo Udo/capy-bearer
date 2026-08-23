@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "hmac-sha256-hex"
         page["route"] = "/doc/api/hmac-sha256-hex/"
         page["title"] = "hmac_sha256_hex"
-        page["content"] = "## sig\n\nfunction hmac_sha256_hex(key : string, value : string) string\n\n`hmac_sha256_hex()` returns an HMAC-SHA256 value as hexadecimal text. Use `crypto_equal()` to compare received signatures.\n"
+        page["content"] = "`hmac_sha256_hex()` returns an HMAC-SHA256 value as hexadecimal text. Use `crypto_equal()` to compare received signatures.\n"
         page["returns"] = "A 64-character lowercase hexadecimal HMAC-SHA256 value."
         page["label"] = "hmac_sha256_hex"
         page["capy_sig_lines"] = dval(["function hmac_sha256_hex(key : string, value : string) string"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "hmac-sha256"
         page["route"] = "/doc/api/hmac-sha256/"
         page["title"] = "hmac_sha256"
-        page["content"] = "## sig\n\nfunction hmac_sha256(key : string, value : string) string\n\n`hmac_sha256()` returns a raw binary HMAC-SHA256 value. Use `hmac_sha256_hex()` when you need hexadecimal text.\n"
+        page["content"] = "`hmac_sha256()` returns a raw binary HMAC-SHA256 value. Use `hmac_sha256_hex()` when you need hexadecimal text.\n"
         page["returns"] = "A raw 32-byte HMAC-SHA256 value."
         page["label"] = "hmac_sha256"
         page["capy_sig_lines"] = dval(["function hmac_sha256(key : string, value : string) string"])

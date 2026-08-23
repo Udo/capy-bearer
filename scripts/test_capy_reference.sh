@@ -38,6 +38,14 @@ guide=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=capy-08-dynamic-va
 	echo "Capy guide page omitted its content, output, or navigation" >&2
 	exit 1
 }
+call_page=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=call") || {
+	echo "Call API page did not render" >&2
+	exit 1
+}
+[[ "$call_page" != *'>sig<'* ]] || {
+	echo "API page rendered a legacy sig heading" >&2
+	exit 1
+}
 constructor=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=2_DValue_to_string") || {
 	echo "Capy constructor API page did not render" >&2
 	exit 1
@@ -53,9 +61,19 @@ contract=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=http_request") 
 [[ "$contract" == *'<h3>Description</h3>'* && "$contract" == *'<h3>Parameters</h3>'* &&
 	"$contract" == *'<h3>Return Values</h3>'* && "$contract" == *'<h3>Errors</h3>'* &&
 	"$contract" == *'class="doc-detail-layout"'* &&
-	"$contract" == *'class="related-link" href="/doc/?p=http_request_async"'* &&
+	"$contract" == *'class="related-link" href="/doc/?p=http_request_async">http_request_async</a>'* &&
 	"$contract" != *"DOC EXAMPLE ERROR"* ]] || {
 	echo "Structured API contract sections or related links are incomplete" >&2
+	exit 1
+}
+prefixed=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=cli_arg") || {
+	echo "Prefixed API page did not render" >&2
+	exit 1
+}
+[[ "$prefixed" == *'class="related-link" href="/doc/?p=1_CLI">CLI</a>'* &&
+	"$prefixed" == *'class="related-link" href="/doc/?p=0_Request">Request</a>'* &&
+	"$prefixed" != *'>1_CLI<'* && "$prefixed" != *'>0_Request<'* ]] || {
+	echo "Related links did not use canonical labels and routes" >&2
 	exit 1
 }
 legacy=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=capy-10-dvalues") || {

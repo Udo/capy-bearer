@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "job-status"
         page["route"] = "/doc/api/job-status/"
         page["title"] = "job_status"
-        page["content"] = "## sig\n\nfunction job_status(job : dval) dval\n\n`job_status()` checks a job without waiting. The map can include `state`, `done`, `kind`, `pid`, and `job_id`.\n\nThe `state` value can be `pending`, `running`, `done`, `failed`, `cancelled`, or `missing`.\n"
+        page["content"] = "`job_status()` checks a job without waiting. The map can include `state`, `done`, `kind`, `pid`, and `job_id`.\n\nThe `state` value can be `pending`, `running`, `done`, `failed`, `cancelled`, or `missing`.\n"
         page["returns"] = "A job status map."
         page["label"] = "job_status"
         page["capy_sig_lines"] = dval(["function job_status(job : dval) dval"])

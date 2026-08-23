@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "zip-extract"
         page["route"] = "/doc/api/zip-extract/"
         page["title"] = "zip_extract"
-        page["content"] = "## sig\n\nfunction zip_extract(path : string, destination : string) bool\n\n`zip_extract()` extracts every entry from a ZIP archive.\n"
+        page["content"] = "`zip_extract()` extracts every entry from a ZIP archive.\n"
         page["returns"] = "`true` when the server extracts the archive."
         page["label"] = "zip_extract"
         page["capy_sig_lines"] = dval(["function zip_extract(path : string, destination : string) bool"])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "route-from-raw-path"
         page["route"] = "/doc/api/route-from-raw-path/"
         page["title"] = "route_from_raw_path"
-        page["content"] = "## sig\n\nfunction route_from_raw_path(raw_path : string, default_path : string = \"index\") dval\n\nUse `path` only below an application-controlled route root. It is empty when the route is unsafe.\n"
+        page["content"] = "Use `path` only below an application-controlled route root. It is empty when the route is unsafe.\n"
         page["returns"] = "Route data with `path`, `page`, `raw_path`, and `valid`."
         page["label"] = "route_from_raw_path"
         page["capy_sig_lines"] = dval(["function route_from_raw_path(raw_path : string, default_path : string = \"index\") dval"])

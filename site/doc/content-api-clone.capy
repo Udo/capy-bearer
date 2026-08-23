@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "clone"
         page["route"] = "/doc/api/clone/"
         page["title"] = "clone"
-        page["content"] = "## sig\n\nfunction clone(value : string) string\n\n`clone()` copies a string.\n\nMost Capy code does not need an explicit copy. Use `clone()` when a fresh string value is required.\n"
+        page["content"] = "`clone()` copies a string.\n\nMost Capy code does not need an explicit copy. Use `clone()` when a fresh string value is required.\n"
         page["returns"] = "A separate string copy."
         page["label"] = "clone"
         page["capy_sig_lines"] = dval(["function clone(value : string) string"])

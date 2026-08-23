@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "init"
         page["route"] = "/doc/api/init/"
         page["title"] = "INIT"
-        page["content"] = "## sig\n\nfunction INIT(request : dval)\n\n`INIT` defines the unit materialization hook.\n\nBearer runs this hook before dispatch in a request workspace. The handler has one parameter named `request` with type `dval`.\n"
+        page["content"] = "`INIT` defines the unit materialization hook.\n\nBearer runs this hook before dispatch in a request workspace. The handler has one parameter named `request` with type `dval`.\n"
         page["label"] = "INIT"
         page["capy_sig_lines"] = dval(["function INIT(request : dval)"])
         page["param_lines"] = dval([])

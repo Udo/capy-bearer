@@ -6,13 +6,64 @@ function RENDER(request : dval)
 function RENDER:NAME(request : dval)
 
 :content
-`RENDER` defines the HTTP page entrypoint.
+`RENDER` is the HTTP entrypoint of a unit. When a request routes to a `.capy` file, Bearer calls that file's `RENDER` handler.
 
-The handler has one parameter named `request` with type `dval`. Read request data from the snapshot. Use `print` to write the response.
+The handler takes one parameter, `request`, of type `dval`, and returns nothing. Everything it `print`s becomes the response body.
+
+## A minimal page
+
+    function RENDER(request : dval) {
+        print("<h1>Hello</h1>")
+    }
+
+Read input from the request snapshot with a converter and a fallback, so a missing parameter has a defined value:
+
+    var name := string(request.query.name, "guest")
+
+## Response control
+
+`print()` writes the body. Status, headers, and cookies are set by calling the response functions *before* output is flushed:
+
+    response_status(404)
+    response_header("Cache-Control", "no-store")
+    response_cookie("visited", "1")
+
+`redirect()` sets the status and `Location` header together. A handler may `return` early at any point; whatever it printed so far is still sent.
+
+## Named handlers
+
+`RENDER:NAME` declares an additional named entrypoint in the same file, selected by the caller rather than by the URL path. A file's unnamed `RENDER` remains the one that plain routing reaches.
+
+## What runs around it
+
+The unit's `ONCE` handler runs before `RENDER` the first time the unit is used in a request. Fragments are pulled in with `component_render()` or `component()`; another unit's exported functions are reached with `unit_load()` or `unit_call()`.
+
+Every Capy unit must export at least one handler — `RENDER`, `CLI`, `COMPONENT`, `WS`, `ONCE`, or `INIT` — or metadata via `#exports`. A file with none fails to compile.
 
 :example capy render
 print(string(request.method, ""), "\n")
 
+:example capy render read a query parameter with a fallback
+print("<h1>Hello, ", string(request.query.name, "guest"), "</h1>", "\n")
+
+:example capy render set a status and header before printing
+response_status(201)
+response_header("X-Demo", "yes")
+print("created\n")
+
+:example capy render return early
+if !request.query.id? {
+    response_status(400)
+    print("id required\n")
+    return
+}
+print("id ", s64(request.query.id, 0), "\n")
+
 :see
 0_Request
 1_COMPONENT
+1_CLI
+1_WS
+component
+response_status
+redirect

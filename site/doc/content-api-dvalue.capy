@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue"
         page["route"] = "/doc/api/dvalue/"
         page["title"] = "Dynamic values"
-        page["content"] = "## sig\n\ntype dval\n\nA `dval` stores scalar values, maps, lists, and `none`.\n\nUse maps for named fields and lists for ordered values. Read children with `value.name`, `value[\"name\"]`, or `value[0]`. A missing read returns `none` and does not change the value.\n\nUse `dval_has` to test a key. Use `dval_require` when a missing child is an error. Use `string`, `bool`, `s32`, `s64`, `u64`, or `f64` to convert a value.\n\nUpdate functions such as `dval_put`, `dval_push`, and `dval_set` change their target and return it. Pure functions such as `dval_map`, `dval_filter`, `dval_keys`, and `dval_values` return new values.\n"
+        page["content"] = "A `dval` stores scalar values, maps, lists, and `none`.\n\nUse maps for named fields and lists for ordered values. Read children with `value.name`, `value[\"name\"]`, or `value[0]`. A missing read returns `none` and does not change the value.\n\nUse `dval_has` to test a key. Use `dval_require` when a missing child is an error. Use `string`, `bool`, `s32`, `s64`, `u64`, or `f64` to convert a value.\n\nUpdate functions such as `dval_put`, `dval_push`, and `dval_set` change their target and return it. Pure functions such as `dval_map`, `dval_filter`, `dval_keys`, and `dval_values` return new values.\n"
         page["label"] = "DValue"
         page["capy_sig_lines"] = dval(["type dval"])
         page["param_lines"] = dval([])

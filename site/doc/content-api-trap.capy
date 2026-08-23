@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "trap"
         page["route"] = "/doc/api/trap/"
         page["title"] = "trap"
-        page["content"] = "## sig\n\nfunction trap()\n\n`trap` stops the current handler.\n"
+        page["content"] = "`trap` stops the current handler.\n"
         page["returns"] = "no value because execution stops"
         page["errors"] = "`trap` always aborts execution."
         page["label"] = "trap"

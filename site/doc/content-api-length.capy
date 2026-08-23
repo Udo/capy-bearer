@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "length"
         page["route"] = "/doc/api/length/"
         page["title"] = "length"
-        page["content"] = "## sig\n\nfunction length(value : string) s32\nfunction length(value : markup) s32\nfunction length(value : dval) s32\nfunction length(value : [T]) s32\n\n`length()` counts bytes in strings and markup. It counts entries in `dval` maps and lists, and elements in arrays.\n"
+        page["content"] = "`length()` counts bytes in strings and markup. It counts entries in `dval` maps and lists, and elements in arrays.\n"
         page["returns"] = "A byte count for text and markup, or an entry count for maps, lists, and arrays."
         page["errors"] = "`length()` traps when a scalar `dval` reaches it."
         page["label"] = "length"

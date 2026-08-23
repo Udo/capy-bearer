@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "load"
         page["route"] = "/doc/api/load/"
         page["title"] = "load"
-        page["content"] = "## sig\n\nload is not available in Capy\n\nCapy does not support `#load`. The checked Capy surface has no replacement for this directive.\n"
+        page["content"] = "Capy does not support `#load`. The checked Capy surface has no replacement for this directive.\n"
         page["label"] = "load"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])

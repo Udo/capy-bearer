@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-chmod"
         page["route"] = "/doc/api/file-chmod/"
         page["title"] = "file_chmod"
-        page["content"] = "## sig\n\nfunction file_chmod(path : string, mode : s32) bool\n\n`file_chmod` changes the permission bits of a path.\n"
+        page["content"] = "`file_chmod` changes the permission bits of a path.\n"
         page["returns"] = "`true` when Capy changes the mode. Otherwise, it returns `false`."
         page["label"] = "file_chmod"
         page["capy_sig_lines"] = dval(["function file_chmod(path : string, mode : s32) bool"])

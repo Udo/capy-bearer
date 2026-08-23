@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "memcache-command"
         page["route"] = "/doc/api/memcache-command/"
         page["title"] = "memcache_command"
-        page["content"] = "## sig\n\nfunction memcache_command(connection : u64, command : string) string\n\n`memcache_command()` sends `command` to the server and returns one bounded response read.\n\nUse a dedicated Memcache function when one is available. This function does not guarantee a complete multi-part response.\n"
+        page["content"] = "`memcache_command()` sends `command` to the server and returns one bounded response read.\n\nUse a dedicated Memcache function when one is available. This function does not guarantee a complete multi-part response.\n"
         page["returns"] = "one server response read"
         page["label"] = "memcache_command"
         page["capy_sig_lines"] = dval(["function memcache_command(connection : u64, command : string) string"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "memcache-connect"
         page["route"] = "/doc/api/memcache-connect/"
         page["title"] = "memcache_connect"
-        page["content"] = "## sig\n\nfunction memcache_connect(host : string = \"127.0.0.1\", port : s32 = 11211) u64\n\n`memcache_connect()` opens a connection to a Memcache server.\n\nDo not pass a zero handle to another Memcache function.\n"
+        page["content"] = "`memcache_connect()` opens a connection to a Memcache server.\n\nDo not pass a zero handle to another Memcache function.\n"
         page["returns"] = "a connection handle, or zero on failure"
         page["label"] = "memcache_connect"
         page["capy_sig_lines"] = dval(["function memcache_connect(host : string = \"127.0.0.1\", port : s32 = 11211) u64"])
@@ -47,7 +47,7 @@ function data(input : dval) dval {
         page["slug"] = "memcache-delete"
         page["route"] = "/doc/api/memcache-delete/"
         page["title"] = "memcache_delete"
-        page["content"] = "## sig\n\nfunction memcache_delete(connection : u64, key : string) bool\n\n`memcache_delete()` deletes the entry for `key`.\n\nIt returns `true` only when the server returns `DELETED`.\n"
+        page["content"] = "`memcache_delete()` deletes the entry for `key`.\n\nIt returns `true` only when the server returns `DELETED`.\n"
         page["returns"] = "`true` when the server deletes the entry"
         page["label"] = "memcache_delete"
         page["capy_sig_lines"] = dval(["function memcache_delete(connection : u64, key : string) bool"])
@@ -66,7 +66,7 @@ function data(input : dval) dval {
         page["slug"] = "memcache-escape-key"
         page["route"] = "/doc/api/memcache-escape-key/"
         page["title"] = "memcache_escape_key"
-        page["content"] = "## sig\n\nfunction memcache_escape_key(key : string) string\n\n`memcache_escape_key()` replaces whitespace characters in a key with underscores.\n\nIt does not validate every Memcache protocol byte.\n"
+        page["content"] = "`memcache_escape_key()` replaces whitespace characters in a key with underscores.\n\nIt does not validate every Memcache protocol byte.\n"
         page["returns"] = "the key with whitespace replaced by underscores"
         page["label"] = "memcache_escape_key"
         page["capy_sig_lines"] = dval(["function memcache_escape_key(key : string) string"])
@@ -85,7 +85,7 @@ function data(input : dval) dval {
         page["slug"] = "memcache-escape-keys"
         page["route"] = "/doc/api/memcache-escape-keys/"
         page["title"] = "memcache_escape_keys"
-        page["content"] = "## sig\n\nfunction memcache_escape_keys(keys : dval) dval\n\n`memcache_escape_keys()` converts each input item to a string and escapes it as a Memcache key.\n"
+        page["content"] = "`memcache_escape_keys()` converts each input item to a string and escapes it as a Memcache key.\n"
         page["returns"] = "a list of escaped keys"
         page["label"] = "memcache_escape_keys"
         page["capy_sig_lines"] = dval(["function memcache_escape_keys(keys : dval) dval"])
@@ -104,7 +104,7 @@ function data(input : dval) dval {
         page["slug"] = "memcache-get-multiple"
         page["route"] = "/doc/api/memcache-get-multiple/"
         page["title"] = "memcache_get_multiple"
-        page["content"] = "## sig\n\nfunction memcache_get_multiple(connection : u64, keys : dval) dval\n\n`memcache_get_multiple()` reads several keys through one connection.\n\nMissing keys do not occur in the returned map.\n"
+        page["content"] = "`memcache_get_multiple()` reads several keys through one connection.\n\nMissing keys do not occur in the returned map.\n"
         page["returns"] = "a map of returned entries"
         page["label"] = "memcache_get_multiple"
         page["capy_sig_lines"] = dval(["function memcache_get_multiple(connection : u64, keys : dval) dval"])
@@ -123,7 +123,7 @@ function data(input : dval) dval {
         page["slug"] = "memcache-get"
         page["route"] = "/doc/api/memcache-get/"
         page["title"] = "memcache_get"
-        page["content"] = "## sig\n\nfunction memcache_get(connection : u64, key : string, default_value : string = \"\") string\n\n`memcache_get()` reads the value for `key`.\n\nIt returns `default_value` for a missing key or an incomplete response.\n"
+        page["content"] = "`memcache_get()` reads the value for `key`.\n\nIt returns `default_value` for a missing key or an incomplete response.\n"
         page["returns"] = "the stored value or `default_value`"
         page["label"] = "memcache_get"
         page["capy_sig_lines"] = dval(["function memcache_get(connection : u64, key : string, default_value : string = \"\") string"])
@@ -142,7 +142,7 @@ function data(input : dval) dval {
         page["slug"] = "memcache-set"
         page["route"] = "/doc/api/memcache-set/"
         page["title"] = "memcache_set"
-        page["content"] = "## sig\n\nfunction memcache_set(connection : u64, key : string, value : string, expires_in : u64 = 3600) bool\n\n`memcache_set()` stores `value` under `key`.\n\nIt returns `true` only when the server returns `STORED`.\n"
+        page["content"] = "`memcache_set()` stores `value` under `key`.\n\nIt returns `true` only when the server returns `STORED`.\n"
         page["returns"] = "`true` when the server stores the entry"
         page["label"] = "memcache_set"
         page["capy_sig_lines"] = dval(["function memcache_set(connection : u64, key : string, value : string, expires_in : u64 = 3600) bool"])

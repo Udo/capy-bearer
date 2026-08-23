@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "cli"
         page["route"] = "/doc/api/cli/"
         page["title"] = "CLI"
-        page["content"] = "## sig\n\nfunction CLI(request : dval)\n\n`CLI` defines the local command entrypoint.\n\nThe handler has one parameter named `request` with type `dval`. Read command data from the request snapshot. Use `print` to write command output.\n"
+        page["content"] = "`CLI` defines the local command entrypoint.\n\nThe handler has one parameter named `request` with type `dval`. Read command data from the request snapshot. Use `print` to write command output.\n"
         page["label"] = "CLI"
         page["capy_sig_lines"] = dval(["function CLI(request : dval)"])
         page["param_lines"] = dval([])

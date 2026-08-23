@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "uri-encode"
         page["route"] = "/doc/api/uri-encode/"
         page["title"] = "uri_encode"
-        page["content"] = "## sig\n\nfunction uri_encode(value : string) string\n\n`uri_encode` encodes a string for a URI component.\n"
+        page["content"] = "`uri_encode` encodes a string for a URI component.\n"
         page["returns"] = "URI-encoded string"
         page["label"] = "uri_encode"
         page["capy_sig_lines"] = dval(["function uri_encode(value : string) string"])

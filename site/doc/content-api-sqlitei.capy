@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "sqlite-insert-id"
         page["route"] = "/doc/api/sqlite-insert-id/"
         page["title"] = "sqlite_insert_id"
-        page["content"] = "## sig\n\nfunction sqlite_insert_id(handle : u64) u64\n\nUse `sqlite_insert_id` after an insert that creates a row ID.\n"
+        page["content"] = "Use `sqlite_insert_id` after an insert that creates a row ID.\n"
         page["returns"] = "Last inserted row ID."
         page["label"] = "sqlite_insert_id"
         page["capy_sig_lines"] = dval(["function sqlite_insert_id(handle : u64) u64"])

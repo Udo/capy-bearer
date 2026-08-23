@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-fsync"
         page["route"] = "/doc/api/file-fsync/"
         page["title"] = "file_fsync"
-        page["content"] = "## sig\n\nfunction file_fsync(handle : u64) bool\n\n`file_fsync` flushes pending writes for a handle. Call it before `file_close` when the file system must receive the writes first.\n"
+        page["content"] = "`file_fsync` flushes pending writes for a handle. Call it before `file_close` when the file system must receive the writes first.\n"
         page["returns"] = "`true` when Capy flushes the handle. Otherwise, it returns `false`."
         page["label"] = "file_fsync"
         page["capy_sig_lines"] = dval(["function file_fsync(handle : u64) bool"])

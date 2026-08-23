@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "http-request-async"
         page["route"] = "/doc/api/http-request-async/"
         page["title"] = "http_request_async"
-        page["content"] = "## sig\n\nfunction http_request_async(request : dval) u64\n\n`http_request_async()` starts an outbound request and returns its job ID. Use `job_await()` or `job_result()` to get the response map.\n\nThe request map follows the `http_request()` rules.\n"
+        page["content"] = "`http_request_async()` starts an outbound request and returns its job ID. Use `job_await()` or `job_result()` to get the response map.\n\nThe request map follows the `http_request()` rules.\n"
         page["returns"] = "A job ID."
         page["label"] = "http_request_async"
         page["capy_sig_lines"] = dval(["function http_request_async(request : dval) u64"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "http-request"
         page["route"] = "/doc/api/http-request/"
         page["title"] = "http_request"
-        page["content"] = "## sig\n\nfunction http_request(request : dval) dval\n\n`http_request()` sends an outbound HTTP or HTTPS request. Set `method`, `url`, `headers`, `body`, `timeout_ms`, and `follow_redirects` as needed.\n\nWhen you set a `security` field, set `https_only`, `public_dns_only`, `pin_dns`, `isolated_curl`, and `no_redirects` to `true`.\n"
+        page["content"] = "`http_request()` sends an outbound HTTP or HTTPS request. Set `method`, `url`, `headers`, `body`, `timeout_ms`, and `follow_redirects` as needed.\n\nWhen you set a `security` field, set `https_only`, `public_dns_only`, `pin_dns`, `isolated_curl`, and `no_redirects` to `true`.\n"
         page["returns"] = "A map with `status`, `headers`, `body`, and `error`."
         page["errors"] = "The result can report `invalid_request`, `unsafe_dns`, `timeout`, `response_too_large`, `redirect_not_allowed`, `http_status`, or `network_failure`."
         page["label"] = "http_request"

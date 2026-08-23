@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "var-dump"
         page["route"] = "/doc/api/var-dump/"
         page["title"] = "var_dump"
-        page["content"] = "## sig\n\nfunction var_dump(value : dval, prefix : string = \"\", postfix : string = \"\") string\n\n`var_dump` formats a `dval` as a string.\n"
+        page["content"] = "`var_dump` formats a `dval` as a string.\n"
         page["returns"] = "formatted string"
         page["label"] = "var_dump"
         page["capy_sig_lines"] = dval(["function var_dump(value : dval, prefix : string = \"\", postfix : string = \"\") string"])

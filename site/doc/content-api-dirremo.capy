@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "dir-remove"
         page["route"] = "/doc/api/dir-remove/"
         page["title"] = "dir_remove"
-        page["content"] = "## sig\n\nfunction dir_remove(path : string, recursive : bool = false) bool\n\n`dir_remove()` removes a directory.\n\nWithout `recursive`, the directory must be empty. With `recursive = true`, it removes every contained file and directory.\n"
+        page["content"] = "`dir_remove()` removes a directory.\n\nWithout `recursive`, the directory must be empty. With `recursive = true`, it removes every contained file and directory.\n"
         page["returns"] = "`true` on success."
         page["label"] = "dir_remove"
         page["capy_sig_lines"] = dval(["function dir_remove(path : string, recursive : bool = false) bool"])

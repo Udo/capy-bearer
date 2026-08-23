@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "usleep"
         page["route"] = "/doc/api/usleep/"
         page["title"] = "usleep"
-        page["content"] = "## sig\n\nfunction usleep(usec : s32) s32\n\n`usleep` pauses the current handler for `usec` microseconds.\n"
+        page["content"] = "`usleep` pauses the current handler for `usec` microseconds.\n"
         page["returns"] = "`0` after the sleep"
         page["label"] = "usleep"
         page["capy_sig_lines"] = dval(["function usleep(usec : s32) s32"])

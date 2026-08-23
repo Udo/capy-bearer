@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "dir-list"
         page["route"] = "/doc/api/dir-list/"
         page["title"] = "dir_list"
-        page["content"] = "## sig\n\nfunction dir_list(path : string) dval\n\n`dir_list()` returns one map for each directory entry.\n\nEach map has `name`, `type`, `size`, and `mtime`. The `type` value is `file`, `dir`, `symlink`, or `other`.\n"
+        page["content"] = "`dir_list()` returns one map for each directory entry.\n\nEach map has `name`, `type`, `size`, and `mtime`. The `type` value is `file`, `dir`, `symlink`, or `other`.\n"
         page["returns"] = "A `dval` list of entry maps."
         page["label"] = "dir_list"
         page["capy_sig_lines"] = dval(["function dir_list(path : string) dval"])

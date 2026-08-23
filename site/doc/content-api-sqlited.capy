@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "sqlite-disconnect"
         page["route"] = "/doc/api/sqlite-disconnect/"
         page["title"] = "sqlite_disconnect"
-        page["content"] = "## sig\n\nfunction sqlite_disconnect(handle : u64)\n\nUse `sqlite_disconnect` to close an SQLite connection. Do not use the handle after this call.\n"
+        page["content"] = "Use `sqlite_disconnect` to close an SQLite connection. Do not use the handle after this call.\n"
         page["label"] = "sqlite_disconnect"
         page["capy_sig_lines"] = dval(["function sqlite_disconnect(handle : u64)"])
         page["param_lines"] = dval([])

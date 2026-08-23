@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "print"
         page["route"] = "/doc/api/print/"
         page["title"] = "print"
-        page["content"] = "## sig\n\nfunction print(...values : as string)\n\n`print()` converts each value to a string and writes the values in order.\n\nIt writes to the active output buffer when one exists. Otherwise, it writes to the response.\n"
+        page["content"] = "`print()` converts each value to a string and writes the values in order.\n\nIt writes to the active output buffer when one exists. Otherwise, it writes to the response.\n"
         page["label"] = "print"
         page["capy_sig_lines"] = dval(["function print(...values : as string)"])
         page["param_lines"] = dval(["values : the values to output", ""])

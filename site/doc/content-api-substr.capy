@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "substr"
         page["route"] = "/doc/api/substr/"
         page["title"] = "substr"
-        page["content"] = "## sig\n\nfunction substr(value : string, start : s32) string\nfunction substr(value : string, start : s64) string\nfunction substr(value : string, start : s32, length : s32) string\nfunction substr(value : string, start : s64, length : s64) string\n\nUse `substr` to get part of a string. A negative start or length counts from the end.\n"
+        page["content"] = "Use `substr` to get part of a string. A negative start or length counts from the end.\n"
         page["returns"] = "Extracted text."
         page["label"] = "substr"
         page["capy_sig_lines"] = dval(["function substr(value : string, start : s32) string", "function substr(value : string, start : s64) string", "function substr(value : string, start : s32, length : s32) string", "function substr(value : string, start : s64, length : s64) string"])

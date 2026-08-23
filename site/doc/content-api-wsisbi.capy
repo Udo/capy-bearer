@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "ws-is-binary"
         page["route"] = "/doc/api/ws-is-binary/"
         page["title"] = "ws_is_binary"
-        page["content"] = "## sig\n\nNo Capy signature.\n\nCapy has no native `ws_is_binary` signature. In a `WS` handler, use `request.websocket.binary`.\n"
+        page["content"] = "Capy has no native `ws_is_binary` signature. In a `WS` handler, use `request.websocket.binary`.\n"
         page["label"] = "ws_is_binary"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "parse-uri"
         page["route"] = "/doc/api/parse-uri/"
         page["title"] = "parse_uri"
-        page["content"] = "## sig\n\nfunction parse_uri(uri : string) dval\n\n`parse_uri()` returns URI parts as a `dval`.\n\nRead the `parts` and `query` maps from the result. Use `parse_query()` when you only have query text.\n"
+        page["content"] = "`parse_uri()` returns URI parts as a `dval`.\n\nRead the `parts` and `query` maps from the result. Use `parse_query()` when you only have query text.\n"
         page["returns"] = "the URI data"
         page["label"] = "parse_uri"
         page["capy_sig_lines"] = dval(["function parse_uri(uri : string) dval"])

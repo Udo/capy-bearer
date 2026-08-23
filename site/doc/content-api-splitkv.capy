@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "split-kv"
         page["route"] = "/doc/api/split-kv/"
         page["title"] = "split_kv"
-        page["content"] = "## sig\n\nfunction split_kv(value : string, separator : string = \"=\", trim_whitespace : bool = true, uppercase_keys : bool = false) dval\n\nUse `split_kv` to parse lines that contain key and value pairs.\n"
+        page["content"] = "Use `split_kv` to parse lines that contain key and value pairs.\n"
         page["returns"] = "Map-shaped `dval`."
         page["label"] = "split_kv"
         page["capy_sig_lines"] = dval(["function split_kv(value : string, separator : string = \"=\", trim_whitespace : bool = true, uppercase_keys : bool = false) dval"])

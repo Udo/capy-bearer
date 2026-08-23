@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "sqlite-error"
         page["route"] = "/doc/api/sqlite-error/"
         page["title"] = "sqlite_error"
-        page["content"] = "## sig\n\nfunction sqlite_error(handle : u64) string\n\nUse `sqlite_error` after a SQLite operation when you need its diagnostic text.\n"
+        page["content"] = "Use `sqlite_error` after a SQLite operation when you need its diagnostic text.\n"
         page["returns"] = "Latest SQLite error text."
         page["label"] = "sqlite_error"
         page["capy_sig_lines"] = dval(["function sqlite_error(handle : u64) string"])

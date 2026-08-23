@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "job-result"
         page["route"] = "/doc/api/job-result/"
         page["title"] = "job_result"
-        page["content"] = "## sig\n\nfunction job_result(job : dval) dval\n\n`job_result()` checks a job with a short bounded wait. Use it to poll a job after `shell_spawn()` or `http_request_async()`.\n"
+        page["content"] = "`job_result()` checks a job with a short bounded wait. Use it to poll a job after `shell_spawn()` or `http_request_async()`.\n"
         page["returns"] = "A job status map. A completed job includes `result`."
         page["label"] = "job_result"
         page["capy_sig_lines"] = dval(["function job_result(job : dval) dval"])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "time-format-local"
         page["route"] = "/doc/api/time-format-local/"
         page["title"] = "time_format_local"
-        page["content"] = "## sig\n\nfunction time_format_local(format : string = \"\", timestamp : u64 = 0) string\n\n`time_format_local` formats a Unix timestamp in the server local time zone.\n"
+        page["content"] = "`time_format_local` formats a Unix timestamp in the server local time zone.\n"
         page["returns"] = "formatted local time"
         page["label"] = "time_format_local"
         page["capy_sig_lines"] = dval(["function time_format_local(format : string = \"\", timestamp : u64 = 0) string"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "time-format-relative"
         page["route"] = "/doc/api/time-format-relative/"
         page["title"] = "time_format_relative"
-        page["content"] = "## sig\n\nfunction time_format_relative(timestamp : u64, very_recent : string = \"\", medium_seconds : u64 = 0, medium_recent : string = \"\", not_recent_seconds : u64 = 0, not_recent : string = \"\") string\n\n`time_format_relative` formats a timestamp relative to the current time.\n"
+        page["content"] = "`time_format_relative` formats a timestamp relative to the current time.\n"
         page["returns"] = "formatted relative time"
         page["label"] = "time_format_relative"
         page["capy_sig_lines"] = dval(["function time_format_relative(timestamp : u64, very_recent : string = \"\", medium_seconds : u64 = 0, medium_recent : string = \"\", not_recent_seconds : u64 = 0, not_recent : string = \"\") string"])
@@ -47,7 +47,7 @@ function data(input : dval) dval {
         page["slug"] = "time-format-utc"
         page["route"] = "/doc/api/time-format-utc/"
         page["title"] = "time_format_utc"
-        page["content"] = "## sig\n\nfunction time_format_utc(format : string = \"\", timestamp : u64 = 0) string\n\n`time_format_utc` formats a Unix timestamp in UTC.\n"
+        page["content"] = "`time_format_utc` formats a Unix timestamp in UTC.\n"
         page["returns"] = "formatted UTC time"
         page["label"] = "time_format_utc"
         page["capy_sig_lines"] = dval(["function time_format_utc(format : string = \"\", timestamp : u64 = 0) string"])

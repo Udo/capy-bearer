@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-open"
         page["route"] = "/doc/api/file-open/"
         page["title"] = "file_open"
-        page["content"] = "## sig\n\nfunction file_open(path : string, mode : string) u64\n\n`file_open` opens a file for incremental access. Use the handle with `file_read`, `file_write`, `file_seek`, and `file_close`.\n"
+        page["content"] = "`file_open` opens a file for incremental access. Use the handle with `file_read`, `file_write`, `file_seek`, and `file_close`.\n"
         page["returns"] = "A file handle, or `u64(0)` when Capy cannot open the file."
         page["label"] = "file_open"
         page["capy_sig_lines"] = dval(["function file_open(path : string, mode : string) u64"])

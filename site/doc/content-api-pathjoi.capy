@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "path-join"
         page["route"] = "/doc/api/path-join/"
         page["title"] = "path_join"
-        page["content"] = "## sig\n\nfunction path_join(base : string, child : string) string\n\n`path_join()` joins `base` and `child` with one slash when needed.\n\nAn absolute `child` replaces `base`. This function does not resolve dot segments.\n"
+        page["content"] = "`path_join()` joins `base` and `child` with one slash when needed.\n\nAn absolute `child` replaces `base`. This function does not resolve dot segments.\n"
         page["returns"] = "the joined path"
         page["label"] = "path_join"
         page["capy_sig_lines"] = dval(["function path_join(base : string, child : string) string"])

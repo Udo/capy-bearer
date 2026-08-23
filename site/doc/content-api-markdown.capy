@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "markdown-to-ast"
         page["route"] = "/doc/api/markdown-to-ast/"
         page["title"] = "markdown_to_ast"
-        page["content"] = "## sig\n\nfunction markdown_to_ast(source : string) dval\nfunction markdown_to_ast(source : string, options : dval) dval\n\n`markdown_to_ast()` parses Markdown into a `dval` document tree.\n\nThe root node contains a `children` list. Nodes contain a `type` field and fields for their content. The default options support GitHub-flavored Markdown.\n\nSet `gfm` to control GitHub-flavored extensions. Set `allow_html` to retain raw HTML nodes.\n"
+        page["content"] = "`markdown_to_ast()` parses Markdown into a `dval` document tree.\n\nThe root node contains a `children` list. Nodes contain a `type` field and fields for their content. The default options support GitHub-flavored Markdown.\n\nSet `gfm` to control GitHub-flavored extensions. Set `allow_html` to retain raw HTML nodes.\n"
         page["returns"] = "the Markdown document tree"
         page["label"] = "markdown_to_ast"
         page["capy_sig_lines"] = dval(["function markdown_to_ast(source : string) dval", "function markdown_to_ast(source : string, options : dval) dval"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "markdown-to-html"
         page["route"] = "/doc/api/markdown-to-html/"
         page["title"] = "markdown_to_html"
-        page["content"] = "## sig\n\nfunction markdown_to_html(source : string) string\nfunction markdown_to_html(source : string, options : dval) string\n\n`markdown_to_html()` renders Markdown source as HTML.\n\nRaw HTML stays escaped unless `options[\"allow_html\"]` is true. Only enable it for trusted source.\n"
+        page["content"] = "`markdown_to_html()` renders Markdown source as HTML.\n\nRaw HTML stays escaped unless `options[\"allow_html\"]` is true. Only enable it for trusted source.\n"
         page["returns"] = "the HTML text"
         page["label"] = "markdown_to_html"
         page["capy_sig_lines"] = dval(["function markdown_to_html(source : string) string", "function markdown_to_html(source : string, options : dval) string"])

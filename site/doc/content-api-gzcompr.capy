@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "gz-compress"
         page["route"] = "/doc/api/gz-compress/"
         page["title"] = "gz_compress"
-        page["content"] = "## sig\n\nfunction gz_compress(source : string) string\n\n`gz_compress()` compresses a string with gzip.\n\nThe result contains binary data. Pass it to `gz_uncompress()` to restore the source.\n"
+        page["content"] = "`gz_compress()` compresses a string with gzip.\n\nThe result contains binary data. Pass it to `gz_uncompress()` to restore the source.\n"
         page["returns"] = "Gzip-compressed bytes as a string."
         page["label"] = "gz_compress"
         page["capy_sig_lines"] = dval(["function gz_compress(source : string) string"])

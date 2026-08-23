@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "crypto-equal"
         page["route"] = "/doc/api/crypto-equal/"
         page["title"] = "crypto_equal"
-        page["content"] = "## sig\n\nfunction crypto_equal(left : string, right : string) bool\n\n`crypto_equal()` compares byte strings in constant time.\n\nUse it to compare secrets such as HMACs and tokens. Do not use `==` to compare secrets.\n"
+        page["content"] = "`crypto_equal()` compares byte strings in constant time.\n\nUse it to compare secrets such as HMACs and tokens. Do not use `==` to compare secrets.\n"
         page["returns"] = "`true` if both byte strings are equal."
         page["label"] = "crypto_equal"
         page["capy_sig_lines"] = dval(["function crypto_equal(left : string, right : string) bool"])

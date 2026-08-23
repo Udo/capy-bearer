@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "ws"
         page["route"] = "/doc/api/ws/"
         page["title"] = "WS"
-        page["content"] = "## sig\n\nfunction WS(request : dval)\n\n`WS` defines the WebSocket message handler.\n\nThe handler has one parameter named `request` with type `dval`. Read the message from `request.body`. Read connection data from `request.websocket`.\n\nUse `ws_send`, `ws_send_to`, or `ws_close` to affect the connection.\n"
+        page["content"] = "`WS` defines the WebSocket message handler.\n\nThe handler has one parameter named `request` with type `dval`. Read the message from `request.body`. Read connection data from `request.websocket`.\n\nUse `ws_send`, `ws_send_to`, or `ws_close` to affect the connection.\n"
         page["label"] = "WS"
         page["capy_sig_lines"] = dval(["function WS(request : dval)"])
         page["param_lines"] = dval([])

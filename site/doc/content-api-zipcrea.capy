@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "zip-create"
         page["route"] = "/doc/api/zip-create/"
         page["title"] = "zip_create"
-        page["content"] = "## sig\n\nfunction zip_create(path : string, entries : dval) bool\n\n`zip_create()` creates a ZIP archive from a `dval` map of entry names and content.\n"
+        page["content"] = "`zip_create()` creates a ZIP archive from a `dval` map of entry names and content.\n"
         page["returns"] = "`true` when the server creates the archive."
         page["label"] = "zip_create"
         page["capy_sig_lines"] = dval(["function zip_create(path : string, entries : dval) bool"])

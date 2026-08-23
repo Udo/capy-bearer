@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "mysql-query"
         page["route"] = "/doc/api/mysql-query/"
         page["title"] = "mysql_query"
-        page["content"] = "## sig\n\nfunction mysql_query(handle : u64, query : string) dval\nfunction mysql_query(handle : u64, query : string, params : dval) dval\n\n`mysql_query()` runs a query and returns its rows as a `dval`.\n\nUse named `:name` placeholders with a `dval` map. The API rejects positional `?` placeholders. Add `!` to a placeholder only for an unquoted non-negative integer.\n"
+        page["content"] = "`mysql_query()` runs a query and returns its rows as a `dval`.\n\nUse named `:name` placeholders with a `dval` map. The API rejects positional `?` placeholders. Add `!` to a placeholder only for an unquoted non-negative integer.\n"
         page["returns"] = "the query result rows"
         page["label"] = "mysql_query"
         page["capy_sig_lines"] = dval(["function mysql_query(handle : u64, query : string) dval", "function mysql_query(handle : u64, query : string, params : dval) dval"])

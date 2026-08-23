@@ -9,14 +9,14 @@ function data(input : dval) dval {
         page["slug"] = "render"
         page["route"] = "/doc/api/render/"
         page["title"] = "RENDER"
-        page["content"] = "## sig\n\nfunction RENDER(request : dval)\nfunction RENDER:NAME(request : dval)\n\n`RENDER` defines the HTTP page entrypoint.\n\nThe handler has one parameter named `request` with type `dval`. Read request data from the snapshot. Use `print` to write the response.\n"
+        page["content"] = "`RENDER` is the HTTP entrypoint of a unit. When a request routes to a `.capy` file, Bearer calls that file's `RENDER` handler.\n\nThe handler takes one parameter, `request`, of type `dval`, and returns nothing. Everything it `print`s becomes the response body.\n\n## A minimal page\n\n    function RENDER(request : dval) {\n        print(\"<h1>Hello</h1>\")\n    }\n\nRead input from the request snapshot with a converter and a fallback, so a missing parameter has a defined value:\n\n    var name := string(request.query.name, \"guest\")\n\n## Response control\n\n`print()` writes the body. Status, headers, and cookies are set by calling the response functions *before* output is flushed:\n\n    response_status(404)\n    response_header(\"Cache-Control\", \"no-store\")\n    response_cookie(\"visited\", \"1\")\n\n`redirect()` sets the status and `Location` header together. A handler may `return` early at any point; whatever it printed so far is still sent.\n\n## Named handlers\n\n`RENDER:NAME` declares an additional named entrypoint in the same file, selected by the caller rather than by the URL path. A file's unnamed `RENDER` remains the one that plain routing reaches.\n\n## What runs around it\n\nThe unit's `ONCE` handler runs before `RENDER` the first time the unit is used in a request. Fragments are pulled in with `component_render()` or `component()`; another unit's exported functions are reached with `unit_load()` or `unit_call()`.\n\nEvery Capy unit must export at least one handler — `RENDER`, `CLI`, `COMPONENT`, `WS`, `ONCE`, or `INIT` — or metadata via `#exports`. A file with none fails to compile.\n"
         page["label"] = "RENDER"
         page["capy_sig_lines"] = dval(["function RENDER(request : dval)", "function RENDER:NAME(request : dval)"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_Request", "1_COMPONENT"])
-        page["examples"] = dval([{entry: "render", caption: "", body: "print(string(request.method, \"\"), \"\\n\")\n"}])
+        page["see"] = dval(["0_Request", "1_COMPONENT", "1_CLI", "1_WS", "component", "response_status", "redirect"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(string(request.method, \"\"), \"\\n\")\n"}, {entry: "render", caption: "read a query parameter with a fallback", body: "print(\"<h1>Hello, \", string(request.query.name, \"guest\"), \"</h1>\", \"\\n\")\n"}, {entry: "render", caption: "set a status and header before printing", body: "response_status(201)\nresponse_header(\"X-Demo\", \"yes\")\nprint(\"created\\n\")\n"}, {entry: "render", caption: "return early", body: "if !request.query.id? {\n    response_status(400)\n    print(\"id required\\n\")\n    return\n}\nprint(\"id \", s64(request.query.id, 0), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

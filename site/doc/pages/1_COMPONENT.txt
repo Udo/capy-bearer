@@ -6,13 +6,56 @@ function COMPONENT(request : dval)
 function COMPONENT:NAME(request : dval)
 
 :content
-`COMPONENT` defines a component entrypoint. Use `COMPONENT:NAME` for a named component.
+`COMPONENT` marks a function as a renderable fragment. Another unit reaches it with `component()`, `component_capture()`, or `component_render()`; it is never routed to directly by a URL.
 
-The handler has one parameter named `request` with type `dval`. Read component properties from `request.props`. Use `print` to write component output.
+The handler takes one parameter, `request`, of type `dval`, and returns nothing. Everything it `print`s becomes the fragment's output.
+
+## Plain and named handlers
+
+A file with a single fragment defines `COMPONENT`. Callers name just the file:
+
+    component_render("lib/card.capy")
+
+A file that holds several related fragments gives each one a name, and callers select it with a `:` suffix:
+
+    component_render("lib/widgets.capy:CARD")
+
+A caller inside that same file can use the bare suffix form, `component_render(":CARD")`, which resolves to the current file.
+
+Names are matched exactly and are conventionally uppercase.
+
+## Reading input
+
+Caller-supplied props arrive as `request.props`. Read them through `string()`, `s64()`, and the other converters so a missing key has a defined value:
+
+    var title := string(request.props.title, "Untitled")
+
+`request.props` is swapped in for the duration of the call and restored when the handler returns, so a component never disturbs its caller's props, and nested components each read their own. The rest of `request` — query, form, headers, session — is the live request and is shared with the caller.
+
+## Lifecycle
+
+The first time a unit is used in a request, its `ONCE` handler runs before the component handler. A component may render other components; each nested call resolves relative paths against its own file.
+
+:errors
+A caller that names a component Bearer cannot resolve gets a `500` status and a banner element in place of the fragment; the handler in this file never runs. Callers that treat a fragment as optional should guard with `component_exists()`.
 
 :example capy component
 print(string(request.props.name, "guest"))
 
+:example capy component read several props with defaults
+var title := string(request.props.title, "Untitled")
+var count := s64(request.props.count, 0)
+print("<article><h3>", title, "</h3><p>", count, "</p></article>")
+
+:example capy component a fragment that nests another fragment
+print("<section>")
+component_render("/doc/examples/card.capy:CARD", {title: string(request.props.title, "Untitled")})
+print("</section>")
+
 :see
+component
+component_render
+component_capture
+component_exists
 0_Request
 1_RENDER

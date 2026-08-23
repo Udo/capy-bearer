@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "mysql-error"
         page["route"] = "/doc/api/mysql-error/"
         page["title"] = "mysql_error"
-        page["content"] = "## sig\n\nfunction mysql_error(handle : u64) string\n\n`mysql_error()` returns diagnostic text for a failed connection or the latest database operation.\n\nRead it after `mysql_connected()` returns `false` or a query fails.\n"
+        page["content"] = "`mysql_error()` returns diagnostic text for a failed connection or the latest database operation.\n\nRead it after `mysql_connected()` returns `false` or a query fails.\n"
         page["returns"] = "the latest diagnostic text"
         page["label"] = "mysql_error"
         page["capy_sig_lines"] = dval(["function mysql_error(handle : u64) string"])

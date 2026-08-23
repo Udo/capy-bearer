@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-read"
         page["route"] = "/doc/api/file-read/"
         page["title"] = "file_read"
-        page["content"] = "## sig\n\nfunction file_read(handle : u64, count : u64) string\n\n`file_read` reads from the current handle position. It advances the position by the bytes read. It can return fewer bytes at the end of a file.\n"
+        page["content"] = "`file_read` reads from the current handle position. It advances the position by the bytes read. It can return fewer bytes at the end of a file.\n"
         page["returns"] = "A string with up to `count` bytes from the current position."
         page["label"] = "file_read"
         page["capy_sig_lines"] = dval(["function file_read(handle : u64, count : u64) string"])

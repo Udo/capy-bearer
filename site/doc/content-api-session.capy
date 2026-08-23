@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "session-destroy"
         page["route"] = "/doc/api/session-destroy/"
         page["title"] = "session_destroy"
-        page["content"] = "## sig\n\nfunction session_destroy(name : string = \"bearer-session\") dval\n\n`session_destroy()` expires the named session cookie and removes its server-side data.\n"
+        page["content"] = "`session_destroy()` expires the named session cookie and removes its server-side data.\n"
         page["returns"] = "The resulting session state."
         page["label"] = "session_destroy"
         page["capy_sig_lines"] = dval(["function session_destroy(name : string = \"bearer-session\") dval"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "session-id-create"
         page["route"] = "/doc/api/session-id-create/"
         page["title"] = "session_id_create"
-        page["content"] = "## sig\n\nfunction session_id_create() string\n\nUse `session_id_create()` when you need an ID without starting a session.\n"
+        page["content"] = "Use `session_id_create()` when you need an ID without starting a session.\n"
         page["returns"] = "A new session ID."
         page["label"] = "session_id_create"
         page["capy_sig_lines"] = dval(["function session_id_create() string"])
@@ -47,7 +47,7 @@ function data(input : dval) dval {
         page["slug"] = "session-remove"
         page["route"] = "/doc/api/session-remove/"
         page["title"] = "session_remove"
-        page["content"] = "## sig\n\nfunction session_remove(key : string) dval\n\nCall `session_start()` before you remove a session field.\n"
+        page["content"] = "Call `session_start()` before you remove a session field.\n"
         page["returns"] = "The updated session state."
         page["label"] = "session_remove"
         page["capy_sig_lines"] = dval(["function session_remove(key : string) dval"])
@@ -66,7 +66,7 @@ function data(input : dval) dval {
         page["slug"] = "session-set"
         page["route"] = "/doc/api/session-set/"
         page["title"] = "session_set"
-        page["content"] = "## sig\n\nfunction session_set(key : string, value : string) dval\n\nCall `session_start()` before you store a session field.\n"
+        page["content"] = "Call `session_start()` before you store a session field.\n"
         page["returns"] = "The updated session state."
         page["label"] = "session_set"
         page["capy_sig_lines"] = dval(["function session_set(key : string, value : string) dval"])
@@ -85,7 +85,7 @@ function data(input : dval) dval {
         page["slug"] = "session-start"
         page["route"] = "/doc/api/session-start/"
         page["title"] = "session_start"
-        page["content"] = "## sig\n\nfunction session_start(name : string = \"bearer-session\") dval\n\n`session_start()` restores the named session or creates one.\n"
+        page["content"] = "`session_start()` restores the named session or creates one.\n"
         page["returns"] = "The current session state."
         page["label"] = "session_start"
         page["capy_sig_lines"] = dval(["function session_start(name : string = \"bearer-session\") dval"])

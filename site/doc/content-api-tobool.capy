@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "to-bool"
         page["route"] = "/doc/api/to-bool/"
         page["title"] = "to_bool"
-        page["content"] = "## sig\n\nNo Capy signature.\n\nCapy has no native `to_bool` signature. Use `bool(value, fallback)`.\n"
+        page["content"] = "Capy has no native `to_bool` signature. Use `bool(value, fallback)`.\n"
         page["label"] = "to_bool"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])

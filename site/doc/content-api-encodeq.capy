@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "encode-query"
         page["route"] = "/doc/api/encode-query/"
         page["title"] = "encode_query"
-        page["content"] = "## sig\n\nfunction encode_query(map : dval) string\n\n`encode_query()` converts a map-shaped `dval` to a URL query string.\n\nPass the returned string after `?` in a URL.\n"
+        page["content"] = "`encode_query()` converts a map-shaped `dval` to a URL query string.\n\nPass the returned string after `?` in a URL.\n"
         page["returns"] = "URL query string"
         page["label"] = "encode_query"
         page["capy_sig_lines"] = dval(["function encode_query(map : dval) string"])

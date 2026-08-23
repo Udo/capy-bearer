@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-set-array"
         page["route"] = "/doc/api/dvalue-set-array/"
         page["title"] = "Make an empty list"
-        page["content"] = "## sig\n\nfunction dval_set_array(value : dval) dval\n\n`dval_set_array` makes `value` an empty list. Later `dval_push` calls start at index `0`.\n"
+        page["content"] = "`dval_set_array` makes `value` an empty list. Later `dval_push` calls start at index `0`.\n"
         page["returns"] = "The changed target value."
         page["label"] = "dval_set_array"
         page["capy_sig_lines"] = dval(["function dval_set_array(value : dval) dval"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-set-bool"
         page["route"] = "/doc/api/dvalue-set-bool/"
         page["title"] = "Store a Boolean value"
-        page["content"] = "## sig\n\nfunction dval_set_bool(value : dval, flag : bool) dval\n\n`dval_set_bool` stores `flag` in `value`. It changes and returns the target value.\n"
+        page["content"] = "`dval_set_bool` stores `flag` in `value`. It changes and returns the target value.\n"
         page["returns"] = "The changed target value."
         page["label"] = "dval_set_bool"
         page["capy_sig_lines"] = dval(["function dval_set_bool(value : dval, flag : bool) dval"])
@@ -47,7 +47,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-set-reference"
         page["route"] = "/doc/api/dvalue-set-reference/"
         page["title"] = "Set a reference"
-        page["content"] = "## sig\n\nNo Capy declaration.\n\nCapy cannot create host reference nodes in a dynamic value.\n\nNo Capy alternative exists.\n"
+        page["content"] = "Capy cannot create host reference nodes in a dynamic value.\n\nNo Capy alternative exists.\n"
         page["capy_status"] = "unsupported"
         page["label"] = "dval_set_reference"
         page["capy_sig_lines"] = dval([])
@@ -66,7 +66,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-set-type"
         page["route"] = "/doc/api/dvalue-set-type/"
         page["title"] = "Set a dynamic value type"
-        page["content"] = "## sig\n\nfunction dval_set_type(value : dval, type : string) dval\n\n`dval_set_type` changes the internal type of `value`. Use `dval_set`, `dval_set_bool`, or `dval_set_array` for normal code.\n"
+        page["content"] = "`dval_set_type` changes the internal type of `value`. Use `dval_set`, `dval_set_bool`, or `dval_set_array` for normal code.\n"
         page["returns"] = "The changed target value."
         page["label"] = "dval_set_type"
         page["capy_sig_lines"] = dval(["function dval_set_type(value : dval, type : string) dval"])
@@ -85,7 +85,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-set"
         page["route"] = "/doc/api/dvalue-set/"
         page["title"] = "Replace a dynamic value"
-        page["content"] = "## sig\n\nfunction dval_set(value : dval, source : as dval) dval\n\n`dval_set` replaces the content of `value`. It changes and returns the target value.\n"
+        page["content"] = "`dval_set` replaces the content of `value`. It changes and returns the target value.\n"
         page["returns"] = "The changed target value."
         page["label"] = "dval_set"
         page["capy_sig_lines"] = dval(["function dval_set(value : dval, source : as dval) dval"])

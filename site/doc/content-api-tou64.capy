@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "to-u64"
         page["route"] = "/doc/api/to-u64/"
         page["title"] = "to_u64"
-        page["content"] = "## sig\n\nNo Capy signature.\n\nCapy has no native `to_u64` signature. Use `u64(value, fallback)`.\n"
+        page["content"] = "Capy has no native `to_u64` signature. Use `u64(value, fallback)`.\n"
         page["label"] = "to_u64"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])

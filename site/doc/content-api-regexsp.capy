@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "regex-split"
         page["route"] = "/doc/api/regex-split/"
         page["title"] = "regex_split"
-        page["content"] = "## sig\n\nfunction regex_split(pattern : string, subject : string, flags : string = \"\") dval\n\n`regex_split()` removes separators and keeps empty parts.\n"
+        page["content"] = "`regex_split()` removes separators and keeps empty parts.\n"
         page["returns"] = "A list of text parts."
         page["label"] = "regex_split"
         page["capy_sig_lines"] = dval(["function regex_split(pattern : string, subject : string, flags : string = \"\") dval"])

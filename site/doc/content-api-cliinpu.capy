@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "cli-input"
         page["route"] = "/doc/api/cli-input/"
         page["title"] = "cli_input"
-        page["content"] = "## sig\n\n`cli_input` is not available in Capy.\n\nCapy does not provide the retired CLI input reader.\n\nIn a `CLI` handler, read `request.query`, `request.form`, and `request.body` directly. Each handler receives one copied `request : dval` value.\n"
+        page["content"] = "Capy does not provide the retired CLI input reader.\n\nIn a `CLI` handler, read `request.query`, `request.form`, and `request.body` directly. Each handler receives one copied `request : dval` value.\n"
         page["label"] = "cli_input"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])

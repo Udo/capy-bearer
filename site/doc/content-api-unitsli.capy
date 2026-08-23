@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "units-list"
         page["route"] = "/doc/api/units-list/"
         page["title"] = "units_list"
-        page["content"] = "## sig\n\nfunction units_list() dval\n\n`units_list` returns known unit paths.\n"
+        page["content"] = "`units_list` returns known unit paths.\n"
         page["returns"] = "a `dval` list of unit paths"
         page["label"] = "units_list"
         page["capy_sig_lines"] = dval(["function units_list() dval"])

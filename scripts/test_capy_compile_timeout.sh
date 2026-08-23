@@ -12,6 +12,7 @@ work="$root/work"
 settings="$root/settings.cfg"
 log="$root/service.log"
 server_pid=""
+request_timeout=5
 
 cleanup() {
 	status=$?
@@ -44,7 +45,7 @@ HTTP_DOCUMENT_ROOT=$site
 SESSION_PATH=$root/session
 TMP_UPLOAD_PATH=$root/upload
 WASM_CORE_PATH=$(pwd)/bin/wasm/core.wasm
-WASM_INVOCATION_TIMEOUT_MS=1000
+WASM_INVOCATION_TIMEOUT_MS=100
 WASM_EPOCH_PERIOD_MS=20
 PROACTIVE_COMPILE_ENABLED=0
 WORKER_COUNT=1
@@ -97,9 +98,9 @@ start_server
 request() {
 	local spec=$1 path=${1%%\?*}
 	if [[ "$spec" == *\?* ]]; then
-		timeout 5s scripts/bearer-cli --get "$path" "${spec#*\?}"
+		timeout "${request_timeout}s" scripts/bearer-cli --get "$path" "${spec#*\?}"
 	else
-		timeout 5s scripts/bearer-cli "$path"
+		timeout "${request_timeout}s" scripts/bearer-cli "$path"
 	fi
 }
 for _ in $(seq 1 100); do
@@ -122,9 +123,10 @@ set -e
 
 stop_server
 settings_text=$(</etc/bearer/settings.cfg)
-settings_text=${settings_text/WASM_INVOCATION_TIMEOUT_MS=1000/WASM_INVOCATION_TIMEOUT_MS=30000}
+settings_text=${settings_text/WASM_INVOCATION_TIMEOUT_MS=100/WASM_INVOCATION_TIMEOUT_MS=30000}
 printf '%s' "$settings_text" >/etc/bearer/settings.cfg
 start_server
+request_timeout=30
 [[ "$(request '/driver.capy?health=1')" == health ]]
 [[ "$(request /driver.capy)" == compiled ]] || { echo "request replayed a persisted compile failure" >&2; exit 1; }
 [[ "$(request /slow.capy)" == new ]] || { echo "recovery did not publish the recompiled Capy unit" >&2; exit 1; }

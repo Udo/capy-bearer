@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-each"
         page["route"] = "/doc/api/dvalue-each/"
         page["title"] = "Iterate dynamic values"
-        page["content"] = "## sig\n\nfor value, key := input { ... }\n\nUse `for value, key := input` to iterate a dynamic value. `value` is a copied child and `key` is a string.\n\nLists use numeric keys in order. Maps use key order. A scalar runs the loop once with an empty key.\n"
+        page["content"] = "Use `for value, key := input` to iterate a dynamic value. `value` is a copied child and `key` is a string.\n\nLists use numeric keys in order. Maps use key order. A scalar runs the loop once with an empty key.\n"
         page["label"] = "dval_each"
         page["capy_sig_lines"] = dval(["for value, key := input { ... }"])
         page["param_lines"] = dval(["input : value to iterate", ""])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "server-start-http"
         page["route"] = "/doc/api/server-start-http/"
         page["title"] = "server_start_http"
-        page["content"] = "## sig\n\nfunction server_start_http(key : string, bind : string, file : string, callback : string = \"\") s32\n\n`server_start_http()` starts or updates a custom HTTP listener. The handler file must define `SERVE_HTTP`.\n"
+        page["content"] = "`server_start_http()` starts or updates a custom HTTP listener. The handler file must define `SERVE_HTTP`.\n"
         page["returns"] = "The listener process ID, or `0`."
         page["label"] = "server_start_http"
         page["capy_sig_lines"] = dval(["function server_start_http(key : string, bind : string, file : string, callback : string = \"\") s32"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "server-stop"
         page["route"] = "/doc/api/server-stop/"
         page["title"] = "server_stop"
-        page["content"] = "## sig\n\nfunction server_stop(key : string) bool\n\n`server_stop()` removes the custom HTTP listener for `key`.\n"
+        page["content"] = "`server_stop()` removes the custom HTTP listener for `key`.\n"
         page["returns"] = "`true` if no listener remains."
         page["label"] = "server_stop"
         page["capy_sig_lines"] = dval(["function server_stop(key : string) bool"])

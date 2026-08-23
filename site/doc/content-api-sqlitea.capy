@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "sqlite-affected-rows"
         page["route"] = "/doc/api/sqlite-affected-rows/"
         page["title"] = "sqlite_affected_rows"
-        page["content"] = "## sig\n\nfunction sqlite_affected_rows(handle : u64) u64\n\nUse `sqlite_affected_rows` after an insert, update, or delete.\n"
+        page["content"] = "Use `sqlite_affected_rows` after an insert, update, or delete.\n"
         page["returns"] = "Rows changed by the latest statement."
         page["label"] = "sqlite_affected_rows"
         page["capy_sig_lines"] = dval(["function sqlite_affected_rows(handle : u64) u64"])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "xml-decode"
         page["route"] = "/doc/api/xml-decode/"
         page["title"] = "xml_decode"
-        page["content"] = "## sig\n\nfunction xml_decode(source : string) dval\n\n`xml_decode()` decodes XML source into a `dval`.\n"
+        page["content"] = "`xml_decode()` decodes XML source into a `dval`.\n"
         page["returns"] = "A `dval` that contains the decoded XML."
         page["label"] = "xml_decode"
         page["capy_sig_lines"] = dval(["function xml_decode(source : string) dval"])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "draw-float"
         page["route"] = "/doc/api/draw-float/"
         page["title"] = "draw_float"
-        page["content"] = "## sig\n\nfunction draw_float(from : f64, to : f64, precision : f64 = 0.000000000001) f64\n\n`draw_float()` returns the next floating-point value from the request random sequence.\n\nBearer uses the request random seed and advances the random index after each call.\n"
+        page["content"] = "`draw_float()` returns the next floating-point value from the request random sequence.\n\nBearer uses the request random seed and advances the random index after each call.\n"
         page["returns"] = "An `f64` value between the range values."
         page["label"] = "draw_float"
         page["capy_sig_lines"] = dval(["function draw_float(from : f64, to : f64, precision : f64 = 0.000000000001) f64"])

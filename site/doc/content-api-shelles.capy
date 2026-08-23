@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "shell-escape"
         page["route"] = "/doc/api/shell-escape/"
         page["title"] = "shell_escape"
-        page["content"] = "## sig\n\nfunction shell_escape(raw : string) string\n\nUse `shell_escape` for one value in a shell command. Do not use it for shell syntax or a complete command.\n"
+        page["content"] = "Use `shell_escape` for one value in a shell command. Do not use it for shell syntax or a complete command.\n"
         page["returns"] = "A shell-escaped word."
         page["label"] = "shell_escape"
         page["capy_sig_lines"] = dval(["function shell_escape(raw : string) string"])

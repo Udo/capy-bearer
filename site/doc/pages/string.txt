@@ -1,11 +1,54 @@
 :sig
 function string(value : dval, fallback : string = "") string
 
+:params
+value : the `dval` to convert
+fallback : text returned when the value is absent or cannot convert
+
 :returns
-Converted text, or `fallback`.
+The converted text, or `fallback`.
 
 :content
-Use `string` to convert a `dval` value to text. It returns `fallback` when conversion fails.
+`string()` reads a `dval` as text. It is the function you use on nearly every request, because everything arriving from outside a unit — query parameters, form fields, headers, cookies, component props, results from another unit — arrives as `dval`.
+
+Always pass a fallback when the value may be absent:
+
+    var name := string(request.query.name, "guest")
+
+With no fallback the default is the empty string, which is fine when empty is a sensible answer and misleading when it is not — `string(request.query.page)` cannot tell "absent" from "supplied as empty". Use the `?` suffix when that difference matters:
+
+    if request.query.page? { print(string(request.query.page, ""), "\n") }
+
+## What converts
+
+Text returns unchanged. Numbers render as runtime numeric text, and booleans as `true` or `false`. Absent keys and values with no text form — maps and arrays — return the fallback rather than raising an error.
+
+Because a fallback is always available, `string()` never fails on well-formed input. That is deliberate: request data is untrusted, and a handler should not abort because a caller omitted a field.
+
+## The other converters
+
+`s64()`, `u64()`, `s32()`, `f64()`, and `bool()` follow the same shape — value first, fallback second — for numeric and boolean fields. Reach for the one matching the type you want rather than converting to text and parsing it.
 
 :example capy render
 print(string(dval(42)), "\n")
+
+:example capy render supply a fallback for an absent key
+print(string(request.query.name, "guest"), "\n")
+
+:example capy render distinguish absent from empty
+if request.query.q? {
+    print("searched: ", string(request.query.q, ""), "\n")
+} else {
+    print("no search term\n")
+}
+
+:example capy render read a value returned by another unit
+var target := unit_load("/tests/capy-module-target.capy")
+print(string(target.echo({name: "Ada"}).name, "unknown"), "\n")
+
+:see
+0_Request
+bool
+dval
+s64
+u64

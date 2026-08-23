@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "f64"
         page["route"] = "/doc/api/f64/"
         page["title"] = "f64"
-        page["content"] = "## sig\n\nfunction f64(value : dval, fallback : f64 = 0.0) f64\nfunction f64(value : string, fallback : f64 = 0.0) f64\n\n`f64` converts a `dval` or a string to a floating-point value. The string form removes leading and trailing spaces. The value must contain a complete decimal number.\n"
+        page["content"] = "`f64` converts a `dval` or a string to a floating-point value. The string form removes leading and trailing spaces. The value must contain a complete decimal number.\n"
         page["returns"] = "An `f64` value, or `fallback`."
         page["errors"] = "`f64` does not trap for an invalid conversion. It returns `fallback`."
         page["label"] = "f64"

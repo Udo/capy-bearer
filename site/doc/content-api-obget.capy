@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "ob-get"
         page["route"] = "/doc/api/ob-get/"
         page["title"] = "ob_get"
-        page["content"] = "## sig\n\nfunction ob_get() string\n\n`ob_get()` returns the current output buffer contents.\n\nThe buffer stays active after this call.\n"
+        page["content"] = "`ob_get()` returns the current output buffer contents.\n\nThe buffer stays active after this call.\n"
         page["returns"] = "the current output buffer contents"
         page["label"] = "ob_get"
         page["capy_sig_lines"] = dval(["function ob_get() string"])

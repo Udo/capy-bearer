@@ -9,15 +9,17 @@ function data(input : dval) dval {
         page["slug"] = "component-2"
         page["route"] = "/doc/api/component-2/"
         page["title"] = "component"
-        page["content"] = "## sig\n\nfunction component(name : string) string\nfunction component(name : string, props : as dval) string\n\n`component()` renders a component and returns its output as a string.\n\nUse it when a larger result needs a component fragment. `component_render()` writes output directly.\n\nBearer accepts a component path with or without the `.capy` suffix. A colon selects a named handler. A leading colon selects a handler in the current file.\n\nUse `component_exists()` before an optional component.\n"
-        page["returns"] = "The component output."
+        page["content"] = "`component()` renders a component and returns everything it printed as a string.\n\nIt is the same function as `component_capture()` — `component()` is the short spelling most pages use. Reach for `component_render()` instead when you are writing the fragment straight into the current response and do not need the string, because it skips the capture buffer.\n\n## Choosing between the three\n\n| You want | Use |\n| --- | --- |\n| the output as a value you can wrap, measure, or store | `component()` |\n| the output written directly to the response | `component_render()` |\n| the explicit long name for the capturing form | `component_capture()` |\n\n## How a name resolves\n\nA name is a path with an optional `:HANDLER` suffix. Bearer appends `.capy` when the path has no suffix, so `\"card\"` and `\"card.capy\"` mean the same file.\n\nA path that starts with `/` is tried first as a real filesystem path and then as a site-root path, so `\"/tests/capy-request-context.capy\"` means that file under the site root.\n\nA relative path is tried against three directories, in order:\n\n1. the directory of the entry unit that is handling the request\n2. the directory of the unit calling `component()`, when that differs\n3. the site root\n\nThe first match wins. A resolved path that escapes the site root is rejected. Use `component_resolve()` to see which file a name reached, and `component_exists()` to test a name before rendering it.\n\n## Named handlers\n\n`\"lib/widgets.capy:CARD\"` calls the `COMPONENT:CARD` handler in that file. A name that is only `\":CARD\"` calls `COMPONENT:CARD` in the file that is currently rendering, which lets one file hold several related fragments.\n\nA file with no named handler must define a plain `COMPONENT` handler.\n\n## What the component sees\n\n`props` arrives as `request.props`. It is swa"
+        page["content"] = string(page["content"], "") + "pped in for the duration of the call and restored when the component returns, so a component cannot disturb its caller's props, and nested components each read their own.\n\nRelative paths inside the component resolve against the component's own file, not the caller's — a component in `lib/` can call `component(\"sibling\")` and reach `lib/sibling.capy`.\n\nThe target unit's `ONCE` handler runs before the component handler the first time that unit is used in the request.\n"
+        page["returns"] = "The component output as a string."
+        page["errors"] = "An unresolvable component does not raise an error. Bearer sets the response status to `500`, returns a banner element describing the failure in place of the component output, and continues rendering the rest of the page. Guard optional components with `component_exists()` when a missing file should not be an error."
         page["label"] = "component"
         page["capy_sig_lines"] = dval(["function component(name : string) string", "function component(name : string, props : as dval) string"])
-        page["param_lines"] = dval(["name : a component name or named handler", "props : optional input for `request.props`", ""])
+        page["param_lines"] = dval(["name : a component path, optionally followed by `:HANDLER`", "props : optional input, readable inside the component as `request.props`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["component_capture", "component_exists", "component_render", "component_resolve"])
-        page["examples"] = dval([{entry: "render", caption: "", body: "var props := {name: \"Capy\"}\nprint(component(\"/tests/capy-request-context.capy\", props), \"\\n\")\n"}])
+        page["see"] = dval(["component_capture", "component_exists", "component_render", "component_resolve", "1_COMPONENT", "0_Request"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(component(\"/doc/examples/card.capy:CARD\", {title: \"Release notes\"}), \"\\n\")\n"}, {entry: "render", caption: "wrap the captured output", body: "var body := component(\"/doc/examples/card.capy:CARD\", {title: \"Ada\"})\nprint(\"<section>\", body, \"</section>\", \"\\n\")\n"}, {entry: "render", caption: "render a list of components", body: "var titles := [\"Ada\", \"Grace\"]\nfor title := titles {\n    print(component(\"/doc/examples/card.capy:CARD\", {title: title}))\n}\nprint(\"\\n\")\n"}, {entry: "render", caption: "skip a component that may not exist", body: "if component_exists(\"/doc/examples/card.capy\") {\n    print(component(\"/doc/examples/card.capy:CARD\", {title: \"Optional\"}), \"\\n\")\n} else {\n    print(\"no card component\\n\")\n}\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -28,15 +30,16 @@ function data(input : dval) dval {
         page["slug"] = "component-capture"
         page["route"] = "/doc/api/component-capture/"
         page["title"] = "component_capture"
-        page["content"] = "## sig\n\nfunction component_capture(name : string) string\nfunction component_capture(name : string, props : as dval) string\n\n`component_capture()` renders a component and returns its output as a string.\n\nUse it when a larger result needs a component fragment. The function uses normal component resolution rules.\n"
-        page["returns"] = "The captured component output."
+        page["content"] = "`component_capture()` renders a component into a capture buffer and returns the collected output.\n\nIt is the same function as `component()` — that is the shorter name for exactly this behaviour, and most code uses it. `component_capture()` is the explicit spelling, worth preferring in code where the buffering is the point you want a reader to notice, such as next to a call that measures or post-processes the result.\n\nCapture it when the string is the goal:\n\n- wrapping the fragment in surrounding markup\n- checking whether the component produced anything before emitting a container\n- storing the fragment in a `dval` alongside other values\n- rendering the same fragment more than once from one call\n\nPrint it directly with `component_render()` when none of those apply — that skips the buffer.\n\nName resolution, `:HANDLER` suffixes, props scoping, and `ONCE` behaviour are identical to `component()`; that page documents the rules in full.\n"
+        page["returns"] = "Everything the component printed, as a string."
+        page["errors"] = "An unresolvable component does not raise an error. Bearer sets the response status to `500` and the returned string contains a banner element describing the failure. A returned string is therefore never proof that the component resolved — use `component_exists()` when that distinction matters."
         page["label"] = "component_capture"
         page["capy_sig_lines"] = dval(["function component_capture(name : string) string", "function component_capture(name : string, props : as dval) string"])
-        page["param_lines"] = dval(["name : a component name or named handler", "props : optional input for `request.props`", ""])
+        page["param_lines"] = dval(["name : a component path, optionally followed by `:HANDLER`", "props : optional input, readable inside the component as `request.props`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["component", "component_render", "component_resolve"])
-        page["examples"] = dval([{entry: "render", caption: "", body: "var output := component_capture(\"/tests/capy-request-context.capy\", {name: \"Capy\"})\nprint(output, \"\\n\")\n"}])
+        page["see"] = dval(["component", "component_render", "component_exists", "component_resolve", "1_COMPONENT"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var body := component_capture(\"/doc/examples/card.capy:CARD\", {title: \"Ada\"})\nprint(body, \"\\n\")\n"}, {entry: "render", caption: "only emit a container when the fragment has content", body: "var body := component_capture(\"/doc/examples/card.capy:CARD\", {title: \"Grace\"})\nif length(body) > 0 {\n    print(\"<aside>\", body, \"</aside>\", \"\\n\")\n}\n"}, {entry: "render", caption: "reuse one captured fragment twice", body: "var badge := component_capture(\"/doc/examples/card.capy:CARD\", {title: \"Beta\"})\nprint(\"<header>\", badge, \"</header><footer>\", badge, \"</footer>\", \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -47,15 +50,15 @@ function data(input : dval) dval {
         page["slug"] = "component-exists"
         page["route"] = "/doc/api/component-exists/"
         page["title"] = "component_exists"
-        page["content"] = "## sig\n\nfunction component_exists(name : string) bool\n\n`component_exists()` checks whether Bearer can resolve a component file.\n\nA named handler does not affect this check. Use this function before you render an optional component.\n"
-        page["returns"] = "`true` if Bearer resolves the component file. Otherwise, `false`."
+        page["content"] = "`component_exists()` runs the same name resolution that `component()` and `component_render()` use, and reports whether it found a file. It renders nothing and runs no handler.\n\nUse it to make a component optional. Without the guard, a missing component sets the response status to `500` and writes a banner element into your page; with it, you choose the fallback.\n\n## What the check does and does not cover\n\nIt resolves the **file**. A `:HANDLER` suffix is ignored for the purpose of this check, so `component_exists(\"widgets.capy:CARD\")` answers \"does `widgets.capy` exist\", not \"does it define `COMPONENT:CARD`\". A name whose file exists but whose named handler does not will pass this check and then fail at render time.\n\nIt also does not compile the component. A file that exists but does not compile returns `true` here and reports its compile error when it is rendered.\n\nResolution is unchanged from `component()`: `.capy` is appended when absent, a leading `/` is tried as a real path and then as a site-root path, and a relative name is tried against the entry unit's directory, the calling unit's directory, and the site root, in that order.\n"
+        page["returns"] = "`true` when Bearer resolves the name to a component source file, otherwise `false`."
         page["label"] = "component_exists"
         page["capy_sig_lines"] = dval(["function component_exists(name : string) bool"])
-        page["param_lines"] = dval(["name : a component path with an optional named handler", ""])
+        page["param_lines"] = dval(["name : a component path, optionally followed by `:HANDLER`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["component", "component_render", "component_resolve"])
-        page["examples"] = dval([{entry: "render", caption: "", body: "if component_exists(\"/tests/capy-request-context.capy\") { print(\"exists\\n\") } else { print(\"missing\\n\") }\n"}])
+        page["see"] = dval(["component", "component_render", "component_capture", "component_resolve"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "if component_exists(\"/doc/examples/card.capy\") { print(\"exists\\n\") } else { print(\"missing\\n\") }\n"}, {entry: "render", caption: "fall back when a theme fragment is absent", body: "if component_exists(\"/doc/examples/card.capy\") {\n    component_render(\"/doc/examples/card.capy:CARD\", {title: \"Themed\"})\n} else {\n    print(\"<p>Default header</p>\")\n}\nprint(\"\\n\")\n"}, {entry: "render", caption: "pick the first component that resolves", body: "var candidates := [\"/doc/examples/missing.capy\", \"/doc/examples/card.capy\"]\nfor candidate := candidates {\n    if component_exists(candidate) {\n        print(candidate, \"\\n\")\n    }\n}\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -66,14 +69,15 @@ function data(input : dval) dval {
         page["slug"] = "component-render"
         page["route"] = "/doc/api/component-render/"
         page["title"] = "component_render"
-        page["content"] = "## sig\n\nfunction component_render(name : string)\nfunction component_render(name : string, props : as dval)\n\n`component_render()` writes component output to the current response.\n\nUse `component()` or `component_capture()` when you need the output as a string. Bearer accepts a component path with or without `.capy`.\n\nA colon selects a named handler. A leading colon selects a handler in the current file. Use `component_exists()` before an optional component.\n"
+        page["content"] = "`component_render()` renders a component and writes its output straight into the current response. It returns nothing.\n\nThis is the form to reach for in page layouts. `component()` and `component_capture()` open a capture buffer, collect everything the component prints, and hand you a string; `component_render()` skips that buffer entirely. When you are only going to print the result anyway, `component_render(\"card\")` does less work than `print(component(\"card\"))`.\n\nUse a capturing call instead when you need the output as a value — to measure it, wrap it, store it, or decide whether to emit it at all.\n\nName resolution, `:HANDLER` suffixes, props scoping, and `ONCE` behaviour are identical to `component()`; that page documents the rules in full.\n"
+        page["errors"] = "An unresolvable component does not raise an error. Bearer sets the response status to `500` and writes a banner element describing the failure into the response in place of the component output. Rendering continues. Call `component_exists()` first when a missing component should be skipped silently."
         page["label"] = "component_render"
         page["capy_sig_lines"] = dval(["function component_render(name : string)", "function component_render(name : string, props : as dval)"])
-        page["param_lines"] = dval(["name : a component name or named handler", "props : optional input for `request.props`", ""])
+        page["param_lines"] = dval(["name : a component path, optionally followed by `:HANDLER`", "props : optional input, readable inside the component as `request.props`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["component", "component_capture", "component_exists", "component_resolve"])
-        page["examples"] = dval([{entry: "render", caption: "", body: "component_render(\"/tests/capy-request-context.capy\", {name: \"Capy\"})\n"}])
+        page["see"] = dval(["component", "component_capture", "component_exists", "component_resolve", "1_COMPONENT"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "component_render(\"/doc/examples/card.capy:CARD\", {title: \"Release notes\"})\n"}, {entry: "render", caption: "compose a page from fragments", body: "print(\"<main>\")\ncomponent_render(\"/doc/examples/card.capy:CARD\", {title: \"First\"})\ncomponent_render(\"/doc/examples/card.capy:CARD\", {title: \"Second\"})\nprint(\"</main>\", \"\\n\")\n"}, {entry: "render", caption: "render each row without buffering", body: "var rows := [\"Ada\", \"Grace\", \"Katherine\"]\nfor row := rows {\n    component_render(\"/doc/examples/card.capy:CARD\", {title: row})\n}\nprint(\"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -84,15 +88,15 @@ function data(input : dval) dval {
         page["slug"] = "component-resolve"
         page["route"] = "/doc/api/component-resolve/"
         page["title"] = "component_resolve"
-        page["content"] = "## sig\n\nfunction component_resolve(name : string) string\n\n`component_resolve()` resolves a component name to its source path.\n\nA name without a suffix resolves to its `.capy` file. A named handler does not affect the returned path.\n"
-        page["returns"] = "The resolved component source path."
+        page["content"] = "`component_resolve()` answers \"which file would `component()` actually load for this name?\". It renders nothing and runs no handler.\n\nThis is the tool for debugging resolution. Because a relative name is tried against several directories in turn, the same string can mean different files depending on which unit is calling it, and the failure that follows is usually reported against the wrong place. Printing the resolved path shows you which candidate won.\n\n## The order it searches\n\n`.capy` is appended when the name has no suffix. A `:HANDLER` suffix does not affect the returned path.\n\nA name starting with `/` is tried as a real filesystem path first, then as a path under the site root.\n\nA relative name is tried against, in order:\n\n1. the directory of the entry unit handling the request\n2. the directory of the unit calling `component_resolve()`, when that differs\n3. the site root\n\nThe first candidate that exists is returned. A candidate that resolves outside the site root is rejected, and the result is an empty string.\n\nAn empty return means the same thing as `component_exists()` returning `false` — the two functions run the same lookup and differ only in what they report.\n"
+        page["returns"] = "The absolute source path the name resolves to, or an empty string when nothing matches."
         page["label"] = "component_resolve"
         page["capy_sig_lines"] = dval(["function component_resolve(name : string) string"])
-        page["param_lines"] = dval(["name : a component path with an optional named handler", ""])
+        page["param_lines"] = dval(["name : a component path, optionally followed by `:HANDLER`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["component", "component_exists", "component_render"])
-        page["examples"] = dval([{entry: "render", caption: "", body: "print(component_resolve(\"/tests/capy-request-context\"), \"\\n\")\n"}])
+        page["see"] = dval(["component", "component_exists", "component_render", "component_capture"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(component_resolve(\"/doc/examples/card\"), \"\\n\")\n"}, {entry: "render", caption: "show which directory a relative name reached", body: "var resolved := component_resolve(\"card\")\nif length(resolved) > 0 { print(resolved, \"\\n\") } else { print(\"unresolved\\n\") }\n"}, {entry: "render", caption: "the handler suffix does not change the path", body: "print(component_resolve(\"/doc/examples/card.capy:CARD\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }
@@ -103,14 +107,15 @@ function data(input : dval) dval {
         page["slug"] = "component"
         page["route"] = "/doc/api/component/"
         page["title"] = "COMPONENT"
-        page["content"] = "## sig\n\nfunction COMPONENT(request : dval)\nfunction COMPONENT:NAME(request : dval)\n\n`COMPONENT` defines a component entrypoint. Use `COMPONENT:NAME` for a named component.\n\nThe handler has one parameter named `request` with type `dval`. Read component properties from `request.props`. Use `print` to write component output.\n"
+        page["content"] = "`COMPONENT` marks a function as a renderable fragment. Another unit reaches it with `component()`, `component_capture()`, or `component_render()`; it is never routed to directly by a URL.\n\nThe handler takes one parameter, `request`, of type `dval`, and returns nothing. Everything it `print`s becomes the fragment's output.\n\n## Plain and named handlers\n\nA file with a single fragment defines `COMPONENT`. Callers name just the file:\n\n    component_render(\"lib/card.capy\")\n\nA file that holds several related fragments gives each one a name, and callers select it with a `:` suffix:\n\n    component_render(\"lib/widgets.capy:CARD\")\n\nA caller inside that same file can use the bare suffix form, `component_render(\":CARD\")`, which resolves to the current file.\n\nNames are matched exactly and are conventionally uppercase.\n\n## Reading input\n\nCaller-supplied props arrive as `request.props`. Read them through `string()`, `s64()`, and the other converters so a missing key has a defined value:\n\n    var title := string(request.props.title, \"Untitled\")\n\n`request.props` is swapped in for the duration of the call and restored when the handler returns, so a component never disturbs its caller's props, and nested components each read their own. The rest of `request` — query, form, headers, session — is the live request and is shared with the caller.\n\n## Lifecycle\n\nThe first time a unit is used in a request, its `ONCE` handler runs before the component handler. A component may render other components; each nested call resolves relative paths against its own file.\n"
+        page["errors"] = "A caller that names a component Bearer cannot resolve gets a `500` status and a banner element in place of the fragment; the handler in this file never runs. Callers that treat a fragment as optional should guard with `component_exists()`."
         page["label"] = "COMPONENT"
         page["capy_sig_lines"] = dval(["function COMPONENT(request : dval)", "function COMPONENT:NAME(request : dval)"])
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_Request", "1_RENDER"])
-        page["examples"] = dval([{entry: "component", caption: "", body: "print(string(request.props.name, \"guest\"))\n"}])
+        page["see"] = dval(["component", "component_render", "component_capture", "component_exists", "0_Request", "1_RENDER"])
+        page["examples"] = dval([{entry: "component", caption: "", body: "print(string(request.props.name, \"guest\"))\n"}, {entry: "component", caption: "read several props with defaults", body: "var title := string(request.props.title, \"Untitled\")\nvar count := s64(request.props.count, 0)\nprint(\"<article><h3>\", title, \"</h3><p>\", count, \"</p></article>\")\n"}, {entry: "component", caption: "a fragment that nests another fragment", body: "print(\"<section>\")\ncomponent_render(\"/doc/examples/card.capy:CARD\", {title: string(request.props.title, \"Untitled\")})\nprint(\"</section>\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

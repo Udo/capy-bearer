@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "path-real"
         page["route"] = "/doc/api/path-real/"
         page["title"] = "path_real"
-        page["content"] = "## sig\n\nfunction path_real(path : string) string\n\n`path_real()` returns the canonical absolute path for an existing path.\n\nIt follows symbolic links and removes dot segments. It returns an empty string when it cannot resolve the path.\n"
+        page["content"] = "`path_real()` returns the canonical absolute path for an existing path.\n\nIt follows symbolic links and removes dot segments. It returns an empty string when it cannot resolve the path.\n"
         page["returns"] = "the canonical absolute path, or an empty string on failure"
         page["label"] = "path_real"
         page["capy_sig_lines"] = dval(["function path_real(path : string) string"])

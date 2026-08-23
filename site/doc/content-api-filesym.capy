@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-symlink"
         page["route"] = "/doc/api/file-symlink/"
         page["title"] = "file_symlink"
-        page["content"] = "## sig\n\nfunction file_symlink(target : string, linkpath : string) bool\n\n`file_symlink` creates a symbolic link at `linkpath` that points to `target`.\n"
+        page["content"] = "`file_symlink` creates a symbolic link at `linkpath` that points to `target`.\n"
         page["returns"] = "`true` if Capy creates the link. Otherwise, `false`."
         page["label"] = "file_symlink"
         page["capy_sig_lines"] = dval(["function file_symlink(target : string, linkpath : string) bool"])

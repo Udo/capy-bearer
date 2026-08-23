@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "trim"
         page["route"] = "/doc/api/trim/"
         page["title"] = "trim"
-        page["content"] = "## sig\n\nfunction trim(raw : string) string\n\n`trim` removes leading and trailing whitespace.\n"
+        page["content"] = "`trim` removes leading and trailing whitespace.\n"
         page["returns"] = "text without leading or trailing whitespace"
         page["label"] = "trim"
         page["capy_sig_lines"] = dval(["function trim(raw : string) string"])

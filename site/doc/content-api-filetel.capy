@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-tell"
         page["route"] = "/doc/api/file-tell/"
         page["title"] = "file_tell"
-        page["content"] = "## sig\n\nfunction file_tell(handle : u64) s64\n\n`file_tell` returns the current position for a file handle.\n"
+        page["content"] = "`file_tell` returns the current position for a file handle.\n"
         page["returns"] = "The current byte offset."
         page["label"] = "file_tell"
         page["capy_sig_lines"] = dval(["function file_tell(handle : u64) s64"])

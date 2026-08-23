@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "dval"
         page["route"] = "/doc/api/dval/"
         page["title"] = "dval"
-        page["content"] = "## sig\n\nfunction dval(value : string) dval\nfunction dval(value : s32) dval\nfunction dval(value : s64) dval\nfunction dval(value : u64) dval\nfunction dval(value : f64) dval\nfunction dval(value : bool) dval\nfunction dval(value : dval) dval\n\n`dval()` converts a scalar or literal structure to a dynamic value.\n\nUse it for request payloads and nested map or list data. Existing `dval` input stays a `dval` value.\n"
+        page["content"] = "`dval()` converts a scalar or literal structure to a dynamic value.\n\nUse it for request payloads and nested map or list data. Existing `dval` input stays a `dval` value.\n"
         page["returns"] = "A `dval` value."
         page["label"] = "dval"
         page["capy_sig_lines"] = dval(["function dval(value : string) dval", "function dval(value : s32) dval", "function dval(value : s64) dval", "function dval(value : u64) dval", "function dval(value : f64) dval", "function dval(value : bool) dval", "function dval(value : dval) dval"])

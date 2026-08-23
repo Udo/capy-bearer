@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-unlink"
         page["route"] = "/doc/api/file-unlink/"
         page["title"] = "file_unlink"
-        page["content"] = "## sig\n\nfunction file_unlink(path : string)\n\n`file_unlink` removes a file. A missing path does not cause an error.\n"
+        page["content"] = "`file_unlink` removes a file. A missing path does not cause an error.\n"
         page["returns"] = "No value."
         page["label"] = "file_unlink"
         page["capy_sig_lines"] = dval(["function file_unlink(path : string)"])

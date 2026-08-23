@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "process-start-directory"
         page["route"] = "/doc/api/process-start-directory/"
         page["title"] = "process_start_directory"
-        page["content"] = "## sig\n\nfunction process_start_directory() string\n\n`process_start_directory()` returns the worker process start directory.\n\nThe value does not change when `cwd_set()` changes the current directory.\n"
+        page["content"] = "`process_start_directory()` returns the worker process start directory.\n\nThe value does not change when `cwd_set()` changes the current directory.\n"
         page["returns"] = "the worker process start directory"
         page["label"] = "process_start_directory"
         page["capy_sig_lines"] = dval(["function process_start_directory() string"])

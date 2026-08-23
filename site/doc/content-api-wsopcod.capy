@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "ws-opcode"
         page["route"] = "/doc/api/ws-opcode/"
         page["title"] = "ws_opcode"
-        page["content"] = "## sig\n\nNo Capy signature.\n\nCapy has no native `ws_opcode` signature. In a `WS` handler, use `request.websocket.opcode`.\n"
+        page["content"] = "Capy has no native `ws_opcode` signature. In a `WS` handler, use `request.websocket.opcode`.\n"
         page["label"] = "ws_opcode"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])

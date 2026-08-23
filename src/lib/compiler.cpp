@@ -64,8 +64,6 @@ struct CompilerDeadline
 	bool timed_out = false;
 	bool operational_failure = false;
 	String operational_error;
-	bool dependency_failure = false;
-	String dependency_error;
 
 	explicit CompilerDeadline(u64 timeout_ms) : expires_at(Clock::now() + std::chrono::milliseconds(timeout_ms)) {}
 
@@ -1386,13 +1384,13 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 		compiler_record_compile_result(su, time_precise() - comp_start, false, "compile_timeout", su->compiler_messages);
 		return;
 	}
-	if(deadline && (deadline->dependency_failure || deadline->operational_failure))
+	if(deadline && deadline->operational_failure)
 	{
 		file_unlink(staged_wasm_name);
 		file_unlink(staged_map_name);
 		file_unlink(staged_api_name);
 		file_unlink(staged_meta_name);
-		su->compiler_messages = deadline->dependency_failure ? first(deadline->dependency_error, "transitive dependency compilation failed") : first(deadline->operational_error, "transitive dependency compilation failed");
+		su->compiler_messages = first(deadline->operational_error, "transitive dependency compilation failed");
 		compiler_record_compile_result(su, time_precise() - comp_start, false, "dependency_error", su->compiler_messages);
 		return;
 	}

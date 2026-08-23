@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "task-await"
         page["route"] = "/doc/api/task-await/"
         page["title"] = "task_await"
-        page["content"] = "## sig\n\nfunction task_await(id : string, timeout_ms : u64) dval\n\nUse `task_await` to wait for a task status. It returns when the task ends or the timeout expires.\n"
+        page["content"] = "Use `task_await` to wait for a task status. It returns when the task ends or the timeout expires.\n"
         page["returns"] = "Task status map."
         page["label"] = "task_await"
         page["capy_sig_lines"] = dval(["function task_await(id : string, timeout_ms : u64) dval"])

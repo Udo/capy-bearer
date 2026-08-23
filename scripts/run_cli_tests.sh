@@ -66,4 +66,21 @@ if [[ "$action" == "run" ]]; then
 	scripts/test_capy_reference.sh
 	scripts/test_server_arguments.sh
 	scripts/test_socket_activation.sh
+	for test in \
+		scripts/test_capy_compile_timeout.sh \
+		scripts/test_cold_component_deadline.sh \
+		scripts/test_component_resolution_ttl.sh \
+		scripts/test_entry_freshness_ttl.sh \
+		scripts/test_log_timeliness.sh \
+		scripts/test_mysql_epoch_refresh.sh \
+		scripts/test_mysql_persistent_pool.sh \
+		scripts/test_nested_component_props.sh \
+		scripts/test_parallel_precompile.sh \
+		scripts/test_parallel_proactive_compile.sh \
+		scripts/test_password_hashing.sh \
+		scripts/test_raw_http_request_log.sh \
+		scripts/test_relative_component_cache.sh \
+		scripts/test_running_core_abi_pin.sh; do
+		"$test"
+	done
 fi

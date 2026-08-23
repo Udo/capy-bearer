@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "task-cancel"
         page["route"] = "/doc/api/task-cancel/"
         page["title"] = "task_cancel"
-        page["content"] = "## sig\n\nfunction task_cancel(id : string) dval\n\nUse `task_cancel` to request task cancellation. Check the returned status because a task can finish first.\n"
+        page["content"] = "Use `task_cancel` to request task cancellation. Check the returned status because a task can finish first.\n"
         page["returns"] = "Task status map."
         page["label"] = "task_cancel"
         page["capy_sig_lines"] = dval(["function task_cancel(id : string) dval"])

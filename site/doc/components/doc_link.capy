@@ -1,0 +1,9 @@
+function COMPONENT(request : dval) {
+    var key := trim(string(request.props.reference, ""))
+    if length(key) > 0 && substr(key, 0, 1) == ">" { key = trim(substr(key, 1)) }
+    if key == "" { return }
+    var label := key
+    var separator := strpos(key, "_")
+    if separator > 0 && contains("0123456789", substr(key, 0, 1)) { label = substr(key, separator + 1) }
+    print("<a class=\"related-link\" href=\"/doc/?p=", html_escape(uri_encode(key)), "\">", html_escape(label), "</a>")
+}

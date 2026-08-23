@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "int-val"
         page["route"] = "/doc/api/int-val/"
         page["title"] = "int_val"
-        page["content"] = "## sig\n\nfunction int_val(raw : string) u64\nfunction int_val(raw : string, base : s32) u64\n\n`int_val()` extracts an unsigned integer from text. The one-argument form uses base 10.\n"
+        page["content"] = "`int_val()` extracts an unsigned integer from text. The one-argument form uses base 10.\n"
         page["returns"] = "A parsed unsigned integer, or `0` when no usable number exists."
         page["label"] = "int_val"
         page["capy_sig_lines"] = dval(["function int_val(raw : string) u64", "function int_val(raw : string, base : s32) u64"])

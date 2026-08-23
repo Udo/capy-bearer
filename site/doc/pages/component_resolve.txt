@@ -2,20 +2,44 @@
 function component_resolve(name : string) string
 
 :params
-name : a component path with an optional named handler
+name : a component path, optionally followed by `:HANDLER`
 
 :returns
-The resolved component source path.
+The absolute source path the name resolves to, or an empty string when nothing matches.
 
 :content
-`component_resolve()` resolves a component name to its source path.
+`component_resolve()` answers "which file would `component()` actually load for this name?". It renders nothing and runs no handler.
 
-A name without a suffix resolves to its `.capy` file. A named handler does not affect the returned path.
+This is the tool for debugging resolution. Because a relative name is tried against several directories in turn, the same string can mean different files depending on which unit is calling it, and the failure that follows is usually reported against the wrong place. Printing the resolved path shows you which candidate won.
+
+## The order it searches
+
+`.capy` is appended when the name has no suffix. A `:HANDLER` suffix does not affect the returned path.
+
+A name starting with `/` is tried as a real filesystem path first, then as a path under the site root.
+
+A relative name is tried against, in order:
+
+1. the directory of the entry unit handling the request
+2. the directory of the unit calling `component_resolve()`, when that differs
+3. the site root
+
+The first candidate that exists is returned. A candidate that resolves outside the site root is rejected, and the result is an empty string.
+
+An empty return means the same thing as `component_exists()` returning `false` — the two functions run the same lookup and differ only in what they report.
 
 :example capy render
-print(component_resolve("/tests/capy-request-context"), "\n")
+print(component_resolve("/doc/examples/card"), "\n")
+
+:example capy render show which directory a relative name reached
+var resolved := component_resolve("card")
+if length(resolved) > 0 { print(resolved, "\n") } else { print("unresolved\n") }
+
+:example capy render the handler suffix does not change the path
+print(component_resolve("/doc/examples/card.capy:CARD"), "\n")
 
 :see
 component
 component_exists
 component_render
+component_capture

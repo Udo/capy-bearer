@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "ob-start"
         page["route"] = "/doc/api/ob-start/"
         page["title"] = "ob_start"
-        page["content"] = "## sig\n\nfunction ob_start()\n\n`ob_start()` starts a new output buffer.\n\nLater `print()` calls write to this buffer. Use `ob_get_close()` to get its text, or `ob_close()` to discard it.\n"
+        page["content"] = "`ob_start()` starts a new output buffer.\n\nLater `print()` calls write to this buffer. Use `ob_get_close()` to get its text, or `ob_close()` to discard it.\n"
         page["label"] = "ob_start"
         page["capy_sig_lines"] = dval(["function ob_start()"])
         page["param_lines"] = dval([])

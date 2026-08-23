@@ -28,7 +28,7 @@ GUIDE_REDIRECTS = {
     "14-errors-debugging-and-style": "12-errors-testing-and-style",
 }
 
-SECTION_NAMES = {"title", "params", "returns", "errors", "note", "warning", "content", "see", "output"}
+SECTION_NAMES = {"title", "sig", "params", "returns", "errors", "note", "warning", "content", "see", "output"}
 STOP_WORDS = {"the", "and", "for", "how", "with", "to", "of", "in"}
 
 
@@ -138,6 +138,8 @@ def flush_section(page: dict, source_page: str, section: str, lines: list[str], 
         title = "\n".join(lines).strip()
         if title != source_page:
             page["title"] = title
+    elif section == "sig":
+        pass
     elif section == "params":
         page["param_lines"].extend(lines)
     elif section == "returns":
@@ -384,25 +386,6 @@ def main() -> None:
         page["route"] = "/doc/guide/" + page["slug"] + "/"
         pages.append(page)
         write_content_module(GUIDE_OUT / (page["slug"] + ".capy"), page)
-    api_pages = [p for p in pages if p["kind"] == "api"]
-    guide_pages = [p for p in pages if p["kind"] == "guide"]
-
-    def descriptor(page: dict) -> dict[str, str]:
-        return {"kind": page["kind"], "source_page": page["source_page"], "slug": page["slug"], "title": page["title"], "label": page["label"], "route": page["route"]}
-
-    registry = ["#exports ALL, API, GUIDES, LEGACY", "", "function API(input : dval) dval {", "    return " + dval_array([descriptor(p) for p in api_pages]), "}", "", "function GUIDES(input : dval) dval {", "    return " + dval_array([descriptor(p) for p in guide_pages]), "}", "", "function ALL(input : dval) dval {", "    var pages := API(input)", "    for page := GUIDES(input) { pages = dval_push(pages, page) }", "    return pages", "}", "", "function LEGACY(input : dval) dval {", "    var routes := dval({index: {route: \"/doc/\", label: \"Documentation\", title: \"Documentation\", kind: \"index\", slug: \"index\", source_page: \"index\"}})"]
-    for page in pages:
-        registry.append(f"    routes[{capy_string(page['source_page'])}] = {capy_value(descriptor(page))}")
-        if page["source_page"].startswith("capy-"):
-            source = page["source_page"][5:]
-            registry.append(f"    routes[{capy_string(source)}] = {capy_value(descriptor(page))}")
-    for old, new in GUIDE_REDIRECTS.items():
-        key = "capy-" + new
-        target = next((p for p in guide_pages if p["source_page"] == key), None)
-        if target:
-            registry.append(f"    routes[{capy_string('capy-' + old)}] = {capy_value(descriptor(target))}")
-    registry.extend(["    return routes", "}", ""])
-    (OUT / "registry.capy").write_text("\n".join(registry), encoding="utf-8")
     combine_content("api")
     combine_content("guide")
     shutil.rmtree(OUT)

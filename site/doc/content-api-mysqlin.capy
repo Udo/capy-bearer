@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "mysql-insert-id"
         page["route"] = "/doc/api/mysql-insert-id/"
         page["title"] = "mysql_insert_id"
-        page["content"] = "## sig\n\nfunction mysql_insert_id(handle : u64) u64\n\n`mysql_insert_id()` returns the last automatic row ID for a connection.\n\nCall it after an insert into a table with an automatic ID column.\n"
+        page["content"] = "`mysql_insert_id()` returns the last automatic row ID for a connection.\n\nCall it after an insert into a table with an automatic ID column.\n"
         page["returns"] = "the last automatic row ID for this connection"
         page["label"] = "mysql_insert_id"
         page["capy_sig_lines"] = dval(["function mysql_insert_id(handle : u64) u64"])

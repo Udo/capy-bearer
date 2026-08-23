@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "safe-name"
         page["route"] = "/doc/api/safe-name/"
         page["title"] = "safe_name"
-        page["content"] = "## sig\n\nfunction safe_name(raw : string) string\n\n`safe_name()` removes all other characters. The result can be empty.\n"
+        page["content"] = "`safe_name()` removes all other characters. The result can be empty.\n"
         page["returns"] = "Text that contains only letters, digits, and `_`."
         page["label"] = "safe_name"
         page["capy_sig_lines"] = dval(["function safe_name(raw : string) string"])

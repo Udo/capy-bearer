@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "once"
         page["route"] = "/doc/api/once/"
         page["title"] = "ONCE"
-        page["content"] = "## sig\n\nfunction ONCE(request : dval)\n\n`ONCE` defines the request-local unit hook.\n\nBearer runs this hook before the first unit entry or component call. The handler has one parameter named `request` with type `dval`.\n"
+        page["content"] = "`ONCE` defines the request-local unit hook.\n\nBearer runs this hook before the first unit entry or component call. The handler has one parameter named `request` with type `dval`.\n"
         page["label"] = "ONCE"
         page["capy_sig_lines"] = dval(["function ONCE(request : dval)"])
         page["param_lines"] = dval([])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "to-lower"
         page["route"] = "/doc/api/to-lower/"
         page["title"] = "to_lower"
-        page["content"] = "## sig\n\nNo Capy signature.\n\nCapy has no native `to_lower` signature. Use `lower(value)`.\n"
+        page["content"] = "Capy has no native `to_lower` signature. Use `lower(value)`.\n"
         page["label"] = "to_lower"
         page["capy_sig_lines"] = dval([])
         page["param_lines"] = dval([])

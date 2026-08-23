@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-close"
         page["route"] = "/doc/api/file-close/"
         page["title"] = "file_close"
-        page["content"] = "## sig\n\nfunction file_close(handle : u64)\n\n`file_close` closes a handle from `file_open`. Close a handle after the final read or write.\n"
+        page["content"] = "`file_close` closes a handle from `file_open`. Close a handle after the final read or write.\n"
         page["label"] = "file_close"
         page["capy_sig_lines"] = dval(["function file_close(handle : u64)"])
         page["param_lines"] = dval(["handle : handle returned by `file_open`", ""])

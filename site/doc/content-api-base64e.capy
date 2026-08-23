@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "base64-encode"
         page["route"] = "/doc/api/base64-encode/"
         page["title"] = "base64_encode"
-        page["content"] = "## sig\n\nfunction base64_encode(value : string) string\n\n`base64_encode` encodes a string as Base64 text.\n\nUse `base64_decode` to decode the result.\n"
+        page["content"] = "`base64_encode` encodes a string as Base64 text.\n\nUse `base64_decode` to decode the result.\n"
         page["returns"] = "Base64 text"
         page["label"] = "base64_encode"
         page["capy_sig_lines"] = dval(["function base64_encode(value : string) string"])

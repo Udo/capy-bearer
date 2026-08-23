@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-temp"
         page["route"] = "/doc/api/file-temp/"
         page["title"] = "file_temp"
-        page["content"] = "## sig\n\nfunction file_temp(prefix : string) string\n\n`file_temp` creates an empty file with a unique suffix.\n"
+        page["content"] = "`file_temp` creates an empty file with a unique suffix.\n"
         page["returns"] = "The new empty file path. Returns `\"\"` on failure."
         page["label"] = "file_temp"
         page["capy_sig_lines"] = dval(["function file_temp(prefix : string) string"])

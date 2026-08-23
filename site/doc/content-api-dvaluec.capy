@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-clear"
         page["route"] = "/doc/api/dvalue-clear/"
         page["title"] = "Clear a dynamic value"
-        page["content"] = "## sig\n\nfunction dval_clear(value : dval) dval\n\n`dval_clear(value)` removes all children and makes `value` an empty map. Use `dval_set_array` for an empty list.\n"
+        page["content"] = "`dval_clear(value)` removes all children and makes `value` an empty map. Use `dval_set_array` for an empty list.\n"
         page["returns"] = "The cleared target value."
         page["label"] = "dval_clear"
         page["capy_sig_lines"] = dval(["function dval_clear(value : dval) dval"])

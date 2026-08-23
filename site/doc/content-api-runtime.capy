@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "runtime-perf"
         page["route"] = "/doc/api/runtime-perf/"
         page["title"] = "runtime_perf"
-        page["content"] = "## sig\n\nfunction runtime_perf() dval\n\n`runtime_perf()` returns data for the active request workspace.\n"
+        page["content"] = "`runtime_perf()` returns data for the active request workspace.\n"
         page["returns"] = "Runtime performance data."
         page["label"] = "runtime_perf"
         page["capy_sig_lines"] = dval(["function runtime_perf() dval"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "runtime-safe-key"
         page["route"] = "/doc/api/runtime-safe-key/"
         page["title"] = "runtime_safe_key"
-        page["content"] = "## sig\n\nfunction runtime_safe_key(key : string, label : string = \"runtime key\") string\n\nThe function trims `key`. It reports an error for an empty key.\n"
+        page["content"] = "The function trims `key`. It reports an error for an empty key.\n"
         page["returns"] = "A stable SHA-1 key."
         page["label"] = "runtime_safe_key"
         page["capy_sig_lines"] = dval(["function runtime_safe_key(key : string, label : string = \"runtime key\") string"])

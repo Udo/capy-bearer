@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "strpos"
         page["route"] = "/doc/api/strpos/"
         page["title"] = "strpos"
-        page["content"] = "## sig\n\nfunction strpos(haystack : string, needle : string, offset : s64 = 0) s64\n\nUse `strpos` to find text in a string. The result uses a zero-based position.\n"
+        page["content"] = "Use `strpos` to find text in a string. The result uses a zero-based position.\n"
         page["returns"] = "First match position, or `-1`."
         page["label"] = "strpos"
         page["capy_sig_lines"] = dval(["function strpos(haystack : string, needle : string, offset : s64 = 0) s64"])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "call"
         page["route"] = "/doc/api/call/"
         page["title"] = "call"
-        page["content"] = "## sig\n\nfunction call(handle : module, name : string) dval\nfunction call(handle : module, name : string, input : as dval) dval\n\n`call()` calls an exported function in a loaded unit. It returns the result as `dval`.\n\nUse `unit_load()` once when several calls use the same unit. The two-argument form passes an empty `dval`.\n"
+        page["content"] = "`call()` calls an exported function in a loaded unit. It returns the result as `dval`.\n\nUse `unit_load()` once when several calls use the same unit. The two-argument form passes an empty `dval`.\n"
         page["returns"] = "The exported function result."
         page["label"] = "call"
         page["capy_sig_lines"] = dval(["function call(handle : module, name : string) dval", "function call(handle : module, name : string, input : as dval) dval"])

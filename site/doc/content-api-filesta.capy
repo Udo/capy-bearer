@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-stat"
         page["route"] = "/doc/api/file-stat/"
         page["title"] = "file_stat"
-        page["content"] = "## sig\n\nfunction file_stat(path : string) dval\n\n`file_stat` returns metadata for a path. The result includes `exists`, `is_file`, `is_dir`, `is_symlink`, and `size`.\n"
+        page["content"] = "`file_stat` returns metadata for a path. The result includes `exists`, `is_file`, `is_dir`, `is_symlink`, and `size`.\n"
         page["returns"] = "A `dval` with file metadata."
         page["label"] = "file_stat"
         page["capy_sig_lines"] = dval(["function file_stat(path : string) dval"])

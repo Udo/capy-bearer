@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "unit-compile"
         page["route"] = "/doc/api/unit-compile/"
         page["title"] = "unit_compile"
-        page["content"] = "## sig\n\nfunction unit_compile(path : string = \"\") bool\n\n`unit_compile` compiles a unit.\n"
+        page["content"] = "`unit_compile` compiles a unit.\n"
         page["returns"] = "`true` if the compiler compiles the unit"
         page["label"] = "unit_compile"
         page["capy_sig_lines"] = dval(["function unit_compile(path : string = \"\") bool"])

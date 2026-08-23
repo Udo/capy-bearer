@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "task"
         page["route"] = "/doc/api/task/"
         page["title"] = "task"
-        page["content"] = "## sig\n\nfunction task(target : string, props : as dval) string\n\nUse `task` to submit a task handler. Pass a unit path and a `dval` value for its input.\n"
+        page["content"] = "Use `task` to submit a task handler. Pass a unit path and a `dval` value for its input.\n"
         page["returns"] = "Task identifier."
         page["label"] = "task"
         page["capy_sig_lines"] = dval(["function task(target : string, props : as dval) string"])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "socket-read"
         page["route"] = "/doc/api/socket-read/"
         page["title"] = "socket_read"
-        page["content"] = "## sig\n\nfunction socket_read(handle : u64, max_length : s32 = 131072, timeout : s32 = 1) string\n\nUse `socket_read` to read data from a socket. It can return an empty string when no data is available.\n"
+        page["content"] = "Use `socket_read` to read data from a socket. It can return an empty string when no data is available.\n"
         page["returns"] = "Data read from the socket."
         page["label"] = "socket_read"
         page["capy_sig_lines"] = dval(["function socket_read(handle : u64, max_length : s32 = 131072, timeout : s32 = 1) string"])

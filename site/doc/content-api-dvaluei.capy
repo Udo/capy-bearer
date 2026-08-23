@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-is-array"
         page["route"] = "/doc/api/dvalue-is-array/"
         page["title"] = "Test for a container"
-        page["content"] = "## sig\n\nfunction dval_is_array(value : dval) bool\n\n`dval_is_array` returns `true` when a value has map shape. It returns `true` for both maps and lists.\n"
+        page["content"] = "`dval_is_array` returns `true` when a value has map shape. It returns `true` for both maps and lists.\n"
         page["returns"] = "`true` for a map or list."
         page["label"] = "dval_is_array"
         page["capy_sig_lines"] = dval(["function dval_is_array(value : dval) bool"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-is-list"
         page["route"] = "/doc/api/dvalue-is-list/"
         page["title"] = "Test for a list"
-        page["content"] = "## sig\n\nfunction dval_is_list(value : dval) bool\n\n`dval_is_list` tests whether a value is a list. Use `dval_set_array` to make an empty list.\n"
+        page["content"] = "`dval_is_list` tests whether a value is a list. Use `dval_set_array` to make an empty list.\n"
         page["returns"] = "`true` for a list-shaped value."
         page["label"] = "dval_is_list"
         page["capy_sig_lines"] = dval(["function dval_is_list(value : dval) bool"])
@@ -47,7 +47,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-is-reference"
         page["route"] = "/doc/api/dvalue-is-reference/"
         page["title"] = "Test for a reference"
-        page["content"] = "## sig\n\nNo Capy declaration.\n\nCapy does not expose reference nodes. It cannot test whether a dynamic value is a host reference.\n\nNo Capy alternative exists.\n"
+        page["content"] = "Capy does not expose reference nodes. It cannot test whether a dynamic value is a host reference.\n\nNo Capy alternative exists.\n"
         page["capy_status"] = "unsupported"
         page["label"] = "dval_is_reference"
         page["capy_sig_lines"] = dval([])

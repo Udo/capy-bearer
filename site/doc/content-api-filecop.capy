@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "file-copy"
         page["route"] = "/doc/api/file-copy/"
         page["title"] = "file_copy"
-        page["content"] = "## sig\n\nfunction file_copy(from : string, to : string) bool\n\n`file_copy` copies a file to another path. The source path remains available after a successful copy.\n"
+        page["content"] = "`file_copy` copies a file to another path. The source path remains available after a successful copy.\n"
         page["returns"] = "`true` when Capy copies the file. Otherwise, it returns `false`."
         page["label"] = "file_copy"
         page["capy_sig_lines"] = dval(["function file_copy(from : string, to : string) bool"])

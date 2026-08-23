@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "regex-search-all"
         page["route"] = "/doc/api/regex-search-all/"
         page["title"] = "regex_search_all"
-        page["content"] = "## sig\n\nfunction regex_search_all(pattern : string, subject : string, flags : string = \"\") dval\n\nThe result contains `matched`, `count`, and `matches`.\n"
+        page["content"] = "The result contains `matched`, `count`, and `matches`.\n"
         page["returns"] = "Data for all non-overlapping matches."
         page["label"] = "regex_search_all"
         page["capy_sig_lines"] = dval(["function regex_search_all(pattern : string, subject : string, flags : string = \"\") dval"])
@@ -28,7 +28,7 @@ function data(input : dval) dval {
         page["slug"] = "regex-search"
         page["route"] = "/doc/api/regex-search/"
         page["title"] = "regex_search"
-        page["content"] = "## sig\n\nfunction regex_search(pattern : string, subject : string, flags : string = \"\") dval\n\nThe result contains `matched`. A matching result also contains `match`, `start`, `end`, `captures`, and `named`.\n"
+        page["content"] = "The result contains `matched`. A matching result also contains `match`, `start`, `end`, `captures`, and `named`.\n"
         page["returns"] = "Data for the first match."
         page["label"] = "regex_search"
         page["capy_sig_lines"] = dval(["function regex_search(pattern : string, subject : string, flags : string = \"\") dval"])

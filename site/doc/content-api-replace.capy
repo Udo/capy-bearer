@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "replace"
         page["route"] = "/doc/api/replace/"
         page["title"] = "replace"
-        page["content"] = "## sig\n\nfunction replace(value : string, needle : string, replacement : string) string\n\nUse `regex_replace()` when the search text is a regular expression.\n"
+        page["content"] = "Use `regex_replace()` when the search text is a regular expression.\n"
         page["returns"] = "Text with every literal match replaced."
         page["label"] = "replace"
         page["capy_sig_lines"] = dval(["function replace(value : string, needle : string, replacement : string) string"])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "dval-put"
         page["route"] = "/doc/api/dval-put/"
         page["title"] = "dval_put"
-        page["content"] = "## sig\n\nfunction dval_put(value : dval, key : string, child : as dval) dval\n\n`dval_put()` stores `child` at `value[key]` and returns `value`.\n\nIf needed, it creates a map shape before it stores the key.\n"
+        page["content"] = "`dval_put()` stores `child` at `value[key]` and returns `value`.\n\nIf needed, it creates a map shape before it stores the key.\n"
         page["returns"] = "The same `dval` as `value`."
         page["label"] = "dval_put"
         page["capy_sig_lines"] = dval(["function dval_put(value : dval, key : string, child : as dval) dval"])

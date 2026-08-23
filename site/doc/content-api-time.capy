@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "time"
         page["route"] = "/doc/api/time/"
         page["title"] = "time"
-        page["content"] = "## sig\n\nfunction time() u64\n\n`time` returns the current Unix timestamp with second precision.\n"
+        page["content"] = "`time` returns the current Unix timestamp with second precision.\n"
         page["returns"] = "current Unix timestamp with second precision"
         page["label"] = "time"
         page["capy_sig_lines"] = dval(["function time() u64"])

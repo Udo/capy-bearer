@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "ob-close"
         page["route"] = "/doc/api/ob-close/"
         page["title"] = "ob_close"
-        page["content"] = "## sig\n\nfunction ob_close()\n\n`ob_close()` discards the current output buffer and returns to the previous buffer.\n\nUse it when you do not need the buffered output.\n"
+        page["content"] = "`ob_close()` discards the current output buffer and returns to the previous buffer.\n\nUse it when you do not need the buffered output.\n"
         page["label"] = "ob_close"
         page["capy_sig_lines"] = dval(["function ob_close()"])
         page["param_lines"] = dval([])

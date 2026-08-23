@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "signal-name"
         page["route"] = "/doc/api/signal-name/"
         page["title"] = "signal_name"
-        page["content"] = "## sig\n\nfunction signal_name(signal : s32) string\n\nUse `signal_name` to get the POSIX name for a signal number. It returns an empty string for an unknown number.\n"
+        page["content"] = "Use `signal_name` to get the POSIX name for a signal number. It returns an empty string for an unknown number.\n"
         page["returns"] = "Signal name, or an empty string."
         page["label"] = "signal_name"
         page["capy_sig_lines"] = dval(["function signal_name(signal : s32) string"])

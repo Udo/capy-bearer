@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "dvalue-filter"
         page["route"] = "/doc/api/dvalue-filter/"
         page["title"] = "Filter a dynamic value"
-        page["content"] = "## sig\n\nfunction dval_filter(value : dval, predicate : function(value : dval, key : string) bool) dval\n\n`dval_filter` returns children for which `predicate` returns `true`. It keeps map keys and keeps list shape.\n"
+        page["content"] = "`dval_filter` returns children for which `predicate` returns `true`. It keeps map keys and keeps list shape.\n"
         page["returns"] = "A new filtered value."
         page["label"] = "dval_filter"
         page["capy_sig_lines"] = dval(["function dval_filter(value : dval, predicate : function(value : dval, key : string) bool) dval"])

@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "json-decode"
         page["route"] = "/doc/api/json-decode/"
         page["title"] = "json_decode"
-        page["content"] = "## sig\n\nfunction json_decode(value : string) dval\n\n`json_decode()` converts JSON text to a `dval` value. Objects become maps, arrays become lists, and `null` becomes `none`.\n"
+        page["content"] = "`json_decode()` converts JSON text to a `dval` value. Objects become maps, arrays become lists, and `null` becomes `none`.\n"
         page["returns"] = "The decoded `dval` value."
         page["label"] = "json_decode"
         page["capy_sig_lines"] = dval(["function json_decode(value : string) dval"])

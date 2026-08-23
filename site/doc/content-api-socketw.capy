@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "socket-write"
         page["route"] = "/doc/api/socket-write/"
         page["title"] = "socket_write"
-        page["content"] = "## sig\n\nfunction socket_write(handle : u64, data : string) bool\n\nUse `socket_write` to send data to a socket.\n"
+        page["content"] = "Use `socket_write` to send data to a socket.\n"
         page["returns"] = "`true` when the write succeeds."
         page["label"] = "socket_write"
         page["capy_sig_lines"] = dval(["function socket_write(handle : u64, data : string) bool"])

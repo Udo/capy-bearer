@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "ascii-safe-name"
         page["route"] = "/doc/api/ascii-safe-name/"
         page["title"] = "ascii_safe_name"
-        page["content"] = "## sig\n\nfunction ascii_safe_name(raw : string) string\n\n`ascii_safe_name` converts text to an ASCII-safe name.\n\nUse it when a target accepts ASCII names only.\n"
+        page["content"] = "`ascii_safe_name` converts text to an ASCII-safe name.\n\nUse it when a target accepts ASCII names only.\n"
         page["returns"] = "an ASCII-safe name"
         page["label"] = "ascii_safe_name"
         page["capy_sig_lines"] = dval(["function ascii_safe_name(raw : string) string"])

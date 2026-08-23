@@ -9,7 +9,7 @@ function data(input : dval) dval {
         page["slug"] = "csrf-field"
         page["route"] = "/doc/api/csrf-field/"
         page["title"] = "csrf_field"
-        page["content"] = "## sig\n\nfunction csrf_field(session_name : string = \"bearer-session\", token_name : string = \"csrf_token\", field_name : string = \"\") string\n\n`csrf_field()` returns a hidden form input with the active CSRF token.\n\nUse it in a form that changes state. Check the submitted value with `csrf_valid()` before you change state.\n"
+        page["content"] = "`csrf_field()` returns a hidden form input with the active CSRF token.\n\nUse it in a form that changes state. Check the submitted value with `csrf_valid()` before you change state.\n"
         page["returns"] = "An HTML hidden input with the active CSRF token."
         page["label"] = "csrf_field"
         page["capy_sig_lines"] = dval(["function csrf_field(session_name : string = \"bearer-session\", token_name : string = \"csrf_token\", field_name : string = \"\") string"])
