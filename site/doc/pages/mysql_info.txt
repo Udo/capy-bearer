@@ -2,30 +2,88 @@
 function mysql_info(handle : u64, key : string) dval
 
 :params
-handle : the MySQL connection handle
-key : `connection`, `error`, `insert_id`, or `affected_rows`
+handle : a connection handle from `mysql_connect()`
+key : which piece of connection state to read
 
 :returns
-The value for `key`.
-
-:errors
-The function stops with an error for an unknown key. The error lists the valid keys.
+The value for `key`, as a `dval` carrying its natural type.
 
 :content
-`mysql_info()` reads connection state, the latest error text, the last automatic row ID, or the changed-row count.
+`mysql_info()` reads state that belongs to a connection rather than to a result set — whether the connection is live, what the last error was, and what the last statement did.
 
-Use a converter with a fallback because the values have different types.
+## Keys
+
+| Key | Type | Meaning |
+| --- | --- | --- |
+| `connection` | bool | whether the handle is currently connected |
+| `error` | string | the last error text, empty when the last call succeeded |
+| `insert_id` | u64 | the `AUTO_INCREMENT` value the last `INSERT` generated |
+| `affected_rows` | u64 | rows changed by the last `INSERT`, `UPDATE` or `DELETE` |
+
+Each returns a `dval` carrying its natural type, so you can print it, store it, or pass it on without converting anything:
 
 :example capy render
-var database := mysql_connect("localhost", "root", "", "")
-var live := bool(mysql_info(database, "connection"), false)
-var message := string(mysql_info(database, "error"), "")
-var id := u64(mysql_info(database, "insert_id"), 0)
-var rows := u64(mysql_info(database, "affected_rows"), 0)
+var database := mysql_connect("localhost", "app", "secret", "shop")
+var live := mysql_info(database, "connection")
+var message := mysql_info(database, "error")
+var id := mysql_info(database, "insert_id")
+var rows := mysql_info(database, "affected_rows")
 print(live, " ", message, " ", id, " ", rows, "\n")
-if database != u64(0) { mysql_disconnect(database) }
+
+:content
+
+## When you need a converter
+
+Only when you need a Capy-typed value rather than a `dval` — for arithmetic, for a typed local, or for an `if`:
+
+:example capy render
+var database := mysql_connect("localhost", "app", "secret", "shop")
+mysql_query(database, "INSERT INTO orders (total) VALUES (?)", dval([500]))
+var id := u64(mysql_info(database, "insert_id"), 0)
+print("next id would be ", id + u64(1), "\n")
+
+:content
+
+The fallback is what you get when the key holds no usable value. For `insert_id` after a statement that generated none, that is `0`.
+
+## Checking a write did something
+
+`affected_rows` is the difference between "the statement ran" and "the statement changed a row". An `UPDATE` matching nothing succeeds and affects zero rows:
+
+:example capy render
+var database := mysql_connect("localhost", "app", "secret", "shop")
+mysql_query(database, "UPDATE orders SET total = ? WHERE id = ?", dval([500, 42]))
+var changed := u64(mysql_info(database, "affected_rows"), 0)
+if changed == u64(0) {
+    print("no such order\n")
+} else {
+    print("updated ", changed, " row(s)\n")
+}
+
+:content
+
+## Errors, and what to check after a query
+
+`mysql_query()` reports failure through the connection, so `error` is what you read after a query returns nothing useful:
+
+:example capy render
+var database := mysql_connect("localhost", "app", "secret", "shop")
+var rows := mysql_query(database, "SELECT id FROM orders WHERE total > ?", dval([100]))
+var failure := string(mysql_info(database, "error"), "")
+if length(failure) > 0 {
+    print("query failed: ", failure, "\n")
+} else {
+    print(length(rows), " row(s)\n")
+}
+
+:errors
+An unrecognised `key` is a hard error naming the key and listing the valid ones. It is not reported as an empty value, so a typo cannot be mistaken for "no data".
+
+Reading state from a handle that never connected returns the fallback for each key rather than raising — check `connection` first when the connection itself is in doubt.
 
 :see
 mysql_connect
 mysql_disconnect
+mysql_escape
 mysql_query
+sqlite_info
