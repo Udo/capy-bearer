@@ -10,8 +10,7 @@ postfix : text after the formatted value
 formatted string
 
 :see
->types
-0_DValue
+type/dvalue
 json_encode
 print
 

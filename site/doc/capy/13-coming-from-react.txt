@@ -83,8 +83,8 @@ No asset registry, no island registry, no JSX-style component tags, no built-in 
 Bearer reports the source path and the compiler output, and writes the full output under `BIN_DIRECTORY`. A compile error names the unit and line, not a bundler stack.
 
 :see
->1_RENDER
->1_COMPONENT
->0_Request
+>handler/render
+>handler/component
+>type/request
 component
 component_render

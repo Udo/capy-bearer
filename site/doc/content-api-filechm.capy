@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["path : path of the file or directory", "mode : Unix permission bits as a decimal `s32`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "file_stat", "file_put_contents", "file_fsync"])
+        page["see"] = dval([{label: "file_stat", href: "/doc/api/file-stat/"}, {label: "file_put_contents", href: "/doc/api/file-put-contents/"}, {label: "file_fsync", href: "/doc/api/file-fsync/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-chmod.txt\", \"secret\")\nprint(file_chmod(\"/tmp/doc-chmod.txt\", 384), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

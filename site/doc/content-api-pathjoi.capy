@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["base : the base path", "child : the path to append", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "path_real", "path_is_within"])
+        page["see"] = dval([{label: "path_real", href: "/doc/api/path-real/"}, {label: "path_is_within", href: "/doc/api/path-is-within/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(path_join(\"/var/www\", \"site/index.capy\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

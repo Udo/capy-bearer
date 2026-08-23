@@ -72,5 +72,5 @@ if component_exists("/doc/examples/card.capy") {
 component_exists
 component_render
 component_resolve
-1_COMPONENT
-0_Request
+handler/component
+type/request

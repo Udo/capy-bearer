@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["uri : the URI or URL text", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">uri", "parse_query"])
+        page["see"] = dval([{label: "parse_query", href: "/doc/api/parse-query/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var parsed := parse_uri(\"https://example.test/docs?name=Ada\")\nprint(parsed[\"parts\"][\"path\"], \" \", parsed[\"query\"][\"name\"], \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

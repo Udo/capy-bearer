@@ -21,6 +21,6 @@ user = set(user, "name", "Ada")
 print(user.name, "\n")
 
 :see
-0_DValue
+type/dvalue
 get
 delete

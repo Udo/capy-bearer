@@ -16,6 +16,5 @@ It follows symbolic links and removes dot segments. It returns an empty string w
 print(path_real("/tmp"), "\n")
 
 :see
->sys
 path_is_within
 path_join

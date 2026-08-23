@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["source : JSON source text", "index : byte offset where the scan starts", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["json_decode", "json_encode"])
+        page["see"] = dval([{label: "json_decode", href: "/doc/api/json-decode/"}, {label: "json_encode", href: "/doc/api/json-encode/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(json_consume_space(\" \\t\\nvalue\", 0), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

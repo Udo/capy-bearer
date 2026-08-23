@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["value : a source string", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">0_String", "length"])
+        page["see"] = dval([{label: "string", href: "/doc/type/string/"}, {label: "length", href: "/doc/api/length/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var source := \"token\"\nvar copy := clone(source)\nprint(length(source), \" \", length(copy), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

@@ -20,7 +20,6 @@ print(f64(" 3.5 "), "\n")
 print(f64("not a number", 9.0), "\n")
 
 :see
->types
 f64
 s64
 u64

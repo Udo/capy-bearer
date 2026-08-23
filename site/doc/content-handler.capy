@@ -1,0 +1,115 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "cli" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "handler/cli"
+        page["kind"] = "handler"
+        page["slug"] = "cli"
+        page["route"] = "/doc/handler/cli/"
+        page["title"] = "CLI"
+        page["content"] = "`CLI` defines the local command entrypoint.\n\nThe handler has one parameter named `request` with type `dval`. Read command data from the request snapshot. Use `print` to write command output.\n"
+        page["label"] = "cli"
+        page["capy_sig_lines"] = dval(["function CLI(request : dval)"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([{label: "request", href: "/doc/type/request/"}, {label: "render", href: "/doc/handler/render/"}])
+        page["examples"] = dval([{entry: "cli", caption: "", body: "print(string(request.method, \"\"), \"\\n\")\n"}])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "component" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "handler/component"
+        page["kind"] = "handler"
+        page["slug"] = "component"
+        page["route"] = "/doc/handler/component/"
+        page["title"] = "COMPONENT"
+        page["content"] = "`COMPONENT` marks a function as a renderable fragment. Another unit reaches it with `component()` or `component_render()`; it is never routed to directly by a URL.\n\nThe handler takes one parameter, `request`, of type `dval`, and returns nothing. Everything it `print`s becomes the fragment's output.\n\n## Plain and named handlers\n\nA file with a single fragment defines `COMPONENT`. Callers name just the file:\n\n    component_render(\"lib/card.capy\")\n\nA file that holds several related fragments gives each one a name, and callers select it with a `:` suffix:\n\n    component_render(\"lib/widgets.capy:CARD\")\n\nA caller inside that same file can use the bare suffix form, `component_render(\":CARD\")`, which resolves to the current file.\n\nNames are matched exactly and are conventionally uppercase.\n\n## Reading input\n\nCaller-supplied props arrive as `request.props`. Read them through `string()`, `s64()`, and the other converters so a missing key has a defined value:\n\n    var title := string(request.props.title, \"Untitled\")\n\n`request.props` is swapped in for the duration of the call and restored when the handler returns, so a component never disturbs its caller's props, and nested components each read their own. The rest of `request` — query, form, headers, session — is the live request and is shared with the caller.\n\n## Lifecycle\n\nThe first time a unit is used in a request, its `ONCE` handler runs before the component handler. A component may render other components; each nested call resolves relative paths against its own file.\n"
+        page["errors"] = "A caller that names a component Bearer cannot resolve gets a `500` status and a banner element in place of the fragment; the handler in this file never runs. Callers that treat a fragment as optional should guard with `component_exists()`."
+        page["label"] = "component"
+        page["capy_sig_lines"] = dval(["function COMPONENT(request : dval)", "function COMPONENT:NAME(request : dval)"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([{label: "component", href: "/doc/api/component/"}, {label: "component_render", href: "/doc/api/component-render/"}, {label: "component_exists", href: "/doc/api/component-exists/"}, {label: "request", href: "/doc/type/request/"}, {label: "render", href: "/doc/handler/render/"}])
+        page["examples"] = dval([{entry: "component", caption: "", body: "print(string(request.props.name, \"guest\"))\n"}, {entry: "component", caption: "read several props with defaults", body: "var title := string(request.props.title, \"Untitled\")\nvar count := s64(request.props.count, 0)\nprint(\"<article><h3>\", title, \"</h3><p>\", count, \"</p></article>\")\n"}, {entry: "component", caption: "a fragment that nests another fragment", body: "print(\"<section>\")\ncomponent_render(\"/doc/examples/card.capy:CARD\", {title: string(request.props.title, \"Untitled\")})\nprint(\"</section>\")\n"}])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "init" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "handler/init"
+        page["kind"] = "handler"
+        page["slug"] = "init"
+        page["route"] = "/doc/handler/init/"
+        page["title"] = "INIT"
+        page["content"] = "`INIT` defines the unit materialization hook.\n\nBearer runs this hook before dispatch in a request workspace. The handler has one parameter named `request` with type `dval`.\n"
+        page["label"] = "init"
+        page["capy_sig_lines"] = dval(["function INIT(request : dval)"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([{label: "request", href: "/doc/type/request/"}, {label: "once", href: "/doc/handler/once/"}])
+        page["examples"] = dval([{entry: "init", caption: "", body: "print(string(request.method, \"\"), \"\\n\")\n"}])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "once" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "handler/once"
+        page["kind"] = "handler"
+        page["slug"] = "once"
+        page["route"] = "/doc/handler/once/"
+        page["title"] = "ONCE"
+        page["content"] = "`ONCE` defines the request-local unit hook.\n\nBearer runs this hook before the first unit entry or component call. The handler has one parameter named `request` with type `dval`.\n"
+        page["label"] = "once"
+        page["capy_sig_lines"] = dval(["function ONCE(request : dval)"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([{label: "request", href: "/doc/type/request/"}, {label: "init", href: "/doc/handler/init/"}])
+        page["examples"] = dval([{entry: "once", caption: "", body: "print(string(request.method, \"\"), \"\\n\")\n"}])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "render" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "handler/render"
+        page["kind"] = "handler"
+        page["slug"] = "render"
+        page["route"] = "/doc/handler/render/"
+        page["title"] = "RENDER"
+        page["content"] = "`RENDER` is the HTTP entrypoint of a unit. When a request routes to a `.capy` file, Bearer calls that file's `RENDER` handler.\n\nThe handler takes one parameter, `request`, of type `dval`, and returns nothing. Everything it `print`s becomes the response body.\n\n## A minimal page\n\n    function RENDER(request : dval) {\n        print(\"<h1>Hello</h1>\")\n    }\n\nRead input from the request snapshot with a converter and a fallback, so a missing parameter has a defined value:\n\n    var name := string(request.query.name, \"guest\")\n\n## Response control\n\n`print()` writes the body. Status, headers, and cookies are set by calling the response functions *before* output is flushed:\n\n    response_status(404)\n    response_header(\"Cache-Control\", \"no-store\")\n    response_cookie(\"visited\", \"1\")\n\n`redirect()` sets the status and `Location` header together. A handler may `return` early at any point; whatever it printed so far is still sent.\n\n## Named handlers\n\n`RENDER:NAME` declares an additional named entrypoint in the same file, selected by the caller rather than by the URL path. A file's unnamed `RENDER` remains the one that plain routing reaches.\n\n## What runs around it\n\nThe unit's `ONCE` handler runs before `RENDER` the first time the unit is used in a request. Fragments are pulled in with `component_render()` or `component()`; another unit's exported functions are reached with `unit_load()` or `unit_call()`.\n\nEvery Capy unit must export at least one handler — `RENDER`, `CLI`, `COMPONENT`, `WS`, `ONCE`, or `INIT` — or metadata via `#exports`. A file with none fails to compile.\n"
+        page["label"] = "render"
+        page["capy_sig_lines"] = dval(["function RENDER(request : dval)", "function RENDER:NAME(request : dval)"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([{label: "request", href: "/doc/type/request/"}, {label: "component", href: "/doc/handler/component/"}, {label: "cli", href: "/doc/handler/cli/"}, {label: "ws", href: "/doc/handler/ws/"}, {label: "component", href: "/doc/api/component/"}, {label: "response_status", href: "/doc/api/response-status/"}, {label: "redirect", href: "/doc/api/redirect/"}])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(string(request.method, \"\"), \"\\n\")\n"}, {entry: "render", caption: "read a query parameter with a fallback", body: "print(\"<h1>Hello, \", string(request.query.name, \"guest\"), \"</h1>\", \"\\n\")\n"}, {entry: "render", caption: "set a status and header before printing", body: "response_status(201)\nresponse_header(\"X-Demo\", \"yes\")\nprint(\"created\\n\")\n"}, {entry: "render", caption: "return early", body: "if !request.query.id? {\n    response_status(400)\n    print(\"id required\\n\")\n    return\n}\nprint(\"id \", s64(request.query.id, 0), \"\\n\")\n"}])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    if slug == "ws" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "handler/ws"
+        page["kind"] = "handler"
+        page["slug"] = "ws"
+        page["route"] = "/doc/handler/ws/"
+        page["title"] = "WS"
+        page["content"] = "`WS` defines the WebSocket message handler.\n\nThe handler has one parameter named `request` with type `dval`. Read the message from `request.body`. Read connection data from `request.websocket`.\n\nUse `ws_send`, `ws_send_to`, or `ws_close` to affect the connection.\n"
+        page["label"] = "ws"
+        page["capy_sig_lines"] = dval(["function WS(request : dval)"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([{label: "request", href: "/doc/type/request/"}, {label: "render", href: "/doc/handler/render/"}])
+        page["examples"] = dval([{entry: "ws", caption: "", body: "ws_send(\"echo: \" + string(request.body, \"\"), false)\n"}])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

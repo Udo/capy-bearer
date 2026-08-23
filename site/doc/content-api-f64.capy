@@ -17,7 +17,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["value : value to convert", "fallback : value to return when conversion fails", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "f64", "s64", "u64"])
+        page["see"] = dval([{label: "f64", href: "/doc/api/f64/"}, {label: "s64", href: "/doc/api/s64/"}, {label: "u64", href: "/doc/api/u64/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(f64(\" 3.5 \"), \"\\n\")\nprint(f64(\"not a number\", 9.0), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

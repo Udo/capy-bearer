@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["encoded : BRRB data", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["brb_encode", "json_decode"])
+        page["see"] = dval([{label: "brb_encode", href: "/doc/api/brb-encode/"}, {label: "json_decode", href: "/doc/api/json-decode/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var value := brb_decode(brb_encode(dval({\"name\": \"Ada\"})))\nprint(value[\"name\"], \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

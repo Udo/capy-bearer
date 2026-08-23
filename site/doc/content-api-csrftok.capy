@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["session_name : the session and cookie name", "token_name : the token namespace in the session", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["csrf_field", "csrf_valid", "csrf_rotate"])
+        page["see"] = dval([{label: "csrf_field", href: "/doc/api/csrf-field/"}, {label: "csrf_valid", href: "/doc/api/csrf-valid/"}, {label: "csrf_rotate", href: "/doc/api/csrf-rotate/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var token := csrf_token(\"capy-doc-session\")\nprint(length(token) > 0, \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

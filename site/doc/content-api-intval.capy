@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["raw : text that can contain an integer", "base : number base", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["trim"])
+        page["see"] = dval([{label: "trim", href: "/doc/api/trim/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(int_val(\"42\"), \" / \", int_val(\"ff\", 16), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

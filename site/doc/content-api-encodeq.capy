@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["map : map-shaped `dval` of URL parameters", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">uri", "redirect", "request_context_params"])
+        page["see"] = dval([{label: "redirect", href: "/doc/api/redirect/"}, {label: "request_context_params", href: "/doc/api/request-context-params/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var query := dval({\"name\": \"Ada\"})\nprint(encode_query(query), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

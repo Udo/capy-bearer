@@ -18,5 +18,5 @@ var copy := clone(source)
 print(length(source), " ", length(copy), "\n")
 
 :see
->0_String
+>type/string
 length

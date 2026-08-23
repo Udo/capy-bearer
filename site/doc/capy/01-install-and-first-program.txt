@@ -68,8 +68,8 @@ Then add one standard-library call, such as `response_header("Content-Type", "te
 Continue with basic source syntax before you add request data or application APIs.
 
 :see
-1_RENDER
-1_CLI
+handler/render
+handler/cli
 print
 capy-02-source-structure-and-syntax
 capy-06-strings-and-markup

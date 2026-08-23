@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["value : a string or `dval` value", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["json_decode", "html_escape"])
+        page["see"] = dval([{label: "json_decode", href: "/doc/api/json-decode/"}, {label: "html_escape", href: "/doc/api/html-escape/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(json_encode(dval({\"name\": \"Ada\", \"middle\": none})), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

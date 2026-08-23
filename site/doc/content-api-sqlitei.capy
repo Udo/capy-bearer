@@ -17,7 +17,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["handle : the SQLite connection handle", "key : `error`, `insert_id`, or `affected_rows`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sqlite", "sqlite_connect", "sqlite_disconnect", "sqlite_query"])
+        page["see"] = dval([{label: "sqlite_connect", href: "/doc/api/sqlite-connect/"}, {label: "sqlite_disconnect", href: "/doc/api/sqlite-disconnect/"}, {label: "sqlite_query", href: "/doc/api/sqlite-query/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var db := sqlite_connect(\":memory:\")\nsqlite_query(db, \"create table t(id integer primary key)\")\nsqlite_query(db, \"insert into t values(1)\")\nvar message := string(sqlite_info(db, \"error\"), \"\")\nvar id := u64(sqlite_info(db, \"insert_id\"), 0)\nvar rows := u64(sqlite_info(db, \"affected_rows\"), 0)\nprint(message, \" \", id, \" \", rows, \"\\n\")\nsqlite_disconnect(db)\n"}])
         page["guide_examples"] = dval([])
         return page

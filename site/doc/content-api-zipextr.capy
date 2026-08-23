@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["path : archive path", "destination : destination directory", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "zip_create", "zip_list", "zip_read"])
+        page["see"] = dval([{label: "zip_create", href: "/doc/api/zip-create/"}, {label: "zip_list", href: "/doc/api/zip-list/"}, {label: "zip_read", href: "/doc/api/zip-read/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var archive := file_temp(\"/tmp/capy-zip-\") + \".zip\"\nvar destination := archive + \".out\"\nzip_create(archive, dval({\"note.txt\": \"hello\"}))\nzip_extract(archive, destination)\nprint(file_get_contents(destination + \"/note.txt\"), \"\\n\")\ndir_remove(destination, true)\nfile_unlink(archive)\n"}])
         page["guide_examples"] = dval([])
         return page

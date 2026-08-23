@@ -13,6 +13,5 @@ The value does not change when `cwd_set()` changes the current directory.
 print(process_start_directory(), "\n")
 
 :see
->sys
 cwd_get
 cwd_set

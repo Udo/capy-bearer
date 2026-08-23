@@ -18,7 +18,6 @@ file_close(handle)
 print(file_get_contents("/tmp/doc-open.txt"), "\n")
 
 :see
->sys
 file_read
 file_write
 file_close

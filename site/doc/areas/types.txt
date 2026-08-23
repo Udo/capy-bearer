@@ -1,7 +1,7 @@
 Types
 :order 10
 
-0_Request
+type/request
 array_merge
 length
 dval
@@ -11,7 +11,7 @@ s64
 u64
 f64
 string
-0_DValue
+type/dvalue
 clear
 delete
 get
@@ -26,15 +26,15 @@ pop
 push
 set
 values
-0_String
-2_StringList_filter
-2_StringList_map
-2_StringList_each
-2_StringList_unique
-2_StringList_sort
-2_StringList_some
-2_StringList_every
-2_StringList_find
+type/string
+filter
+map
+each
+unique
+sort
+some
+every
+find
 set
 bool
 f64

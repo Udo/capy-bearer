@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["handle : writable handle returned by `file_open`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "file_write", "file_close", "file_open"])
+        page["see"] = dval([{label: "file_write", href: "/doc/api/file-write/"}, {label: "file_close", href: "/doc/api/file-close/"}, {label: "file_open", href: "/doc/api/file-open/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var handle := file_open(\"/tmp/doc-fsync.txt\", \"w\")\nfile_write(handle, \"durable\")\nprint(file_fsync(handle), \"\\n\")\nfile_close(handle)\n"}])
         page["guide_examples"] = dval([])
         return page

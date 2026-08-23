@@ -78,10 +78,10 @@ if request.query.page? {
 }
 
 :see
->1_RENDER
->1_COMPONENT
->1_CLI
->1_WS
+>handler/render
+>handler/component
+>handler/cli
+>handler/ws
 string
 response_status
 response_header

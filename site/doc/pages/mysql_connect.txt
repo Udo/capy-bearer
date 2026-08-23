@@ -21,6 +21,5 @@ if bool(mysql_info(database, "connection"), false) { print("connected\n") } else
 if database != u64(0) { mysql_disconnect(database) }
 
 :see
->mysql
 mysql_info
 mysql_disconnect

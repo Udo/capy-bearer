@@ -148,7 +148,7 @@ The key has type `string`. `dval` list keys are decimal strings. Each item is a 
 A `dval` keeps identity only inside one workspace. Bearer, module, component, task, custom export, codec, request, and serialization boundaries copy BRRB. Identity never crosses a boundary. JSON and YAML preserve `none` as `null`. XML writes `none` as empty text and cannot recover the distinction.
 
 :see
-0_DValue
+type/dvalue
 json_decode
 yaml_decode
 capy-07-collections-and-records

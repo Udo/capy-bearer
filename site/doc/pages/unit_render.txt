@@ -5,10 +5,9 @@ function unit_render(name : string)
 name : unit path
 
 :see
->ob
 unit_call
 unit_load
-1_RENDER
+handler/render
 component
 
 :content

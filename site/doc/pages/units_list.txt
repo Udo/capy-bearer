@@ -5,7 +5,6 @@ function units_list() dval
 a `dval` list of unit paths
 
 :see
->runtime
 unit_info
 unit_compile
 unit_load

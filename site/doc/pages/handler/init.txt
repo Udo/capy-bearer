@@ -13,5 +13,5 @@ Bearer runs this hook before dispatch in a request workspace. The handler has on
 print(string(request.method, ""), "\n")
 
 :see
-0_Request
-1_ONCE
+type/request
+handler/once

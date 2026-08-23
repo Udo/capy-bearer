@@ -15,7 +15,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["values : the values to output", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "ob_start"])
+        page["see"] = dval([{label: "string", href: "/doc/api/string/"}, {label: "ob_start", href: "/doc/api/ob-start/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(\"hello docs\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

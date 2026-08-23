@@ -41,12 +41,12 @@ DOC_PAGE_ALIASES = {
     "push": "push",
     "set": "set",
     "values": "values",
-    "each": "2_StringList_each",
-    "every": "2_StringList_every",
-    "find": "2_StringList_find",
-    "some": "2_StringList_some",
-    "sort": "2_StringList_sort",
-    "unique": "2_StringList_unique",
+    "each": "each",
+    "every": "every",
+    "find": "find",
+    "some": "some",
+    "sort": "sort",
+    "unique": "unique",
 }
 
 # name, needs_doc, status. status: public | internal | integration

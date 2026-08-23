@@ -17,5 +17,5 @@ value : value to test
 print(is_array(dval({"name": "Ada"})), "\n")
 
 :see
-0_DValue
+type/dvalue
 is_list

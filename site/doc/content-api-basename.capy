@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["path : a path string", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["dirname", "path_join"])
+        page["see"] = dval([{label: "dirname", href: "/doc/api/dirname/"}, {label: "path_join", href: "/doc/api/path-join/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(basename(\"/var/www/site/index.capy\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

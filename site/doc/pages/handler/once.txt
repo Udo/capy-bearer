@@ -13,5 +13,5 @@ Bearer runs this hook before the first unit entry or component call. The handler
 print(string(request.method, ""), "\n")
 
 :see
-0_Request
-1_INIT
+type/request
+handler/init

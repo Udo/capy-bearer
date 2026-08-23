@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["path : the directory path to remove", "recursive : `true` removes the directory and its contents", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["mkdir", "dir_list", "file_unlink"])
+        page["see"] = dval([{label: "mkdir", href: "/doc/api/mkdir/"}, {label: "dir_list", href: "/doc/api/dir-list/"}, {label: "file_unlink", href: "/doc/api/file-unlink/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var root := file_temp(\"/tmp/capy-doc-dir-remove-\")\nfile_unlink(root)\nmkdir(root)\nfile_put_contents(path_join(root, \"child.txt\"), \"x\")\nprint(dir_remove(root, true), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

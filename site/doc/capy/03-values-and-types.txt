@@ -143,7 +143,7 @@ An alias does not create a new runtime type.
 capy-04-expressions-and-control-flow
 capy-07-collections-and-records
 capy-08-dynamic-values
-0_DValue
+type/dvalue
 bool
 s32
 s64

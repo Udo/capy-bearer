@@ -21,6 +21,5 @@ var document := markdown_to_ast("# Title")
 print(document["type"], "\n")
 
 :see
->markup
 markdown_to_html
 json_encode

@@ -16,7 +16,6 @@ file_put_contents("/tmp/doc-chmod.txt", "secret")
 print(file_chmod("/tmp/doc-chmod.txt", 384), "\n")
 
 :see
->sys
 file_stat
 file_put_contents
 file_fsync

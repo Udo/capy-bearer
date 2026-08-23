@@ -6,7 +6,9 @@ validated.
 
 ## Where the sources live
 
-- `site/doc/pages/*.txt` — one page per documented API.
+- `site/doc/pages/*.txt` contains function pages.
+- `site/doc/pages/type/*.txt` contains type pages.
+- `site/doc/pages/handler/*.txt` contains handler pages.
 - `site/doc/capy/*.txt` — the numbered Learn Capy guides.
 - `site/doc/areas/*.txt` — per-area name listings used for grouping.
 

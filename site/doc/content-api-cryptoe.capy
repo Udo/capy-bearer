@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["left : the expected byte string", "right : the submitted byte string", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["hmac_sha256_hex", "csrf_valid"])
+        page["see"] = dval([{label: "hmac_sha256_hex", href: "/doc/api/hmac-sha256-hex/"}, {label: "csrf_valid", href: "/doc/api/csrf-valid/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var expected := hmac_sha256_hex(\"key\", \"payload\")\nif crypto_equal(expected, hmac_sha256_hex(\"key\", \"payload\")) { print(\"valid\\n\") } else { print(\"invalid\\n\") }\n"}])
         page["guide_examples"] = dval([])
         return page

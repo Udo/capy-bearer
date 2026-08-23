@@ -9,24 +9,10 @@ ROOT = Path(__file__).resolve().parents[1]
 DOC = ROOT / "site" / "doc"
 OUT = DOC / "content"
 API_OUT = OUT / "api"
+TYPE_OUT = OUT / "type"
+HANDLER_OUT = OUT / "handler"
 GUIDE_OUT = OUT / "guide"
 
-GUIDE_REDIRECTS = {
-    "01-getting-started": "01-install-and-first-program",
-    "02-basic-syntax": "02-source-structure-and-syntax",
-    "03-types": "03-values-and-types",
-    "04-variables-scope-and-expressions": "04-expressions-and-control-flow",
-    "05-operators-and-control-flow": "04-expressions-and-control-flow",
-    "06-functions": "05-functions-and-closures",
-    "07-strings-and-markup": "06-strings-and-markup",
-    "08-arrays-tuples-and-structs": "07-collections-and-records",
-    "09-function-values-closures-and-memory": "05-functions-and-closures",
-    "10-dvalues": "08-dynamic-values",
-    "11-web-handlers": "09-web-handlers-and-requests",
-    "12-components-and-units": "10-units-components-and-exports",
-    "13-tasks-and-jobs": "11-tasks-and-jobs",
-    "14-errors-debugging-and-style": "12-errors-testing-and-style",
-}
 
 SECTION_NAMES = {"title", "sig", "params", "returns", "errors", "note", "warning", "content", "see", "output"}
 STOP_WORDS = {"the", "and", "for", "how", "with", "to", "of", "in"}
@@ -45,60 +31,6 @@ def legacy_heading(section: str) -> str:
         return "## PHP & JS Equivalents"
     return "## " + section
 
-
-def guide_canonical(name: str) -> str:
-    return GUIDE_REDIRECTS.get(name, name)
-
-
-def method_label(page: str) -> str:
-    rest = page.split("_", 1)[1] if "_" in page else page
-    owner, _, name = rest.partition("_")
-    if owner == "DValue":
-        return "dval_" + name
-    if owner == "Request":
-        return "ob_start" if name == "ob_start" else "response_status"
-    if owner == "StringList":
-        return name
-    if owner == "StringMap":
-        return name
-    return name or owner
-
-
-def default_title(page: str) -> str:
-    if page.startswith("2_"):
-        return method_label(page)
-    if len(page) > 1 and page[1] == "_":
-        return page.split("_", 1)[1]
-    return page
-
-
-def page_kind(page: str) -> str:
-    if page.startswith("0_"):
-        return "struct"
-    if page.startswith("1_"):
-        return "directive"
-    if page.startswith("2_"):
-        return "method"
-    if page.startswith("3_"):
-        return "info"
-    return "function"
-
-
-def index_label(page: str) -> str:
-    kind = page_kind(page)
-    if kind == "method":
-        return method_label(page)
-    if kind in {"struct", "directive", "info"} and "_" in page:
-        return page.split("_", 1)[1]
-    return page
-
-
-def legacy_index_label(page: str) -> str:
-    if not page.startswith("2_"):
-        return index_label(page)
-    rest = page.split("_", 1)[1]
-    owner, _, name = rest.partition("_")
-    return owner + "::" + name
 
 
 def slugify(value: str) -> str:
@@ -349,45 +281,46 @@ def read_signatures() -> dict[str, list[str]]:
 def main() -> None:
     if OUT.exists():
         shutil.rmtree(OUT)
-    API_OUT.mkdir(parents=True)
-    GUIDE_OUT.mkdir(parents=True)
+    for output in (API_OUT, TYPE_OUT, HANDLER_OUT, GUIDE_OUT):
+        output.mkdir(parents=True)
     signatures = read_signatures()
 
     pages: list[dict] = []
-    used_api: set[str] = set()
-    used_guide: set[str] = set()
-
-    for txt in sorted((DOC / "pages").glob("*.txt")):
-        source_page = txt.stem
+    used = {"api": set(), "type": set(), "handler": set(), "guide": set()}
+    for txt in sorted((DOC / "pages").rglob("*.txt")):
+        relative = txt.relative_to(DOC / "pages").with_suffix("")
+        source_page = relative.as_posix()
+        kind = relative.parts[0] if len(relative.parts) > 1 else "api"
+        if kind not in {"api", "type", "handler"}:
+            raise ValueError(f"unknown documentation page directory: {relative}")
         page = parse_doc(source_page, txt.read_text(encoding="utf-8"))
-        page["label"] = index_label(source_page)
-        page["title"] = page["title"] or default_title(source_page)
-        page["slug"] = unique_slug(slugify(legacy_index_label(source_page)), used_api)
-        page["route"] = "/doc/api/" + page["slug"] + "/"
+        page["kind"] = kind
+        page["label"] = relative.name
+        page["title"] = page["title"] or relative.name
+        page["slug"] = unique_slug(slugify(relative.name), used[kind])
+        page["route"] = f"/doc/{kind}/{page['slug']}/"
         page["capy_sig_lines"] = signatures.get(source_page, [])
         pages.append(page)
-        write_content_module(API_OUT / (page["slug"] + ".capy"), page)
-    canonical_guides: set[str] = set()
     for txt in sorted((DOC / "capy").glob("*.txt")):
-        guide_name = guide_canonical(txt.stem)
-        source_page = "capy-" + guide_name
-        if source_page in canonical_guides:
-            continue
-        canonical_guides.add(source_page)
-        source_path = txt
-        canonical_path = DOC / "capy" / (guide_name + ".txt")
-        if canonical_path.exists():
-            source_path = canonical_path
-        page = parse_doc(source_page, source_path.read_text(encoding="utf-8"))
-        page["label"] = page["title"] or default_title(source_page)
+        source_page = "capy-" + txt.stem
+        page = parse_doc(source_page, txt.read_text(encoding="utf-8"))
+        page["label"] = page["title"] or txt.stem
         page["title"] = page["label"]
-        base_slug = re.sub(r"^[0-9]+-", "", guide_name)
-        page["slug"] = unique_slug(slugify(base_slug), used_guide)
+        page["slug"] = unique_slug(slugify(re.sub(r"^[0-9]+-", "", txt.stem)), used["guide"])
         page["route"] = "/doc/guide/" + page["slug"] + "/"
         pages.append(page)
-        write_content_module(GUIDE_OUT / (page["slug"] + ".capy"), page)
-    combine_content("api")
-    combine_content("guide")
+    targets = {page["source_page"]: page for page in pages}
+    for page in pages:
+        resolved = []
+        for reference in page["see"]:
+            target = reference[1:].strip() if reference.startswith(">") else reference
+            if target not in targets:
+                raise ValueError(f"{page['source_page']}: unknown :see target: {reference}")
+            resolved.append({"label": targets[target]["label"], "href": targets[target]["route"]})
+        page["see"] = resolved
+        write_content_module(OUT / page["kind"] / (page["slug"] + ".capy"), page)
+    for kind in ("api", "type", "handler", "guide"):
+        combine_content(kind)
     shutil.rmtree(OUT)
 
 

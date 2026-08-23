@@ -19,6 +19,5 @@ print(mkdir(path), "\n")
 dir_remove(path, true)
 
 :see
->sys
 dir_remove
 path_join

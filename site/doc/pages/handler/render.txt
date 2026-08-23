@@ -60,10 +60,10 @@ if !request.query.id? {
 print("id ", s64(request.query.id, 0), "\n")
 
 :see
-0_Request
-1_COMPONENT
-1_CLI
-1_WS
+type/request
+handler/component
+handler/cli
+handler/ws
 component
 response_status
 redirect

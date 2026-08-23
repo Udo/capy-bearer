@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["handle : a value from `unit_load()`", "name : an exported function name", "input : optional `dval` input", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["unit_load", "unit_call"])
+        page["see"] = dval([{label: "unit_load", href: "/doc/api/unit-load/"}, {label: "unit_call", href: "/doc/api/unit-call/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var handle := unit_load(\"/doc/examples/call_target.capy\")\nvar result := call(handle, \"echo\", {name: \"Ada\"})\nprint(string(result.name), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

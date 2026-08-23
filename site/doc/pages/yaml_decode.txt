@@ -8,10 +8,9 @@ source : YAML source
 A `dval` that contains the decoded YAML.
 
 :see
->markup
 yaml_encode
 json_decode
-0_DValue
+type/dvalue
 string
 
 :content

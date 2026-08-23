@@ -9,7 +9,6 @@ destination : destination directory
 `true` when the server extracts the archive.
 
 :see
->sys
 zip_create
 zip_list
 zip_read

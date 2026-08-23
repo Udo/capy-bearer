@@ -8,10 +8,9 @@ path : unit path. An empty path selects the current unit
 unit metadata
 
 :see
->runtime
 units_list
 unit_compile
-0_Request
+type/request
 
 :content
 `unit_info` returns metadata for a unit.

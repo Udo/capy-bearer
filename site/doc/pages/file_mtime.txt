@@ -15,7 +15,6 @@ file_put_contents("/tmp/doc-mtime.txt", "x")
 print(file_mtime("/tmp/doc-mtime.txt") > u64(0), "\n")
 
 :see
->sys
 file_stat
 file_get_contents
 file_exists

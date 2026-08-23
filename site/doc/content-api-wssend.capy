@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["connection_id : client ID", "message : message bytes to send", "binary : `true` for a binary frame", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">websocket", "ws_send"])
+        page["see"] = dval([{label: "ws_send", href: "/doc/api/ws-send/"}])
         page["examples"] = dval([{entry: "ws", caption: "", body: "ws_send_to(string(request.websocket.connection_id, \"\"), \"hello\", false)\n"}])
         page["guide_examples"] = dval([])
         return page
@@ -35,7 +35,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["message : message bytes to send", "binary : `true` for a binary frame", "scope : scope identifier", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">websocket", "ws_send_to"])
+        page["see"] = dval([{label: "ws_send_to", href: "/doc/api/ws-send-to/"}])
         page["examples"] = dval([{entry: "ws", caption: "", body: "ws_send(\"hello\", false)\n"}])
         page["guide_examples"] = dval([])
         return page

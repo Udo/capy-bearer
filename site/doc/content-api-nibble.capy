@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["haystack : the string to split", "delim : the delimiter", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "map", "print"])
+        page["see"] = dval([{label: "string", href: "/doc/api/string/"}, {label: "map", href: "/doc/api/map/"}, {label: "print", href: "/doc/api/print/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var path := \"docs/index\"\nprint(nibble(path, \"/\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

@@ -19,5 +19,5 @@ list = pop(list)
 print(list[0], "\n")
 
 :see
-0_DValue
+type/dvalue
 push

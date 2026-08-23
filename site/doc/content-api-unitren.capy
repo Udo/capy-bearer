@@ -15,7 +15,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["name : unit path", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">ob", "unit_call", "unit_load", "1_RENDER", "component"])
+        page["see"] = dval([{label: "unit_call", href: "/doc/api/unit-call/"}, {label: "unit_load", href: "/doc/api/unit-load/"}, {label: "render", href: "/doc/handler/render/"}, {label: "component", href: "/doc/api/component/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "unit_render(\"/tests/capy-cross-target.capy\")\n"}])
         page["guide_examples"] = dval([])
         return page

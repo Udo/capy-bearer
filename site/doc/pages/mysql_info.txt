@@ -26,7 +26,6 @@ print(live, " ", message, " ", id, " ", rows, "\n")
 if database != u64(0) { mysql_disconnect(database) }
 
 :see
->mysql
 mysql_connect
 mysql_disconnect
 mysql_query

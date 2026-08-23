@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["value : string to convert", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "string", "length", "clone", "ascii_safe_name", "base64_decode"])
+        page["see"] = dval([{label: "string", href: "/doc/api/string/"}, {label: "string", href: "/doc/api/string/"}, {label: "length", href: "/doc/api/length/"}, {label: "clone", href: "/doc/api/clone/"}, {label: "ascii_safe_name", href: "/doc/api/ascii-safe-name/"}, {label: "base64_decode", href: "/doc/api/base64-decode/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(upper(\"bearer\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

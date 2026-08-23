@@ -22,7 +22,6 @@ file_append("/tmp/doc-append.txt", "a", "b", "c")
 print(file_get_contents("/tmp/doc-append.txt"), "\n")
 
 :see
->sys
 file_put_contents
 file_get_contents
 file_exists

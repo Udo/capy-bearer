@@ -9,11 +9,10 @@ entries : archive entries
 `true` when the server creates the archive.
 
 :see
->sys
 zip_list
 zip_read
 zip_extract
-0_DValue
+type/dvalue
 
 :content
 `zip_create()` creates a ZIP archive from a `dval` map of entry names and content.

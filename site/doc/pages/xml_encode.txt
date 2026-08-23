@@ -9,10 +9,9 @@ root_name : root element name
 The XML source.
 
 :see
->markup
 xml_decode
 json_encode
-0_DValue
+type/dvalue
 html_escape
 
 :content

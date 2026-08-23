@@ -20,7 +20,6 @@ Use the returned path with file APIs.
 :example capy render
 print(expand_path("sub/page.capy", "/var/www/site"), "\n")
 :see
->sys
 path_join
 path_real
 dirname

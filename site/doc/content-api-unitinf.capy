@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["path : unit path. An empty path selects the current unit", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">runtime", "units_list", "unit_compile", "0_Request"])
+        page["see"] = dval([{label: "units_list", href: "/doc/api/units-list/"}, {label: "unit_compile", href: "/doc/api/unit-compile/"}, {label: "request", href: "/doc/type/request/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var info := unit_info(\"capy-files.capy\")\nprint(bool(info[\"source_exists\"]), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

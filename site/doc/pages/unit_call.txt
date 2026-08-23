@@ -11,12 +11,11 @@ props : function input
 exported function result
 
 :see
->ob
 unit_load
 unit_render
 unit_info
-1_RENDER
-1_COMPONENT
+handler/render
+handler/component
 
 :content
 `unit_call` calls an exported function in a unit.

@@ -9,7 +9,6 @@ entry : entry name
 The uncompressed entry bytes.
 
 :see
->sys
 zip_create
 zip_list
 zip_extract

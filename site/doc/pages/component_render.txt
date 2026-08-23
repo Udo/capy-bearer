@@ -38,4 +38,4 @@ print("\n")
 component
 component_exists
 component_resolve
-1_COMPONENT
+handler/component

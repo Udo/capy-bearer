@@ -8,7 +8,6 @@ path : unit path. An empty path selects the current unit
 `true` if the compiler compiles the unit
 
 :see
->runtime
 unit_info
 units_list
 unit_call

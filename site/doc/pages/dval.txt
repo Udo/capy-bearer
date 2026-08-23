@@ -23,6 +23,6 @@ var profile := dval({name: "Ada", scores: [1, 2, 3]})
 print(string(profile.name), " ", length(profile.scores), "\n")
 
 :see
->0_DValue
+>type/dvalue
 set
 set

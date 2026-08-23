@@ -17,6 +17,5 @@ An absolute `child` replaces `base`. This function does not resolve dot segments
 print(path_join("/var/www", "site/index.capy"), "\n")
 
 :see
->sys
 path_real
 path_is_within

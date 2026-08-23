@@ -19,5 +19,5 @@ var user := dval({"email": "ada@example.test"})
 print(get(user, "email"), "\n")
 
 :see
-0_DValue
+type/dvalue
 has

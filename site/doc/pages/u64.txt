@@ -16,7 +16,6 @@ converted `u64`, or `fallback`
 print(u64("42"), "\n")
 
 :see
->types
 u64
 s64
 f64

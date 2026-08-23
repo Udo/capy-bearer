@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["handle : writable handle returned by `file_open`", "offset : absolute byte offset", "data : text to write", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "file_write", "file_pread", "file_open"])
+        page["see"] = dval([{label: "file_write", href: "/doc/api/file-write/"}, {label: "file_pread", href: "/doc/api/file-pread/"}, {label: "file_open", href: "/doc/api/file-open/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var handle := file_open(\"/tmp/doc-pwrite.txt\", \"w\")\nfile_write(handle, \"hello world\")\nfile_close(handle)\nvar editor := file_open(\"/tmp/doc-pwrite.txt\", \"r+\")\nfile_pwrite(editor, u64(6), \"earth\")\nfile_close(editor)\nprint(file_get_contents(\"/tmp/doc-pwrite.txt\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

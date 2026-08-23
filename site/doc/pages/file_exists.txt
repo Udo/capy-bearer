@@ -15,7 +15,6 @@ file_put_contents("/tmp/doc-exists.txt", "x")
 print(file_exists("/tmp/doc-exists.txt"), "\n")
 
 :see
->sys
 file_stat
 file_unlink
 file_get_contents

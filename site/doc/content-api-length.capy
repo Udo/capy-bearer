@@ -17,7 +17,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["value : text, markup, a `dval` map or list, or an array", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["split", "join"])
+        page["see"] = dval([{label: "split", href: "/doc/api/split/"}, {label: "join", href: "/doc/api/join/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(length(\"capy docs\"), \" / \", length(dval([\"a\", \"b\"])), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

@@ -27,7 +27,6 @@ print(message, " ", id, " ", rows, "\n")
 sqlite_disconnect(db)
 
 :see
->sqlite
 sqlite_connect
 sqlite_disconnect
 sqlite_query

@@ -15,5 +15,5 @@ Use `ws_send`, `ws_send_to`, or `ws_close` to affect the connection.
 ws_send("echo: " + string(request.body, ""), false)
 
 :see
-0_Request
-1_RENDER
+type/request
+handler/render

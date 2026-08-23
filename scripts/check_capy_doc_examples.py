@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import re
 import tempfile
 from pathlib import Path
@@ -125,12 +124,15 @@ def generated_capy_signatures(path: Path) -> dict[str, list[str]]:
     return pages
 
 
+def page_names(pages: Path) -> set[str]:
+    return {path.relative_to(pages).with_suffix("").as_posix() for path in pages.rglob("*.txt")}
+
 def check(pages: Path, manifest: Path, signatures: Path) -> list[str]:
     try:
         statuses = manifest_statuses(manifest)
     except (OSError, ValueError) as error:
         return [f"manifest: {error}"]
-    actual = {path.stem for path in pages.glob("*.txt")}
+    actual = page_names(pages)
     errors = [f"page set: manifest page missing from docs: {name}" for name in sorted(set(statuses) - actual) if statuses[name] != "legacy"]
     for name in sorted(actual & set(statuses)):
         page = pages / f"{name}.txt"
@@ -153,31 +155,12 @@ def check(pages: Path, manifest: Path, signatures: Path) -> list[str]:
     return errors
 
 
-def guide_redirects(path: Path) -> dict[str, str]:
-    spec = importlib.util.spec_from_file_location("capy_docs", path)
-    if spec is None or spec.loader is None:
-        raise ValueError("cannot load guide redirect source")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    redirects = getattr(module, "GUIDE_REDIRECTS", None)
-    if not isinstance(redirects, dict) or not redirects:
-        raise ValueError("guide redirect map is missing")
-    unknown = sorted(set(redirects.values()) - CANONICAL_GUIDES)
-    if unknown:
-        raise ValueError("guide redirect targets are not canonical guides: " + ", ".join(unknown))
-    return redirects
-
-
-def check_language_guides(guides: Path, pages: Path, redirect_source: Path) -> list[str]:
+def check_language_guides(guides: Path, pages: Path) -> list[str]:
     errors: list[str] = []
-    try:
-        redirects = guide_redirects(redirect_source)
-    except (OSError, ValueError) as error:
-        return [f"guide redirects: {error}"]
     articles = {article.stem: article for article in guides.glob("*.txt")}
     errors += [f"noncanonical guide source remains: {slug}" for slug in sorted(set(articles) - CANONICAL_GUIDES)]
     valid_targets = {f"capy-{slug}" for slug in CANONICAL_GUIDES}
-    valid_targets.update(page.stem for page in pages.glob("*.txt"))
+    valid_targets.update(page_names(pages))
     for canonical in sorted(CANONICAL_GUIDES):
         page = articles.get(canonical)
         if page is None:
@@ -225,9 +208,7 @@ def check_language_guides(guides: Path, pages: Path, redirect_source: Path) -> l
                 for target in (item.strip() for item in body.splitlines()):
                     if not target or target.startswith(">"):
                         continue
-                    if target in {f"capy-{old}" for old in redirects}:
-                        errors.append(f"{page.name}:{line}: :see target is not canonical: {target}")
-                    elif target not in valid_targets:
+                    if target not in valid_targets:
                         errors.append(f"{page.name}:{line}: unknown :see target: {target}")
     return errors
 
@@ -239,7 +220,7 @@ def fixture_manifest(path: Path) -> None:
 def self_test() -> int:
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
-        pages, guides, redirect_source = root / "pages", root / "guides", root / "generate_capy_docs.py"
+        pages, guides = root / "pages", root / "guides"
         pages.mkdir(); guides.mkdir()
         manifest, signatures = root / "manifest.h", root / "signatures.h"
         fixture_manifest(manifest); signatures.write_text('{"ok", "function ok"},\n')
@@ -265,14 +246,9 @@ def self_test() -> int:
         if not check_example_body(pages / "ok.txt", 1, "render", "value->member"):
             print("self-test accepted C++ member access in a Capy example")
             return 1
-        pairs = []
-        canonical_sources = sorted(CANONICAL_GUIDES)
-        for index, canonical in enumerate(canonical_sources + canonical_sources[3:5], 1):
-            old = f"{index:02d}-old"
-            pairs.append(f'"{old}": "{canonical}"')
-            (guides / canonical).with_suffix('.txt').write_text(':title\nGuide\n:content\n## First step\ntext\n:example capy render\nprint("ok")\n:output\nok\n:content\n## Next step\ntext\n:see\nok\n')
-        redirect_source.write_text("GUIDE_REDIRECTS = {" + ", ".join(pairs) + "}\n")
-        guide_errors = check_language_guides(guides, pages, redirect_source)
+        for canonical in CANONICAL_GUIDES:
+            (guides / f"{canonical}.txt").write_text(":title\nGuide\n:content\n## First step\ntext\n:example capy render\nprint(\"ok\")\n:output\nok\n:content\n## Next step\ntext\n:see\nok\n")
+        guide_errors = check_language_guides(guides, pages)
         if guide_errors:
             print("self-test guide fixture failed:", *guide_errors, sep="\n- ")
             return 1
@@ -283,7 +259,7 @@ def self_test() -> int:
             print("self-test output whitespace was not preserved")
             return 1
         (guides / sorted(CANONICAL_GUIDES)[0]).with_suffix('.txt').write_text(':title\nGuide\n:content\n## Purpose\ntext\n')
-        if not check_language_guides(guides, pages, redirect_source):
+        if not check_language_guides(guides, pages):
             print("self-test incomplete guide was accepted")
             return 1
     print("Capy documentation example checker self-tests passed")
@@ -295,14 +271,13 @@ def main() -> int:
     parser.add_argument("--pages", type=Path, default=ROOT / "site/doc/pages")
     parser.add_argument("--manifest", type=Path, default=ROOT / "src/capy/parity_manifest.h")
     parser.add_argument("--guides", type=Path, default=ROOT / "site/doc/capy")
-    parser.add_argument("--redirect-source", type=Path, default=ROOT / "scripts/generate_capy_docs.py")
     parser.add_argument("--signatures", type=Path, default=ROOT / "site/doc/lib/capy_signatures.generated.h")
     parser.add_argument("--allow-incomplete", action="store_true")
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:
         return self_test()
-    errors = check(args.pages, args.manifest, args.signatures) + check_language_guides(args.guides, args.pages, args.redirect_source)
+    errors = check(args.pages, args.manifest, args.signatures) + check_language_guides(args.guides, args.pages)
     if errors:
         print("Capy documentation examples INCOMPLETE" if args.allow_incomplete else "Capy documentation examples FAILED")
         print(*("- " + error for error in errors), sep="\n")

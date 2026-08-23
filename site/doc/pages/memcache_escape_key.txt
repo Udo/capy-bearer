@@ -18,4 +18,3 @@ The dedicated Memcache operations escape keys before they send requests.
 print(memcache_escape_key("a key"), "\n")
 
 :see
->memcache

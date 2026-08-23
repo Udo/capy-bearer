@@ -18,6 +18,5 @@ var root := "/tmp"
 print(path_is_within("/tmp", root), "\n")
 
 :see
->sys
 path_real
 path_join

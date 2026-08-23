@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["from : the first range value", "to : the second range value", "precision : the output precision", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["draw_int", "gen_float", "gen_noise01"])
+        page["see"] = dval([{label: "draw_int", href: "/doc/api/draw-int/"}, {label: "gen_float", href: "/doc/api/gen-float/"}, {label: "gen_noise01", href: "/doc/api/gen-noise01/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var value := draw_float(0.0, 1.0)\nprint(value >= 0.0, \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

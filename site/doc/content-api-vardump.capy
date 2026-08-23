@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["value : value to format", "prefix : text before the formatted value", "postfix : text after the formatted value", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "0_DValue", "json_encode", "print"])
+        page["see"] = dval([{label: "dvalue", href: "/doc/type/dvalue/"}, {label: "json_encode", href: "/doc/api/json-encode/"}, {label: "print", href: "/doc/api/print/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(var_dump(dval({\"name\": \"Ada\"})), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

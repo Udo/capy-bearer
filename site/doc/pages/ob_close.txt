@@ -13,6 +13,5 @@ ob_close()
 print("kept\n")
 
 :see
->ob
 ob_start
 ob_get_close

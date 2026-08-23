@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["connection_id : client ID. The default is the current client.", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">websocket"])
+        page["see"] = dval([])
         page["examples"] = dval([{entry: "ws", caption: "", body: "ws_close()\n"}])
         page["guide_examples"] = dval([])
         return page

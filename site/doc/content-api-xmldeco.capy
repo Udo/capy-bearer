@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["source : XML source", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">markup", "xml_encode", "json_decode", "0_DValue", "0_String"])
+        page["see"] = dval([{label: "xml_encode", href: "/doc/api/xml-encode/"}, {label: "json_decode", href: "/doc/api/json-decode/"}, {label: "dvalue", href: "/doc/type/dvalue/"}, {label: "string", href: "/doc/type/string/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var value := xml_decode(\"<root><name>Ada</name></root>\")\nprint(value[\"children\"][0][\"text\"], \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

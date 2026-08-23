@@ -18,7 +18,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["path : the unit path to load", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["call", "unit_call", "unit_info", "unit_compile", "unit_render", "component", "1_COMPONENT"])
+        page["see"] = dval([{label: "call", href: "/doc/api/call/"}, {label: "unit_call", href: "/doc/api/unit-call/"}, {label: "unit_info", href: "/doc/api/unit-info/"}, {label: "unit_compile", href: "/doc/api/unit-compile/"}, {label: "unit_render", href: "/doc/api/unit-render/"}, {label: "component", href: "/doc/api/component/"}, {label: "component", href: "/doc/handler/component/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var target := unit_load(\"/tests/capy-module-target.capy\")\nprint(target.default_input(), \"\\n\")\n"}, {entry: "render", caption: "reuse one handle for several calls", body: "var target := unit_load(\"/tests/capy-module-target.capy\")\nprint(string(target.echo({name: \"Ada\"}).name, \"\"), \"\\n\")\nprint(string(target.echo({name: \"Grace\"}).name, \"\"), \"\\n\")\n"}, {entry: "render", caption: "call by a name held in a value", body: "var target := unit_load(\"/tests/capy-module-target.capy\")\nvar wanted := \"echo\"\nprint(string(call(target, wanted, {name: \"Katherine\"}).name, \"\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

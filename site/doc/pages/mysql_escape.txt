@@ -18,5 +18,4 @@ Use the second form to set the wrapper. Pass an empty string when no wrapper is 
 print(mysql_escape("O'Brien", "'"), "\n")
 
 :see
->mysql
 mysql_query

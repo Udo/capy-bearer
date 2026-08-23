@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["job : a job ID as `dval`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["job_status", "job_await", "job_cancel"])
+        page["see"] = dval([{label: "job_status", href: "/doc/api/job-status/"}, {label: "job_await", href: "/doc/api/job-await/"}, {label: "job_cancel", href: "/doc/api/job-cancel/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var job := shell_spawn(dval({\"cmd\": \"printf result\", \"timeout_ms\": 1000}))\njob_await(job, 3000)\nprint(get_by_path(job_result(job), \"result/stdout\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

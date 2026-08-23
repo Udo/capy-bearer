@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["left : first value", "right : second value", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["json_decode"])
+        page["see"] = dval([{label: "json_decode", href: "/doc/api/json-decode/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var merged := array_merge(dval({\"name\": \"Ada\"}), dval({\"role\": \"admin\"}))\nprint(merged[\"name\"], \" \", merged[\"role\"], \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

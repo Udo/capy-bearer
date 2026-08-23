@@ -8,7 +8,6 @@ value : string to encode
 URI-encoded string
 
 :see
->uri
 uri_decode
 parse_uri
 parse_query

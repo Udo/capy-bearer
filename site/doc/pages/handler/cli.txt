@@ -13,5 +13,5 @@ The handler has one parameter named `request` with type `dval`. Read command dat
 print(string(request.method, ""), "\n")
 
 :see
-0_Request
-1_RENDER
+type/request
+handler/render

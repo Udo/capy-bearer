@@ -19,5 +19,5 @@ value = clear(value)
 print(has(value, "name"), "\n")
 
 :see
-0_DValue
+type/dvalue
 set

@@ -17,7 +17,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["key : `signal_name`", "value : the value for `key`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">runtime"])
+        page["see"] = dval([])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(string(posix_info(\"signal_name\", 11), \"\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

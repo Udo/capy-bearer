@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["path : path of the file to write", "content : text that replaces the file content", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "file_get_contents", "file_append", "file_open"])
+        page["see"] = dval([{label: "file_get_contents", href: "/doc/api/file-get-contents/"}, {label: "file_append", href: "/doc/api/file-append/"}, {label: "file_open", href: "/doc/api/file-open/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-put.txt\", \"first\")\nfile_put_contents(\"/tmp/doc-put.txt\", \"second\")\nprint(file_get_contents(\"/tmp/doc-put.txt\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

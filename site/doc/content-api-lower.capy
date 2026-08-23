@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["value : text to convert", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["upper", "length"])
+        page["see"] = dval([{label: "upper", href: "/doc/api/upper/"}, {label: "length", href: "/doc/api/length/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(lower(\"BEARER\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

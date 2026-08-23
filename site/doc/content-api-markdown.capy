@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["source : the Markdown source text", "options : parser options", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">markup", "markdown_to_html", "json_encode"])
+        page["see"] = dval([{label: "markdown_to_html", href: "/doc/api/markdown-to-html/"}, {label: "json_encode", href: "/doc/api/json-encode/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var document := markdown_to_ast(\"# Title\")\nprint(document[\"type\"], \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
@@ -35,7 +35,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["source : the Markdown source text", "options : render options", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">markup", "markdown_to_ast"])
+        page["see"] = dval([{label: "markdown_to_ast", href: "/doc/api/markdown-to-ast/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(markdown_to_html(\"**bold**\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

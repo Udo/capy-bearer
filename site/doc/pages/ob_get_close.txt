@@ -16,6 +16,5 @@ var output := ob_get_close()
 print(output, "\n")
 
 :see
->ob
 ob_start
 ob_get

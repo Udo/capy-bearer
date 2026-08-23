@@ -2,8 +2,8 @@ Output / Invocation Functions
 :order 50
 
 coming_from_react
-1_RENDER
-1_CLI
+handler/render
+handler/cli
 unit_call
 component
 component_exists

@@ -71,7 +71,7 @@ if spec is None or spec.loader is None:
 checker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(checker)
 guides = root / "site/doc/capy"
-errors = checker.check_language_guides(guides, root / "site/doc/pages", root / "scripts/generate_capy_docs.py")
+errors = checker.check_language_guides(guides, root / "site/doc/pages")
 if errors:
     raise SystemExit("Capy guide test rejected guide sources:\n- " + "\n- ".join(errors))
 articles = {path.stem: path for path in guides.glob("*.txt")}
@@ -145,7 +145,7 @@ for source in "$test_directory"/*.capy; do
 	fi
 	page="$test_directory/$slug.page"
 	page_headers="$test_directory/$slug.headers"
-	if ! page_status=$(curl -sS --max-time "$http_timeout" -D "$page_headers" -o "$page" -w '%{http_code}' -H "Host: $http_host" "$http_base/doc/?p=capy-$slug"); then
+	if ! page_status=$(curl -sS --max-time "$http_timeout" -D "$page_headers" -o "$page" -w '%{http_code}' -H "Host: $http_host" "$http_base/doc/guide/${slug#[0-9][0-9]-}/"); then
 		echo "Capy documentation application failed to request $slug" >&2
 		exit 1
 	fi

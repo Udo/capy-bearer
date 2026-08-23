@@ -11,7 +11,6 @@ scope : scope identifier
 `true` when the server queues the message for a client.
 
 :see
->websocket
 ws_send_to
 
 :content

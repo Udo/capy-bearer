@@ -17,7 +17,6 @@ file_copy("/tmp/doc-copy-src.txt", "/tmp/doc-copy-dst.txt")
 print(file_get_contents("/tmp/doc-copy-dst.txt"), "\n")
 
 :see
->sys
 file_rename
 file_put_contents
 file_stat

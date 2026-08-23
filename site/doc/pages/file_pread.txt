@@ -21,7 +21,6 @@ print(file_pread(reader, u64(6), u64(5)), "\n")
 file_close(reader)
 
 :see
->sys
 file_read
 file_pwrite
 file_open

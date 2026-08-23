@@ -8,10 +8,9 @@ value : value to encode
 The YAML source.
 
 :see
->markup
 yaml_decode
 json_encode
-0_DValue
+type/dvalue
 
 :content
 `yaml_encode()` encodes a `dval` as YAML.

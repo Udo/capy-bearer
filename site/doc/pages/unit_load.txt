@@ -65,4 +65,4 @@ unit_info
 unit_compile
 unit_render
 component
-1_COMPONENT
+handler/component

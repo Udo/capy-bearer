@@ -17,7 +17,6 @@ file_put_contents("/tmp/doc-put.txt", "second")
 print(file_get_contents("/tmp/doc-put.txt"), "\n")
 
 :see
->sys
 file_get_contents
 file_append
 file_open

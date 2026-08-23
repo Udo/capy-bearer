@@ -1,0 +1,25 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "sort" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "sort"
+        page["kind"] = "api"
+        page["slug"] = "sort"
+        page["route"] = "/doc/api/sort/"
+        page["title"] = "Sort strings"
+        page["content"] = "`sort` sorts the strings in a list-shaped `dval`.\n\nThis function does not change `items`.\n"
+        page["returns"] = "This function returns a new list-shaped `dval` in ascending order."
+        page["label"] = "sort"
+        page["capy_sig_lines"] = dval(["function sort(items : dval) dval"])
+        page["param_lines"] = dval([])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval([])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"two,one\", \",\")\nprint(join(sort(items), \",\"), \"\\n\")\n"}])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

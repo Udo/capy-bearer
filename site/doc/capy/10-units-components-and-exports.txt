@@ -107,7 +107,7 @@ Keep component props narrow. Pass only the values the component needs. This make
 unit_load
 unit_call
 component_render
-1_COMPONENT
+handler/component
 capy-08-dynamic-values
 capy-11-tasks-and-jobs
 call

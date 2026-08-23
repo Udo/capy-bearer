@@ -17,7 +17,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["handle : the MySQL connection handle", "key : `connection`, `error`, `insert_id`, or `affected_rows`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">mysql", "mysql_connect", "mysql_disconnect", "mysql_query"])
+        page["see"] = dval([{label: "mysql_connect", href: "/doc/api/mysql-connect/"}, {label: "mysql_disconnect", href: "/doc/api/mysql-disconnect/"}, {label: "mysql_query", href: "/doc/api/mysql-query/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var database := mysql_connect(\"localhost\", \"root\", \"\", \"\")\nvar live := bool(mysql_info(database, \"connection\"), false)\nvar message := string(mysql_info(database, \"error\"), \"\")\nvar id := u64(mysql_info(database, \"insert_id\"), 0)\nvar rows := u64(mysql_info(database, \"affected_rows\"), 0)\nprint(live, \" \", message, \" \", id, \" \", rows, \"\\n\")\nif database != u64(0) { mysql_disconnect(database) }\n"}])
         page["guide_examples"] = dval([])
         return page

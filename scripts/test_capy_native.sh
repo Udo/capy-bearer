@@ -63,7 +63,7 @@ scripts/test_dvalue_none_native.sh
 scripts/test_capy_exact_handle_native.sh
 "$BUILD_DIR/capyc" --parity-manifest "$PARITY_MANIFEST"
 cmp "$PARITY_MANIFEST" docs/capy-capability-manifest.md
-expected_manifest_pages=$(find site/doc/pages -maxdepth 1 -type f -name '*.txt' | wc -l)
+expected_manifest_pages=$(find site/doc/pages -type f -name '*.txt' | wc -l)
 [[ $(grep -c '^| `' "$PARITY_MANIFEST") -eq $expected_manifest_pages ]]
 
 clang++ "${COMMON[@]}" src/capy/frontend.cpp scripts/test_capy_native_frontend.cpp \

@@ -17,7 +17,6 @@ print(file_fsync(handle), "\n")
 file_close(handle)
 
 :see
->sys
 file_write
 file_close
 file_open

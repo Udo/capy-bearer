@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["raw : text to trim", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "int_val", "regex_split", "html_escape"])
+        page["see"] = dval([{label: "string", href: "/doc/api/string/"}, {label: "int_val", href: "/doc/api/int-val/"}, {label: "regex_split", href: "/doc/api/regex-split/"}, {label: "html_escape", href: "/doc/api/html-escape/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(trim(\"  docs  \"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

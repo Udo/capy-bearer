@@ -47,7 +47,7 @@ var target := unit_load("/tests/capy-module-target.capy")
 print(string(target.echo({name: "Ada"}).name, "unknown"), "\n")
 
 :see
-0_Request
+type/request
 bool
 dval
 s64

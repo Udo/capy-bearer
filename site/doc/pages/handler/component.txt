@@ -56,5 +56,5 @@ print("</section>")
 component
 component_render
 component_exists
-0_Request
-1_RENDER
+type/request
+handler/render

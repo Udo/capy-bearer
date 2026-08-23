@@ -17,5 +17,4 @@ var values := parse_query("name=Ada&role=admin")
 print(values["name"], "\n")
 
 :see
->uri
 parse_uri

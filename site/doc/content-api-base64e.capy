@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["value : source string", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["base64_decode"])
+        page["see"] = dval([{label: "base64_decode", href: "/doc/api/base64-decode/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(base64_encode(\"hello\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

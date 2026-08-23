@@ -21,6 +21,5 @@ if bool(mysql_info(database, "connection"), false) { var rows := mysql_query(dat
 if database != u64(0) { mysql_disconnect(database) }
 
 :see
->mysql
 mysql_connect
 mysql_info

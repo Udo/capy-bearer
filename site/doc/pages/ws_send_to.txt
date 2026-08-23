@@ -10,7 +10,6 @@ binary : `true` for a binary frame
 `true` when the server queues the message.
 
 :see
->websocket
 ws_send
 
 :content

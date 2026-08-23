@@ -20,5 +20,5 @@ user = delete(user, "role")
 print(has(user, "role"), "\n")
 
 :see
-0_DValue
+type/dvalue
 has

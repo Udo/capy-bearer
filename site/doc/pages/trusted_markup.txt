@@ -17,7 +17,6 @@ Use only HTML text that your code creates. Do not pass request, remote, or datab
 print(trusted_markup("<strong>safe</strong>"), "\n")
 
 :see
->markup
 html_escape
 markdown_to_html
 component

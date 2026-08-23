@@ -18,4 +18,3 @@ The function stops with an error for an unknown key. The error lists the valid k
 print(string(posix_info("signal_name", 11), ""), "\n")
 
 :see
->runtime

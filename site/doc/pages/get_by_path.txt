@@ -19,5 +19,5 @@ var config := dval({"site": {"title": "Bearer"}})
 print(get_by_path(config, "site/title"), "\n")
 
 :see
-0_DValue
+type/dvalue
 get

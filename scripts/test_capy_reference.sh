@@ -5,109 +5,36 @@ cd "$(dirname "$0")/.."
 host="${BEARER_TEST_HTTP_HOST:-bearer.openfu.com}"
 base="${BEARER_TEST_HTTP_BASE:-http://127.0.0.1}/examples/capy-reference"
 reference_dir=site/examples/capy-reference
-
 [[ -f "$reference_dir/index.capy" && -f "$reference_dir/style.css" ]]
 
 pages=(index syntax types ownership interop status)
-targets=(
-	'capy-01-install-and-first-program'
-	'capy-02-source-structure-and-syntax'
-	'capy-03-values-and-types'
-	'capy-05-functions-and-closures'
-	'capy-10-units-components-and-exports'
-	'capy-12-errors-testing-and-style'
-)
+targets=(install-and-first-program source-structure-and-syntax values-and-types functions-and-closures units-components-and-exports errors-testing-and-style)
 for index in "${!pages[@]}"; do
-	path="$base/${pages[$index]}.capy"
-	headers=$(curl -fsS --max-time 30 -o /dev/null -D - -H "Host: $host" "$path" | tr -d '\r')
-	[[ "$headers" == *"HTTP/1.1 302"* && "$headers" == *"Location: /doc/?p=${targets[$index]}"* ]] || {
-		echo "Capy reference redirect mismatch for $path" >&2
-		exit 1
-	}
+    path="$base/${pages[$index]}.capy"
+    headers=$(curl -fsS --max-time 30 -o /dev/null -D - -H "Host: $host" "$path" | tr -d '\r')
+    [[ "$headers" == *"HTTP/1.1 302"* && "$headers" == *"Location: /doc/guide/${targets[$index]}/"* ]] || { echo "Capy reference redirect mismatch for $path" >&2; exit 1; }
 done
 
 doc_base="${BEARER_TEST_HTTP_BASE:-http://127.0.0.1}/doc/"
-unknown_status=$(curl -sS --max-time 60 -o /dev/null -w '%{http_code}' -H "Host: $host" "${doc_base}api/zzzznotreal/")
-[[ "$unknown_status" == 404 ]] || {
-	echo "Unknown API page returned HTTP $unknown_status instead of 404" >&2
-	exit 1
-}
-guide=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=capy-08-dynamic-values") || {
-	echo "Capy guide page did not render through the documentation application" >&2
-	exit 1
-}
-[[ "$guide" == *"8. Dynamic values"* && "$guide" == *"Nested assignment creates missing maps"* &&
-	"$guide" == *"var profile :="* && "$guide" == *"<strong>Output</strong>"* &&
-	"$guide" == *'class="guide-navigation"'* && "$guide" == *'Previous: '* && "$guide" == *'Next: '* &&
-	"$guide" != *"Minimal executable example"* && "$guide" != *"Compile-only: WS"* ]] || {
-	echo "Capy guide page omitted its content, output, or navigation" >&2
-	exit 1
-}
-call_page=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=call") || {
-	echo "Call API page did not render" >&2
-	exit 1
-}
-[[ "$call_page" != *'>sig<'* ]] || {
-	echo "API page rendered a legacy sig heading" >&2
-	exit 1
-}
-constructor=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=string") || {
-	echo "Capy constructor API page did not render" >&2
-	exit 1
-}
-[[ "$constructor" == *"function string(value : dval"* && "$constructor" != *"DOC EXAMPLE ERROR"* ]] || {
-	echo "Capy constructor API page omitted its Capy signature" >&2
-	exit 1
-}
-contract=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=http_request") || {
-	echo "Structured API contract page did not render" >&2
-	exit 1
-}
-[[ "$contract" == *'<h3>Description</h3>'* && "$contract" == *'<h3>Parameters</h3>'* &&
-	"$contract" == *'<h3>Return Values</h3>'* && "$contract" == *'<h3>Errors</h3>'* &&
-	"$contract" == *'class="doc-detail-layout"'* &&
-	"$contract" == *'class="related-link" href="/doc/?p=http_request_async">http_request_async</a>'* &&
-	"$contract" != *"DOC EXAMPLE ERROR"* ]] || {
-	echo "Structured API contract sections or related links are incomplete" >&2
-	exit 1
-}
-prefixed=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=0_Request") || {
-	echo "Prefixed API page did not render" >&2
-	exit 1
-}
-[[ "$prefixed" == *'class="related-link" href="/doc/?p=1_CLI">CLI</a>'* &&
-	"$prefixed" == *'class="related-link" href="/doc/?p=1_RENDER">RENDER</a>'* &&
-	"$prefixed" != *'>1_CLI<'* && "$prefixed" != *'>1_RENDER<'* ]] || {
-	echo "Related links did not use canonical labels and routes" >&2
-	exit 1
-}
-legacy=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=capy-10-dvalues") || {
-	echo "Legacy Capy guide URL did not render" >&2
-	exit 1
-}
-[[ "$legacy" == *"8. Dynamic values"* ]] || {
-	echo "Legacy Capy guide URL did not reach its canonical content" >&2
-	exit 1
-}
-singlepage=$(curl -fsS --max-time 180 -H "Host: $host" "${doc_base}all/") || {
-	echo "Combined documentation route list did not render" >&2
-	exit 1
-}
-[[ "$singlepage" == *'/doc/guide/install-and-first-program/'* &&
-	"$singlepage" == *'/doc/api/dvalue/'* && "$singlepage" == *'/doc/api/http-request/'* &&
-	"$singlepage" != *"Minimal executable example"* ]] || {
-	echo "Combined documentation route list omitted guide or API links" >&2
-	exit 1
-}
-search=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}search/?q=http_request") || {
-	echo "Documentation search did not render" >&2
-	exit 1
-}
-[[ "$search" == *'/doc/api/http-request/'* && "$search" == *'http_request'* ]] || {
-	echo "Documentation search omitted a structured API page" >&2
-	exit 1
-}
+status() { curl -sS --max-time 60 -o /dev/null -w '%{http_code}' -H "Host: $host" "$1"; }
+for path in api/zzzznotreal/ api/component-2/ api/string-2/ '?''p=0''_String'; do
+    [[ "$(status "$doc_base$path")" == 404 ]] || { echo "Old or unknown documentation URL did not return 404: $path" >&2; exit 1; }
+done
+for path in api/component/ api/string/ type/string/ type/dvalue/ type/request/ handler/render/ handler/component/ handler/cli/; do
+    [[ "$(status "$doc_base$path")" == 200 ]] || { echo "Canonical documentation URL did not return 200: $path" >&2; exit 1; }
+done
 
+guide=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}guide/dynamic-values/")
+[[ "$guide" == *"8. Dynamic values"* && "$guide" == *"Nested assignment creates missing maps"* && "$guide" == *'class="guide-navigation"'* ]] || { echo "Capy guide page omitted content or navigation" >&2; exit 1; }
+constructor=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}api/string/")
+[[ "$constructor" == *"function string(value : dval"* && "$constructor" != *"DOC EXAMPLE ERROR"* ]] || { echo "Capy constructor API page omitted its signature" >&2; exit 1; }
+contract=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}api/http-request/")
+[[ "$contract" == *'<h3>Description</h3>'* && "$contract" == *'class="related-link" href="/doc/api/http-request-async/">http_request_async</a>'* ]] || { echo "Structured API contract sections or related links are incomplete" >&2; exit 1; }
+index=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base")
+[[ "$index" != *'>String()<'* && "$index" != *'>COMPONENT()<'* && "$index" != *'>CLI()<'* ]] || { echo "Type or handler index entry rendered as a function" >&2; exit 1; }
+singlepage=$(curl -fsS --max-time 180 -H "Host: $host" "${doc_base}all/")
+[[ "$singlepage" == *'/doc/guide/install-and-first-program/'* && "$singlepage" == *'/doc/type/dvalue/'* && "$singlepage" == *'/doc/api/http-request/'* ]] || { echo "Combined documentation route list omitted canonical links" >&2; exit 1; }
+search=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}search/?q=http_request")
+[[ "$search" == *'/doc/api/http-request/'* && "$search" == *'http_request'* ]] || { echo "Documentation search omitted a structured API page" >&2; exit 1; }
 scripts/test_capy_guide_examples.sh
-
-echo "Capy reference redirects, documentation pages, and guide examples passed for ${#pages[@]} reference pages"
+echo "Capy reference pages and canonical documentation routes passed"

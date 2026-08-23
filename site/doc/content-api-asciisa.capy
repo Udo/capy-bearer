@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["raw : source text", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["safe_name"])
+        page["see"] = dval([{label: "safe_name", href: "/doc/api/safe-name/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(ascii_safe_name(\"Café file-1\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

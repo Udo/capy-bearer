@@ -18,7 +18,6 @@ file_put_contents("/tmp/doc-get.txt", "hello")
 print(file_get_contents("/tmp/doc-get.txt"), "\n")
 
 :see
->sys
 file_put_contents
 file_append
 file_open

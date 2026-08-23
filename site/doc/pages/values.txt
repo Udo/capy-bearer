@@ -19,5 +19,5 @@ var result := values(user)
 print(is_list(result), " ", length(result), "\n")
 
 :see
-0_DValue
+type/dvalue
 keys

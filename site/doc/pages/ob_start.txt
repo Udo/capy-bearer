@@ -1,17 +1,23 @@
+:title
+Start an output buffer
+
 :sig
 function ob_start()
 
-:content
-`ob_start()` starts a new output buffer.
+:returns
+This function returns no value.
 
-Later `print()` calls write to this buffer. Use `ob_get_close()` to get its text, or `ob_close()` to discard it.
+:content
+`ob_start()` starts an output buffer for the active request.
+
+Output after this call goes to the buffer. Use `ob_get`, `ob_get_close`, or `ob_close` to read or close it.
 
 :example capy render
 ob_start()
-print("buffered")
-print(ob_get_close(), "\n")
+print("fragment")
+var captured := ob_get_close()
+print("captured: ", captured, "\n")
 
 :see
->ob
+type/request
 ob_get_close
-ob_close

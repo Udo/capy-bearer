@@ -15,7 +15,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["handle : handle returned by `file_open`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "file_open", "file_read", "file_write"])
+        page["see"] = dval([{label: "file_open", href: "/doc/api/file-open/"}, {label: "file_read", href: "/doc/api/file-read/"}, {label: "file_write", href: "/doc/api/file-write/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var handle := file_open(\"/tmp/doc-close.txt\", \"w\")\nfile_write(handle, \"done\")\nfile_close(handle)\nprint(file_get_contents(\"/tmp/doc-close.txt\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

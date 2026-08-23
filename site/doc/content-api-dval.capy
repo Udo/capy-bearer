@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["value : a scalar, literal structure, or `dval`", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">0_DValue", "set", "set"])
+        page["see"] = dval([{label: "dvalue", href: "/doc/type/dvalue/"}, {label: "set", href: "/doc/api/set/"}, {label: "set", href: "/doc/api/set/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var profile := dval({name: \"Ada\", scores: [1, 2, 3]})\nprint(string(profile.name), \" \", length(profile.scores), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

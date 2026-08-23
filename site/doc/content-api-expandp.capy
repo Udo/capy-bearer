@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["path : path to expand", "relative_to_path : base directory for a relative path", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "path_join", "path_real", "dirname", "file_append", "basename", "file_exists"])
+        page["see"] = dval([{label: "path_join", href: "/doc/api/path-join/"}, {label: "path_real", href: "/doc/api/path-real/"}, {label: "dirname", href: "/doc/api/dirname/"}, {label: "file_append", href: "/doc/api/file-append/"}, {label: "basename", href: "/doc/api/basename/"}, {label: "file_exists", href: "/doc/api/file-exists/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(expand_path(\"sub/page.capy\", \"/var/www/site\"), \"\\n\")"}])
         page["guide_examples"] = dval([])
         return page

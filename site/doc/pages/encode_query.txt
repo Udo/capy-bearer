@@ -8,7 +8,6 @@ map : map-shaped `dval` of URL parameters
 URL query string
 
 :see
->uri
 redirect
 request_context_params
 :content

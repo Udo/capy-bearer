@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["source : uncompressed bytes", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["gz_uncompress", "zip_create", "zip_read"])
+        page["see"] = dval([{label: "gz_uncompress", href: "/doc/api/gz-uncompress/"}, {label: "zip_create", href: "/doc/api/zip-create/"}, {label: "zip_read", href: "/doc/api/zip-read/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var source := \"archive data\"\nvar packed := gz_compress(source)\nprint(gz_uncompress(packed), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

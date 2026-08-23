@@ -20,6 +20,5 @@ var connection := memcache_connect()
 if connection != u64(0) { print(memcache_set(connection, "doc-key", "value"), "\n") }
 
 :see
->memcache
 memcache_connect
 memcache_get

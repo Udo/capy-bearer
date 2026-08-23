@@ -8,11 +8,10 @@ path : archive path
 A `dval` with archive metadata and entries.
 
 :see
->sys
 zip_create
 zip_read
 zip_extract
-0_DValue
+type/dvalue
 
 :content
 `zip_list()` returns ZIP archive metadata and entries.

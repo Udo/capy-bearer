@@ -18,5 +18,5 @@ var user := dval({"name": "Ada", "role": "admin"})
 print(join(sort(keys(user)), ","), "\n")
 
 :see
-0_DValue
+type/dvalue
 values

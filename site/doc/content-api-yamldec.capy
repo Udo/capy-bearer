@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["source : YAML source", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">markup", "yaml_encode", "json_decode", "0_DValue", "string"])
+        page["see"] = dval([{label: "yaml_encode", href: "/doc/api/yaml-encode/"}, {label: "json_decode", href: "/doc/api/json-decode/"}, {label: "dvalue", href: "/doc/type/dvalue/"}, {label: "string", href: "/doc/api/string/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var value := yaml_decode(\"name: Ada\\n\")\nprint(value[\"name\"], \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

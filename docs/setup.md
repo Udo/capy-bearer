@@ -407,7 +407,7 @@ These should not touch the BEARER runtime.
 For a request such as:
 
 ```text
-GET /doc/index.capy?p=component
+GET /doc/api/component/
 ```
 
 nginx/Apache forwards the request to `FCGI_SOCKET_PATH` as FastCGI. The web server must provide CGI/FastCGI variables including:

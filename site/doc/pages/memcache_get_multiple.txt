@@ -18,6 +18,5 @@ var connection := memcache_connect()
 if connection != u64(0) { print(memcache_get_multiple(connection, dval(["first", "second"]))["first"], "\n") }
 
 :see
->memcache
 memcache_get
 memcache_set

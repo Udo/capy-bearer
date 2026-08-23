@@ -22,7 +22,6 @@ file_close(editor)
 print(file_get_contents("/tmp/doc-pwrite.txt"), "\n")
 
 :see
->sys
 file_write
 file_pread
 file_open

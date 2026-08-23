@@ -17,4 +17,4 @@ The type name.
 print(get_type_name(dval("text")), "\n")
 
 :see
-0_DValue
+type/dvalue

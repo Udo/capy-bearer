@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["value : bytes to hash", "as_binary : `false` for hexadecimal text, `true` for raw digest bytes", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["sha256", "sha256_hex", "hmac_sha256"])
+        page["see"] = dval([{label: "sha256", href: "/doc/api/sha256/"}, {label: "sha256_hex", href: "/doc/api/sha256-hex/"}, {label: "hmac_sha256", href: "/doc/api/hmac-sha256/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var digest := gen_sha1(\"abc\")\nprint(digest, \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

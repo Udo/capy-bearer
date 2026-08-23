@@ -17,7 +17,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">runtime", "unit_render", "unit_compile"])
+        page["see"] = dval([{label: "unit_render", href: "/doc/api/unit-render/"}, {label: "unit_compile", href: "/doc/api/unit-compile/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "if false { trap() }\nprint(\"handler continues\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

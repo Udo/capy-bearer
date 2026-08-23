@@ -123,7 +123,7 @@ Use `length`, `substr`, `find`, `contains`, `replace`, `lower`, `upper`, `split`
 Strings use automatic reference counting. Assignment and function calls preserve their lifetime. Most programs do not need to call `clone`.
 
 :see
-0_String
+type/string
 html_escape
 capy-05-functions-and-closures
 capy-09-web-handlers-and-requests

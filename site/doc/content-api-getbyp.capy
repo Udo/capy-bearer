@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["value : source value", "path : slash-separated child path", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["0_DValue", "get"])
+        page["see"] = dval([{label: "dvalue", href: "/doc/type/dvalue/"}, {label: "get", href: "/doc/api/get/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var config := dval({\"site\": {\"title\": \"Bearer\"}})\nprint(get_by_path(config, \"site/title\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

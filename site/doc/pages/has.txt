@@ -19,5 +19,5 @@ var user := dval({"name": "Ada"})
 print(has(user, "name"), " ", has(user, "age"), "\n")
 
 :see
-0_DValue
+type/dvalue
 get

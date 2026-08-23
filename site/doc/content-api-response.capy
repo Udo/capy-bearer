@@ -44,15 +44,16 @@ function data(input : dval) dval {
         page["kind"] = "api"
         page["slug"] = "response-status"
         page["route"] = "/doc/api/response-status/"
-        page["title"] = "response_status"
-        page["content"] = "`response_status()` sets the response status.\n"
+        page["title"] = "Set the response status"
+        page["content"] = "`response_status` sets the status for the active response.\n\nIf `reason` is empty, Bearer uses the standard phrase for common HTTP status codes. Set the status before you write response output.\n"
+        page["returns"] = "This function returns no value."
         page["label"] = "response_status"
         page["capy_sig_lines"] = dval(["function response_status(code : s32, reason : string = \"\")"])
-        page["param_lines"] = dval(["code : HTTP status code", "reason : optional reason phrase", ""])
+        page["param_lines"] = dval(["code : The HTTP status code.", "reason : An optional reason phrase.", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([])
-        page["examples"] = dval([{entry: "render", caption: "", body: "response_status(202, \"Accepted\")\n"}])
+        page["see"] = dval([{label: "request", href: "/doc/type/request/"}, {label: "redirect", href: "/doc/api/redirect/"}, {label: "response_cookie", href: "/doc/api/response-cookie/"}])
+        page["examples"] = dval([{entry: "render", caption: "", body: "response_status(200, \"OK\")\nprint(\"200\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["value : date or time text", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">time", "time_format_utc", "time_format_relative", "time_format_local", "time", "time_precise", "usleep"])
+        page["see"] = dval([{label: "time", href: "/doc/api/time/"}, {label: "time_format_utc", href: "/doc/api/time-format-utc/"}, {label: "time_format_relative", href: "/doc/api/time-format-relative/"}, {label: "time_format_local", href: "/doc/api/time-format-local/"}, {label: "time", href: "/doc/api/time/"}, {label: "time_precise", href: "/doc/api/time-precise/"}, {label: "usleep", href: "/doc/api/usleep/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(time_parse(\"1970-01-01 00:00:05 UTC\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

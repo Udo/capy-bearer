@@ -15,7 +15,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["path : the new working directory path", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["cwd_get"])
+        page["see"] = dval([{label: "cwd_get", href: "/doc/api/cwd-get/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var old_path := cwd_get()\ncwd_set(\"/tmp\")\nprint(cwd_get(), \"\\n\")\ncwd_set(old_path)\n"}])
         page["guide_examples"] = dval([])
         return page

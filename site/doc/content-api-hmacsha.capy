@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["key : secret key bytes", "value : message bytes", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["hmac_sha256", "sha256_hex", "crypto_equal"])
+        page["see"] = dval([{label: "hmac_sha256", href: "/doc/api/hmac-sha256/"}, {label: "sha256_hex", href: "/doc/api/sha256-hex/"}, {label: "crypto_equal", href: "/doc/api/crypto-equal/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(hmac_sha256_hex(\"key\", \"message\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
@@ -35,7 +35,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["key : secret key bytes", "value : message bytes", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["hmac_sha256_hex", "sha256", "crypto_equal"])
+        page["see"] = dval([{label: "hmac_sha256_hex", href: "/doc/api/hmac-sha256-hex/"}, {label: "sha256", href: "/doc/api/sha256/"}, {label: "crypto_equal", href: "/doc/api/crypto-equal/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(length(hmac_sha256(\"key\", \"message\")), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

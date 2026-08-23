@@ -8,11 +8,10 @@ source : XML source
 A `dval` that contains the decoded XML.
 
 :see
->markup
 xml_encode
 json_decode
-0_DValue
-0_String
+type/dvalue
+type/string
 
 :content
 `xml_decode()` decodes XML source into a `dval`.

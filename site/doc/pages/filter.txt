@@ -1,17 +1,20 @@
+:title
+Filter strings
+
 :sig
 function filter(items : dval, predicate : function(value : string) bool) dval
 
-:params
-items : list of values
-predicate : function that selects a value
-
 :returns
-A new list of selected values.
+This function returns a new list-shaped `dval`.
 
 :content
-`filter` calls `predicate` for each value. It keeps values for which the predicate returns `true`.
+`filter` keeps the strings for which `predicate` returns `true`.
+
+The result keeps input order. This function does not change `items`.
 
 :example capy render
-var names := split("ada,bob,amy", ",")
-var selected := filter(names, function(value : string) bool { return str_starts_with(value, "a") })
-print(join(selected, ","), "\n")
+var items := split("one,two", ",")
+var kept := filter(items, function(value : string) bool { return value == "two" })
+print(join(kept, ","), "\n")
+
+:see

@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval([])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">sys", "cwd_get", "cwd_set"])
+        page["see"] = dval([{label: "cwd_get", href: "/doc/api/cwd-get/"}, {label: "cwd_set", href: "/doc/api/cwd-set/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(process_start_directory(), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

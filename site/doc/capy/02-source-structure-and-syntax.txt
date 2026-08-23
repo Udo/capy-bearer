@@ -93,5 +93,5 @@ Do not use a newline to end an expression. Newlines are whitespace in normal cod
 :see
 capy-03-values-and-types
 capy-04-expressions-and-control-flow
-1_RENDER
-1_COMPONENT
+handler/render
+handler/component

@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["handle : the MySQL connection handle", "query : the SQL query text", "params : the named parameter values", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">mysql", "mysql_connect", "mysql_info"])
+        page["see"] = dval([{label: "mysql_connect", href: "/doc/api/mysql-connect/"}, {label: "mysql_info", href: "/doc/api/mysql-info/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "var database := mysql_connect(\"localhost\", \"root\", \"\", \"\")\nif bool(mysql_info(database, \"connection\"), false) { var rows := mysql_query(database, \"select :name as name\", dval({\"name\": \"Ada\"})); print(rows[0][\"name\"], \"\\n\") }\nif database != u64(0) { mysql_disconnect(database) }\n"}])
         page["guide_examples"] = dval([])
         return page

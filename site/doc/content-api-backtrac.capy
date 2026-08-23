@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["max_frames : maximum number of frames", "skip_frames : number of newest frames to omit", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["backtrace_get_frames"])
+        page["see"] = dval([{label: "backtrace_get_frames", href: "/doc/api/backtrace-get-frames/"}])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(backtrace_capture(), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
@@ -35,7 +35,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["max_frames : maximum number of frames", "skip_frames : number of newest frames to omit", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval(["backtrace_capture"])
+        page["see"] = dval([{label: "backtrace_capture", href: "/doc/api/backtrace-capture/"}])
         page["examples"] = dval([{entry: "cli", caption: "", body: "print(backtrace_get_frames(4, 0), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
