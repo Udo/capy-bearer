@@ -1,5 +1,5 @@
 function RENDER(request : dval) {
-    response_header("Content-Type", "text/plain; charset=utf-8")
-    response_header("X-Bearer-Safe", "ok")
+    request.out.headers["Content-Type"] = "text/plain; charset=utf-8"
+    request.out.headers["X-Bearer-Safe"] = "ok"
     print("security header sanitizer test")
 }

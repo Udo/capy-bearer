@@ -1,7 +1,13 @@
 function RENDER(request : dval) {
-    response_status(201)
-    response_header("X-Capy-Context", "yes")
-    response_header("X-Capy-Clean", "first\r\nX-Injected: bad")
+    request.out.status = 201
+    request.out.headers["X-Capy-Context"] = "yes"
+    request.out.headers["X-Capy-Clean"] = "first\r\nX-Injected: bad"
+    if !request.params? { trap() }
+    if !request.out? { trap() }
+    if !request.out.status? { trap() }
+    if !request.out.headers? { trap() }
+    if !request.out.cookies? { trap() }
+    if !request.out.buffer? { trap() }
     if !request.headers? { trap() }
     if !request.cookies? { trap() }
     if !request.files? { trap() }

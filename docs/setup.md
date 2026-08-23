@@ -427,7 +427,7 @@ function RENDER(request : dval) {
 }
 ```
 
-The handler reads its copied request snapshot from `request`. Use `print()` to write output. Use `response_header()` and `response_status()` to set the response.
+The handler reads its copied request snapshot from `request`. Use `print()` to write output. Set response fields in `request.out`.
 
 ### Component and unit calls
 

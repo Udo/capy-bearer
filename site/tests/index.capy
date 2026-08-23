@@ -1,4 +1,4 @@
 function RENDER(request : dval) {
-    response_header("Content-Type", "text/html; charset=utf-8")
+    request.out.headers["Content-Type"] = "text/html; charset=utf-8"
     print("<!doctype html><html><head><title>Coverage Index</title></head><body><h1>Coverage Index</h1><p>Coverage Index</p></body></html>")
 }

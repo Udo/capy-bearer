@@ -1,5 +1,5 @@
 function RENDER(request : dval) {
     var session := session_start("bearer-site-tests")
-    response_header("Content-Type", "text/html; charset=utf-8")
+    request.out.headers["Content-Type"] = "text/html; charset=utf-8"
     print("<!doctype html><html><head><title>HTTP And Session</title></head><body><h1>HTTP And Session</h1><p>HTTP And Session</p><p>", html_escape(string(session.id, "")), "</p></body></html>")
 }

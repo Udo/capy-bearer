@@ -654,8 +654,8 @@ int main()
 		assert(compiler_text.find("\"" + std::string(old_name) + "\"") == std::string::npos);
 	for (const auto& public_name : {"array_merge", "set", "push", "pop", "delete", "clear", "get_by_path", "get_or_create",
 			 "get_type_name", "get", "keys", "values", "has",
-			 "request_param", "request_get", "request_post", "request_cookie", "request_session", "request_body", "response_header", "request_context",
-			 "session_start", "session_set", "session_remove", "session_destroy", "session_id_create", "response_cookie", "redirect", "csrf_token", "csrf_valid", "csrf_rotate", "csrf_field",
+			 "request_param", "request_get", "request_post", "request_cookie", "request_session", "request_body", "request_context",
+			 "session_start", "session_set", "session_remove", "session_destroy", "session_id_create", "redirect", "csrf_token", "csrf_valid", "csrf_rotate", "csrf_field",
 			 "ws_message", "ws_connection_id", "ws_scope", "ws_opcode", "ws_is_binary", "ws_send", "ws_send_to", "ws_close", "component", "component_render",
 			 "component_exists", "component_resolve", "unit_render", "unit_call", "unit_info", "units_list", "unit_compile", "regex_match", "regex_search", "regex_search_all", "regex_replace",
 			 "regex_split", "base64_encode", "base64_decode", "uri_encode", "uri_decode", "json_encode", "json_decode", "html_escape", "strpos", "file_open", "file_read", "file_write",

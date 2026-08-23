@@ -4,6 +4,6 @@ function RENDER(request : dval) {
         print("optional component absent")
         return
     }
-    response_status(500, "Internal Server Error")
+    request.out.status = 500
     print("<div class=\"banner\">component not found: components/does-not-exist</div>")
 }

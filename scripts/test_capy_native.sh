@@ -169,8 +169,7 @@ grep -q 'env.bearer_request_workspace_brrb' "$BUILD_DIR/request-parity.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-request-context.capy.wasm" >"$BUILD_DIR/request-context.objdump"
 grep -q 'env.bearer_handler_input_brrb' "$BUILD_DIR/request-context.objdump"
 ! grep -q 'env.bearer_request_context_brrb\|env.bearer_request_context_for_brrb\|env.bearer_request_value\|env.bearer_request_body' "$BUILD_DIR/request-context.objdump"
-! grep -q 'env.bearer_response_set_status' "$BUILD_DIR/request-context.objdump"
-grep -q 'env.bearer_response_set_header' "$BUILD_DIR/request-context.objdump"
+! grep -q 'env.bearer_response_set_status\|env.bearer_response_set_header' "$BUILD_DIR/request-context.objdump"
 CAPYC="$BUILD_DIR/capyc" scripts/test_capy_artifact_golden.sh
 
 echo "native Capy frontend, Wasm, compiler, CLI, and tracked fixture checks passed"

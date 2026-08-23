@@ -6,4 +6,3 @@ session_start
 session_set
 session_remove
 session_destroy
-response_cookie

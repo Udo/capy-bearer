@@ -9,7 +9,7 @@ A Capy Bearer handler receives one copied request snapshot. Declare every handle
 :example capy render
 function RENDER(request : dval) {
     var name := string(request.query.name, "guest")
-    response_header("Content-Type", "text/plain; charset=utf-8")
+    request.out.headers["Content-Type"] = "text/plain; charset=utf-8"
     print("Hello, ", name, "!\n")
 }
 
@@ -17,7 +17,7 @@ function RENDER(request : dval) {
 Hello, guest!
 
 :content
-The snapshot contains `method`, `query`, `form`, `headers`, `cookies`, `body`, `files`, `route`, `url`, `server`, `session`, `props`, `config`, `call`, `connection`, `unit`, and `websocket`.
+The snapshot contains `method`, `query`, `form`, `params`, `headers`, `cookies`, `body`, `files`, `route`, `url`, `server`, `session`, `props`, `config`, `call`, `connection`, `unit`, `websocket`, and `out`.
 
 `route` contains `path`, `page`, `raw_path`, and `valid`. `url` contains `script` and `base`. `session` contains `id`, `name`, and `values`. `websocket` contains `connection_id`, `scope`, `opcode`, `binary`, and current-scope `connections`.
 
@@ -25,7 +25,7 @@ Missing members are `none`. Use normal conversions for scalar values. For exampl
 
 ## Form a response
 
-Use `print`, `response_status`, `response_header`, `response_cookie`, and `redirect` to change the response. Set headers before large output. Use a redirect after a successful state change so the user can refresh the page safely.
+Use `print`, `request.out.status`, `request.out.headers`, `request.out.cookies`, and `redirect` to change the response. Use a redirect after a successful state change so the user can refresh the page safely.
 
 Use `ws_send`, `ws_send_to`, and `ws_close` for WebSocket effects. Use `request.websocket.connections` to select current-scope clients.
 
@@ -37,20 +37,20 @@ This example shows the complete control flow. A GET request prints the form. A P
 
 :example capy render
 function RENDER(request : dval) {
-    response_header("Content-Type", "text/html; charset=utf-8")
+    request.out.headers["Content-Type"] = "text/html; charset=utf-8"
     var method := string(request.method, "GET")
 
     if method == "POST" {
         var email := string(request.form.email, "")
         if email == "" {
-            response_status(422, "Unprocessable Content")
+            request.out.status = 422
             print(<><p>Email is required.</p></>)
             return
         }
 
         var session := session_start("account")
         session = session_set("email", email)
-        response_cookie("has_account", "1")
+        request.out.cookies["has_account"] = "1"
         redirect("/account")
         return
     }
@@ -121,9 +121,6 @@ handler/cli
 session_start
 capy-08-dynamic-values
 capy-10-units-components-and-exports
-response_status
-response_header
-response_cookie
 session_set
 session_remove
 bool

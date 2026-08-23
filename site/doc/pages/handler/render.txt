@@ -22,11 +22,11 @@ Read input from the request snapshot with a converter and a fallback, so a missi
 
 ## Response control
 
-`print()` writes the body. Status, headers, and cookies are set by calling the response functions *before* output is flushed:
+`print()` writes the body. Set status, headers, and cookies in `request.out`:
 
-    response_status(404)
-    response_header("Cache-Control", "no-store")
-    response_cookie("visited", "1")
+    request.out.status = 404
+    request.out.headers["Cache-Control"] = "no-store"
+    request.out.cookies["visited"] = "1"
 
 `redirect()` sets the status and `Location` header together. A handler may `return` early at any point; whatever it printed so far is still sent.
 
@@ -47,13 +47,13 @@ print(string(request.method, ""), "\n")
 print("<h1>Hello, ", string(request.query.name, "guest"), "</h1>", "\n")
 
 :example capy render set a status and header before printing
-response_status(201)
-response_header("X-Demo", "yes")
+request.out.status = 201
+request.out.headers["X-Demo"] = "yes"
 print("created\n")
 
 :example capy render return early
 if !request.query.id? {
-    response_status(400)
+    request.out.status = 400
     print("id required\n")
     return
 }
@@ -65,5 +65,4 @@ handler/component
 handler/cli
 handler/ws
 component
-response_status
 redirect

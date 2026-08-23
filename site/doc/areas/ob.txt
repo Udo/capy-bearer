@@ -17,5 +17,3 @@ component_render
 unit_load
 unit_render
 call
-response_status
-response_header

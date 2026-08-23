@@ -195,11 +195,9 @@ function __bearer_request_ob_start() s32 { -> 0 }
 function __bearer_request_ob_close() s32 { -> 1 }
 function __bearer_request_ob_get() s32 { -> 2 }
 function __bearer_request_ob_get_close() s32 { -> 3 }
-function __bearer_request_response_status() s32 { -> 4 }
 function __bearer_request_redirect() s32 { -> 5 }
 function __bearer_request_session_start() s32 { -> 6 }
 function __bearer_request_session_set() s32 { -> 7 }
-function __bearer_request_response_cookie() s32 { -> 22 }
 function __bearer_request_session_destroy() s32 { -> 8 }
 function __bearer_request_session_id_create() s32 { -> 9 }
 function __bearer_request_csrf_token() s32 { -> 10 }
@@ -441,12 +439,10 @@ function ob_start() { var ignored := __bearer_request_workspace_brrb(__bearer_re
 function ob_close() { var ignored := __bearer_request_workspace_brrb(__bearer_request_ob_close(), dval(""), "", dval("")) }
 function ob_get() string { -> string(__bearer_request_workspace_brrb(__bearer_request_ob_get(), dval(""), "", dval(""))) }
 function ob_get_close() string { -> string(__bearer_request_workspace_brrb(__bearer_request_ob_get_close(), dval(""), "", dval(""))) }
-function response_status(code : s32, reason : string = "") { var ignored := __bearer_request_workspace_brrb(__bearer_request_response_status(), dval(code), reason, dval("")) }
 function redirect(url : string, code : s32 = 302) { var ignored := __bearer_request_workspace_brrb(__bearer_request_redirect(), dval(url), "", dval(code)) }
 function session_start(name : string = "bearer-session") dval { -> __bearer_request_workspace_brrb(__bearer_request_session_start(), dval(name), "", dval("")) }
 function session_set(key : string, value : string) dval { -> __bearer_request_workspace_brrb(__bearer_request_session_set(), dval(key), "set", dval(value)) }
 function session_remove(key : string) dval { -> __bearer_request_workspace_brrb(__bearer_request_session_set(), dval(key), "remove", dval("")) }
-function response_cookie(name : string, value : string) { var ignored := __bearer_request_workspace_brrb(__bearer_request_response_cookie(), dval(name), "", dval(value)) }
 function session_destroy(name : string = "bearer-session") dval { -> __bearer_request_workspace_brrb(__bearer_request_session_destroy(), dval(name), "", dval("")) }
 function session_id_create() string { -> string(__bearer_request_workspace_brrb(__bearer_request_session_id_create(), dval(""), "", dval(""))) }
 function csrf_token(session_name : string = "bearer-session", token_name : string = "csrf_token") string { -> string(__bearer_request_workspace_brrb(__bearer_request_csrf_token(), dval(session_name), token_name, dval(""))) }
@@ -554,7 +550,6 @@ function time_format_relative(timestamp : u64, very_recent : string = "", medium
 // ordinary declarations selected from this source with user-call provenance.
 function array_merge(left : dval, right : dval) dval { -> __bearer_dv_merge_brrb(left, right) }
 
-function response_header(name : string, value : string) { if !__bearer_response_set_header(name, value) { trap() } }
 function ws_send(message : string, binary : bool) bool { -> __bearer_ws_send(message, binary) }
 function ws_send(message : string, binary : bool, scope : string) bool { -> __bearer_ws_send_scope(message, binary, scope) }
 function ws_send_to(connection_id : string, message : string, binary : bool) bool { -> __bearer_ws_send_to(connection_id, message, binary) }

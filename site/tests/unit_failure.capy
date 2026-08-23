@@ -1,4 +1,4 @@
 function RENDER(request : dval) {
-    response_status(500, "Internal Server Error")
+    request.out.status = 500
     print("<div class=\"banner\">unit not found: does-not-exist.capy</div>")
 }

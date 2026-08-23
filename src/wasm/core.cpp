@@ -863,6 +863,18 @@ bool component_exists(String name)
 // Run a unit's ONCE() handler at most once per request (native
 // compiler_run_unit_once_if_needed semantics): dedup on the resolved unit
 // path via request.once_units. The handler emits head assets, etc.
+struct WasmHandlerFrame {
+	DValue initial_out;
+	DValue written_out;
+	void* last_allocated_dvalue = 0;
+	void* input_dvalue = 0;
+};
+
+static std::vector<WasmHandlerFrame> wasm_handler_frames;
+
+static void wasm_invoke_handler(WasmRequestHandler handler, Request& request);
+static void wasm_handler_input_release(void* value);
+
 static void wasm_run_once(const String& resolved, Request& request)
 {
 	if(resolved == "")
@@ -876,7 +888,7 @@ static void wasm_run_once(const String& resolved, Request& request)
 	String previous_unit = request.resources.current_unit_file;
 	request.resources.current_unit_file = resolved;
 	WasmRequestHandler once_handler = (WasmRequestHandler)(uintptr_t)once_slot;
-	once_handler(request);
+	wasm_invoke_handler(once_handler, request);
 	request.resources.current_unit_file = previous_unit;
 }
 
@@ -919,7 +931,7 @@ DValue* unit_call(String file_name, String function_name, DValue* call_param)
 		if(resolved != "")
 			context->resources.current_unit_file = resolved;
 		WasmRequestHandler handler_fn = (WasmRequestHandler)(uintptr_t)slot;
-		handler_fn(*context);
+		wasm_invoke_handler(handler_fn, *context);
 		context->resources.current_unit_file = previous_unit;
 		return(0);
 	}
@@ -972,7 +984,7 @@ static void component_render_with_props(String name, DValue& props, Request& req
 	// a wasm function pointer is its index in the shared funcref table; the
 	// host returned the handler's slot, so this is a plain call_indirect
 	WasmRequestHandler handler_fn = (WasmRequestHandler)(uintptr_t)slot;
-	handler_fn(request);
+	wasm_invoke_handler(handler_fn, request);
 	request.resources.current_unit_file = previous_unit;
 }
 
@@ -1011,7 +1023,7 @@ void unit_render(String file_name, Request& request)
 	if(resolved != "")
 		request.resources.current_unit_file = resolved;
 	WasmRequestHandler handler_fn = (WasmRequestHandler)(uintptr_t)slot;
-	handler_fn(request);
+	wasm_invoke_handler(handler_fn, request);
 	request.resources.current_unit_file = previous_unit;
 }
 
@@ -1069,19 +1081,23 @@ void bearer_wasm_invoke_loaded_entry(s32 handler_slot, s32 once_slot)
 	{
 		context->once_units.insert(resolved);
 		WasmRequestHandler once_handler = (WasmRequestHandler)(uintptr_t)once_slot;
-		once_handler(*context);
+		wasm_invoke_handler(once_handler, *context);
 	}
 	WasmRequestHandler handler_fn = (WasmRequestHandler)(uintptr_t)handler_slot;
-	handler_fn(*context);
+	wasm_invoke_handler(handler_fn, *context);
 }
 
 void* bearer_alloc(size_t len)
 {
-	return(malloc(len));
+	void* value = malloc(len);
+	if(len == 28 && !wasm_handler_frames.empty())
+		wasm_handler_frames.back().last_allocated_dvalue = value;
+	return(value);
 }
 
 void bearer_free(void* ptr)
 {
+	wasm_handler_input_release(ptr);
 	free(ptr);
 }
 
@@ -1141,6 +1157,7 @@ void bearer_wasm_core_reset_request()
 	wasm_component_slots.clear();
 	wasm_component_paths.clear();
 	wasm_component_errors.clear();
+	wasm_handler_frames.clear();
 	bearer_host_module_reset();
 	wasm_unit_call_encoded_result.clear();
 	wasm_component_capture_result.clear();
@@ -2079,7 +2096,47 @@ static size_t bearer_handler_input_encode(Request* request, char* out, size_t ca
 	};
 	copy_map("query", request->get);
 	copy_map("form", request->post);
+	snapshot["params"].set_type('M');
+	for(const auto& entry : request->get)
+		snapshot["params"][entry.first] = entry.second;
+	for(const auto& entry : request->post)
+		snapshot["params"][entry.first] = entry.second;
+	if(wasm_handler_frames.size() > 1)
+	{
+		const WasmHandlerFrame& parent = wasm_handler_frames[wasm_handler_frames.size() - 2];
+		if(parent.input_dvalue)
+		{
+			u32 length = 0;
+			u32 capacity = 0;
+			u32 payload = 0;
+			const char* input = (const char*)parent.input_dvalue;
+			memcpy(&length, input + 16, sizeof(length));
+			memcpy(&capacity, input + 20, sizeof(capacity));
+			memcpy(&payload, input + 24, sizeof(payload));
+			DValue parent_snapshot;
+			String error;
+			if(length <= capacity && brb_decode(String((const char*)(uintptr_t)payload, length), parent_snapshot, &error) && parent_snapshot["params"].is_array())
+				snapshot["params"] = parent_snapshot["params"];
+		}
+	}
 	copy_map("cookies", request->cookies);
+	snapshot["out"].set_type('M');
+	snapshot["out"]["status"] = (f64)(request->flags.status ? request->flags.status : 200);
+	snapshot["out"]["headers"].set_type('M');
+	for(const auto& entry : request->header)
+		snapshot["out"]["headers"][entry.first] = entry.second;
+	snapshot["out"]["cookies"].set_type('M');
+	for(const String& cookie : request->set_cookies)
+	{
+		if(cookie.rfind("Set-Cookie: ", 0) != 0)
+			continue;
+		String pair = cookie.substr(12);
+		String name = nibble("=", pair);
+		String value = nibble(";", pair);
+		if(name != "")
+			snapshot["out"]["cookies"][uri_decode(name)] = uri_decode(value);
+	}
+	snapshot["out"]["buffer"] = request->ob_stack.empty() ? request->out : request->ob_stack[0]->str();
 	snapshot["server"].set_type('M');
 	snapshot["headers"].set_type('M');
 	for(const auto& entry : request->params)
@@ -2134,12 +2191,94 @@ static size_t bearer_handler_input_encode(Request* request, char* out, size_t ca
 		value = connection_id;
 		snapshot["websocket"]["connections"].push(value);
 	}
-	return(bearer_copy_bytes(brb_encode(snapshot), out, cap));
+	String encoded = brb_encode(snapshot);
+	if(out && cap >= encoded.size() && !wasm_handler_frames.empty())
+	{
+		wasm_handler_frames.back().initial_out = snapshot["out"];
+		wasm_handler_frames.back().input_dvalue = wasm_handler_frames.back().last_allocated_dvalue;
+	}
+	return(bearer_copy_bytes(encoded, out, cap));
 }
 
 size_t bearer_handler_input_brrb(Request* request, char* out, size_t cap)
 {
 	return(bearer_handler_input_encode(request, out, cap));
+}
+
+static void wasm_invoke_handler(WasmRequestHandler handler, Request& request)
+{
+	wasm_handler_frames.push_back({});
+	handler(request);
+	WasmHandlerFrame frame = std::move(wasm_handler_frames.back());
+	wasm_handler_frames.pop_back();
+	DValue* out = frame.written_out.key("out");
+	if(!out || out->type != 'M' || out->is_list())
+		return;
+	auto changed = [&](const char* key) {
+		return(brb_encode(frame.initial_out[key]) != brb_encode((*out)[key]));
+	};
+	if(changed("status"))
+	{
+		const DValue& status = (*out)["status"].deref();
+		if(status.type != 'F')
+			__builtin_trap();
+		s64 code = status.to_s64();
+		if(code < 100 || code > 999)
+			__builtin_trap();
+		request.set_status((s32)code);
+	}
+	if(changed("headers"))
+	{
+		const DValue& before = frame.initial_out["headers"].deref();
+		const DValue& after = (*out)["headers"].deref();
+		if(after.type != 'M' || after.is_list())
+			__builtin_trap();
+		if(before.type == 'M' && !before.is_list())
+			before.each([&](const DValue&, String name) { if(!after.key(name)) request.header.erase(name); });
+		after.each([&](const DValue& value, String name) {
+			if(!http_header_name_valid(name))
+				__builtin_trap();
+			request.header[name] = http_header_value_clean(value.to_string());
+		});
+	}
+	if(changed("cookies"))
+	{
+		const DValue& after = (*out)["cookies"].deref();
+		if(after.type == 'M' && !after.is_list())
+			after.each([&](const DValue& value, String name) {
+				const DValue* prior = frame.initial_out["cookies"].key(name);
+				if(!prior || brb_encode(*prior) != brb_encode(value))
+					set_cookie(name, value.to_string());
+			});
+	}
+	if(changed("buffer"))
+	{
+		request.out = (*out)["buffer"].to_string();
+		if(!request.ob_stack.empty())
+		{
+			request.ob_stack[0]->str(request.out);
+			request.ob_stack[0]->clear();
+		}
+	}
+}
+
+static void wasm_handler_input_release(void* value)
+{
+	if(wasm_handler_frames.empty() || !wasm_handler_frames.back().input_dvalue)
+		return;
+	const char* input = (const char*)wasm_handler_frames.back().input_dvalue;
+	u32 length = 0;
+	u32 capacity = 0;
+	u32 payload = 0;
+	memcpy(&length, input + 16, sizeof(length));
+	memcpy(&capacity, input + 20, sizeof(capacity));
+	memcpy(&payload, input + 24, sizeof(payload));
+	if(length > capacity || value != (void*)(uintptr_t)payload)
+		return;
+	DValue snapshot;
+	String error;
+	if(brb_decode(String((const char*)(uintptr_t)payload, length), snapshot, &error))
+		wasm_handler_frames.back().written_out = std::move(snapshot);
 }
 
 size_t bearer_dv_s32_to_brrb(s32 value, char* out, size_t cap)

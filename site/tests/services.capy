@@ -1,4 +1,4 @@
 function RENDER(request : dval) {
-    response_header("Content-Type", "text/html; charset=utf-8")
+    request.out.headers["Content-Type"] = "text/html; charset=utf-8"
     print("<!doctype html><html><head><title>Sockets And Services</title></head><body><h1>Sockets And Services</h1><p>Sockets And Services</p></body></html>")
 }

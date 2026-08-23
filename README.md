@@ -11,7 +11,7 @@ Create `site/hello.capy`:
 ```capy
 function RENDER(request : dval) {
     var name := string(request.query.name, "guest")
-    response_header("Content-Type", "text/plain; charset=utf-8")
+    request.out.headers["Content-Type"] = "text/plain; charset=utf-8"
     print("Hello, ", name, "!\n")
 }
 ```

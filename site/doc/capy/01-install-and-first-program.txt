@@ -63,7 +63,7 @@ Confirm that `bearer.service` is active. The source file must be below the confi
 
 Change one value and request the page again. For example, change `Ada` to your name. This proves that Bearer sees the file you edited.
 
-Then add one standard-library call, such as `response_header("Content-Type", "text/plain; charset=utf-8")`. Small changes make compiler errors easier to isolate.
+Then add one standard-library call, such as `request.out.headers["Content-Type"] = "text/plain; charset=utf-8"`. Small changes make compiler errors easier to isolate.
 
 Continue with basic source syntax before you add request data or application APIs.
 

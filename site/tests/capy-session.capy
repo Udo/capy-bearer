@@ -3,7 +3,7 @@ function RENDER(request : dval) {
     if action == "set" {
         var session := session_start("capy-session")
         session = session_set("value", string(request.query.value, ""))
-        response_cookie("capy-extra", "yes")
+        request.out.cookies["capy-extra"] = "yes"
         print("set")
     } else {
         if action == "remove" {

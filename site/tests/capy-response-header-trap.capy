@@ -1,4 +1,4 @@
 function RENDER(request : dval) {
-    response_header("Bad\nName", "rejected")
+    request.out.headers["Bad\nName"] = "rejected"
     print("unexpected")
 }

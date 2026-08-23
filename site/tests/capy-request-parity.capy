@@ -27,6 +27,6 @@ function exercise(request : dval) {
 
 function CLI(request : dval) { exercise(request) }
 function RENDER(request : dval) {
-    if string(request.query.status, "") == "yes" { response_status(202, "Capy Accepted") }
+    if string(request.query.status, "") == "yes" { request.out.status = 202 }
     exercise(request)
 }

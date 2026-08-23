@@ -25,12 +25,12 @@ function RENDER(request : dval) {
             render_page_shell(kind, slug)
             return
         }
-        response_status(404, "Not Found")
+        request.out.status = 404
         print("<html><body><h1>Page not found</h1></body></html>")
         return
     }
     if string(request.query.p, "") != "" {
-        response_status(404, "Not Found")
+        request.out.status = 404
         print("<html><body><h1>Page not found</h1></body></html>")
         return
     }

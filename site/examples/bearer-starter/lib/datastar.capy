@@ -1,7 +1,7 @@
-function datastar_sse_headers {
-    response_header("Content-Type", "text/event-stream; charset=utf-8")
-    response_header("Cache-Control", "no-cache, no-store, must-revalidate")
-    response_header("X-Accel-Buffering", "no")
+function datastar_sse_headers(request : dval) {
+    request.out.headers["Content-Type"] = "text/event-stream; charset=utf-8"
+    request.out.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    request.out.headers["X-Accel-Buffering"] = "no"
 }
 
 function datastar_patch_elements(elements : string) string {

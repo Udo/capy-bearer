@@ -100,13 +100,13 @@ function COMPONENT(request : dval) {
     var kind := string(request.props.kind, "")
     var slug := string(request.props.slug, "")
     if kind == "" || slug == "" {
-        response_status(404, "Not Found")
+        request.out.status = 404
         print("<main class=\"content doc-page\"><h2>Page not found</h2></main>")
         return
     }
     var page := load_doc_page(kind, slug)
     if string(page.kind, "") == "" {
-        response_status(404, "Not Found")
+        request.out.status = 404
         print("<main class=\"content doc-page\"><h2>Page not found</h2></main>")
         return
     }

@@ -1,7 +1,7 @@
 function CLI(request : dval) {
-    response_status(99)
+    request.out.status = 99
 }
 
 function RENDER(request : dval) {
-    response_status(99)
+    request.out.status = 99
 }

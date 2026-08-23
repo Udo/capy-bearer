@@ -72,8 +72,8 @@ function page2() void {
     </>)
 }
 
-function page2_section1() void {
-    response_header("Content-Type", "text/html; charset=utf-8")
+function page2_section1(request : dval) void {
+    request.out.headers["Content-Type"] = "text/html; charset=utf-8"
     print("<section><h2>BEARER starter AJAX fragment response</h2><p>This fragment is native Capy.</p></section>")
 }
 
@@ -87,8 +87,8 @@ function workspace(path : string) void {
     </>)
 }
 
-function not_found() void {
-    response_status(404, "Not Found")
+function not_found(request : dval) void {
+    request.out.status = 404
     page("404 Not Found", "", <>
         <section>
             <h1>404 Not Found</h1>
@@ -124,12 +124,12 @@ function RENDER(request : dval) {
         return
     }
     if path == "page2-section1" {
-        page2_section1()
+        page2_section1(request)
         return
     }
     if path == "workspace" || path == "workspace/projects" {
         workspace(path)
         return
     }
-    not_found()
+    not_found(request)
 }

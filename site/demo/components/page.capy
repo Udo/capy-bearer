@@ -2,7 +2,7 @@ function COMPONENT(request : dval) {
     var title := string(request.props.title, "Demo")
     var heading := string(request.props.heading, title)
     var body := string(request.props.body, "This included demo route runs from native Capy.")
-    response_header("Content-Type", "text/html; charset=utf-8")
+    request.out.headers["Content-Type"] = "text/html; charset=utf-8"
     print("<!doctype html>")
     print(<>
         <html>

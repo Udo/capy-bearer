@@ -447,6 +447,13 @@ request_http_second=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' -H 'X
 	echo "Capy request isolation mismatch: $request_http_second" >&2
 	exit 1
 }
+request_writeback_headers=$(mktemp)
+request_writeback_output=$(curl -fsS --max-time 30 -D "$request_writeback_headers" -H 'Host: bearer.openfu.com' -d 'value=form' 'http://127.0.0.1/tests/capy-request-writeback.capy?value=query')
+expect_equal "Capy request write-back body, params precedence, and component visibility" "form|component-sees-mutation" "$request_writeback_output"
+grep -Eq '^HTTP/1\.[01] 203 ' "$request_writeback_headers"
+grep -Eqi '^X-Capy-Phase5: out' "$request_writeback_headers"
+grep -Eiq '^Set-Cookie: capy-phase5=cookie(;|$)' "$request_writeback_headers"
+rm -f "$request_writeback_headers"
 response_trap_body=$(mktemp)
 response_trap_status=$(curl -sS --max-time 30 -o "$response_trap_body" -w '%{http_code}' -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-response-header-trap.capy)
 rm -f "$response_trap_body"
@@ -454,30 +461,18 @@ rm -f "$response_trap_body"
 	echo "Capy malformed response header did not fail: HTTP $response_trap_status" >&2
 	exit 1
 }
-set +e
-status_trap_output=$(scripts/bearer-cli /tests/capy-response-status-trap.capy 2>&1)
-status_trap_result=$?
-set -e
-[[ $status_trap_result -ne 0 && "$status_trap_output" == *"capy-response-status-trap.capy:2:5"* ]] || {
-	echo "Capy invalid response status trap/source mismatch: status=$status_trap_result output=$status_trap_output" >&2
-	exit 1
-}
-status_http_body=$(mktemp)
-status_http_result=$(curl -sS --max-time 30 -o "$status_http_body" -w '%{http_code}' -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-response-status-trap.capy)
-rm -f "$status_http_body"
-[[ "$status_http_result" == "500" ]] || {
-	echo "Capy invalid HTTP response status did not fail: HTTP $status_http_result" >&2
-	exit 1
-}
-[[ "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' -H 'X-Capy-Schema: yes' -d 'answer=8' 'http://127.0.0.1/tests/capy-request-context.capy?name=Reset')" == "POST|Reset|8|answer=8|1" ]] || {
-	echo "Capy request workspace did not recover after response trap" >&2
+status_trap_body=$(mktemp)
+status_trap_status=$(curl -sS --max-time 30 -o "$status_trap_body" -w '%{http_code}' -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-response-status-trap.capy)
+rm -f "$status_trap_body"
+[[ "$status_trap_status" == "500" ]] || {
+	echo "Capy invalid response status did not fail: HTTP $status_trap_status" >&2
 	exit 1
 }
 expect_equal "request/response stdlib CLI" "Ada|Ada|inner|outer+inner|index|workspacetruetruetrue|truetruetrue|true|1" "$(scripts/bearer-cli /tests/capy-request-parity.capy name=Ada)"
 request_parity_headers=$(mktemp)
 request_parity_output=$(curl -fsS --max-time 30 -D "$request_parity_headers" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-request-parity.capy?workspace/projects&name=Grace&status=yes')
 [[ "$request_parity_output" == "Grace|Grace|inner|outer+inner|workspace/projects|workspacetruetruetrue|truetruetrue|true|1" ]]
-grep -Eq '^HTTP/1\.[01] 202 Capy Accepted' "$request_parity_headers"
+grep -Eq '^HTTP/1\.[01] 202 Accepted' "$request_parity_headers"
 rm -f "$request_parity_headers"
 session_replacement_headers=$(mktemp)
 [[ "$(curl -fsS --max-time 30 -D "$session_replacement_headers" -b 'capy-session=not-a-session' -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-session.capy?action=read')" == "missing||2" ]]

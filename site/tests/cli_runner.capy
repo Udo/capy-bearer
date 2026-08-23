@@ -1,5 +1,5 @@
 function CLI(request : dval) {
-    response_header("Content-Type", "text/plain; charset=utf-8")
+    request.out.headers["Content-Type"] = "text/plain; charset=utf-8"
     var action := string(request.query.action, "run")
     if action == "list" {
         print("native\n")

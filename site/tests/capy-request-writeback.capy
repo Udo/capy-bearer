@@ -1,0 +1,13 @@
+function RENDER(request : dval) {
+    print("discarded")
+    request.params.phase5 = "component-sees-mutation"
+    var component_output := component("/tests/capy-request-writeback.capy")
+    request.out.status = 203
+    request.out.headers["X-Capy-Phase5"] = "out"
+    request.out.cookies["capy-phase5"] = "cookie"
+    request.out.buffer = string(request.params.value, "") + "|" + component_output
+}
+
+function COMPONENT(request : dval) {
+    print(string(request.params.phase5, ""))
+}
