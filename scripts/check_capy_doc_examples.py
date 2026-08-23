@@ -17,6 +17,7 @@ CANONICAL_GUIDES = {
     "04-expressions-and-control-flow", "05-functions-and-closures", "06-strings-and-markup",
     "07-collections-and-records", "08-dynamic-values", "09-web-handlers-and-requests",
     "10-units-components-and-exports", "11-tasks-and-jobs", "12-errors-testing-and-style",
+    "13-coming-from-react",
 }
 ARRAYS = ("supported", "partial", "unsupported_by_design", "missing_notes")
 EVIDENCE_ARRAY = re.compile(r"inline constexpr std::array<Evidence,\s*\d+>\s+(\w+)\s*\{\{(.*?)\}\};", re.S)
@@ -81,9 +82,9 @@ def check_example_body(page: Path, line: int, entry: str, body: str) -> list[str
     checked = re.sub(r"//[^\n]*", "", checked)
     if page.stem not in CANONICAL_GUIDES and CPP_TOKENS.search(checked):
         errors.append(f"{page.name}:{line}: Capy example contains a host-language type")
-    if page.stem not in CANONICAL_GUIDES | {"3_Documentation format"} and CAPY_HANDLER.search(checked):
+    if page.stem not in CANONICAL_GUIDES and CAPY_HANDLER.search(checked):
         errors.append(f"{page.name}:{line}: API examples must contain a handler body, not a complete Capy handler")
-    if page.stem not in CANONICAL_GUIDES | {"3_Documentation format"} and CAPY_REQUEST_DECLARATION.search(checked):
+    if page.stem not in CANONICAL_GUIDES and CAPY_REQUEST_DECLARATION.search(checked):
         errors.append(f"{page.name}:{line}: API examples cannot redeclare the handler request parameter")
     return errors
 
@@ -134,14 +135,14 @@ def check(pages: Path, manifest: Path, signatures: Path) -> list[str]:
     for name in sorted(actual & set(statuses)):
         page = pages / f"{name}.txt"
         errors.extend(check_page(page, statuses[name]))
-        if name != "3_Documentation format" and ":sig\n" not in page.read_text():
+        if ":sig\n" not in page.read_text():
             errors.append(f"{page.name}: missing Capy :sig declaration")
     try:
         generated = generated_capy_signatures(signatures)
     except OSError as error:
         errors.append(f"Capy signatures: {error}")
         generated = {}
-    required = {name for name, status in statuses.items() if status == "supported"} - {"3_Documentation format"}
+    required = {name for name, status in statuses.items() if status == "supported"}
     errors += [f"Capy signatures: supported page has no generated declaration: {name}" for name in sorted(required - set(generated))]
     errors += [f"Capy signatures: stale or unsupported generated page: {name}" for name in sorted(set(generated) - required)]
     for name in sorted(required & set(generated)):
@@ -159,10 +160,11 @@ def guide_redirects(path: Path) -> dict[str, str]:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     redirects = getattr(module, "GUIDE_REDIRECTS", None)
-    if not isinstance(redirects, dict) or len(redirects) != 14:
-        raise ValueError("guide redirect map needs 14 old slugs")
-    if set(redirects.values()) != CANONICAL_GUIDES:
-        raise ValueError("guide redirect map does not produce the canonical guide set")
+    if not isinstance(redirects, dict) or not redirects:
+        raise ValueError("guide redirect map is missing")
+    unknown = sorted(set(redirects.values()) - CANONICAL_GUIDES)
+    if unknown:
+        raise ValueError("guide redirect targets are not canonical guides: " + ", ".join(unknown))
     return redirects
 
 

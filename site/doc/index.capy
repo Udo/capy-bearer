@@ -54,9 +54,6 @@ function render_legacy(page : string) bool {
     if page == "2_StringList_some" { render_page_shell("api", "string-list-some"); return true }
     if page == "2_StringList_sort" { render_page_shell("api", "string-list-sort"); return true }
     if page == "2_StringList_unique" { render_page_shell("api", "string-list-unique"); return true }
-    if page == "3_Blocked functions" { render_page_shell("api", "blocked-functions"); return true }
-    if page == "3_Coming from React" { render_page_shell("api", "coming-from-react"); return true }
-    if page == "3_Documentation format" { render_page_shell("api", "documentation-format"); return true }
     if page == "array_merge" { render_page_shell("api", "array-merge"); return true }
     if page == "ascii_safe_name" { render_page_shell("api", "ascii-safe-name"); return true }
     if page == "backtrace_capture" { render_page_shell("api", "backtrace-capture"); return true }
@@ -289,6 +286,8 @@ function render_legacy(page : string) bool {
     if page == "capy-11-tasks-and-jobs" { render_page_shell("guide", "tasks-and-jobs"); return true }
     if page == "11-tasks-and-jobs" { render_page_shell("guide", "tasks-and-jobs"); return true }
     if page == "capy-12-errors-testing-and-style" { render_page_shell("guide", "errors-testing-and-style"); return true }
+    if page == "capy-13-coming-from-react" { render_page_shell("guide", "coming-from-react"); return true }
+    if page == "13-coming-from-react" { render_page_shell("guide", "coming-from-react"); return true }
     if page == "12-errors-testing-and-style" { render_page_shell("guide", "errors-testing-and-style"); return true }
     if page == "capy-01-getting-started" { render_page_shell("guide", "install-and-first-program"); return true }
     if page == "capy-02-basic-syntax" { render_page_shell("guide", "source-structure-and-syntax"); return true }

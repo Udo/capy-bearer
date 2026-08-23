@@ -85,9 +85,6 @@ def generate(capyc: Path) -> str:
     signatures, compiler_pages = compiler_signatures(capyc)
     pages: dict[str, list[str]] = {}
     for page, marker in supported_pages():
-        if page == "3_Documentation format":
-            pages[page] = []
-            continue
         if page in compiler_pages:
             pages[page] = compiler_pages[page]
             continue

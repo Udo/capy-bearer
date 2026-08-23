@@ -48,8 +48,6 @@ function COMPONENT(request : dval) {
     print("<div class=\"func-item\"><a href=\"/doc/api/string-list-sort/\">sort</a></div>")
     print("<div class=\"func-item\"><a href=\"/doc/api/string-list-unique/\">unique</a></div>")
     print("<div class=\"func-item\"><a href=\"/doc/api/blocked-functions/\">Blocked functions</a></div>")
-    print("<div class=\"func-item\"><a href=\"/doc/api/coming-from-react/\">Coming from React</a></div>")
-    print("<div class=\"func-item\"><a href=\"/doc/api/documentation-format/\">Documentation format</a></div>")
     print("<div class=\"func-item\"><a href=\"/doc/api/array-merge/\">array_merge</a></div>")
     print("<div class=\"func-item\"><a href=\"/doc/api/ascii-safe-name/\">ascii_safe_name</a></div>")
     print("<div class=\"func-item\"><a href=\"/doc/api/backtrace-capture/\">backtrace_capture</a></div>")
