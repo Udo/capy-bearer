@@ -6,7 +6,7 @@ function COMPONENT(request : dval)
 function COMPONENT:NAME(request : dval)
 
 :content
-`COMPONENT` marks a function as a renderable fragment. Another unit reaches it with `component()`, `component_capture()`, or `component_render()`; it is never routed to directly by a URL.
+`COMPONENT` marks a function as a renderable fragment. Another unit reaches it with `component()` or `component_render()`; it is never routed to directly by a URL.
 
 The handler takes one parameter, `request`, of type `dval`, and returns nothing. Everything it `print`s becomes the fragment's output.
 
@@ -55,7 +55,6 @@ print("</section>")
 :see
 component
 component_render
-component_capture
 component_exists
 0_Request
 1_RENDER

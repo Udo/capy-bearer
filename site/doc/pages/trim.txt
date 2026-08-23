@@ -9,9 +9,7 @@ text without leading or trailing whitespace
 
 :see
 >string
-to_upper
 float_val
-to_lower
 int_val
 regex_split
 html_escape

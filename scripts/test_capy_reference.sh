@@ -27,6 +27,11 @@ for index in "${!pages[@]}"; do
 done
 
 doc_base="${BEARER_TEST_HTTP_BASE:-http://127.0.0.1}/doc/"
+unknown_status=$(curl -sS --max-time 60 -o /dev/null -w '%{http_code}' -H "Host: $host" "${doc_base}api/zzzznotreal/")
+[[ "$unknown_status" == 404 ]] || {
+	echo "Unknown API page returned HTTP $unknown_status instead of 404" >&2
+	exit 1
+}
 guide=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=capy-08-dynamic-values") || {
 	echo "Capy guide page did not render through the documentation application" >&2
 	exit 1
@@ -46,7 +51,7 @@ call_page=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=call") || {
 	echo "API page rendered a legacy sig heading" >&2
 	exit 1
 }
-constructor=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=2_DValue_to_string") || {
+constructor=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=string") || {
 	echo "Capy constructor API page did not render" >&2
 	exit 1
 }
@@ -66,13 +71,13 @@ contract=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=http_request") 
 	echo "Structured API contract sections or related links are incomplete" >&2
 	exit 1
 }
-prefixed=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=cli_arg") || {
+prefixed=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base?p=0_Request") || {
 	echo "Prefixed API page did not render" >&2
 	exit 1
 }
 [[ "$prefixed" == *'class="related-link" href="/doc/?p=1_CLI">CLI</a>'* &&
-	"$prefixed" == *'class="related-link" href="/doc/?p=0_Request">Request</a>'* &&
-	"$prefixed" != *'>1_CLI<'* && "$prefixed" != *'>0_Request<'* ]] || {
+	"$prefixed" == *'class="related-link" href="/doc/?p=1_RENDER">RENDER</a>'* &&
+	"$prefixed" != *'>1_CLI<'* && "$prefixed" != *'>1_RENDER<'* ]] || {
 	echo "Related links did not use canonical labels and routes" >&2
 	exit 1
 }

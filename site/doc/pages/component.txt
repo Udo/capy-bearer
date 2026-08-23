@@ -12,15 +12,9 @@ The component output as a string.
 :content
 `component()` renders a component and returns everything it printed as a string.
 
-It is the same function as `component_capture()` — `component()` is the short spelling most pages use. Reach for `component_render()` instead when you are writing the fragment straight into the current response and do not need the string, because it skips the capture buffer.
+It collects the output into a buffer, which costs something. Reach for `component_render()` instead when you are writing the fragment straight into the current response and never look at the string — it skips the buffer entirely, so `component_render("card")` does less work than `print(component("card"))`.
 
-## Choosing between the three
-
-| You want | Use |
-| --- | --- |
-| the output as a value you can wrap, measure, or store | `component()` |
-| the output written directly to the response | `component_render()` |
-| the explicit long name for the capturing form | `component_capture()` |
+Capture the string when the string is the goal: wrapping the fragment in surrounding markup, checking whether it produced anything before emitting a container, storing it in a `dval` beside other values, or emitting the same fragment more than once from one call.
 
 ## How a name resolves
 
@@ -75,7 +69,6 @@ if component_exists("/doc/examples/card.capy") {
 }
 
 :see
-component_capture
 component_exists
 component_render
 component_resolve

@@ -24,5 +24,5 @@ print(string(profile.name), " ", length(profile.scores), "\n")
 
 :see
 >0_DValue
-dval_put
-dval_set
+set
+set

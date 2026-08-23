@@ -6,9 +6,9 @@ type dval
 
 :see
 >types
-2_DValue_to_string
-2_DValue_require
-2_DValue_get_by_path
+string
+get
+get_by_path
 json_decode
 
 :content
@@ -16,9 +16,9 @@ A `dval` stores scalar values, maps, lists, and `none`.
 
 Use maps for named fields and lists for ordered values. Read children with `value.name`, `value["name"]`, or `value[0]`. A missing read returns `none` and does not change the value.
 
-Use `dval_has` to test a key. Use `dval_require` when a missing child is an error. Use `string`, `bool`, `s32`, `s64`, `u64`, or `f64` to convert a value.
+Use `has` to test a key. Use `get` when absence is valid. Use `string`, `bool`, `s32`, `s64`, `u64`, or `f64` to convert a value.
 
-Update functions such as `dval_put`, `dval_push`, and `dval_set` change their target and return it. Pure functions such as `dval_map`, `dval_filter`, `dval_keys`, and `dval_values` return new values.
+Update functions such as `set`, `push`, and `clear` change their target and return it. `keys` and `values` return new values.
 
 :example capy render
 var user := dval({"name": "Ada", "tags": ["math"]})

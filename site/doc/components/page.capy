@@ -1,9 +1,15 @@
+function missing_doc_page() dval {
+    return {source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""}
+}
+
 function load_doc_page(kind : string, slug : string) dval {
+    var path := "/doc/content-" + kind + ".capy"
     if kind == "api" {
         var shard := ascii_safe_name(substr(slug, 0, 8))
-        return unit_load("/doc/content-api-" + shard + ".capy").data({slug: slug})
+        path = "/doc/content-api-" + shard + ".capy"
     }
-    return unit_load("/doc/content-" + kind + ".capy").data({slug: slug})
+    if !component_exists(path) { return missing_doc_page() }
+    return unit_load(path).data({slug: slug})
 }
 
 function section(title : string, body : string) void {
@@ -98,5 +104,11 @@ function COMPONENT(request : dval) {
         print("<main class=\"content doc-page\"><h2>Page not found</h2></main>")
         return
     }
-    render_page(load_doc_page(kind, slug))
+    var page := load_doc_page(kind, slug)
+    if string(page.kind, "") == "" {
+        response_status(404, "Not Found")
+        print("<main class=\"content doc-page\"><h2>Page not found</h2></main>")
+        return
+    }
+    render_page(page)
 }

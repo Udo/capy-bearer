@@ -45,7 +45,8 @@ Use strict access when missing data violates the program contract:
 :example capy cli
 function RENDER(request : dval) {
     var profile := {:}
-    var name := dval_require(profile, "name")
+    if !has(profile, "name") { trap() }
+    var name := get(profile, "name")
     print(name)
 }
 
@@ -89,7 +90,7 @@ The language guide explains how Capy code fits together. The API reference gives
 
 A compile error usually means the source does not match the type contract. Fix that error before you inspect later messages.
 
-A runtime trap usually means the input did not match the application contract. Use `dval_require()` when the contract requires data. Use constructors with fallbacks when absence is valid.
+A runtime trap usually means the input did not match the application contract. Test required data with `has()` before you call `get()`. Use constructors with fallbacks when absence is valid.
 
 Write tests for both paths. A success test proves the expected shape works. A failure test proves bad input cannot silently continue.
 

@@ -1,0 +1,21 @@
+:title
+Test for a list
+
+:sig
+function is_list(value : dval) bool
+
+:params
+value : value to test
+
+:returns
+`true` for a list-shaped value.
+
+:content
+`is_list(value)` tests whether a value is a list.
+
+:example capy render
+print(is_list(dval(["Ada"])), "\n")
+
+:see
+0_DValue
+is_array

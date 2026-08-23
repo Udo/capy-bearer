@@ -1,0 +1,24 @@
+:title
+Append a child
+
+:sig
+function push(value : dval, child : as dval) dval
+
+:params
+value : target value
+child : value to append
+
+:returns
+The changed target value.
+
+:content
+`push(value, child)` appends `child` with the next numeric key. It changes and returns `value`.
+
+:example capy render
+var list := dval([])
+list = push(list, "Ada")
+print(list[0], "\n")
+
+:see
+0_DValue
+pop

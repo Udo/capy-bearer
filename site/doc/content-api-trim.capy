@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["raw : text to trim", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">string", "to_upper", "float_val", "to_lower", "int_val", "regex_split", "html_escape"])
+        page["see"] = dval([">string", "float_val", "int_val", "regex_split", "html_escape"])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(trim(\"  docs  \"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

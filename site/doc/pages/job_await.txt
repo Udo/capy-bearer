@@ -14,7 +14,7 @@ A job status map. A completed job includes `result`.
 :example capy render
 var job := shell_spawn(dval({"cmd": "printf hello", "timeout_ms": 1000}))
 var result := job_await(job, 3000)
-print(dval_get_by_path(result, "result/stdout"), "\n")
+print(get_by_path(result, "result/stdout"), "\n")
 
 :see
 job_result

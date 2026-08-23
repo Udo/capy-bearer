@@ -10,7 +10,7 @@ function CLI(request : dval) {
         print(child["source"], "|", child["name"], "|", s32(child["second"]), "|")
         var capy_input := {"origin": "capy"}
         var capy := unit_call("/tests/capy-dval-rich.capy", "enrich", capy_input)
-        print(capy["language"], "|", capy["input"]["origin"], "|", dval_has(capy_input, "export_mutation"), "|")
+        print(capy["language"], "|", capy["input"]["origin"], "|", has(capy_input, "export_mutation"), "|")
         var profile := dval({
             "name": "Ada",
             "age": 42,
@@ -22,7 +22,7 @@ function CLI(request : dval) {
             s32(profile["age"]), "|",
             bool(profile["active"]), "|",
             profile["tags"][1], "|",
-            dval_has(profile, "name"), dval_has(profile, "missing"), "|",
+            has(profile, "name"), has(profile, "missing"), "|",
             arc_live(), "|"
         )
         for value, key := profile {
@@ -48,7 +48,7 @@ function CLI(request : dval) {
     {
         var empty_map := dval({:})
         var empty_list := dval([])
-        print(dval_has(empty_map, "missing"), dval_has(empty_list, 0), "|")
+        print(has(empty_map, "missing"), has(empty_list, 0), "|")
         for value, key := empty_map {
             print("unexpected-map")
         }

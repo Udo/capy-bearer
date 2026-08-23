@@ -1,0 +1,21 @@
+:title
+Test for a container
+
+:sig
+function is_array(value : dval) bool
+
+:params
+value : value to test
+
+:returns
+`true` for a map or list.
+
+:content
+`is_array(value)` returns `true` when a value has map shape. It returns `true` for both maps and lists.
+
+:example capy render
+print(is_array(dval({"name": "Ada"})), "\n")
+
+:see
+0_DValue
+is_list

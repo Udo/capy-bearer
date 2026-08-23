@@ -30,8 +30,6 @@ regex_search
 regex_search_all
 regex_replace
 regex_split
-to_lower
-to_upper
 trim
 float_val
 int_val

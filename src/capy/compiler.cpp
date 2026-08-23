@@ -2236,7 +2236,7 @@ std::string FunctionLowerer::infer(Expr* value)
 		if (name->value == "clone")
 			return infer(call->arguments.at(0));
 		if (name->value == "length" || name->value == "arc_live") return "s32";
-		if (name->value == "dval_has") return "bool";
+		if (name->value == "has") return "bool";
 		if (name->value == "trusted_markup") return "markup";
 		if (name->value == "trap")
 			return "void";
@@ -5141,10 +5141,10 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				throw Error(value->location, "dval expects one scalar, map, or list");
 			return dval_value(call->arguments[0]);
 		}
-		if (!member && callee == "dval_has")
+		if (!member && callee == "has")
 		{
 			if (call->arguments.size() != 2)
-				throw Error(value->location, "dval_has expects dval and string/s32 key");
+				throw Error(value->location, "has expects dval and string/s32 key");
 			return dval_lookup(call->arguments[0], call->arguments[1], false);
 		}
 		if (!member && callee == "__bearer_dval_replace")
@@ -6952,7 +6952,7 @@ Module::Capabilities Module::discover_capabilities()
 				if (primitive_constructor_name(callee) && call->arguments.size() == 1 && can_convert(scan_value_type(call->arguments[0]), callee)) return callee;
 				if (name->value == "clone") return call->arguments.empty() ? "" : scan_value_type(call->arguments.front());
 				if (name->value == "length" || name->value == "arc_live") return "s32";
-				if (name->value == "dval_has") return "bool";
+				if (name->value == "has") return "bool";
 										if (name->value == "trusted_markup") return "markup";
 				std::vector<std::string> arguments;
 				for (Expr* argument : call->arguments)
@@ -7178,7 +7178,7 @@ Module::Capabilities Module::discover_capabilities()
 									}
 						}
 			}
-			if (named_call && (named_callee == "dval" || named_callee == "dval_has"))
+			if (named_call && (named_callee == "dval" || named_callee == "has"))
 			{
 				dval_ = true;
 				scan_alloc = true;

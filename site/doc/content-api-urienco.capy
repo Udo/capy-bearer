@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["value : string to encode", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">uri", "uri_decode", "request_route_from_raw_path", "parse_uri", "parse_query", "session_id_create", "route_path_sanitize"])
+        page["see"] = dval([">uri", "uri_decode", "parse_uri", "parse_query", "session_id_create", "route_path_sanitize"])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(uri_encode(\"Ada Lovelace\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

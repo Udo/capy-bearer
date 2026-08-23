@@ -1,0 +1,23 @@
+:title
+Get a child by path
+
+:sig
+function get_by_path(value : dval, path : string) dval
+
+:params
+value : source value
+path : slash-separated child path
+
+:returns
+The copied child, or an empty string value when the path fails.
+
+:content
+`get_by_path(value, path)` reads a nested child without creating nodes. Use a slash between path segments.
+
+:example capy render
+var config := dval({"site": {"title": "Bearer"}})
+print(get_by_path(config, "site/title"), "\n")
+
+:see
+0_DValue
+get

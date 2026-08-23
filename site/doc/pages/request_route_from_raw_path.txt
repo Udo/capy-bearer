@@ -1,9 +1,0 @@
-:sig
-Not available in Capy.
-
-:content
-Use `route_from_raw_path()` to validate route text without reading the request.
-
-:example capy render
-var route := route_from_raw_path("docs/api")
-print(string(route.path, ""), "\n")

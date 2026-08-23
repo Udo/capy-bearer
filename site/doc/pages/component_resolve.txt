@@ -42,4 +42,3 @@ print(component_resolve("/doc/examples/card.capy:CARD"), "\n")
 component
 component_exists
 component_render
-component_capture

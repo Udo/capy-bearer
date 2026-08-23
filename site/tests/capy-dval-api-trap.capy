@@ -1,7 +1,0 @@
-function CLI(request : dval) {
-    dval_set_type(dval("value"), "bad")
-}
-
-function RENDER(request : dval) {
-    dval_set_type(dval("value"), "bad")
-}

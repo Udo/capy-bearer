@@ -16,6 +16,5 @@ print("handler continues\n")
 
 :see
 >runtime
-error_pages
 unit_render
 unit_compile

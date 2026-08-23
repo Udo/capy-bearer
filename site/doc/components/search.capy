@@ -9,12 +9,12 @@ function search_tokens(query : string) dval {
     for raw := split_space(lower(query)) {
         var token := trim(string(raw, ""))
         if length(token) >= 2 {
-            tokens = dval_push(tokens, token)
-            if token == "strlen" || token == "count" { tokens = dval_push(tokens, "length") }
-            if token == "setcookie" { tokens = dval_push(tokens, "response_cookie") }
-            if token == "header" { tokens = dval_push(tokens, "response_header") }
-            if token == "status" || token == "http_status" { tokens = dval_push(tokens, "response_status") }
-            if token == "json" { tokens = dval_push(tokens, "json_decode") }
+            tokens = push(tokens, token)
+            if token == "strlen" || token == "count" { tokens = push(tokens, "length") }
+            if token == "setcookie" { tokens = push(tokens, "response_cookie") }
+            if token == "header" { tokens = push(tokens, "response_header") }
+            if token == "status" || token == "http_status" { tokens = push(tokens, "response_status") }
+            if token == "json" { tokens = push(tokens, "json_decode") }
         }
     }
     return tokens

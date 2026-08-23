@@ -10,7 +10,6 @@ URI-encoded string
 :see
 >uri
 uri_decode
-request_route_from_raw_path
 parse_uri
 parse_query
 session_id_create

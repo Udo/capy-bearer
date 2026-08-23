@@ -1,0 +1,25 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "is-list" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "is_list"
+        page["kind"] = "api"
+        page["slug"] = "is-list"
+        page["route"] = "/doc/api/is-list/"
+        page["title"] = "Test for a list"
+        page["content"] = "`is_list(value)` tests whether a value is a list.\n"
+        page["returns"] = "`true` for a list-shaped value."
+        page["label"] = "is_list"
+        page["capy_sig_lines"] = dval(["function is_list(value : dval) bool"])
+        page["param_lines"] = dval(["value : value to test", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue", "is_array"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(is_list(dval([\"Ada\"])), \"\\n\")\n"}])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

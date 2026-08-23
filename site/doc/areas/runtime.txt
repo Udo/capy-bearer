@@ -3,7 +3,6 @@ Runtime
 trap
 backtrace_get_frames
 backtrace_capture
-error_pages
 signal_name
 unit_info
 units_list

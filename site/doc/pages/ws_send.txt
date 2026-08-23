@@ -12,12 +12,7 @@ scope : scope identifier
 
 :see
 >websocket
-ws_scope
 ws_send_to
-ws_opcode
-ws_message
-ws_is_binary
-ws_connections
 
 :content
 `ws_send()` sends a message to every client in the current scope. Pass `scope` to select a scope.

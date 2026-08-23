@@ -1,8 +1,0 @@
-:sig
-Not available in Capy.
-
-:content
-Use `request.url.script` in a handler to read the script URL.
-
-:example capy render
-print(string(request.url.script, ""), "\n")

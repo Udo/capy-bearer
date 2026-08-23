@@ -23,7 +23,7 @@ from pathlib import Path
 import re
 handlers = re.compile(r'^\s*function\s+(?:RENDER|COMPONENT(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)?|CLI|WS|TASK(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)?|INIT|ONCE|SERVE_HTTP(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)?)\s*(?:\(([^)]*)\))?\s*\{', re.M)
 removed = re.compile(r'\b(?:request_context|request_param|request_get|request_post|request_cookie|request_session|request_body|request_base_url|request_script_url|request_query_path|request_query_route|cli_input|cli_arg|ws_message|ws_connection_id|ws_scope|ws_opcode|ws_is_binary|ws_connections|ws_connection_count|to_bool|to_f64|to_s64|to_u64|to_lower|to_upper|dval_to_json|dval_to_stringmap|request_route_from_raw_path|request_perf)\s*\(')
-paths = [Path(line) for line in __import__('subprocess').check_output(['git', 'ls-files', '*.capy'], text=True).splitlines()]
+paths = [path for line in __import__('subprocess').check_output(['git', 'ls-files', '*.capy'], text=True).splitlines() if (path := Path(line)).is_file()]
 errors = []
 for path in paths:
     source = path.read_text()
@@ -68,7 +68,7 @@ expected_manifest_pages=$(find site/doc/pages -maxdepth 1 -type f -name '*.txt' 
 
 clang++ "${COMMON[@]}" src/capy/frontend.cpp scripts/test_capy_native_frontend.cpp \
 	-o "$BUILD_DIR/frontend"
-mapfile -t fixtures < <({ git ls-files 'site/**/*.capy'; printf '%s\n' site/tests/capy-mutable-array-struct.capy site/tests/capy-dval-identity.capy; } | sort -u)
+mapfile -t fixtures < <({ git ls-files 'site/**/*.capy'; printf '%s\n' site/tests/capy-mutable-array-struct.capy site/tests/capy-dval-identity.capy; } | sort -u | while read -r path; do [[ -f "$path" ]] && printf '%s\n' "$path"; done)
 "$BUILD_DIR/frontend" "${fixtures[@]}"
 
 clang++ "${COMMON[@]}" src/capy/wasm.cpp scripts/test_capy_native_wasm.cpp \

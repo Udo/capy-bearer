@@ -317,7 +317,7 @@ int main()
 	assert(bare_dval_bytes.find("bearer_dv_read_brrb") != std::string::npos);
 	assert(bare_dval_bytes.find("bearer_dv_get_brrb") == std::string::npos);
 	assert(bare_dval.source_map.find("\t3\t19\n") != std::string::npos);
-	const auto dval_has_only = capy::compile_bearer_unit("function CLI(request : dval) { var value := {:}; print(dval_has(value, \"key\")) }\n", options);
+	const auto dval_has_only = capy::compile_bearer_unit("function CLI(request : dval) { var value := {:}; print(has(value, \"key\")) }\n", options);
 	const std::string dval_has_only_bytes(dval_has_only.wasm.begin(), dval_has_only.wasm.end());
 	assert(dval_has_only_bytes.find("bearer_dv_get_brrb") != std::string::npos);
 	assert(dval_has_only_bytes.find("bearer_dv_read_brrb") == std::string::npos);
@@ -340,7 +340,7 @@ int main()
 		assert(none_literal_bytes.find(unrelated) == std::string::npos);
 	const auto mutable_dval_roots = capy::compile_bearer_unit(
 		"function write(value : dval) { value.key = 1; var closure := function() void { value.captured = 2 }; closure() }\n"
-		"function CLI(request : dval) { var value := {:}; write(value); dval_put(value, \"mutated\", true) }\n", options);
+		"function CLI(request : dval) { var value := {:}; write(value); set(value, \"mutated\", true) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(mutable_dval_roots.wasm, {.bearer_abi_version = "11"}).valid);
 	const std::string mutable_dval_root_bytes(mutable_dval_roots.wasm.begin(), mutable_dval_roots.wasm.end());
 	assert(mutable_dval_root_bytes.find("bearer_dval_replace") == std::string::npos);
@@ -372,8 +372,8 @@ int main()
 	for (const std::string& import : {"bearer_dv_string_to_brrb", "bearer_dv_s32_to_brrb", "bearer_dv_s64_to_brrb", "bearer_dv_u64_to_brrb", "bearer_dv_f64_to_brrb", "bearer_dv_bool_to_brrb"})
 		assert(converted_dval_bytes.find(import) != std::string::npos);
 	const auto stdlib_converted_dvals = capy::compile_bearer_unit(
-		"function CLI(request : dval) { var a := dval_set(dval(0), \"x\"); var b := dval_assign(a, 1); var c := dval_push(dval([]), u64(2)); var d := dval_put({:}, \"ok\", true); "
-		"var task_id := task(\"/task\", 3.5); var output := component_capture(\"/component\", false); component_render(\"/component\", \"props\"); "
+		"function CLI(request : dval) { var a := dval(\"x\"); var b := dval(1); var c := push(dval([]), u64(2)); var d := set({:}, \"ok\", true); "
+		"var task_id := task(\"/task\", 3.5); var output := component(\"/component\", false); component_render(\"/component\", \"props\"); "
 		"var loaded := unit_load(\"/unit\"); var called := loaded.call(\"echo\", 4); var direct := unit_call(\"/unit\", \"echo\", \"input\") }\n", options);
 	assert(capy::wasm::validate_bearer_unit(stdlib_converted_dvals.wasm, {.bearer_abi_version = "11"}).valid);
 	const auto generic_before_dval = capy::compile_bearer_unit(
@@ -651,11 +651,11 @@ int main()
 	assert(compiler_text.find("named->value == \"call\"") == std::string::npos);
 	for (const char* old_name : {"dval_string", "dval_bool", "dval_s32", "dval_f64", "dval_to_string", "dval_to_bool", "dval_to_f64", "dval_to_s64", "dval_to_u64"})
 		assert(compiler_text.find("\"" + std::string(old_name) + "\"") == std::string::npos);
-	for (const auto& public_name : {"array_merge", "dval_set", "dval_assign", "dval_push", "dval_pop", "dval_remove", "dval_clear", "dval_get_by_path", "dval_get_or_create",
-			 "dval_set_array", "dval_set_bool", "dval_set_type", "dval_get_type_name", "dval_key", "dval_keys", "dval_values", "dval_to_json", "dval_to_stringmap", "dval_put",
+	for (const auto& public_name : {"array_merge", "set", "push", "pop", "delete", "clear", "get_by_path", "get_or_create",
+			 "get_type_name", "get", "keys", "values", "has",
 			 "request_param", "request_get", "request_post", "request_cookie", "request_session", "request_body", "response_header", "request_context",
 			 "session_start", "session_set", "session_remove", "session_destroy", "session_id_create", "response_cookie", "redirect", "csrf_token", "csrf_valid", "csrf_rotate", "csrf_field",
-			 "ws_message", "ws_connection_id", "ws_scope", "ws_opcode", "ws_is_binary", "ws_send", "ws_send_to", "ws_close", "component", "component_capture", "component_render",
+			 "ws_message", "ws_connection_id", "ws_scope", "ws_opcode", "ws_is_binary", "ws_send", "ws_send_to", "ws_close", "component", "component_render",
 			 "component_exists", "component_resolve", "unit_render", "unit_call", "unit_info", "units_list", "unit_compile", "regex_match", "regex_search", "regex_search_all", "regex_replace",
 			 "regex_split", "base64_encode", "base64_decode", "uri_encode", "uri_decode", "json_encode", "json_decode", "html_escape", "strpos", "file_open", "file_read", "file_write",
 			 "file_seek", "file_tell", "file_fsync", "file_close", "file_temp", "file_unlink", "time", "time_precise"})

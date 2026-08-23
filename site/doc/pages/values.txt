@@ -1,0 +1,23 @@
+:title
+Get child values
+
+:sig
+function values(value : dval) dval
+
+:params
+value : source value
+
+:returns
+A list of copied child values.
+
+:content
+`values(value)` returns a new list of child values. A scalar returns a one-item list.
+
+:example capy render
+var user := dval({"name": "Ada", "role": "admin"})
+var result := values(user)
+print(is_list(result), " ", length(result), "\n")
+
+:see
+0_DValue
+keys

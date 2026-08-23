@@ -12,7 +12,7 @@ A `dval` that contains the decoded YAML.
 yaml_encode
 json_decode
 0_DValue
-2_DValue_to_string
+string
 
 :content
 `yaml_decode()` decodes YAML source into a `dval`.

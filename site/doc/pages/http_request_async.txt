@@ -16,7 +16,7 @@ The request map follows the `http_request()` rules.
 var outbound := dval({"method": "GET", "url": "http://127.0.0.1/tests/capy-render.capy", "headers": {"Host": "bearer.openfu.com"}, "timeout_ms": 2000})
 var job := http_request_async(outbound)
 var done := job_await(dval(job), 3000)
-print(s32(dval_get_by_path(done, "result/status")), "\n")
+print(s32(get_by_path(done, "result/status")), "\n")
 
 :see
 http_request

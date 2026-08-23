@@ -1,0 +1,23 @@
+:title
+Get child keys
+
+:sig
+function keys(value : dval) dval
+
+:params
+value : source value
+
+:returns
+A list of child keys.
+
+:content
+`keys(value)` returns a new list of child keys. A scalar returns an empty list.
+
+:example capy render
+var user := dval({"name": "Ada", "role": "admin"})
+print(join(sort(keys(user)), ","), "\n")
+
+:see
+0_DValue
+0_StringList
+values

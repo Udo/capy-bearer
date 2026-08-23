@@ -1,8 +1,0 @@
-:sig
-Not available in Capy.
-
-:content
-Use `request.url.base` in a handler to read the base URL.
-
-:example capy render
-print(string(request.url.base, ""), "\n")

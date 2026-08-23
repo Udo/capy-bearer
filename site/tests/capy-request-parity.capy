@@ -20,7 +20,7 @@ function exercise(request : dval) {
     }
     var displayed_name := input_name
     if displayed_name == "" { displayed_name = "fallback" }
-    print(displayed_name, "|", input_name, "|", inner, "|", outer, "|", string(request.route.path, "fallback"), "|", route.page, bool(route.valid, false), string(rejected.path, "") == "", !bool(rejected.valid, false), "|", length(string(request.url.script, "")) > 0, length(string(request.url.base, "")) > 0, dval_get_type_name(perf) != "invalid", "|", length(session_id_create()) == 64)
+    print(displayed_name, "|", input_name, "|", inner, "|", outer, "|", string(request.route.path, "fallback"), "|", route.page, bool(route.valid, false), string(rejected.path, "") == "", !bool(rejected.valid, false), "|", length(string(request.url.script, "")) > 0, length(string(request.url.base, "")) > 0, get_type_name(perf) != "invalid", "|", length(session_id_create()) == 64)
     }
     print("|", arc_live())
 }

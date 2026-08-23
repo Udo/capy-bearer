@@ -16,7 +16,7 @@ function data(input : dval) dval {
         page["param_lines"] = dval(["value : value to convert", "fallback : value to return if conversion fails", ""])
         page["notes"] = dval([])
         page["warnings"] = dval([])
-        page["see"] = dval([">types", "2_DValue_to_u64", "2_DValue_to_s64", "2_DValue_to_f64", "2_DValue_to_bool", "2_DValue_to_string"])
+        page["see"] = dval([">types", "u64", "s64", "f64", "bool", "string"])
         page["examples"] = dval([{entry: "render", caption: "", body: "print(u64(\"42\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page

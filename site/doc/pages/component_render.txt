@@ -9,7 +9,7 @@ props : optional input, readable inside the component as `request.props`
 :content
 `component_render()` renders a component and writes its output straight into the current response. It returns nothing.
 
-This is the form to reach for in page layouts. `component()` and `component_capture()` open a capture buffer, collect everything the component prints, and hand you a string; `component_render()` skips that buffer entirely. When you are only going to print the result anyway, `component_render("card")` does less work than `print(component("card"))`.
+This is the form to reach for in page layouts. `component()` opens a capture buffer, collects everything the component prints, and hands you a string; `component_render()` skips that buffer entirely. When you are only going to print the result anyway, `component_render("card")` does less work than `print(component("card"))`.
 
 Use a capturing call instead when you need the output as a value — to measure it, wrap it, store it, or decide whether to emit it at all.
 
@@ -36,7 +36,6 @@ print("\n")
 
 :see
 component
-component_capture
 component_exists
 component_resolve
 1_COMPONENT

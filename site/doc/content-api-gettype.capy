@@ -1,0 +1,25 @@
+#exports data
+
+function data(input : dval) dval {
+    var slug := string(input.slug, "")
+    if slug == "get-type-name" {
+        var page := dval({source_page: ""})
+        page["source_page"] = "get_type_name"
+        page["kind"] = "api"
+        page["slug"] = "get-type-name"
+        page["route"] = "/doc/api/get-type-name/"
+        page["title"] = "Get a dynamic value type name"
+        page["content"] = "`get_type_name(value)` returns the runtime type name for a dynamic value.\n"
+        page["returns"] = "The type name."
+        page["label"] = "get_type_name"
+        page["capy_sig_lines"] = dval(["function get_type_name(value : dval) string"])
+        page["param_lines"] = dval(["value : value to inspect", ""])
+        page["notes"] = dval([])
+        page["warnings"] = dval([])
+        page["see"] = dval(["0_DValue"])
+        page["examples"] = dval([{entry: "render", caption: "", body: "print(get_type_name(dval(\"text\")), \"\\n\")\n"}])
+        page["guide_examples"] = dval([])
+        return page
+    }
+    return dval({source_page: "", kind: "", slug: "", title: "Page not found", label: "Page not found", content: ""})
+}

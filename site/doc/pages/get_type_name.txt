@@ -1,0 +1,20 @@
+:title
+Get a dynamic value type name
+
+:sig
+function get_type_name(value : dval) string
+
+:params
+value : value to inspect
+
+:returns
+The type name.
+
+:content
+`get_type_name(value)` returns the runtime type name for a dynamic value.
+
+:example capy render
+print(get_type_name(dval("text")), "\n")
+
+:see
+0_DValue

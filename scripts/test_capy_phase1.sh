@@ -237,13 +237,6 @@ expect_equal "unit administration" "true|true|true|2|0" "$(scripts/bearer-cli /t
 expect_equal "DValue array merge" "rightyesnewright|abcd|valueitem|right|value|z|oddkeep|map|unicode|9|0" "$(scripts/bearer-cli /tests/capy-dval-merge.capy)"
 expect_equal "DValue value API" 'truefalseAda42tail|trueone|Bearerfalse|truearray"A"|ftruey|truefalseAdanameengineer|23truefalse|-4242-918446744073709551615|0' "$(scripts/bearer-cli /tests/capy-dval-api.capy)"
 set +e
-dval_api_trap_output=$(scripts/bearer-cli /tests/capy-dval-api-trap.capy 2>&1)
-dval_api_trap_status=$?
-set -e
-[[ $dval_api_trap_status -ne 0 && "$dval_api_trap_output" == *"capy-dval-api-trap.capy:2:5"* ]] || {
-	echo "Capy DValue API trap/source mapping mismatch: $dval_api_trap_output" >&2
-	exit 1
-}
 expect_equal "DValue value API recovery" 'truefalseAda42tail|trueone|Bearerfalse|truearray"A"|ftruey|truefalseAdanameengineer|23truefalse|-4242-918446744073709551615|0' "$(scripts/bearer-cli /tests/capy-dval-api.capy)"
 expect_equal "shared mutable DValue identity, live loops, range bindings, codec copies, and ARC" \
 	'SR|289secondyesyesyesyesvalue10|newnewtruetruetrue|1falsefalsetrueitemtruearraynewnewvalue1|true|102132|1021|0112|7a|3|sourceresult|0' "$(scripts/bearer-cli /tests/capy-dval-identity.capy)"
@@ -522,37 +515,10 @@ rich_dval_output=$(scripts/bearer-cli /tests/capy-dval-rich.capy)
 none_output=$(scripts/bearer-cli /tests/capy-dval-none.capy)
 expect_equal "DValue none, safe read, conversion, codec, path update, and ARC contract" \
 	"false|true|true|true|true|false|false|false|false|false|Ada|[][string]|false|true|0|32|0|-64|0|64|0|6.5|false|false|false|null|true|false|true|false|false|created|replaced|old|kept|updated|changed|changed|ABR|done|false|0" "$none_output"
-set +e
-dval_trap_output=$(scripts/bearer-cli /tests/capy-dval-missing-trap.capy 2>&1)
-dval_trap_status=$?
-set -e
-[[ $dval_trap_status -ne 0 && "$dval_trap_output" == *'wasm `unreachable` instruction executed'* && "$dval_trap_output" == *'capy-dval-missing-trap.capy:3:11'* && "$dval_trap_output" != *"capy://stdlib.capy"* ]] || {
-	echo "Capy strict missing DValue trap/source mapping mismatch: status=$dval_trap_status output=$dval_trap_output" >&2
-	exit 1
-}
 [[ "$(scripts/bearer-cli /tests/capy-dval-rich.capy)" == "$rich_dval_output" ]] || {
 	echo "Capy DValue workspace did not reset after strict trap" >&2
 	exit 1
 }
-for fixture_and_location in \
-	"capy-dval-negative-trap:3:11" \
-	"capy-dval-range-trap:3:11" \
-	"capy-dval-scalar-trap:3:11"; do
-	fixture=${fixture_and_location%%:*}
-	location=${fixture_and_location#*:}
-	set +e
-	strict_trap_output=$(scripts/bearer-cli "/tests/$fixture.capy" 2>&1)
-	strict_trap_status=$?
-	set -e
-	[[ $strict_trap_status -ne 0 && "$strict_trap_output" == *"$fixture.capy:$location"* ]] || {
-		echo "Capy strict DValue trap mismatch: fixture=$fixture output=$strict_trap_output" >&2
-		exit 1
-	}
-	[[ "$(scripts/bearer-cli /tests/capy-dval-rich.capy)" == "$rich_dval_output" ]] || {
-		echo "Capy DValue workspace did not reset after $fixture" >&2
-		exit 1
-	}
-done
 for fixture_and_location in \
 	"capy-dval-assign-list-trap:3:"; do
 	fixture=${fixture_and_location%%:*}

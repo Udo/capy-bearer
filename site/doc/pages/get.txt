@@ -1,0 +1,23 @@
+:title
+Get a named child
+
+:sig
+function get(value : dval, key : string) dval
+
+:params
+value : source value
+key : child key
+
+:returns
+The copied child, or `none`.
+
+:content
+`get(value, key)` reads a named child without creating it. It returns `none` for a missing key or a scalar.
+
+:example capy render
+var user := dval({"email": "ada@example.test"})
+print(get(user, "email"), "\n")
+
+:see
+0_DValue
+has

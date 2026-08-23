@@ -17,7 +17,7 @@ function data(input : dval) dval {
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval(["http_request", "job_await", "job_result"])
-        page["examples"] = dval([{entry: "render", caption: "", body: "var outbound := dval({\"method\": \"GET\", \"url\": \"http://127.0.0.1/tests/capy-render.capy\", \"headers\": {\"Host\": \"bearer.openfu.com\"}, \"timeout_ms\": 2000})\nvar job := http_request_async(outbound)\nvar done := job_await(dval(job), 3000)\nprint(s32(dval_get_by_path(done, \"result/status\")), \"\\n\")\n"}])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var outbound := dval({\"method\": \"GET\", \"url\": \"http://127.0.0.1/tests/capy-render.capy\", \"headers\": {\"Host\": \"bearer.openfu.com\"}, \"timeout_ms\": 2000})\nvar job := http_request_async(outbound)\nvar done := job_await(dval(job), 3000)\nprint(s32(get_by_path(done, \"result/status\")), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

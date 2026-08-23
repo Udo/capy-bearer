@@ -1,0 +1,26 @@
+:title
+Set a named child
+
+:sig
+function set(dest : dval, key : string, value : as dval) dval
+
+:params
+dest : target value
+key : child key
+value : value to store
+
+:returns
+The changed target value.
+
+:content
+`set(dest, key, value)` stores `value` at `key`. It changes and returns `dest`.
+
+:example capy render
+var user := dval({:})
+user = set(user, "name", "Ada")
+print(user.name, "\n")
+
+:see
+0_DValue
+get
+delete

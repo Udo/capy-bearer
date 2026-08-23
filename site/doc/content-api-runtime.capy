@@ -17,7 +17,7 @@ function data(input : dval) dval {
         page["notes"] = dval([])
         page["warnings"] = dval([])
         page["see"] = dval([])
-        page["examples"] = dval([{entry: "render", caption: "", body: "var perf := runtime_perf()\nprint(dval_get_type_name(perf), \"\\n\")\n"}])
+        page["examples"] = dval([{entry: "render", caption: "", body: "var perf := runtime_perf()\nprint(get_type_name(perf), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

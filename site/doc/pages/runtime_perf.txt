@@ -9,4 +9,4 @@ Runtime performance data.
 
 :example capy render
 var perf := runtime_perf()
-print(dval_get_type_name(perf), "\n")
+print(get_type_name(perf), "\n")

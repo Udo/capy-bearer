@@ -36,7 +36,7 @@ function CLI(request : dval) {
         print(brb_decode(brb_encode(none))?, "|")
 
         var keyed := dval({empty: none})
-        print(dval_has(keyed, "empty"), "|", keyed.empty?, "|", keyed.missing?, "|")
+        print(has(keyed, "empty"), "|", keyed.empty?, "|", keyed.missing?, "|")
 
         var nested := dval({keep: {value: "old"}, scalar: "old", list: ["old"]})
         nested.created.child = "created"

@@ -23,40 +23,26 @@ function render_legacy(page : string) bool {
     if page == "1_ONCE" { render_page_shell("api", "once"); return true }
     if page == "1_RENDER" { render_page_shell("api", "render"); return true }
     if page == "1_WS" { render_page_shell("api", "ws"); return true }
-    if page == "2_DValue_assign" { render_page_shell("api", "dvalue-assign"); return true }
-    if page == "2_DValue_clear" { render_page_shell("api", "dvalue-clear"); return true }
-    if page == "2_DValue_deref" { render_page_shell("api", "dvalue-deref"); return true }
-    if page == "2_DValue_each" { render_page_shell("api", "dvalue-each"); return true }
-    if page == "2_DValue_filter" { render_page_shell("api", "dvalue-filter"); return true }
-    if page == "2_DValue_get_by_path" { render_page_shell("api", "dvalue-get-by-path"); return true }
-    if page == "2_DValue_get_or_create" { render_page_shell("api", "dvalue-get-or-create"); return true }
-    if page == "2_DValue_get_type_name" { render_page_shell("api", "dvalue-get-type-name"); return true }
-    if page == "2_DValue_has" { render_page_shell("api", "dvalue-has"); return true }
-    if page == "2_DValue_is_array" { render_page_shell("api", "dvalue-is-array"); return true }
-    if page == "2_DValue_is_list" { render_page_shell("api", "dvalue-is-list"); return true }
-    if page == "2_DValue_is_reference" { render_page_shell("api", "dvalue-is-reference"); return true }
-    if page == "2_DValue_key" { render_page_shell("api", "dvalue-key"); return true }
-    if page == "2_DValue_keys" { render_page_shell("api", "dvalue-keys"); return true }
-    if page == "2_DValue_map" { render_page_shell("api", "dvalue-map"); return true }
-    if page == "2_DValue_operator_index" { render_page_shell("api", "dvalue-operator-index"); return true }
-    if page == "2_DValue_pop" { render_page_shell("api", "dvalue-pop"); return true }
-    if page == "2_DValue_push" { render_page_shell("api", "dvalue-push"); return true }
-    if page == "2_DValue_reference_target" { render_page_shell("api", "dvalue-reference-target"); return true }
-    if page == "2_DValue_remove" { render_page_shell("api", "dvalue-remove"); return true }
-    if page == "2_DValue_require" { render_page_shell("api", "dvalue-require"); return true }
-    if page == "2_DValue_set" { render_page_shell("api", "dvalue-set"); return true }
-    if page == "2_DValue_set_array" { render_page_shell("api", "dvalue-set-array"); return true }
-    if page == "2_DValue_set_bool" { render_page_shell("api", "dvalue-set-bool"); return true }
-    if page == "2_DValue_set_reference" { render_page_shell("api", "dvalue-set-reference"); return true }
-    if page == "2_DValue_set_type" { render_page_shell("api", "dvalue-set-type"); return true }
-    if page == "2_DValue_to_bool" { render_page_shell("api", "dvalue-to-bool"); return true }
-    if page == "2_DValue_to_f64" { render_page_shell("api", "dvalue-to-f64"); return true }
-    if page == "2_DValue_to_json" { render_page_shell("api", "dvalue-to-json"); return true }
-    if page == "2_DValue_to_s64" { render_page_shell("api", "dvalue-to-s64"); return true }
-    if page == "2_DValue_to_string" { render_page_shell("api", "dvalue-to-string"); return true }
-    if page == "2_DValue_to_stringmap" { render_page_shell("api", "dvalue-to-stringmap"); return true }
-    if page == "2_DValue_to_u64" { render_page_shell("api", "dvalue-to-u64"); return true }
-    if page == "2_DValue_values" { render_page_shell("api", "dvalue-values"); return true }
+    if page == "2_DValue_clear" { render_page_shell("api", "clear"); return true }
+    if page == "2_DValue_get_by_path" { render_page_shell("api", "get-by-path"); return true }
+    if page == "2_DValue_get_or_create" { render_page_shell("api", "get-or-create"); return true }
+    if page == "2_DValue_get_type_name" { render_page_shell("api", "get-type-name"); return true }
+    if page == "2_DValue_has" { render_page_shell("api", "has"); return true }
+    if page == "2_DValue_is_array" { render_page_shell("api", "is-array"); return true }
+    if page == "2_DValue_is_list" { render_page_shell("api", "is-list"); return true }
+    if page == "2_DValue_key" { render_page_shell("api", "get"); return true }
+    if page == "2_DValue_keys" { render_page_shell("api", "keys"); return true }
+    if page == "2_DValue_pop" { render_page_shell("api", "pop"); return true }
+    if page == "2_DValue_push" { render_page_shell("api", "push"); return true }
+    if page == "2_DValue_remove" { render_page_shell("api", "delete"); return true }
+    if page == "2_DValue_set" { render_page_shell("api", "set"); return true }
+    if page == "2_DValue_values" { render_page_shell("api", "values"); return true }
+    if page == "2_DValue_to_bool" { render_page_shell("api", "bool"); return true }
+    if page == "2_DValue_to_f64" { render_page_shell("api", "f64"); return true }
+    if page == "2_DValue_to_s64" { render_page_shell("api", "s64"); return true }
+    if page == "2_DValue_to_string" { render_page_shell("api", "string"); return true }
+    if page == "2_DValue_to_u64" { render_page_shell("api", "u64"); return true }
+    if page == "2_StringList_keys" { render_page_shell("api", "keys"); return true }
     if page == "2_Request_ob_start" { render_page_shell("api", "request-ob-start"); return true }
     if page == "2_Request_set_status" { render_page_shell("api", "request-set-status"); return true }
     if page == "2_StringList_each" { render_page_shell("api", "string-list-each"); return true }
@@ -82,11 +68,8 @@ function render_legacy(page : string) bool {
     if page == "brb_decode" { render_page_shell("api", "brb-decode"); return true }
     if page == "brb_encode" { render_page_shell("api", "brb-encode"); return true }
     if page == "call" { render_page_shell("api", "call"); return true }
-    if page == "cli_arg" { render_page_shell("api", "cli-arg"); return true }
-    if page == "cli_input" { render_page_shell("api", "cli-input"); return true }
     if page == "clone" { render_page_shell("api", "clone"); return true }
     if page == "component" { render_page_shell("api", "component-2"); return true }
-    if page == "component_capture" { render_page_shell("api", "component-capture"); return true }
     if page == "component_exists" { render_page_shell("api", "component-exists"); return true }
     if page == "component_render" { render_page_shell("api", "component-render"); return true }
     if page == "component_resolve" { render_page_shell("api", "component-resolve"); return true }
@@ -104,9 +87,8 @@ function render_legacy(page : string) bool {
     if page == "draw_float" { render_page_shell("api", "draw-float"); return true }
     if page == "draw_int" { render_page_shell("api", "draw-int"); return true }
     if page == "dval" { render_page_shell("api", "dval"); return true }
-    if page == "dval_put" { render_page_shell("api", "dval-put"); return true }
+    if page == "dval_put" { render_page_shell("api", "set"); return true }
     if page == "encode_query" { render_page_shell("api", "encode-query"); return true }
-    if page == "error_pages" { render_page_shell("api", "error-pages"); return true }
     if page == "expand_path" { render_page_shell("api", "expand-path"); return true }
     if page == "f64" { render_page_shell("api", "f64"); return true }
     if page == "file_append" { render_page_shell("api", "file-append"); return true }
@@ -157,7 +139,6 @@ function render_legacy(page : string) bool {
     if page == "json_decode" { render_page_shell("api", "json-decode"); return true }
     if page == "json_encode" { render_page_shell("api", "json-encode"); return true }
     if page == "length" { render_page_shell("api", "length"); return true }
-    if page == "load" { render_page_shell("api", "load"); return true }
     if page == "lower" { render_page_shell("api", "lower"); return true }
     if page == "ls" { render_page_shell("api", "ls"); return true }
     if page == "map" { render_page_shell("api", "map"); return true }
@@ -203,13 +184,7 @@ function render_legacy(page : string) bool {
     if page == "regex_search_all" { render_page_shell("api", "regex-search-all"); return true }
     if page == "regex_split" { render_page_shell("api", "regex-split"); return true }
     if page == "replace" { render_page_shell("api", "replace"); return true }
-    if page == "request_base_url" { render_page_shell("api", "request-base-url"); return true }
     if page == "request_context_params" { render_page_shell("api", "request-context-params"); return true }
-    if page == "request_perf" { render_page_shell("api", "request-perf"); return true }
-    if page == "request_query_path" { render_page_shell("api", "request-query-path"); return true }
-    if page == "request_query_route" { render_page_shell("api", "request-query-route"); return true }
-    if page == "request_route_from_raw_path" { render_page_shell("api", "request-route-from-raw-path"); return true }
-    if page == "request_script_url" { render_page_shell("api", "request-script-url"); return true }
     if page == "response_cookie" { render_page_shell("api", "response-cookie"); return true }
     if page == "response_header" { render_page_shell("api", "response-header"); return true }
     if page == "response_status" { render_page_shell("api", "response-status"); return true }
@@ -265,12 +240,6 @@ function render_legacy(page : string) bool {
     if page == "time_format_utc" { render_page_shell("api", "time-format-utc"); return true }
     if page == "time_parse" { render_page_shell("api", "time-parse"); return true }
     if page == "time_precise" { render_page_shell("api", "time-precise"); return true }
-    if page == "to_bool" { render_page_shell("api", "to-bool"); return true }
-    if page == "to_f64" { render_page_shell("api", "to-f64"); return true }
-    if page == "to_lower" { render_page_shell("api", "to-lower"); return true }
-    if page == "to_s64" { render_page_shell("api", "to-s64"); return true }
-    if page == "to_u64" { render_page_shell("api", "to-u64"); return true }
-    if page == "to_upper" { render_page_shell("api", "to-upper"); return true }
     if page == "trap" { render_page_shell("api", "trap"); return true }
     if page == "trim" { render_page_shell("api", "trim"); return true }
     if page == "trusted_markup" { render_page_shell("api", "trusted-markup"); return true }
@@ -287,13 +256,6 @@ function render_legacy(page : string) bool {
     if page == "usleep" { render_page_shell("api", "usleep"); return true }
     if page == "var_dump" { render_page_shell("api", "var-dump"); return true }
     if page == "ws_close" { render_page_shell("api", "ws-close"); return true }
-    if page == "ws_connection_count" { render_page_shell("api", "ws-connection-count"); return true }
-    if page == "ws_connection_id" { render_page_shell("api", "ws-connection-id"); return true }
-    if page == "ws_connections" { render_page_shell("api", "ws-connections"); return true }
-    if page == "ws_is_binary" { render_page_shell("api", "ws-is-binary"); return true }
-    if page == "ws_message" { render_page_shell("api", "ws-message"); return true }
-    if page == "ws_opcode" { render_page_shell("api", "ws-opcode"); return true }
-    if page == "ws_scope" { render_page_shell("api", "ws-scope"); return true }
     if page == "ws_send" { render_page_shell("api", "ws-send"); return true }
     if page == "ws_send_to" { render_page_shell("api", "ws-send-to"); return true }
     if page == "xml_decode" { render_page_shell("api", "xml-decode"); return true }

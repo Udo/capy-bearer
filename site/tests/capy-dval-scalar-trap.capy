@@ -1,4 +1,0 @@
-function CLI(request : dval) {
-    var value := dval("scalar")
-    print(dval_require(value, "key"))
-}

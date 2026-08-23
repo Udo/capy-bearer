@@ -7,7 +7,7 @@ type dval (map of strings)
 :content
 Use a map-shaped `dval` for string-keyed values. Create one with `dval({"key": "value"})`.
 
-Use `value["key"]` to read a child. Use `dval_has` to test for a key. Use `dval_put` to change a map.
+Use `value["key"]` to read a child. Use `has` to test for a key. Use `set` to change a map.
 
 `parse_query` returns a map-shaped `dval`. `encode_query` creates a query string from a map.
 

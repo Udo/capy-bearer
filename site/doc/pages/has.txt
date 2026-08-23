@@ -1,0 +1,23 @@
+:title
+Test for a child
+
+:sig
+has(value : dval, key : string) bool
+
+:params
+value : value to test
+key : child key
+
+:returns
+`true` when the key exists.
+
+:content
+`has(value, key)` tests for a child without creating it. It returns `false` for a missing key or a scalar.
+
+:example capy render
+var user := dval({"name": "Ada"})
+print(has(user, "name"), " ", has(user, "age"), "\n")
+
+:see
+0_DValue
+get

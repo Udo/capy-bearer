@@ -23,4 +23,3 @@ print(string(result.name), "\n")
 :see
 unit_load
 unit_call
-component_capture

@@ -2,24 +2,6 @@
 
 function data(input : dval) dval {
     var slug := string(input.slug, "")
-    if slug == "request-base-url" {
-        var page := dval({source_page: ""})
-        page["source_page"] = "request_base_url"
-        page["kind"] = "api"
-        page["slug"] = "request-base-url"
-        page["route"] = "/doc/api/request-base-url/"
-        page["title"] = "request_base_url"
-        page["content"] = "Use `request.url.base` in a handler to read the base URL.\n"
-        page["label"] = "request_base_url"
-        page["capy_sig_lines"] = dval([])
-        page["param_lines"] = dval([])
-        page["notes"] = dval([])
-        page["warnings"] = dval([])
-        page["see"] = dval([])
-        page["examples"] = dval([{entry: "render", caption: "", body: "print(string(request.url.base, \"\"), \"\\n\")\n"}])
-        page["guide_examples"] = dval([])
-        return page
-    }
     if slug == "request-context-params" {
         var page := dval({source_page: ""})
         page["source_page"] = "request_context_params"
@@ -54,96 +36,6 @@ function data(input : dval) dval {
         page["warnings"] = dval([])
         page["see"] = dval(["0_Request", "ob_get_close"])
         page["examples"] = dval([{entry: "render", caption: "", body: "ob_start()\nprint(\"fragment\")\nvar captured := ob_get_close()\nprint(\"captured: \", captured, \"\\n\")\n"}])
-        page["guide_examples"] = dval([])
-        return page
-    }
-    if slug == "request-perf" {
-        var page := dval({source_page: ""})
-        page["source_page"] = "request_perf"
-        page["kind"] = "api"
-        page["slug"] = "request-perf"
-        page["route"] = "/doc/api/request-perf/"
-        page["title"] = "request_perf"
-        page["content"] = "Use `runtime_perf()` in a handler to read runtime performance data.\n"
-        page["label"] = "request_perf"
-        page["capy_sig_lines"] = dval([])
-        page["param_lines"] = dval([])
-        page["notes"] = dval([])
-        page["warnings"] = dval([])
-        page["see"] = dval([])
-        page["examples"] = dval([{entry: "render", caption: "", body: "var perf := runtime_perf()\nprint(dval_get_type_name(perf), \"\\n\")\n"}])
-        page["guide_examples"] = dval([])
-        return page
-    }
-    if slug == "request-query-path" {
-        var page := dval({source_page: ""})
-        page["source_page"] = "request_query_path"
-        page["kind"] = "api"
-        page["slug"] = "request-query-path"
-        page["route"] = "/doc/api/request-query-path/"
-        page["title"] = "request_query_path"
-        page["content"] = "Use `request.route.path` in a handler to read the safe query route.\n"
-        page["label"] = "request_query_path"
-        page["capy_sig_lines"] = dval([])
-        page["param_lines"] = dval([])
-        page["notes"] = dval([])
-        page["warnings"] = dval([])
-        page["see"] = dval([])
-        page["examples"] = dval([{entry: "render", caption: "", body: "print(string(request.route.path, \"\"), \"\\n\")\n"}])
-        page["guide_examples"] = dval([])
-        return page
-    }
-    if slug == "request-query-route" {
-        var page := dval({source_page: ""})
-        page["source_page"] = "request_query_route"
-        page["kind"] = "api"
-        page["slug"] = "request-query-route"
-        page["route"] = "/doc/api/request-query-route/"
-        page["title"] = "request_query_route"
-        page["content"] = "Use `request.route` in a handler to read route data. Its fields include `path`, `page`, `raw_path`, and `valid`.\n"
-        page["label"] = "request_query_route"
-        page["capy_sig_lines"] = dval([])
-        page["param_lines"] = dval([])
-        page["notes"] = dval([])
-        page["warnings"] = dval([])
-        page["see"] = dval([])
-        page["examples"] = dval([{entry: "render", caption: "", body: "print(string(request.route.page, \"\"), \"\\n\")\n"}])
-        page["guide_examples"] = dval([])
-        return page
-    }
-    if slug == "request-route-from-raw-path" {
-        var page := dval({source_page: ""})
-        page["source_page"] = "request_route_from_raw_path"
-        page["kind"] = "api"
-        page["slug"] = "request-route-from-raw-path"
-        page["route"] = "/doc/api/request-route-from-raw-path/"
-        page["title"] = "request_route_from_raw_path"
-        page["content"] = "Use `route_from_raw_path()` to validate route text without reading the request.\n"
-        page["label"] = "request_route_from_raw_path"
-        page["capy_sig_lines"] = dval([])
-        page["param_lines"] = dval([])
-        page["notes"] = dval([])
-        page["warnings"] = dval([])
-        page["see"] = dval([])
-        page["examples"] = dval([{entry: "render", caption: "", body: "var route := route_from_raw_path(\"docs/api\")\nprint(string(route.path, \"\"), \"\\n\")\n"}])
-        page["guide_examples"] = dval([])
-        return page
-    }
-    if slug == "request-script-url" {
-        var page := dval({source_page: ""})
-        page["source_page"] = "request_script_url"
-        page["kind"] = "api"
-        page["slug"] = "request-script-url"
-        page["route"] = "/doc/api/request-script-url/"
-        page["title"] = "request_script_url"
-        page["content"] = "Use `request.url.script` in a handler to read the script URL.\n"
-        page["label"] = "request_script_url"
-        page["capy_sig_lines"] = dval([])
-        page["param_lines"] = dval([])
-        page["notes"] = dval([])
-        page["warnings"] = dval([])
-        page["see"] = dval([])
-        page["examples"] = dval([{entry: "render", caption: "", body: "print(string(request.url.script, \"\"), \"\\n\")\n"}])
         page["guide_examples"] = dval([])
         return page
     }

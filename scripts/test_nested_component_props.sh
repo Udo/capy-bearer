@@ -34,7 +34,7 @@ function CLI(request : dval) {
     request.props.sentinel = "caller"
     var payload := "nested-props"
     var props := {items: []}
-    for i := 0..300 { props.items = dval_push(props.items, payload) }
+    for i := 0..300 { props.items = push(props.items, payload) }
     var output := component("outer", props)
     if string(request.props.sentinel, "") != "caller" { print("caller props not restored"); return }
     print(output)

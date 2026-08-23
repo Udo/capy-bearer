@@ -47,7 +47,7 @@ function RENDER(request : dval) {
 
 `value?` is false only when the `dval` is `none`. An empty string, `false`, an empty map, and an empty list are present values.
 
-A key can exist and contain `none`. Use `dval_has(profile, "nickname")` when that distinction matters.
+A key can exist and contain `none`. Use `has(profile, "nickname")` when that distinction matters.
 
 ## Convert a scalar
 
@@ -65,7 +65,7 @@ function RENDER(request : dval) {
 
 The second argument is a fallback. Capy uses it when the value is `none` or cannot convert to the requested type.
 
-Use `dval_require(profile, "name")` when a missing value is an error. It traps instead of returning `none`.
+Use `has(profile, "name")` before `get(profile, "name")` when a missing value is an error.
 
 ## Create dynamic data
 
@@ -112,12 +112,12 @@ Content mutation through the parameter affects the caller. The parameter binding
 
 Nested assignment mutates its target and returns the same identity. The root must be a named local, parameter, or captured `dval` binding. Temporary, call, member, array-item, and loop-item roots are invalid. Nested assignment creates missing maps. An existing list accepts only an in-range nonnegative index. Capy does not create sparse lists.
 
-The `dval_set`, `dval_assign`, `dval_push`, `dval_pop`, `dval_remove`, `dval_clear`, `dval_get_or_create`, `dval_set_array`, `dval_set_bool`, `dval_set_type`, and `dval_put` functions also mutate their target. Each function returns that same identity. Reassignment remains valid:
+The `set`, `push`, `pop`, `delete`, `clear`, and `get_or_create` functions mutate their target. Each function returns that same identity. Reassignment remains valid:
 
 :example capy render
 function RENDER(request : dval) {
     var profile := {:}
-    profile = dval_put(profile, "active", true)
+    profile = set(profile, "active", true)
     print(profile.active, "\n")
 }
 
@@ -154,7 +154,7 @@ yaml_decode
 capy-07-collections-and-records
 capy-09-web-handlers-and-requests
 dval
-dval_put
+set
 bool
 s32
 string

@@ -78,25 +78,6 @@ function data(input : dval) dval {
         page["guide_examples"] = dval([])
         return page
     }
-    if slug == "string-list-keys" {
-        var page := dval({source_page: ""})
-        page["source_page"] = "2_StringList_keys"
-        page["kind"] = "api"
-        page["slug"] = "string-list-keys"
-        page["route"] = "/doc/api/string-list-keys/"
-        page["title"] = "Get list keys"
-        page["content"] = "`keys` returns the keys from a list-shaped `dval` in list order.\n\nUse `dval_keys` when you need keys from any `dval` map or list.\n"
-        page["returns"] = "This function returns a list-shaped `dval` of string keys."
-        page["label"] = "keys"
-        page["capy_sig_lines"] = dval(["function keys(items : dval) dval"])
-        page["param_lines"] = dval([])
-        page["notes"] = dval([])
-        page["warnings"] = dval([])
-        page["see"] = dval(["0_StringList"])
-        page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\nprint(join(keys(items), \",\"), \"\\n\")\n"}])
-        page["guide_examples"] = dval([])
-        return page
-    }
     if slug == "string-list-map" {
         var page := dval({source_page: ""})
         page["source_page"] = "2_StringList_map"

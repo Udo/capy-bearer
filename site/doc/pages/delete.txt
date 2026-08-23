@@ -1,0 +1,24 @@
+:title
+Delete a child
+
+:sig
+function delete(value : dval, key : string) dval
+
+:params
+value : target value
+key : child key
+
+:returns
+The changed target value.
+
+:content
+`delete(value, key)` removes `key` from `value`. A missing key leaves the value unchanged.
+
+:example capy render
+var user := dval({"name": "Ada", "role": "admin"})
+user = delete(user, "role")
+print(has(user, "role"), "\n")
+
+:see
+0_DValue
+has

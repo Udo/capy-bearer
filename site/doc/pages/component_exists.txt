@@ -42,5 +42,4 @@ for candidate := candidates {
 :see
 component
 component_render
-component_capture
 component_resolve

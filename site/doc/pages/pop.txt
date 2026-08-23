@@ -1,0 +1,23 @@
+:title
+Remove the final child
+
+:sig
+function pop(value : dval) dval
+
+:params
+value : target value
+
+:returns
+The changed target value.
+
+:content
+`pop(value)` removes the final child and returns `value`. It does not return the removed child.
+
+:example capy render
+var list := dval(["first", "last"])
+list = pop(list)
+print(list[0], "\n")
+
+:see
+0_DValue
+push

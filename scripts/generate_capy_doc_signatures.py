@@ -6,16 +6,25 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE_SYMBOLS = {
-    "2_DValue_set": ["dval_set"],
-    "2_DValue_to_s64": ["s32", "s64"],
+    "clear": ["clear"],
+    "delete": ["delete"],
+    "get": ["get"],
+    "get_by_path": ["get_by_path"],
+    "get_or_create": ["get_or_create"],
+    "get_type_name": ["get_type_name"],
+    "is_array": ["is_array"],
+    "is_list": ["is_list"],
+    "keys": ["keys"],
+    "pop": ["pop"],
+    "push": ["push"],
+    "set": ["set"],
+    "values": ["values"],
     "response_status": ["response_status"],
     "response_header": ["response_header"],
     "response_cookie": ["response_cookie"],
     "session_set": ["session_set"],
     "session_remove": ["session_remove"],
-    "component_capture": ["component_capture"],
     "call": ["call"],
-    "dval_put": ["dval_put"],
     "bool": ["bool"],
     "s32": ["s32"],
     "s64": ["s64"],
@@ -25,6 +34,7 @@ PAGE_SYMBOLS = {
 }
 
 PAGE_SIGNATURES = {
+    "has": ["has(value : dval, key : string) bool"],
     "length": [
         "function length(value : string) s32",
         "function length(value : markup) s32",

@@ -1,8 +1,0 @@
-:sig
-Not available in Capy.
-
-:content
-Use `request.route` in a handler to read route data. Its fields include `path`, `page`, `raw_path`, and `valid`.
-
-:example capy render
-print(string(request.route.page, ""), "\n")

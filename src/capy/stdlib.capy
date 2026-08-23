@@ -286,29 +286,25 @@ function nibble(haystack : string, delim : string) string {
     haystack = substr(haystack, idx + s64(length(delim)))
     return result
 }
-function dval_set(value : dval, source : as dval) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_set(), value, "", source)) }
-function dval_assign(value : dval, source : as dval) dval { -> dval_set(value, source) }
-function dval_push(value : dval, child : as dval) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_push(), value, "", child)) }
-function dval_pop(value : dval) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_pop(), value, "", dval(""))) }
-function dval_remove(value : dval, key : string) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_remove(), value, key, dval(""))) }
-function dval_clear(value : dval) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_clear(), value, "", dval(""))) }
-function dval_get_by_path(value : dval, path : string) dval { -> __bearer_dv_apply_brrb(__bearer_dval_dval_get_by_path(), value, path, dval("")) }
-function dval_get_or_create(value : dval, key : string) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_get_or_create(), value, key, dval(""))) }
-function dval_set_array(value : dval) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_set_array(), value, "", dval(""))) }
-function dval_set_bool(value : dval, flag : bool) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_set_bool(), value, "", dval(flag))) }
-function dval_set_type(value : dval, type : string) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_set_type(), value, type, dval(""))) }
-function dval_get_type_name(value : dval) string { -> string(__bearer_dv_apply_brrb(__bearer_dval_dval_get_type_name(), value, "", dval(""))) }
-function dval_is_array(value : dval) bool { -> bool(__bearer_dv_apply_brrb(__bearer_dval_dval_is_array(), value, "", dval(""))) }
-function dval_is_list(value : dval) bool { -> bool(__bearer_dv_apply_brrb(__bearer_dval_dval_is_list(), value, "", dval(""))) }
-function dval_key(value : dval, key : string) dval { -> __bearer_dv_apply_brrb(__bearer_dval_dval_key(), value, key, dval("")) }
-function dval_keys(value : dval) dval { -> __bearer_dv_apply_brrb(__bearer_dval_dval_keys(), value, "", dval("")) }
-function dval_values(value : dval) dval { -> __bearer_dv_apply_brrb(__bearer_dval_dval_values(), value, "", dval("")) }
-function dval_put(value : dval, key : string, child : as dval) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_put(), value, key, child)) }
-function dval_require(value : dval, key : string) dval { -> __bearer_dv_require_brrb(value, dval(key)) }
-function dval_require(value : dval, index : s32) dval { -> __bearer_dv_require_brrb(value, dval(index)) }
+function set(dest : dval, key : string, value : as dval) dval { -> __bearer_dval_replace(dest, __bearer_dv_apply_brrb(__bearer_dval_dval_put(), dest, key, value)) }
+function push(value : dval, child : as dval) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_push(), value, "", child)) }
+function pop(value : dval) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_pop(), value, "", dval(""))) }
+function delete(value : dval, key : string) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_remove(), value, key, dval(""))) }
+function clear(value : dval) dval { -> __bearer_dval_replace(value, __bearer_dv_apply_brrb(__bearer_dval_dval_clear(), value, "", dval(""))) }
+function get_by_path(value : dval, path : string) dval { -> __bearer_dv_apply_brrb(__bearer_dval_dval_get_by_path(), value, path, dval("")) }
+function get_or_create(value : dval, key : string, default : as dval) dval {
+    if !has(value, key) { value = set(value, key, default) }
+    return value
+}
+function get_type_name(value : dval) string { -> string(__bearer_dv_apply_brrb(__bearer_dval_dval_get_type_name(), value, "", dval(""))) }
+function is_array(value : dval) bool { -> bool(__bearer_dv_apply_brrb(__bearer_dval_dval_is_array(), value, "", dval(""))) }
+function is_list(value : dval) bool { -> bool(__bearer_dv_apply_brrb(__bearer_dval_dval_is_list(), value, "", dval(""))) }
+function get(value : dval, key : string) dval { -> __bearer_dv_apply_brrb(__bearer_dval_dval_key(), value, key, dval("")) }
+function keys(value : dval) dval { -> __bearer_dv_apply_brrb(__bearer_dval_dval_keys(), value, "", dval("")) }
+function values(value : dval) dval { -> __bearer_dv_apply_brrb(__bearer_dval_dval_values(), value, "", dval("")) }
 
-// StringList is represented by a list-shaped copied DValue.  These callbacks
-// deliberately stay in Capy, just like dval_map/dval_filter.
+// StringList is represented by a list-shaped copied DValue. These callbacks
+// deliberately stay in Capy, like the dval callback overloads below.
 function every(items : dval, predicate : function(value : string) bool) bool {
     for item, key := items { if !predicate(string(item)) { return false } }
     return true
@@ -321,59 +317,21 @@ function string_list_find(items : dval, predicate : function(value : string) boo
     for item, key := items { var value := string(item); if predicate(value) { return value } }
     return fallback
 }
-function keys(items : dval) dval {
-    var result := dval([])
-    for item, key := items { result = dval_push(result, key) }
-    return result
-}
 function map(items : dval, mapper : function(value : string) string) dval {
     var result := dval([])
-    for item, key := items { result = dval_push(result, mapper(string(item))) }
+    for item, key := items { result = push(result, mapper(string(item))) }
     return result
 }
 function filter(items : dval, predicate : function(value : string) bool) dval {
     var result := dval([])
-    for item, key := items { var value := string(item); if predicate(value) { result = dval_push(result, value) } }
+    for item, key := items { var value := string(item); if predicate(value) { result = push(result, value) } }
     return result
 }
 function unique(items : dval) dval {
     var result := dval([])
     for item, key := items {
         var value := string(item)
-        if !some(result, function(candidate : string) bool { -> candidate == value }) { result = dval_push(result, value) }
-    }
-    return result
-}
-
-function dval_map(value : dval, mapper : function(value : dval, key : string) dval) dval {
-    var result := dval({:})
-    var list := dval_is_list(value)
-    if list { result = dval_set_array(result) }
-    if dval_is_array(value) {
-        for item, key := value {
-            var mapped := mapper(item, key)
-            if list { result = dval_push(result, mapped) }
-            else { result = dval_put(result, key, mapped) }
-        }
-    } else {
-        result = dval_push(result, mapper(value, ""))
-    }
-    return result
-}
-
-function dval_filter(value : dval, predicate : function(value : dval, key : string) bool) dval {
-    var result := dval({:})
-    var list := dval_is_list(value)
-    if list { result = dval_set_array(result) }
-    if dval_is_array(value) {
-        for item, key := value {
-            if predicate(item, key) {
-                if list { result = dval_push(result, item) }
-                else { result = dval_put(result, key, item) }
-            }
-        }
-    } else {
-        if predicate(value, "") { result = dval_push(result, value) }
+        if !some(result, function(candidate : string) bool { -> candidate == value }) { result = push(result, value) }
     }
     return result
 }
@@ -569,8 +527,8 @@ function http_request(request : dval) dval { -> __bearer_network_http_brrb(__bea
 function http_request_async(request : dval) u64 { -> u64(__bearer_network_http_brrb(__bearer_network_http_request_async(), request, "", dval("")), 0) }
 
 // Unit and component policy remains in the existing workspace dispatcher.
-function component(name : string) string { -> component_capture(name) }
-function component(name : string, props : as dval) string { -> component_capture(name, props) }
+function component(name : string) string { -> __bearer_component_capture(name) }
+function component(name : string, props : as dval) string { -> __bearer_component_capture_props_brrb(name, props) }
 function unit_call(file_name : string, function_name : string) dval { -> unit_call(file_name, function_name, "") }
 
 // Time parsing/formatting stays in sys.cpp; u64 values cross BRRB as exact text.
@@ -589,8 +547,6 @@ function ws_send(message : string, binary : bool, scope : string) bool { -> __be
 function ws_send_to(connection_id : string, message : string, binary : bool) bool { -> __bearer_ws_send_to(connection_id, message, binary) }
 function ws_close(connection_id : string = "") bool { -> __bearer_ws_close(connection_id) }
 
-function component_capture(name : string) string { -> __bearer_component_capture(name) }
-function component_capture(name : string, props : as dval) string { -> __bearer_component_capture_props_brrb(name, props) }
 function component_render(name : string) { __bearer_component_render_bytes(name) }
 function component_render(name : string, props : as dval) { __bearer_component_render_props_brrb(name, props) }
 function component_exists(name : string) bool { -> __bearer_component_exists(name) }

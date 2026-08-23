@@ -1,4 +1,0 @@
-function CLI(request : dval) {
-    var values := dval(["only"])
-    print(dval_require(values, 1))
-}

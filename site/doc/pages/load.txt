@@ -1,8 +1,0 @@
-:sig
-load is not available in Capy
-
-:content
-Capy does not support `#load`. The checked Capy surface has no replacement for this directive.
-
-:see
-component

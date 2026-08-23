@@ -1,8 +1,0 @@
-:sig
-Not available in Capy.
-
-:content
-Use `request.route.path` in a handler to read the safe query route.
-
-:example capy render
-print(string(request.route.path, ""), "\n")

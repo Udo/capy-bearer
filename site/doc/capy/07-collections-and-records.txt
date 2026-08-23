@@ -161,4 +161,4 @@ capy-03-values-and-types
 capy-05-functions-and-closures
 capy-08-dynamic-values
 length
-dval_put
+set

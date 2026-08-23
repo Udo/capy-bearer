@@ -21,6 +21,6 @@ print(f64("not a number", 9.0), "\n")
 
 :see
 >types
-2_DValue_to_f64
+f64
 s64
 u64

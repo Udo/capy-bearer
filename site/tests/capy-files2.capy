@@ -15,13 +15,13 @@ function CLI(request : dval) {
         var chmodded := file_chmod(source, 384)
         var linked := file_symlink(source, link)
         var st := file_stat(source)
-        var st_exists := dval_key(st, "exists")
-        var st_is_file := dval_key(st, "is_file")
-        var st_size := dval_key(st, "size")
+        var st_exists := get(st, "exists")
+        var st_is_file := get(st, "is_file")
+        var st_size := get(st, "size")
         var listed := join(sort(ls(root)), ",")
         var found := false
         for item, key := dir_list(root) {
-            if string(dval_key(item, "name")) == "b.txt" { found = true }
+            if string(get(item, "name")) == "b.txt" { found = true }
         }
         var nonrecursive := dir_remove(root)
         var real := path_real(source)

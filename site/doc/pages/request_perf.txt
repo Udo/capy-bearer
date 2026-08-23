@@ -1,9 +1,0 @@
-:sig
-Not available in Capy.
-
-:content
-Use `runtime_perf()` in a handler to read runtime performance data.
-
-:example capy render
-var perf := runtime_perf()
-print(dval_get_type_name(perf), "\n")

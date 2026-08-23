@@ -87,7 +87,7 @@ function RENDER(request : dval) {
 
 :content
 
-Use `component_capture` when the caller needs the component output as a string. Bearer copies props into the component request context and restores the earlier props after the call.
+Use `component()` when the caller needs the component output as a string. Bearer copies props into the component request context and restores the earlier props after the call.
 
 ## Boundary rules
 
@@ -110,6 +110,5 @@ component_render
 1_COMPONENT
 capy-08-dynamic-values
 capy-11-tasks-and-jobs
-component_capture
 call
 dval

@@ -1,0 +1,23 @@
+:title
+Clear a dynamic value
+
+:sig
+function clear(value : dval) dval
+
+:params
+value : target value
+
+:returns
+The cleared target value.
+
+:content
+`clear(value)` removes all children and makes `value` an empty map.
+
+:example capy render
+var value := dval({"name": "Ada"})
+value = clear(value)
+print(has(value, "name"), "\n")
+
+:see
+0_DValue
+set

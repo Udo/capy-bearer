@@ -12,7 +12,6 @@ decoded string
 parse_uri
 uri_encode
 parse_query
-request_route_from_raw_path
 session_id_create
 route_path_sanitize
 
