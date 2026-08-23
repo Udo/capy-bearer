@@ -1,0 +1,18 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "type/string"
+    page["kind"] = "type"
+    page["slug"] = "string"
+    page["route"] = "/doc/type/string/"
+    page["title"] = "String"
+    page["content"] = "`string` stores text or raw bytes in Capy.\n\nUse string literals, variables, parameters, and return values directly. Use `length`, `find`, `contains`, `replace`, `lower`, `upper`, and `substr` for common text work.\n\nUse `split_utf8` when you must split UTF-8 text by characters.\n"
+    page["label"] = "string"
+    page["capy_sig_lines"] = dval(["type string"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "split_utf8", href: "/doc/api/split-utf8/"}, {label: "substr", href: "/doc/api/substr/"}, {label: "html_escape", href: "/doc/api/html-escape/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var name := \"Ada\"\nprint(upper(name), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

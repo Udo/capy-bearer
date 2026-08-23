@@ -1,0 +1,18 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "capy-01-install-and-first-program"
+    page["kind"] = "guide"
+    page["slug"] = "install-and-first-program"
+    page["route"] = "/doc/guide/install-and-first-program/"
+    page["title"] = "1. Getting started"
+    page["content"] = "Capy programs run as Bearer units. A source file uses the `.capy` suffix. Bearer compiles the file when a request first uses it.\n\n## Your first page\n\nCreate `site/hello.capy`:\n\n```capy\nfunction RENDER(request : dval) {\n    print(\"Hello, Capy!\\n\")\n}\n\n```\n\n**Output**\n\n```text\nHello, Capy!\n\n```\n\n`RENDER` is the entry point for a web request. `print` adds text to the response. The `\\n` escape adds a newline.\n\nRequest the page through Bearer's default local HTTP socket:\n\n```text\ncurl --unix-socket /run/bearer/http.sock http://localhost/hello.capy\n```\n\nThe command prints the response body. Bearer logs compiler and runtime errors.\n\n## Add a value\n\nA local declaration uses `:=`. Capy infers the type from the value:\n\n```capy\nfunction RENDER(request : dval) {\n    var name := \"Ada\"\n    print(\"Hello, \", name, \"!\\n\")\n}\n\n```\n\n\n`print` accepts several arguments and writes them in order.\n\n## Write HTML\n\nA markup expression produces escaped HTML:\n\n```capy\nfunction RENDER(request : dval) {\n    var name := \"Ada\"\n    print(<><h1>Hello, <?= name ?>!</h1></>)\n}\n\n```\n\n\n`print` writes the markup value to the response. A markup expression alone does not produce output. The markup chapter explains escaping.\n\n## If it does not run\n\nConfirm that `bearer.service` is active. The source file must be below the configured site directory. The CLI helper must use the configured local socket.\n\n## Make the first change small\n\nChange one value and request the page again. For example, change `Ada` to your name. This proves that Bearer sees the file you edited.\n\nThen add one standard-library call, such as `request.out.headers[\"Content-Type\"] = \"text/plain; charset=utf-8\"`. Small changes make compiler errors easier to isolate.\n\nContinue with basic source syntax before you add request data or application APIs.\n"
+    page["label"] = "1. Getting started"
+    page["capy_sig_lines"] = dval([])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "render", href: "/doc/handler/render/"}, {label: "cli", href: "/doc/handler/cli/"}, {label: "print", href: "/doc/api/print/"}, {label: "2. Basic syntax", href: "/doc/guide/source-structure-and-syntax/"}, {label: "6. Strings and HTML", href: "/doc/guide/strings-and-markup/"}])
+    page["examples"] = dval([])
+    page["guide_examples"] = dval([{entry: "render", caption: "", body: "function RENDER(request : dval) {\n    print(\"Hello, Capy!\\n\")\n}\n", output: "Hello, Capy!\n"}, {entry: "render", caption: "", body: "function RENDER(request : dval) {\n    var name := \"Ada\"\n    print(\"Hello, \", name, \"!\\n\")\n}\n"}, {entry: "render", caption: "", body: "function RENDER(request : dval) {\n    var name := \"Ada\"\n    print(<><h1>Hello, <?= name ?>!</h1></>)\n}\n"}])
+    component_render("/doc/components/doc_page.capy", page)
+}

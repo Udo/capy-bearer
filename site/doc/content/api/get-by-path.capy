@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "get_by_path"
+    page["kind"] = "api"
+    page["slug"] = "get-by-path"
+    page["route"] = "/doc/api/get-by-path/"
+    page["title"] = "Get a child by path"
+    page["content"] = "`get_by_path(value, path)` reads a nested child without creating nodes. Use a slash between path segments.\n"
+    page["returns"] = "The copied child, or an empty string value when the path fails."
+    page["label"] = "get_by_path"
+    page["capy_sig_lines"] = dval(["function get_by_path(value : dval, path : string) dval"])
+    page["param_lines"] = dval(["value : source value", "path : slash-separated child path", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "dvalue", href: "/doc/type/dvalue/"}, {label: "get", href: "/doc/api/get/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var config := dval({\"site\": {\"title\": \"Bearer\"}})\nprint(get_by_path(config, \"site/title\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

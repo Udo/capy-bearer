@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "regex_search"
+    page["kind"] = "api"
+    page["slug"] = "regex-search"
+    page["route"] = "/doc/api/regex-search/"
+    page["title"] = "regex_search"
+    page["content"] = "The result contains `matched`. A matching result also contains `match`, `start`, `end`, `captures`, and `named`.\n"
+    page["returns"] = "Data for the first match."
+    page["label"] = "regex_search"
+    page["capy_sig_lines"] = dval(["function regex_search(pattern : string, subject : string, flags : string = \"\") dval"])
+    page["param_lines"] = dval(["pattern : regular expression", "subject : text to search", "flags : regular expression flags", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var match := regex_search(\"[a-z]+\", \"123 capy\")\nprint(string(match.match, \"\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

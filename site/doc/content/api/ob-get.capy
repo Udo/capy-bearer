@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "ob_get"
+    page["kind"] = "api"
+    page["slug"] = "ob-get"
+    page["route"] = "/doc/api/ob-get/"
+    page["title"] = "ob_get"
+    page["content"] = "`ob_get()` returns the current output buffer contents.\n\nThe buffer stays active after this call.\n"
+    page["returns"] = "the current output buffer contents"
+    page["label"] = "ob_get"
+    page["capy_sig_lines"] = dval(["function ob_get() string"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "ob_start", href: "/doc/api/ob-start/"}, {label: "ob_get_close", href: "/doc/api/ob-get-close/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "ob_start()\nprint(\"partial\")\nvar output := ob_get()\nob_close()\nprint(output, \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

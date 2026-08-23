@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "zip_list"
+    page["kind"] = "api"
+    page["slug"] = "zip-list"
+    page["route"] = "/doc/api/zip-list/"
+    page["title"] = "zip_list"
+    page["content"] = "`zip_list()` returns ZIP archive metadata and entries.\n"
+    page["returns"] = "A `dval` with archive metadata and entries."
+    page["label"] = "zip_list"
+    page["capy_sig_lines"] = dval(["function zip_list(path : string) dval"])
+    page["param_lines"] = dval(["path : archive path", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "zip_create", href: "/doc/api/zip-create/"}, {label: "zip_read", href: "/doc/api/zip-read/"}, {label: "zip_extract", href: "/doc/api/zip-extract/"}, {label: "dvalue", href: "/doc/type/dvalue/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var archive := file_temp(\"/tmp/capy-zip-\") + \".zip\"\nzip_create(archive, dval({\"note.txt\": \"hello\"}))\nvar listing := zip_list(archive)\nprint(s32(listing[\"count\"]), \"\\n\")\nfile_unlink(archive)\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

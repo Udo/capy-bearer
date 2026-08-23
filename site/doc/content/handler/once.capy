@@ -1,0 +1,18 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "handler/once"
+    page["kind"] = "handler"
+    page["slug"] = "once"
+    page["route"] = "/doc/handler/once/"
+    page["title"] = "ONCE"
+    page["content"] = "`ONCE` defines the request-local unit hook.\n\nBearer runs this hook before the first unit entry or component call. The handler has one parameter named `request` with type `dval`.\n"
+    page["label"] = "once"
+    page["capy_sig_lines"] = dval(["function ONCE(request : dval)"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "request", href: "/doc/type/request/"}, {label: "init", href: "/doc/handler/init/"}])
+    page["examples"] = dval([{entry: "once", caption: "", body: "print(string(request.method, \"\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

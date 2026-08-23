@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "is_array"
+    page["kind"] = "api"
+    page["slug"] = "is-array"
+    page["route"] = "/doc/api/is-array/"
+    page["title"] = "Test for a container"
+    page["content"] = "`is_array(value)` returns `true` when a value has map shape. It returns `true` for both maps and lists.\n"
+    page["returns"] = "`true` for a map or list."
+    page["label"] = "is_array"
+    page["capy_sig_lines"] = dval(["function is_array(value : dval) bool"])
+    page["param_lines"] = dval(["value : value to test", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "dvalue", href: "/doc/type/dvalue/"}, {label: "is_list", href: "/doc/api/is-list/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(is_array(dval({\"name\": \"Ada\"})), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

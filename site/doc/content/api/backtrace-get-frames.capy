@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "backtrace_get_frames"
+    page["kind"] = "api"
+    page["slug"] = "backtrace-get-frames"
+    page["route"] = "/doc/api/backtrace-get-frames/"
+    page["title"] = "backtrace_get_frames"
+    page["content"] = "`backtrace_get_frames` gets source-mapped frames for the current Capy call stack.\n\nSet `max_frames` to limit the result. Set `skip_frames` to omit the newest frames.\n"
+    page["returns"] = "a backtrace string"
+    page["label"] = "backtrace_get_frames"
+    page["capy_sig_lines"] = dval(["function backtrace_get_frames(max_frames : s32 = 32, skip_frames : s32 = 0) string"])
+    page["param_lines"] = dval(["max_frames : maximum number of frames", "skip_frames : number of newest frames to omit", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "backtrace_capture", href: "/doc/api/backtrace-capture/"}])
+    page["examples"] = dval([{entry: "cli", caption: "", body: "print(backtrace_get_frames(4, 0), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "nibble"
+    page["kind"] = "api"
+    page["slug"] = "nibble"
+    page["route"] = "/doc/api/nibble/"
+    page["title"] = "nibble"
+    page["content"] = "`nibble()` returns the text before the first `delim`.\n\nIt does not change `haystack`. If `delim` does not occur, it returns all of `haystack`.\n"
+    page["returns"] = "the text before the first delimiter"
+    page["label"] = "nibble"
+    page["capy_sig_lines"] = dval(["function nibble(haystack : string, delim : string) string"])
+    page["param_lines"] = dval(["haystack : the string to split", "delim : the delimiter", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "string", href: "/doc/api/string/"}, {label: "map", href: "/doc/api/map/"}, {label: "print", href: "/doc/api/print/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var path := \"docs/index\"\nprint(nibble(path, \"/\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

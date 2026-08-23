@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "clear"
+    page["kind"] = "api"
+    page["slug"] = "clear"
+    page["route"] = "/doc/api/clear/"
+    page["title"] = "Clear a dynamic value"
+    page["content"] = "`clear(value)` removes all children and makes `value` an empty map.\n"
+    page["returns"] = "The cleared target value."
+    page["label"] = "clear"
+    page["capy_sig_lines"] = dval(["function clear(value : dval) dval"])
+    page["param_lines"] = dval(["value : target value", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "dvalue", href: "/doc/type/dvalue/"}, {label: "set", href: "/doc/api/set/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var value := dval({\"name\": \"Ada\"})\nvalue = clear(value)\nprint(has(value, \"name\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "file_fsync"
+    page["kind"] = "api"
+    page["slug"] = "file-fsync"
+    page["route"] = "/doc/api/file-fsync/"
+    page["title"] = "file_fsync"
+    page["content"] = "`file_fsync` flushes pending writes for a handle. Call it before `file_close` when the file system must receive the writes first.\n"
+    page["returns"] = "`true` when Capy flushes the handle. Otherwise, it returns `false`."
+    page["label"] = "file_fsync"
+    page["capy_sig_lines"] = dval(["function file_fsync(handle : u64) bool"])
+    page["param_lines"] = dval(["handle : writable handle returned by `file_open`", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "file_write", href: "/doc/api/file-write/"}, {label: "file_close", href: "/doc/api/file-close/"}, {label: "file_open", href: "/doc/api/file-open/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var handle := file_open(\"/tmp/doc-fsync.txt\", \"w\")\nfile_write(handle, \"durable\")\nprint(file_fsync(handle), \"\\n\")\nfile_close(handle)\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

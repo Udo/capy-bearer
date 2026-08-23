@@ -1,0 +1,20 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "trap"
+    page["kind"] = "api"
+    page["slug"] = "trap"
+    page["route"] = "/doc/api/trap/"
+    page["title"] = "trap"
+    page["content"] = "`trap` stops the current handler.\n"
+    page["returns"] = "no value because execution stops"
+    page["errors"] = "`trap` always aborts execution."
+    page["label"] = "trap"
+    page["capy_sig_lines"] = dval(["function trap()"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "unit_render", href: "/doc/api/unit-render/"}, {label: "unit_compile", href: "/doc/api/unit-compile/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "if false { trap() }\nprint(\"handler continues\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "pop"
+    page["kind"] = "api"
+    page["slug"] = "pop"
+    page["route"] = "/doc/api/pop/"
+    page["title"] = "Remove the final child"
+    page["content"] = "`pop(value)` removes the final child and returns `value`. It does not return the removed child.\n"
+    page["returns"] = "The changed target value."
+    page["label"] = "pop"
+    page["capy_sig_lines"] = dval(["function pop(value : dval) dval"])
+    page["param_lines"] = dval(["value : target value", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "dvalue", href: "/doc/type/dvalue/"}, {label: "push", href: "/doc/api/push/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var list := dval([\"first\", \"last\"])\nlist = pop(list)\nprint(list[0], \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

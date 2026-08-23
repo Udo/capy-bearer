@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "time_format_local"
+    page["kind"] = "api"
+    page["slug"] = "time-format-local"
+    page["route"] = "/doc/api/time-format-local/"
+    page["title"] = "time_format_local"
+    page["content"] = "`time_format_local` formats a Unix timestamp in the server local time zone.\n"
+    page["returns"] = "formatted local time"
+    page["label"] = "time_format_local"
+    page["capy_sig_lines"] = dval(["function time_format_local(format : string = \"\", timestamp : u64 = 0) string"])
+    page["param_lines"] = dval(["format : date format", "timestamp : Unix timestamp. Zero uses the current time", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "time", href: "/doc/api/time/"}, {label: "time_format_relative", href: "/doc/api/time-format-relative/"}, {label: "time", href: "/doc/api/time/"}, {label: "time_format_relative", href: "/doc/api/time-format-relative/"}, {label: "time_precise", href: "/doc/api/time-precise/"}, {label: "time_format_utc", href: "/doc/api/time-format-utc/"}, {label: "usleep", href: "/doc/api/usleep/"}, {label: "time_parse", href: "/doc/api/time-parse/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(time_format_local(\"%Y\", u64(5)), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "gen_sha1"
+    page["kind"] = "api"
+    page["slug"] = "gen-sha1"
+    page["route"] = "/doc/api/gen-sha1/"
+    page["title"] = "gen_sha1"
+    page["content"] = "`gen_sha1()` returns the SHA-1 digest of a string.\n\nIt returns hexadecimal text by default. Set `as_binary` to `true` for raw digest bytes.\n\nUse it only for SHA-1 compatibility.\n"
+    page["returns"] = "A SHA-1 digest string."
+    page["label"] = "gen_sha1"
+    page["capy_sig_lines"] = dval(["function gen_sha1(value : string, as_binary : bool = false) string"])
+    page["param_lines"] = dval(["value : bytes to hash", "as_binary : `false` for hexadecimal text, `true` for raw digest bytes", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "sha256", href: "/doc/api/sha256/"}, {label: "sha256_hex", href: "/doc/api/sha256-hex/"}, {label: "hmac_sha256", href: "/doc/api/hmac-sha256/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var digest := gen_sha1(\"abc\")\nprint(digest, \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

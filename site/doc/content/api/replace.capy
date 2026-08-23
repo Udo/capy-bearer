@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "replace"
+    page["kind"] = "api"
+    page["slug"] = "replace"
+    page["route"] = "/doc/api/replace/"
+    page["title"] = "replace"
+    page["content"] = "Use `regex_replace()` when the search text is a regular expression.\n"
+    page["returns"] = "Text with every literal match replaced."
+    page["label"] = "replace"
+    page["capy_sig_lines"] = dval(["function replace(value : string, needle : string, replacement : string) string"])
+    page["param_lines"] = dval(["value : source text", "needle : literal text to replace", "replacement : replacement text", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(replace(\"capy docs\", \"docs\", \"API\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

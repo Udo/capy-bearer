@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "path_is_within"
+    page["kind"] = "api"
+    page["slug"] = "path-is-within"
+    page["route"] = "/doc/api/path-is-within/"
+    page["title"] = "path_is_within"
+    page["content"] = "`path_is_within()` resolves both paths and tests whether `root` contains `path`.\n\nBoth paths must exist. Resolution follows symbolic links and removes dot segments.\n"
+    page["returns"] = "`true` when `root` contains `path`"
+    page["label"] = "path_is_within"
+    page["capy_sig_lines"] = dval(["function path_is_within(path : string, root : string) bool"])
+    page["param_lines"] = dval(["path : the path to test", "root : the containing directory", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "path_real", href: "/doc/api/path-real/"}, {label: "path_join", href: "/doc/api/path-join/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var root := \"/tmp\"\nprint(path_is_within(\"/tmp\", root), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

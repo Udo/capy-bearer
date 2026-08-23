@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "uri_decode"
+    page["kind"] = "api"
+    page["slug"] = "uri-decode"
+    page["route"] = "/doc/api/uri-decode/"
+    page["title"] = "uri_decode"
+    page["content"] = "`uri_decode` decodes a URI-encoded string.\n"
+    page["returns"] = "decoded string"
+    page["label"] = "uri_decode"
+    page["capy_sig_lines"] = dval(["function uri_decode(value : string) string"])
+    page["param_lines"] = dval(["value : URI-encoded string", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "parse_uri", href: "/doc/api/parse-uri/"}, {label: "uri_encode", href: "/doc/api/uri-encode/"}, {label: "parse_query", href: "/doc/api/parse-query/"}, {label: "session_id_create", href: "/doc/api/session-id-create/"}, {label: "route_path_sanitize", href: "/doc/api/route-path-sanitize/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(uri_decode(\"Ada%20Lovelace\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

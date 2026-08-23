@@ -1,0 +1,18 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "socket_close"
+    page["kind"] = "api"
+    page["slug"] = "socket-close"
+    page["route"] = "/doc/api/socket-close/"
+    page["title"] = "socket_close"
+    page["content"] = "Use `socket_close` after socket work. Do not use the handle after this call.\n"
+    page["label"] = "socket_close"
+    page["capy_sig_lines"] = dval(["function socket_close(handle : u64)"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var handle := socket_connect(\"127.0.0.1\", 1)\nif handle != 0 { socket_close(handle) }\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "component_render"
+    page["kind"] = "api"
+    page["slug"] = "component-render"
+    page["route"] = "/doc/api/component-render/"
+    page["title"] = "component_render"
+    page["content"] = "`component_render()` renders a component and writes its output straight into the current response. It returns nothing.\n\nThis is the form to reach for in page layouts. `component()` opens a capture buffer, collects everything the component prints, and hands you a string; `component_render()` skips that buffer entirely. When you are only going to print the result anyway, `component_render(\"card\")` does less work than `print(component(\"card\"))`.\n\nUse a capturing call instead when you need the output as a value — to measure it, wrap it, store it, or decide whether to emit it at all.\n\nName resolution, `:HANDLER` suffixes, props scoping, and `ONCE` behaviour are identical to `component()`; that page documents the rules in full.\n"
+    page["errors"] = "An unresolvable component does not raise an error. Bearer sets the response status to `500` and writes a banner element describing the failure into the response in place of the component output. Rendering continues. Call `component_exists()` first when a missing component should be skipped silently."
+    page["label"] = "component_render"
+    page["capy_sig_lines"] = dval(["function component_render(name : string)", "function component_render(name : string, props : as dval)"])
+    page["param_lines"] = dval(["name : a component path, optionally followed by `:HANDLER`", "props : optional input, readable inside the component as `request.props`", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "component", href: "/doc/api/component/"}, {label: "component_exists", href: "/doc/api/component-exists/"}, {label: "component_resolve", href: "/doc/api/component-resolve/"}, {label: "component", href: "/doc/handler/component/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "component_render(\"/doc/examples/card.capy:CARD\", {title: \"Release notes\"})\n"}, {entry: "render", caption: "compose a page from fragments", body: "print(\"<main>\")\ncomponent_render(\"/doc/examples/card.capy:CARD\", {title: \"First\"})\ncomponent_render(\"/doc/examples/card.capy:CARD\", {title: \"Second\"})\nprint(\"</main>\", \"\\n\")\n"}, {entry: "render", caption: "render each row without buffering", body: "var rows := [\"Ada\", \"Grace\", \"Katherine\"]\nfor row := rows {\n    component_render(\"/doc/examples/card.capy:CARD\", {title: row})\n}\nprint(\"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

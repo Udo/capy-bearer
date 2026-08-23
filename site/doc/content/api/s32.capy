@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "s32"
+    page["kind"] = "api"
+    page["slug"] = "s32"
+    page["route"] = "/doc/api/s32/"
+    page["title"] = "s32"
+    page["content"] = "`s32()` converts supported scalar values and integer text. It returns `fallback` when conversion fails.\n"
+    page["returns"] = "A signed 32-bit integer, or `fallback`."
+    page["label"] = "s32"
+    page["capy_sig_lines"] = dval(["function s32(value : dval, fallback : s32 = 0) s32", "function s32(value : string, fallback : s32 = 0) s32"])
+    page["param_lines"] = dval(["value : value to convert", "fallback : value for a failed conversion", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(s32(\"42\", -1), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

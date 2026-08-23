@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "expand_path"
+    page["kind"] = "api"
+    page["slug"] = "expand-path"
+    page["route"] = "/doc/api/expand-path/"
+    page["title"] = "expand_path"
+    page["content"] = "`expand_path()` returns an expanded path string.\n\nPass a path and an optional base directory. It resolves a relative path against the base directory.\n\nWithout a base directory, it uses the current unit directory.\n\nUse the returned path with file APIs.\n"
+    page["returns"] = "expanded path"
+    page["label"] = "expand_path"
+    page["capy_sig_lines"] = dval(["function expand_path(path : string, relative_to_path : string = \"\") string"])
+    page["param_lines"] = dval(["path : path to expand", "relative_to_path : base directory for a relative path", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "path_join", href: "/doc/api/path-join/"}, {label: "path_real", href: "/doc/api/path-real/"}, {label: "dirname", href: "/doc/api/dirname/"}, {label: "file_append", href: "/doc/api/file-append/"}, {label: "basename", href: "/doc/api/basename/"}, {label: "file_exists", href: "/doc/api/file-exists/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(expand_path(\"sub/page.capy\", \"/var/www/site\"), \"\\n\")"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

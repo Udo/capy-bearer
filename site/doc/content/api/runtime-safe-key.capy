@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "runtime_safe_key"
+    page["kind"] = "api"
+    page["slug"] = "runtime-safe-key"
+    page["route"] = "/doc/api/runtime-safe-key/"
+    page["title"] = "runtime_safe_key"
+    page["content"] = "The function trims `key`. It reports an error for an empty key.\n"
+    page["returns"] = "A stable SHA-1 key."
+    page["label"] = "runtime_safe_key"
+    page["capy_sig_lines"] = dval(["function runtime_safe_key(key : string, label : string = \"runtime key\") string"])
+    page["param_lines"] = dval(["key : runtime key", "label : name for an empty-key error", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(runtime_safe_key(\"docs task\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

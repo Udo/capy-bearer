@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "xml_decode"
+    page["kind"] = "api"
+    page["slug"] = "xml-decode"
+    page["route"] = "/doc/api/xml-decode/"
+    page["title"] = "xml_decode"
+    page["content"] = "`xml_decode()` decodes XML source into a `dval`.\n"
+    page["returns"] = "A `dval` that contains the decoded XML."
+    page["label"] = "xml_decode"
+    page["capy_sig_lines"] = dval(["function xml_decode(source : string) dval"])
+    page["param_lines"] = dval(["source : XML source", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "xml_encode", href: "/doc/api/xml-encode/"}, {label: "json_decode", href: "/doc/api/json-decode/"}, {label: "dvalue", href: "/doc/type/dvalue/"}, {label: "string", href: "/doc/type/string/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var value := xml_decode(\"<root><name>Ada</name></root>\")\nprint(value[\"children\"][0][\"text\"], \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

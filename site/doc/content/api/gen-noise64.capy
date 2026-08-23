@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "gen_noise64"
+    page["kind"] = "api"
+    page["slug"] = "gen-noise64"
+    page["route"] = "/doc/api/gen-noise64/"
+    page["title"] = "gen_noise64"
+    page["content"] = "`gen_noise64()` returns deterministic integer noise for an index and seed.\n\nUse the same inputs to reproduce a value.\n"
+    page["returns"] = "A deterministic `u64` value."
+    page["label"] = "gen_noise64"
+    page["capy_sig_lines"] = dval(["function gen_noise64(index : u64, seed : u64 = 0) u64"])
+    page["param_lines"] = dval(["index : deterministic input position", "seed : deterministic input seed", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "gen_noise01", href: "/doc/api/gen-noise01/"}, {label: "gen_noise32", href: "/doc/api/gen-noise32/"}, {label: "gen_int", href: "/doc/api/gen-int/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var value := gen_noise64(u64(1), u64(2))\nprint(value, \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

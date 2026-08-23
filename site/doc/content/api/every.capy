@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "every"
+    page["kind"] = "api"
+    page["slug"] = "every"
+    page["route"] = "/doc/api/every/"
+    page["title"] = "Test every string"
+    page["content"] = "`every` tests each string in a list-shaped `dval` with `predicate`.\n\nThis function does not change `items`.\n"
+    page["returns"] = "This function returns `true` when every item matches. It returns `true` for an empty list."
+    page["label"] = "every"
+    page["capy_sig_lines"] = dval(["function every(items : dval, predicate : function(value : string) bool) bool"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\nprint(every(items, function(value : string) bool { return value != \"\" }), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

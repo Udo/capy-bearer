@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "time_precise"
+    page["kind"] = "api"
+    page["slug"] = "time-precise"
+    page["route"] = "/doc/api/time-precise/"
+    page["title"] = "time_precise"
+    page["content"] = "`time_precise` returns the current Unix timestamp with fractional seconds.\n"
+    page["returns"] = "current Unix timestamp with fractional seconds"
+    page["label"] = "time_precise"
+    page["capy_sig_lines"] = dval(["function time_precise() f64"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "time", href: "/doc/api/time/"}, {label: "usleep", href: "/doc/api/usleep/"}, {label: "time", href: "/doc/api/time/"}, {label: "time_format_local", href: "/doc/api/time-format-local/"}, {label: "time_format_relative", href: "/doc/api/time-format-relative/"}, {label: "time_format_utc", href: "/doc/api/time-format-utc/"}, {label: "time_parse", href: "/doc/api/time-parse/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(time_precise(), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

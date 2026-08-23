@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "usleep"
+    page["kind"] = "api"
+    page["slug"] = "usleep"
+    page["route"] = "/doc/api/usleep/"
+    page["title"] = "usleep"
+    page["content"] = "`usleep` pauses the current handler for `usec` microseconds.\n"
+    page["returns"] = "`0` after the sleep"
+    page["label"] = "usleep"
+    page["capy_sig_lines"] = dval(["function usleep(usec : s32) s32"])
+    page["param_lines"] = dval(["usec : microseconds to sleep", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "time", href: "/doc/api/time/"}, {label: "time_precise", href: "/doc/api/time-precise/"}, {label: "time", href: "/doc/api/time/"}, {label: "time_format_local", href: "/doc/api/time-format-local/"}, {label: "time_format_relative", href: "/doc/api/time-format-relative/"}, {label: "time_format_utc", href: "/doc/api/time-format-utc/"}, {label: "time_parse", href: "/doc/api/time-parse/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "usleep(1000)\nprint(\"slept\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

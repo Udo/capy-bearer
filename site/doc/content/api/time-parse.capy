@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "time_parse"
+    page["kind"] = "api"
+    page["slug"] = "time-parse"
+    page["route"] = "/doc/api/time-parse/"
+    page["title"] = "time_parse"
+    page["content"] = "`time_parse` converts date or time text to a Unix timestamp.\n"
+    page["returns"] = "parsed Unix timestamp, or zero when parsing fails"
+    page["label"] = "time_parse"
+    page["capy_sig_lines"] = dval(["function time_parse(value : string) u64"])
+    page["param_lines"] = dval(["value : date or time text", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "time", href: "/doc/api/time/"}, {label: "time_format_utc", href: "/doc/api/time-format-utc/"}, {label: "time_format_relative", href: "/doc/api/time-format-relative/"}, {label: "time_format_local", href: "/doc/api/time-format-local/"}, {label: "time", href: "/doc/api/time/"}, {label: "time_precise", href: "/doc/api/time-precise/"}, {label: "usleep", href: "/doc/api/usleep/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(time_parse(\"1970-01-01 00:00:05 UTC\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

@@ -12,6 +12,9 @@ API_OUT = OUT / "api"
 TYPE_OUT = OUT / "type"
 HANDLER_OUT = OUT / "handler"
 GUIDE_OUT = OUT / "guide"
+PRESENTATION_OUT = DOC / "components" / "doc_page.capy"
+LEGACY_CONTENT = ("content-api-*.capy", "content-guide.capy", "content-handler.capy", "content-type.capy")
+LEGACY_COMPONENTS = (DOC / "components" / "page.capy",)
 
 
 SECTION_NAMES = {"title", "sig", "params", "returns", "errors", "note", "warning", "content", "see", "output"}
@@ -40,14 +43,12 @@ def slugify(value: str) -> str:
     return value or "page"
 
 
-def unique_slug(base: str, used: set[str]) -> str:
-    slug = base
-    index = 2
-    while slug in used:
-        slug = f"{base}-{index}"
-        index += 1
-    used.add(slug)
-    return slug
+def unique_slug(base: str, used: dict[str, str], source_page: str) -> str:
+    existing = used.get(base)
+    if existing:
+        raise ValueError(f"duplicate documentation slug {base}: {existing}, {source_page}")
+    used[base] = source_page
+    return base
 
 
 def add_example(page: dict, source_page: str, language: str, entry: str, caption: str, body: str) -> None:
@@ -224,45 +225,168 @@ def capy_value(value) -> str:
 
 
 def write_content_module(path: Path, page: dict) -> None:
-    lines = ["#exports data", "", "function data(input : dval) dval {", "    var page := dval({source_page: \"\"})"]
+    lines = ["function COMPONENT(request : dval) {", "    var page := dval({source_page: \"\"})"]
     for key in ["source_page", "kind", "slug", "route", "title", "content", "returns", "errors", "capy_status", "example_error", "label"]:
         lines.extend(assign_string(key, page.get(key, "")))
     for key in ["capy_sig_lines", "param_lines", "notes", "warnings", "see", "examples", "guide_examples"]:
         lines.append(f"    page[{capy_string(key)}] = {dval_array(page.get(key, []))}")
-    lines.extend(["    return page", "}", ""])
+    lines.extend(["    component_render(\"/doc/components/doc_page.capy\", page)", "}", ""])
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
-def write_content_dispatch(path: Path, branches: list[tuple[str, str]]) -> None:
-    lines = ["#exports data", "", "function data(input : dval) dval {", "    var slug := string(input.slug, \"\")"]
-    for slug, body in branches:
-        lines.append(f"    if slug == {capy_string(slug)} {{")
-        lines.extend("    " + line for line in body.split("\n") if line.strip())
-        lines.append("        return page")
-        lines.append("    }")
-    lines.append("    return dval({source_page: \"\", kind: \"\", slug: \"\", title: \"Page not found\", label: \"Page not found\", content: \"\"})")
-    lines.append("}")
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+def write_presentation_component(path: Path) -> None:
+    path.write_text("""function section(title : string, body : string) void {
+    if trim(body) == \"\" { return }
+    print(\"<div class=\\\"doc-section\\\"><h3>\", html_escape(title), \"</h3>\", markdown_to_html(body), \"</div>\")
+}
+
+function render_lines(title : string, lines : dval) void {
+    if length(lines) == 0 { return }
+    print(\"<div class=\\\"doc-section signatures\\\"><h3>\", html_escape(title), \"</h3><pre>\")
+    var first := true
+    for line := lines {
+        if !first { print(\"\\n\") }
+        print(html_escape(string(line, \"\")))
+        first = false
+    }
+    print(\"</pre></div>\")
+}
+
+function render_params(lines : dval) void {
+    if length(lines) == 0 { return }
+    print(\"<div class=\\\"doc-section params\\\"><h3>Parameters</h3>\")
+    for line := lines {
+        var text := trim(string(line, \"\"))
+        if text != \"\" { print(\"<div>\", markdown_to_html(text), \"</div>\") }
+    }
+    print(\"</div>\")
+}
+
+function render_callouts(class_name : string, title : string, blocks : dval) void {
+    for body := blocks {
+        print(\"<div class=\\\"doc-section doc-callout \", html_escape(class_name), \"\\\"><h3>\", html_escape(title), \"</h3>\", markdown_to_html(string(body, \"\")), \"</div>\")
+    }
+}
+
+function render_examples(page : dval) void {
+    if string(page.example_error, \"\") != \"\" {
+        print(\"<div class=\\\"doc-section example error\\\"><h3>Example format error</h3><pre>\", html_escape(string(page.example_error, \"\")), \"</pre></div>\")
+        return
+    }
+    for example := page.examples {
+        print(\"<div class=\\\"doc-section example\\\"><h3>Example</h3><div class=\\\"example-language capy\\\"><h4>Capy</h4><pre class=\\\"example-source\\\">\", html_escape(string(example.body, \"\")), \"</pre></div></div>\")
+    }
+    for example := page.guide_examples {
+        print(\"<div class=\\\"doc-section example\\\"><h3>Example</h3><div class=\\\"example-language capy\\\"><h4>Capy</h4><pre class=\\\"example-source\\\">\", html_escape(string(example.body, \"\")), \"</pre></div>\")
+        if example.output? {
+            print(\"<p><strong>Output</strong></p><div class=\\\"example-output\\\"><div class=\\\"example-output-label\\\">Output</div><pre>\", html_escape(string(example.output, \"\")), \"</pre></div>\")
+        }
+        print(\"</div>\")
+    }
+}
+
+function render_see(page : dval) void {
+    if length(page.see) == 0 { return }
+    print(\"<aside class=\\\"doc-section see-also\\\"><h3>See also</h3>\")
+    for item := page.see {
+        component_render(\"/doc/components/doc_link.capy\", item)
+    }
+    print(\"</aside>\")
+}
+
+function render_guide_navigation(page : dval) void {
+    if string(page.kind, \"\") != \"guide\" { return }
+    print(\"<nav class=\\\"guide-navigation\\\" aria-label=\\\"Capy guide navigation\\\"><div class=\\\"guide-previous\\\">Previous: <a href=\\\"/doc/\\\">Guide index</a></div><div class=\\\"guide-index\\\"><a href=\\\"/doc/\\\">Guide index</a></div><div class=\\\"guide-next\\\">Next: <a href=\\\"/doc/\\\">Guide index</a></div></nav>\")
+}
+
+function COMPONENT(request : dval) {
+    var page := request.props
+    print(\"<div class=\\\"doc-detail-layout\\\"><main class=\\\"content doc-page doc-detail\\\"><h2>\", html_escape(string(page.title, string(page.label, \"Documentation\"))), \"</h2>\")
+    render_lines(\"Capy\", page.capy_sig_lines)
+    if string(page.content, \"\") != \"\" {
+        print(\"<div class=\\\"doc-section content\\\">\")
+        if string(page.kind, \"\") == \"api\" { print(\"<h3>Description</h3>\") }
+        print(markdown_to_html(string(page.content, \"\")), \"</div>\")
+    }
+    render_params(page.param_lines)
+    section(\"Return Values\", string(page.returns, \"\"))
+    section(\"Errors\", string(page.errors, \"\"))
+    render_callouts(\"note\", \"Note\", page.notes)
+    render_callouts(\"warning\", \"Warning\", page.warnings)
+    render_examples(page)
+    render_guide_navigation(page)
+    print(\"</main>\")
+    render_see(page)
+    print(\"</div>\")
+}
+""", encoding="utf-8")
 
 
-def combine_content(kind: str) -> None:
-    branches = []
-    for path in sorted((OUT / kind).glob("*.capy")):
-        text = path.read_text(encoding="utf-8")
-        body = text.split("function data(input : dval) dval {", 1)[1].rsplit("    return page", 1)[0]
-        branches.append((path.stem, body.rstrip()))
-    if kind == "api":
-        shards: dict[str, list[tuple[str, str]]] = {}
-        for slug, body in branches:
-            shard = re.sub(r"[^A-Za-z0-9]+", "", slug[:8]) or "other"
-            shards.setdefault(shard, []).append((slug, body))
-        for old in DOC.glob("content-api-*.capy"):
-            old.unlink()
-        for shard, shard_branches in shards.items():
-            write_content_dispatch(DOC / f"content-api-{shard}.capy", shard_branches)
-    else:
-        write_content_dispatch(DOC / f"content-{kind}.capy", branches)
+def listing_pages(pages: list[dict]) -> list[dict]:
+    kind_order = {"api": 0, "type": 1, "handler": 2}
+    return sorted(
+        pages,
+        key=lambda page: (
+            0 if page["kind"] == "guide" else 1,
+            page["source_page"] if page["kind"] == "guide" else kind_order[page["kind"]],
+            page["slug"],
+        ),
+    )
+
+
+def write_index_component(pages: list[dict]) -> None:
+    guides = [page for page in listing_pages(pages) if page["kind"] == "guide"]
+    references = [page for page in listing_pages(pages) if page["kind"] != "guide"]
+    lines = [
+        "function link(route : string, label : string, kind : string) void {",
+        "    print(\"<a href=\\\"\", html_escape(route), \"\\\">\", html_escape(label))",
+        "    if kind == \"api\" { print(\"<span class=\\\"dim\\\">()</span>\") }",
+        "    print(\"</a>\")",
+        "}",
+        "",
+        "function COMPONENT(request : dval) {",
+        "    print(\"<section class=\\\"capy-guide-index\\\"><h2>Learn Capy</h2><div class=\\\"capy-guide-grid\\\">\")",
+    ]
+    for page in guides:
+        lines.append(
+            "    print(\"<div class=\\\"capy-guide-card\\\">\"); link("
+            + capy_string(page["route"])
+            + ", " + capy_string(page["title"])
+            + ", " + capy_string(page["kind"])
+            + "); print(\"</div>\")"
+        )
+    lines.extend([
+        "    print(\"</div></section><div class=\\\"api-reference-heading\\\"><h2>API Reference</h2><p>Bearer APIs available to Capy units.</p></div>\")",
+        "    print(\"<form class=\\\"search-bar\\\" action=\\\"/doc/search/\\\" method=\\\"get\\\"><input id=\\\"doc-search\\\" name=\\\"q\\\" type=\\\"search\\\" aria-label=\\\"Search documentation\\\" placeholder=\\\"Search documentation…\\\" autocomplete=\\\"off\\\" spellcheck=\\\"false\\\"></input><button type=\\\"submit\\\">Search</button></form>\")",
+        "    print(\"<div class=\\\"index-pane\\\" id=\\\"index-pane\\\"><main class=\\\"content\\\"><h2>All APIs</h2><div class=\\\"func-grid\\\">\")",
+    ])
+    for page in references:
+        lines.append(
+            "    print(\"<div class=\\\"func-item\\\">\"); link("
+            + capy_string(page["route"])
+            + ", " + capy_string(page["title"])
+            + ", " + capy_string(page["kind"])
+            + "); print(\"</div>\")"
+        )
+    lines.extend(["    print(\"</div></main></div>\")", "}", ""])
+    (DOC / "components" / "index.capy").write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_all_component(pages: list[dict]) -> None:
+    lines = [
+        "function COMPONENT(request : dval) {",
+        "    print(\"<main class=\\\"content\\\"><h2>All documentation</h2><div class=\\\"func-grid\\\">\")",
+    ]
+    for page in listing_pages(pages):
+        lines.append(
+            "    print(\"<div class=\\\"func-item\\\"><a href=\\\"\", html_escape("
+            + capy_string(page["route"])
+            + "), \"\\\">\", html_escape(" + capy_string(page["title"])
+            + "), \"</a></div>\")"
+        )
+    lines.extend(["    print(\"</div></main>\")", "}", ""])
+    (DOC / "components" / "all.capy").write_text("\n".join(lines), encoding="utf-8")
 
 
 def read_signatures() -> dict[str, list[str]]:
@@ -281,12 +405,18 @@ def read_signatures() -> dict[str, list[str]]:
 def main() -> None:
     if OUT.exists():
         shutil.rmtree(OUT)
+    for pattern in LEGACY_CONTENT:
+        for path in DOC.glob(pattern):
+            path.unlink()
+    for path in LEGACY_COMPONENTS:
+        path.unlink(missing_ok=True)
     for output in (API_OUT, TYPE_OUT, HANDLER_OUT, GUIDE_OUT):
         output.mkdir(parents=True)
+    write_presentation_component(PRESENTATION_OUT)
     signatures = read_signatures()
 
     pages: list[dict] = []
-    used = {"api": set(), "type": set(), "handler": set(), "guide": set()}
+    used = {"api": {}, "type": {}, "handler": {}, "guide": {}}
     for txt in sorted((DOC / "pages").rglob("*.txt")):
         relative = txt.relative_to(DOC / "pages").with_suffix("")
         source_page = relative.as_posix()
@@ -297,7 +427,9 @@ def main() -> None:
         page["kind"] = kind
         page["label"] = relative.name
         page["title"] = page["title"] or relative.name
-        page["slug"] = unique_slug(slugify(relative.name), used[kind])
+        if len(relative.parts) > 2:
+            raise ValueError(f"nested documentation page is not supported: {relative}")
+        page["slug"] = unique_slug(slugify(relative.name), used[kind], source_page)
         page["route"] = f"/doc/{kind}/{page['slug']}/"
         page["capy_sig_lines"] = signatures.get(source_page, [])
         pages.append(page)
@@ -306,7 +438,7 @@ def main() -> None:
         page = parse_doc(source_page, txt.read_text(encoding="utf-8"))
         page["label"] = page["title"] or txt.stem
         page["title"] = page["label"]
-        page["slug"] = unique_slug(slugify(re.sub(r"^[0-9]+-", "", txt.stem)), used["guide"])
+        page["slug"] = unique_slug(slugify(re.sub(r"^[0-9]+-", "", txt.stem)), used["guide"], source_page)
         page["route"] = "/doc/guide/" + page["slug"] + "/"
         pages.append(page)
     targets = {page["source_page"]: page for page in pages}
@@ -319,9 +451,8 @@ def main() -> None:
             resolved.append({"label": targets[target]["label"], "href": targets[target]["route"]})
         page["see"] = resolved
         write_content_module(OUT / page["kind"] / (page["slug"] + ".capy"), page)
-    for kind in ("api", "type", "handler", "guide"):
-        combine_content(kind)
-    shutil.rmtree(OUT)
+    write_index_component(pages)
+    write_all_component(pages)
 
 
 if __name__ == "__main__":

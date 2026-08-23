@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "crypto_equal"
+    page["kind"] = "api"
+    page["slug"] = "crypto-equal"
+    page["route"] = "/doc/api/crypto-equal/"
+    page["title"] = "crypto_equal"
+    page["content"] = "`crypto_equal()` compares byte strings in constant time.\n\nUse it to compare secrets such as HMACs and tokens. Do not use `==` to compare secrets.\n"
+    page["returns"] = "`true` if both byte strings are equal."
+    page["label"] = "crypto_equal"
+    page["capy_sig_lines"] = dval(["function crypto_equal(left : string, right : string) bool"])
+    page["param_lines"] = dval(["left : the expected byte string", "right : the submitted byte string", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "hmac_sha256_hex", href: "/doc/api/hmac-sha256-hex/"}, {label: "csrf_valid", href: "/doc/api/csrf-valid/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var expected := hmac_sha256_hex(\"key\", \"payload\")\nif crypto_equal(expected, hmac_sha256_hex(\"key\", \"payload\")) { print(\"valid\\n\") } else { print(\"invalid\\n\") }\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

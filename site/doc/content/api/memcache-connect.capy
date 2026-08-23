@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "memcache_connect"
+    page["kind"] = "api"
+    page["slug"] = "memcache-connect"
+    page["route"] = "/doc/api/memcache-connect/"
+    page["title"] = "memcache_connect"
+    page["content"] = "`memcache_connect()` opens a connection to a Memcache server.\n\nDo not pass a zero handle to another Memcache function.\n"
+    page["returns"] = "a connection handle, or zero on failure"
+    page["label"] = "memcache_connect"
+    page["capy_sig_lines"] = dval(["function memcache_connect(host : string = \"127.0.0.1\", port : s32 = 11211) u64"])
+    page["param_lines"] = dval(["host : the server host name", "port : the server port", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "memcache_get", href: "/doc/api/memcache-get/"}, {label: "memcache_set", href: "/doc/api/memcache-set/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var connection := memcache_connect()\nif connection != u64(0) { print(\"connected\\n\") } else { print(\"not connected\\n\") }\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

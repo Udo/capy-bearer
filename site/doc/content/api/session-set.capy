@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "session_set"
+    page["kind"] = "api"
+    page["slug"] = "session-set"
+    page["route"] = "/doc/api/session-set/"
+    page["title"] = "session_set"
+    page["content"] = "Call `session_start()` before you store a session field.\n"
+    page["returns"] = "The updated session state."
+    page["label"] = "session_set"
+    page["capy_sig_lines"] = dval(["function session_set(key : string, value : string) dval"])
+    page["param_lines"] = dval(["key : session field name", "value : value to store", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var session := session_start(\"docs-session\")\nsession = session_set(\"theme\", \"dark\")\nprint(string(session.values.theme, \"\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

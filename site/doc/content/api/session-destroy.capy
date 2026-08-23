@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "session_destroy"
+    page["kind"] = "api"
+    page["slug"] = "session-destroy"
+    page["route"] = "/doc/api/session-destroy/"
+    page["title"] = "session_destroy"
+    page["content"] = "`session_destroy()` expires the named session cookie and removes its server-side data.\n"
+    page["returns"] = "The resulting session state."
+    page["label"] = "session_destroy"
+    page["capy_sig_lines"] = dval(["function session_destroy(name : string = \"bearer-session\") dval"])
+    page["param_lines"] = dval(["name : session cookie name", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var session := session_destroy(\"docs-session\")\nprint(string(session.id, \"\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

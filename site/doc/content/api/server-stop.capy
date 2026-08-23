@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "server_stop"
+    page["kind"] = "api"
+    page["slug"] = "server-stop"
+    page["route"] = "/doc/api/server-stop/"
+    page["title"] = "server_stop"
+    page["content"] = "`server_stop()` removes the custom HTTP listener for `key`.\n"
+    page["returns"] = "`true` if no listener remains."
+    page["label"] = "server_stop"
+    page["capy_sig_lines"] = dval(["function server_stop(key : string) bool"])
+    page["param_lines"] = dval(["key : listener key", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(server_stop(\"docs-server\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

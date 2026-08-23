@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "file_get_contents"
+    page["kind"] = "api"
+    page["slug"] = "file-get-contents"
+    page["route"] = "/doc/api/file-get-contents/"
+    page["title"] = "file_get_contents"
+    page["content"] = "`file_get_contents` reads a complete file into a string. Use it for a small file that fits in one value. Use `file_open` and `file_read` for incremental reads.\n"
+    page["returns"] = "The file content, or `\"\"` when Capy cannot read the file."
+    page["label"] = "file_get_contents"
+    page["capy_sig_lines"] = dval(["function file_get_contents(path : string) string"])
+    page["param_lines"] = dval(["path : path of the file to read", ""])
+    page["notes"] = dval(["An empty file and an unreadable file both return `\"\"`. Use `file_exists` when you must distinguish them."])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "file_put_contents", href: "/doc/api/file-put-contents/"}, {label: "file_append", href: "/doc/api/file-append/"}, {label: "file_open", href: "/doc/api/file-open/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-get.txt\", \"hello\")\nprint(file_get_contents(\"/tmp/doc-get.txt\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

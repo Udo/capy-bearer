@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "file_rename"
+    page["kind"] = "api"
+    page["slug"] = "file-rename"
+    page["route"] = "/doc/api/file-rename/"
+    page["title"] = "file_rename"
+    page["content"] = "`file_rename` changes a file path. The source path no longer exists after a successful call.\n"
+    page["returns"] = "`true` if Capy renames the file. Otherwise, `false`."
+    page["label"] = "file_rename"
+    page["capy_sig_lines"] = dval(["function file_rename(from : string, to : string) bool"])
+    page["param_lines"] = dval(["from : source path", "to : destination path", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-rename-source.txt\", \"moved\")\nif file_rename(\"/tmp/doc-rename-source.txt\", \"/tmp/doc-rename-destination.txt\") {\n    print(file_get_contents(\"/tmp/doc-rename-destination.txt\"), \"\\n\")\n}\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

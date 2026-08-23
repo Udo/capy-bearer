@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "map"
+    page["kind"] = "api"
+    page["slug"] = "map"
+    page["route"] = "/doc/api/map/"
+    page["title"] = "map"
+    page["content"] = "`map()` calls `mapper` for each item in `items`.\n\nIt converts each item to a string before it calls `mapper`. The function returns a new `dval` list.\n"
+    page["returns"] = "a new list of transformed strings"
+    page["label"] = "map"
+    page["capy_sig_lines"] = dval(["function map(items : dval, mapper : function(value : string) string) dval"])
+    page["param_lines"] = dval(["items : the input list", "mapper : the function that transforms each item", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "string", href: "/doc/api/string/"}, {label: "filter", href: "/doc/api/filter/"}, {label: "print", href: "/doc/api/print/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var names := dval([\"ada\", \"grace\"])\nvar names_upper := map(names, function(name : string) string { return upper(name) })\nprint(join(names_upper, \",\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "ascii_safe_name"
+    page["kind"] = "api"
+    page["slug"] = "ascii-safe-name"
+    page["route"] = "/doc/api/ascii-safe-name/"
+    page["title"] = "ascii_safe_name"
+    page["content"] = "`ascii_safe_name` converts text to an ASCII-safe name.\n\nUse it when a target accepts ASCII names only.\n"
+    page["returns"] = "an ASCII-safe name"
+    page["label"] = "ascii_safe_name"
+    page["capy_sig_lines"] = dval(["function ascii_safe_name(raw : string) string"])
+    page["param_lines"] = dval(["raw : source text", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "safe_name", href: "/doc/api/safe-name/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(ascii_safe_name(\"Café file-1\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

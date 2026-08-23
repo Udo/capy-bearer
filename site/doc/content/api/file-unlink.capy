@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "file_unlink"
+    page["kind"] = "api"
+    page["slug"] = "file-unlink"
+    page["route"] = "/doc/api/file-unlink/"
+    page["title"] = "file_unlink"
+    page["content"] = "`file_unlink` removes a file. A missing path does not cause an error.\n"
+    page["returns"] = "No value."
+    page["label"] = "file_unlink"
+    page["capy_sig_lines"] = dval(["function file_unlink(path : string)"])
+    page["param_lines"] = dval(["path : file path", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-unlink.txt\", \"x\")\nfile_unlink(\"/tmp/doc-unlink.txt\")\nprint(file_exists(\"/tmp/doc-unlink.txt\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

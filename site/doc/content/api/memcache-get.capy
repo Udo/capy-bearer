@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "memcache_get"
+    page["kind"] = "api"
+    page["slug"] = "memcache-get"
+    page["route"] = "/doc/api/memcache-get/"
+    page["title"] = "memcache_get"
+    page["content"] = "`memcache_get()` reads the value for `key`.\n\nIt returns `default_value` for a missing key or an incomplete response. It escapes the key before it sends the request.\n"
+    page["returns"] = "the stored value or `default_value`"
+    page["label"] = "memcache_get"
+    page["capy_sig_lines"] = dval(["function memcache_get(connection : u64, key : string, default_value : string = \"\") string"])
+    page["param_lines"] = dval(["connection : the connection handle", "key : the entry key", "default_value : the value for a missing or invalid response", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "memcache_connect", href: "/doc/api/memcache-connect/"}, {label: "memcache_set", href: "/doc/api/memcache-set/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var connection := memcache_connect()\nif connection != u64(0) { print(memcache_get(connection, \"doc-key\", \"missing\"), \"\\n\") }\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

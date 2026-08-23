@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "draw_float"
+    page["kind"] = "api"
+    page["slug"] = "draw-float"
+    page["route"] = "/doc/api/draw-float/"
+    page["title"] = "draw_float"
+    page["content"] = "`draw_float()` returns the next floating-point value from the request random sequence.\n\nBearer uses the request random seed and advances the random index after each call.\n"
+    page["returns"] = "An `f64` value between the range values."
+    page["label"] = "draw_float"
+    page["capy_sig_lines"] = dval(["function draw_float(from : f64, to : f64, precision : f64 = 0.000000000001) f64"])
+    page["param_lines"] = dval(["from : the first range value", "to : the second range value", "precision : the output precision", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "draw_int", href: "/doc/api/draw-int/"}, {label: "gen_float", href: "/doc/api/gen-float/"}, {label: "gen_noise01", href: "/doc/api/gen-noise01/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var value := draw_float(0.0, 1.0)\nprint(value >= 0.0, \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

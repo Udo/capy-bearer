@@ -1,0 +1,20 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "http_request"
+    page["kind"] = "api"
+    page["slug"] = "http-request"
+    page["route"] = "/doc/api/http-request/"
+    page["title"] = "http_request"
+    page["content"] = "`http_request()` sends an outbound HTTP or HTTPS request. Set `method`, `url`, `headers`, `body`, `timeout_ms`, and `follow_redirects` as needed.\n\nWhen you set a `security` field, set `https_only`, `public_dns_only`, `pin_dns`, `isolated_curl`, and `no_redirects` to `true`.\n"
+    page["returns"] = "A map with `status`, `headers`, `body`, and `error`."
+    page["errors"] = "The result can report `invalid_request`, `unsafe_dns`, `timeout`, `response_too_large`, `redirect_not_allowed`, `http_status`, or `network_failure`."
+    page["label"] = "http_request"
+    page["capy_sig_lines"] = dval(["function http_request(request : dval) dval"])
+    page["param_lines"] = dval(["request : a map that describes an outbound request", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "http_request_async", href: "/doc/api/http-request-async/"}])
+    page["examples"] = dval([{entry: "cli", caption: "", body: "var outbound := dval({\"method\": \"GET\", \"url\": \"http://127.0.0.1/tests/capy-render.capy\", \"headers\": {\"Host\": \"bearer.openfu.com\"}, \"timeout_ms\": 2000})\nvar response := http_request(outbound)\nprint(\"status=\", s32(response[\"status\"]), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

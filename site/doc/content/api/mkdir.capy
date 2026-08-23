@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "mkdir"
+    page["kind"] = "api"
+    page["slug"] = "mkdir"
+    page["route"] = "/doc/api/mkdir/"
+    page["title"] = "mkdir"
+    page["content"] = "`mkdir()` creates one directory at `path`.\n\nThe parent directory must exist. This function does not create parent directories.\n"
+    page["returns"] = "`true` when the API creates the directory"
+    page["label"] = "mkdir"
+    page["capy_sig_lines"] = dval(["function mkdir(path : string) bool"])
+    page["param_lines"] = dval(["path : the directory path", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "dir_remove", href: "/doc/api/dir-remove/"}, {label: "path_join", href: "/doc/api/path-join/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var path := file_temp(\"/tmp/doc-mkdir-\")\nfile_unlink(path)\nprint(mkdir(path), \"\\n\")\ndir_remove(path, true)\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

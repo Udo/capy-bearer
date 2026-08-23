@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "markdown_to_html"
+    page["kind"] = "api"
+    page["slug"] = "markdown-to-html"
+    page["route"] = "/doc/api/markdown-to-html/"
+    page["title"] = "markdown_to_html"
+    page["content"] = "`markdown_to_html()` renders Markdown source as HTML.\n\nRaw HTML stays escaped unless `options[\"allow_html\"]` is true. Only enable it for trusted source.\n"
+    page["returns"] = "the HTML text"
+    page["label"] = "markdown_to_html"
+    page["capy_sig_lines"] = dval(["function markdown_to_html(source : string) string", "function markdown_to_html(source : string, options : dval) string"])
+    page["param_lines"] = dval(["source : the Markdown source text", "options : render options", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "markdown_to_ast", href: "/doc/api/markdown-to-ast/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(markdown_to_html(\"**bold**\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

@@ -1,0 +1,18 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "mysql_disconnect"
+    page["kind"] = "api"
+    page["slug"] = "mysql-disconnect"
+    page["route"] = "/doc/api/mysql-disconnect/"
+    page["title"] = "mysql_disconnect"
+    page["content"] = "`mysql_disconnect()` releases the MySQL connection lease.\n\nDo not use the handle after this call.\n"
+    page["label"] = "mysql_disconnect"
+    page["capy_sig_lines"] = dval(["function mysql_disconnect(handle : u64)"])
+    page["param_lines"] = dval(["handle : the MySQL connection handle", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "mysql_connect", href: "/doc/api/mysql-connect/"}, {label: "mysql_info", href: "/doc/api/mysql-info/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var database := mysql_connect(\"localhost\", \"root\", \"\", \"\")\nif database != u64(0) { mysql_disconnect(database) }\nprint(\"connection released\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

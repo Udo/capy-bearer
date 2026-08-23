@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "memcache_escape_key"
+    page["kind"] = "api"
+    page["slug"] = "memcache-escape-key"
+    page["route"] = "/doc/api/memcache-escape-key/"
+    page["title"] = "memcache_escape_key"
+    page["content"] = "`memcache_escape_key()` replaces whitespace characters in a key with underscores.\n\nIt does not validate every Memcache protocol byte.\n\nThe dedicated Memcache operations escape keys before they send requests.\n"
+    page["returns"] = "the key with whitespace replaced by underscores"
+    page["label"] = "memcache_escape_key"
+    page["capy_sig_lines"] = dval(["function memcache_escape_key(key : string) string"])
+    page["param_lines"] = dval(["key : the key text", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(memcache_escape_key(\"a key\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "str_starts_with"
+    page["kind"] = "api"
+    page["slug"] = "str-starts-with"
+    page["route"] = "/doc/api/str-starts-with/"
+    page["title"] = "str_starts_with"
+    page["content"] = "Use `str_starts_with` to test a string prefix.\n"
+    page["returns"] = "`true` when the text starts with the prefix."
+    page["label"] = "str_starts_with"
+    page["capy_sig_lines"] = dval(["function str_starts_with(haystack : string, needle : string) bool"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(str_starts_with(\"/doc\", \"/\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

@@ -1,0 +1,18 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "type/dvalue"
+    page["kind"] = "type"
+    page["slug"] = "dvalue"
+    page["route"] = "/doc/type/dvalue/"
+    page["title"] = "Dynamic values"
+    page["content"] = "A `dval` stores scalar values, maps, lists, and `none`.\n\nUse maps for named fields and lists for ordered values. Read children with `value.name`, `value[\"name\"]`, or `value[0]`. A missing read returns `none` and does not change the value.\n\nUse `has` to test a key. Use `get` when absence is valid. Use `string`, `bool`, `s32`, `s64`, `u64`, or `f64` to convert a value.\n\nUpdate functions such as `set`, `push`, and `clear` change their target and return it. `keys` and `values` return new values.\n"
+    page["label"] = "dvalue"
+    page["capy_sig_lines"] = dval(["type dval"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "string", href: "/doc/api/string/"}, {label: "get", href: "/doc/api/get/"}, {label: "get_by_path", href: "/doc/api/get-by-path/"}, {label: "json_decode", href: "/doc/api/json-decode/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var user := dval({\"name\": \"Ada\", \"tags\": [\"math\"]})\nprint(user.name, \" \", user.tags[0], \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

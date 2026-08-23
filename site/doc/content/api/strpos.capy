@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "strpos"
+    page["kind"] = "api"
+    page["slug"] = "strpos"
+    page["route"] = "/doc/api/strpos/"
+    page["title"] = "strpos"
+    page["content"] = "Use `strpos` to find text in a string. The result uses a zero-based position.\n"
+    page["returns"] = "First match position, or `-1`."
+    page["label"] = "strpos"
+    page["capy_sig_lines"] = dval(["function strpos(haystack : string, needle : string, offset : s64 = 0) s64"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(strpos(\"bearer docs\", \"docs\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

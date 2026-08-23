@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "gen_int"
+    page["kind"] = "api"
+    page["slug"] = "gen-int"
+    page["route"] = "/doc/api/gen-int/"
+    page["title"] = "gen_int"
+    page["content"] = "`gen_int()` returns a deterministic value for the range values, index, and seed.\n\nUse the same inputs to reproduce a value.\n"
+    page["returns"] = "A deterministic `u64` value."
+    page["label"] = "gen_int"
+    page["capy_sig_lines"] = dval(["function gen_int(from : u64, to : u64, index : u64, seed : u64 = 0) u64"])
+    page["param_lines"] = dval(["from : first range value", "to : second range value", "index : deterministic input position", "seed : deterministic input seed", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "gen_float", href: "/doc/api/gen-float/"}, {label: "gen_noise32", href: "/doc/api/gen-noise32/"}, {label: "draw_int", href: "/doc/api/draw-int/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var value := gen_int(u64(1), u64(10), u64(1))\nprint(value, \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

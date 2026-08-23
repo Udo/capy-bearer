@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "memcache_delete"
+    page["kind"] = "api"
+    page["slug"] = "memcache-delete"
+    page["route"] = "/doc/api/memcache-delete/"
+    page["title"] = "memcache_delete"
+    page["content"] = "`memcache_delete()` deletes the entry for `key`.\n\nIt returns `true` only when the server returns `DELETED`.\n"
+    page["returns"] = "`true` when the server deletes the entry"
+    page["label"] = "memcache_delete"
+    page["capy_sig_lines"] = dval(["function memcache_delete(connection : u64, key : string) bool"])
+    page["param_lines"] = dval(["connection : the connection handle", "key : the entry key", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "memcache_connect", href: "/doc/api/memcache-connect/"}, {label: "memcache_get", href: "/doc/api/memcache-get/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var connection := memcache_connect()\nif connection != u64(0) { print(memcache_delete(connection, \"doc-key\"), \"\\n\") }\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

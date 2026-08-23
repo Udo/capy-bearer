@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "file_chmod"
+    page["kind"] = "api"
+    page["slug"] = "file-chmod"
+    page["route"] = "/doc/api/file-chmod/"
+    page["title"] = "file_chmod"
+    page["content"] = "`file_chmod` changes the permission bits of a path.\n"
+    page["returns"] = "`true` when Capy changes the mode. Otherwise, it returns `false`."
+    page["label"] = "file_chmod"
+    page["capy_sig_lines"] = dval(["function file_chmod(path : string, mode : s32) bool"])
+    page["param_lines"] = dval(["path : path of the file or directory", "mode : Unix permission bits as a decimal `s32`", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "file_stat", href: "/doc/api/file-stat/"}, {label: "file_put_contents", href: "/doc/api/file-put-contents/"}, {label: "file_fsync", href: "/doc/api/file-fsync/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-chmod.txt\", \"secret\")\nprint(file_chmod(\"/tmp/doc-chmod.txt\", 384), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

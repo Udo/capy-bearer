@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "sha256_hex"
+    page["kind"] = "api"
+    page["slug"] = "sha256-hex"
+    page["route"] = "/doc/api/sha256-hex/"
+    page["title"] = "sha256_hex"
+    page["content"] = "Use `sha256_hex` to create a printable SHA-256 digest.\n"
+    page["returns"] = "Lowercase hexadecimal SHA-256 digest."
+    page["label"] = "sha256_hex"
+    page["capy_sig_lines"] = dval(["function sha256_hex(value : string) string"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(sha256_hex(\"abc\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

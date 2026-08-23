@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "file_read"
+    page["kind"] = "api"
+    page["slug"] = "file-read"
+    page["route"] = "/doc/api/file-read/"
+    page["title"] = "file_read"
+    page["content"] = "`file_read` reads from the current handle position. It advances the position by the bytes read. It can return fewer bytes at the end of a file.\n"
+    page["returns"] = "A string with up to `count` bytes from the current position."
+    page["label"] = "file_read"
+    page["capy_sig_lines"] = dval(["function file_read(handle : u64, count : u64) string"])
+    page["param_lines"] = dval(["handle : readable handle returned by `file_open`", "count : maximum number of bytes to read", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "file_open", href: "/doc/api/file-open/"}, {label: "file_pread", href: "/doc/api/file-pread/"}, {label: "file_seek", href: "/doc/api/file-seek/"}, {label: "file_close", href: "/doc/api/file-close/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var writer := file_open(\"/tmp/doc-read.txt\", \"w\")\nfile_write(writer, \"hello world\")\nfile_close(writer)\nvar reader := file_open(\"/tmp/doc-read.txt\", \"r\")\nprint(file_read(reader, u64(5)), \"\\n\")\nfile_close(reader)\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

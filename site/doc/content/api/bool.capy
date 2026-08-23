@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "bool"
+    page["kind"] = "api"
+    page["slug"] = "bool"
+    page["route"] = "/doc/api/bool/"
+    page["title"] = "bool"
+    page["content"] = "`bool` converts a `dval` or string to a Boolean value.\n\nFor strings, it ignores outer whitespace and accepts case-insensitive Boolean text. It returns `fallback` when conversion fails.\n"
+    page["returns"] = "a Boolean value"
+    page["label"] = "bool"
+    page["capy_sig_lines"] = dval(["function bool(value : dval, fallback : bool = false) bool", "function bool(value : string, fallback : bool = false) bool"])
+    page["param_lines"] = dval(["value : value to convert", "fallback : value to return when conversion fails", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "string", href: "/doc/api/string/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(bool(\"YES\"), \"\\n\")\nprint(bool(\"unknown\", true), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

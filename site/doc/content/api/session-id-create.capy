@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "session_id_create"
+    page["kind"] = "api"
+    page["slug"] = "session-id-create"
+    page["route"] = "/doc/api/session-id-create/"
+    page["title"] = "session_id_create"
+    page["content"] = "Use `session_id_create()` when you need an ID without starting a session.\n"
+    page["returns"] = "A new session ID."
+    page["label"] = "session_id_create"
+    page["capy_sig_lines"] = dval(["function session_id_create() string"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(length(session_id_create()), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

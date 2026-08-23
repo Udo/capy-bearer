@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "int_val"
+    page["kind"] = "api"
+    page["slug"] = "int-val"
+    page["route"] = "/doc/api/int-val/"
+    page["title"] = "int_val"
+    page["content"] = "`int_val()` extracts an unsigned integer from text. The one-argument form uses base 10.\n"
+    page["returns"] = "A parsed unsigned integer, or `0` when no usable number exists."
+    page["label"] = "int_val"
+    page["capy_sig_lines"] = dval(["function int_val(raw : string) u64", "function int_val(raw : string, base : s32) u64"])
+    page["param_lines"] = dval(["raw : text that can contain an integer", "base : number base", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "trim", href: "/doc/api/trim/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(int_val(\"42\"), \" / \", int_val(\"ff\", 16), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

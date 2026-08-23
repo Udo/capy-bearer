@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "split_http_headers"
+    page["kind"] = "api"
+    page["slug"] = "split-http-headers"
+    page["route"] = "/doc/api/split-http-headers/"
+    page["title"] = "split_http_headers"
+    page["content"] = "Use `split_http_headers` to parse an HTTP header block.\n"
+    page["returns"] = "Map-shaped `dval`."
+    page["label"] = "split_http_headers"
+    page["capy_sig_lines"] = dval(["function split_http_headers(value : string) dval"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var headers := split_http_headers(\"Host: example.test\\r\\n\")\nprint(headers[\"HTTP_HOST\"], \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

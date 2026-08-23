@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "time_format_utc"
+    page["kind"] = "api"
+    page["slug"] = "time-format-utc"
+    page["route"] = "/doc/api/time-format-utc/"
+    page["title"] = "time_format_utc"
+    page["content"] = "`time_format_utc` formats a Unix timestamp in UTC.\n"
+    page["returns"] = "formatted UTC time"
+    page["label"] = "time_format_utc"
+    page["capy_sig_lines"] = dval(["function time_format_utc(format : string = \"\", timestamp : u64 = 0) string"])
+    page["param_lines"] = dval(["format : date format", "timestamp : Unix timestamp. Zero uses the current time", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "time", href: "/doc/api/time/"}, {label: "time_format_relative", href: "/doc/api/time-format-relative/"}, {label: "time_format_relative", href: "/doc/api/time-format-relative/"}, {label: "time_parse", href: "/doc/api/time-parse/"}, {label: "time_format_local", href: "/doc/api/time-format-local/"}, {label: "time", href: "/doc/api/time/"}, {label: "time_precise", href: "/doc/api/time-precise/"}, {label: "usleep", href: "/doc/api/usleep/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(time_format_utc(\"%Y\", u64(5)), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

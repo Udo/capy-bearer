@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "ws_send_to"
+    page["kind"] = "api"
+    page["slug"] = "ws-send-to"
+    page["route"] = "/doc/api/ws-send-to/"
+    page["title"] = "ws_send_to"
+    page["content"] = "`ws_send_to()` sends a message to one client.\n"
+    page["returns"] = "`true` when the server queues the message."
+    page["label"] = "ws_send_to"
+    page["capy_sig_lines"] = dval(["function ws_send_to(connection_id : string, message : string, binary : bool) bool"])
+    page["param_lines"] = dval(["connection_id : client ID", "message : message bytes to send", "binary : `true` for a binary frame", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "ws_send", href: "/doc/api/ws-send/"}])
+    page["examples"] = dval([{entry: "ws", caption: "", body: "ws_send_to(string(request.websocket.connection_id, \"\"), \"hello\", false)\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

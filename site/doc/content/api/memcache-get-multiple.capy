@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "memcache_get_multiple"
+    page["kind"] = "api"
+    page["slug"] = "memcache-get-multiple"
+    page["route"] = "/doc/api/memcache-get-multiple/"
+    page["title"] = "memcache_get_multiple"
+    page["content"] = "`memcache_get_multiple()` reads several keys through one connection.\n\nMissing keys do not occur in the returned map. It escapes each key before it sends the request.\n"
+    page["returns"] = "a map of returned entries"
+    page["label"] = "memcache_get_multiple"
+    page["capy_sig_lines"] = dval(["function memcache_get_multiple(connection : u64, keys : dval) dval"])
+    page["param_lines"] = dval(["connection : the connection handle", "keys : the entry keys", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "memcache_get", href: "/doc/api/memcache-get/"}, {label: "memcache_set", href: "/doc/api/memcache-set/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var connection := memcache_connect()\nif connection != u64(0) { print(memcache_get_multiple(connection, dval([\"first\", \"second\"]))[\"first\"], \"\\n\") }\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

@@ -23,6 +23,20 @@ done
 for path in api/component/ api/string/ type/string/ type/dvalue/ type/request/ handler/render/ handler/component/ handler/cli/; do
     [[ "$(status "$doc_base$path")" == 200 ]] || { echo "Canonical documentation URL did not return 200: $path" >&2; exit 1; }
 done
+component_page=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}api/component/")
+component_exists_page=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}api/component-exists/")
+[[ "$component_page" == *">component</h2>"* && "$component_exists_page" == *">component_exists</h2>"* ]] || { echo "Documentation pages with a shared eight-character prefix did not resolve independently" >&2; exit 1; }
+route_gate="site/doc/content/api/route-file-gate.capy"
+trap 'rm -f "$route_gate"' EXIT
+cat >"$route_gate" <<'EOF'
+function COMPONENT(request : dval) {
+    print("<main>route file gate</main>")
+}
+EOF
+route_added=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}api/route-file-gate/")
+[[ "$route_added" == *"route file gate"* ]] || { echo "A documentation page file did not reach its route" >&2; exit 1; }
+rm -f "$route_gate"
+[[ "$(status "${doc_base}api/route-file-gate/")" == 404 ]] || { echo "A deleted documentation page file did not return 404" >&2; exit 1; }
 
 guide=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}guide/dynamic-values/")
 [[ "$guide" == *"8. Dynamic values"* && "$guide" == *"Nested assignment creates missing maps"* && "$guide" == *'class="guide-navigation"'* ]] || { echo "Capy guide page omitted content or navigation" >&2; exit 1; }
@@ -32,6 +46,7 @@ contract=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}api/http-request
 [[ "$contract" == *'<h3>Description</h3>'* && "$contract" == *'class="related-link" href="/doc/api/http-request-async/">http_request_async</a>'* ]] || { echo "Structured API contract sections or related links are incomplete" >&2; exit 1; }
 index=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base")
 [[ "$index" != *'>String()<'* && "$index" != *'>COMPONENT()<'* && "$index" != *'>CLI()<'* ]] || { echo "Type or handler index entry rendered as a function" >&2; exit 1; }
+[[ "$index" != *"route-file-gate"* ]] || { echo "Documentation index retained a deleted page" >&2; exit 1; }
 singlepage=$(curl -fsS --max-time 180 -H "Host: $host" "${doc_base}all/")
 [[ "$singlepage" == *'/doc/guide/install-and-first-program/'* && "$singlepage" == *'/doc/type/dvalue/'* && "$singlepage" == *'/doc/api/http-request/'* ]] || { echo "Combined documentation route list omitted canonical links" >&2; exit 1; }
 search=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}search/?q=http_request")

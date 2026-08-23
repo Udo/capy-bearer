@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "unit_call"
+    page["kind"] = "api"
+    page["slug"] = "unit-call"
+    page["route"] = "/doc/api/unit-call/"
+    page["title"] = "unit_call"
+    page["content"] = "`unit_call` calls an exported function in a unit.\n"
+    page["returns"] = "exported function result"
+    page["label"] = "unit_call"
+    page["capy_sig_lines"] = dval(["function unit_call(file_name : string, function_name : string) dval", "function unit_call(file_name : string, function_name : string, props : as dval) dval"])
+    page["param_lines"] = dval(["file_name : unit path", "function_name : exported function name", "props : function input", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "unit_load", href: "/doc/api/unit-load/"}, {label: "unit_render", href: "/doc/api/unit-render/"}, {label: "unit_info", href: "/doc/api/unit-info/"}, {label: "render", href: "/doc/handler/render/"}, {label: "component", href: "/doc/handler/component/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var result := unit_call(\"/tests/capy-module-target.capy\", \"echo\", \"hello\")\nprint(result, \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

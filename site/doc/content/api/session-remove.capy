@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "session_remove"
+    page["kind"] = "api"
+    page["slug"] = "session-remove"
+    page["route"] = "/doc/api/session-remove/"
+    page["title"] = "session_remove"
+    page["content"] = "Call `session_start()` before you remove a session field.\n"
+    page["returns"] = "The updated session state."
+    page["label"] = "session_remove"
+    page["capy_sig_lines"] = dval(["function session_remove(key : string) dval"])
+    page["param_lines"] = dval(["key : session field name", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var session := session_start(\"docs-session\")\nsession = session_remove(\"theme\")\nprint(string(session.name, \"\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

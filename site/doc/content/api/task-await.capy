@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "task_await"
+    page["kind"] = "api"
+    page["slug"] = "task-await"
+    page["route"] = "/doc/api/task-await/"
+    page["title"] = "task_await"
+    page["content"] = "Use `task_await` to wait for a task status. It returns when the task ends or the timeout expires.\n"
+    page["returns"] = "Task status map."
+    page["label"] = "task_await"
+    page["capy_sig_lines"] = dval(["function task_await(id : string, timeout_ms : u64) dval"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var status := task_await(\"\", u64(0))\nprint(string(status[\"state\"]), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

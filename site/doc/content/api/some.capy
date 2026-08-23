@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "some"
+    page["kind"] = "api"
+    page["slug"] = "some"
+    page["route"] = "/doc/api/some/"
+    page["title"] = "Test any string"
+    page["content"] = "`some` tests each string in a list-shaped `dval` with `predicate`.\n\nThis function does not change `items`.\n"
+    page["returns"] = "This function returns `true` when any item matches. It returns `false` for an empty list."
+    page["label"] = "some"
+    page["capy_sig_lines"] = dval(["function some(items : dval, predicate : function(value : string) bool) bool"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\nprint(some(items, function(value : string) bool { return value == \"two\" }), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

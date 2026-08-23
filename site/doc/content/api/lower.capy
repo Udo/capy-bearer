@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "lower"
+    page["kind"] = "api"
+    page["slug"] = "lower"
+    page["route"] = "/doc/api/lower/"
+    page["title"] = "lower"
+    page["content"] = "`lower()` converts uppercase ASCII characters to lowercase. It does not convert Unicode case.\n"
+    page["returns"] = "Text with uppercase ASCII characters converted to lowercase."
+    page["label"] = "lower"
+    page["capy_sig_lines"] = dval(["function lower(value : string) string"])
+    page["param_lines"] = dval(["value : text to convert", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "upper", href: "/doc/api/upper/"}, {label: "length", href: "/doc/api/length/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(lower(\"BEARER\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

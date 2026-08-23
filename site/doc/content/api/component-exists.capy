@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "component_exists"
+    page["kind"] = "api"
+    page["slug"] = "component-exists"
+    page["route"] = "/doc/api/component-exists/"
+    page["title"] = "component_exists"
+    page["content"] = "`component_exists()` runs the same name resolution that `component()` and `component_render()` use, and reports whether it found a file. It renders nothing and runs no handler.\n\nUse it to make a component optional. Without the guard, a missing component sets the response status to `500` and writes a banner element into your page; with it, you choose the fallback.\n\n## What the check does and does not cover\n\nIt resolves the **file**. A `:HANDLER` suffix is ignored for the purpose of this check, so `component_exists(\"widgets.capy:CARD\")` answers \"does `widgets.capy` exist\", not \"does it define `COMPONENT:CARD`\". A name whose file exists but whose named handler does not will pass this check and then fail at render time.\n\nIt also does not compile the component. A file that exists but does not compile returns `true` here and reports its compile error when it is rendered.\n\nResolution is unchanged from `component()`: `.capy` is appended when absent, a leading `/` is tried as a real path and then as a site-root path, and a relative name is tried against the entry unit's directory, the calling unit's directory, and the site root, in that order.\n"
+    page["returns"] = "`true` when Bearer resolves the name to a component source file, otherwise `false`."
+    page["label"] = "component_exists"
+    page["capy_sig_lines"] = dval(["function component_exists(name : string) bool"])
+    page["param_lines"] = dval(["name : a component path, optionally followed by `:HANDLER`", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "component", href: "/doc/api/component/"}, {label: "component_render", href: "/doc/api/component-render/"}, {label: "component_resolve", href: "/doc/api/component-resolve/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "if component_exists(\"/doc/examples/card.capy\") { print(\"exists\\n\") } else { print(\"missing\\n\") }\n"}, {entry: "render", caption: "fall back when a theme fragment is absent", body: "if component_exists(\"/doc/examples/card.capy\") {\n    component_render(\"/doc/examples/card.capy:CARD\", {title: \"Themed\"})\n} else {\n    print(\"<p>Default header</p>\")\n}\nprint(\"\\n\")\n"}, {entry: "render", caption: "pick the first component that resolves", body: "var candidates := [\"/doc/examples/missing.capy\", \"/doc/examples/card.capy\"]\nfor candidate := candidates {\n    if component_exists(candidate) {\n        print(candidate, \"\\n\")\n    }\n}\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

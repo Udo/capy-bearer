@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "hmac_sha256"
+    page["kind"] = "api"
+    page["slug"] = "hmac-sha256"
+    page["route"] = "/doc/api/hmac-sha256/"
+    page["title"] = "hmac_sha256"
+    page["content"] = "`hmac_sha256()` returns a raw binary HMAC-SHA256 value. Use `hmac_sha256_hex()` when you need hexadecimal text.\n"
+    page["returns"] = "A raw 32-byte HMAC-SHA256 value."
+    page["label"] = "hmac_sha256"
+    page["capy_sig_lines"] = dval(["function hmac_sha256(key : string, value : string) string"])
+    page["param_lines"] = dval(["key : secret key bytes", "value : message bytes", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "hmac_sha256_hex", href: "/doc/api/hmac-sha256-hex/"}, {label: "sha256", href: "/doc/api/sha256/"}, {label: "crypto_equal", href: "/doc/api/crypto-equal/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(length(hmac_sha256(\"key\", \"message\")), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

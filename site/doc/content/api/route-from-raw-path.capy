@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "route_from_raw_path"
+    page["kind"] = "api"
+    page["slug"] = "route-from-raw-path"
+    page["route"] = "/doc/api/route-from-raw-path/"
+    page["title"] = "route_from_raw_path"
+    page["content"] = "Use `path` only below an application-controlled route root. It is empty when the route is unsafe.\n"
+    page["returns"] = "Route data with `path`, `page`, `raw_path`, and `valid`."
+    page["label"] = "route_from_raw_path"
+    page["capy_sig_lines"] = dval(["function route_from_raw_path(raw_path : string, default_path : string = \"index\") dval"])
+    page["param_lines"] = dval(["raw_path : route text to validate", "default_path : route for empty input", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var route := route_from_raw_path(\"docs/api\")\nprint(string(route.page, \"\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

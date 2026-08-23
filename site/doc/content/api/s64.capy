@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "s64"
+    page["kind"] = "api"
+    page["slug"] = "s64"
+    page["route"] = "/doc/api/s64/"
+    page["title"] = "s64"
+    page["content"] = "`s64()` converts supported scalar values and integer text. It returns `fallback` when conversion fails.\n"
+    page["returns"] = "A signed 64-bit integer, or `fallback`."
+    page["label"] = "s64"
+    page["capy_sig_lines"] = dval(["function s64(value : dval, fallback : s64 = 0) s64", "function s64(value : string, fallback : s64 = 0) s64"])
+    page["param_lines"] = dval(["value : value to convert", "fallback : value for a failed conversion", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(s64(\"64\", -1), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

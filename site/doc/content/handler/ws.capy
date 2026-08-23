@@ -1,0 +1,18 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "handler/ws"
+    page["kind"] = "handler"
+    page["slug"] = "ws"
+    page["route"] = "/doc/handler/ws/"
+    page["title"] = "WS"
+    page["content"] = "`WS` defines the WebSocket message handler.\n\nThe handler has one parameter named `request` with type `dval`. Read the message from `request.body`. Read connection data from `request.websocket`.\n\nUse `ws_send`, `ws_send_to`, or `ws_close` to affect the connection.\n"
+    page["label"] = "ws"
+    page["capy_sig_lines"] = dval(["function WS(request : dval)"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "request", href: "/doc/type/request/"}, {label: "render", href: "/doc/handler/render/"}])
+    page["examples"] = dval([{entry: "ws", caption: "", body: "ws_send(\"echo: \" + string(request.body, \"\"), false)\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

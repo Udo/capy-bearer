@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "set"
+    page["kind"] = "api"
+    page["slug"] = "set"
+    page["route"] = "/doc/api/set/"
+    page["title"] = "Set a named child"
+    page["content"] = "`set(dest, key, value)` stores `value` at `key`. It changes and returns `dest`.\n"
+    page["returns"] = "The changed target value."
+    page["label"] = "set"
+    page["capy_sig_lines"] = dval(["function set(dest : dval, key : string, value : as dval) dval"])
+    page["param_lines"] = dval(["dest : target value", "key : child key", "value : value to store", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "dvalue", href: "/doc/type/dvalue/"}, {label: "get", href: "/doc/api/get/"}, {label: "delete", href: "/doc/api/delete/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var user := dval({:})\nuser = set(user, \"name\", \"Ada\")\nprint(user.name, \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

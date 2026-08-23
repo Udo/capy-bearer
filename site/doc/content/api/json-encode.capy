@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "json_encode"
+    page["kind"] = "api"
+    page["slug"] = "json-encode"
+    page["route"] = "/doc/api/json-encode/"
+    page["title"] = "json_encode"
+    page["content"] = "`json_encode()` converts a string or `dval` value to JSON text. A `none` value becomes JSON `null`.\n"
+    page["returns"] = "JSON text."
+    page["label"] = "json_encode"
+    page["capy_sig_lines"] = dval(["function json_encode(value : dval) string", "function json_encode(value : string) string"])
+    page["param_lines"] = dval(["value : a string or `dval` value", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "json_decode", href: "/doc/api/json-decode/"}, {label: "html_escape", href: "/doc/api/html-escape/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(json_encode(dval({\"name\": \"Ada\", \"middle\": none})), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

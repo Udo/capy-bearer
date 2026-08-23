@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "values"
+    page["kind"] = "api"
+    page["slug"] = "values"
+    page["route"] = "/doc/api/values/"
+    page["title"] = "Get child values"
+    page["content"] = "`values(value)` returns a new list of child values. A scalar returns a one-item list.\n"
+    page["returns"] = "A list of copied child values."
+    page["label"] = "values"
+    page["capy_sig_lines"] = dval(["function values(value : dval) dval"])
+    page["param_lines"] = dval(["value : source value", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "dvalue", href: "/doc/type/dvalue/"}, {label: "keys", href: "/doc/api/keys/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var user := dval({\"name\": \"Ada\", \"role\": \"admin\"})\nvar result := values(user)\nprint(is_list(result), \" \", length(result), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

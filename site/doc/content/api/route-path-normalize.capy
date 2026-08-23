@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "route_path_normalize"
+    page["kind"] = "api"
+    page["slug"] = "route-path-normalize"
+    page["route"] = "/doc/api/route-path-normalize/"
+    page["title"] = "route_path_normalize"
+    page["content"] = "This function removes outer whitespace and leading and trailing slashes. It does not validate the result.\n"
+    page["returns"] = "Normalized route text."
+    page["label"] = "route_path_normalize"
+    page["capy_sig_lines"] = dval(["function route_path_normalize(path : string) string"])
+    page["param_lines"] = dval(["path : route text to normalize", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(route_path_normalize(\" /docs/api/ \"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

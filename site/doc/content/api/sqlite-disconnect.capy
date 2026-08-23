@@ -1,0 +1,18 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "sqlite_disconnect"
+    page["kind"] = "api"
+    page["slug"] = "sqlite-disconnect"
+    page["route"] = "/doc/api/sqlite-disconnect/"
+    page["title"] = "sqlite_disconnect"
+    page["content"] = "Use `sqlite_disconnect` to close an SQLite connection. Do not use the handle after this call.\n"
+    page["label"] = "sqlite_disconnect"
+    page["capy_sig_lines"] = dval(["function sqlite_disconnect(handle : u64)"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var db := sqlite_connect(\":memory:\")\nif db != 0 { sqlite_disconnect(db) }\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

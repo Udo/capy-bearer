@@ -1,0 +1,18 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "unit_render"
+    page["kind"] = "api"
+    page["slug"] = "unit-render"
+    page["route"] = "/doc/api/unit-render/"
+    page["title"] = "unit_render"
+    page["content"] = "`unit_render` runs a unit `RENDER` handler.\n"
+    page["label"] = "unit_render"
+    page["capy_sig_lines"] = dval(["function unit_render(name : string)"])
+    page["param_lines"] = dval(["name : unit path", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "unit_call", href: "/doc/api/unit-call/"}, {label: "unit_load", href: "/doc/api/unit-load/"}, {label: "render", href: "/doc/handler/render/"}, {label: "component", href: "/doc/api/component/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "unit_render(\"/tests/capy-cross-target.capy\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

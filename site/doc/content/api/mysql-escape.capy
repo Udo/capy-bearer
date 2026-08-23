@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "mysql_escape"
+    page["kind"] = "api"
+    page["slug"] = "mysql-escape"
+    page["route"] = "/doc/api/mysql-escape/"
+    page["title"] = "mysql_escape"
+    page["content"] = "`mysql_escape(raw)` escapes `raw` and wraps it in single quotes.\n\nUse the second form to set the wrapper. Pass an empty string when no wrapper is needed. Prefer named parameters with `mysql_query()`.\n"
+    page["returns"] = "the escaped string"
+    page["label"] = "mysql_escape"
+    page["capy_sig_lines"] = dval(["function mysql_escape(raw : string) string", "function mysql_escape(raw : string, quote : string) string"])
+    page["param_lines"] = dval(["raw : the string to escape", "quote : the string that wraps the result", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "mysql_query", href: "/doc/api/mysql-query/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(mysql_escape(\"O'Brien\", \"'\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

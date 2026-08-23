@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "html_escape"
+    page["kind"] = "api"
+    page["slug"] = "html-escape"
+    page["route"] = "/doc/api/html-escape/"
+    page["title"] = "html_escape"
+    page["content"] = "`html_escape()` escapes text for an HTML text position. It escapes ampersands, angle brackets, and double quotes.\n"
+    page["returns"] = "Text with HTML-sensitive characters replaced by entities."
+    page["label"] = "html_escape"
+    page["capy_sig_lines"] = dval(["function html_escape(value : string) string"])
+    page["param_lines"] = dval(["value : text to use in HTML", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "json_encode", href: "/doc/api/json-encode/"}, {label: "print", href: "/doc/api/print/"}, {label: "component", href: "/doc/api/component/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(html_escape(\"<b>Tom & Jerry</b>\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

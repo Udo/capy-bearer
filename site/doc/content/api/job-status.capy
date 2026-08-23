@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "job_status"
+    page["kind"] = "api"
+    page["slug"] = "job-status"
+    page["route"] = "/doc/api/job-status/"
+    page["title"] = "job_status"
+    page["content"] = "`job_status()` checks a job without waiting. The map can include `state`, `done`, `kind`, `pid`, and `job_id`.\n\nThe `state` value can be `pending`, `running`, `done`, `failed`, `cancelled`, or `missing`.\n"
+    page["returns"] = "A job status map."
+    page["label"] = "job_status"
+    page["capy_sig_lines"] = dval(["function job_status(job : dval) dval"])
+    page["param_lines"] = dval(["job : a job ID as `dval`", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "job_result", href: "/doc/api/job-result/"}, {label: "job_await", href: "/doc/api/job-await/"}, {label: "job_cancel", href: "/doc/api/job-cancel/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var job := shell_spawn(dval({\"cmd\": \"printf x\", \"timeout_ms\": 1000}))\njob_await(job, 3000)\nprint(job_status(job)[\"state\"], \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

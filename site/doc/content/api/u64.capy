@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "u64"
+    page["kind"] = "api"
+    page["slug"] = "u64"
+    page["route"] = "/doc/api/u64/"
+    page["title"] = "u64"
+    page["content"] = "`u64` converts a `dval` or `string` to `u64`.\n"
+    page["returns"] = "converted `u64`, or `fallback`"
+    page["label"] = "u64"
+    page["capy_sig_lines"] = dval(["function u64(value : dval, fallback : u64 = 0) u64", "function u64(value : string, fallback : u64 = 0) u64"])
+    page["param_lines"] = dval(["value : value to convert", "fallback : value to return if conversion fails", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "u64", href: "/doc/api/u64/"}, {label: "s64", href: "/doc/api/s64/"}, {label: "f64", href: "/doc/api/f64/"}, {label: "bool", href: "/doc/api/bool/"}, {label: "string", href: "/doc/api/string/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(u64(\"42\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "time_format_relative"
+    page["kind"] = "api"
+    page["slug"] = "time-format-relative"
+    page["route"] = "/doc/api/time-format-relative/"
+    page["title"] = "time_format_relative"
+    page["content"] = "`time_format_relative` formats a timestamp relative to the current time.\n"
+    page["returns"] = "formatted relative time"
+    page["label"] = "time_format_relative"
+    page["capy_sig_lines"] = dval(["function time_format_relative(timestamp : u64, very_recent : string = \"\", medium_seconds : u64 = 0, medium_recent : string = \"\", not_recent_seconds : u64 = 0, not_recent : string = \"\") string"])
+    page["param_lines"] = dval(["timestamp : Unix timestamp", "very_recent : text for very recent timestamps", "medium_seconds : very recent cutoff in seconds", "medium_recent : text after the very recent cutoff", "not_recent_seconds : medium recent cutoff in seconds", "not_recent : text after the medium recent cutoff", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "time", href: "/doc/api/time/"}, {label: "time_format_local", href: "/doc/api/time-format-local/"}, {label: "time_format_utc", href: "/doc/api/time-format-utc/"}, {label: "time_format_local", href: "/doc/api/time-format-local/"}, {label: "time_format_utc", href: "/doc/api/time-format-utc/"}, {label: "time", href: "/doc/api/time/"}, {label: "time_parse", href: "/doc/api/time-parse/"}, {label: "time_precise", href: "/doc/api/time-precise/"}, {label: "usleep", href: "/doc/api/usleep/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(time_format_relative(time()), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

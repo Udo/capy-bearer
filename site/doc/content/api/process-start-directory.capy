@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "process_start_directory"
+    page["kind"] = "api"
+    page["slug"] = "process-start-directory"
+    page["route"] = "/doc/api/process-start-directory/"
+    page["title"] = "process_start_directory"
+    page["content"] = "`process_start_directory()` returns the worker process start directory.\n\nThe value does not change when `cwd_set()` changes the current directory.\n"
+    page["returns"] = "the worker process start directory"
+    page["label"] = "process_start_directory"
+    page["capy_sig_lines"] = dval(["function process_start_directory() string"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "cwd_get", href: "/doc/api/cwd-get/"}, {label: "cwd_set", href: "/doc/api/cwd-set/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(process_start_directory(), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

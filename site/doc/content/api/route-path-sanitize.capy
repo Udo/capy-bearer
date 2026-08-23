@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "route_path_sanitize"
+    page["kind"] = "api"
+    page["slug"] = "route-path-sanitize"
+    page["route"] = "/doc/api/route-path-sanitize/"
+    page["title"] = "route_path_sanitize"
+    page["content"] = "The function normalizes the path. It uses `fallback` for empty input. It returns an empty string for unsafe input.\n"
+    page["returns"] = "A safe route, or an empty string."
+    page["label"] = "route_path_sanitize"
+    page["capy_sig_lines"] = dval(["function route_path_sanitize(path : string, fallback : string = \"index\") string"])
+    page["param_lines"] = dval(["path : route text to validate", "fallback : route for empty input", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(route_path_sanitize(\"../private\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

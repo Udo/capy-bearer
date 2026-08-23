@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "route_path_is_safe"
+    page["kind"] = "api"
+    page["slug"] = "route-path-is-safe"
+    page["route"] = "/doc/api/route-path-is-safe/"
+    page["title"] = "route_path_is_safe"
+    page["content"] = "A safe route has non-empty segments. Segments can contain ASCII letters, digits, `_`, and `-`.\n"
+    page["returns"] = "`true` if the path is safe."
+    page["label"] = "route_path_is_safe"
+    page["capy_sig_lines"] = dval(["function route_path_is_safe(path : string) bool"])
+    page["param_lines"] = dval(["path : route text to test", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(route_path_is_safe(\"docs/api\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

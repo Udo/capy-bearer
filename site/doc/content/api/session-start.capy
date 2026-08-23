@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "session_start"
+    page["kind"] = "api"
+    page["slug"] = "session-start"
+    page["route"] = "/doc/api/session-start/"
+    page["title"] = "session_start"
+    page["content"] = "`session_start()` restores the named session or creates one.\n"
+    page["returns"] = "The current session state."
+    page["label"] = "session_start"
+    page["capy_sig_lines"] = dval(["function session_start(name : string = \"bearer-session\") dval"])
+    page["param_lines"] = dval(["name : session cookie name", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var session := session_start(\"docs-session\")\nprint(string(session.id, \"\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "socket_connect"
+    page["kind"] = "api"
+    page["slug"] = "socket-connect"
+    page["route"] = "/doc/api/socket-connect/"
+    page["title"] = "socket_connect"
+    page["content"] = "Use `socket_connect` to open a socket to an IPv4 address and port. Pass a nonzero handle to the socket functions.\n"
+    page["returns"] = "Socket handle, or zero when the connection fails."
+    page["label"] = "socket_connect"
+    page["capy_sig_lines"] = dval(["function socket_connect(host : string, port : s32) u64"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var handle := socket_connect(\"127.0.0.1\", 80)\nprint(handle, \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "job_cancel"
+    page["kind"] = "api"
+    page["slug"] = "job-cancel"
+    page["route"] = "/doc/api/job-cancel/"
+    page["title"] = "job_cancel"
+    page["content"] = "`job_cancel()` requests cancellation of a job. A canceled job reports the `cancelled` state.\n"
+    page["returns"] = "`true` when the system cancels an active job. Otherwise, `false`."
+    page["label"] = "job_cancel"
+    page["capy_sig_lines"] = dval(["function job_cancel(job : dval) bool"])
+    page["param_lines"] = dval(["job : a job ID as `dval`", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "job_await", href: "/doc/api/job-await/"}, {label: "job_result", href: "/doc/api/job-result/"}, {label: "job_status", href: "/doc/api/job-status/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var job := shell_spawn(dval({\"cmd\": \"sleep 5\", \"timeout_ms\": 10000}))\nprint(job_cancel(job), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

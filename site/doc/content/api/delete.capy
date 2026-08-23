@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "delete"
+    page["kind"] = "api"
+    page["slug"] = "delete"
+    page["route"] = "/doc/api/delete/"
+    page["title"] = "Delete a child"
+    page["content"] = "`delete(value, key)` removes `key` from `value`. A missing key leaves the value unchanged.\n"
+    page["returns"] = "The changed target value."
+    page["label"] = "delete"
+    page["capy_sig_lines"] = dval(["function delete(value : dval, key : string) dval"])
+    page["param_lines"] = dval(["value : target value", "key : child key", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "dvalue", href: "/doc/type/dvalue/"}, {label: "has", href: "/doc/api/has/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var user := dval({\"name\": \"Ada\", \"role\": \"admin\"})\nuser = delete(user, \"role\")\nprint(has(user, \"role\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

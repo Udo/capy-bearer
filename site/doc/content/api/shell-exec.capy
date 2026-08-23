@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "shell_exec"
+    page["kind"] = "api"
+    page["slug"] = "shell-exec"
+    page["route"] = "/doc/api/shell-exec/"
+    page["title"] = "shell_exec"
+    page["content"] = "Use `shell_exec` to run a shell command and get its output. Escape external values with `shell_escape` before you add them to the command.\n"
+    page["returns"] = "Command output."
+    page["label"] = "shell_exec"
+    page["capy_sig_lines"] = dval(["function shell_exec(command : string) string"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "print(shell_exec(\"printf hello\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

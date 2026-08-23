@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "socket_read"
+    page["kind"] = "api"
+    page["slug"] = "socket-read"
+    page["route"] = "/doc/api/socket-read/"
+    page["title"] = "socket_read"
+    page["content"] = "Use `socket_read` to read data from a socket. It can return an empty string when no data is available.\n"
+    page["returns"] = "Data read from the socket."
+    page["label"] = "socket_read"
+    page["capy_sig_lines"] = dval(["function socket_read(handle : u64, max_length : s32 = 131072, timeout : s32 = 1) string"])
+    page["param_lines"] = dval([])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var handle := socket_connect(\"127.0.0.1\", 1)\nif handle != 0 { print(socket_read(handle, 64, 1), \"\\n\"); socket_close(handle) }\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

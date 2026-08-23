@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "file_symlink"
+    page["kind"] = "api"
+    page["slug"] = "file-symlink"
+    page["route"] = "/doc/api/file-symlink/"
+    page["title"] = "file_symlink"
+    page["content"] = "`file_symlink` creates a symbolic link at `linkpath` that points to `target`.\n"
+    page["returns"] = "`true` if Capy creates the link. Otherwise, `false`."
+    page["label"] = "file_symlink"
+    page["capy_sig_lines"] = dval(["function file_symlink(target : string, linkpath : string) bool"])
+    page["param_lines"] = dval(["target : path for the symbolic link", "linkpath : path of the new symbolic link", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([])
+    page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-symlink-target.txt\", \"data\")\nfile_unlink(\"/tmp/doc-symlink-link.txt\")\nif file_symlink(\"/tmp/doc-symlink-target.txt\", \"/tmp/doc-symlink-link.txt\") {\n    print(file_get_contents(\"/tmp/doc-symlink-link.txt\"), \"\\n\")\n}\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}

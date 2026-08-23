@@ -61,7 +61,7 @@ import sys
 from pathlib import Path
 
 root = Path.cwd()
-renderer = (root / "site/doc/components/page.capy").read_text()
+renderer = (root / "site/doc/components/doc_page.capy").read_text()
 if "function COMPONENT(request : dval)" not in renderer:
     raise SystemExit("Capy documentation renderer must declare request : dval")
 checker_path = root / "scripts/check_capy_doc_examples.py"

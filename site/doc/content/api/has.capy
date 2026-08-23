@@ -1,0 +1,19 @@
+function COMPONENT(request : dval) {
+    var page := dval({source_page: ""})
+    page["source_page"] = "has"
+    page["kind"] = "api"
+    page["slug"] = "has"
+    page["route"] = "/doc/api/has/"
+    page["title"] = "Test for a child"
+    page["content"] = "`has(value, key)` tests for a child without creating it. It returns `false` for a missing key or a scalar.\n"
+    page["returns"] = "`true` when the key exists."
+    page["label"] = "has"
+    page["capy_sig_lines"] = dval(["has(value : dval, key : string) bool"])
+    page["param_lines"] = dval(["value : value to test", "key : child key", ""])
+    page["notes"] = dval([])
+    page["warnings"] = dval([])
+    page["see"] = dval([{label: "dvalue", href: "/doc/type/dvalue/"}, {label: "get", href: "/doc/api/get/"}])
+    page["examples"] = dval([{entry: "render", caption: "", body: "var user := dval({\"name\": \"Ada\"})\nprint(has(user, \"name\"), \" \", has(user, \"age\"), \"\\n\")\n"}])
+    page["guide_examples"] = dval([])
+    component_render("/doc/components/doc_page.capy", page)
+}
