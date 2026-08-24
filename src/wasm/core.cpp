@@ -962,7 +962,7 @@ DValue* unit_call(String file_name, String function_name, DValue* call_param)
 	return(0);
 }
 
-static void component_render_with_props(String name, DValue& props, Request& request)
+static bool component_render_with_props(String name, DValue& props, Request& request)
 {
 	String file_name, render_name;
 	component_parse_target(trim(name), file_name, render_name);
@@ -974,7 +974,7 @@ static void component_render_with_props(String name, DValue& props, Request& req
 	{
 		request.set_status(500, "Internal Server Error");
 		print(component_error_banner(resolve_error != "" ? resolve_error : "component not found: " + trim(name)));
-		return;
+		return(false);
 	}
 	wasm_run_once(resolved, request);
 	RequestPropsScope props_scope(&request, props);
@@ -986,12 +986,13 @@ static void component_render_with_props(String name, DValue& props, Request& req
 	WasmRequestHandler handler_fn = (WasmRequestHandler)(uintptr_t)slot;
 	wasm_invoke_handler(handler_fn, request);
 	request.resources.current_unit_file = previous_unit;
+	return(true);
 }
 
-void component_render(String name, DValue props, Request& request) { component_render_with_props(name, props, request); }
-void component_render(String name) { DValue props; component_render_with_props(name, props, *context); }
-void component_render(String name, Request& request) { DValue props; component_render_with_props(name, props, request); }
-void component_render(String name, DValue props) { component_render_with_props(name, props, *context); }
+bool component_render(String name, DValue props, Request& request) { return(component_render_with_props(name, props, request)); }
+bool component_render(String name) { DValue props; return(component_render_with_props(name, props, *context)); }
+bool component_render(String name, Request& request) { DValue props; return(component_render_with_props(name, props, request)); }
+bool component_render(String name, DValue props) { return(component_render_with_props(name, props, *context)); }
 
 String component(String name, DValue props, Request& request)
 {
@@ -1784,9 +1785,9 @@ size_t bearer_component_resolve(const char* target, size_t target_len, char* out
 	return(bearer_copy_bytes(component_resolve(String(target ? target : "", target ? target_len : 0)), out, cap));
 }
 
-void bearer_component_render_bytes(const char* target, size_t target_len)
+s32 bearer_component_render_bytes(const char* target, size_t target_len)
 {
-	component_render(String(target ? target : "", target ? target_len : 0));
+	return(component_render(String(target ? target : "", target ? target_len : 0)));
 }
 
 s32 bearer_component_render_props_brrb(const char* target, size_t target_len, const char* props, size_t props_len)
@@ -1795,8 +1796,7 @@ s32 bearer_component_render_props_brrb(const char* target, size_t target_len, co
 	String error;
 	if(!props || !brb_decode(String(props, props_len), value, &error))
 		return(0);
-	component_render(String(target ? target : "", target ? target_len : 0), value);
-	return(1);
+	return(component_render(String(target ? target : "", target ? target_len : 0), value));
 }
 
 static size_t bearer_component_capture_impl(const char* target, size_t target_len, const char* props, size_t props_len, char* out, size_t cap)

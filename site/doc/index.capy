@@ -9,6 +9,17 @@ function render_not_found(request : dval) void {
     print("<html><body><h1>Page not found</h1></body></html>")
 }
 
+function render_doc_page(request : dval, path : string) void {
+    ob_start()
+    var rendered := component_render(path)
+    var page := ob_get_close()
+    if !rendered {
+        render_not_found(request)
+        return
+    }
+    print("<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></meta><title>Capy-Bearer Documentation</title><link rel=\"stylesheet\" href=\"/doc/style.css\"></link></head><body><h1><a href=\"/doc/\">Capy-Bearer Documentation</a></h1>", page, "</body></html>")
+}
+
 function RENDER(request : dval) {
     var pretty := string(request.query.pretty, "")
     if pretty != "" {
@@ -21,10 +32,8 @@ function RENDER(request : dval) {
         }
         if (kind == "api" || kind == "type" || kind == "handler" || kind == "guide") && slug != "" && strpos(slug, "/") < 0 && slug != "." && slug != ".." {
             var content_path := "/doc/content/" + kind + "/" + slug + ".capy"
-            if component_exists(content_path) {
-                render_shell("Capy-Bearer Documentation", content_path)
-                return
-            }
+            render_doc_page(request, content_path)
+            return
         }
         render_not_found(request)
         return

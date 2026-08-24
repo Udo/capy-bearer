@@ -71,7 +71,7 @@ host function __bearer_ws_send_to(connection_id : string, message : string, bina
 host function __bearer_ws_close(connection_id : string) bool
 host function __bearer_component_capture(name : string) string
 host function __bearer_component_capture_props_brrb(name : string, props : dval) string
-host function __bearer_component_render_bytes(name : string) void
+host function __bearer_component_render_bytes(name : string) bool
 host function __bearer_component_render_props_brrb(name : string, props : dval) bool
 host function __bearer_component_exists(name : string) bool
 host function __bearer_component_resolve(name : string) string
@@ -555,8 +555,8 @@ function ws_send(message : string, binary : bool, scope : string) bool { -> __be
 function ws_send_to(connection_id : string, message : string, binary : bool) bool { -> __bearer_ws_send_to(connection_id, message, binary) }
 function ws_close(connection_id : string = "") bool { -> __bearer_ws_close(connection_id) }
 
-function component_render(name : string) { __bearer_component_render_bytes(name) }
-function component_render(name : string, props : as dval) { __bearer_component_render_props_brrb(name, props) }
+function component_render(name : string) bool { -> __bearer_component_render_bytes(name) }
+function component_render(name : string, props : as dval) bool { -> __bearer_component_render_props_brrb(name, props) }
 function component_exists(name : string) bool { -> __bearer_component_exists(name) }
 function component_resolve(name : string) string { -> __bearer_component_resolve(name) }
 function unit_render(name : string) { __bearer_unit_render_bytes(name) }

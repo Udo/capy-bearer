@@ -46,6 +46,7 @@ operator_output=$(scripts/bearer-cli /tests/capy-operators.capy)
 }
 expect_equal "newline-independent expression parsing" "7|3|9" "$(scripts/bearer-cli /tests/capy-whitespace.capy)"
 expect_equal "condition constructors and dval bool extraction" "UuSsDdBbTTTTtttWC|true|false" "$(scripts/bearer-cli /tests/capy-condition-coercion.capy)"
+expect_equal "component render result" "rendered<div class=\"banner\">component not found: /tests/capy-component-render-missing.capy</div>|true|false" "$(scripts/bearer-cli /tests/capy-component-render-result.capy)"
 consistency_expected="1|-2|3|4.5|x|10.5|3|4|left|right|early|late|0"
 expect_equal "type aliases, value blocks, conditional values, and wide aggregates" \
 	"$consistency_expected" "$(scripts/bearer-cli /tests/capy-language-consistency.capy)"

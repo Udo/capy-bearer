@@ -400,6 +400,12 @@ int main()
 		"var task_id := task(\"/task\", 3.5); var output := component(\"/component\", false); component_render(\"/component\", \"props\"); "
 		"var loaded := unit_load(\"/unit\"); var called := loaded.call(\"echo\", 4); var direct := unit_call(\"/unit\", \"echo\", \"input\") }\n", options);
 	assert(capy::wasm::validate_bearer_unit(stdlib_converted_dvals.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto component_render_result = capy::compile_bearer_unit(
+		"function CLI(request : dval) { var plain := component_render(\"/component\"); var props := component_render(\"/component\", \"props\"); if plain && props {} component_render(\"/component\"); component_render(\"/component\", \"props\") }\n", options);
+	assert(capy::wasm::validate_bearer_unit(component_render_result.wasm, {.bearer_abi_version = "11"}).valid);
+	const std::string component_render_result_bytes(component_render_result.wasm.begin(), component_render_result.wasm.end());
+	assert(component_render_result_bytes.find("bearer_component_render_bytes") != std::string::npos);
+	assert(component_render_result_bytes.find("bearer_component_render_props_brrb") != std::string::npos);
 	const auto generic_before_dval = capy::compile_bearer_unit(
 		"function choose(value : any) string { -> \"generic\" }\nfunction choose(value : as dval) string { -> \"dval\" }\nfunction CLI(request : dval) { print(choose(1)) }\n", options);
 	const std::string generic_before_dval_bytes(generic_before_dval.wasm.begin(), generic_before_dval.wasm.end());

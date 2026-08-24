@@ -16,6 +16,7 @@ for index in "${!pages[@]}"; do
 done
 
 doc_base="${BEARER_TEST_HTTP_BASE:-http://127.0.0.1}/doc/"
+! grep -q 'component_exists' site/doc/index.capy || { echo "Documentation route probes before rendering" >&2; exit 1; }
 status() { curl -sS --max-time 60 -o /dev/null -w '%{http_code}' -H "Host: $host" "$1"; }
 for path in api/zzzznotreal/ api/component-2/ api/string-2/ '?''p=0''_String'; do
     [[ "$(status "$doc_base$path")" == 404 ]] || { echo "Old or unknown documentation URL did not return 404: $path" >&2; exit 1; }

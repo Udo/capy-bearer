@@ -1,13 +1,13 @@
 :sig
-function component_render(name : string)
-function component_render(name : string, props : as dval)
+function component_render(name : string) bool
+function component_render(name : string, props : as dval) bool
 
 :params
 name : a component path, optionally followed by `:HANDLER`
 props : optional input, readable inside the component as `request.props`
 
 :content
-`component_render()` renders a component and writes its output straight into the current response. It returns nothing.
+`component_render()` renders a component and writes its output straight into the current response. It returns true when it renders the component. It returns false when it cannot resolve the component.
 
 This is the form to reach for in page layouts. `component()` opens a capture buffer, collects everything the component prints, and hands you a string; `component_render()` skips that buffer entirely. When you are only going to print the result anyway, `component_render("card")` does less work than `print(component("card"))`.
 
@@ -16,7 +16,7 @@ Use a capturing call instead when you need the output as a value — to measure 
 Name resolution, `:HANDLER` suffixes, props scoping, and `ONCE` behaviour are identical to `component()`; that page documents the rules in full.
 
 :errors
-An unresolvable component does not raise an error. Bearer sets the response status to `500` and writes a banner element describing the failure into the response in place of the component output. Rendering continues. Call `component_exists()` first when a missing component should be skipped silently.
+An unresolvable component does not raise an error. Bearer sets the response status to `500`, writes a banner element describing the failure, and returns false. Rendering continues.
 
 :example capy render
 component_render("/doc/examples/card.capy:CARD", {title: "Release notes"})

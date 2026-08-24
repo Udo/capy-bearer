@@ -1765,27 +1765,28 @@ String component_error_banner(String message)
 	return("<div class=\"banner\">" + html_escape(message) + "</div>");
 }
 
-void component_render(String name)
+bool component_render(String name)
 {
 	DValue props;
-	component_render(name, props, *context);
+	return(component_render(name, props, *context));
 }
 
-void component_render(String name, Request& context)
+bool component_render(String name, Request& context)
 {
 	DValue props;
-	component_render(name, props, context);
+	return(component_render(name, props, context));
 }
 
-void component_render(String name, DValue props)
+bool component_render(String name, DValue props)
 {
-	component_render(name, props, *context);
+	return(component_render(name, props, *context));
 }
 
-void component_render(String name, DValue props, Request& context)
+bool component_render(String name, DValue props, Request& context)
 {
 	(void)props; (void)context;
 	print(component_error_banner("native component_render() is unavailable; components must render through the wasm backend: " + trim(name)));
+	return(false);
 }
 
 String component(String name)
