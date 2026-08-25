@@ -1,18 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "unit_render"
-    page["kind"] = "api"
-    page["slug"] = "unit-render"
-    page["route"] = "/doc/api/unit-render/"
-    page["title"] = "unit_render"
-    page["content"] = "`unit_render` runs a unit `RENDER` handler.\n"
-    page["label"] = "unit_render"
-    page["capy_sig_lines"] = dval(["function unit_render(name : string)"])
-    page["param_lines"] = dval(["name : unit path", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "unit_call", href: "/doc/api/unit-call/"}, {label: "unit_load", href: "/doc/api/unit-load/"}, {label: "render", href: "/doc/handler/render/"}, {label: "component", href: "/doc/api/component/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "unit_render(\"/tests/capy-cross-target.capy\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>unit_render</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function unit_render(name : string)</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>unit_render</code> runs a unit <code>RENDER</code> handler.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>name : unit path</p></div><div></div></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">unit_render(&quot;/tests/capy-cross-target.capy&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/unit-call/\">unit_call</a><a class=\"related-link\" href=\"/doc/api/unit-load/\">unit_load</a><a class=\"related-link\" href=\"/doc/handler/render/\">render</a><a class=\"related-link\" href=\"/doc/api/component/\">component</a></aside></div>")
 }

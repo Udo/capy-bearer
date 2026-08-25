@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "file_put_contents"
-    page["kind"] = "api"
-    page["slug"] = "file-put-contents"
-    page["route"] = "/doc/api/file-put-contents/"
-    page["title"] = "file_put_contents"
-    page["content"] = "`file_put_contents` writes a complete string to a file. It creates or replaces a small file.\n"
-    page["returns"] = "`true` when Capy writes the file. Otherwise, it returns `false`."
-    page["label"] = "file_put_contents"
-    page["capy_sig_lines"] = dval(["function file_put_contents(path : string, content : string) bool"])
-    page["param_lines"] = dval(["path : path of the file to write", "content : text that replaces the file content", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "file_get_contents", href: "/doc/api/file-get-contents/"}, {label: "file_append", href: "/doc/api/file-append/"}, {label: "file_open", href: "/doc/api/file-open/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-put.txt\", \"first\")\nfile_put_contents(\"/tmp/doc-put.txt\", \"second\")\nprint(file_get_contents(\"/tmp/doc-put.txt\"), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>file_put_contents</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function file_put_contents(path : string, content : string) bool</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>file_put_contents</code> writes a complete string to a file. It creates or replaces a small file.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>path : path of the file to write</p></div><div><p>content : text that replaces the file content</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p><code>true</code> when Capy writes the file. Otherwise, it returns <code>false</code>.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">file_put_contents(&quot;/tmp/doc-put.txt&quot;, &quot;first&quot;)\nfile_put_contents(&quot;/tmp/doc-put.txt&quot;, &quot;second&quot;)\nprint(file_get_contents(&quot;/tmp/doc-put.txt&quot;), &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/file-get-contents/\">file_get_contents</a><a class=\"related-link\" href=\"/doc/api/file-append/\">file_append</a><a class=\"related-link\" href=\"/doc/api/file-open/\">file_open</a></aside></div>")
 }

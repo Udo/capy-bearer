@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "time_precise"
-    page["kind"] = "api"
-    page["slug"] = "time-precise"
-    page["route"] = "/doc/api/time-precise/"
-    page["title"] = "time_precise"
-    page["content"] = "`time_precise` returns the current Unix timestamp with fractional seconds.\n"
-    page["returns"] = "current Unix timestamp with fractional seconds"
-    page["label"] = "time_precise"
-    page["capy_sig_lines"] = dval(["function time_precise() f64"])
-    page["param_lines"] = dval([])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "time", href: "/doc/api/time/"}, {label: "usleep", href: "/doc/api/usleep/"}, {label: "time", href: "/doc/api/time/"}, {label: "time_format_local", href: "/doc/api/time-format-local/"}, {label: "time_format_relative", href: "/doc/api/time-format-relative/"}, {label: "time_format_utc", href: "/doc/api/time-format-utc/"}, {label: "time_parse", href: "/doc/api/time-parse/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "print(time_precise(), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>time_precise</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function time_precise() f64</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>time_precise</code> returns the current Unix timestamp with fractional seconds.</p></div><div class=\"doc-section\"><h3>Return Values</h3><p>current Unix timestamp with fractional seconds</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">print(time_precise(), &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/time/\">time</a><a class=\"related-link\" href=\"/doc/api/usleep/\">usleep</a><a class=\"related-link\" href=\"/doc/api/time/\">time</a><a class=\"related-link\" href=\"/doc/api/time-format-local/\">time_format_local</a><a class=\"related-link\" href=\"/doc/api/time-format-relative/\">time_format_relative</a><a class=\"related-link\" href=\"/doc/api/time-format-utc/\">time_format_utc</a><a class=\"related-link\" href=\"/doc/api/time-parse/\">time_parse</a></aside></div>")
 }

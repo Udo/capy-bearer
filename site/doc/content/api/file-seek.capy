@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "file_seek"
-    page["kind"] = "api"
-    page["slug"] = "file-seek"
-    page["route"] = "/doc/api/file-seek/"
-    page["title"] = "file_seek"
-    page["content"] = "`file_seek` sets the position for file reads and writes.\n"
-    page["returns"] = "The new byte offset. Returns `-1` on error."
-    page["label"] = "file_seek"
-    page["capy_sig_lines"] = dval(["function file_seek(handle : u64, offset : s64, whence : s64) s64"])
-    page["param_lines"] = dval(["handle : handle from `file_open`", "offset : byte offset", "whence : `0` for the start, `1` for the current position, or `2` for the end", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var handle := file_open(\"/tmp/doc-seek.txt\", \"w\")\nfile_write(handle, \"hello world\")\nfile_close(handle)\nhandle = file_open(\"/tmp/doc-seek.txt\", \"r\")\nfile_seek(handle, s64(6), s64(0))\nprint(file_read(handle, u64(5)), \"\\n\")\nfile_close(handle)\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>file_seek</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function file_seek(handle : u64, offset : s64, whence : s64) s64</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>file_seek</code> sets the position for file reads and writes.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>handle : handle from <code>file_open</code></p></div><div><p>offset : byte offset</p></div><div><p>whence : <code>0</code> for the start, <code>1</code> for the current position, or <code>2</code> for the end</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>The new byte offset. Returns <code>-1</code> on error.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var handle := file_open(&quot;/tmp/doc-seek.txt&quot;, &quot;w&quot;)\nfile_write(handle, &quot;hello world&quot;)\nfile_close(handle)\nhandle = file_open(&quot;/tmp/doc-seek.txt&quot;, &quot;r&quot;)\nfile_seek(handle, s64(6), s64(0))\nprint(file_read(handle, u64(5)), &quot;\\n&quot;)\nfile_close(handle)\n</pre></div></div></main></div>")
 }

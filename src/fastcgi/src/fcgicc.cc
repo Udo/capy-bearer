@@ -35,6 +35,7 @@
 #include "fcgicc.h"
 
 #include <atomic>
+#include <chrono>
 #include <cstring>
 #include <limits>
 #include <stdexcept>
@@ -423,9 +424,12 @@ FastCGIServer::listen(const std::string& local_path)
 int
 FastCGIServer::send_output_buffer(Connection& con)
 {
+	auto write_started = con.native_verbose ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point();
 	int write_result = write(con.client_socket,
 		con.output_buffer.data(),
 		con.output_buffer.size());
+	if(con.native_verbose)
+		con.native_socket_write_us += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - write_started).count();
 	if(write_result == -1)
 	{
 		if(errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
@@ -435,6 +439,21 @@ FastCGIServer::send_output_buffer(Connection& con)
 		throw std::runtime_error("write() failed");
 	}
 	con.output_buffer.erase(0, write_result);
+	if(con.native_verbose && con.output_buffer.empty() && con.native_request_uri != "")
+	{
+		const char* transport = con.type == 'H' ? "http" :
+			con.type == 'C' ? "cli" : con.type == 'F' ? "fastcgi" : "unknown";
+		printf("(r) native-transport\t%s\tassemble:%lluus\tfastcgi-frame:%lluus\tsocket-write:%lluus\ttransport:%s\n",
+			con.native_request_uri.c_str(),
+			(unsigned long long)con.native_response_assembly_us,
+			(unsigned long long)con.native_fastcgi_framing_us,
+			(unsigned long long)con.native_socket_write_us,
+			transport);
+		con.native_response_assembly_us = 0;
+		con.native_fastcgi_framing_us = 0;
+		con.native_socket_write_us = 0;
+		con.native_request_uri = "";
+	}
 	return write_result;
 }
 
@@ -470,6 +489,7 @@ FastCGIServer::open_client_connection(int server_socket, int client_socket)
 	connection->client_socket = client_socket;
 	connection->server_socket = server_socket;
 	connection->type = server_socket_types[server_socket];
+	connection->native_verbose = to_bool(server_state.config["WASM_BACKEND_VERBOSE"], false);
 	connection->opened_at = time_precise();
 	connection->last_activity_at = connection->opened_at;
 	client_sockets[client_socket] = connection;
@@ -1388,6 +1408,9 @@ FastCGIServer::read_fgci(Connection& connection)
 void
 FastCGIServer::assemble_output_buffer(FastCGIRequest& request, Connection* connection)
 {
+	bool native_verbose = connection ? connection->native_verbose :
+		request.server && to_bool(request.server->config["WASM_BACKEND_VERBOSE"], false);
+	auto assembly_started = native_verbose ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point();
 	request.out =
 		http_status_line_clean(request.response_code)+"\r\n"+
 		render_header_map(request.header) +
@@ -1399,7 +1422,7 @@ FastCGIServer::assemble_output_buffer(FastCGIRequest& request, Connection* conne
 	{
 		if(!response_too_large)
 		{
-			std::string buffered = obs->str();
+			std::string buffered = std::move(*obs).str();
 			u64 remaining = transport_limits().max_response_bytes - request.out.length();
 			if(buffered.length() <= remaining)
 				request.out += buffered;
@@ -1417,6 +1440,8 @@ FastCGIServer::assemble_output_buffer(FastCGIRequest& request, Connection* conne
 	}
 	request.ob_stack.clear();
 	request.flags.output_closed = true;
+	if(native_verbose)
+		request.stats.native_response_assembly_us += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - assembly_started).count();
 	request.stats.time_end = time_precise();
 	if(request.flags.log_request)
 	{
@@ -1426,7 +1451,8 @@ FastCGIServer::assemble_output_buffer(FastCGIRequest& request, Connection* conne
 		auto elapsed_us = [&](f64 from, f64 to) -> f64 {
 			return(from > 0 && to >= from ? (to - from) * 1000000.0 : 0.0);
 		};
-		printf("(r) pid:%i\t%s\t%0.6fs\tfps:%0.0f\tout:%0.1fkB\tmem:%0.0f/%0.0fkB\twasm-ready:%0.3fms\twasm:%0.3fms\tworkspace:%0.3fms\tinvoke:%0.3fms\tcollect:%0.3fms\tpost:%0.3fms\ttransport:%s\n",
+		String native_measurement = native_verbose ? "\tnative-assemble:" + std::to_string(request.stats.native_response_assembly_us) + "us" : "";
+		printf("(r) pid:%i\t%s\t%0.6fs\tfps:%0.0f\tout:%0.1fkB\tmem:%0.0f/%0.0fkB\twasm-ready:%0.3fms\twasm:%0.3fms\tworkspace:%0.3fms\tinvoke:%0.3fms\tcollect:%0.3fms\tpost:%0.3fms%s\ttransport:%s\n",
 			my_pid,
 			request.params["REQUEST_URI"].c_str(),
 			request.stats.time_end - request.stats.time_start,
@@ -1440,15 +1466,19 @@ FastCGIServer::assemble_output_buffer(FastCGIRequest& request, Connection* conne
 			(f64)request.stats.wasm_entry_invoke_us / 1000.0,
 			(f64)request.stats.wasm_output_collect_us / 1000.0,
 			elapsed_us(request.stats.wasm_backend_finished, request.stats.time_end) / 1000.0,
+			native_measurement.c_str(),
 			transport
 		);
 	}
 
 	if(connection)
 	{
-		connection->output_buffer.clear();
-		connection->output_buffer.append(request.out);
-		request.out.clear();
+		connection->output_buffer = std::move(request.out);
+		if(native_verbose)
+		{
+			connection->native_response_assembly_us += request.stats.native_response_assembly_us;
+			connection->native_request_uri = request.params["REQUEST_URI"];
+		}
 	}
 
 }
@@ -1457,6 +1487,7 @@ void
 FastCGIServer::request_write_fgci(Connection& connection, RequestID id,
 												FastCGIRequest& request)
 {
+	auto framing_started = connection.native_verbose ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point();
 	auto queue_data = [&](std::string& data, unsigned char type) {
 		size_t encoded_size = fastcgi_data_record_bytes(data.size());
 		if(!fastcgi_output_fits(connection, encoded_size))
@@ -1502,6 +1533,14 @@ FastCGIServer::request_write_fgci(Connection& connection, RequestID id,
 
 
 		//printf("- output done\n");
+	}
+	if(connection.native_verbose && request.flags.output_closed && !request.stats.native_transport_recorded)
+	{
+		request.stats.native_fastcgi_framing_us = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - framing_started).count();
+		request.stats.native_transport_recorded = true;
+		connection.native_response_assembly_us += request.stats.native_response_assembly_us;
+		connection.native_fastcgi_framing_us += request.stats.native_fastcgi_framing_us;
+		connection.native_request_uri = request.params["REQUEST_URI"];
 	}
 	//switch_to_system_alloc();
 }

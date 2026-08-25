@@ -113,9 +113,11 @@ String to_String(DValue t);
 String var_dump(const DValue& map, String prefix = "", String postfix = "\n");
 
 String brb_encode(const DValue& value);
+String brb_encode_local(const DValue& value);
 String brb_encode_flat_string_map(const StringMap& value);
 DValue brb_decode(const String& encoded);
 bool brb_decode(const String& encoded, DValue& out, String* error_out = 0);
+bool brb_decode_local(const String& encoded, DValue& out, String* error_out = 0);
 
 extern "C" {
 

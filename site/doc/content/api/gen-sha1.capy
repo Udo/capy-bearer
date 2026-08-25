@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "gen_sha1"
-    page["kind"] = "api"
-    page["slug"] = "gen-sha1"
-    page["route"] = "/doc/api/gen-sha1/"
-    page["title"] = "gen_sha1"
-    page["content"] = "`gen_sha1()` returns the SHA-1 digest of a string.\n\nIt returns hexadecimal text by default. Set `as_binary` to `true` for raw digest bytes.\n\nUse it only for SHA-1 compatibility.\n"
-    page["returns"] = "A SHA-1 digest string."
-    page["label"] = "gen_sha1"
-    page["capy_sig_lines"] = dval(["function gen_sha1(value : string, as_binary : bool = false) string"])
-    page["param_lines"] = dval(["value : bytes to hash", "as_binary : `false` for hexadecimal text, `true` for raw digest bytes", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "sha256", href: "/doc/api/sha256/"}, {label: "sha256_hex", href: "/doc/api/sha256-hex/"}, {label: "hmac_sha256", href: "/doc/api/hmac-sha256/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var digest := gen_sha1(\"abc\")\nprint(digest, \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>gen_sha1</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function gen_sha1(value : string, as_binary : bool = false) string</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>gen_sha1()</code> returns the SHA-1 digest of a string.</p><p>It returns hexadecimal text by default. Set <code>as_binary</code> to <code>true</code> for raw digest bytes.</p><p>Use it only for SHA-1 compatibility.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>value : bytes to hash</p></div><div><p>as_binary : <code>false</code> for hexadecimal text, <code>true</code> for raw digest bytes</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>A SHA-1 digest string.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var digest := gen_sha1(&quot;abc&quot;)\nprint(digest, &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/sha256/\">sha256</a><a class=\"related-link\" href=\"/doc/api/sha256-hex/\">sha256_hex</a><a class=\"related-link\" href=\"/doc/api/hmac-sha256/\">hmac_sha256</a></aside></div>")
 }

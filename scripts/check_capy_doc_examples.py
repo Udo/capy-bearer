@@ -124,8 +124,22 @@ def generated_capy_signatures(path: Path) -> dict[str, list[str]]:
     return pages
 
 
+def page_paths(pages: Path) -> dict[str, Path]:
+    if not (pages / "api").is_dir():
+        return {path.relative_to(pages).with_suffix("").as_posix(): path for path in pages.rglob("*.txt")}
+    paths = {}
+    for directory in pages.iterdir():
+        if not directory.is_dir() or directory.name == "guide":
+            continue
+        for path in directory.glob("*.txt"):
+            name = path.stem if directory.name == "api" else f"{directory.name}/{path.stem}"
+            paths[name] = path
+    return paths
+
+
 def page_names(pages: Path) -> set[str]:
-    return {path.relative_to(pages).with_suffix("").as_posix() for path in pages.rglob("*.txt")}
+    return set(page_paths(pages))
+
 
 def check(pages: Path, manifest: Path, signatures: Path) -> list[str]:
     try:
@@ -134,10 +148,11 @@ def check(pages: Path, manifest: Path, signatures: Path) -> list[str]:
         return [f"manifest: {error}"]
     actual = page_names(pages)
     errors = [f"page set: manifest page missing from docs: {name}" for name in sorted(set(statuses) - actual) if statuses[name] != "legacy"]
-    for name in sorted(actual & set(statuses)):
-        page = pages / f"{name}.txt"
-        errors.extend(check_page(page, statuses[name]))
-        if ":sig\n" not in page.read_text():
+    paths = page_paths(pages)
+    for name in sorted(actual):
+        page = paths[name]
+        errors.extend(check_page(page, statuses.get(name, "documented")))
+        if name in statuses and ":sig\n" not in page.read_text():
             errors.append(f"{page.name}: missing Capy :sig declaration")
     try:
         generated = generated_capy_signatures(signatures)
@@ -145,10 +160,12 @@ def check(pages: Path, manifest: Path, signatures: Path) -> list[str]:
         errors.append(f"Capy signatures: {error}")
         generated = {}
     required = {name for name, status in statuses.items() if status == "supported"}
+    api_pages = {name for name, page in paths.items() if page.parent.name == "api"}
+    errors += [f"Capy signatures: API page has no public Capy declaration: {name}" for name in sorted(api_pages - set(generated))]
     errors += [f"Capy signatures: supported page has no generated declaration: {name}" for name in sorted(required - set(generated))]
     errors += [f"Capy signatures: stale or unsupported generated page: {name}" for name in sorted(set(generated) - required)]
     for name in sorted(required & set(generated)):
-        sections = parse_sections(pages / f"{name}.txt")
+        sections = parse_sections(paths[name])
         source = next((body.splitlines() for _line, header, body in sections if header == "sig"), [])
         if source != generated[name]:
             errors.append(f"{name}.txt: :sig does not match generated Capy signatures")
@@ -268,9 +285,9 @@ def self_test() -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pages", type=Path, default=ROOT / "site/doc/pages")
+    parser.add_argument("--pages", type=Path, default=ROOT / "site/doc/source")
     parser.add_argument("--manifest", type=Path, default=ROOT / "src/capy/parity_manifest.h")
-    parser.add_argument("--guides", type=Path, default=ROOT / "site/doc/capy")
+    parser.add_argument("--guides", type=Path, default=ROOT / "site/doc/source/guide")
     parser.add_argument("--signatures", type=Path, default=ROOT / "site/doc/lib/capy_signatures.generated.h")
     parser.add_argument("--allow-incomplete", action="store_true")
     parser.add_argument("--self-test", action="store_true")

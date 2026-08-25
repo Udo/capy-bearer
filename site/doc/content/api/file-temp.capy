@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "file_temp"
-    page["kind"] = "api"
-    page["slug"] = "file-temp"
-    page["route"] = "/doc/api/file-temp/"
-    page["title"] = "file_temp"
-    page["content"] = "`file_temp` creates an empty file with a unique suffix.\n"
-    page["returns"] = "The new empty file path. Returns `\"\"` on failure."
-    page["label"] = "file_temp"
-    page["capy_sig_lines"] = dval(["function file_temp(prefix : string) string"])
-    page["param_lines"] = dval(["prefix : path prefix for the temporary file", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var path := file_temp(\"/tmp/doc-temp-\")\nif path != \"\" {\n    file_put_contents(path, \"scratch\")\n    print(file_get_contents(path), \"\\n\")\n    file_unlink(path)\n}\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>file_temp</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function file_temp(prefix : string) string</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>file_temp</code> creates an empty file with a unique suffix.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>prefix : path prefix for the temporary file</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>The new empty file path. Returns <code>&quot;&quot;</code> on failure.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var path := file_temp(&quot;/tmp/doc-temp-&quot;)\nif path != &quot;&quot; {\n    file_put_contents(path, &quot;scratch&quot;)\n    print(file_get_contents(path), &quot;\\n&quot;)\n    file_unlink(path)\n}\n</pre></div></div></main></div>")
 }

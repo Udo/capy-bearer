@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "memcache_command"
-    page["kind"] = "api"
-    page["slug"] = "memcache-command"
-    page["route"] = "/doc/api/memcache-command/"
-    page["title"] = "memcache_command"
-    page["content"] = "`memcache_command()` sends `command` to the server and returns one bounded response read.\n\nUse a dedicated Memcache function when one is available. This function does not guarantee a complete multi-part response.\n"
-    page["returns"] = "one server response read"
-    page["label"] = "memcache_command"
-    page["capy_sig_lines"] = dval(["function memcache_command(connection : u64, command : string) string"])
-    page["param_lines"] = dval(["connection : the connection handle", "command : the Memcache command text", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "memcache_connect", href: "/doc/api/memcache-connect/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var connection := memcache_connect()\nif connection != u64(0) { print(memcache_command(connection, \"version\"), \"\\n\") }\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>memcache_command</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function memcache_command(connection : u64, command : string) string</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>memcache_command()</code> sends <code>command</code> to the server and returns one bounded response read.</p><p>Use a dedicated Memcache function when one is available. This function does not guarantee a complete multi-part response.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>connection : the connection handle</p></div><div><p>command : the Memcache command text</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>one server response read</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var connection := memcache_connect()\nif connection != u64(0) { print(memcache_command(connection, &quot;version&quot;), &quot;\\n&quot;) }\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/memcache-connect/\">memcache_connect</a></aside></div>")
 }

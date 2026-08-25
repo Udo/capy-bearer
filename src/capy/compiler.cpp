@@ -238,7 +238,7 @@ bool is_scalar(const std::string& type)
 bool can_convert(const std::string& source, const std::string& target)
 {
 	return source == target || (is_scalar(source) && is_scalar(target)) || (is_scalar(source) && target == "string") ||
-		(source == "markup" && target == "string") || (source == "dval" && (is_scalar(target) || target == "string"));
+		(source == "markup" && target == "string") || (source == "dval" && (is_scalar(target) || target == "string" || target.rfind("function#", 0) == 0));
 }
 
 bool primitive_constructor_name(const std::string& name)
@@ -685,6 +685,7 @@ struct FunctionLowerer
 	std::pair<Bytes, std::string> dval_presence(Expr* value);
 	std::pair<Bytes, std::string> dval_set_path(unsigned root, const std::vector<Expr*>& selectors, Expr* replacement, const Location& location);
 	Bytes dval_replace(unsigned target, unsigned replacement, const Location& location, bool replacement_owned);
+	void retain_dval_callables(Bytes& code, unsigned value, const Location& location);
 	std::pair<Bytes, std::string> array_method(Call* call, const Member* member);
 	Bytes array_ensure_capacity(unsigned slot, const std::string& array_type, unsigned required, const Location& location, const Bytes& failure_cleanup = {});
 	std::pair<Bytes, unsigned> allocate_array(const std::string& array_type, unsigned length, const Location& location, const Bytes& failure_cleanup = {});
@@ -740,12 +741,12 @@ struct Module
 		data_.insert(data_.end(), text.begin(), text.end());
 		return offset;
 	}
-	unsigned add_static_closure(unsigned slot)
+	unsigned add_static_closure(unsigned slot, unsigned function_type)
 	{
 		while (data_.size() % 8)
 			data_.push_back(0);
 		const unsigned offset = static_cast<unsigned>(data_.size());
-		const std::uint32_t header[] = {0xffffffffu, 0xffffffffu, 0x3fffffffu, 20u, slot};
+		const std::uint32_t header[] = {0xffffffffu, 0xffffffffu, 0x3fffffffu, 24u, slot, function_type};
 		for (std::uint32_t value : header)
 			for (unsigned byte = 0; byte != 4; ++byte)
 				data_.push_back(static_cast<std::uint8_t>(value >> (8 * byte)));
@@ -2213,7 +2214,7 @@ std::string FunctionLowerer::infer(Expr* value)
 			if (dynamic_cast<MapLiteral*>(call->arguments[0]) || dynamic_cast<ArrayLiteral*>(call->arguments[0]))
 				return "dval";
 			const std::string argument = infer(call->arguments[0]);
-			if (argument != "string" && argument != "s32" && argument != "s64" && argument != "u64" && argument != "f64" && argument != "bool" && argument != "dval")
+			if (argument != "string" && argument != "s32" && argument != "s64" && argument != "u64" && argument != "f64" && argument != "bool" && argument != "dval" && !argument.starts_with("function#"))
 				throw Error(call->arguments[0]->location, "cannot construct dval from " + argument);
 			return "dval";
 		}
@@ -2325,7 +2326,7 @@ std::string FunctionLowerer::infer(Expr* value)
 				? infer_integer(static_cast<Integer*>(binary->right), target_type) : infer(binary->right);
 			if (target_type == "dval")
 			{
-				if (actual != "dval" && actual != "string" && actual != "s32" && actual != "s64" && actual != "u64" && actual != "f64" && actual != "bool")
+				if (actual != "dval" && actual != "string" && actual != "s32" && actual != "s64" && actual != "u64" && actual != "f64" && actual != "bool" && !actual.starts_with("function#"))
 					throw Error(binary->right->location, "cannot construct dval from " + actual);
 				return "dval";
 			}
@@ -2703,6 +2704,24 @@ std::pair<Bytes, unsigned> FunctionLowerer::allocate_dval(unsigned length, const
 	return {std::move(code), handle};
 }
 
+void FunctionLowerer::retain_dval_callables(Bytes& code, unsigned value, const Location& location)
+{
+	if (!module_.runtime_imports_.contains("bearer_dv_callable_at_brrb"))
+		return;
+	const unsigned ordinal = add_local("", "s32", location), closure = add_local("", "function#0", location);
+	code.insert(code.end(), {0x41, 0x00, 0x21}); wasm::append_uleb(code, ordinal);
+	code.insert(code.end(), {0x02, 0x40, 0x03, 0x40});
+	managed_payload_span(code, value, "dval");
+	code.push_back(0x20); wasm::append_uleb(code, ordinal);
+	code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_dv_callable_at_brrb"));
+	code.push_back(0x22); wasm::append_uleb(code, closure);
+	code.insert(code.end(), {0x45, 0x0d, 0x01, 0x20}); wasm::append_uleb(code, closure);
+	code.push_back(0x10); wasm::append_uleb(code, module_.retain_index());
+	code.push_back(0x20); wasm::append_uleb(code, ordinal);
+	code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21}); wasm::append_uleb(code, ordinal);
+	code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b});
+}
+
 std::pair<Bytes, unsigned> FunctionLowerer::allocate_blob(const std::string& type, unsigned type_id, unsigned length, const Location& location, const Bytes& failure_cleanup)
 {
 	if (type == "dval")
@@ -2846,6 +2865,7 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_lookup(Expr* value, Expr* ke
 	if (expression_is_owned(key)) { code.push_back(0x20); wasm::append_uleb(code, key_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
 	if (expression_is_owned(value)) { code.push_back(0x20); wasm::append_uleb(code, object); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
 	append(code, module_.marker(key->location)); code.insert(code.end(), {0x00, 0x0b});
+	retain_dval_callables(code, pointer, key->location);
 	if (expression_is_owned(key))
 	{
 		code.push_back(0x20);
@@ -3016,6 +3036,7 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_set_path(unsigned root, cons
 	code.push_back(0x20); wasm::append_uleb(code, snapshot); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
 	append(code, module_.marker(location));
 	code.insert(code.end(), {0x00, 0x0b});
+	retain_dval_callables(code, result, location);
 	code.push_back(0x20); wasm::append_uleb(code, path_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
 	if (replacement_owned) { code.push_back(0x20); wasm::append_uleb(code, replacement_local); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
 	append(code, dval_replace(snapshot, result, location, true));
@@ -3029,7 +3050,29 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 		const std::string type = infer(value);
 		if (type == "dval")
 			return expression(value);
+		auto callable_value = [&](Bytes source, const std::string& actual) {
+			const unsigned function_type = static_cast<unsigned>(std::stoul(actual.substr(9)));
+			const unsigned closure = add_local("", actual, value->location), length = add_local("", "s32", value->location);
+			Bytes code = std::move(source);
+			code.push_back(0x21); wasm::append_uleb(code, closure);
+			code.push_back(0x20); wasm::append_uleb(code, closure); code.push_back(0x41); wasm::append_sleb32(code, function_type);
+			code.insert(code.end(), {0x41, 0x00, 0x41, 0x00, 0x10}); wasm::append_uleb(code, module_.import_index("bearer_dv_callable_brrb"));
+			code.push_back(0x21); wasm::append_uleb(code, length);
+			auto [allocation, pointer] = allocate_blob("dval", 4, length, value->location);
+			append(code, allocation);
+			code.push_back(0x20); wasm::append_uleb(code, closure); code.push_back(0x41); wasm::append_sleb32(code, function_type);
+			managed_payload_pointer(code, pointer, "dval"); code.push_back(0x20); wasm::append_uleb(code, length);
+			code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_dv_callable_brrb"));
+			code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x47, 0x04, 0x40, 0x20}); wasm::append_uleb(code, pointer);
+			code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b});
+			retain_dval_callables(code, pointer, value->location);
+			if (expression_is_owned(value)) { code.push_back(0x20); wasm::append_uleb(code, closure); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+			code.push_back(0x20); wasm::append_uleb(code, pointer);
+			return std::pair{std::move(code), std::string("dval")};
+		};
 		auto [source, actual] = expression(value);
+		if (actual.starts_with("function#"))
+			return callable_value(std::move(source), actual);
 		if (actual != "string" && actual != "s32" && actual != "s64" && actual != "u64" && actual != "f64" && actual != "bool")
 			throw Error(value->location, "cannot construct dval from " + actual);
 		const unsigned input = add_local("", actual, value->location), length = add_local("", "s32", value->location);
@@ -3201,6 +3244,7 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 	code.insert(code.end(), {0x47, 0x04, 0x40, 0x20}); wasm::append_uleb(code, pointer);
 	code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
 	append(code, build_cleanup); append(code, module_.marker(value->location)); code.insert(code.end(), {0x00, 0x0b});
+	retain_dval_callables(code, pointer, value->location);
 	append(code, build_cleanup);
 	code.push_back(0x20);
 	wasm::append_uleb(code, pointer);
@@ -3451,6 +3495,20 @@ std::pair<Bytes, std::string> FunctionLowerer::conversion(Bytes code, const std:
 		throw Error(location, "no explicit conversion from " + source + " to " + target);
 	if (source == target || (source == "bool" && target == "s32"))
 		return {std::move(code), target};
+	if (source == "dval" && target.rfind("function#", 0) == 0)
+	{
+		const unsigned input = add_local("", "dval", location), result = add_local("", target, location);
+		const unsigned function_type = static_cast<unsigned>(std::stoul(target.substr(9)));
+		code.push_back(0x21); wasm::append_uleb(code, input);
+		managed_payload_pointer(code, input, "dval"); managed_payload_length(code, input);
+		code.push_back(0x41); wasm::append_sleb32(code, function_type); code.push_back(0x10);
+		wasm::append_uleb(code, module_.import_index("bearer_dv_callable_extract_brrb")); code.push_back(0x22); wasm::append_uleb(code, result);
+		code.insert(code.end(), {0x45, 0x04, 0x40}); append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b, 0x20}); wasm::append_uleb(code, result);
+		code.push_back(0x10); wasm::append_uleb(code, module_.retain_index());
+		if (source_owned) { code.push_back(0x20); wasm::append_uleb(code, input); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
+		code.push_back(0x20); wasm::append_uleb(code, result);
+		return {std::move(code), target};
+	}
 	if (source == "dval")
 	{
 		const unsigned input = add_local("", "dval", location);
@@ -3595,7 +3653,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		auto [type, slot, type_id, definition, captures] = register_lambda(lambda);
 		if (captures.empty())
 		{
-			const unsigned offset = module_.add_static_closure(slot);
+			const unsigned offset = module_.add_static_closure(slot, static_cast<unsigned>(std::stoul(type.substr(9))));
 			Bytes code{0x23, 0x00, 0x41};
 			wasm::append_sleb32(code, static_cast<std::int32_t>(offset));
 			code.push_back(0x6a);
@@ -3604,7 +3662,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		std::vector<std::string> capture_types;
 		for (const auto& [name, capture_type] : captures)
 			capture_types.push_back(capture_type);
-		const AggregateLayout layout = aggregate_layout(capture_types, 24);
+		const AggregateLayout layout = aggregate_layout(capture_types, 28);
 		const unsigned pointer = add_local("", type, value->location), size = layout.size;
 		Bytes code{0x41};
 		wasm::append_sleb32(code, static_cast<std::int32_t>(size));
@@ -3621,7 +3679,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 											{1, 4},
 											{static_cast<std::int32_t>(type_id), 8},
 											{static_cast<std::int32_t>(size), 12},
-											{static_cast<std::int32_t>(slot), 16}})
+											{static_cast<std::int32_t>(slot), 16},
+											{static_cast<std::int32_t>(std::stoul(type.substr(9))), 20}})
 			store_i32_constant(code, pointer, header, offset);
 		code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01});
 		for (std::size_t i = 0; i < captures.size(); ++i)
@@ -4274,7 +4333,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			return {code, "dval"};
 		}
 		auto [type, slot] = module_.reference_function(name->value, name->location);
-		const unsigned offset = module_.add_static_closure(slot);
+		const unsigned offset = module_.add_static_closure(slot, static_cast<unsigned>(std::stoul(type.substr(9))));
 		Bytes code{0x23, 0x00, 0x41};
 		wasm::append_sleb32(code, static_cast<std::int32_t>(offset));
 		code.push_back(0x6a);
@@ -4299,6 +4358,12 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		std::string type = std::move(initialized.second);
 		if (!variable->annotation)
 			declared = type;
+		if (declared != type && can_convert(type, declared))
+		{
+			auto converted = conversion(std::move(code), type, declared, value->location, expression_is_owned(initializer));
+			code = std::move(converted.first);
+			type = std::move(converted.second);
+		}
 		if (declared != type)
 			throw Error(value->location, "expected " + declared + ", found " + type);
 		unsigned slot = add_local(variable->name, declared, value->location);
@@ -5314,6 +5379,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			const unsigned result = add_local("", host->result, value->location);
 			code.push_back(0x20); wasm::append_uleb(code, pointer);
 			code.push_back(0x21); wasm::append_uleb(code, result);
+			if (host->result == "dval") retain_dval_callables(code, result, value->location);
 			release_inputs();
 			code.push_back(0x20); wasm::append_uleb(code, result);
 			return {code, host->result};
@@ -5705,6 +5771,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				append(code, entry_cleanup()); append(code, module_.marker(loop->location)); code.insert(code.end(), {0x00, 0x0b, 0x20});
 				wasm::append_uleb(code, pointer);
 				code.push_back(0x21); wasm::append_uleb(code, target);
+				if (type == "dval") retain_dval_callables(code, target, loop->location);
 				constructed_entries.push_back(target);
 			};
 			if (key != 0xffffffffu)
@@ -6105,7 +6172,7 @@ Bytes FunctionLowerer::lower()
 		std::vector<std::string> capture_types;
 		for (const auto& [name, type] : definition_.captures)
 			capture_types.push_back(type);
-		const AggregateLayout layout = aggregate_layout(capture_types, 24);
+		const AggregateLayout layout = aggregate_layout(capture_types, 28);
 		for (std::size_t i = 0; i < definition_.captures.size(); ++i)
 		{
 			Name name(definition_.function->location, definition_.captures[i].first);
@@ -6207,6 +6274,18 @@ std::vector<Bytes> Module::runtime_bodies() const
 								 0x20, 0x00, 0x28, 0x02, 0x18, 0x22, 0x01, 0x45, 0x04, 0x40, 0x05, 0x20, 0x01, 0x10});
 		wasm::append_uleb(code, import_index("bearer_free"));
 		code.insert(code.end(), {0x0b, 0x0b});
+		if (imports_.contains("bearer_dv_callable_at_brrb"))
+		{
+			code.insert(code.end(), {0x20, 0x00, 0x28, 0x02, 0x08, 0x41, 0x04, 0x46, 0x04, 0x40, 0x41, 0x00, 0x21, 0x02, 0x02, 0x40, 0x03, 0x40,
+				0x20, 0x00, 0x28, 0x02, 0x18, 0x20, 0x00, 0x28, 0x02, 0x10, 0x20, 0x02, 0x10});
+			wasm::append_uleb(code, import_index("bearer_dv_callable_at_brrb"));
+			code.insert(code.end(), {0x45, 0x0d, 0x01, 0x20, 0x02, 0x41, 0x01, 0x6a, 0x21, 0x02, 0x0c, 0x00, 0x0b, 0x0b,
+				0x02, 0x40, 0x03, 0x40, 0x20, 0x02, 0x45, 0x0d, 0x01, 0x20, 0x02, 0x41, 0x01, 0x6b, 0x21, 0x02,
+				0x20, 0x00, 0x28, 0x02, 0x18, 0x20, 0x00, 0x28, 0x02, 0x10, 0x20, 0x02, 0x10});
+			wasm::append_uleb(code, import_index("bearer_dv_callable_at_brrb"));
+			code.insert(code.end(), {0x10}); wasm::append_uleb(code, release_index());
+			code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b, 0x0b});
+		}
 		// DValue handles own a separate raw BRRB payload allocation.
 		code.insert(code.end(), {0x20, 0x00, 0x28, 0x02, 0x08, 0x41, 0x04, 0x46, 0x04, 0x40,
 								 0x20, 0x00, 0x28, 0x02, 0x18, 0x22, 0x01, 0x45, 0x04, 0x40, 0x05, 0x20, 0x01, 0x10});
@@ -6237,7 +6316,7 @@ std::vector<Bytes> Module::runtime_bodies() const
 				code.push_back(0x0b);
 		};
 		for (const auto& [type_id, captures] : closure_types_)
-			release_aggregate_fields(type_id, captures, 24);
+			release_aggregate_fields(type_id, captures, 28);
 		for (const auto& [name, aggregate] : structs_)
 		{
 			std::vector<std::string> fields;
@@ -6993,12 +7072,14 @@ Module::Capabilities Module::discover_capabilities()
 			return;
 		}
 		const std::string type = scan_value_type(e);
+		if (dynamic_cast<Lambda*>(e) || dynamic_cast<Name*>(e)) { runtime_imports_.insert("bearer_dv_callable_brrb"); runtime_imports_.insert("bearer_dv_callable_at_brrb"); }
 		if (type == "string") runtime_imports_.insert("bearer_dv_string_to_brrb");
 		else if (type == "s32") runtime_imports_.insert("bearer_dv_s32_to_brrb");
 		else if (type == "s64") runtime_imports_.insert("bearer_dv_s64_to_brrb");
 		else if (type == "u64") runtime_imports_.insert("bearer_dv_u64_to_brrb");
 		else if (type == "f64") runtime_imports_.insert("bearer_dv_f64_to_brrb");
 		else if (type == "bool") runtime_imports_.insert("bearer_dv_bool_to_brrb");
+		else if (type.rfind("function#", 0) == 0) { runtime_imports_.insert("bearer_dv_callable_brrb"); runtime_imports_.insert("bearer_dv_callable_at_brrb"); }
 	};
 	std::function<bool(Expr*)> scan_is_string = [&](Expr* e)
 	{
@@ -7259,6 +7340,7 @@ Module::Capabilities Module::discover_capabilities()
 		{
 			scan(v->value);
 			const std::string annotation = v->annotation ? value_type(v->annotation) : "";
+			if (annotation.rfind("function#", 0) == 0 && scan_value_type(v->value) == "dval") runtime_imports_.insert("bearer_dv_callable_extract_brrb");
 			if (annotation.rfind("function#", 0) == 0)
 			{
 				const unsigned type = static_cast<unsigned>(std::stoul(annotation.substr(9)));
@@ -7657,6 +7739,7 @@ CompileResult Module::compile()
 	unsigned f64_adapter_type = wasm_type({"f64", "s32", "s32"}, "s32");
 	unsigned u64_adapter_type = wasm_type({"u64", "s32", "s32"}, "s32");
 	unsigned build_type = wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32");
+	unsigned callable_type = wasm_type({"s32", "s32", "s32", "s32"}, "s32");
 	unsigned get_type = wasm_type({"s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"}, "s32");
 	unsigned set_path_type = wasm_type({"s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"}, "s32");
 	unsigned entry_type = wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32");
@@ -7724,7 +7807,8 @@ CompileResult Module::compile()
 			: name == "bearer_dv_f64_to_brrb" ? f64_adapter_type : name == "bearer_dv_s64_to_brrb" || name == "bearer_dv_u64_to_brrb" ? u64_adapter_type
 			: name == "bearer_dv_s32_to_brrb" || name == "bearer_dv_bool_to_brrb" ? scalar_adapter_type
 			: name == "bearer_dv_none_brrb" ? count_type
-			: name == "bearer_dv_build_brrb" ? build_type : name == "bearer_dv_get_brrb" || name == "bearer_dv_read_brrb" ? get_type
+			: name == "bearer_dv_build_brrb" ? build_type : name == "bearer_dv_callable_brrb" ? callable_type : name == "bearer_dv_get_brrb" || name == "bearer_dv_read_brrb" ? get_type
+			: name == "bearer_dv_callable_extract_brrb" || name == "bearer_dv_callable_at_brrb" ? scalar_adapter_type
 			: name == "bearer_dv_is_none_brrb" ? count_type : name == "bearer_dv_set_path_brrb" ? set_path_type
 			: name == "bearer_dv_count_brrb" ? count_type
 			: name == "bearer_dv_entry_key_brrb" || name == "bearer_dv_entry_value_brrb" ? entry_type

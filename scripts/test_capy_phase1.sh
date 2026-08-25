@@ -46,7 +46,14 @@ operator_output=$(scripts/bearer-cli /tests/capy-operators.capy)
 }
 expect_equal "newline-independent expression parsing" "7|3|9" "$(scripts/bearer-cli /tests/capy-whitespace.capy)"
 expect_equal "condition constructors and dval bool extraction" "UuSsDdBbTTTTtttWC|true|false" "$(scripts/bearer-cli /tests/capy-condition-coercion.capy)"
-expect_equal "component render result" "rendered<div class=\"banner\">component not found: /tests/capy-component-render-missing.capy</div>|true|false" "$(scripts/bearer-cli /tests/capy-component-render-result.capy)"
+set +e
+component_render_output=$(scripts/bearer-cli /tests/capy-component-render-result.capy 2>&1)
+component_render_status=$?
+set -e
+[[ $component_render_status -ne 0 ]]
+[[ "$component_render_output" == *"500"* ]]
+[[ "$component_render_output" == *"rendered|true|false"* ]]
+[[ "$component_render_output" != *'<div class="banner">'* ]]
 consistency_expected="1|-2|3|4.5|x|10.5|3|4|left|right|early|late|0"
 expect_equal "type aliases, value blocks, conditional values, and wide aggregates" \
 	"$consistency_expected" "$(scripts/bearer-cli /tests/capy-language-consistency.capy)"
@@ -378,6 +385,17 @@ closure_output=$(scripts/bearer-cli /tests/capy-closures.capy)
 	echo "Capy closure output mismatch: $closure_output" >&2
 	exit 1
 }
+callable_expected=$'3:12:3:12|{"list": [null, {"closure": null}], "map": {"closure": null, "named": null}}|list:\n  - null\n  -\n    closure: null\nmap:\n  closure: null\n  named: null\n|<root><list><item/><item><closure/></item></list><map><closure/><named/></map></root>|truetruefalsefalsefalsefalse|2:2:1|true|true|true|true|true'
+expect_equal "callable DValue projection, capture, and ARC" "$callable_expected" "$(scripts/bearer-cli /tests/capy-dval-callable.capy)"
+set +e
+callable_signature_output=$(scripts/bearer-cli /tests/capy-dval-callable-signature-trap.capy 2>&1)
+callable_signature_status=$?
+set -e
+[[ $callable_signature_status -ne 0 && "$callable_signature_output" == *"capy-dval-callable-signature-trap.capy:5:5"* ]] || {
+	echo "Capy callable DValue signature mismatch did not trap at the extraction" >&2
+	exit 1
+}
+expect_equal "callable DValue trap recovery" "$callable_expected" "$(scripts/bearer-cli /tests/capy-dval-callable.capy)"
 phase3_output=$(scripts/bearer-cli /tests/capy-phase3.capy)
 [[ "$phase3_output" == "7|generic|5|fallback|2|name|9tuple|2|tuple|0|tuple|0|tuple|3|innerouter|4|temporary|0|nested|0|5-1tuple|0|0|falsetrue1|0" ]] || {
 	echo "Capy generic specialization output mismatch: $phase3_output" >&2

@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "get_or_create"
-    page["kind"] = "api"
-    page["slug"] = "get-or-create"
-    page["route"] = "/doc/api/get-or-create/"
-    page["title"] = "Get or create a child"
-    page["content"] = "`get_or_create(value, key, default)` stores `default` when `key` is missing. It changes and returns `value`.\n"
-    page["returns"] = "The target value."
-    page["label"] = "get_or_create"
-    page["capy_sig_lines"] = dval(["function get_or_create(value : dval, key : string, default : as dval) dval"])
-    page["param_lines"] = dval(["value : target value", "key : child key", "default : value to store when the child is missing", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "dvalue", href: "/doc/type/dvalue/"}, {label: "set", href: "/doc/api/set/"}, {label: "has", href: "/doc/api/has/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var config := dval({:})\nconfig = get_or_create(config, \"host\", \"localhost\")\nprint(config.host, \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>Get or create a child</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function get_or_create(value : dval, key : string, default : as dval) dval</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>get_or_create(value, key, default)</code> stores <code>default</code> when <code>key</code> is missing. It changes and returns <code>value</code>.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>value : target value</p></div><div><p>key : child key</p></div><div><p>default : value to store when the child is missing</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>The target value.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var config := dval({:})\nconfig = get_or_create(config, &quot;host&quot;, &quot;localhost&quot;)\nprint(config.host, &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/type/dvalue/\">dvalue</a><a class=\"related-link\" href=\"/doc/api/set/\">set</a><a class=\"related-link\" href=\"/doc/api/has/\">has</a></aside></div>")
 }

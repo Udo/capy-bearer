@@ -5,6 +5,5 @@ function COMPONENT(request : dval) {
 function CLI(request : dval) {
     var rendered := component_render("/tests/capy-component-render-result.capy")
     var missing := component_render("/tests/capy-component-render-missing.capy")
-    request.out.status = 201
     print("|", rendered, "|", missing)
 }

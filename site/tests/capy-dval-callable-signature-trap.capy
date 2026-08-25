@@ -1,0 +1,7 @@
+function plus_one(value : s32) s32 { -> value + 1 }
+
+function CLI(request : dval) {
+    var value := {callable: plus_one}
+    var wrong : function(value : s64) s64 = value.callable
+    print(wrong(1))
+}

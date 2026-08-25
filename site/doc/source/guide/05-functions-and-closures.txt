@@ -115,6 +115,28 @@ function RENDER(request : dval) {
 
 :content
 
+## Store a callback in a dynamic value
+
+A `dval` can store a named function or a closure in the current workspace. Read it with its complete function type:
+
+:example capy render
+function add_one(value : s32) s32 { -> value + 1 }
+
+function RENDER(request : dval) {
+    var step := 2
+    var callbacks := {named: add_one, captured: function(value : s32) s32 { -> value + step }}
+    var named : function(value : s32) s32 = callbacks.named
+    var captured : function(value : s32) s32 = callbacks.captured
+    print(named(1), " ", captured(1), "\n")
+}
+
+:output
+2 3
+
+:content
+
+The function type must match exactly. A mismatch traps. A callable does not cross a public boundary. BRRB, JSON, YAML, and XML replace it with `none`. Maps keep keys. Lists keep indexes.
+
 ## Generic and variadic functions
 
 An `any` parameter creates a compile-time generic function. Use it when the same operation is valid for several concrete types.

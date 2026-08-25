@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST_DIR = ROOT / "site" / "tests"
-DOC_DIR = ROOT / "site" / "doc" / "pages"
+DOC_DIR = ROOT / "site" / "doc" / "source" / "api"
 
 # Public source names that intentionally do not need public docs.
 DOC_INTERNAL_APIS = {
@@ -121,6 +121,10 @@ def required_doc_apis() -> set[str]:
     return (stdlib_public_functions() | compiler_intrinsics()) - DOC_INTERNAL_APIS
 
 
+def required_doc_pages() -> set[str]:
+    return {DOC_PAGE_ALIASES.get(name, name) for name in required_doc_apis()}
+
+
 def has_call(text: str, name: str) -> bool:
     return f"{name}(" in text or f".{name}(" in text or f'"{name}"' in text
 
@@ -133,9 +137,13 @@ def main() -> int:
             errors.append(f"missing test coverage: {name}")
         if needs_doc and status in {"public", "integration"} and not doc_exists(name):
             errors.append(f"missing active doc page: {name}")
+    required_pages = required_doc_pages()
     for name in sorted(required_doc_apis()):
         if not doc_exists(name):
             errors.append(f"missing source-derived doc page: {name}")
+    for path in sorted(DOC_DIR.glob("*.txt")):
+        if path.stem not in required_pages:
+            errors.append(f"unexpected non-public API doc page: {path.stem}")
     compiler_h = (ROOT / "src" / "lib" / "compiler.h").read_text(errors="ignore")
     if "#ifndef __BEARER_WASM_UNIT__\nSharedUnit* unit_load" not in compiler_h:
         errors.append("unit_load is not guarded out of wasm-unit exposure")
@@ -148,7 +156,7 @@ def main() -> int:
         for error in errors:
             print("- " + error)
         return 1
-    print(f"API coverage manifest ok: {len(PUBLIC_APIS)} manifest entries and {len(required_doc_apis())} source-derived docs checked")
+    print(f"API coverage manifest ok: {len(PUBLIC_APIS)} manifest entries and {len(required_doc_pages())} public declaration docs checked")
     return 0
 
 if __name__ == "__main__":

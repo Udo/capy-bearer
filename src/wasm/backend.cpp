@@ -301,24 +301,8 @@ u64 wasm_backend_invocation_timeout_ms(Request& request)
 	return(timeout_ms > 0 && timeout_ms <= 86400000 ? timeout_ms : 0);
 }
 
-// Serve a request through a wasm workspace using the unit handler selected by
-// `kind` (page render / cli / serve_http, with an optional named serve_http
-// handler). Populates the native Request (status/headers/cookies/session/body)
-// so the existing transport writes the response unchanged. Returns "" on
-// success, or a collapsed error/trace string for the caller to route into the
-// configured error page.
-String wasm_backend_serve(Request& request, const String& entry_unit, const String& handler, u64 timeout_cap_ms)
+static void wasm_backend_consume_response(Request& request, const String& handler, WasmResponse& response)
 {
-	if(timeout_cap_ms == 0)
-		return("BEARER_INVOCATION_TIMEOUT: wasm invocation exceeded " + std::to_string(wasm_backend_invocation_timeout_ms(request)) + " ms");
-	WasmResponse response = wasm_worker_serve(*g_wasm_worker, request, entry_unit, handler, timeout_cap_ms);
-	request.stats.wasm_dispatch_us = response.dispatch_us;
-	request.stats.wasm_workspace_complete_us = response.workspace_complete_us;
-	request.stats.wasm_entry_invoke_us = response.entry_invoke_us;
-	request.stats.wasm_output_collect_us = response.output_collect_us;
-	if(!response.ok)
-		return(response.error == "" ? String("wasm workspace failed") : response.error);
-
 	// Any handler may have called ws_send/ws_close (not just WS handlers). Flush the
 	// websocket batch whenever either command frames or an updated per-connection
 	// state are present. This is the only path WS data takes out; the workspace
@@ -347,7 +331,7 @@ String wasm_backend_serve(Request& request, const String& entry_unit, const Stri
 	if(!response.handler_present && handler != "render")
 	{
 		request.set_status(404, handler == "cli" ? "CLI Entry Point Not Found" : "Handler Not Found");
-		return("");
+		return;
 	}
 
 	// Diagnostic timing headers are opt-in: they leak workspace internals and
@@ -376,10 +360,33 @@ String wasm_backend_serve(Request& request, const String& entry_unit, const Stri
 		request.header["X-BEARER-Wasm-Entry-Presence-Us"] = std::to_string(response.entry_presence_us);
 		request.header["X-BEARER-Wasm-Entry-Link-Us"] = std::to_string(response.entry_link_us);
 		request.header["X-BEARER-Wasm-Entry-Dispatch-Us"] = std::to_string(response.entry_dispatch_us);
+		request.header["X-BEARER-Wasm-Entry-Wasmtime-Call-Us"] = std::to_string(response.entry_wasmtime_call_us);
+		request.header["X-BEARER-Wasm-Entry-Hostcall-Count"] = std::to_string(response.entry_hostcall_count);
+		request.header["X-BEARER-Wasm-Entry-Hostcall-Us"] = std::to_string(response.entry_hostcall_us);
+		request.header["X-BEARER-Wasm-Entry-Guest-Execution-Us"] = std::to_string(response.entry_guest_execution_us);
+		request.header["X-BEARER-Wasm-Hostcall-Count"] = std::to_string(response.hostcall_count);
+		request.header["X-BEARER-Wasm-Hostcall-Total-Us"] = std::to_string(response.hostcall_total_us);
+		request.header["X-BEARER-Wasm-Hostcall-MySQL-Count"] = std::to_string(response.mysql_hostcall_count);
+		request.header["X-BEARER-Wasm-Hostcall-MySQL-Us"] = std::to_string(response.mysql_hostcall_total_us);
+		request.header["X-BEARER-Wasm-Hostcall-Memcache-Count"] = std::to_string(response.memcache_hostcall_count);
+		request.header["X-BEARER-Wasm-Hostcall-Memcache-Us"] = std::to_string(response.memcache_hostcall_total_us);
 		request.header["X-BEARER-Wasm-Output-Collect-Us"] = std::to_string(response.output_collect_us);
+		request.header["X-BEARER-Wasm-Ready-Normalize-Us"] = std::to_string(request.stats.wasm_ready_normalize_us);
+		request.header["X-BEARER-Wasm-Ready-Mutation-Check-Us"] = std::to_string(request.stats.wasm_ready_mutation_check_us);
+		request.header["X-BEARER-Wasm-Ready-Artifact-Stat-Us"] = std::to_string(request.stats.wasm_ready_artifact_stat_us);
+		request.header["X-BEARER-Wasm-Ready-Freshness-Us"] = std::to_string(request.stats.wasm_ready_freshness_us);
+		request.header["X-BEARER-Wasm-Ready-Source-Generation-Us"] = std::to_string(request.stats.wasm_ready_source_generation_us);
+		request.header["X-BEARER-Wasm-Ready-Freshness-Full-Check-Us"] = std::to_string(request.stats.wasm_ready_freshness_full_check_us);
+		request.header["X-BEARER-Wasm-Ready-Worker-Us"] = std::to_string(request.stats.wasm_ready_worker_us);
+		request.header["X-BEARER-Wasm-Ready-Check-Count"] = std::to_string(request.stats.wasm_ready_check_count);
+		request.header["X-BEARER-Wasm-Ready-Freshness-Cache-Hit-Count"] = std::to_string(request.stats.wasm_ready_freshness_cache_hit_count);
 		request.header["X-BEARER-Wasm-Component-Resolve-Count"] = std::to_string(response.component_resolve_count);
 		request.header["X-BEARER-Wasm-Component-Loaded-Reuse-Count"] = std::to_string(response.component_loaded_reuse_count);
 		request.header["X-BEARER-Wasm-Component-Resolve-Total-Us"] = std::to_string(response.component_resolve_total_us);
+		request.header["X-BEARER-Wasm-Component-Path-Total-Us"] = std::to_string(response.component_path_total_us);
+		request.header["X-BEARER-Wasm-Component-Artifact-Total-Us"] = std::to_string(response.component_artifact_total_us);
+		request.header["X-BEARER-Wasm-Component-Load-Total-Us"] = std::to_string(response.component_load_total_us);
+		request.header["X-BEARER-Wasm-Component-Link-Total-Us"] = std::to_string(response.component_link_total_us);
 		request.header["X-BEARER-Wasm-Component-Resolve-Avg-Us"] = std::to_string(
 			response.component_resolve_count ? response.component_resolve_total_us / response.component_resolve_count : 0);
 	}
@@ -412,10 +419,24 @@ String wasm_backend_serve(Request& request, const String& entry_unit, const Stri
 	if(response.meta.key("session_loaded_hash"))
 		request.session_loaded_hash = response.meta["session_loaded_hash"].to_string();
 
-	// body into the request's primary output stream (ob_stack[0]); the
-	// transport's assemble_output_buffer concatenates the stack
-	if(request.ob)
-		request.ob->write(response.body.data(), response.body.size());
+}
+
+String wasm_backend_serve(Request& request, const String& entry_unit, const String& handler, u64 timeout_cap_ms)
+{
+	if(timeout_cap_ms == 0)
+		return("BEARER_INVOCATION_TIMEOUT: wasm invocation exceeded " + std::to_string(wasm_backend_invocation_timeout_ms(request)) + " ms");
+	WasmResponse response = wasm_worker_serve(*g_wasm_worker, request, entry_unit, handler, timeout_cap_ms,
+		[&](WasmResponse& callback_response, std::string_view body) {
+			if((callback_response.handler_present || handler == "render") && request.ob)
+				request.ob->write(body.data(), body.size());
+		});
+	request.stats.wasm_dispatch_us = response.dispatch_us;
+	request.stats.wasm_workspace_complete_us = response.workspace_complete_us;
+	request.stats.wasm_entry_invoke_us = response.entry_invoke_us;
+	request.stats.wasm_output_collect_us = response.output_collect_us;
+	if(!response.ok)
+		return(response.error == "" ? String("wasm workspace failed") : response.error);
+	wasm_backend_consume_response(request, handler, response);
 	return("");
 }
 

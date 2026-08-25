@@ -11,13 +11,15 @@ get_by_path
 json_decode
 
 :content
-A `dval` stores scalar values, maps, lists, and `none`.
+A `dval` stores scalar values, maps, lists, current-workspace callables, and `none`.
 
 Use maps for named fields and lists for ordered values. Read children with `value.name`, `value["name"]`, or `value[0]`. A missing read returns `none` and does not change the value.
 
 Use `has` to test a key. Use `get` when absence is valid. Use `string`, `bool`, `s32`, `s64`, `u64`, or `f64` to convert a value.
 
 Update functions such as `set`, `push`, and `clear` change their target and return it. `keys` and `values` return new values.
+
+A callable read requires its exact function type. A mismatch traps. Public BRRB, JSON, YAML, and XML replace a callable with `none`. Maps keep keys. Lists keep indexes.
 
 :example capy render
 var user := dval({"name": "Ada", "tags": ["math"]})

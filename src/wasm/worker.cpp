@@ -230,6 +230,10 @@ struct WasmRequestProfile
 	u64 entry_presence_us = 0;
 	u64 entry_link_us = 0;
 	u64 entry_dispatch_us = 0;
+	u64 entry_wasmtime_call_us = 0;
+	u64 entry_hostcall_count = 0;
+	u64 entry_hostcall_us = 0;
+	u64 entry_guest_execution_us = 0;
 	u64 output_collect_us = 0;
 	u64 workspace_complete_us = 0;
 	u64 component_resolve_count = 0;
@@ -287,7 +291,6 @@ struct WasmResponse : WasmRequestProfile
 {
 	bool ok = false;
 	bool handler_present = true;  // false → unit has no handler for the requested kind (404)
-	String body;
 	DValue meta;          // status / headers / cookies / session
 	String error;         // collapsed trace or loader error when !ok
 };
@@ -2851,14 +2854,20 @@ struct WasmWorkspace : public WasmRequestProfile
 		if(error != "")
 			return(error);
 		entry_link_us = phase_us();
+		u64 hostcall_count_before = hostcall_count;
+		u64 hostcall_us_before = hostcall_total_us;
 		auto result = call_guest(*entry, { wasmtime::Val((int32_t)handler_slot), wasmtime::Val((int32_t)once_slot) });
 		entry_dispatch_us = phase_us();
+		entry_wasmtime_call_us = entry_dispatch_us;
+		entry_hostcall_count = hostcall_count - hostcall_count_before;
+		entry_hostcall_us = hostcall_total_us - hostcall_us_before;
+		entry_guest_execution_us = entry_wasmtime_call_us > entry_hostcall_us ? entry_wasmtime_call_us - entry_hostcall_us : 0;
 		if(!result)
 			return(trap_text(result.err()));
 		return("");
 	}
 
-	String collect(WasmResponse& response)
+	String collect(WasmResponse& response, std::string_view& body)
 	{
 		String error = call_core("bearer_wasm_finish_output", {}, 0);
 		if(error != "")
@@ -2867,13 +2876,8 @@ struct WasmWorkspace : public WasmRequestProfile
 		if(error != "")
 			return(error);
 		int32_t body_ptr = 0, body_len = 0, meta_ptr = 0, meta_len = 0;
-		if((error = call_core("bearer_wasm_output_data", {}, &body_ptr)) != "") return(error);
-		if((error = call_core("bearer_wasm_output_size", {}, &body_len)) != "") return(error);
 		if((error = call_core("bearer_wasm_response_meta_data", {}, &meta_ptr)) != "") return(error);
 		if((error = call_core("bearer_wasm_response_meta_size", {}, &meta_len)) != "") return(error);
-		error = guest_read((u32)body_ptr, (u32)body_len, response.body);
-		if(error != "")
-			return(error);
 		String meta_encoded;
 		error = guest_read((u32)meta_ptr, (u32)meta_len, meta_encoded);
 		if(error != "")
@@ -2881,9 +2885,16 @@ struct WasmWorkspace : public WasmRequestProfile
 		String decode_error;
 		if(!brb_decode(meta_encoded, response.meta, &decode_error))
 			return("response meta decode failed: " + decode_error);
+		if((error = call_core("bearer_wasm_output_data", {}, &body_ptr)) != "") return(error);
+		if((error = call_core("bearer_wasm_output_size", {}, &body_len)) != "") return(error);
+		auto memory_span = memory->data(ctx());
+		if((size_t)(u32)body_ptr + (u32)body_len > memory_span.size())
+			return("guest read out of bounds");
+		body = std::string_view((const char*)memory_span.data() + (u32)body_ptr, (u32)body_len);
 		if(stale_component_mutation_blocked)
 		{
-			response.body = "The requested code is being updated. Retry this request shortly.\n";
+			static constexpr char stale_body[] = "The requested code is being updated. Retry this request shortly.\n";
+			body = std::string_view(stale_body, sizeof(stale_body) - 1);
 			response.meta["status"] = stale_component_mutation_status;
 			response.meta["headers"]["Content-Type"] = "text/plain; charset=utf-8";
 			response.meta["headers"]["Retry-After"] = "1";
@@ -5486,8 +5497,9 @@ inline String wasm_worker_prepare(WasmWorker& worker)
 
 // ---- public entry: one request through one workspace -----------------------
 
+template<typename ConsumeBody>
 inline WasmResponse wasm_worker_serve(WasmWorker& worker, const Request& request, const String& entry_source_path,
-	const String& handler = "render", u64 timeout_cap_ms = UINT64_MAX)
+	const String& handler, u64 timeout_cap_ms, ConsumeBody&& consume_body)
 {
 	WasmResponse response;
 	f64 serve_started = time_precise();
@@ -5547,10 +5559,11 @@ inline WasmResponse wasm_worker_serve(WasmWorker& worker, const Request& request
 		workspace.entry_invoke_us = (u64)std::chrono::duration_cast<std::chrono::microseconds>(
 			std::chrono::steady_clock::now() - invoke_start).count();
 	}
+	std::string_view body;
 	if(error == "")
 	{
 		auto collect_start = std::chrono::steady_clock::now();
-		error = workspace.collect(response);
+		error = workspace.collect(response, body);
 		workspace.output_collect_us = (u64)std::chrono::duration_cast<std::chrono::microseconds>(
 			std::chrono::steady_clock::now() - collect_start).count();
 	}
@@ -5564,5 +5577,9 @@ inline WasmResponse wasm_worker_serve(WasmWorker& worker, const Request& request
 		return(response);
 	}
 	response.ok = true;
+	auto consume_started = std::chrono::steady_clock::now();
+	consume_body(response, body);
+	response.output_collect_us += (u64)std::chrono::duration_cast<std::chrono::microseconds>(
+		std::chrono::steady_clock::now() - consume_started).count();
 	return(response);
 }

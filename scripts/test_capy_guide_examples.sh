@@ -61,17 +61,18 @@ import sys
 from pathlib import Path
 
 root = Path.cwd()
-renderer = (root / "site/doc/components/doc_page.capy").read_text()
-if "function COMPONENT(request : dval)" not in renderer:
-    raise SystemExit("Capy documentation renderer must declare request : dval")
+page = root / "site/doc/content/guide/install-and-first-program.capy"
+renderer = page.read_text()
+if "function COMPONENT(request : dval) {\n    print(" not in renderer or "var page :=" in renderer:
+    raise SystemExit("Capy documentation routes must print static detail HTML directly")
 checker_path = root / "scripts/check_capy_doc_examples.py"
 spec = importlib.util.spec_from_file_location("capy_doc_examples", checker_path)
 if spec is None or spec.loader is None:
     raise SystemExit("Capy guide test cannot import the documentation checker")
 checker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(checker)
-guides = root / "site/doc/capy"
-errors = checker.check_language_guides(guides, root / "site/doc/pages")
+guides = root / "site/doc/source/guide"
+errors = checker.check_language_guides(guides, root / "site/doc/source")
 if errors:
     raise SystemExit("Capy guide test rejected guide sources:\n- " + "\n- ".join(errors))
 articles = {path.stem: path for path in guides.glob("*.txt")}
@@ -183,7 +184,7 @@ if re.search(pattern, html, re.S) is None:
 PY
 	((count += 1))
 done
-expected_guides=$(find site/doc/capy -maxdepth 1 -type f -name '*.txt' | wc -l)
+expected_guides=$(find site/doc/source/guide -maxdepth 1 -type f -name '*.txt' | wc -l)
 [[ "$count" -eq "$expected_guides" ]] || {
 	echo "Capy guide test expected $expected_guides canonical examples, ran $count" >&2
 	exit 1

@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "filter"
-    page["kind"] = "api"
-    page["slug"] = "filter"
-    page["route"] = "/doc/api/filter/"
-    page["title"] = "Filter strings"
-    page["content"] = "`filter` keeps the strings for which `predicate` returns `true`.\n\nThe result keeps input order. This function does not change `items`.\n"
-    page["returns"] = "This function returns a new list-shaped `dval`."
-    page["label"] = "filter"
-    page["capy_sig_lines"] = dval(["function filter(items : dval, predicate : function(value : string) bool) dval"])
-    page["param_lines"] = dval([])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\nvar kept := filter(items, function(value : string) bool { return value == \"two\" })\nprint(join(kept, \",\"), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>Filter strings</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function filter(items : dval, predicate : function(value : string) bool) dval</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>filter</code> keeps the strings for which <code>predicate</code> returns <code>true</code>.</p><p>The result keeps input order. This function does not change <code>items</code>.</p></div><div class=\"doc-section\"><h3>Return Values</h3><p>This function returns a new list-shaped <code>dval</code>.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var items := split(&quot;one,two&quot;, &quot;,&quot;)\nvar kept := filter(items, function(value : string) bool { return value == &quot;two&quot; })\nprint(join(kept, &quot;,&quot;), &quot;\\n&quot;)\n</pre></div></div></main></div>")
 }

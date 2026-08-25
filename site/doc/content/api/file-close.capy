@@ -1,18 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "file_close"
-    page["kind"] = "api"
-    page["slug"] = "file-close"
-    page["route"] = "/doc/api/file-close/"
-    page["title"] = "file_close"
-    page["content"] = "`file_close` closes a handle from `file_open`. Close a handle after the final read or write.\n"
-    page["label"] = "file_close"
-    page["capy_sig_lines"] = dval(["function file_close(handle : u64)"])
-    page["param_lines"] = dval(["handle : handle returned by `file_open`", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "file_open", href: "/doc/api/file-open/"}, {label: "file_read", href: "/doc/api/file-read/"}, {label: "file_write", href: "/doc/api/file-write/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var handle := file_open(\"/tmp/doc-close.txt\", \"w\")\nfile_write(handle, \"done\")\nfile_close(handle)\nprint(file_get_contents(\"/tmp/doc-close.txt\"), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>file_close</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function file_close(handle : u64)</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>file_close</code> closes a handle from <code>file_open</code>. Close a handle after the final read or write.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>handle : handle returned by <code>file_open</code></p></div><div></div></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var handle := file_open(&quot;/tmp/doc-close.txt&quot;, &quot;w&quot;)\nfile_write(handle, &quot;done&quot;)\nfile_close(handle)\nprint(file_get_contents(&quot;/tmp/doc-close.txt&quot;), &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/file-open/\">file_open</a><a class=\"related-link\" href=\"/doc/api/file-read/\">file_read</a><a class=\"related-link\" href=\"/doc/api/file-write/\">file_write</a></aside></div>")
 }

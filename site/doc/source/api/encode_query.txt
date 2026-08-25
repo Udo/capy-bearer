@@ -9,7 +9,7 @@ URL query string
 
 :see
 redirect
-request_context_params
+how-to/read-request-context
 :content
 `encode_query()` converts a map-shaped `dval` to a URL query string.
 

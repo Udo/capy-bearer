@@ -1784,8 +1784,8 @@ bool component_render(String name, DValue props)
 
 bool component_render(String name, DValue props, Request& context)
 {
-	(void)props; (void)context;
-	print(component_error_banner("native component_render() is unavailable; components must render through the wasm backend: " + trim(name)));
+	(void)name; (void)props;
+	context.set_status(500, "Internal Server Error");
 	return(false);
 }
 

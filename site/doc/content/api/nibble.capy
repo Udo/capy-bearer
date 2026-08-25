@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "nibble"
-    page["kind"] = "api"
-    page["slug"] = "nibble"
-    page["route"] = "/doc/api/nibble/"
-    page["title"] = "nibble"
-    page["content"] = "`nibble()` returns the text before the first `delim`.\n\nIt does not change `haystack`. If `delim` does not occur, it returns all of `haystack`.\n"
-    page["returns"] = "the text before the first delimiter"
-    page["label"] = "nibble"
-    page["capy_sig_lines"] = dval(["function nibble(haystack : string, delim : string) string"])
-    page["param_lines"] = dval(["haystack : the string to split", "delim : the delimiter", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "string", href: "/doc/api/string/"}, {label: "map", href: "/doc/api/map/"}, {label: "print", href: "/doc/api/print/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var path := \"docs/index\"\nprint(nibble(path, \"/\"), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>nibble</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function nibble(haystack : string, delim : string) string</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>nibble()</code> returns the text before the first <code>delim</code>.</p><p>It does not change <code>haystack</code>. If <code>delim</code> does not occur, it returns all of <code>haystack</code>.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>haystack : the string to split</p></div><div><p>delim : the delimiter</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>the text before the first delimiter</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var path := &quot;docs/index&quot;\nprint(nibble(path, &quot;/&quot;), &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/string/\">string</a><a class=\"related-link\" href=\"/doc/api/map/\">map</a><a class=\"related-link\" href=\"/doc/api/print/\">print</a></aside></div>")
 }

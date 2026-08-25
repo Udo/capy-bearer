@@ -69,7 +69,7 @@ Read [docs/setup.md](docs/setup.md) for installation, configuration, service man
 ## Learn Capy
 
 - [Capy language specification](docs/capy-language.md)
-- [Capy guide](site/doc/capy/01-install-and-first-program.txt)
+- [Capy guide](site/doc/source/guide/01-install-and-first-program.txt)
 - [Generated Capy API signatures](site/doc/lib/capy_signatures.generated.h)
 - [Runtime tests](site/tests/)
 

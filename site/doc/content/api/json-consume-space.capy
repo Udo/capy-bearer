@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "json_consume_space"
-    page["kind"] = "api"
-    page["slug"] = "json-consume-space"
-    page["route"] = "/doc/api/json-consume-space/"
-    page["title"] = "json_consume_space"
-    page["content"] = "`json_consume_space()` skips JSON whitespace from `index`. Use `json_decode()` for normal JSON parsing.\n"
-    page["returns"] = "The byte offset after JSON whitespace."
-    page["label"] = "json_consume_space"
-    page["capy_sig_lines"] = dval(["function json_consume_space(source : string, index : s32) s32"])
-    page["param_lines"] = dval(["source : JSON source text", "index : byte offset where the scan starts", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "json_decode", href: "/doc/api/json-decode/"}, {label: "json_encode", href: "/doc/api/json-encode/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "print(json_consume_space(\" \\t\\nvalue\", 0), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>json_consume_space</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function json_consume_space(source : string, index : s32) s32</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>json_consume_space()</code> skips JSON whitespace from <code>index</code>. Use <code>json_decode()</code> for normal JSON parsing.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>source : JSON source text</p></div><div><p>index : byte offset where the scan starts</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>The byte offset after JSON whitespace.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">print(json_consume_space(&quot; \\t\\nvalue&quot;, 0), &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/json-decode/\">json_decode</a><a class=\"related-link\" href=\"/doc/api/json-encode/\">json_encode</a></aside></div>")
 }

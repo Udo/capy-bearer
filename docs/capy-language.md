@@ -289,6 +289,8 @@ Capy uses request-local automatic reference counting for strings, markup, arrays
 
 Arrays, DValues, and struct instances share identity only inside one workspace. A Bearer, module, component, task, custom export or C++ call, codec, request, or serialization boundary copies BRRB. Identity never crosses these boundaries.
 
+A DValue can hold a named function or closure in its current workspace. A typed read requires the exact function signature. A signature mismatch traps. Public BRRB, JSON, YAML, and XML replace callable entries with `none`. Map keys and list indexes remain present.
+
 ## 11. Function values and closures
 
 A function type has a complete static parameter and result signature. An overloaded name requires a declared function type that selects one concrete overload. A generic declaration becomes a function value only after a concrete signature selects it.
@@ -296,6 +298,8 @@ A function type has a complete static parameter and result signature. An overloa
 An anonymous function uses `function(parameters) Result { ... }`. It can read surrounding values. Scalar captures copy. Managed captures retain. Wide scalar captures are valid. A closure cannot capture `module` and cannot mutate an outer binding.
 
 A callable struct field takes priority over receiver-first method lookup. Otherwise, `receiver.method(arguments)` resolves as an ordinary function call with `receiver` as the first argument.
+
+A closure stored in a DValue stays valid only in the current workspace. DValue assignment, replacement, deletion, clearing, and scope exit release its closure reference. DValue copies retain the same local callable until all copies release it.
 
 ## 12. Handlers and unit composition
 

@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "ls"
-    page["kind"] = "api"
-    page["slug"] = "ls"
-    page["route"] = "/doc/api/ls/"
-    page["title"] = "ls"
-    page["content"] = "`ls()` returns the names in a directory. It returns an empty list when it cannot list the directory.\n"
-    page["returns"] = "A `dval` list of entry names."
-    page["label"] = "ls"
-    page["capy_sig_lines"] = dval(["function ls(path : string) dval"])
-    page["param_lines"] = dval(["path : directory path to list", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "dir_list", href: "/doc/api/dir-list/"}, {label: "mkdir", href: "/doc/api/mkdir/"}, {label: "path_join", href: "/doc/api/path-join/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var root := file_temp(\"/tmp/capy-doc-ls-\")\nfile_unlink(root)\nmkdir(root)\nfile_put_contents(path_join(root, \"one.txt\"), \"1\")\nprint(join(sort(ls(root)), \",\"), \"\\n\")\ndir_remove(root, true)\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>ls</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function ls(path : string) dval</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>ls()</code> returns the names in a directory. It returns an empty list when it cannot list the directory.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>path : directory path to list</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>A <code>dval</code> list of entry names.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var root := file_temp(&quot;/tmp/capy-doc-ls-&quot;)\nfile_unlink(root)\nmkdir(root)\nfile_put_contents(path_join(root, &quot;one.txt&quot;), &quot;1&quot;)\nprint(join(sort(ls(root)), &quot;,&quot;), &quot;\\n&quot;)\ndir_remove(root, true)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/dir-list/\">dir_list</a><a class=\"related-link\" href=\"/doc/api/mkdir/\">mkdir</a><a class=\"related-link\" href=\"/doc/api/path-join/\">path_join</a></aside></div>")
 }

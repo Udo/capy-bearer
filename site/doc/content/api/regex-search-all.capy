@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "regex_search_all"
-    page["kind"] = "api"
-    page["slug"] = "regex-search-all"
-    page["route"] = "/doc/api/regex-search-all/"
-    page["title"] = "regex_search_all"
-    page["content"] = "The result contains `matched`, `count`, and `matches`.\n"
-    page["returns"] = "Data for all non-overlapping matches."
-    page["label"] = "regex_search_all"
-    page["capy_sig_lines"] = dval(["function regex_search_all(pattern : string, subject : string, flags : string = \"\") dval"])
-    page["param_lines"] = dval(["pattern : regular expression", "subject : text to search", "flags : regular expression flags", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var matches := regex_search_all(\"[a-z]+\", \"capy docs\")\nprint(s32(matches.count), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>regex_search_all</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function regex_search_all(pattern : string, subject : string, flags : string = &quot;&quot;) dval</pre></div><div class=\"doc-section content\"><h3>Description</h3><p>The result contains <code>matched</code>, <code>count</code>, and <code>matches</code>.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>pattern : regular expression</p></div><div><p>subject : text to search</p></div><div><p>flags : regular expression flags</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>Data for all non-overlapping matches.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var matches := regex_search_all(&quot;[a-z]+&quot;, &quot;capy docs&quot;)\nprint(s32(matches.count), &quot;\\n&quot;)\n</pre></div></div></main></div>")
 }

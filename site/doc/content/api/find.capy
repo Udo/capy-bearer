@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "find"
-    page["kind"] = "api"
-    page["slug"] = "find"
-    page["route"] = "/doc/api/find/"
-    page["title"] = "Find text in a string"
-    page["content"] = "`find` searches a string for another string.\n\nFor a list-shaped `dval`, use `some` to test for a matching item.\n"
-    page["returns"] = "This function returns the byte position of `needle`. It returns `-1` when it does not find `needle`."
-    page["label"] = "find"
-    page["capy_sig_lines"] = dval(["function find(haystack : string, needle : string) s32"])
-    page["param_lines"] = dval([])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([])
-    page["examples"] = dval([{entry: "render", caption: "", body: "print(find(\"one,two\", \"two\"), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>Find text in a string</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function find(haystack : string, needle : string) s32</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>find</code> searches a string for another string.</p><p>For a list-shaped <code>dval</code>, use <code>some</code> to test for a matching item.</p></div><div class=\"doc-section\"><h3>Return Values</h3><p>This function returns the byte position of <code>needle</code>. It returns <code>-1</code> when it does not find <code>needle</code>.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">print(find(&quot;one,two&quot;, &quot;two&quot;), &quot;\\n&quot;)\n</pre></div></div></main></div>")
 }

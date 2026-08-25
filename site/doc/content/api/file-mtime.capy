@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "file_mtime"
-    page["kind"] = "api"
-    page["slug"] = "file-mtime"
-    page["route"] = "/doc/api/file-mtime/"
-    page["title"] = "file_mtime"
-    page["content"] = "`file_mtime` returns the modification time of a file.\n"
-    page["returns"] = "The modification time as a Unix timestamp, or `0` when it is unavailable."
-    page["label"] = "file_mtime"
-    page["capy_sig_lines"] = dval(["function file_mtime(path : string) u64"])
-    page["param_lines"] = dval(["path : path of the file to inspect", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "file_stat", href: "/doc/api/file-stat/"}, {label: "file_get_contents", href: "/doc/api/file-get-contents/"}, {label: "file_exists", href: "/doc/api/file-exists/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-mtime.txt\", \"x\")\nprint(file_mtime(\"/tmp/doc-mtime.txt\") > u64(0), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>file_mtime</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function file_mtime(path : string) u64</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>file_mtime</code> returns the modification time of a file.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>path : path of the file to inspect</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>The modification time as a Unix timestamp, or <code>0</code> when it is unavailable.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">file_put_contents(&quot;/tmp/doc-mtime.txt&quot;, &quot;x&quot;)\nprint(file_mtime(&quot;/tmp/doc-mtime.txt&quot;) &gt; u64(0), &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/file-stat/\">file_stat</a><a class=\"related-link\" href=\"/doc/api/file-get-contents/\">file_get_contents</a><a class=\"related-link\" href=\"/doc/api/file-exists/\">file_exists</a></aside></div>")
 }

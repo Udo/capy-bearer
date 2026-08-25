@@ -64,6 +64,7 @@ if [[ "$action" == "run" ]]; then
 	scripts/test_capy_phase1.sh
 	timeout --signal=TERM --kill-after=5s 120s scripts/test_task_workers_runtime.sh
 	scripts/test_capy_reference.sh
+	scripts/test_markdown_to_html_native.sh
 	scripts/test_server_arguments.sh
 	scripts/test_socket_activation.sh
 	for test in \

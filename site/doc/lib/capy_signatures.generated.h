@@ -176,7 +176,6 @@ inline constexpr DocCapySignature doc_capy_signatures[] = {
 	{"regex_search_all", "function regex_search_all(pattern : string, subject : string, flags : string = \"\") dval"},
 	{"regex_split", "function regex_split(pattern : string, subject : string, flags : string = \"\") dval"},
 	{"replace", "function replace(value : string, needle : string, replacement : string) string"},
-	{"request_context_params", "handler request : dval"},
 	{"route_from_raw_path", "function route_from_raw_path(raw_path : string, default_path : string = \"index\") dval"},
 	{"route_path_is_safe", "function route_path_is_safe(path : string) bool"},
 	{"route_path_normalize", "function route_path_normalize(path : string) string"},

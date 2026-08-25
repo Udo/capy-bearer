@@ -86,7 +86,7 @@ collect_missing_workers() {
 			sleep 0.1
 			continue
 		fi
-		if [[ "$status" != "500" || "$body" != parent:* || "$body" != *"component not found: later"* ]]; then
+		if [[ "$status" != "500" || "$body" != parent:* ]]; then
 			echo "missing component TTL probe failed: status=$status body=$body" >&2
 			exit 1
 		fi

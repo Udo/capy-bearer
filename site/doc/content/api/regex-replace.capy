@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "regex_replace"
-    page["kind"] = "api"
-    page["slug"] = "regex-replace"
-    page["route"] = "/doc/api/regex-replace/"
-    page["title"] = "regex_replace"
-    page["content"] = "Use `$1` for a numbered capture in `replacement`.\n"
-    page["returns"] = "Text with all matches replaced."
-    page["label"] = "regex_replace"
-    page["capy_sig_lines"] = dval(["function regex_replace(pattern : string, replacement : string, subject : string, flags : string = \"\") string"])
-    page["param_lines"] = dval(["pattern : regular expression", "replacement : replacement text", "subject : source text", "flags : regular expression flags", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([])
-    page["examples"] = dval([{entry: "render", caption: "", body: "print(regex_replace(\"([a-z]+)\", \"<$1>\", \"capy docs\"), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>regex_replace</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function regex_replace(pattern : string, replacement : string, subject : string, flags : string = &quot;&quot;) string</pre></div><div class=\"doc-section content\"><h3>Description</h3><p>Use <code>$1</code> for a numbered capture in <code>replacement</code>.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>pattern : regular expression</p></div><div><p>replacement : replacement text</p></div><div><p>subject : source text</p></div><div><p>flags : regular expression flags</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>Text with all matches replaced.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">print(regex_replace(&quot;([a-z]+)&quot;, &quot;&lt;$1&gt;&quot;, &quot;capy docs&quot;), &quot;\\n&quot;)\n</pre></div></div></main></div>")
 }

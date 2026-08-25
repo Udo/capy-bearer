@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "zip_create"
-    page["kind"] = "api"
-    page["slug"] = "zip-create"
-    page["route"] = "/doc/api/zip-create/"
-    page["title"] = "zip_create"
-    page["content"] = "`zip_create()` creates a ZIP archive from a `dval` map of entry names and content.\n"
-    page["returns"] = "`true` when the server creates the archive."
-    page["label"] = "zip_create"
-    page["capy_sig_lines"] = dval(["function zip_create(path : string, entries : dval) bool"])
-    page["param_lines"] = dval(["path : archive path", "entries : archive entries", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "zip_list", href: "/doc/api/zip-list/"}, {label: "zip_read", href: "/doc/api/zip-read/"}, {label: "zip_extract", href: "/doc/api/zip-extract/"}, {label: "dvalue", href: "/doc/type/dvalue/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var archive := file_temp(\"/tmp/capy-zip-\") + \".zip\"\nzip_create(archive, dval({\"note.txt\": \"hello\"}))\nprint(zip_read(archive, \"note.txt\"), \"\\n\")\nfile_unlink(archive)\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>zip_create</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function zip_create(path : string, entries : dval) bool</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>zip_create()</code> creates a ZIP archive from a <code>dval</code> map of entry names and content.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>path : archive path</p></div><div><p>entries : archive entries</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p><code>true</code> when the server creates the archive.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var archive := file_temp(&quot;/tmp/capy-zip-&quot;) + &quot;.zip&quot;\nzip_create(archive, dval({&quot;note.txt&quot;: &quot;hello&quot;}))\nprint(zip_read(archive, &quot;note.txt&quot;), &quot;\\n&quot;)\nfile_unlink(archive)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/zip-list/\">zip_list</a><a class=\"related-link\" href=\"/doc/api/zip-read/\">zip_read</a><a class=\"related-link\" href=\"/doc/api/zip-extract/\">zip_extract</a><a class=\"related-link\" href=\"/doc/type/dvalue/\">dvalue</a></aside></div>")
 }

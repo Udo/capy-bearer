@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "array_merge"
-    page["kind"] = "api"
-    page["slug"] = "array-merge"
-    page["route"] = "/doc/api/array-merge/"
-    page["title"] = "array_merge"
-    page["content"] = "`array_merge` combines two `dval` values. It returns a new value.\n\nFor maps, values from `right` replace matching values from `left`. The function also merges lists.\n"
-    page["returns"] = "a merged `dval` value"
-    page["label"] = "array_merge"
-    page["capy_sig_lines"] = dval(["function array_merge(left : dval, right : dval) dval"])
-    page["param_lines"] = dval(["left : first value", "right : second value", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "json_decode", href: "/doc/api/json-decode/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var merged := array_merge(dval({\"name\": \"Ada\"}), dval({\"role\": \"admin\"}))\nprint(merged[\"name\"], \" \", merged[\"role\"], \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>array_merge</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function array_merge(left : dval, right : dval) dval</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>array_merge</code> combines two <code>dval</code> values. It returns a new value.</p><p>For maps, values from <code>right</code> replace matching values from <code>left</code>. The function also merges lists.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>left : first value</p></div><div><p>right : second value</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>a merged <code>dval</code> value</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var merged := array_merge(dval({&quot;name&quot;: &quot;Ada&quot;}), dval({&quot;role&quot;: &quot;admin&quot;}))\nprint(merged[&quot;name&quot;], &quot; &quot;, merged[&quot;role&quot;], &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/json-decode/\">json_decode</a></aside></div>")
 }

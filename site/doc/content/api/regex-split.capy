@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "regex_split"
-    page["kind"] = "api"
-    page["slug"] = "regex-split"
-    page["route"] = "/doc/api/regex-split/"
-    page["title"] = "regex_split"
-    page["content"] = "`regex_split()` removes separators and keeps empty parts.\n"
-    page["returns"] = "A list of text parts."
-    page["label"] = "regex_split"
-    page["capy_sig_lines"] = dval(["function regex_split(pattern : string, subject : string, flags : string = \"\") dval"])
-    page["param_lines"] = dval(["pattern : regular expression separator", "subject : text to split", "flags : regular expression flags", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var parts := regex_split(\",\", \"a,,b\")\nprint(parts[1], \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>regex_split</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function regex_split(pattern : string, subject : string, flags : string = &quot;&quot;) dval</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>regex_split()</code> removes separators and keeps empty parts.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>pattern : regular expression separator</p></div><div><p>subject : text to split</p></div><div><p>flags : regular expression flags</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>A list of text parts.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var parts := regex_split(&quot;,&quot;, &quot;a,,b&quot;)\nprint(parts[1], &quot;\\n&quot;)\n</pre></div></div></main></div>")
 }

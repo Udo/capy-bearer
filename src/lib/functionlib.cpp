@@ -1821,7 +1821,7 @@ String yaml_encode_scalar(DValue t, u32 indent)
 {
 	String raw = yaml_scalar_to_string(t);
 	const DValue& target = t.deref();
-	if(target.type == 'N')
+	if(target.type == 'N' || target.type == 'C')
 		return("null");
 	if(target.type == 'B' || target.type == 'F')
 		return(raw);
@@ -2698,7 +2698,7 @@ String ob_get()
 
 String ob_get_close()
 {
-	String result = context->ob->str();
+	String result = std::move(*context->ob).str();
 	ob_close();
 	return(result);
 }

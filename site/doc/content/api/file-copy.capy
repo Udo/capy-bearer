@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "file_copy"
-    page["kind"] = "api"
-    page["slug"] = "file-copy"
-    page["route"] = "/doc/api/file-copy/"
-    page["title"] = "file_copy"
-    page["content"] = "`file_copy` copies a file to another path. The source path remains available after a successful copy.\n"
-    page["returns"] = "`true` when Capy copies the file. Otherwise, it returns `false`."
-    page["label"] = "file_copy"
-    page["capy_sig_lines"] = dval(["function file_copy(from : string, to : string) bool"])
-    page["param_lines"] = dval(["from : source path", "to : destination path", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "file_rename", href: "/doc/api/file-rename/"}, {label: "file_put_contents", href: "/doc/api/file-put-contents/"}, {label: "file_stat", href: "/doc/api/file-stat/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "file_put_contents(\"/tmp/doc-copy-src.txt\", \"payload\")\nfile_copy(\"/tmp/doc-copy-src.txt\", \"/tmp/doc-copy-dst.txt\")\nprint(file_get_contents(\"/tmp/doc-copy-dst.txt\"), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>file_copy</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function file_copy(from : string, to : string) bool</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>file_copy</code> copies a file to another path. The source path remains available after a successful copy.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>from : source path</p></div><div><p>to : destination path</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p><code>true</code> when Capy copies the file. Otherwise, it returns <code>false</code>.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">file_put_contents(&quot;/tmp/doc-copy-src.txt&quot;, &quot;payload&quot;)\nfile_copy(&quot;/tmp/doc-copy-src.txt&quot;, &quot;/tmp/doc-copy-dst.txt&quot;)\nprint(file_get_contents(&quot;/tmp/doc-copy-dst.txt&quot;), &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/file-rename/\">file_rename</a><a class=\"related-link\" href=\"/doc/api/file-put-contents/\">file_put_contents</a><a class=\"related-link\" href=\"/doc/api/file-stat/\">file_stat</a></aside></div>")
 }

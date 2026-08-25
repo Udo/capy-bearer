@@ -522,6 +522,7 @@ String DValue::to_json(char quote_char) const
 			return("\"(array)\"");
 			break;
 		case('N'):
+		case('C'):
 			return("null");
 			break;
 		case('P'):
@@ -760,7 +761,9 @@ void DValue::set(const DValue& source)
 			_list_mode = source._list_mode;
 			break;
 		case('P'):
+		case('C'):
 			_ptr = source._ptr;
+			_array_index = source._array_index;
 			_list_mode = false;
 			break;
 		case('R'):
@@ -802,8 +805,10 @@ void DValue::set(DValue&& source)
 			_list_mode = source._list_mode;
 			break;
 		case('P'):
+		case('C'):
 		case('R'):
 			_ptr = source._ptr;
+			_array_index = source._array_index;
 			_list_mode = false;
 			break;
 		case('N'):
@@ -1073,7 +1078,7 @@ bool brb_read_varint(const String& src, size_t& offset, u64& value_out)
 	return(brb_read_varint(src.data(), src.size(), offset, value_out));
 }
 
-char brb_node_type(const DValue& value)
+char brb_node_type(const DValue& value, bool local)
 {
 	const DValue& target = value.deref();
 	switch(target.type)
@@ -1084,6 +1089,8 @@ char brb_node_type(const DValue& value)
 		case('B'):
 		case('N'):
 			return(target.type);
+		case('C'):
+			return(local ? 'C' : 'N');
 		default:
 			// Raw pointers/references are not meaningful across the native/wasm
 			// membrane; preserve the historical wire behavior as an empty scalar.
@@ -1091,7 +1098,7 @@ char brb_node_type(const DValue& value)
 	}
 }
 
-String brb_node_scalar(const DValue& value)
+String brb_node_scalar(const DValue& value, bool local)
 {
 	const DValue& target = value.deref();
 	switch(target.type)
@@ -1110,6 +1117,16 @@ String brb_node_scalar(const DValue& value)
 			return("");
 		case('N'):
 			return("");
+		case('C'):
+		{
+			if(!local)
+				return("");
+			String scalar(8, 0);
+			u32 pointer = (u32)(uintptr_t)target._ptr;
+			u32 type = (u32)target._array_index;
+			for(u32 i = 0; i < 4; i++) { scalar[i] = (char)(pointer >> (i * 8)); scalar[i + 4] = (char)(type >> (i * 8)); }
+			return(scalar);
+		}
 		default:
 			return("");
 	}
@@ -1161,13 +1178,13 @@ bool brb_decode_scalar(char node_type, const String& scalar, DValue& out, String
 	return(false);
 }
 
-void brb_encode_node(String& out, const DValue& value)
+void brb_encode_node(String& out, const DValue& value, bool local)
 {
 	const DValue& target = value.deref();
 	u8 flags = target.is_list() ? BRRB_FLAG_LIST : 0;
 	out.push_back((char)flags);
-	out.push_back(brb_node_type(target));
-	String scalar = brb_node_scalar(target);
+	out.push_back(brb_node_type(target, local));
+	String scalar = brb_node_scalar(target, local);
 	brb_append_varint(out, scalar.size());
 	out.append(scalar.data(), scalar.size());
 
@@ -1180,11 +1197,11 @@ void brb_encode_node(String& out, const DValue& value)
 	target.each([&](const DValue& child, String key) {
 		brb_append_varint(out, key.size());
 		out.append(key.data(), key.size());
-		brb_encode_node(out, child);
+		brb_encode_node(out, child, local);
 	});
 }
 
-bool brb_decode_node(const String& src, size_t& offset, DValue& out, String& error, u32& remaining_nodes, u32 depth = 0)
+bool brb_decode_node(const String& src, size_t& offset, DValue& out, String& error, u32& remaining_nodes, bool local, u32 depth = 0)
 {
 	if(remaining_nodes == 0)
 	{
@@ -1204,7 +1221,7 @@ bool brb_decode_node(const String& src, size_t& offset, DValue& out, String& err
 	}
 	u8 flags = (u8)src[offset++];
 	char node_type = src[offset++];
-	if(node_type != 'M' && node_type != 'S' && node_type != 'F' && node_type != 'B' && node_type != 'N')
+	if(node_type != 'M' && node_type != 'S' && node_type != 'F' && node_type != 'B' && node_type != 'N' && node_type != 'C')
 	{
 		error = "invalid BRRB2 node type tag";
 		return(false);
@@ -1233,6 +1250,15 @@ bool brb_decode_node(const String& src, size_t& offset, DValue& out, String& err
 	out.clear();
 	if(node_type != 'M')
 	{
+		if(node_type == 'C')
+		{
+			if(!local) { error = "private BRRB callable node"; return(false); }
+			if(scalar.size() != 8 || child_count != 0 || flags != 0) { error = "invalid local BRRB callable node"; return(false); }
+			u32 pointer = 0, type = 0;
+			for(u32 i = 0; i < 4; i++) { pointer |= (u32)(u8)scalar[i] << (i * 8); type |= (u32)(u8)scalar[i + 4] << (i * 8); }
+			out.set_type('C'); out._ptr = (void*)(uintptr_t)pointer; out._array_index = type;
+			return(true);
+		}
 		if(node_type == 'N' && (scalar != "" || child_count != 0 || flags != 0))
 		{
 			error = "invalid BRRB2 none node";
@@ -1274,7 +1300,7 @@ bool brb_decode_node(const String& src, size_t& offset, DValue& out, String& err
 			return(false);
 		}
 		DValue child;
-		if(!brb_decode_node(src, offset, child, error, remaining_nodes, depth + 1))
+		if(!brb_decode_node(src, offset, child, error, remaining_nodes, local, depth + 1))
 			return(false);
 		out[key] = std::move(child);
 	}
@@ -1309,7 +1335,16 @@ String brb_encode(const DValue& value)
 	String out;
 	out.append(BRRB_MAGIC, 4);
 	out.push_back((char)BRRB_VERSION);
-	brb_encode_node(out, value);
+	brb_encode_node(out, value, false);
+	return(out);
+}
+
+String brb_encode_local(const DValue& value)
+{
+	String out;
+	out.append(BRRB_MAGIC, 4);
+	out.push_back((char)BRRB_VERSION);
+	brb_encode_node(out, value, true);
 	return(out);
 }
 
@@ -1337,6 +1372,33 @@ String brb_encode_flat_string_map(const StringMap& value)
 	return(out);
 }
 
+bool brb_decode_local(const String& encoded, DValue& out, String* error_out)
+{
+	String error;
+	if(encoded.size() < 5 || encoded.compare(0, 4, BRRB_MAGIC) != 0)
+		error = "missing BRRB magic header";
+	else if((u8)encoded[4] != BRRB_VERSION)
+		error = "unsupported BRRB version";
+	else
+	{
+		size_t offset = 5;
+		DValue decoded;
+		u32 remaining_nodes = BRRB_MAX_NODES;
+		if(brb_decode_node(encoded, offset, decoded, error, remaining_nodes, true) && offset == encoded.size())
+		{
+			out = std::move(decoded);
+			if(error_out)
+				*error_out = "";
+			return(true);
+		}
+		if(error == "")
+			error = "trailing bytes after BRRB2 document";
+	}
+	if(error_out)
+		*error_out = error;
+	return(false);
+}
+
 bool brb_decode(const String& encoded, DValue& out, String* error_out)
 {
 	String error;
@@ -1349,7 +1411,7 @@ bool brb_decode(const String& encoded, DValue& out, String* error_out)
 		size_t offset = 5;
 		DValue decoded;
 		u32 remaining_nodes = BRRB_MAX_NODES;
-		if(brb_decode_node(encoded, offset, decoded, error, remaining_nodes) && offset == encoded.size())
+		if(brb_decode_node(encoded, offset, decoded, error, remaining_nodes, false) && offset == encoded.size())
 		{
 			out = std::move(decoded);
 			if(error_out)
@@ -1489,7 +1551,7 @@ const char* bearer_dv_value(bearer_dvalue* value, size_t* len_out)
 			*len_out = 0;
 		return(0);
 	}
-	bearer_dv_value_result = brb_node_scalar(*target);
+	bearer_dv_value_result = brb_node_scalar(*target, false);
 	if(len_out)
 		*len_out = bearer_dv_value_result.size();
 	return(bearer_dv_value_result.data());

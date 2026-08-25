@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "memcache_set"
-    page["kind"] = "api"
-    page["slug"] = "memcache-set"
-    page["route"] = "/doc/api/memcache-set/"
-    page["title"] = "memcache_set"
-    page["content"] = "`memcache_set()` stores `value` under `key`.\n\nIt returns `true` only when the server returns `STORED`. It escapes the key before it sends the request.\n"
-    page["returns"] = "`true` when the server stores the entry"
-    page["label"] = "memcache_set"
-    page["capy_sig_lines"] = dval(["function memcache_set(connection : u64, key : string, value : string, expires_in : u64 = 3600) bool"])
-    page["param_lines"] = dval(["connection : the connection handle", "key : the entry key", "value : the value text", "expires_in : the lifetime in seconds", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "memcache_connect", href: "/doc/api/memcache-connect/"}, {label: "memcache_get", href: "/doc/api/memcache-get/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var connection := memcache_connect()\nif connection != u64(0) { print(memcache_set(connection, \"doc-key\", \"value\"), \"\\n\") }\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>memcache_set</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function memcache_set(connection : u64, key : string, value : string, expires_in : u64 = 3600) bool</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>memcache_set()</code> stores <code>value</code> under <code>key</code>.</p><p>It returns <code>true</code> only when the server returns <code>STORED</code>. It escapes the key before it sends the request.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>connection : the connection handle</p></div><div><p>key : the entry key</p></div><div><p>value : the value text</p></div><div><p>expires_in : the lifetime in seconds</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p><code>true</code> when the server stores the entry</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var connection := memcache_connect()\nif connection != u64(0) { print(memcache_set(connection, &quot;doc-key&quot;, &quot;value&quot;), &quot;\\n&quot;) }\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/memcache-connect/\">memcache_connect</a><a class=\"related-link\" href=\"/doc/api/memcache-get/\">memcache_get</a></aside></div>")
 }

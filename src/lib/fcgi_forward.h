@@ -208,7 +208,10 @@ inline FcgiForwardResult fcgi_forward_request(const String& socket_path,
 		sep_len = 2;
 	}
 	String header_block = sep == String::npos ? String() : stdout_data.substr(0, sep);
-	result.body = sep == String::npos ? stdout_data : stdout_data.substr(sep + sep_len);
+	if(sep == String::npos)
+		result.body = std::move(stdout_data);
+	else
+		result.body = stdout_data.substr(sep + sep_len);
 
 	for(String line : split_strings(header_block, "\n"))
 	{

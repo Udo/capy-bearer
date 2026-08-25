@@ -16,6 +16,9 @@
 #include <sys/syscall.h>
 #include <sys/wait.h>
 
+static constexpr u64 MARKDOWN_BATCH_MAX_INPUT_BYTES = 16 * 1024 * 1024;
+static constexpr u64 MARKDOWN_BATCH_MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
+
 ServerState server_state;
 
 #include "fastcgi/src/fcgicc.cc"
@@ -2414,14 +2417,111 @@ int precompile_unit_generation()
 	return(total.failed == 0 && !candidate_rejected ? 0 : 1);
 }
 
+int markdown_batch_read(void* destination, size_t size, bool allow_clean_eof)
+{
+	size_t offset = 0;
+	while(offset < size)
+	{
+		ssize_t received = read(STDIN_FILENO, (char*)destination + offset, size - offset);
+		if(received == 0)
+			return(allow_clean_eof && offset == 0 ? 0 : -1);
+		if(received < 0)
+		{
+			if(errno == EINTR)
+				continue;
+			return(-1);
+		}
+		offset += (size_t)received;
+	}
+	return(1);
+}
+
+bool markdown_batch_write(const void* source, size_t size)
+{
+	size_t offset = 0;
+	while(offset < size)
+	{
+		ssize_t sent = write(STDOUT_FILENO, (const char*)source + offset, size - offset);
+		if(sent < 0)
+		{
+			if(errno == EINTR)
+				continue;
+			return(false);
+		}
+		offset += (size_t)sent;
+	}
+	return(true);
+}
+
+u64 markdown_batch_frame_size(const u8 frame[8])
+{
+	u64 size = 0;
+	for(int index = 0; index < 8; index++)
+		size = (size << 8) | frame[index];
+	return(size);
+}
+
+void markdown_batch_write_frame_size(u8 frame[8], u64 size)
+{
+	for(int index = 7; index >= 0; index--)
+	{
+		frame[index] = (u8)(size & 0xff);
+		size >>= 8;
+	}
+}
+
+int markdown_to_html_batch()
+{
+	signal(SIGPIPE, SIG_IGN);
+	for(;;)
+	{
+		u8 input_frame[8];
+		int header_status = markdown_batch_read(input_frame, sizeof(input_frame), true);
+		if(header_status == 0)
+			return(0);
+		if(header_status < 0)
+		{
+			fprintf(stderr, "markdown batch input is not a complete frame\n");
+			return(2);
+		}
+		u64 input_size = markdown_batch_frame_size(input_frame);
+		if(input_size > MARKDOWN_BATCH_MAX_INPUT_BYTES)
+		{
+			fprintf(stderr, "markdown batch input frame is too large\n");
+			return(2);
+		}
+		String input((size_t)input_size, '\0');
+		if(markdown_batch_read(input.data(), input.size(), false) != 1)
+		{
+			fprintf(stderr, "markdown batch input is not a complete frame\n");
+			return(2);
+		}
+		String output = markdown_to_html(input);
+		if(output.size() > MARKDOWN_BATCH_MAX_OUTPUT_BYTES)
+		{
+			fprintf(stderr, "markdown batch output is too large\n");
+			return(1);
+		}
+		u8 output_frame[8];
+		markdown_batch_write_frame_size(output_frame, output.size());
+		if(!markdown_batch_write(output_frame, sizeof(output_frame)) || !markdown_batch_write(output.data(), output.size()))
+		{
+			fprintf(stderr, "markdown batch output write failed\n");
+			return(1);
+		}
+	}
+}
+
 void print_fastcgi_usage(FILE* stream)
 {
 	fprintf(stream,
 		"Usage: bearer_fastcgi [--precompile]\n"
+		"       bearer_fastcgi --markdown-to-html\n"
 		"       bearer_fastcgi --help\n\n"
 		"Without options, start the FastCGI server.\n"
-		"  --precompile  Compile the current source generation without starting listeners.\n"
-		"  -h, --help    Show this help and exit.\n");
+		"  --precompile        Compile the current source generation without starting listeners.\n"
+		"  --markdown-to-html  Convert length-framed Markdown from standard input to HTML on standard output.\n"
+		"  -h, --help          Show this help and exit.\n");
 }
 
 int main(int argc, char** argv)
@@ -2504,6 +2604,8 @@ int main(int argc, char** argv)
 	// diagnostics and assigns stale failures a misleading later journal time.
 	setvbuf(stdout, 0, _IOLBF, 0);
 	setvbuf(stderr, 0, _IONBF, 0);
+	if(argc == 2 && String(argv[1]) == "--markdown-to-html")
+		return(markdown_to_html_batch());
 	if(argc == 2 && (String(argv[1]) == "--help" || String(argv[1]) == "-h"))
 	{
 		print_fastcgi_usage(stdout);

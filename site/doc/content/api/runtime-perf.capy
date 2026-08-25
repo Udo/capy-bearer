@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "runtime_perf"
-    page["kind"] = "api"
-    page["slug"] = "runtime-perf"
-    page["route"] = "/doc/api/runtime-perf/"
-    page["title"] = "runtime_perf"
-    page["content"] = "`runtime_perf()` returns data for the active request workspace.\n"
-    page["returns"] = "Runtime performance data."
-    page["label"] = "runtime_perf"
-    page["capy_sig_lines"] = dval(["function runtime_perf() dval"])
-    page["param_lines"] = dval([])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var perf := runtime_perf()\nprint(get_type_name(perf), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>runtime_perf</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function runtime_perf() dval</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>runtime_perf()</code> returns data for the active request workspace.</p></div><div class=\"doc-section\"><h3>Return Values</h3><p>Runtime performance data.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var perf := runtime_perf()\nprint(get_type_name(perf), &quot;\\n&quot;)\n</pre></div></div></main></div>")
 }

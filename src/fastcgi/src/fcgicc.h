@@ -86,6 +86,11 @@ struct FastCGIServer {
 		f64 opened_at = 0;
 		f64 last_activity_at = 0;
 		char type = 'F'; // F = FastCGI, H = HttpServer/WebSocket, C = CLI-over-HTTP Unix socket
+		bool native_verbose = false;
+		u64 native_response_assembly_us = 0;
+		u64 native_fastcgi_framing_us = 0;
+		u64 native_socket_write_us = 0;
+		String native_request_uri;
 	};
 
 	typedef StringMap Pairs;

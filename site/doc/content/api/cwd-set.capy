@@ -1,18 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "cwd_set"
-    page["kind"] = "api"
-    page["slug"] = "cwd-set"
-    page["route"] = "/doc/api/cwd-set/"
-    page["title"] = "cwd_set"
-    page["content"] = "`cwd_set()` changes the worker process working directory.\n\nSave the current directory with `cwd_get()`. Restore it after temporary use.\n"
-    page["label"] = "cwd_set"
-    page["capy_sig_lines"] = dval(["function cwd_set(path : string)"])
-    page["param_lines"] = dval(["path : the new working directory path", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "cwd_get", href: "/doc/api/cwd-get/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var old_path := cwd_get()\ncwd_set(\"/tmp\")\nprint(cwd_get(), \"\\n\")\ncwd_set(old_path)\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>cwd_set</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function cwd_set(path : string)</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>cwd_set()</code> changes the worker process working directory.</p><p>Save the current directory with <code>cwd_get()</code>. Restore it after temporary use.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>path : the new working directory path</p></div><div></div></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var old_path := cwd_get()\ncwd_set(&quot;/tmp&quot;)\nprint(cwd_get(), &quot;\\n&quot;)\ncwd_set(old_path)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/cwd-get/\">cwd_get</a></aside></div>")
 }

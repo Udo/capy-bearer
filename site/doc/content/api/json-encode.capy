@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "json_encode"
-    page["kind"] = "api"
-    page["slug"] = "json-encode"
-    page["route"] = "/doc/api/json-encode/"
-    page["title"] = "json_encode"
-    page["content"] = "`json_encode()` converts a string or `dval` value to JSON text. A `none` value becomes JSON `null`.\n"
-    page["returns"] = "JSON text."
-    page["label"] = "json_encode"
-    page["capy_sig_lines"] = dval(["function json_encode(value : dval) string", "function json_encode(value : string) string"])
-    page["param_lines"] = dval(["value : a string or `dval` value", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "json_decode", href: "/doc/api/json-decode/"}, {label: "html_escape", href: "/doc/api/html-escape/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "print(json_encode(dval({\"name\": \"Ada\", \"middle\": none})), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>json_encode</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function json_encode(value : dval) string\nfunction json_encode(value : string) string</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>json_encode()</code> converts a string or <code>dval</code> value to JSON text. A <code>none</code> value becomes JSON <code>null</code>.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>value : a string or <code>dval</code> value</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>JSON text.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">print(json_encode(dval({&quot;name&quot;: &quot;Ada&quot;, &quot;middle&quot;: none})), &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/json-decode/\">json_decode</a><a class=\"related-link\" href=\"/doc/api/html-escape/\">html_escape</a></aside></div>")
 }

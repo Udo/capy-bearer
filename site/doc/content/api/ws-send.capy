@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "ws_send"
-    page["kind"] = "api"
-    page["slug"] = "ws-send"
-    page["route"] = "/doc/api/ws-send/"
-    page["title"] = "ws_send"
-    page["content"] = "`ws_send()` sends a message to every client in the current scope. Pass `scope` to select a scope.\n"
-    page["returns"] = "`true` when the server queues the message for a client."
-    page["label"] = "ws_send"
-    page["capy_sig_lines"] = dval(["function ws_send(message : string, binary : bool) bool", "function ws_send(message : string, binary : bool, scope : string) bool"])
-    page["param_lines"] = dval(["message : message bytes to send", "binary : `true` for a binary frame", "scope : scope identifier", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "ws_send_to", href: "/doc/api/ws-send-to/"}])
-    page["examples"] = dval([{entry: "ws", caption: "", body: "ws_send(\"hello\", false)\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>ws_send</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function ws_send(message : string, binary : bool) bool\nfunction ws_send(message : string, binary : bool, scope : string) bool</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>ws_send()</code> sends a message to every client in the current scope. Pass <code>scope</code> to select a scope.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>message : message bytes to send</p></div><div><p>binary : <code>true</code> for a binary frame</p></div><div><p>scope : scope identifier</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p><code>true</code> when the server queues the message for a client.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">ws_send(&quot;hello&quot;, false)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/ws-send-to/\">ws_send_to</a></aside></div>")
 }

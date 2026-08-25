@@ -44,9 +44,14 @@ static pid_t server(const String& path, int mode)
             usleep(20000);
         }
     }
-    else
+    else if(mode == 3)
     {
         String response = record(6, String(4096, 'x')) + record(3, String(8, 0));
+        send(client, response.data(), response.size(), MSG_NOSIGNAL);
+    }
+    else
+    {
+        String response = record(6, "unframed worker output") + record(3, String(8, 0));
         send(client, response.data(), response.size(), MSG_NOSIGNAL);
     }
     close(client);
@@ -90,6 +95,8 @@ int main()
     if(deadline.ok || elapsed < 0.8 || elapsed > 1.8) ok = false;
     FcgiForwardResult limited = run(3, 128);
     if(limited.ok || limited.error.find("output limit") == String::npos) ok = false;
+    FcgiForwardResult unframed = run(4, 1024);
+    if(!unframed.ok || unframed.status != 200 || !unframed.headers.empty() || unframed.body != "unframed worker output") ok = false;
     unlink(path.c_str());
     if(!ok) return(1);
     return(0);

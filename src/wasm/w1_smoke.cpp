@@ -354,8 +354,44 @@ int main(int argc, char** argv)
 	CHECK(core.func("bearer_dv_is_none_brrb"), "core does not export bearer_dv_is_none_brrb");
 	CHECK(core.func("bearer_dv_require_brrb"), "core does not export bearer_dv_require_brrb");
 	CHECK(core.func("bearer_dv_set_path_brrb"), "core does not export bearer_dv_set_path_brrb");
+	CHECK(core.func("bearer_dv_callable_extract_brrb"), "core does not export bearer_dv_callable_extract_brrb");
+	CHECK(core.func("bearer_dv_callable_at_brrb"), "core does not export bearer_dv_callable_at_brrb");
 
 	wasm_memory_t* memory = core.memory();
+	auto callable_wire = [&](uint32_t pointer, uint32_t type) {
+		std::string scalar(8, '\0');
+		for(unsigned byte = 0; byte < 4; ++byte)
+		{
+			scalar[byte] = (char)(pointer >> (byte * 8));
+			scalar[byte + 4] = (char)(type >> (byte * 8));
+		}
+		return(brrb_document(brrb_node('C', scalar)));
+	};
+	auto expect_forged_callable = [&](uint32_t pointer, const char* label) {
+		std::string wire = callable_wire(pointer, 7);
+		int32_t wire_ptr = call_i32(core, "bearer_alloc", { (int32_t)wire.size() });
+		write_bytes(memory, wire_ptr, wire);
+		CHECK(call_i32(core, "bearer_dv_callable_extract_brrb", { wire_ptr, (int32_t)wire.size(), 7 }) == 0, "%s callable extraction accepted", label);
+		CHECK(call_i32(core, "bearer_dv_callable_at_brrb", { wire_ptr, (int32_t)wire.size(), 0 }) == 0, "%s callable enumeration accepted", label);
+	};
+	expect_forged_callable(0, "null");
+	expect_forged_callable(1, "unaligned");
+	expect_forged_callable((uint32_t)(wasm_memory_data_size(memory) - 4), "out-of-bounds");
+	int32_t wrong_type_header = call_i32(core, "bearer_alloc", { 24 });
+	std::string header(24, '\0');
+	auto store_u32 = [&](size_t offset, uint32_t value) {
+		for(unsigned byte = 0; byte < 4; ++byte)
+			header[offset + byte] = (char)(value >> (byte * 8));
+	};
+	store_u32(0, 1); store_u32(4, 1); store_u32(8, 0x40000000); store_u32(12, 24); store_u32(20, 8);
+	write_bytes(memory, wrong_type_header, header);
+	expect_forged_callable((uint32_t)wrong_type_header, "wrong-type");
+	call_i32(core, "bearer_free", { wrong_type_header });
+	std::string malformed_callable = brrb_document(brrb_node('C'));
+	int32_t malformed_callable_ptr = call_i32(core, "bearer_alloc", { (int32_t)malformed_callable.size() });
+	write_bytes(memory, malformed_callable_ptr, malformed_callable);
+	CHECK(call_i32(core, "bearer_dv_callable_extract_brrb", { malformed_callable_ptr, (int32_t)malformed_callable.size(), 7 }) == 0, "malformed callable extraction accepted");
+	CHECK(call_i32(core, "bearer_dv_callable_at_brrb", { malformed_callable_ptr, (int32_t)malformed_callable.size(), 0 }) == 0, "malformed callable enumeration accepted");
 	int32_t root = call_i32(core, "bearer_dv_root");
 	CHECK(root != 0, "bearer_dv_root returned null");
 	std::string key = "message";

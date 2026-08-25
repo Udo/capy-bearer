@@ -42,6 +42,17 @@ int main()
 	need(malformed(String("BRRB\x02\x01N\x00\x00", 9)), "none BRRB list flag rejection");
 	need(malformed(String("BRRB\x02\x02N\x00\x00", 9)), "none BRRB flags rejection");
 
+	DValue callable;
+	callable.set_type('C');
+	callable._ptr = (void*)(uintptr_t)4;
+	callable._array_index = 7;
+	String local_callable = brb_encode_local(callable);
+	need(brb_encode(callable) == none_brrb, "public callable projection");
+	need(malformed(local_callable), "private callable rejection");
+	DValue local_decoded;
+	need(brb_decode_local(local_callable, local_decoded, &error) && local_decoded.type == 'C' && local_decoded._ptr == callable._ptr && local_decoded._array_index == callable._array_index, "local callable decode");
+	need(malformed(String("BRRB\x02\x00C\x00\x00", 9)), "malformed callable rejection");
+
 	DValue tree;
 	tree["none"].set_none();
 	tree["list"].set_array();

@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "yaml_decode"
-    page["kind"] = "api"
-    page["slug"] = "yaml-decode"
-    page["route"] = "/doc/api/yaml-decode/"
-    page["title"] = "yaml_decode"
-    page["content"] = "`yaml_decode()` decodes YAML source into a `dval`.\n"
-    page["returns"] = "A `dval` that contains the decoded YAML."
-    page["label"] = "yaml_decode"
-    page["capy_sig_lines"] = dval(["function yaml_decode(source : string) dval"])
-    page["param_lines"] = dval(["source : YAML source", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "yaml_encode", href: "/doc/api/yaml-encode/"}, {label: "json_decode", href: "/doc/api/json-decode/"}, {label: "dvalue", href: "/doc/type/dvalue/"}, {label: "string", href: "/doc/api/string/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var value := yaml_decode(\"name: Ada\\n\")\nprint(value[\"name\"], \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>yaml_decode</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function yaml_decode(source : string) dval</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>yaml_decode()</code> decodes YAML source into a <code>dval</code>.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>source : YAML source</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>A <code>dval</code> that contains the decoded YAML.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var value := yaml_decode(&quot;name: Ada\\n&quot;)\nprint(value[&quot;name&quot;], &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/yaml-encode/\">yaml_encode</a><a class=\"related-link\" href=\"/doc/api/json-decode/\">json_decode</a><a class=\"related-link\" href=\"/doc/type/dvalue/\">dvalue</a><a class=\"related-link\" href=\"/doc/api/string/\">string</a></aside></div>")
 }

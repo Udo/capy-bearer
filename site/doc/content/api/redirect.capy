@@ -1,18 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "redirect"
-    page["kind"] = "api"
-    page["slug"] = "redirect"
-    page["route"] = "/doc/api/redirect/"
-    page["title"] = "redirect"
-    page["content"] = "`redirect()` sets the response location and status. The default status is `302`.\n"
-    page["label"] = "redirect"
-    page["capy_sig_lines"] = dval(["function redirect(url : string, code : s32 = 302)"])
-    page["param_lines"] = dval(["url : redirect target URL", "code : HTTP status code", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([])
-    page["examples"] = dval([{entry: "render", caption: "", body: "redirect(\"/next\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>redirect</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function redirect(url : string, code : s32 = 302)</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>redirect()</code> sets the response location and status. The default status is <code>302</code>.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>url : redirect target URL</p></div><div><p>code : HTTP status code</p></div><div></div></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">redirect(&quot;/next&quot;)\n</pre></div></div></main></div>")
 }

@@ -1,20 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "length"
-    page["kind"] = "api"
-    page["slug"] = "length"
-    page["route"] = "/doc/api/length/"
-    page["title"] = "length"
-    page["content"] = "`length()` counts bytes in strings and markup. It counts entries in `dval` maps and lists, and elements in arrays.\n"
-    page["returns"] = "A byte count for text and markup, or an entry count for maps, lists, and arrays."
-    page["errors"] = "`length()` traps when a scalar `dval` reaches it."
-    page["label"] = "length"
-    page["capy_sig_lines"] = dval(["function length(value : string) s32", "function length(value : markup) s32", "function length(value : dval) s32", "function length(value : [T]) s32"])
-    page["param_lines"] = dval(["value : text, markup, a `dval` map or list, or an array", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "split", href: "/doc/api/split/"}, {label: "join", href: "/doc/api/join/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "print(length(\"capy docs\"), \" / \", length(dval([\"a\", \"b\"])), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>length</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function length(value : string) s32\nfunction length(value : markup) s32\nfunction length(value : dval) s32\nfunction length(value : [T]) s32</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>length()</code> counts bytes in strings and markup. It counts entries in <code>dval</code> maps and lists, and elements in arrays.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>value : text, markup, a <code>dval</code> map or list, or an array</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>A byte count for text and markup, or an entry count for maps, lists, and arrays.</p></div><div class=\"doc-section\"><h3>Errors</h3><p><code>length()</code> traps when a scalar <code>dval</code> reaches it.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">print(length(&quot;capy docs&quot;), &quot; / &quot;, length(dval([&quot;a&quot;, &quot;b&quot;])), &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/split/\">split</a><a class=\"related-link\" href=\"/doc/api/join/\">join</a></aside></div>")
 }

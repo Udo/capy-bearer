@@ -63,7 +63,7 @@ scripts/test_dvalue_none_native.sh
 scripts/test_capy_exact_handle_native.sh
 "$BUILD_DIR/capyc" --parity-manifest "$PARITY_MANIFEST"
 cmp "$PARITY_MANIFEST" docs/capy-capability-manifest.md
-expected_manifest_pages=$(find site/doc/pages -type f -name '*.txt' | wc -l)
+expected_manifest_pages=$(find site/doc/source/api site/doc/source/type site/doc/source/handler -type f -name '*.txt' | wc -l)
 [[ $(grep -c '^| `' "$PARITY_MANIFEST") -eq $expected_manifest_pages ]]
 
 clang++ "${COMMON[@]}" src/capy/frontend.cpp scripts/test_capy_native_frontend.cpp \
@@ -91,7 +91,7 @@ cmp "$BUILD_DIR/phase1.wasm.source-map" "$BUILD_DIR/repeat/phase1.wasm.source-ma
 cp "$BUILD_DIR/phase1.wasm" "$BUILD_DIR/wrapper.wasm"
 wasm-validate "$BUILD_DIR/wrapper.wasm"
 
-for fixture in capy-arc capy-loop-control capy-phase3 capy-closures capy-markup capy-dval-rich capy-cross capy-module-target capy-module-caller capy-methods capy-mutable-array-struct capy-dval-identity; do
+for fixture in capy-arc capy-loop-control capy-phase3 capy-closures capy-dval-callable capy-dval-callable-signature-trap capy-markup capy-dval-rich capy-cross capy-module-target capy-module-caller capy-methods capy-mutable-array-struct capy-dval-identity; do
 	"$BUILD_DIR/capyc" "site/tests/$fixture.capy" \
 		-o "$BUILD_DIR/$fixture.wasm" --source-map "$BUILD_DIR/$fixture.wasm.source-map" --abi-version "$ABI_VERSION"
 	wasm-validate "$BUILD_DIR/$fixture.wasm"

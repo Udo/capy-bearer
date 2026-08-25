@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "file_pread"
-    page["kind"] = "api"
-    page["slug"] = "file-pread"
-    page["route"] = "/doc/api/file-pread/"
-    page["title"] = "file_pread"
-    page["content"] = "`file_pread` reads at an absolute byte offset. It does not change the handle position.\n"
-    page["returns"] = "A string with up to `length` bytes."
-    page["label"] = "file_pread"
-    page["capy_sig_lines"] = dval(["function file_pread(handle : u64, offset : u64, length : u64) string"])
-    page["param_lines"] = dval(["handle : readable handle returned by `file_open`", "offset : absolute byte offset", "length : maximum number of bytes to read", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "file_read", href: "/doc/api/file-read/"}, {label: "file_pwrite", href: "/doc/api/file-pwrite/"}, {label: "file_open", href: "/doc/api/file-open/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var writer := file_open(\"/tmp/doc-pread.txt\", \"w\")\nfile_write(writer, \"hello world\")\nfile_close(writer)\nvar reader := file_open(\"/tmp/doc-pread.txt\", \"r\")\nprint(file_pread(reader, u64(6), u64(5)), \"\\n\")\nfile_close(reader)\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>file_pread</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function file_pread(handle : u64, offset : u64, length : u64) string</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>file_pread</code> reads at an absolute byte offset. It does not change the handle position.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>handle : readable handle returned by <code>file_open</code></p></div><div><p>offset : absolute byte offset</p></div><div><p>length : maximum number of bytes to read</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>A string with up to <code>length</code> bytes.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var writer := file_open(&quot;/tmp/doc-pread.txt&quot;, &quot;w&quot;)\nfile_write(writer, &quot;hello world&quot;)\nfile_close(writer)\nvar reader := file_open(&quot;/tmp/doc-pread.txt&quot;, &quot;r&quot;)\nprint(file_pread(reader, u64(6), u64(5)), &quot;\\n&quot;)\nfile_close(reader)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/file-read/\">file_read</a><a class=\"related-link\" href=\"/doc/api/file-pwrite/\">file_pwrite</a><a class=\"related-link\" href=\"/doc/api/file-open/\">file_open</a></aside></div>")
 }

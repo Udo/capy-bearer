@@ -1,20 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "f64"
-    page["kind"] = "api"
-    page["slug"] = "f64"
-    page["route"] = "/doc/api/f64/"
-    page["title"] = "f64"
-    page["content"] = "`f64` converts a `dval` or a string to a floating-point value. The string form removes leading and trailing spaces. The value must contain a complete decimal number.\n"
-    page["returns"] = "An `f64` value, or `fallback`."
-    page["errors"] = "`f64` does not trap for an invalid conversion. It returns `fallback`."
-    page["label"] = "f64"
-    page["capy_sig_lines"] = dval(["function f64(value : dval, fallback : f64 = 0.0) f64", "function f64(value : string, fallback : f64 = 0.0) f64"])
-    page["param_lines"] = dval(["value : value to convert", "fallback : value to return when conversion fails", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "f64", href: "/doc/api/f64/"}, {label: "s64", href: "/doc/api/s64/"}, {label: "u64", href: "/doc/api/u64/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "print(f64(\" 3.5 \"), \"\\n\")\nprint(f64(\"not a number\", 9.0), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>f64</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function f64(value : dval, fallback : f64 = 0.0) f64\nfunction f64(value : string, fallback : f64 = 0.0) f64</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>f64</code> converts a <code>dval</code> or a string to a floating-point value. The string form removes leading and trailing spaces. The value must contain a complete decimal number.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>value : value to convert</p></div><div><p>fallback : value to return when conversion fails</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>An <code>f64</code> value, or <code>fallback</code>.</p></div><div class=\"doc-section\"><h3>Errors</h3><p><code>f64</code> does not trap for an invalid conversion. It returns <code>fallback</code>.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">print(f64(&quot; 3.5 &quot;), &quot;\\n&quot;)\nprint(f64(&quot;not a number&quot;, 9.0), &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/f64/\">f64</a><a class=\"related-link\" href=\"/doc/api/s64/\">s64</a><a class=\"related-link\" href=\"/doc/api/u64/\">u64</a></aside></div>")
 }

@@ -1,18 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "print"
-    page["kind"] = "api"
-    page["slug"] = "print"
-    page["route"] = "/doc/api/print/"
-    page["title"] = "print"
-    page["content"] = "`print()` converts each value to a string and writes the values in order.\n\nIt writes to the active output buffer when one exists. Otherwise, it writes to the response.\n"
-    page["label"] = "print"
-    page["capy_sig_lines"] = dval(["function print(...values : as string)"])
-    page["param_lines"] = dval(["values : the values to output", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "string", href: "/doc/api/string/"}, {label: "ob_start", href: "/doc/api/ob-start/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "print(\"hello docs\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>print</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function print(...values : as string)</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>print()</code> converts each value to a string and writes the values in order.</p><p>It writes to the active output buffer when one exists. Otherwise, it writes to the response.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>values : the values to output</p></div><div></div></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">print(&quot;hello docs\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/string/\">string</a><a class=\"related-link\" href=\"/doc/api/ob-start/\">ob_start</a></aside></div>")
 }

@@ -973,7 +973,6 @@ static bool component_render_with_props(String name, DValue& props, Request& req
 	if(!slot)
 	{
 		request.set_status(500, "Internal Server Error");
-		print(component_error_banner(resolve_error != "" ? resolve_error : "component not found: " + trim(name)));
 		return(false);
 	}
 	wasm_run_once(resolved, request);
@@ -1842,7 +1841,7 @@ size_t bearer_dv_string_to_brrb(const char* value, size_t value_len, char* out, 
 {
 	DValue encoded_value;
 	encoded_value.set(String(value ? value : "", value ? value_len : 0));
-	String encoded = brb_encode(encoded_value);
+	String encoded = brb_encode_local(encoded_value);
 	if(out && cap >= encoded.size())
 		memcpy(out, encoded.data(), encoded.size());
 	return(encoded.size());
@@ -1862,6 +1861,12 @@ static bool bearer_decode_brrb_span(const char* value, size_t value_len, DValue&
 {
 	String error;
 	return(brb_decode(String(value ? value : "", value ? value_len : 0), decoded, &error));
+}
+
+static bool bearer_decode_local_brrb_span(const char* value, size_t value_len, DValue& decoded)
+{
+	String error;
+	return(brb_decode_local(String(value ? value : "", value ? value_len : 0), decoded, &error));
 }
 
 static size_t bearer_copy_bytes(const String& value, char* out, size_t cap)
@@ -2326,14 +2331,14 @@ size_t bearer_dv_build_brrb(s32 list_mode, const BearerDValueEntry* entries, siz
 	for(size_t i = 0; i < count; i++)
 	{
 		DValue child;
-		if(!bearer_decode_brrb_span(entries[i].value, entries[i].value_len, child))
+		if(!bearer_decode_local_brrb_span(entries[i].value, entries[i].value_len, child))
 			return(0);
 		if(list_mode)
 			result.push(child);
 		else
 			result[String(entries[i].key ? entries[i].key : "", entries[i].key ? entries[i].key_len : 0)] = child;
 	}
-	return(bearer_copy_bytes(brb_encode(result), out, cap));
+	return(bearer_copy_bytes(brb_encode_local(result), out, cap));
 }
 
 size_t bearer_dv_merge_brrb(const char* left, size_t left_len, const char* right, size_t right_len, char* out, size_t cap)
@@ -2343,9 +2348,9 @@ size_t bearer_dv_merge_brrb(const char* left, size_t left_len, const char* right
 		wasm_dval_merge_result.clear();
 		DValue left_value;
 		DValue right_value;
-		if(!bearer_decode_brrb_span(left, left_len, left_value) || !bearer_decode_brrb_span(right, right_len, right_value))
+		if(!bearer_decode_local_brrb_span(left, left_len, left_value) || !bearer_decode_local_brrb_span(right, right_len, right_value))
 			return(std::numeric_limits<size_t>::max());
-		wasm_dval_merge_result = brb_encode(array_merge(left_value, right_value));
+		wasm_dval_merge_result = brb_encode_local(array_merge(left_value, right_value));
 		if(wasm_dval_merge_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
 		{
 			wasm_dval_merge_result.clear();
@@ -2357,18 +2362,19 @@ size_t bearer_dv_merge_brrb(const char* left, size_t left_len, const char* right
 }
 
 static bool bearer_brrb_call_decode(const char* value, size_t value_len, const char* key, size_t key_len,
-	const char* argument, size_t argument_len, DValue& result, DValue& supplied, String& text)
+	const char* argument, size_t argument_len, DValue& result, DValue& supplied, String& text, bool local = false)
 {
 	wasm_dval_merge_result.clear();
-	if(!bearer_decode_brrb_span(value, value_len, result) || !bearer_decode_brrb_span(argument, argument_len, supplied))
+	auto decode = local ? bearer_decode_local_brrb_span : bearer_decode_brrb_span;
+	if(!decode(value, value_len, result) || !decode(argument, argument_len, supplied))
 		return(false);
 	text = String(key ? key : "", key ? key_len : 0);
 	return(true);
 }
 
-static size_t bearer_brrb_call_finish(const DValue& result)
+static size_t bearer_brrb_call_finish(const DValue& result, bool local = false)
 {
-	wasm_dval_merge_result = brb_encode(result);
+	wasm_dval_merge_result = local ? brb_encode_local(result) : brb_encode(result);
 	if(wasm_dval_merge_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
 	{
 		wasm_dval_merge_result.clear();
@@ -2389,7 +2395,7 @@ size_t bearer_dv_apply_brrb(s32 operation, const char* value, size_t value_len, 
 		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text, true))
 		return(std::numeric_limits<size_t>::max());
 	enum class DValueOperation { dval_dval_set = 0, dval_dval_push = 1, dval_dval_pop = 2, dval_dval_remove = 3, dval_dval_clear = 4, dval_dval_get_by_path = 5, dval_dval_get_or_create = 6, dval_dval_set_array = 7, dval_dval_set_bool = 8, dval_dval_set_type = 9, dval_dval_get_type_name = 10, dval_dval_is_array = 11, dval_dval_is_list = 12, dval_dval_key = 13, dval_dval_keys = 14, dval_dval_values = 15, dval_dval_put = 18 };
 	switch(static_cast<DValueOperation>(operation))
@@ -2415,7 +2421,7 @@ size_t bearer_dv_apply_brrb(s32 operation, const char* value, size_t value_len, 
 			// the only implementation of parsing, routing, and diagnostic policy.
 		default: return(std::numeric_limits<size_t>::max());
 	}
-	return(bearer_brrb_call_finish(result));
+	return(bearer_brrb_call_finish(result, true));
 }
 
 size_t bearer_text_parsing_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
@@ -2542,7 +2548,7 @@ size_t bearer_codec_archive_brrb(s32 operation, const char* value, size_t value_
 		return(bearer_brrb_call_copy(out, cap));
 	DValue result, supplied;
 	String text;
-	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
+	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text, true))
 		return(std::numeric_limits<size_t>::max());
 	enum class ArchiveOperation { archive_brb_decode = 0, archive_brb_encode = 1, archive_xml_decode = 2, archive_xml_encode = 3, archive_yaml_decode = 4, archive_yaml_encode = 5, archive_markdown_to_html = 6, archive_markdown_to_ast = 7, archive_json_consume_space = 8, archive_json_encode = 9, archive_json_encode_10 = 10, archive_html_escape = 11, archive_gz_compress = 12, archive_gz_uncompress = 13, archive_zip_list = 14, archive_zip_read = 15, archive_zip_create = 16, archive_zip_extract = 17 };
 	switch(static_cast<ArchiveOperation>(operation))
@@ -2809,7 +2815,58 @@ size_t bearer_dv_none_brrb(char* out, size_t cap)
 {
 	DValue value;
 	value.set_none();
-	return(bearer_copy_bytes(brb_encode(value), out, cap));
+	return(bearer_copy_bytes(brb_encode_local(value), out, cap));
+}
+
+size_t bearer_dv_callable_brrb(s32 closure, s32 type, char* out, size_t cap)
+{
+	DValue value;
+	value.set_type('C');
+	value._ptr = (void*)(uintptr_t)(u32)closure;
+	value._array_index = type;
+	return(bearer_copy_bytes(brb_encode_local(value), out, cap));
+}
+
+static bool bearer_dv_callable_valid(const DValue& value)
+{
+	const DValue& node = value.deref();
+	if(node.type != 'C')
+		return(false);
+	u32 pointer = (u32)(uintptr_t)node._ptr;
+	size_t memory_size = (size_t)__builtin_wasm_memory_size(0) << 16;
+	if(pointer == 0 || (pointer & 3) != 0 || pointer > memory_size || memory_size - pointer < 24)
+		return(false);
+	const u32* header = (const u32*)(uintptr_t)pointer;
+	u32 references = header[0], kind = header[1], allocation_type = header[2], allocation_size = header[3];
+	if(allocation_size < 24 || allocation_size > memory_size - pointer || header[5] != (u32)node._array_index)
+		return(false);
+	if(references == std::numeric_limits<u32>::max())
+		return(kind == std::numeric_limits<u32>::max() && allocation_type == 0x3fffffffu && allocation_size == 24);
+	return(references != 0 && kind == 1 && allocation_type >= 0x40000000u);
+}
+
+s32 bearer_dv_callable_extract_brrb(const char* value, size_t value_len, s32 type)
+{
+	DValue decoded;
+	if(!bearer_decode_local_brrb_span(value, value_len, decoded) || decoded.deref().type != 'C' || decoded._array_index != type || !bearer_dv_callable_valid(decoded))
+		return(0);
+	return((s32)(uintptr_t)decoded._ptr);
+}
+
+static void bearer_dv_callable_each(const DValue& value, const std::function<void(s32)>& visit)
+{
+	const DValue& node = value.deref();
+	if(node.type == 'C' && bearer_dv_callable_valid(node)) visit((s32)(uintptr_t)node._ptr);
+	else if(node.type == 'M') for(const auto& entry : node._map) bearer_dv_callable_each(entry.second, visit);
+}
+
+s32 bearer_dv_callable_at_brrb(const char* value, size_t value_len, s32 ordinal)
+{
+	DValue decoded;
+	if(ordinal < 0 || !bearer_decode_local_brrb_span(value, value_len, decoded)) return(0);
+	s32 position = 0, closure = 0;
+	bearer_dv_callable_each(decoded, [&](s32 value) { if(position++ == ordinal) closure = value; });
+	return(closure);
 }
 
 static const DValue* bearer_dv_lookup(const DValue& value, s32 index_mode, const char* key, size_t key_len, s32 index)
@@ -2827,16 +2884,16 @@ s32 bearer_dv_read_brrb(const char* value, size_t value_len, s32 index_mode,
 		return((s32)bearer_copy_staged(wasm_dval_read_result, out, cap));
 	wasm_dval_read_result.clear();
 	DValue decoded;
-	if(!bearer_decode_brrb_span(value, value_len, decoded))
+	if(!bearer_decode_local_brrb_span(value, value_len, decoded))
 		return(-2);
 	const DValue* child = bearer_dv_lookup(decoded, index_mode, key, key_len, index);
 	if(child)
-		wasm_dval_read_result = brb_encode(*child);
+		wasm_dval_read_result = brb_encode_local(*child);
 	else
 	{
 		DValue none;
 		none.set_none();
-		wasm_dval_read_result = brb_encode(none);
+		wasm_dval_read_result = brb_encode_local(none);
 	}
 	return((s32)wasm_dval_read_result.size());
 }
@@ -2844,7 +2901,7 @@ s32 bearer_dv_read_brrb(const char* value, size_t value_len, s32 index_mode,
 s32 bearer_dv_is_none_brrb(const char* value, size_t value_len)
 {
 	DValue decoded;
-	if(!bearer_decode_brrb_span(value, value_len, decoded))
+	if(!bearer_decode_local_brrb_span(value, value_len, decoded))
 		return(-1);
 	return(decoded.is_none() ? 1 : 0);
 }
@@ -2871,14 +2928,14 @@ size_t bearer_dv_require_brrb(const char* value, size_t value_len, const char* s
 	wasm_dval_require_result.clear();
 	DValue decoded, segment;
 	String key;
-	if(!bearer_decode_brrb_span(value, value_len, decoded) || !bearer_decode_brrb_span(selector, selector_len, segment) ||
+	if(!bearer_decode_local_brrb_span(value, value_len, decoded) || !bearer_decode_local_brrb_span(selector, selector_len, segment) ||
 		!decoded.is_array() || !bearer_dv_path_key(segment, key) ||
 		(decoded.is_list() && segment.deref().type == 'F' && segment.deref()._float < 0))
 		return(std::numeric_limits<size_t>::max());
 	const DValue* child = decoded.key(key);
 	if(!child)
 		return(std::numeric_limits<size_t>::max());
-	wasm_dval_require_result = brb_encode(*child);
+	wasm_dval_require_result = brb_encode_local(*child);
 	return(wasm_dval_require_result.size());
 }
 
@@ -2889,8 +2946,8 @@ size_t bearer_dv_set_path_brrb(const char* root, size_t root_len, const char* pa
 		return(bearer_copy_staged(wasm_dval_path_result, out, cap));
 	wasm_dval_path_result.clear();
 	DValue result, selectors, supplied;
-	if(!bearer_decode_brrb_span(root, root_len, result) || !bearer_decode_brrb_span(path, path_len, selectors) ||
-		!bearer_decode_brrb_span(replacement, replacement_len, supplied) || !selectors.is_list() || selectors._map.empty())
+	if(!bearer_decode_local_brrb_span(root, root_len, result) || !bearer_decode_local_brrb_span(path, path_len, selectors) ||
+		!bearer_decode_local_brrb_span(replacement, replacement_len, supplied) || !selectors.is_list() || selectors._map.empty())
 		return(std::numeric_limits<size_t>::max());
 	DValue* current = &result;
 	for(size_t position = 0; position < selectors._map.size(); position++)
@@ -2935,7 +2992,7 @@ size_t bearer_dv_set_path_brrb(const char* root, size_t root_len, const char* pa
 		}
 		current = &child->second;
 	}
-	wasm_dval_path_result = brb_encode(result);
+	wasm_dval_path_result = brb_encode_local(result);
 	return(wasm_dval_path_result.size());
 }
 
@@ -2943,13 +3000,13 @@ s32 bearer_dv_get_brrb(const char* value, size_t value_len, s32 index_mode,
 	const char* key, size_t key_len, s32 index, char* out, size_t cap)
 {
 	DValue decoded;
-	if(!bearer_decode_brrb_span(value, value_len, decoded) || !decoded.is_array())
+	if(!bearer_decode_local_brrb_span(value, value_len, decoded) || !decoded.is_array())
 		return(-2);
 	String lookup = index_mode ? std::to_string(index) : String(key ? key : "", key ? key_len : 0);
 	const DValue* child = decoded.key(lookup);
 	if(!child)
 		return(-1);
-	String encoded = brb_encode(*child);
+	String encoded = brb_encode_local(*child);
 	bearer_copy_bytes(encoded, out, cap);
 	return((s32)encoded.size());
 }
@@ -2957,7 +3014,7 @@ s32 bearer_dv_get_brrb(const char* value, size_t value_len, s32 index_mode,
 s32 bearer_dv_count_brrb(const char* value, size_t value_len)
 {
 	DValue decoded;
-	if(!bearer_decode_brrb_span(value, value_len, decoded) || !decoded.is_array())
+	if(!bearer_decode_local_brrb_span(value, value_len, decoded) || !decoded.is_array())
 		return(-1);
 	return((s32)decoded._map.size());
 }
@@ -2982,7 +3039,7 @@ s32 bearer_dv_entry_key_brrb(const char* value, size_t value_len, size_t ordinal
 	DValue decoded;
 	String key;
 	const DValue* child = 0;
-	if(!bearer_decode_brrb_span(value, value_len, decoded) || !decoded.is_array() || !bearer_dv_entry_at(decoded, ordinal, key, child))
+	if(!bearer_decode_local_brrb_span(value, value_len, decoded) || !decoded.is_array() || !bearer_dv_entry_at(decoded, ordinal, key, child))
 		return(-1);
 	bearer_copy_bytes(key, out, cap);
 	return((s32)key.size());
@@ -2993,9 +3050,9 @@ s32 bearer_dv_entry_value_brrb(const char* value, size_t value_len, size_t ordin
 	DValue decoded;
 	String key;
 	const DValue* child = 0;
-	if(!bearer_decode_brrb_span(value, value_len, decoded) || !decoded.is_array() || !bearer_dv_entry_at(decoded, ordinal, key, child))
+	if(!bearer_decode_local_brrb_span(value, value_len, decoded) || !decoded.is_array() || !bearer_dv_entry_at(decoded, ordinal, key, child))
 		return(-1);
-	String encoded = brb_encode(*child);
+	String encoded = brb_encode_local(*child);
 	bearer_copy_bytes(encoded, out, cap);
 	return((s32)encoded.size());
 }
@@ -3226,7 +3283,7 @@ void bearer_wasm_finish_output()
 {
 	// ob_stack[0] is the request's primary stream; nested captures above it
 	// belong to unbalanced ob_start() calls and are intentionally ignored
-	wasm_output = wasm_request.ob_stack.empty() ? String("") : wasm_request.ob_stack[0]->str();
+	wasm_output = wasm_request.ob_stack.empty() ? String("") : std::move(*wasm_request.ob_stack[0]).str();
 }
 
 const char* bearer_wasm_output_data()

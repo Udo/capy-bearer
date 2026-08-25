@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "call"
-    page["kind"] = "api"
-    page["slug"] = "call"
-    page["route"] = "/doc/api/call/"
-    page["title"] = "call"
-    page["content"] = "`call()` calls an exported function in a loaded unit. It returns the result as `dval`.\n\nUse `unit_load()` once when several calls use the same unit. The two-argument form passes an empty `dval`.\n"
-    page["returns"] = "The exported function result."
-    page["label"] = "call"
-    page["capy_sig_lines"] = dval(["function call(handle : module, name : string) dval", "function call(handle : module, name : string, input : as dval) dval"])
-    page["param_lines"] = dval(["handle : a value from `unit_load()`", "name : an exported function name", "input : optional `dval` input", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "unit_load", href: "/doc/api/unit-load/"}, {label: "unit_call", href: "/doc/api/unit-call/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var handle := unit_load(\"/doc/examples/call_target.capy\")\nvar result := call(handle, \"echo\", {name: \"Ada\"})\nprint(string(result.name), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>call</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function call(handle : module, name : string) dval\nfunction call(handle : module, name : string, input : as dval) dval</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>call()</code> calls an exported function in a loaded unit. It returns the result as <code>dval</code>.</p><p>Use <code>unit_load()</code> once when several calls use the same unit. The two-argument form passes an empty <code>dval</code>.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>handle : a value from <code>unit_load()</code></p></div><div><p>name : an exported function name</p></div><div><p>input : optional <code>dval</code> input</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>The exported function result.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var handle := unit_load(&quot;/doc/examples/call_target.capy&quot;)\nvar result := call(handle, &quot;echo&quot;, {name: &quot;Ada&quot;})\nprint(string(result.name), &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/unit-load/\">unit_load</a><a class=\"related-link\" href=\"/doc/api/unit-call/\">unit_call</a></aside></div>")
 }

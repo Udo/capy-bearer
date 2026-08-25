@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "file_pwrite"
-    page["kind"] = "api"
-    page["slug"] = "file-pwrite"
-    page["route"] = "/doc/api/file-pwrite/"
-    page["title"] = "file_pwrite"
-    page["content"] = "`file_pwrite` writes text at an absolute byte offset. It does not change the handle position.\n"
-    page["returns"] = "The number of bytes written."
-    page["label"] = "file_pwrite"
-    page["capy_sig_lines"] = dval(["function file_pwrite(handle : u64, offset : u64, data : string) u64"])
-    page["param_lines"] = dval(["handle : writable handle returned by `file_open`", "offset : absolute byte offset", "data : text to write", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "file_write", href: "/doc/api/file-write/"}, {label: "file_pread", href: "/doc/api/file-pread/"}, {label: "file_open", href: "/doc/api/file-open/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var handle := file_open(\"/tmp/doc-pwrite.txt\", \"w\")\nfile_write(handle, \"hello world\")\nfile_close(handle)\nvar editor := file_open(\"/tmp/doc-pwrite.txt\", \"r+\")\nfile_pwrite(editor, u64(6), \"earth\")\nfile_close(editor)\nprint(file_get_contents(\"/tmp/doc-pwrite.txt\"), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>file_pwrite</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function file_pwrite(handle : u64, offset : u64, data : string) u64</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>file_pwrite</code> writes text at an absolute byte offset. It does not change the handle position.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>handle : writable handle returned by <code>file_open</code></p></div><div><p>offset : absolute byte offset</p></div><div><p>data : text to write</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>The number of bytes written.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var handle := file_open(&quot;/tmp/doc-pwrite.txt&quot;, &quot;w&quot;)\nfile_write(handle, &quot;hello world&quot;)\nfile_close(handle)\nvar editor := file_open(&quot;/tmp/doc-pwrite.txt&quot;, &quot;r+&quot;)\nfile_pwrite(editor, u64(6), &quot;earth&quot;)\nfile_close(editor)\nprint(file_get_contents(&quot;/tmp/doc-pwrite.txt&quot;), &quot;\\n&quot;)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/file-write/\">file_write</a><a class=\"related-link\" href=\"/doc/api/file-pread/\">file_pread</a><a class=\"related-link\" href=\"/doc/api/file-open/\">file_open</a></aside></div>")
 }

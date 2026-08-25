@@ -216,6 +216,9 @@ struct Request {
 		u64 wasm_ready_worker_us = 0;
 		u32 wasm_ready_check_count = 0;
 		u32 wasm_ready_freshness_cache_hit_count = 0;
+		u64 native_response_assembly_us = 0;
+		u64 native_fastcgi_framing_us = 0;
+		bool native_transport_recorded = false;
 		u64 mem_high = 0;
 		u64 mem_alloc = 0;
 		u32 invoke_count = 0;

@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "dir_list"
-    page["kind"] = "api"
-    page["slug"] = "dir-list"
-    page["route"] = "/doc/api/dir-list/"
-    page["title"] = "dir_list"
-    page["content"] = "`dir_list()` returns one map for each directory entry.\n\nEach map has `name`, `type`, `size`, and `mtime`. The `type` value is `file`, `dir`, `symlink`, or `other`.\n"
-    page["returns"] = "A `dval` list of entry maps."
-    page["label"] = "dir_list"
-    page["capy_sig_lines"] = dval(["function dir_list(path : string) dval"])
-    page["param_lines"] = dval(["path : the directory path to list", ""])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([{label: "ls", href: "/doc/api/ls/"}, {label: "file_stat", href: "/doc/api/file-stat/"}, {label: "dir_remove", href: "/doc/api/dir-remove/"}])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var root := file_temp(\"/tmp/capy-doc-dir-list-\")\nfile_unlink(root)\nmkdir(root)\nfile_put_contents(path_join(root, \"note.txt\"), \"hi\")\nfor item, key := dir_list(root) { print(string(item.name), \"\\n\") }\ndir_remove(root, true)\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>dir_list</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function dir_list(path : string) dval</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>dir_list()</code> returns one map for each directory entry.</p><p>Each map has <code>name</code>, <code>type</code>, <code>size</code>, and <code>mtime</code>. The <code>type</code> value is <code>file</code>, <code>dir</code>, <code>symlink</code>, or <code>other</code>.</p></div><div class=\"doc-section params\"><h3>Parameters</h3><div><p>path : the directory path to list</p></div><div></div></div><div class=\"doc-section\"><h3>Return Values</h3><p>A <code>dval</code> list of entry maps.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var root := file_temp(&quot;/tmp/capy-doc-dir-list-&quot;)\nfile_unlink(root)\nmkdir(root)\nfile_put_contents(path_join(root, &quot;note.txt&quot;), &quot;hi&quot;)\nfor item, key := dir_list(root) { print(string(item.name), &quot;\\n&quot;) }\ndir_remove(root, true)\n</pre></div></div></main><aside class=\"doc-section see-also\"><h3>See also</h3><a class=\"related-link\" href=\"/doc/api/ls/\">ls</a><a class=\"related-link\" href=\"/doc/api/file-stat/\">file_stat</a><a class=\"related-link\" href=\"/doc/api/dir-remove/\">dir_remove</a></aside></div>")
 }

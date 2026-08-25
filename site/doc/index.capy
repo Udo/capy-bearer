@@ -10,14 +10,12 @@ function render_not_found(request : dval) void {
 }
 
 function render_doc_page(request : dval, path : string) void {
-    ob_start()
-    var rendered := component_render(path)
-    var page := ob_get_close()
-    if !rendered {
-        render_not_found(request)
-        return
+    print("<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></meta><title>Capy-Bearer Documentation</title><link rel=\"stylesheet\" href=\"/doc/style.css\"></link></head><body><h1><a href=\"/doc/\">Capy-Bearer Documentation</a></h1>")
+    if !component_render(path) {
+        request.out.status = 404
+        print("<main class=\"content doc-page\"><h2>Page not found</h2></main>")
     }
-    print("<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></meta><title>Capy-Bearer Documentation</title><link rel=\"stylesheet\" href=\"/doc/style.css\"></link></head><body><h1><a href=\"/doc/\">Capy-Bearer Documentation</a></h1>", page, "</body></html>")
+    print("</body></html>")
 }
 
 function RENDER(request : dval) {
@@ -30,9 +28,18 @@ function RENDER(request : dval) {
             kind = substr(pretty, 0, slash)
             slug = substr(pretty, slash + 1)
         }
-        if (kind == "api" || kind == "type" || kind == "handler" || kind == "guide") && slug != "" && strpos(slug, "/") < 0 && slug != "." && slug != ".." {
+        if kind != "" && slug != "" && route_path_is_safe(kind) && route_path_is_safe(slug) {
             var content_path := "/doc/content/" + kind + "/" + slug + ".capy"
             render_doc_page(request, content_path)
+            return
+        }
+        render_not_found(request)
+        return
+    }
+    var utility := string(request.query.utility, "")
+    if utility != "" {
+        if route_path_is_safe(utility) {
+            render_doc_page(request, "/doc/components/" + utility + ".capy")
             return
         }
         render_not_found(request)

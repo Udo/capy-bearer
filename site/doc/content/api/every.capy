@@ -1,19 +1,3 @@
 function COMPONENT(request : dval) {
-    var page := dval({source_page: ""})
-    page["source_page"] = "every"
-    page["kind"] = "api"
-    page["slug"] = "every"
-    page["route"] = "/doc/api/every/"
-    page["title"] = "Test every string"
-    page["content"] = "`every` tests each string in a list-shaped `dval` with `predicate`.\n\nThis function does not change `items`.\n"
-    page["returns"] = "This function returns `true` when every item matches. It returns `true` for an empty list."
-    page["label"] = "every"
-    page["capy_sig_lines"] = dval(["function every(items : dval, predicate : function(value : string) bool) bool"])
-    page["param_lines"] = dval([])
-    page["notes"] = dval([])
-    page["warnings"] = dval([])
-    page["see"] = dval([])
-    page["examples"] = dval([{entry: "render", caption: "", body: "var items := split(\"one,two\", \",\")\nprint(every(items, function(value : string) bool { return value != \"\" }), \"\\n\")\n"}])
-    page["guide_examples"] = dval([])
-    component_render("/doc/components/doc_page.capy", page)
+    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>Test every string</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function every(items : dval, predicate : function(value : string) bool) bool</pre></div><div class=\"doc-section content\"><h3>Description</h3><p><code>every</code> tests each string in a list-shaped <code>dval</code> with <code>predicate</code>.</p><p>This function does not change <code>items</code>.</p></div><div class=\"doc-section\"><h3>Return Values</h3><p>This function returns <code>true</code> when every item matches. It returns <code>true</code> for an empty list.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">var items := split(&quot;one,two&quot;, &quot;,&quot;)\nprint(every(items, function(value : string) bool { return value != &quot;&quot; }), &quot;\\n&quot;)\n</pre></div></div></main></div>")
 }
