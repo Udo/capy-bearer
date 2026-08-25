@@ -11,7 +11,7 @@ job : a job ID as `dval`
 `job_cancel()` requests cancellation of a job. A canceled job reports the `cancelled` state.
 
 :example capy render
-var job := shell_spawn(dval({"cmd": "sleep 5", "timeout_ms": 10000}))
+var job := shell_exec("sleep 5", {background: true, timeout_ms: 10000})
 print(job_cancel(job), "\n")
 
 :see

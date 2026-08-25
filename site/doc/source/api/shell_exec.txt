@@ -1,11 +1,36 @@
 :sig
 function shell_exec(command : string) string
+function shell_exec(command : string, flags : as dval) dval
+
+:params
+command : the shell command
+flags : execution options
 
 :returns
-Command output.
+The one-argument form returns command output. With `background: true`, the two-argument form returns a job identifier. With `background: false` or no `background` key, it returns an execution result map.
 
 :content
-Use `shell_exec` to run a shell command and get its output. Escape external values with `shell_escape` before you add them to the command.
+Use the one-argument form to run a shell command and get its output. Escape external values with `shell_escape` before you add them to the command.
+
+Use the two-argument form with `background: true` to start a background job. Use `background: false`, or omit it, to wait for the command. The synchronous result map has `exit_code`, `stdout`, `stderr`, `timed_out`, and `output_truncated`.
+
+The valid flag keys are `stdin`, `env`, `timeout_ms`, and `background`. `stdin` must be a string. `env` must be a non-list map with string values. `timeout_ms` must be a positive number. `background` must be a bool. An unrecognized key causes a hard error that lists all valid keys.
+
+Use `job_status`, `job_result`, `job_await`, and `job_cancel` with a background job identifier. Validate the final state before you read result data.
+
+The shell interprets `command`. Do not build it from request data or other untrusted input.
 
 :example capy render
 print(shell_exec("printf hello"), "\n")
+
+:example capy render
+var job := shell_exec("printf hello", {background: true, timeout_ms: 1000})
+var result := job_await(job, 3000)
+print(get_by_path(result, "result/stdout"), "\n")
+
+:see
+shell_escape
+job_status
+job_result
+job_await
+job_cancel

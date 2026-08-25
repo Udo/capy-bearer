@@ -11,7 +11,9 @@ key : the entry key
 :content
 `memcache_delete()` deletes the entry for `key`.
 
-It returns `true` only when the server returns `DELETED`.
+It returns `true` only when the server returns `DELETED`. It normalizes whitespace in keys to underscores before it sends the request.
+
+This normalization is transparent. The keys `"a b"` and `"a_b"` address the same entry.
 
 :example capy render
 var connection := memcache_connect()

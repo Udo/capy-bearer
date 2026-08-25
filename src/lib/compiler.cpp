@@ -278,7 +278,7 @@ UnitSourceSignatureEntry compiler_unit_source_entry(const CompilerLimits& limits
 		}
 	}
 	String content = file_get_contents(file_name);
-	entry.content_hash = gen_sha1(content);
+	entry.content_hash = hex(gen_sha1(content));
 	entry.dependency_paths = compiler_unit_dependency_paths(file_name, content);
 	{
 		std::lock_guard<std::mutex> lock(unit_source_signature_cache_mutex);
@@ -330,7 +330,7 @@ String compiler_unit_source_signature(Request* context, String file_name, bool a
 	std::set<String> visited;
 	String signature = "capy-import-graph-v1\n";
 	compiler_append_unit_source_signature(compiler_limits(context), file_name, visited, signature, allow_recent_stat);
-	return(gen_sha1(signature));
+	return(hex(gen_sha1(signature)));
 }
 
 bool compiler_find_unit_load_cycle(const CompilerLimits& limits, String file_name, std::vector<String>& stack, std::set<String>& complete, String& cycle, u64& nodes)
@@ -415,9 +415,9 @@ String compiler_unit_metadata_text(Request* context, SharedUnit* su, String inpu
 		"wasm_core_abi_version=" + std::to_string(BEARER_WASM_CORE_ABI_VERSION) + "\n"
 		"source_path=" + su->file_name + "\n"
 		"input_signature=" + input_signature + "\n"
-		"wasm_sha256=" + sha256_hex_native(file_get_contents(wasm_path)) + "\n"
-		"exports_sha256=" + sha256_hex_native(file_get_contents(exports_path)) + "\n"
-		"source_map_sha256=" + sha256_hex_native(file_get_contents(source_map_path)) + "\n"
+		"wasm_sha256=" + hex(sha256_native(file_get_contents(wasm_path))) + "\n"
+		"exports_sha256=" + hex(sha256_native(file_get_contents(exports_path))) + "\n"
+		"source_map_sha256=" + hex(sha256_native(file_get_contents(source_map_path))) + "\n"
 		"build_token=" + compiler_unit_build_token() + "\n"
 	);
 }
@@ -1753,11 +1753,6 @@ String component_resolve(String name)
 {
 	(void)name;
 	return("");
-}
-
-bool component_exists(String name)
-{
-	return(component_resolve(name) != "");
 }
 
 String component_error_banner(String message)

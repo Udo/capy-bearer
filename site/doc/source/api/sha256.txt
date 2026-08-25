@@ -5,7 +5,10 @@ function sha256(value : string) string
 Raw 32-byte SHA-256 digest.
 
 :content
-Use `sha256` to create a raw SHA-256 digest. Use `sha256_hex` when you need hexadecimal text.
+`sha256()` returns 32 raw SHA-256 bytes. Use `hex(sha256(value))` when you need lowercase hexadecimal text.
 
 :example capy render
-print(length(sha256("abc")), "\n")
+print(hex(sha256("abc")), "\n")
+
+:see
+hex

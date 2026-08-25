@@ -1,0 +1,21 @@
+:sig
+function hex(value : string) string
+
+:params
+value : bytes to encode
+
+:returns
+Lowercase hexadecimal text.
+
+:content
+`hex()` converts each input byte to two lowercase hexadecimal characters.
+
+Use it to make digest bytes printable. For example, `hex(sha256(value))` returns a SHA-256 digest as lowercase hexadecimal text.
+
+:example capy render
+print(hex(sha256("abc")), "\n")
+
+:see
+sha256
+hmac_sha256
+gen_sha1

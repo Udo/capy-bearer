@@ -4,9 +4,7 @@ bearer_host_env
 bearer_host_log
 bearer_host_random
 bearer_host_sha256
-bearer_host_sha256_hex
 bearer_host_hmac_sha256
-bearer_host_hmac_sha256_hex
 bearer_host_base64_encode
 bearer_host_base64_decode
 bearer_host_crypto_equal
@@ -37,10 +35,9 @@ bearer_host_module_copy
 bearer_host_module_reset
 bearer_host_request_perf
 bearer_host_shell_exec
+bearer_host_shell_exec_flags
 bearer_host_http_request
 bearer_host_http_request_async
-bearer_host_shell_exec_dv
-bearer_host_shell_spawn
 bearer_host_job_status
 bearer_host_job_result
 bearer_host_job_await

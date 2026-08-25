@@ -8,10 +8,10 @@ job : a job ID as `dval`
 A job status map. A completed job includes `result`.
 
 :content
-`job_result()` checks a job with a short bounded wait. Use it to poll a job after `shell_spawn()` or `http_request_async()`.
+`job_result()` checks a job with a short bounded wait. Use it to poll a job after `shell_exec(command, flags)` or `http_request_async()`.
 
 :example capy render
-var job := shell_spawn(dval({"cmd": "printf result", "timeout_ms": 1000}))
+var job := shell_exec("printf result", {background: true, timeout_ms: 1000})
 job_await(job, 3000)
 print(get_by_path(job_result(job), "result/stdout"), "\n")
 

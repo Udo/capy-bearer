@@ -4,7 +4,6 @@ String Functions
 string
 length
 clone
-ascii_safe_name
 base64_decode
 base64_encode
 contains

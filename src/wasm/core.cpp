@@ -855,11 +855,6 @@ String component_resolve(String name)
 	return("");
 }
 
-bool component_exists(String name)
-{
-	return(component_resolve(name) != "");
-}
-
 // Run a unit's ONCE() handler at most once per request (native
 // compiler_run_unit_once_if_needed semantics): dedup on the resolved unit
 // path via request.once_units. The handler emits head assets, etc.
@@ -1520,18 +1515,15 @@ size_t bearer_codec_dval(s32 operation, const char* input, size_t input_len, cha
 
 size_t bearer_crypto_string(s32 operation, const char* a, size_t a_len, const char* b, size_t b_len, char* out, size_t cap)
 {
-	enum class CryptoStringOperation { sha256 = 0, sha256_hex = 1, hmac_sha256 = 2, hmac_sha256_hex = 3, sha1_hex = 4, sha1_binary = 5, password_hash = 6 };
+	enum class CryptoStringOperation { sha256 = 0, hmac_sha256 = 1, sha1 = 2, password_hash = 3 };
 	if(!out)
 	{
 		String left(a ? a : "", a ? a_len : 0), right(b ? b : "", b ? b_len : 0);
 		switch(static_cast<CryptoStringOperation>(operation))
 		{
 			case CryptoStringOperation::sha256: wasm_crypto_result = sha256(left); break;
-			case CryptoStringOperation::sha256_hex: wasm_crypto_result = sha256_hex(left); break;
 			case CryptoStringOperation::hmac_sha256: wasm_crypto_result = hmac_sha256(left, right); break;
-			case CryptoStringOperation::hmac_sha256_hex: wasm_crypto_result = hmac_sha256_hex(left, right); break;
-			case CryptoStringOperation::sha1_hex: wasm_crypto_result = gen_sha1(left, false); break;
-			case CryptoStringOperation::sha1_binary: wasm_crypto_result = gen_sha1(left, true); break;
+			case CryptoStringOperation::sha1: wasm_crypto_result = gen_sha1(left); break;
 			case CryptoStringOperation::password_hash: wasm_crypto_result = password_hash(left); break;
 			default: return(0);
 		}
@@ -1772,11 +1764,6 @@ void bearer_print_f64(f64 value)
 void bearer_unit_render_bytes(const char* target, size_t target_len)
 {
 	unit_render(String(target ? target : "", target ? target_len : 0));
-}
-
-s32 bearer_component_exists(const char* target, size_t target_len)
-{
-	return(component_exists(String(target ? target : "", target ? target_len : 0)));
 }
 
 size_t bearer_component_resolve(const char* target, size_t target_len, char* out, size_t cap)
@@ -2433,10 +2420,9 @@ size_t bearer_text_parsing_brrb(s32 operation, const char* value, size_t value_l
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class TextOperation { text_ascii_safe_name = 0, text_safe_name = 1, text_trim = 2, text_float_val = 3, text_int_val = 4, text_str_starts_with = 6, text_str_ends_with = 7, text_encode_query = 8, text_parse_query = 9, text_split = 10, text_split_space = 11, text_split_utf8 = 12, text_split_http_headers = 13, text_split_kv = 14, text_sort = 15 };
+	enum class TextOperation { text_safe_name = 0, text_trim = 1, text_float_val = 2, text_int_val = 3, text_str_starts_with = 4, text_str_ends_with = 5, text_encode_query = 6, text_parse_query = 7, text_split = 8, text_split_space = 9, text_split_utf8 = 10, text_split_http_headers = 11, text_split_kv = 12, text_sort = 13 };
 	switch(static_cast<TextOperation>(operation))
 	{
-		case TextOperation::text_ascii_safe_name: result.set(ascii_safe_name(result.to_string())); break;
 		case TextOperation::text_safe_name: result.set(safe_name(result.to_string())); break;
 		case TextOperation::text_trim: result.set(trim(result.to_string())); break;
 		case TextOperation::text_float_val: result.set(float_val(result.to_string())); break;
@@ -2603,18 +2589,16 @@ size_t bearer_crypto_password_brrb(s32 operation, const char* value, size_t valu
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class CryptoOperation { crypto_gen_sha1 = 0, crypto_sha256 = 1, crypto_sha256_hex = 2, crypto_hmac_sha256 = 3, crypto_hmac_sha256_hex = 4, crypto_crypto_equal = 5, crypto_password_hash = 6, crypto_password_verify = 7, crypto_password_needs_rehash = 8 };
+	enum class CryptoOperation { crypto_gen_sha1 = 0, crypto_hex = 1, crypto_sha256 = 2, crypto_hmac_sha256 = 3, crypto_crypto_equal = 4, crypto_password_hash = 5, crypto_password_verify = 6 };
 	switch(static_cast<CryptoOperation>(operation))
 	{
-		case CryptoOperation::crypto_gen_sha1: result.set(gen_sha1(result.to_string(), supplied.to_bool())); break;
+		case CryptoOperation::crypto_gen_sha1: result.set(gen_sha1(result.to_string())); break;
+		case CryptoOperation::crypto_hex: result.set(hex(result.to_string())); break;
 		case CryptoOperation::crypto_sha256: result.set(sha256(result.to_string())); break;
-		case CryptoOperation::crypto_sha256_hex: result.set(sha256_hex(result.to_string())); break;
 		case CryptoOperation::crypto_hmac_sha256: result.set(hmac_sha256(result.to_string(), supplied.to_string())); break;
-		case CryptoOperation::crypto_hmac_sha256_hex: result.set(hmac_sha256_hex(result.to_string(), supplied.to_string())); break;
 		case CryptoOperation::crypto_crypto_equal: result.set_bool(crypto_equal(result.to_string(), supplied.to_string())); break;
 		case CryptoOperation::crypto_password_hash: result.set(password_hash(result.to_string())); break;
 		case CryptoOperation::crypto_password_verify: result.set_bool(password_verify(result.to_string(), supplied.to_string())); break;
-		case CryptoOperation::crypto_password_needs_rehash: result.set_bool(password_needs_rehash(result.to_string())); break;
 		default: return(std::numeric_limits<size_t>::max());
 	}
 	return(bearer_brrb_call_finish(result));
@@ -2708,6 +2692,39 @@ size_t bearer_request_workspace_brrb(s32 operation, const char* value, size_t va
 	return(bearer_brrb_call_finish(result));
 }
 
+static String bearer_cache_normalize_key(String key)
+{
+	for(char& c : key)
+	{
+		if(isspace((unsigned char)c))
+			c = '_';
+	}
+	return(key);
+}
+
+static String bearer_cache_normalize_command(String command)
+{
+	size_t end = command.find("\r\n");
+	String header = command.substr(0, end), payload = end == String::npos ? "" : command.substr(end);
+	std::vector<String> parts = split_strings(header, " ");
+	if(parts.size() < 2)
+		return(command);
+	String verb = to_lower(parts[0]);
+	if(verb == "get" || verb == "gets")
+	{
+		for(size_t i = 1; i < parts.size(); i++)
+			parts[i] = bearer_cache_normalize_key(parts[i]);
+	}
+	else if(verb == "gat" || verb == "gats")
+	{
+		if(parts.size() > 2)
+			parts[2] = bearer_cache_normalize_key(parts[2]);
+	}
+	else if(verb == "set" || verb == "add" || verb == "replace" || verb == "append" || verb == "prepend" || verb == "cas" || verb == "delete" || verb == "incr" || verb == "decr" || verb == "touch")
+		parts[1] = bearer_cache_normalize_key(parts[1]);
+	return(join_strings(parts, " ") + payload);
+}
+
 size_t bearer_cache_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
@@ -2717,20 +2734,49 @@ size_t bearer_cache_brrb(s32 operation, const char* value, size_t value_len, con
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class CacheOperation { cache_memcache_connect = 0, cache_memcache_command = 1, cache_memcache_set = 2, cache_memcache_delete = 3, cache_memcache_get = 4, cache_memcache_get_multiple = 5, cache_memcache_escape_key = 6, cache_memcache_escape_keys = 7 };
+	enum class CacheOperation { cache_memcache_connect = 0, cache_memcache_command = 1, cache_memcache_set = 2, cache_memcache_delete = 3, cache_memcache_get = 4, cache_memcache_get_multiple = 5 };
 	switch(static_cast<CacheOperation>(operation))
 	{
 		case CacheOperation::cache_memcache_connect: result.set(std::to_string(memcache_connect(result.to_string(), (u16)supplied.to_u64(11211)))); break;
-		case CacheOperation::cache_memcache_command: result.set(memcache_command(result.to_u64(), text)); break;
-		case CacheOperation::cache_memcache_set: result.set_bool(memcache_set(result.to_u64(), text, supplied["value"].to_string(), supplied["expires"].to_u64(60 * 60))); break;
-		case CacheOperation::cache_memcache_delete: result.set_bool(memcache_delete(result.to_u64(), text)); break;
-		case CacheOperation::cache_memcache_get: result.set(memcache_get(result.to_u64(), text, supplied.to_string())); break;
-		case CacheOperation::cache_memcache_get_multiple: result = memcache_get_multiple(result.to_u64(), supplied); break;
-		case CacheOperation::cache_memcache_escape_key: result.set(memcache_escape_key(result.to_string())); break;
-		case CacheOperation::cache_memcache_escape_keys: result = memcache_escape_keys(result); break;
+		case CacheOperation::cache_memcache_command: result.set(memcache_command(result.to_u64(), bearer_cache_normalize_command(text))); break;
+		case CacheOperation::cache_memcache_set: result.set_bool(memcache_set(result.to_u64(), bearer_cache_normalize_key(text), supplied["value"].to_string(), supplied["expires"].to_u64(60 * 60))); break;
+		case CacheOperation::cache_memcache_delete: result.set_bool(memcache_delete(result.to_u64(), bearer_cache_normalize_key(text))); break;
+		case CacheOperation::cache_memcache_get: result.set(memcache_get(result.to_u64(), bearer_cache_normalize_key(text), supplied.to_string())); break;
+		case CacheOperation::cache_memcache_get_multiple: result = memcache_get_multiple(result.to_u64(), bearer_memcache_normalize_keys(supplied)); break;
 		default: return(std::numeric_limits<size_t>::max());
 	}
 	return(bearer_brrb_call_finish(result));
+}
+
+static String bearer_shell_exec_flags_error(const DValue& flags)
+{
+	const DValue& values = flags.deref();
+	if(values.type != 'M' || values.is_list())
+		return("shell_exec: flags must be a map. Valid keys: stdin, env, timeout_ms, background");
+	String invalid;
+	values.each([&](const DValue&, String key) {
+		if(invalid == "" && key != "stdin" && key != "env" && key != "timeout_ms" && key != "background")
+			invalid = key;
+	});
+	if(invalid != "")
+		return("shell_exec: unknown key '" + invalid + "'. Valid keys: stdin, env, timeout_ms, background");
+	if(const DValue* value = values.key("background"); value && value->deref().type != 'B')
+		return("shell_exec: background must be a bool");
+	if(const DValue* value = values.key("timeout_ms"); value && (value->deref().type != 'F' || !std::isfinite(value->deref()._float) || value->deref()._float <= 0))
+		return("shell_exec: timeout_ms must be a positive number");
+	if(const DValue* value = values.key("stdin"); value && value->deref().type != 'S')
+		return("shell_exec: stdin must be a string");
+	if(const DValue* env = values.key("env"); env)
+	{
+		const DValue& entries = env->deref();
+		if(entries.type != 'M' || entries.is_list())
+			return("shell_exec: env must be a map with string values");
+		bool valid = true;
+		entries.each([&](const DValue& value, String) { if(value.deref().type != 'S') valid = false; });
+		if(!valid)
+			return("shell_exec: env must be a map with string values");
+	}
+	return("");
 }
 
 size_t bearer_process_jobs_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
@@ -2742,12 +2788,21 @@ size_t bearer_process_jobs_brrb(s32 operation, const char* value, size_t value_l
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class ProcessOperation { process_shell_escape = 0, process_shell_exec = 1, process_shell_spawn = 2, process_job_status = 3, process_job_result = 4, process_job_await = 5, process_job_cancel = 6, process_process_start_directory = 7, process_server_start_http = 8, process_server_stop = 9, process_task_submit = 10, process_task_status = 11, process_task_await = 12, process_task_cancel = 13 };
+	enum class ProcessOperation { process_shell_escape = 0, process_shell_exec = 1, process_shell_exec_flags = 2, process_job_status = 3, process_job_result = 4, process_job_await = 5, process_job_cancel = 6, process_process_start_directory = 7, process_server_start_http = 8, process_server_stop = 9, process_task_submit = 10, process_task_status = 11, process_task_await = 12, process_task_cancel = 13 };
 	switch(static_cast<ProcessOperation>(operation))
 	{
 		case ProcessOperation::process_shell_escape: result.set(shell_escape(result.to_string())); break;
 		case ProcessOperation::process_shell_exec: result.set(shell_exec(result.to_string())); break;
-		case ProcessOperation::process_shell_spawn: result.set(std::to_string(shell_spawn(result))); break;
+		case ProcessOperation::process_shell_exec_flags: {
+			String error = bearer_shell_exec_flags_error(supplied);
+			if(error != "")
+			{
+				bearer_hard_error(error.data(), error.size());
+				return(std::numeric_limits<size_t>::max());
+			}
+			result = shell_exec(result.to_string(), supplied);
+			break;
+		}
 		case ProcessOperation::process_job_status: result = job_status(to_u64(result.to_string(), 0)); break;
 		case ProcessOperation::process_job_result: result = job_result(to_u64(result.to_string(), 0)); break;
 		case ProcessOperation::process_job_await: result = job_await(to_u64(result.to_string(), 0), supplied.to_u64()); break;

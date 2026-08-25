@@ -6,7 +6,6 @@ handler/render
 handler/cli
 unit_call
 component
-component_exists
 component_resolve
 ob_close
 ob_get

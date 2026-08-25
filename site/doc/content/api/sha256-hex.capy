@@ -1,3 +1,0 @@
-function COMPONENT(request : dval) {
-    print("<div class=\"doc-detail-layout\"><main class=\"content doc-page doc-detail\"><h2>sha256_hex</h2><div class=\"doc-section signatures\"><h3>Capy</h3><pre>function sha256_hex(value : string) string</pre></div><div class=\"doc-section content\"><h3>Description</h3><p>Use <code>sha256_hex</code> to create a printable SHA-256 digest.</p></div><div class=\"doc-section\"><h3>Return Values</h3><p>Lowercase hexadecimal SHA-256 digest.</p></div><div class=\"doc-section example\"><h3>Example</h3><div class=\"example-language capy\"><h4>Capy</h4><pre class=\"example-source\">print(sha256_hex(&quot;abc&quot;), &quot;\\n&quot;)\n</pre></div></div></main></div>")
-}

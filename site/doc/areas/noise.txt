@@ -10,11 +10,9 @@ gen_float
 gen_int
 gen_sha1
 sha256
-sha256_hex
+hex
 hmac_sha256
-hmac_sha256_hex
 random_bytes
 crypto_equal
 password_hash
 password_verify
-password_needs_rehash

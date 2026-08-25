@@ -53,9 +53,7 @@ size_t bearer_host_mysql(const char* in, size_t in_len, char* out, size_t cap);
 size_t bearer_host_request_perf(const char* in, size_t in_len, char* out, size_t cap);
 size_t bearer_host_shell_exec(const char* cmd, size_t cmd_len, char* buf, size_t cap);
 size_t bearer_host_sha256(const char* data, size_t data_len, char* out, size_t cap);
-size_t bearer_host_sha256_hex(const char* data, size_t data_len, char* out, size_t cap);
 size_t bearer_host_hmac_sha256(const char* key, size_t key_len, const char* data, size_t data_len, char* out, size_t cap);
-size_t bearer_host_hmac_sha256_hex(const char* key, size_t key_len, const char* data, size_t data_len, char* out, size_t cap);
 size_t bearer_host_base64_encode(const char* data, size_t data_len, char* out, size_t cap);
 size_t bearer_host_base64_decode(const char* data, size_t data_len, char* out, size_t cap);
 int bearer_host_crypto_equal(const char* a, size_t a_len, const char* b, size_t b_len);
@@ -64,9 +62,8 @@ int bearer_host_password_verify(const char* password, size_t password_len, const
 int bearer_host_password_needs_rehash(const char* encoded, size_t encoded_len);
 size_t bearer_host_crypto_operation(const char* in, size_t in_len, char* out, size_t cap);
 size_t bearer_host_http_request(const char* in, size_t in_len, char* out, size_t cap);
+size_t bearer_host_shell_exec_flags(const char* in, size_t in_len, char* out, size_t cap);
 uint64_t bearer_host_http_request_async(const char* in, size_t in_len);
-size_t bearer_host_shell_exec_dv(const char* in, size_t in_len, char* out, size_t cap);
-uint64_t bearer_host_shell_spawn(const char* in, size_t in_len);
 size_t bearer_host_job_status(uint64_t job_id, char* out, size_t cap);
 size_t bearer_host_job_result(uint64_t job_id, char* out, size_t cap);
 size_t bearer_host_job_await(uint64_t job_id, uint64_t timeout_ms, char* out, size_t cap);
@@ -255,16 +252,10 @@ static String wasm_string_hostcall_1(size_t (*fn)(const char*, size_t, char*, si
 	return(out);
 }
 String sha256(String data) { return(wasm_string_hostcall_1(bearer_host_sha256, data)); }
-String sha256_hex(String data) { return(wasm_string_hostcall_1(bearer_host_sha256_hex, data)); }
 String hmac_sha256(String key, String data)
 {
 	size_t required = bearer_host_hmac_sha256(key.data(), key.size(), data.data(), data.size(), 0, 0);
 	String out(required, 0); size_t got = required ? bearer_host_hmac_sha256(key.data(), key.size(), data.data(), data.size(), &out[0], required) : 0; out.resize(got <= required ? got : 0); return(out);
-}
-String hmac_sha256_hex(String key, String data)
-{
-	size_t required = bearer_host_hmac_sha256_hex(key.data(), key.size(), data.data(), data.size(), 0, 0);
-	String out(required, 0); size_t got = required ? bearer_host_hmac_sha256_hex(key.data(), key.size(), data.data(), data.size(), &out[0], required) : 0; out.resize(got <= required ? got : 0); return(out);
 }
 String password_hash(String password)
 {
@@ -302,22 +293,18 @@ u64 http_request_async(DValue req)
 	String encoded = brb_encode(req);
 	return((u64)bearer_host_http_request_async(encoded.data(), encoded.size()));
 }
-
-
-DValue shell_exec(DValue spec)
+DValue shell_exec(String command, DValue flags)
 {
+	DValue spec = flags;
+	spec["cmd"] = command;
 	String encoded = brb_encode(spec);
-	size_t required = bearer_host_shell_exec_dv(encoded.data(), encoded.size(), 0, 0);
+	size_t required = bearer_host_shell_exec_flags(encoded.data(), encoded.size(), 0, 0);
 	String out(required, 0);
-	size_t got = required ? bearer_host_shell_exec_dv(encoded.data(), encoded.size(), &out[0], required) : 0;
+	size_t got = required ? bearer_host_shell_exec_flags(encoded.data(), encoded.size(), &out[0], required) : 0;
 	out.resize(got <= required ? got : 0);
 	return(wasm_decode_dvalue_result(out));
 }
-u64 shell_spawn(DValue spec)
-{
-	String encoded = brb_encode(spec);
-	return((u64)bearer_host_shell_spawn(encoded.data(), encoded.size()));
-}
+
 DValue job_status(u64 job_id)
 {
 	size_t required = bearer_host_job_status(job_id, 0, 0);
@@ -573,7 +560,7 @@ String signal_name(s32 sig)
 		default: return("");
 	}
 }
-String memcache_escape_key(String key)
+static String bearer_memcache_normalize_key(String key)
 {
 	String result;
 	for(auto c : key)
@@ -584,11 +571,11 @@ String memcache_escape_key(String key)
 	}
 	return(result);
 }
-DValue memcache_escape_keys(DValue keys)
+DValue bearer_memcache_normalize_keys(DValue keys)
 {
 	auto values = strings_from_dvalue(keys);
 	for(auto& value : values)
-		value = memcache_escape_key(value);
+		value = bearer_memcache_normalize_key(value);
 	return(dvalue_from_strings(values));
 }
 u64 memcache_connect(String host, u16 port)
@@ -613,18 +600,18 @@ bool memcache_set(u64 connection, String key, String value, u64 expires_in)
 {
 	String response = memcache_command(
 		connection,
-		String("set ") + memcache_escape_key(key) + " 0 " + std::to_string(expires_in) + " " + std::to_string(value.length()) + "\r\n" + value
+		String("set ") + key + " 0 " + std::to_string(expires_in) + " " + std::to_string(value.length()) + "\r\n" + value
 	);
 	return("STORED" == trim(response));
 }
 bool memcache_delete(u64 connection, String key)
 {
-	String response = memcache_command(connection, String("delete ") + memcache_escape_key(key));
+	String response = memcache_command(connection, String("delete ") + key);
 	return("DELETED" == trim(response));
 }
 String memcache_get(u64 connection, String key, String default_value)
 {
-	String res = memcache_command(connection, String("get ") + memcache_escape_key(key));
+	String res = memcache_command(connection, String("get ") + key);
 	String header_end = "\r\n";
 	size_t header_pos = res.find(header_end);
 	if(res.rfind("VALUE ", 0) != 0 || header_pos == String::npos)
@@ -642,7 +629,7 @@ String memcache_get(u64 connection, String key, String default_value)
 StringMap memcache_get_multiple(u64 connection, DValue keys)
 {
 	StringMap result;
-	String res = memcache_command(connection, String("get ") + join(memcache_escape_keys(keys), " "));
+	String res = memcache_command(connection, String("get ") + join_strings(strings_from_dvalue(keys), " "));
 	while(res.rfind("VALUE ", 0) == 0)
 	{
 		size_t header_pos = res.find("\r\n");
@@ -669,7 +656,7 @@ String runtime_safe_key(String key, String label)
 {
 	(void)label;
 	key = trim(key);
-	return(key == "" ? "" : gen_sha1(key));
+	return(key == "" ? "" : hex(gen_sha1(key)));
 }
 
 static DValue wasm_task_call(String operation, String target_or_id, DValue props, u64 timeout_ms)
@@ -743,9 +730,7 @@ StringMap default_config()
 extern char** environ;
 
 String sha256(String data) { return(sha256_native(data)); }
-String sha256_hex(String data) { return(sha256_hex_native(data)); }
 String hmac_sha256(String key, String data) { return(hmac_sha256_native(key, data)); }
-String hmac_sha256_hex(String key, String data) { return(hmac_sha256_hex_native(key, data)); }
 String base64_decode(String raw) { bool ok=false; return(::base64_decode(raw, ok)); }
 String random_bytes(u64 n) { if(n > 1024*1024) n = 1024*1024; String out(n, 0); int fd=open("/dev/urandom", O_RDONLY); if(fd<0) return(""); size_t off=0; while(off<n) { ssize_t got=read(fd, &out[off], n-off); if(got<0 && errno==EINTR) continue; if(got<=0) break; off += (size_t)got; } close(fd); out.resize(off); return(out); }
 bool crypto_equal(String a, String b) { return(crypto_equal_native(a, b)); }
@@ -1292,7 +1277,7 @@ String socket_read(u64 sockfd, u32 max_length, u32 timeout)
 	return("");
 }
 
-String memcache_escape_key(String key)
+static String bearer_memcache_normalize_key(String key)
 {
 	String result;
 	for(auto c : key)
@@ -1304,11 +1289,11 @@ String memcache_escape_key(String key)
 	return(result);
 }
 
-DValue memcache_escape_keys(DValue keys)
+DValue bearer_memcache_normalize_keys(DValue keys)
 {
 	auto values = strings_from_dvalue(keys);
 	for(auto& value : values)
-		value = memcache_escape_key(value);
+		value = bearer_memcache_normalize_key(value);
 	return(dvalue_from_strings(values));
 }
 
@@ -1327,7 +1312,7 @@ bool memcache_set(u64 connection, String key, String value, u64 expires_in)
 {
 	socket_write(connection,
 		// set KEY META_DATA EXPIRY_TIME LENGTH_IN_BYTES
-		String("set ") + memcache_escape_key(key) + " 0 " + std::to_string(expires_in) + " " + std::to_string(value.length()) + "\r\n" +
+		String("set ") + key + " 0 " + std::to_string(expires_in) + " " + std::to_string(value.length()) + "\r\n" +
 		value + "\r\n");
 	return("STORED" == trim(socket_read(connection)));
 }
@@ -1336,14 +1321,14 @@ bool memcache_delete(u64 connection, String key)
 {
 	socket_write(connection,
 		// set KEY META_DATA EXPIRY_TIME LENGTH_IN_BYTES
-		String("delete ") + memcache_escape_key(key) + "\r\n"
+		String("delete ") + key + "\r\n"
 		);
 	return("DELETED" == trim(socket_read(connection)));
 }
 
 String memcache_get(u64 connection, String key, String default_value)
 {
-	auto res = memcache_command(connection, String("get ")+memcache_escape_key(key));
+	auto res = memcache_command(connection, String("get ")+key);
 	String t = nibble(res, " ");
 	if(t == "VALUE")
 	{
@@ -1359,7 +1344,7 @@ StringMap memcache_get_multiple(u64 connection, DValue keys)
 {
 	StringMap result;
 	// to do: escape key String
-	auto res = memcache_command(connection, String("get ")+join(memcache_escape_keys(keys), " "));
+	auto res = memcache_command(connection, String("get ")+join_strings(strings_from_dvalue(keys), " "));
 	while(res.length() > 0)
 	{
 		String t = nibble(res, " ");
@@ -1721,7 +1706,7 @@ String runtime_safe_key(String key, String label)
 	key = trim(key);
 	if(key == "")
 		throw std::runtime_error(label + " cannot be empty");
-	return(gen_sha1(key));
+	return(hex(gen_sha1(key)));
 }
 
 static DValue task_result_value(const task_queue::Result& result)

@@ -13,7 +13,9 @@ expires_in : the lifetime in seconds
 :content
 `memcache_set()` stores `value` under `key`.
 
-It returns `true` only when the server returns `STORED`. It escapes the key before it sends the request.
+It returns `true` only when the server returns `STORED`. It normalizes whitespace in keys to underscores before it sends the request.
+
+This normalization is transparent. The keys `"a b"` and `"a_b"` address the same entry.
 
 :example capy render
 var connection := memcache_connect()

@@ -2,7 +2,8 @@ function RENDER(request : dval) {
     if string(request.query.trap, "") == "1" {
         component("/tests/capy-request-context.capy:TRAP", request.query)
     }
-    print(component_exists("/tests/capy-request-context.capy"), component_exists("/tests/capy-request-context"), length(component_resolve("/tests/capy-request-context")) > 0, "|")
+    {     var resolved := component_resolve("/tests/capy-request-context")
+    print(length(resolved) > 0, length(component_resolve("/tests/no-such-component")) > 0, bool(resolved), "|") }
     var props := request.query
     var captured := component("/tests/capy-request-context.capy", props)
     component_render("/tests/capy-request-context.capy", props)

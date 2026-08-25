@@ -52,7 +52,7 @@ DOC_PAGE_ALIASES = {
 # name, needs_doc, status. status: public | internal | integration
 PUBLIC_APIS = [
     ("http_request", True, "public"), ("http_request_async", True, "public"),
-    ("shell_exec", True, "public"), ("shell_escape", True, "public"), ("shell_spawn", True, "public"),
+    ("shell_exec", True, "public"), ("shell_escape", True, "public"),
     ("job_status", True, "public"), ("job_result", True, "public"), ("job_await", True, "public"), ("job_cancel", True, "public"),
     # The frozen historical task pages describe the removed callback/PID API;
     # current task coverage is runtime fixtures until their replacement lands.
@@ -67,16 +67,16 @@ PUBLIC_APIS = [
     ("runtime_perf", True, "public"), ("time_format_local", True, "public"),
     ("time_format_relative", True, "public"), ("time_parse", True, "public"),
     ("backtrace_get_frames", False, "public"), ("backtrace_capture", False, "public"),
-    ("signal_name", False, "public"), ("memcache_escape_key", True, "public"),
+    ("signal_name", False, "public"),
     ("memcache_command", True, "public"),
     ("memcache_get_multiple", True, "public"), ("runtime_safe_key", True, "public"),
     ("nibble", True, "public"), ("json_consume_space", False, "internal"),
-    ("array_merge", True, "public"), ("safe_name", True, "public"), ("ascii_safe_name", True, "public"),
+    ("array_merge", True, "public"), ("safe_name", True, "public"),
     ("remove", False, "public"), ("clear", False, "public"),
-    ("gen_sha1", True, "public"), ("sha256", True, "public"), ("sha256_hex", True, "public"),
-    ("hmac_sha256", True, "public"), ("hmac_sha256_hex", True, "public"), ("random_bytes", True, "public"),
+    ("gen_sha1", True, "public"), ("sha256", True, "public"), ("hex", True, "public"),
+    ("hmac_sha256", True, "public"), ("random_bytes", True, "public"),
     ("crypto_equal", True, "public"), ("password_hash", True, "public"),
-    ("password_verify", True, "public"), ("password_needs_rehash", True, "public"),
+    ("password_verify", True, "public"),
     ("gen_noise32", True, "public"), ("gen_noise64", True, "public"),
     ("gen_noise01", True, "public"), ("gen_int", True, "public"), ("gen_float", True, "public"),
     ("draw_int", True, "public"), ("draw_float", True, "public"),

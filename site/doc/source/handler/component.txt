@@ -37,7 +37,7 @@ Caller-supplied props arrive as `request.props`. Read them through `string()`, `
 The first time a unit is used in a request, its `ONCE` handler runs before the component handler. A component may render other components; each nested call resolves relative paths against its own file.
 
 :errors
-A caller that names a component Bearer cannot resolve gets a `500` status and a banner element in place of the fragment; the handler in this file never runs. Callers that treat a fragment as optional should guard with `component_exists()`.
+A caller that names a component Bearer cannot resolve gets a `500` status and a banner element in place of the fragment. The handler in this file never runs. Callers that treat a fragment as optional should guard with `length(component_resolve(name)) > 0`.
 
 :example capy component
 print(string(request.props.name, "guest"))
@@ -55,6 +55,6 @@ print("</section>")
 :see
 component
 component_render
-component_exists
+component_resolve
 type/request
 handler/render

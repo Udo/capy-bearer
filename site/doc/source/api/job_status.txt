@@ -13,7 +13,7 @@ A job status map.
 The `state` value can be `pending`, `running`, `done`, `failed`, `cancelled`, or `missing`.
 
 :example capy render
-var job := shell_spawn(dval({"cmd": "printf x", "timeout_ms": 1000}))
+var job := shell_exec("printf x", {background: true, timeout_ms: 1000})
 job_await(job, 3000)
 print(job_status(job)["state"], "\n")
 

@@ -12,7 +12,7 @@ A job status map. A completed job includes `result`.
 `job_await()` waits for a job until the timeout expires. It returns the current status when the timeout expires.
 
 :example capy render
-var job := shell_spawn(dval({"cmd": "printf hello", "timeout_ms": 1000}))
+var job := shell_exec("printf hello", {background: true, timeout_ms: 1000})
 var result := job_await(job, 3000)
 print(get_by_path(result, "result/stdout"), "\n")
 

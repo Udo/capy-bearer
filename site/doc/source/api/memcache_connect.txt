@@ -13,6 +13,8 @@ a connection handle, or zero on failure
 
 Do not pass a zero handle to another Memcache function.
 
+The key operations normalize whitespace to underscores. This normalization is transparent. The keys `"a b"` and `"a_b"` address the same entry.
+
 :example capy render
 var connection := memcache_connect()
 if connection != u64(0) { print("connected\n") } else { print("not connected\n") }

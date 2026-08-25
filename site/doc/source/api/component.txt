@@ -28,7 +28,7 @@ A relative path is tried against three directories, in order:
 2. the directory of the unit calling `component()`, when that differs
 3. the site root
 
-The first match wins. A resolved path that escapes the site root is rejected. Use `component_resolve()` to see which file a name reached, and `component_exists()` to test a name before rendering it.
+The first match wins. A resolved path that escapes the site root is rejected. Use `component_resolve()` to see which file a name reached. Test an optional name with `length(component_resolve(name)) > 0` before you render it.
 
 ## Named handlers
 
@@ -45,7 +45,7 @@ Relative paths inside the component resolve against the component's own file, no
 The target unit's `ONCE` handler runs before the component handler the first time that unit is used in the request.
 
 :errors
-An unresolvable component does not raise an error. Bearer sets the response status to `500`, returns a banner element describing the failure in place of the component output, and continues rendering the rest of the page. Guard optional components with `component_exists()` when a missing file should not be an error.
+An unresolvable component does not raise an error. Bearer sets the response status to `500`, returns a banner element that describes the failure, and continues to render the page. Guard optional components with `length(component_resolve(name)) > 0` when a missing file should not be an error.
 
 :example capy render
 print(component("/doc/examples/card.capy:CARD", {title: "Release notes"}), "\n")
@@ -62,14 +62,13 @@ for title := titles {
 print("\n")
 
 :example capy render skip a component that may not exist
-if component_exists("/doc/examples/card.capy") {
+if length(component_resolve("/doc/examples/card.capy")) > 0 {
     print(component("/doc/examples/card.capy:CARD", {title: "Optional"}), "\n")
 } else {
     print("no card component\n")
 }
 
 :see
-component_exists
 component_render
 component_resolve
 handler/component

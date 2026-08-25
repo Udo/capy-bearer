@@ -16,7 +16,6 @@ path_join
 cwd_set
 shell_escape
 shell_exec
-shell_spawn
 job_status
 job_result
 job_await

@@ -1287,6 +1287,13 @@ struct Module
 			{"to_upper", "to_upper was removed. Use upper."},
 			{"dval_to_json", "dval_to_json was removed. Use json_encode."},
 			{"dval_to_stringmap", "dval_to_stringmap was removed. Construct a dval map and convert its values with string."},
+			{"password_needs_rehash", "password_needs_rehash was removed. Compare the password encoding parameter prefix after password_verify succeeds."},
+			{"ascii_safe_name", "ascii_safe_name was removed. Use safe_name."},
+			{"component_exists", "component_exists was removed. Use length(component_resolve(name)) > 0."},
+			{"memcache_escape_key", "memcache_escape_key was removed. Memcache functions normalize keys."},
+			{"sha256_hex", "sha256_hex was removed. Use hex(sha256(value))."},
+			{"hmac_sha256_hex", "hmac_sha256_hex was removed. Use hex(hmac_sha256(key, value))."},
+			{"shell_spawn", "shell_spawn was removed. Use shell_exec(command, flags)."},
 		};
 		if (auto migration = request_migrations.find(name); migration != request_migrations.end())
 			throw Error(location, migration->second);

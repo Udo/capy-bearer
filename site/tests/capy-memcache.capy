@@ -1,25 +1,28 @@
 function CLI(request : dval) {
     {
-    var escaped := map(dval(["a b", "line\nkey"]), memcache_escape_key)
     var unreachable := memcache_connect("127.0.0.1", 1)
     var live := memcache_connect()
     var result := "skip"
     if live != u64(0) {
         var prefix := "capy-parity-memcache"
-        var stored := memcache_set(live, prefix + "-one", "v1", u64(60))
-        var second := memcache_set(live, prefix + "-two", "v2")
-        var raw := memcache_command(live, "get " + prefix + "-one")
-        var value := memcache_get(live, prefix + "-one", "missing")
-        var values := memcache_get_multiple(live, dval([prefix + "-one", prefix + "-two"]))
-        var first_value := values[prefix + "-one"]
-        var second_value := values[prefix + "-two"]
-        var deleted := memcache_delete(live, prefix + "-one") && memcache_delete(live, prefix + "-two")
-        if stored && second && contains(raw, "VALUE") && value == "v1" && string(first_value) == "v1" && string(second_value) == "v2" && deleted { result = "live" }
+        var spaced := prefix + " key"
+        var normalized := prefix + "_key"
+        var tabbed := prefix + "\tkey"
+        var stored := memcache_set(live, spaced, "v1", u64(60))
+        var raw_stored := memcache_command(live, "set " + tabbed + " 0 60 2\r\nv2")
+        var value := memcache_get(live, normalized, "missing")
+        var values := memcache_get_multiple(live, dval([spaced, normalized]))
+        var raw_get := memcache_command(live, "get " + tabbed)
+        var raw_gets := memcache_command(live, "gets " + tabbed)
+        var raw_gat := memcache_command(live, "gat 60 " + tabbed)
+        var raw_gats := memcache_command(live, "gats 60 " + tabbed)
+        var deleted := memcache_delete(live, normalized)
+        if stored && trim(raw_stored) == "STORED" && value == "v2" && string(values[normalized]) == "v2" && contains(raw_get, "VALUE") && contains(raw_gets, "VALUE") && contains(raw_gat, "VALUE") && contains(raw_gats, "VALUE") && deleted { result = "collision" }
         else { result = "failed" }
     }
     var unreachable_status := "up"
     if unreachable == u64(0) { unreachable_status = "down" }
-    print(memcache_escape_key("a b"), "|", escaped[1], "|", unreachable_status, "|", result, "|")
+    print(unreachable_status, "|", result, "|")
     }
     print(arc_live())
 }

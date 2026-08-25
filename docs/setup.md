@@ -719,11 +719,11 @@ if(encoded == "")
 	// fail the write; native hashing did not complete
 
 bool valid = password_verify(candidate, encoded);
-if(valid && password_needs_rehash(encoded))
+if(valid && encoded.rfind("$bearer$scrypt$65536$8$1$", 0) != 0)
 	encoded = password_hash(candidate);
 ```
 
-`password_hash()` returns a self-contained `$bearer$scrypt$...` encoding with a random 16-byte salt and the bounded scrypt parameters `N=65536`, `r=8`, `p=1`. `password_verify()` accepts only structurally valid encodings with bounded cost parameters and compares the derived key in constant time. `password_needs_rehash()` reports malformed, legacy, or non-current parameters so applications can upgrade a credential after a successful legacy verification. Treat an empty hash as an operational failure and never store it. Application-level password length policy, rate limiting, and legacy-format verification remain the application's responsibility.
+`password_hash()` returns a self-contained `$bearer$scrypt$...` encoding with a random 16-byte salt and the bounded scrypt parameters `N=65536`, `r=8`, `p=1`. `password_verify()` accepts only structurally valid encodings with bounded cost parameters and compares the derived key in constant time. After successful verification, compare the stored parameter prefix with the parameters you require. Rehash the known password when the prefixes differ. Treat an empty hash as an operational failure and never store it. Application-level password length policy, rate limiting, and legacy-format verification remain the application's responsibility.
 
 ## Operational footguns
 

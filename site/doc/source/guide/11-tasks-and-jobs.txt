@@ -79,11 +79,11 @@ A successful task means that its handler finished. Task status does not carry an
 
 ## Run a command
 
-`shell_spawn` starts a bounded operating-system job:
+The two-argument `shell_exec` form starts a bounded background operating-system job:
 
 :example capy render
 function RENDER(request : dval) {
-    var job := shell_spawn({cmd: "printf ready", timeout_ms: 1000})
+    var job := shell_exec("printf ready", {background: true, timeout_ms: 1000})
     var status := job_await(job, 3000)
     print(string(status.state, "missing"), "\n")
 }
@@ -113,7 +113,7 @@ task
 task_status
 task_await
 task_cancel
-shell_spawn
+shell_exec
 job_status
 job_result
 job_await

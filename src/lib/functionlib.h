@@ -183,6 +183,5 @@ struct BearerFragmentCapture
 };
 
 String safe_name(String raw);
-String ascii_safe_name(String raw);
 
 #define is_bit_set(var,pos) ((var) & (1<<(pos)))

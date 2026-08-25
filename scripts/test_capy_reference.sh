@@ -16,7 +16,6 @@ for index in "${!pages[@]}"; do
 done
 
 doc_base="${BEARER_TEST_HTTP_BASE:-http://127.0.0.1}/doc/"
-! grep -q 'component_exists' site/doc/index.capy || { echo "Documentation route probes before rendering" >&2; exit 1; }
 python3 - <<'PY'
 from pathlib import Path
 
@@ -43,15 +42,14 @@ if 'class=\\\"search-kind\\\"' not in search:
     raise SystemExit("Documentation search does not label result kinds")
 PY
 status() { curl -sS --max-time 60 -o /dev/null -w '%{http_code}' -H "Host: $host" "$1"; }
-for path in api/zzzznotreal/ how-to/zzzznotreal/ api/component-2/ api/string-2/ '?''p=0''_String'; do
+for path in api/zzzznotreal/ how-to/zzzznotreal/ api/component-exists/ api/component-2/ api/string-2/ '?''p=0''_String'; do
     [[ "$(status "$doc_base$path")" == 404 ]] || { echo "Old or unknown documentation URL did not return 404: $path" >&2; exit 1; }
 done
 for path in api/component/ api/string/ type/string/ type/dvalue/ type/request/ handler/render/ handler/component/ handler/cli/ how-to/read-request-context/; do
     [[ "$(status "$doc_base$path")" == 200 ]] || { echo "Canonical documentation URL did not return 200: $path" >&2; exit 1; }
 done
 component_page=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}api/component/")
-component_exists_page=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}api/component-exists/")
-[[ "$component_page" == *">component</h2>"* && "$component_exists_page" == *">component_exists</h2>"* ]] || { echo "Documentation pages with a shared eight-character prefix did not resolve independently" >&2; exit 1; }
+[[ "$component_page" == *">component</h2>"* ]] || { echo "Component documentation page did not render" >&2; exit 1; }
 route_gate="site/doc/content/how-to/route-file-gate.capy"
 trap 'rm -f "$route_gate"' EXIT
 cat >"$route_gate" <<'EOF'

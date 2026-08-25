@@ -779,7 +779,7 @@ String session_serialize(const StringMap& data)
 
 String session_hash_serialized(String serialized)
 {
-	return(gen_sha1(serialized));
+	return(hex(gen_sha1(serialized)));
 }
 
 String session_load_serialized(String session_path)
@@ -1014,7 +1014,7 @@ String csrf_token(String session_name, String token_name)
 		String random = random_bytes(32);
 		if(random.size() != 32)
 			random = session_id_create();
-		context->session[key] = sha256_hex(random);
+		context->session[key] = hex(sha256(random));
 	}
 	return(context->session[key]);
 }
@@ -1042,8 +1042,7 @@ void csrf_rotate(String session_name, String token_name)
 String ws_make_accept_key(String client_key)
 {
 	return(base64_encode(gen_sha1(
-		client_key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11",
-		true
+		client_key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 	)));
 }
 

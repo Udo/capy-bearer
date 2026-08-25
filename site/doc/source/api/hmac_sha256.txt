@@ -9,12 +9,12 @@ value : message bytes
 A raw 32-byte HMAC-SHA256 value.
 
 :content
-`hmac_sha256()` returns a raw binary HMAC-SHA256 value. Use `hmac_sha256_hex()` when you need hexadecimal text.
+`hmac_sha256()` returns 32 raw HMAC-SHA256 bytes. Use `hex(hmac_sha256(key, value))` when you need lowercase hexadecimal text.
 
 :example capy render
 print(length(hmac_sha256("key", "message")), "\n")
 
 :see
-hmac_sha256_hex
+hex
 sha256
 crypto_equal

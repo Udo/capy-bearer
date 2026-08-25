@@ -239,8 +239,27 @@ set -e
 [[ $archive_trap_status -ne 0 && "$archive_trap_output" == *"capy-archive-trap.capy:1:38"* && "$archive_trap_output" != *"capy://stdlib.capy"* ]]
 expect_equal "archive recovery" "3|heXYZ|Ada:admin|archive data|true2truetruetrue|9|0|true" "$(scripts/bearer-cli /tests/capy-final-parity.capy)"
 expect_equal "live MySQL stdlib adapters" "truetrue|'a\\'b'|7|true|0:0|truetruetrue|true|truetruetrue|0" "$(scripts/bearer-cli /tests/capy-mysql.capy)"
-expect_equal "memcache stdlib adapters" "a_b|line_key|down|live|0" "$(scripts/bearer-cli /tests/capy-memcache.capy)"
+expect_equal "memcache key normalization" "down|collision|0" "$(scripts/bearer-cli /tests/capy-memcache.capy)"
 expect_equal "job/process stdlib adapters" "shell|spawned|done|done|done|cancel|cancelled|tasks|cwd|server|0" "$(scripts/bearer-cli /tests/capy-jobs.capy)"
+for shell_exec_case in \
+	"capy-shell-exec-flags-trap|shell_exec: unknown key 'unknown'. Valid keys: stdin, env, timeout_ms, background" \
+	"capy-shell-exec-background-type-trap|shell_exec: background must be a bool" \
+	"capy-shell-exec-timeout-type-trap|shell_exec: timeout_ms must be a positive number" \
+	"capy-shell-exec-timeout-value-trap|shell_exec: timeout_ms must be a positive number" \
+	"capy-shell-exec-stdin-type-trap|shell_exec: stdin must be a string" \
+	"capy-shell-exec-env-list-trap|shell_exec: env must be a map with string values" \
+	"capy-shell-exec-env-value-trap|shell_exec: env must be a map with string values"; do
+	shell_exec_fixture=${shell_exec_case%%|*}
+	shell_exec_message=${shell_exec_case#*|}
+	set +e
+	shell_exec_flags_output=$(scripts/bearer-cli "/tests/$shell_exec_fixture.capy" 2>&1)
+	shell_exec_flags_status=$?
+	set -e
+	[[ $shell_exec_flags_status -ne 0 && "$shell_exec_flags_output" == *"$shell_exec_message"* ]] || {
+		echo "Capy $shell_exec_fixture diagnostic mismatch: $shell_exec_flags_output" >&2
+		exit 1
+	}
+done
 expect_equal "named task worker cancellation/failure/recovery and copied props" "canceled|stopped|failed:handler_trap|failed:missing_handler|succeeded:none|succeeded:before" "$(scripts/bearer-cli /tests/capy-task-runtime.capy)"
 expect_equal "unit administration" "true|true|true|2|0" "$(scripts/bearer-cli /tests/capy-unit-admin.capy)"
 expect_equal "DValue array merge" "rightyesnewright|abcd|valueitem|right|value|z|oddkeep|map|unicode|9|0" "$(scripts/bearer-cli /tests/capy-dval-merge.capy)"
@@ -306,7 +325,7 @@ set -e
 	exit 1
 }
 crypto_output=$(scripts/bearer-cli /tests/capy-crypto-random.capy)
-[[ "$crypto_output" =~ ^A9993E364706816ABA3E25717850C26C9CD0D89D\|20\|32\|ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\|32\|6e9ef29b75fffc5b7abae527d58fdadb2fe42e7219011976917343065f58ed4a\|truefalse\|16\|truefalsefalse\|1198951227\|9546680768582587775\|true\|7\|true\|true\|true\|[0-9]+\|0$ ]] || {
+[[ "$crypto_output" =~ ^a9993e364706816aba3e25717850c26c9cd0d89d\|20\|32\|ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\|32\|6e9ef29b75fffc5b7abae527d58fdadb2fe42e7219011976917343065f58ed4a\|414243\|truefalse\|16\|truefalse\|1198951227\|9546680768582587775\|true\|7\|true\|true\|true\|[0-9]+\|0$ ]] || {
 	echo "Capy crypto/random adapter mismatch: $crypto_output" >&2
 	exit 1
 }
@@ -347,7 +366,7 @@ string_list_trap_status=$?
 set -e
 [[ $string_list_trap_status -ne 0 && "$string_list_trap_output" == *"capy-string-list-scalar-trap.capy:2:11"* ]]
 expect_equal "split/join recovery" "$string_list_output" "$(scripts/bearer-cli /tests/capy-string-lists.capy)"
-expect_equal "core utility value adapters" "falsetruefalseBETA,ALPHA,BETA|alpha|beta,alpha|truetrue|alpha|0,1,2|bearer:BEARER|Caffile1:Caffile1:core|0:255:truetrue|1.5:-9:42|truetrue|a=one&b=last&flag=:last:example.test:docs:two|docs/index:true:|one,two,three:A,é:example.test|alpha,beta,beta:true:SIGSEGV:0:true:40|0" "$(scripts/bearer-cli /tests/capy-coreutil.capy)"
+expect_equal "core utility value adapters" "falsetruefalseBETA,ALPHA,BETA|alpha|beta,alpha|truetrue|alpha|0,1,2|bearer:BEARER|Caffile1:core|0:255:truetrue|1.5:-9:42|truetrue|a=one&b=last&flag=:last:example.test:docs:two|docs/index:true:|one,two,three:A,é:example.test|alpha,beta,beta:true:SIGSEGV:0:true:40|0" "$(scripts/bearer-cli /tests/capy-coreutil.capy)"
 set +e
 coreutil_trap_output=$(scripts/bearer-cli /tests/capy-coreutil-trap.capy 2>&1)
 coreutil_trap_status=$?
@@ -417,7 +436,7 @@ request_component_output=$(scripts/bearer-cli /tests/capy-request-context-caller
 	exit 1
 }
 component_props_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=FromCapy')
-[[ "$component_props_output" == "truetruetrue|FromCapy|false|1|FromCapy|false|1|FromCapy|FromCapy|3" ]] || {
+[[ "$component_props_output" == "truefalsefalse|FromCapy|false|1|FromCapy|false|1|FromCapy|FromCapy|3" ]] || {
 	echo "Capy component props dispatch mismatch: $component_props_output" >&2
 	exit 1
 }
@@ -425,7 +444,7 @@ component_trap_body=$(mktemp)
 component_trap_status=$(curl -sS --max-time 30 -o "$component_trap_body" -w '%{http_code}' -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=FromCapy&trap=1')
 [[ "$component_trap_status" == "500" ]] && ! grep -q 'must-not-leak' "$component_trap_body"
 rm -f "$component_trap_body"
-[[ "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=Recovered')" == "truetruetrue|Recovered|false|1|Recovered|false|1|Recovered|Recovered|3" ]]
+[[ "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=Recovered')" == "truefalsefalse|Recovered|false|1|Recovered|false|1|Recovered|Recovered|3" ]]
 (
 	component_cache_dir=$(mktemp -d "$site_directory/tests/capy-component-cache.XXXXXX")
 	chmod 755 "$component_cache_dir"
@@ -433,7 +452,7 @@ rm -f "$component_trap_body"
 	component_cache_name=${component_cache_dir##*/}
 	cat >"$component_cache_dir/parent.capy" <<'EOF'
 function RENDER(request : dval) {
-    print(component_exists("child"))
+    print(length(component_resolve("child")) > 0)
 }
 EOF
 	printf '%s\n' 'function COMPONENT(request : dval) { print("child") }' >"$component_cache_dir/child.capy"

@@ -721,11 +721,6 @@ static u64 bearer_job_start(const String& kind, const DValue& spec)
 	return(id);
 }
 
-static u64 bearer_shell_spawn_spec(const DValue& spec)
-{
-	return(bearer_job_start("shell", spec));
-}
-
 
 static DValue bearer_exec_argv_capture(std::vector<String> argv, String input, u64 timeout_ms, u64 output_limit = PROCESS_OUTPUT_LIMIT_DEFAULT)
 {
@@ -1297,7 +1292,7 @@ static bool wasm_source_map_load(const String& path, WasmSourceMap& map)
 	for(const String& metadata_line : split_strings(metadata, "\n"))
 		if(metadata_line.rfind("source_map_sha256=", 0) == 0)
 			expected_hash = metadata_line.substr(18);
-	if(expected_hash.size() != 64 || sha256_hex_native(content) != expected_hash)
+	if(expected_hash.size() != 64 || hex(sha256_native(content)) != expected_hash)
 		return(false);
 	std::istringstream input(content);
 	map = WasmSourceMap();
@@ -1807,8 +1802,8 @@ struct WasmWorker
 				!numeric(fields["unit_abi_version"]) || !numeric(fields["wasm_core_abi_version"]) ||
 				fields["input_signature"] == "" || fields["build_token"] == "" || fields["wasm_sha256"].size() != 64 ||
 				fields["exports_sha256"].size() != 64 || fields["source_map_sha256"].size() != 64 ||
-				sha256_hex_native(wasm_bytes) != fields["wasm_sha256"] || sha256_hex_native(exports_text) != fields["exports_sha256"] ||
-				sha256_hex_native(source_map_text) != fields["source_map_sha256"])
+				hex(sha256_native(wasm_bytes)) != fields["wasm_sha256"] || hex(sha256_native(exports_text)) != fields["exports_sha256"] ||
+				hex(sha256_native(source_map_text)) != fields["source_map_sha256"])
 			{
 				error = "unit artifact metadata does not match Wasm and exports";
 				return(false);
@@ -1996,7 +1991,7 @@ struct WasmWorker
 			return(false);
 		if(!file_exists(cached_path) || !serialized_module_manifest(cached_path, expected_wasm_hash, cached_hash))
 			return(true);
-		return(sha256_hex_native(file_get_contents(wasm_path)) != expected_wasm_hash);
+		return(hex(sha256_native(file_get_contents(wasm_path))) != expected_wasm_hash);
 	}
 
 	static String serialize_module_artifact(const String& wasm_path)
@@ -2044,8 +2039,8 @@ struct WasmWorker
 		if(!serialized_module_manifest(cached_path, expected_wasm_hash, expected_cached_hash))
 			return(std::nullopt);
 		String wasm_bytes = file_get_contents(wasm_path), cached_bytes = file_get_contents(cached_path);
-		if(wasm_bytes == "" || cached_bytes == "" || sha256_hex_native(wasm_bytes) != expected_wasm_hash ||
-			sha256_hex_native(cached_bytes) != expected_cached_hash)
+		if(wasm_bytes == "" || cached_bytes == "" || hex(sha256_native(wasm_bytes)) != expected_wasm_hash ||
+			hex(sha256_native(cached_bytes)) != expected_cached_hash)
 			return(std::nullopt);
 		auto deserialized = wasmtime::Module::deserialize(engine,
 			wasmtime::Span<uint8_t>((uint8_t*)cached_bytes.data(), cached_bytes.size()));
@@ -2071,7 +2066,7 @@ struct WasmWorker
 			String tmp = cached_path + nonce, manifest_path = serialized_module_manifest_path(cached_path), manifest_tmp = manifest_path + nonce;
 			auto data = serialized.ok();
 			String serialized_bytes((const char*)data.data(), data.size());
-			String manifest = sha256_hex_native(String((const char*)bytes.data(), bytes.size())) + "\n" + sha256_hex_native(serialized_bytes) + "\n";
+			String manifest = hex(sha256_native(String((const char*)bytes.data(), bytes.size()))) + "\n" + hex(sha256_native(serialized_bytes)) + "\n";
 			{
 				std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
 				std::ofstream manifest_out(manifest_tmp, std::ios::binary | std::ios::trunc);
@@ -3666,7 +3661,7 @@ struct WasmWorkspace : public WasmRequestProfile
 
 	static String sanitize_symbol_suffix(const String& raw)
 	{
-		// mirrors ascii_safe_name in functionlib.cpp
+		// mirrors safe_name in functionlib.cpp
 		String result;
 		for(auto c : raw)
 			if(isalnum((unsigned char)c) || c == '_')
@@ -4276,12 +4271,8 @@ struct WasmWorkspace : public WasmRequestProfile
 			}));
 		if(mod == "env" && name == "bearer_host_sha256")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String in; self->hostcall_read(args[0].i32(), args[1].i32(), in); String out=sha256_native(in); u32 cap=(u32)args[3].i32(); int32_t buf=args[2].i32(); if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
-		if(mod == "env" && name == "bearer_host_sha256_hex")
-			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String in; self->hostcall_read(args[0].i32(), args[1].i32(), in); String out=sha256_hex_native(in); u32 cap=(u32)args[3].i32(); int32_t buf=args[2].i32(); if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
 		if(mod == "env" && name == "bearer_host_hmac_sha256")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String key,in; self->hostcall_read(args[0].i32(), args[1].i32(), key); self->hostcall_read(args[2].i32(), args[3].i32(), in); String out=hmac_sha256_native(key,in); u32 cap=(u32)args[5].i32(); int32_t buf=args[4].i32(); if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
-		if(mod == "env" && name == "bearer_host_hmac_sha256_hex")
-			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String key,in; self->hostcall_read(args[0].i32(), args[1].i32(), key); self->hostcall_read(args[2].i32(), args[3].i32(), in); String out=hmac_sha256_hex_native(key,in); u32 cap=(u32)args[5].i32(); int32_t buf=args[4].i32(); if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
 		if(mod == "env" && name == "bearer_host_base64_encode")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String in; self->hostcall_read(args[0].i32(), args[1].i32(), in); String out=base64_encode(in); u32 cap=(u32)args[3].i32(); int32_t buf=args[2].i32(); if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
 		if(mod == "env" && name == "bearer_host_base64_decode")
@@ -4336,6 +4327,34 @@ struct WasmWorkspace : public WasmRequestProfile
 				results[0] = Val((int32_t)out.size());
 				return(std::monostate());
 			}));
+		if(mod == "env" && name == "bearer_host_shell_exec_flags")
+			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				String encoded; self->hostcall_read(args[0].i32(), args[1].i32(), encoded);
+				u32 cap = (u32)args[3].i32(); int32_t buf = args[2].i32();
+				String out, stage_key = "shell_flags:" + encoded;
+				if(!self->hostcall_staged(stage_key, out))
+				{
+					DValue spec, response; String error;
+					if(brb_decode(encoded, spec, &error))
+					{
+						if(spec["background"].to_bool())
+							response.set(std::to_string(bearer_job_start("shell", spec)));
+						else
+						{
+							u64 requested = spec.key("timeout_ms") ? spec.key("timeout_ms")->to_u64(5000) : 5000;
+							if(requested == 0) requested = 5000;
+							spec["timeout_ms"] = (f64)std::max<u64>(1, self->bounded_hostcall_timeout_ms(requested));
+							response = bearer_shell_exec_spec(spec);
+						}
+					}
+					else response["error"] = "shell_exec flags decode failed: " + error;
+					out = brb_encode(response);
+					if(buf == 0) self->hostcall_stage(stage_key, out);
+				}
+				if(buf && cap >= out.size()) self->hostcall_write(buf, out);
+				results[0] = Val((int32_t)out.size());
+				return(std::monostate());
+			}));
 		if(mod == "env" && name == "bearer_host_http_request")
 			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String encoded; self->hostcall_read(args[0].i32(), args[1].i32(), encoded); u32 cap=(u32)args[3].i32(); int32_t buf=args[2].i32(); String out; String stage_key="http:"+encoded;
@@ -4344,19 +4363,6 @@ struct WasmWorkspace : public WasmRequestProfile
 			}));
 		if(mod == "env" && name == "bearer_host_http_request_async")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { String encoded; self->hostcall_read(args[0].i32(), args[1].i32(), encoded); DValue req; String err; u64 id=0; if(brb_decode(encoded,req,&err)) id=bearer_http_spawn_spec(req); results[0]=Val((int64_t)id); return(std::monostate()); }));
-		if(mod == "env" && name == "bearer_host_shell_exec_dv")
-			return(add([self](Caller caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
-				String encoded; self->hostcall_read(args[0].i32(), args[1].i32(), encoded);
-				u32 cap=(u32)args[3].i32(); int32_t buf=args[2].i32();
-				String out; String stage_key="shell_dv:"+encoded;
-				if(!self->hostcall_staged(stage_key,out)) { DValue spec, response; String err; if(brb_decode(encoded,spec,&err)) { u64 requested=spec.key("timeout_ms")?spec.key("timeout_ms")->to_u64(5000):5000; if(requested==0)requested=5000; spec["timeout_ms"]=(f64)std::max<u64>(1,self->bounded_hostcall_timeout_ms(requested)); response=bearer_shell_exec_spec(spec); } else response["error"]="shell_exec spec decode failed: "+err; out=brb_encode(response); if(buf==0) self->hostcall_stage(stage_key,out); }
-				if(buf&&cap>=out.size()) self->hostcall_write(buf,out);
-				results[0]=Val((int32_t)out.size()); return(std::monostate());
-			}));
-		if(mod == "env" && name == "bearer_host_shell_spawn")
-			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
-				String encoded; self->hostcall_read(args[0].i32(), args[1].i32(), encoded); DValue spec; String err; u64 id=0; if(brb_decode(encoded,spec,&err)) id=bearer_shell_spawn_spec(spec); results[0]=Val((int64_t)id); return(std::monostate());
-			}));
 		if(mod == "env" && name == "bearer_host_job_status")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { u64 job_id=(u64)args[0].i64(); String out,stage_key="job_status:"+std::to_string(job_id); u32 cap=(u32)args[2].i32(); int32_t buf=args[1].i32(); if(!self->hostcall_staged(stage_key,out)){out=brb_encode(bearer_job_status_value(job_id));if(buf==0)self->hostcall_stage(stage_key,out);} if(buf&&cap>=out.size()) self->hostcall_write(buf,out); results[0]=Val((int32_t)out.size()); return(std::monostate()); }));
 		if(mod == "env" && name == "bearer_host_job_result")

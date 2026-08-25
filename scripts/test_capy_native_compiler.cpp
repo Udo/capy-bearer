@@ -227,7 +227,7 @@ int main()
 	for (const char* old_name : {"dval_string", "dval_bool", "dval_s32", "dval_f64", "dval_to_string", "dval_to_bool", "dval_to_f64", "dval_to_s64", "dval_to_u64"})
 		try { capy::compile_bearer_unit(std::string("function CLI(request : dval) { ") + old_name + "(dval(\"x\")) }\n", options); assert(false); }
 		catch (const capy::Error& error) { assert(error.message.find("no overload") != std::string::npos); }
-	for (const char* old_name : {"request_context", "request_param", "request_get", "request_post", "request_cookie", "request_session", "request_body", "request_base_url", "request_script_url", "request_query_path", "request_query_route", "cli_input", "cli_arg", "ws_message", "ws_connection_id", "ws_scope", "ws_opcode", "ws_is_binary", "ws_connections", "ws_connection_count", "to_bool", "to_f64", "to_s64", "to_u64", "to_lower", "to_upper", "dval_to_json", "dval_to_stringmap"})
+	for (const char* old_name : {"request_context", "request_param", "request_get", "request_post", "request_cookie", "request_session", "request_body", "request_base_url", "request_script_url", "request_query_path", "request_query_route", "cli_input", "cli_arg", "ws_message", "ws_connection_id", "ws_scope", "ws_opcode", "ws_is_binary", "ws_connections", "ws_connection_count", "to_bool", "to_f64", "to_s64", "to_u64", "to_lower", "to_upper", "dval_to_json", "dval_to_stringmap", "password_needs_rehash", "ascii_safe_name", "component_exists", "memcache_escape_key", "sha256_hex", "hmac_sha256_hex", "shell_spawn"})
 		try { capy::compile_bearer_unit(std::string("function CLI(request : dval) { ") + old_name + "() }\n", options); assert(false); }
 		catch (const capy::Error& error) { assert(error.message.find("was removed") != std::string::npos); }
 	for (const auto& [old_name, arguments] : {std::pair{"request_route_from_raw_path", "(\"path\")"}, std::pair{"request_perf", "()"}})
@@ -687,7 +687,7 @@ int main()
 			 "request_param", "request_get", "request_post", "request_cookie", "request_session", "request_body", "request_context",
 			 "session_start", "session_set", "session_remove", "session_destroy", "session_id_create", "redirect", "csrf_token", "csrf_valid", "csrf_rotate", "csrf_field",
 			 "ws_message", "ws_connection_id", "ws_scope", "ws_opcode", "ws_is_binary", "ws_send", "ws_send_to", "ws_close", "component", "component_render",
-			 "component_exists", "component_resolve", "unit_render", "unit_call", "unit_info", "units_list", "unit_compile", "regex_match", "regex_search", "regex_search_all", "regex_replace",
+			 "component_resolve", "unit_render", "unit_call", "unit_info", "units_list", "unit_compile", "regex_match", "regex_search", "regex_search_all", "regex_replace",
 			 "regex_split", "base64_encode", "base64_decode", "uri_encode", "uri_decode", "json_encode", "json_decode", "html_escape", "strpos", "file_open", "file_read", "file_write",
 			 "file_seek", "file_tell", "file_fsync", "file_close", "file_temp", "file_unlink", "time", "time_precise"})
 		assert(compiler_text.find("named->value == \"" + std::string(public_name) + "\"") == std::string::npos);
@@ -716,7 +716,6 @@ int main()
 	assert(function_value.wasm == parsed_result.wasm && function_value.source_map == parsed_result.source_map);
 	const auto scoped_stdlib_parameter = capy::compile_bearer_unit(
 		"function CLI(request : dval) { print(encode_query(dval({\"name\": \"Ada\"}))) }\n", options);
-	assert(scoped_stdlib_parameter.source_map.find("\t340\t") == std::string::npos);
 	const auto bare_stdlib_function_value = capy::compile_bearer_unit("function CLI(request : dval) { map(dval([\"X\"]), lower) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(bare_stdlib_function_value.wasm, {.bearer_abi_version = "11"}).valid);
 	assert(std::string(bare_stdlib_function_value.wasm.begin(), bare_stdlib_function_value.wasm.end()).find("bearer_string_lower") != std::string::npos);

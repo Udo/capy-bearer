@@ -38,16 +38,13 @@ DValue process_exec(String cmd, String input, StringMap env, u64 timeout_ms, u64
 #endif
 DValue http_request(DValue req);
 u64 http_request_async(DValue req);
-DValue shell_exec(DValue spec);
-u64 shell_spawn(DValue spec);
+DValue shell_exec(String command, DValue flags);
 DValue job_status(u64 job_id);
 DValue job_result(u64 job_id);
 DValue job_await(u64 job_id, u64 timeout_ms);
 bool job_cancel(u64 job_id);
 String sha256(String data);
-String sha256_hex(String data);
 String hmac_sha256(String key, String data);
-String hmac_sha256_hex(String key, String data);
 String base64_decode(String raw);
 String random_bytes(u64 n);
 bool crypto_equal(String a, String b);
@@ -129,8 +126,6 @@ String backtrace_get_frames(void* const* frames, size_t size, u32 skip_frames = 
 String backtrace_capture(u32 max_frames = 32, u32 skip_frames = 0);
 String signal_name(s32 sig);
 
-String memcache_escape_key(String key);
-DValue memcache_escape_keys(DValue keys);
 u64 memcache_connect(String host = "127.0.0.1", u16 port = 11211);
 String memcache_command(u64 connection, String command);
 bool memcache_set(u64 connection, String key, String value, u64 expires_in = 60*60);

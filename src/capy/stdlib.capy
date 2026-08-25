@@ -73,7 +73,6 @@ host function __bearer_component_capture(name : string) string
 host function __bearer_component_capture_props_brrb(name : string, props : dval) string
 host function __bearer_component_render_bytes(name : string) bool
 host function __bearer_component_render_props_brrb(name : string, props : dval) bool
-host function __bearer_component_exists(name : string) bool
 host function __bearer_component_resolve(name : string) string
 host function __bearer_unit_render_bytes(name : string) void
 host function __bearer_unit_load(path : string) module
@@ -117,21 +116,20 @@ function __bearer_dval_dval_key() s32 { -> 13 }
 function __bearer_dval_dval_keys() s32 { -> 14 }
 function __bearer_dval_dval_values() s32 { -> 15 }
 function __bearer_dval_dval_put() s32 { -> 18 }
-function __bearer_text_ascii_safe_name() s32 { -> 0 }
-function __bearer_text_safe_name() s32 { -> 1 }
-function __bearer_text_trim() s32 { -> 2 }
-function __bearer_text_float_val() s32 { -> 3 }
-function __bearer_text_int_val() s32 { -> 4 }
-function __bearer_text_str_starts_with() s32 { -> 6 }
-function __bearer_text_str_ends_with() s32 { -> 7 }
-function __bearer_text_encode_query() s32 { -> 8 }
-function __bearer_text_parse_query() s32 { -> 9 }
-function __bearer_text_split() s32 { -> 10 }
-function __bearer_text_split_space() s32 { -> 11 }
-function __bearer_text_split_utf8() s32 { -> 12 }
-function __bearer_text_split_http_headers() s32 { -> 13 }
-function __bearer_text_split_kv() s32 { -> 14 }
-function __bearer_text_sort() s32 { -> 15 }
+function __bearer_text_safe_name() s32 { -> 0 }
+function __bearer_text_trim() s32 { -> 1 }
+function __bearer_text_float_val() s32 { -> 2 }
+function __bearer_text_int_val() s32 { -> 3 }
+function __bearer_text_str_starts_with() s32 { -> 4 }
+function __bearer_text_str_ends_with() s32 { -> 5 }
+function __bearer_text_encode_query() s32 { -> 6 }
+function __bearer_text_parse_query() s32 { -> 7 }
+function __bearer_text_split() s32 { -> 8 }
+function __bearer_text_split_space() s32 { -> 9 }
+function __bearer_text_split_utf8() s32 { -> 10 }
+function __bearer_text_split_http_headers() s32 { -> 11 }
+function __bearer_text_split_kv() s32 { -> 12 }
+function __bearer_text_sort() s32 { -> 13 }
 function __bearer_route_parse_uri() s32 { -> 0 }
 function __bearer_route_route_path_normalize() s32 { -> 1 }
 function __bearer_route_route_path_is_safe() s32 { -> 2 }
@@ -160,14 +158,12 @@ function __bearer_archive_zip_read() s32 { -> 15 }
 function __bearer_archive_zip_create() s32 { -> 16 }
 function __bearer_archive_zip_extract() s32 { -> 17 }
 function __bearer_crypto_gen_sha1() s32 { -> 0 }
-function __bearer_crypto_sha256() s32 { -> 1 }
-function __bearer_crypto_sha256_hex() s32 { -> 2 }
+function __bearer_crypto_hex() s32 { -> 1 }
+function __bearer_crypto_sha256() s32 { -> 2 }
 function __bearer_crypto_hmac_sha256() s32 { -> 3 }
-function __bearer_crypto_hmac_sha256_hex() s32 { -> 4 }
-function __bearer_crypto_crypto_equal() s32 { -> 5 }
-function __bearer_crypto_password_hash() s32 { -> 6 }
-function __bearer_crypto_password_verify() s32 { -> 7 }
-function __bearer_crypto_password_needs_rehash() s32 { -> 8 }
+function __bearer_crypto_crypto_equal() s32 { -> 4 }
+function __bearer_crypto_password_hash() s32 { -> 5 }
+function __bearer_crypto_password_verify() s32 { -> 6 }
 function __bearer_filesystem_basename() s32 { -> 0 }
 function __bearer_filesystem_dirname() s32 { -> 1 }
 function __bearer_filesystem_path_join() s32 { -> 2 }
@@ -212,11 +208,9 @@ function __bearer_cache_memcache_set() s32 { -> 2 }
 function __bearer_cache_memcache_delete() s32 { -> 3 }
 function __bearer_cache_memcache_get() s32 { -> 4 }
 function __bearer_cache_memcache_get_multiple() s32 { -> 5 }
-function __bearer_cache_memcache_escape_key() s32 { -> 6 }
-function __bearer_cache_memcache_escape_keys() s32 { -> 7 }
 function __bearer_process_shell_escape() s32 { -> 0 }
 function __bearer_process_shell_exec() s32 { -> 1 }
-function __bearer_process_shell_spawn() s32 { -> 2 }
+function __bearer_process_shell_exec_flags() s32 { -> 2 }
 function __bearer_process_job_status() s32 { -> 3 }
 function __bearer_process_job_result() s32 { -> 4 }
 function __bearer_process_job_await() s32 { -> 5 }
@@ -337,7 +331,6 @@ function unique(items : dval) dval {
 
 // Core utility adapters retain the host implementation as the semantic authority.
 // text/parsing/collection operation order: names, scalars, predicates, query, split/sort
-function ascii_safe_name(raw : string) string { -> string(__bearer_text_parsing_brrb(__bearer_text_ascii_safe_name(), dval(raw), "", dval(""))) }
 function safe_name(raw : string) string { -> string(__bearer_text_parsing_brrb(__bearer_text_safe_name(), dval(raw), "", dval(""))) }
 function trim(raw : string) string { -> string(__bearer_text_parsing_brrb(__bearer_text_trim(), dval(raw), "", dval(""))) }
 function int_val(raw : string) u64 { -> u64(__bearer_text_parsing_brrb(__bearer_text_int_val(), dval(raw), "", dval(10.0)), 0) }
@@ -452,15 +445,13 @@ function csrf_field(session_name : string = "bearer-session", token_name : strin
 function route_from_raw_path(raw_path : string, default_path : string = "index") dval { -> __bearer_request_workspace_brrb(__bearer_request_request_route_from_raw_path(), dval(raw_path), default_path, dval("")) }
 function runtime_perf() dval { -> __bearer_request_workspace_brrb(__bearer_request_request_perf(), dval(""), "", dval("")) }
 
-function gen_sha1(value : string, as_binary : bool = false) string { -> string(__bearer_crypto_password_brrb(__bearer_crypto_gen_sha1(), dval(value), "", dval(as_binary))) }
+function gen_sha1(value : string) string { -> string(__bearer_crypto_password_brrb(__bearer_crypto_gen_sha1(), dval(value), "", dval(""))) }
+function hex(value : string) string { -> string(__bearer_crypto_password_brrb(__bearer_crypto_hex(), dval(value), "", dval(""))) }
 function sha256(value : string) string { -> string(__bearer_crypto_password_brrb(__bearer_crypto_sha256(), dval(value), "", dval(""))) }
-function sha256_hex(value : string) string { -> string(__bearer_crypto_password_brrb(__bearer_crypto_sha256_hex(), dval(value), "", dval(""))) }
 function hmac_sha256(key : string, value : string) string { -> string(__bearer_crypto_password_brrb(__bearer_crypto_hmac_sha256(), dval(key), "", dval(value))) }
-function hmac_sha256_hex(key : string, value : string) string { -> string(__bearer_crypto_password_brrb(__bearer_crypto_hmac_sha256_hex(), dval(key), "", dval(value))) }
 function crypto_equal(left : string, right : string) bool { -> bool(__bearer_crypto_password_brrb(__bearer_crypto_crypto_equal(), dval(left), "", dval(right))) }
 function password_hash(password : string) string { -> string(__bearer_crypto_password_brrb(__bearer_crypto_password_hash(), dval(password), "", dval(""))) }
 function password_verify(password : string, encoded : string) bool { -> bool(__bearer_crypto_password_brrb(__bearer_crypto_password_verify(), dval(password), "", dval(encoded))) }
-function password_needs_rehash(encoded : string) bool { -> bool(__bearer_crypto_password_brrb(__bearer_crypto_password_needs_rehash(), dval(encoded), "", dval(""))) }
 
 function sqlite_connect(path : string) u64 { -> __bearer_sqlite_connect(path) }
 function sqlite_disconnect(handle : u64) { __bearer_sqlite_disconnect(handle) }
@@ -507,13 +498,10 @@ function memcache_set(connection : u64, key : string, value : string, expires_in
 function memcache_delete(connection : u64, key : string) bool { -> bool(__bearer_cache_brrb(__bearer_cache_memcache_delete(), dval(connection), key, dval(""))) }
 function memcache_get(connection : u64, key : string, default_value : string = "") string { -> string(__bearer_cache_brrb(__bearer_cache_memcache_get(), dval(connection), key, dval(default_value))) }
 function memcache_get_multiple(connection : u64, keys : dval) dval { -> __bearer_cache_brrb(__bearer_cache_memcache_get_multiple(), dval(connection), "", keys) }
-function memcache_escape_key(key : string) string { -> string(__bearer_cache_brrb(__bearer_cache_memcache_escape_key(), dval(key), "", dval(""))) }
 
 function shell_escape(raw : string) string { -> string(__bearer_process_jobs_brrb(__bearer_process_shell_escape(), dval(raw), "", dval(""))) }
 function shell_exec(command : string) string { -> string(__bearer_process_jobs_brrb(__bearer_process_shell_exec(), dval(command), "", dval(""))) }
-// Job IDs remain copied DValues in Capy so the host's exact u64 registry IDs
-// never cross a lossy scalar conversion.
-function shell_spawn(spec : dval) dval { -> __bearer_process_jobs_brrb(__bearer_process_shell_spawn(), spec, "", dval("")) }
+function shell_exec(command : string, flags : as dval) dval { -> __bearer_process_jobs_brrb(__bearer_process_shell_exec_flags(), dval(command), "", flags) }
 function job_status(job : dval) dval { -> __bearer_process_jobs_brrb(__bearer_process_job_status(), job, "", dval("")) }
 function job_result(job : dval) dval { -> __bearer_process_jobs_brrb(__bearer_process_job_result(), job, "", dval("")) }
 function job_await(job : dval, timeout_ms : s32) dval { -> __bearer_process_jobs_brrb(__bearer_process_job_await(), job, "", dval(timeout_ms)) }
@@ -557,7 +545,6 @@ function ws_close(connection_id : string = "") bool { -> __bearer_ws_close(conne
 
 function component_render(name : string) bool { -> __bearer_component_render_bytes(name) }
 function component_render(name : string, props : as dval) bool { -> __bearer_component_render_props_brrb(name, props) }
-function component_exists(name : string) bool { -> __bearer_component_exists(name) }
 function component_resolve(name : string) string { -> __bearer_component_resolve(name) }
 function unit_render(name : string) { __bearer_unit_render_bytes(name) }
 function unit_load(path : string) module { -> __bearer_unit_load(path) }

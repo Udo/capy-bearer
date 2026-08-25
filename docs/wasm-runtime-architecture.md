@@ -129,7 +129,7 @@ __bearer_<base>[_<sanitize(suffix)>]
 | `component:CARD` | `__bearer_component_CARD` |
 | `exists` | probe only — resolves the unit, loads nothing |
 
-`sanitize_symbol_suffix()` keeps `[A-Za-z0-9_]` (mirrors `ascii_safe_name`).
+`sanitize_symbol_suffix()` keeps `[A-Za-z0-9_]` (mirrors `safe_name()`).
 Unit code is hidden by default so the linker can discard loaded helpers that the
 unit does not use. Handler macros and the explicit `EXPORT` directive are the
 only application symbols promoted to default visibility; generated request

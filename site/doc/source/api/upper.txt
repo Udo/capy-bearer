@@ -12,7 +12,6 @@ string with lowercase ASCII characters changed to uppercase
 string
 length
 clone
-ascii_safe_name
 base64_decode
 
 :content

@@ -13,6 +13,10 @@ one server response read
 
 Use a dedicated Memcache function when one is available. This function does not guarantee a complete multi-part response.
 
+For `get` and `gets`, each protocol key token starts at token 1. For `gat` and `gats`, the protocol key token is token 2. For storage and single-key commands, the protocol key token is token 1.
+
+The function normalizes whitespace in these protocol key tokens to underscores. It does not normalize command names, expiration tokens, metadata tokens, or payload text.
+
 :example capy render
 var connection := memcache_connect()
 if connection != u64(0) { print(memcache_command(connection, "version"), "\n") }

@@ -1,25 +1,21 @@
 :sig
-function gen_sha1(value : string, as_binary : bool = false) string
+function gen_sha1(value : string) string
 
 :params
 value : bytes to hash
-as_binary : `false` for hexadecimal text, `true` for raw digest bytes
 
 :returns
-A SHA-1 digest string.
+Raw 20-byte SHA-1 digest.
 
 :content
-`gen_sha1()` returns the SHA-1 digest of a string.
-
-It returns hexadecimal text by default. Set `as_binary` to `true` for raw digest bytes.
+`gen_sha1()` returns 20 raw SHA-1 bytes. Use `hex(gen_sha1(value))` when you need lowercase hexadecimal text.
 
 Use it only for SHA-1 compatibility.
 
 :example capy render
-var digest := gen_sha1("abc")
-print(digest, "\n")
+print(hex(gen_sha1("abc")), "\n")
 
 :see
 sha256
-sha256_hex
+hex
 hmac_sha256

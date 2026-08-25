@@ -39,7 +39,6 @@ void unit_render(String file_name);
 void unit_render(String file_name, Request& context);
 DValue* unit_call(String file_name, String function_name, DValue* call_param = 0);
 String component_resolve(String name);
-bool component_exists(String name);
 bool component_render(String name);
 bool component_render(String name, Request& context);
 bool component_render(String name, DValue props);

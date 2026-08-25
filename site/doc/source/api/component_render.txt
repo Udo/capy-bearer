@@ -36,6 +36,5 @@ print("\n")
 
 :see
 component
-component_exists
 component_resolve
 handler/component

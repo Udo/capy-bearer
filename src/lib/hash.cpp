@@ -263,21 +263,26 @@ unsigned char c;
 /* ================ end of sha1.c ================ */
 
 String
-gen_sha1(String s, bool as_binary)
+hex(String value)
+{
+	String result;
+	result.reserve(value.size() * 2);
+	for(unsigned char byte : value)
+	{
+		result += to_hex(byte, 2);
+	}
+	return(to_lower(result));
+}
+
+String
+gen_sha1(String s)
 {
 	unsigned char v[20];
     SHA1_CTX ctx;
     SHA1Init(&ctx);
     SHA1Update(&ctx, (const unsigned char *)s.data(), s.length());
     SHA1Final(v, &ctx);
-	String result;
-	if(as_binary)
-		for(int i=0; i<20; i++)
-			result.append(1, v[i]);
-	else
-		for(int i=0; i<20; i++)
-			result += to_hex(v[i], 2);
-	return(result);
+	return(String((const char*)v, sizeof(v)));
 }
 
 #define BIT_NOISE1 0xB5297A4D
@@ -399,10 +404,6 @@ String sha256_native(String data)
 	u8 digest[32]; SHA256_CTX_BEARER ctx; bearer_sha256_init(&ctx); bearer_sha256_update(&ctx, (const u8*)data.data(), data.size()); bearer_sha256_final(&ctx, digest);
 	return(String((const char*)digest, 32));
 }
-String sha256_hex_native(String data)
-{
-	String digest = sha256_native(data), out; for(unsigned char c : digest) out += to_hex(c, 2); return(to_lower(out));
-}
 String hmac_sha256_native(String key, String data)
 {
 	if(key.size() > 64) key = sha256_native(key);
@@ -410,10 +411,6 @@ String hmac_sha256_native(String key, String data)
 	String o(64, '\0'), i(64, '\0');
 	for(size_t n=0; n<64; n++) { o[n] = key[n] ^ 0x5c; i[n] = key[n] ^ 0x36; }
 	return(sha256_native(o + sha256_native(i + data)));
-}
-String hmac_sha256_hex_native(String key, String data)
-{
-	String digest = hmac_sha256_native(key, data), out; for(unsigned char c : digest) out += to_hex(c, 2); return(to_lower(out));
 }
 bool crypto_equal_native(String a, String b)
 {
@@ -489,14 +486,6 @@ const u64 BEARER_PASSWORD_SCRYPT_N = 65536;
 const u64 BEARER_PASSWORD_SCRYPT_R = 8;
 const u64 BEARER_PASSWORD_SCRYPT_P = 1;
 
-String bearer_hex_encode(const unsigned char* bytes, size_t size)
-{
-	String encoded;
-	encoded.reserve(size * 2);
-	for(size_t i = 0; i < size; i++)
-		encoded += to_hex(bytes[i], 2);
-	return(to_lower(encoded));
-}
 
 bool bearer_hex_decode(String encoded, String& decoded)
 {
@@ -562,7 +551,7 @@ String password_hash_native(String password)
 	unsigned char digest[32];
 	if(RAND_bytes(salt, sizeof(salt)) != 1 || !bearer_password_derive(password, String((const char*)salt, sizeof(salt)), BEARER_PASSWORD_SCRYPT_N, BEARER_PASSWORD_SCRYPT_R, BEARER_PASSWORD_SCRYPT_P, digest))
 		return("");
-	return("$bearer$scrypt$" + std::to_string(BEARER_PASSWORD_SCRYPT_N) + "$" + std::to_string(BEARER_PASSWORD_SCRYPT_R) + "$" + std::to_string(BEARER_PASSWORD_SCRYPT_P) + "$" + bearer_hex_encode(salt, sizeof(salt)) + "$" + bearer_hex_encode(digest, sizeof(digest)));
+	return("$bearer$scrypt$" + std::to_string(BEARER_PASSWORD_SCRYPT_N) + "$" + std::to_string(BEARER_PASSWORD_SCRYPT_R) + "$" + std::to_string(BEARER_PASSWORD_SCRYPT_P) + "$" + hex(String((const char*)salt, sizeof(salt))) + "$" + hex(String((const char*)digest, sizeof(digest))));
 }
 
 bool password_verify_native(String password, String encoded)

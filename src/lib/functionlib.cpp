@@ -2705,11 +2705,6 @@ String ob_get_close()
 
 String safe_name(String raw)
 {
-	return(ascii_safe_name(raw));
-}
-
-String ascii_safe_name(String raw)
-{
 	String result = "";
 	for(auto c : raw)
 	{

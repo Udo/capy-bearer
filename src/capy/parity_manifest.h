@@ -3,7 +3,7 @@
 #include <string_view>
 namespace capy::parity {
 struct Evidence { std::string_view name, path, marker; };
-inline constexpr std::array<Evidence, 225> supported{{
+inline constexpr std::array<Evidence, 219> supported{{
     {"session_set","site/doc/source/api/session_set.txt",":example capy render"},
     {"session_remove","site/doc/source/api/session_remove.txt",":example capy render"},
     {"call","site/doc/source/api/call.txt",":example capy render"},
@@ -45,7 +45,6 @@ inline constexpr std::array<Evidence, 225> supported{{
     {"unit_call","site/tests/capy-component-parity.capy","unit_call("},
     {"unit_load","site/tests/capy-module-caller.capy","unit_load("},
     {"units_list","site/tests/capy-component-parity.capy","units_list("},
-    {"component_exists","site/tests/capy-component-props.capy","component_exists("},
     {"component_resolve","site/tests/capy-component-props.capy","component_resolve("},
     {"time_parse","site/tests/capy-time-parity.capy","time_parse("},
     {"time_format_local","site/tests/capy-time-parity.capy","time_format_local("},
@@ -98,7 +97,6 @@ inline constexpr std::array<Evidence, 225> supported{{
     {"each","site/tests/capy-coreutil.capy","each("},
     {"sort","site/tests/capy-coreutil.capy","sort("},
     {"array_merge","site/tests/capy-dval-merge.capy","array_merge("},
-    {"ascii_safe_name","site/tests/capy-coreutil.capy","ascii_safe_name("},
     {"backtrace_capture","site/tests/capy-coreutil.capy","backtrace_capture("},
     {"backtrace_get_frames","site/tests/capy-backtrace.capy","backtrace_get_frames("},
     {"encode_query","site/tests/capy-coreutil.capy","encode_query("},
@@ -147,14 +145,12 @@ inline constexpr std::array<Evidence, 225> supported{{
     {"html_escape","site/tests/capy-codecs-text.capy","html_escape("},
     {"gen_sha1","site/tests/capy-crypto-random.capy","gen_sha1("},
     {"sha256","site/tests/capy-crypto-random.capy","sha256("},
-    {"sha256_hex","site/tests/capy-crypto-random.capy","sha256_hex("},
+    {"hex","site/tests/capy-crypto-random.capy","hex("},
     {"hmac_sha256","site/tests/capy-crypto-random.capy","hmac_sha256("},
-    {"hmac_sha256_hex","site/tests/capy-crypto-random.capy","hmac_sha256_hex("},
     {"random_bytes","site/tests/capy-crypto-random.capy","random_bytes("},
     {"crypto_equal","site/tests/capy-crypto-random.capy","crypto_equal("},
     {"password_hash","site/tests/capy-crypto-random.capy","password_hash("},
     {"password_verify","site/tests/capy-crypto-random.capy","password_verify("},
-    {"password_needs_rehash","site/tests/capy-crypto-random.capy","password_needs_rehash("},
     {"gen_noise32","site/tests/capy-crypto-random.capy","gen_noise32("},
     {"gen_noise64","site/tests/capy-crypto-random.capy","gen_noise64("},
     {"gen_noise01","site/tests/capy-crypto-random.capy","gen_noise01("},
@@ -183,7 +179,6 @@ inline constexpr std::array<Evidence, 225> supported{{
     {"memcache_get_multiple","site/tests/capy-memcache.capy","memcache_get_multiple("},
     {"memcache_set","site/tests/capy-memcache.capy","memcache_set("},
     {"memcache_delete","site/tests/capy-memcache.capy","memcache_delete("},
-    {"memcache_escape_key","site/tests/capy-memcache.capy","memcache_escape_key("},
     {"task","site/tests/capy-jobs.capy","task("},
     {"task_status","site/tests/capy-jobs.capy","task_status("},
     {"task_await","site/tests/capy-jobs.capy","task_await("},
@@ -194,7 +189,6 @@ inline constexpr std::array<Evidence, 225> supported{{
     {"job_cancel","site/tests/capy-jobs.capy","job_cancel("},
     {"shell_escape","site/tests/capy-jobs.capy","shell_escape("},
     {"shell_exec","site/tests/capy-jobs.capy","shell_exec("},
-    {"shell_spawn","site/tests/capy-jobs.capy","shell_spawn("},
     {"socket_connect","site/tests/capy-network-parity.capy","socket_connect("},
     {"socket_read","site/tests/capy-network-parity.capy","socket_read("},
     {"socket_write","site/tests/capy-network-parity.capy","socket_write("},

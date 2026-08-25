@@ -26,7 +26,15 @@ A relative name is tried against, in order:
 
 The first candidate that exists is returned. A candidate that resolves outside the site root is rejected, and the result is an empty string.
 
-An empty return means the same thing as `component_exists()` returning `false` — the two functions run the same lookup and differ only in what they report.
+An empty return means that no component source file matches the name.
+
+## Check whether a component exists
+
+Warning: `if component_resolve(...)` is always false. Conditions parse strings as boolean words, so a resolved filesystem path is false.
+
+Use this exact test:
+
+    if length(component_resolve(name)) > 0 { ... }
 
 :example capy render
 print(component_resolve("/doc/examples/card"), "\n")
@@ -40,5 +48,4 @@ print(component_resolve("/doc/examples/card.capy:CARD"), "\n")
 
 :see
 component
-component_exists
 component_render

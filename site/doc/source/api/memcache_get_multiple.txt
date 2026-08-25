@@ -11,7 +11,9 @@ a map of returned entries
 :content
 `memcache_get_multiple()` reads several keys through one connection.
 
-Missing keys do not occur in the returned map. It escapes each key before it sends the request.
+Missing keys do not occur in the returned map. It normalizes whitespace in each key to underscores before it sends the request.
+
+This normalization is transparent. The keys `"a b"` and `"a_b"` address the same entry.
 
 :example capy render
 var connection := memcache_connect()
