@@ -10,11 +10,11 @@ Use a fallback when absence is valid:
 
 :example capy render
 function display_name(profile : dval) string {
-    -> string(profile.name, "guest")
+    -> string(profile.name, {fallback: "guest"})
 }
 
 function RENDER(request : dval) {
-    print(display_name({:}), "\n")
+    print(display_name({}), "\n")
 }
 
 :output
@@ -44,7 +44,7 @@ Use strict access when missing data violates the program contract:
 
 :example capy cli
 function RENDER(request : dval) {
-    var profile := {:}
+    var profile := {}
     if !has(profile, "name") { trap() }
     var name := get(profile, "name")
     print(name)

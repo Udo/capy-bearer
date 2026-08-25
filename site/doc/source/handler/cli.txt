@@ -10,7 +10,7 @@ function CLI(request : dval)
 The handler has one parameter named `request` with type `dval`. Read command data from the request snapshot. Use `print` to write command output.
 
 :example capy cli
-print(string(request.method, ""), "\n")
+print(string(request.method), "\n")
 
 :see
 type/request

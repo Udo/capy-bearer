@@ -1,8 +1,8 @@
 function RENDER(request : dval) {
-    var action := string(request.query.action, "")
+    var action := string(request.query.action)
     if action == "set" {
         var session := session_start("capy-session")
-        session = session_set("value", string(request.query.value, ""))
+        session = session_set("value", string(request.query.value))
         request.out.cookies["capy-extra"] = "yes"
         print("set")
     } else {
@@ -17,13 +17,13 @@ function RENDER(request : dval) {
             } else {
                 {
                     var session := session_start("capy-session")
-                    if length(string(session.values.value, "")) > 0 {
-                        print(string(session.values.value, ""))
+                    if length(string(session.values.value)) > 0 {
+                        print(string(session.values.value))
                     } else {
                         print("missing")
                     }
                 }
-                print("|", string(request.cookies["capy-extra"], ""), "|", arc_live())
+                print("|", string(request.cookies["capy-extra"]), "|", arc_live())
             }
         }
     }

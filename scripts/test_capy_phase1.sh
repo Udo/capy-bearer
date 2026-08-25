@@ -113,6 +113,51 @@ EOF
 )
 coercion_expected="7|8|42|-9|10|4.25|true|false|12|false|1|2|3|9|4|0"
 expect_equal "declared parameter coercion and constructors" "$coercion_expected" "$(scripts/bearer-cli /tests/capy-coercion.capy)"
+(
+	dval_default_dir=$(mktemp -d "$site_directory/tests/capy-dval-default.XXXXXX")
+	trap 'rm -rf -- "$dval_default_dir"' EXIT
+	cat >"$dval_default_dir/entry.capy" <<'EOF'
+function fresh(opt : dval = {nested: {items: [1, true, "x"]}}) dval { -> opt }
+function CLI(request : dval) {
+    {
+        var first := fresh()
+        first.nested.items[0] = 2
+        first.nested.extra = "mutated"
+        var second := fresh()
+        print(s32(first.nested.items[0]), "|", s32(second.nested.items[0]), "|", bool(second.nested.items[1]), "|", second.nested.items[2], "|", second.nested.extra?)
+    }
+    print("|", arc_live())
+}
+EOF
+	expect_equal "DValue default identity" "2|1|true|x|false|0" "$(scripts/bearer-cli "/tests/${dval_default_dir##*/}/entry.capy")"
+)
+expect_equal "constructor options and precision" \
+	"7:7:7:7:0:7:7|7:7:7:7:0:7:7|7:7:7:7:0:7:7|7:7:7:7:0:7:7|7:7:7:7:true:7:7|true:false:true|true:true:true|11:12:13:-14:-15:-16:21:22:23:1.1000000000000001:1.2:1.3:absent:empty:true:true:false|5:5:255:255:42" \
+	"$(scripts/bearer-cli /tests/capy-constructors.capy)"
+(
+	constructor_reject_dir=$(mktemp -d "$site_directory/tests/capy-constructor-reject.XXXXXX")
+	trap 'rm -rf -- "$constructor_reject_dir"' EXIT
+	printf '%s\n' 'function CLI(request : dval) { print(u64("10", {base: 1.5})) }' >"$constructor_reject_dir/entry.capy"
+	set +e
+	constructor_base_output=$(scripts/bearer-cli "/tests/${constructor_reject_dir##*/}/entry.capy" 2>&1)
+	constructor_base_status=$?
+	set -e
+	[[ $constructor_base_status -ne 0 && "$constructor_base_output" == *"u64: base must be a whole number from 2 to 36"* ]] || {
+		echo "Capy did not reject a fractional constructor base: $constructor_base_output" >&2
+		exit 1
+	}
+	for source in \
+		'function CLI(request : dval) { print(u64("10", {unknown: 1})) }' \
+		'function CLI(request : dval) { print(f64("1", {base: 10})) }' \
+		'function CLI(request : dval) { print(string("1", {base: 10})) }' \
+		'function CLI(request : dval) { if "true" {} }'; do
+		printf '%s\n' "$source" >"$constructor_reject_dir/entry.capy"
+		if scripts/bearer-cli "/tests/${constructor_reject_dir##*/}/entry.capy" >/dev/null 2>&1; then
+			echo "Capy accepted an invalid constructor option or string condition" >&2
+			exit 1
+		fi
+	done
+)
 vector_expected="7|token|8|A|Ab|inside3|insideb|x|local|insidebz|0|8|2|1.5|c|12|9|p|a2true|b3|4c|4|4c|imir|function-print6|0"
 expect_equal "constructors, shared vector arrays, variadics, splats, function values, and ARC" \
 	"$vector_expected" "$(scripts/bearer-cli /tests/capy-vector-variadic.capy)"
@@ -159,15 +204,8 @@ EOF
 function narrow(value : as s64) s64 { -> value }
 function CLI(request : dval) { print(narrow(1e300)) }
 EOF
-	set +e
-	coercion_trap_output=$(scripts/bearer-cli "/tests/$coercion_trap_name/entry.capy" 2>&1)
-	coercion_trap_status=$?
-	set -e
-	[[ $coercion_trap_status -ne 0 && "$coercion_trap_output" == *"integer overflow"* && "$coercion_trap_output" == *"entry.capy:2:45"* ]] || {
-		echo "Capy parameter conversion trap/source mapping mismatch: $coercion_trap_output" >&2
-		exit 1
-	}
-	expect_equal "parameter conversion trap recovery" "$coercion_expected" "$(scripts/bearer-cli /tests/capy-coercion.capy)"
+	expect_equal "parameter conversion f64 formatting" "0" "$(scripts/bearer-cli "/tests/$coercion_trap_name/entry.capy")"
+	expect_equal "parameter conversion recovery" "$coercion_expected" "$(scripts/bearer-cli /tests/capy-coercion.capy)"
 )
 
 variable_expression_output=$(scripts/bearer-cli /tests/capy-variable-expressions.capy)
@@ -228,15 +266,11 @@ dval_return_output=$(scripts/bearer-cli /tests/capy-dval-return.capy)
 	exit 1
 }
 wide_output=$(scripts/bearer-cli /tests/capy-wide-scalars.capy)
-[[ "$wide_output" == "8|8|9|9|18446744073709551615|-9223372036854775808|-1|-3|-1|true|true|3|2|true|125|-1.5|5|3.5|18446744073709551615|9|-1|true|truetrue|inf|falsetrue|-0|0" ]] || {
+[[ "$wide_output" == "8|8|9|9|18446744073709551615|-9223372036854775808|-1|-3|-1|true|true|3|2|true|125|-1.5|5|3.5|0|0|0|true|truetrue|inf|falsetrue|-0|0" ]] || {
 	echo "Capy wide scalar operations mismatch: $wide_output" >&2
 	exit 1
 }
-set +e
-wide_trap_output=$(scripts/bearer-cli /tests/capy-wide-conversion-trap.capy 2>&1)
-wide_trap_status=$?
-set -e
-[[ $wide_trap_status -ne 0 && "$wide_trap_output" == *"integer overflow"* && "$wide_trap_output" == *"capy-wide-conversion-trap.capy:2:11"* ]]
+expect_equal "wide scalar invalid string fallback" "0" "$(scripts/bearer-cli /tests/capy-wide-conversion-trap.capy)"
 expect_equal "wide scalar recovery" "$wide_output" "$(scripts/bearer-cli /tests/capy-wide-scalars.capy)"
 rm -f /tmp/capy-files-phase-* /tmp/capy-files2-*
 file_output=$(scripts/bearer-cli /tests/capy-files.capy)
@@ -435,7 +469,7 @@ set -e
 }
 expect_equal "callable DValue trap recovery" "$callable_expected" "$(scripts/bearer-cli /tests/capy-dval-callable.capy)"
 phase3_output=$(scripts/bearer-cli /tests/capy-phase3.capy)
-[[ "$phase3_output" == "7|generic|5|fallback|2|name|9tuple|2|tuple|0|tuple|0|tuple|3|innerouter|4|temporary|0|nested|0|5-1tuple|0|0|falsetrue1|0" ]] || {
+[[ "$phase3_output" == "7|generic|5|fallback|2|name|9tuple|2|tuple|0|tuple|0|tuple|3|innerouter|4|temporary|0|nested|0|5-1tuple|0|0|falsetrue0|0" ]] || {
 	echo "Capy generic specialization output mismatch: $phase3_output" >&2
 	exit 1
 }
@@ -801,9 +835,9 @@ EOF
 	external_unit=$(mktemp /tmp/capy-module-external.XXXXXX.capy)
 	trap 'rm -f -- "$external_unit"; rm -rf -- "$module_test_dir"' EXIT
 	printf '%s\n' '#exports echo' 'function echo(input : dval) dval { -> dval("external") }' >"$external_unit"
-	check_module_trap external_source "function CLI(request : dval) { var module := unit_load(\"$external_unit\"); print(string(module.call(\"echo\"), \"\")) }"
+	check_module_trap external_source "function CLI(request : dval) { var module := unit_load(\"$external_unit\"); print(string(module.call(\"echo\"))) }"
 	ln -s "$external_unit" "$module_test_dir/escape.capy"
-	check_module_trap source_symlink 'function CLI(request : dval) { var module := unit_load("escape.capy"); print(string(module.call("echo"), "")) }'
+	check_module_trap source_symlink 'function CLI(request : dval) { var module := unit_load("escape.capy"); print(string(module.call("echo"))) }'
 	printf '%s\n' 'function CLI(request : dval) { print(not_a_constant) }' >"$module_test_dir/broken.capy"
 	check_module_trap failed_compile 'function CLI(request : dval) { var module := unit_load("broken.capy") }'
 	printf '%s\n' '#exports echo' 'function echo(input : dval) dval { -> dval("v1") }' >"$module_test_dir/target.capy"
@@ -811,10 +845,10 @@ EOF
 function CLI(request : dval) {
     var module := unit_load("target.capy")
     file_put_contents("target.capy", "#exports echo\nfunction echo(input : dval) dval { -> dval(\"v2\") }\n")
-    print(string(module.call("echo", ""), ""))
+    print(string(module.call("echo", "")))
 }
 EOF
-	printf '%s\n' 'function CLI(request : dval) { print(string(unit_load("target.capy").call("echo", ""), "")) }' >"$module_test_dir/fresh.capy"
+	printf '%s\n' 'function CLI(request : dval) { print(string(unit_load("target.capy").call("echo", ""))) }' >"$module_test_dir/fresh.capy"
 	expect_equal "Capy module request pin" "v1" "$(scripts/bearer-cli "/tests/$module_test_name/pinned.capy")"
 	expect_equal "Capy module next-request reload" "v2" "$(scripts/bearer-cli "/tests/$module_test_name/fresh.capy")"
 	printf '%s\n' 'function CLI(request : dval) { print(not_a_constant) }' >"$module_test_dir/target.capy"
@@ -838,7 +872,7 @@ EOF
 	cat >"$module_test_dir/provenance.capy" <<'EOF'
 function CLI(request : dval) {
     var target := unit_load("target.capy")
-    print(string(target.call("nested", ""), ""), "|", string(target.call("file_relative", ""), ""))
+    print(string(target.call("nested", "")), "|", string(target.call("file_relative", "")))
 }
 EOF
 	expect_equal "Capy module target provenance" "nested|target-file" "$(scripts/bearer-cli "/tests/$module_test_name/provenance.capy")"

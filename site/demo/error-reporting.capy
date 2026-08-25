@@ -1,6 +1,6 @@
 function RENDER(request : dval) {
     request.out.headers["Content-Type"] = "text/html; charset=utf-8"
-    var mode := string(request.query.mode, "")
+    var mode := string(request.query.mode)
     if mode == "trap" {
         request.out.status = 500
     }

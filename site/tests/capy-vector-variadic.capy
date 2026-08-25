@@ -13,7 +13,6 @@ struct Pair {
 
 function Token(value : s32) Token { -> Token(string(value)) }
 function token_text(value : Token) string { -> value.value }
-function string(value : any) string { -> token_text(value) }
 function s32(value : string) s32 { if value == "seven" { return 7 }; -> 0 }
 function show(value : as string) string { -> value }
 function collect(...values : as string) [string] { -> values }
@@ -31,7 +30,7 @@ function joined(...values : as string) string {
 
 function CLI(request : dval) {
     {
-        print(s32("seven"), "|", show(Token("token")), "|", show(Token(8)), "|")
+        print(s32("seven"), "|", show(token_text(Token("token"))), "|", show(token_text(Token(8))), "|")
 
         var values : [string] = []
         values.reserve(8)

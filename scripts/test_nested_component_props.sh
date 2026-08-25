@@ -36,7 +36,7 @@ function CLI(request : dval) {
     var props := {items: []}
     for i := 0..300 { props.items = push(props.items, payload) }
     var output := component("outer", props)
-    if string(request.props.sentinel, "") != "caller" { print("caller props not restored"); return }
+    if string(request.props.sentinel) != "caller" { print("caller props not restored"); return }
     print(output)
 }
 EOF
@@ -55,7 +55,7 @@ EOF
 
 cat >"$source_dir/leaf.capy" <<'EOF'
 function COMPONENT(request : dval) {
-    if string(request.props.index, "") == "" { print("leaf props missing") }
+    if string(request.props.index) == "" { print("leaf props missing") }
 }
 EOF
 

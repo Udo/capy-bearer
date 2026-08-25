@@ -1,4 +1,4 @@
 function TASK:STORE(request : dval) {
     var props := request.props
-    file_put_contents("/tmp/task-store.txt", string(props.value, ""))
+    file_put_contents("/tmp/task-store.txt", string(props.value, {fallback: ""}))
 }

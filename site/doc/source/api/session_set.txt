@@ -14,4 +14,4 @@ Call `session_start()` before you store a session field.
 :example capy render
 var session := session_start("docs-session")
 session = session_set("theme", "dark")
-print(string(session.values.theme, ""), "\n")
+print(string(session.values.theme), "\n")

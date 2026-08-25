@@ -79,7 +79,6 @@ function COMPONENT(request : dval) {
     print("<div class=\"func-item\"><a href=\"", html_escape("/doc/api/html-escape/"), "\">", html_escape("html_escape"), "</a></div>")
     print("<div class=\"func-item\"><a href=\"", html_escape("/doc/api/http-request/"), "\">", html_escape("http_request"), "</a></div>")
     print("<div class=\"func-item\"><a href=\"", html_escape("/doc/api/http-request-async/"), "\">", html_escape("http_request_async"), "</a></div>")
-    print("<div class=\"func-item\"><a href=\"", html_escape("/doc/api/int-val/"), "\">", html_escape("int_val"), "</a></div>")
     print("<div class=\"func-item\"><a href=\"", html_escape("/doc/api/is-array/"), "\">", html_escape("is_array"), "</a></div>")
     print("<div class=\"func-item\"><a href=\"", html_escape("/doc/api/is-list/"), "\">", html_escape("is_list"), "</a></div>")
     print("<div class=\"func-item\"><a href=\"", html_escape("/doc/api/job-await/"), "\">", html_escape("job_await"), "</a></div>")

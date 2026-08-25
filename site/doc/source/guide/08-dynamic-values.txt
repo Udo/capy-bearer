@@ -57,13 +57,13 @@ Scalar constructors convert a `dval` to a static Capy type:
 function RENDER(request : dval) {
     var profile := {name: "Ada"}
     var name := string(profile.name)
-    var visits := s32(profile.visits, 0)
+    var visits := s32(profile.visits)
     print(name, " ", visits, "\n")
 }
 
 :content
 
-The second argument is a fallback. Capy uses it when the value is `none` or cannot convert to the requested type.
+The options map can set `fallback`. Capy uses it when the converted text is empty or cannot convert to the requested type. Omit the map when the type default is correct.
 
 Use `has(profile, "name")` before `get(profile, "name")` when a missing value is an error.
 
@@ -74,7 +74,7 @@ A map literal creates a `dval` map:
 :example capy render
 function RENDER(request : dval) {
     var user := {name: "Ada", active: true}
-    var empty := {:}
+    var empty := {}
     print(user.name, " ", empty?, "\n")
 }
 
@@ -100,7 +100,7 @@ function set_email(profile : dval) {
 }
 
 function RENDER(request : dval) {
-    var profile := {:}
+    var profile := {}
     var alias := profile
     set_email(alias)
     print(profile.contact.email, "\n")
@@ -108,7 +108,7 @@ function RENDER(request : dval) {
 
 :content
 
-Content mutation through the parameter affects the caller. The parameter binding remains immutable, so `profile = {:}` is invalid.
+Content mutation through the parameter affects the caller. The parameter binding remains immutable, so `profile = {}` is invalid.
 
 Nested assignment mutates its target and returns the same identity. The root must be a named local, parameter, or captured `dval` binding. Temporary, call, member, array-item, and loop-item roots are invalid. Nested assignment creates missing maps. An existing list accepts only an in-range nonnegative index. Capy does not create sparse lists.
 
@@ -116,7 +116,7 @@ The `set`, `push`, `pop`, `delete`, `clear`, and `get_or_create` functions mutat
 
 :example capy render
 function RENDER(request : dval) {
-    var profile := {:}
+    var profile := {}
     profile = set(profile, "active", true)
     print(profile.active, "\n")
 }

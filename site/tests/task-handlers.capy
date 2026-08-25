@@ -1,13 +1,13 @@
 function TASK(request : dval) {
-    file_put_contents("/tmp/bearer-task-capy.txt", string(get_by_path(request.props, "nested/value"), ""))
+    file_put_contents("/tmp/bearer-task-capy.txt", string(get_by_path(request.props, "nested/value")))
 }
 
 function TASK:CAPY(request : dval) {
-    file_put_contents("/tmp/bearer-task-capy-named.txt", string(get_by_path(request.props, "nested/value"), ""))
+    file_put_contents("/tmp/bearer-task-capy-named.txt", string(get_by_path(request.props, "nested/value")))
 }
 
 function TASK:SCALAR(request : dval) {
-    file_put_contents("/tmp/bearer-task-capy.txt", string(request.props, ""))
+    file_put_contents("/tmp/bearer-task-capy.txt", string(request.props))
 }
 
 function TASK:NONE(request : dval) {

@@ -1,50 +1,42 @@
 :sig
-function string(value : dval, fallback : string = "") string
+function string(value : as string, opt : dval = {}) string
 
 :params
-value : the `dval` to convert
-fallback : text returned when the value is absent or cannot convert
+value : scalar value or text to convert
+opt : options map with `fallback`
 
 :returns
-The converted text, or `fallback`.
+The converted text, or `opt.fallback`.
 
 :content
-`string()` reads a `dval` as text. It is the function you use on nearly every request, because everything arriving from outside a unit — query parameters, form fields, headers, cookies, component props, results from another unit — arrives as `dval`.
+`string()` reads a scalar as text. Request values are `dval`, so this is the normal way to read request fields.
 
-Always pass a fallback when the value may be absent:
+`value` accepts scalar values through `as string`. The conversion keeps source text exact. Text returns unchanged. Numbers use exact round-trip text. Booleans become `true` or `false`.
 
-    var name := string(request.query.name, "guest")
+`opt.fallback` is the result for empty text or a value with no text form. It defaults to the empty string. Empty and missing `dval` values both convert to empty text. Use the `?` suffix before conversion when presence matters. `value?` is false for a missing value and true for an empty value.
 
-With no fallback the default is the empty string, which is fine when empty is a sensible answer and misleading when it is not — `string(request.query.page)` cannot tell "absent" from "supplied as empty". Use the `?` suffix when that difference matters:
-
-    if request.query.page? { print(string(request.query.page, ""), "\n") }
-
-## What converts
-
-Text returns unchanged. Numbers render as runtime numeric text, and booleans as `true` or `false`. Absent keys and values with no text form — maps and arrays — return the fallback rather than raising an error.
-
-Because a fallback is always available, `string()` never fails on well-formed input. That is deliberate: request data is untrusted, and a handler should not abort because a caller omitted a field.
+The options map accepts only `fallback`. An unknown key, including `base`, is an error.
 
 ## The other converters
 
-`s64()`, `u64()`, `s32()`, `f64()`, and `bool()` follow the same shape — value first, fallback second — for numeric and boolean fields. Reach for the one matching the type you want rather than converting to text and parsing it.
+`s64()`, `u64()`, `s32()`, and `f64()` use the same `value, opt` shape. Their options also support `base` for integer conversion. `bool()` keeps a `dval` first parameter, because strings cannot be conditions.
 
 :example capy render
 print(string(dval(42)), "\n")
 
 :example capy render supply a fallback for an absent key
-print(string(request.query.name, "guest"), "\n")
+print(string(request.query.name, {fallback: "guest"}), "\n")
 
 :example capy render distinguish absent from empty
 if request.query.q? {
-    print("searched: ", string(request.query.q, ""), "\n")
+    print("searched: ", string(request.query.q), "\n")
 } else {
     print("no search term\n")
 }
 
 :example capy render read a value returned by another unit
 var target := unit_load("/tests/capy-module-target.capy")
-print(string(target.echo({name: "Ada"}).name, "unknown"), "\n")
+print(string(target.echo({name: "Ada"}).name, {fallback: "unknown"}), "\n")
 
 :see
 type/request

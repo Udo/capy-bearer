@@ -12,4 +12,4 @@ The resulting session state.
 
 :example capy render
 var session := session_destroy("docs-session")
-print(string(session.id, ""), "\n")
+print(string(session.id), "\n")

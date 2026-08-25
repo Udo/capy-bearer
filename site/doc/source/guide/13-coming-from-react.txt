@@ -21,7 +21,7 @@ A handler returns nothing. Whatever it prints becomes the response, so the React
 
 :example capy render
 function RENDER(request : dval) {
-    var name := string(request.query.name, "guest")
+    var name := string(request.query.name, {fallback: "guest"})
     print("<main><h1>Hello, ", name, "</h1>")
     print("<p>Rendered on the server.</p></main>", "\n")
 }
@@ -37,7 +37,7 @@ A React component receives props as an object and can render children. A Capy co
 
 :example capy component
 function COMPONENT(request : dval) {
-    var title := string(request.props.title, "Untitled")
+    var title := string(request.props.title, {fallback: "Untitled"})
     print("<article><h3>", title, "</h3></article>")
 }
 
@@ -66,7 +66,7 @@ Markup literals escape interpolated values for you, which is the equivalent of R
 
 :example capy render
 function RENDER(request : dval) {
-    var supplied := string(request.query.q, "<script>")
+    var supplied := string(request.query.q, {fallback: "<script>"})
     print(<><p><?= supplied ?></p></>)
 }
 

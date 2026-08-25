@@ -1,6 +1,6 @@
 function COMPONENT(request : dval) {
-    var title := string(request.props.title, "Test")
-    var marker := string(request.props.marker, title)
+    var title := string(request.props.title, {fallback: "Test"})
+    var marker := string(request.props.marker, {fallback: title})
     request.out.headers["Content-Type"] = "text/html; charset=utf-8"
     print("<!doctype html>")
     print(<>

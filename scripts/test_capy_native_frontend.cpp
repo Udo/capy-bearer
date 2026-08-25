@@ -40,10 +40,13 @@ int main(int argc, char** argv)
 		assert(f->parameters.size() == 1 && type_name(*f->parameters[0].type_expr) == "s32" && type_name(*f->return_type) == "(s32,string)");
 	}
 	{
-		Program p = parse("function value(a : s32, b : string = \"x\", c : bool = true) string { -> b }\n", "defaults.capy");
+		Program p = parse("function value(a : s32, b : string = \"x\", c : bool = true, opt : dval = {items: [1, {enabled: false}]}) string { -> b }\n", "defaults.capy");
 		auto* f = static_cast<Function*>(p.items[0]);
-		assert(f->parameters.size() == 3 && !f->parameters[0].default_value && static_cast<String*>(f->parameters[1].default_value)->value == "x" &&
-			static_cast<Name*>(f->parameters[2].default_value)->value == "true");
+		auto* opt = static_cast<MapLiteral*>(f->parameters[3].default_value);
+		auto* items = static_cast<ArrayLiteral*>(opt->entries[0].second);
+		assert(f->parameters.size() == 4 && !f->parameters[0].default_value && static_cast<String*>(f->parameters[1].default_value)->value == "x" &&
+			static_cast<Name*>(f->parameters[2].default_value)->value == "true" && items->items.size() == 2 &&
+			static_cast<MapLiteral*>(items->items[1])->entries[0].first == "enabled");
 	}
 	{
 		Program p = parse("function pair (s32, string) { return (1, \"x\") }\n", "test.capy");
@@ -56,7 +59,7 @@ int main(int argc, char** argv)
 		assert(v->annotation->kind == ExprKind::FunctionType && v->value->kind == ExprKind::Lambda && type_name(*v->annotation) == "function(s32) s32");
 	}
 	{
-		Program p = parse("var callback : function(__bearer_value : s32) s32 = function(__bearer_value : s32) s32 { __bearer_value }\nfor value, __bearer_key := dval({:}) { value }\n", "private-binders.capy");
+		Program p = parse("var callback : function(__bearer_value : s32) s32 = function(__bearer_value : s32) s32 { __bearer_value }\nfor value, __bearer_key := dval({}) { value }\n", "private-binders.capy");
 		assert(static_cast<Lambda*>(static_cast<Variable*>(p.items[0])->value)->parameters[0].name == "__bearer_value");
 		assert(static_cast<For*>(p.items[1])->names[1] == "__bearer_key");
 	}
@@ -89,11 +92,12 @@ int main(int argc, char** argv)
 		assert(static_cast<For*>(p.items[1])->names.size() == 2);
 	}
 	{
-		Program p = parse("var value := {name: \"Ada\"}\nvar empty := {:}\nfunction CLI(request : dval) { value.name }\n", "bare-map.capy");
-		assert(static_cast<MapLiteral*>(static_cast<Variable*>(p.items[0])->value)->entries.size() == 1);
-		assert(static_cast<MapLiteral*>(static_cast<Variable*>(p.items[1])->value)->entries.empty());
-		auto* member = static_cast<Member*>(static_cast<Function*>(p.items[2])->body->items[0]);
-		assert(member->member == "name" && member->location.file == "bare-map.capy" && member->location.line == 3 && member->location.column == 37);
+		Program p = parse("var x := {}\nvar value := {name: \"Ada\"}\nvar next := { var t := 1 -> t + 1 }\nfunction CLI(request : dval) { value.name }\n", "bare-map.capy");
+		assert(static_cast<MapLiteral*>(static_cast<Variable*>(p.items[0])->value)->entries.empty());
+		assert(static_cast<MapLiteral*>(static_cast<Variable*>(p.items[1])->value)->entries.size() == 1);
+		assert(static_cast<Variable*>(p.items[2])->value->kind == ExprKind::Block);
+		auto* member = static_cast<Member*>(static_cast<Function*>(p.items[3])->body->items[0]);
+		assert(member->member == "name" && member->location.file == "bare-map.capy" && member->location.line == 4 && member->location.column == 37);
 	}
 	{
 		Program p = parse("function CLI(request : dval) { var value := none; value.a[1]?; value.a?[1] }\n", "presence.capy");
@@ -224,8 +228,10 @@ int main(int argc, char** argv)
 	expect_error("function bad(...values : s32 = 1) {}\n", "variadic parameter cannot have a default value");
 	expect_error("function bad(value : s32 = other) {}\n", "default parameter value must be a literal");
 	expect_error("function bad(value : s32 = next()) {}\n", "default parameter value must be a literal");
-	expect_error("function bad(value : s32 = [1]) {}\n", "default parameter value must be a literal");
+	expect_error("function bad(value : dval = [next()]) {}\n", "default parameter value must be a literal");
 	expect_error("function bad(value : s32 = value = 1) {}\n", "default parameter value must be a literal");
+	expect_error("function bad(value : dval = {item: next()}) {}\n", "default parameter value must be a literal");
+	expect_error("{:}\n", "empty dval maps use '{}'");
 	expect_error("function CLI(request : dval) { var value := 1 as s64 }\n", "call the target type constructor instead");
 	expect_error("function CLI(request : dval) { for value = [1] {} }\n", "old loop syntax is not supported. Use ':=' after the loop bindings");
 	expect_error("function CLI(request : dval) { for value in [1] {} }\n", "old loop syntax is not supported. Use ':=' after the loop bindings");

@@ -1,8 +1,8 @@
 function COMPONENT:LINK_CARD(request : dval) {
-    var href := string(request.props.href, "#")
-    var title := string(request.props.title, "")
-    var body := string(request.props.body, "")
-    var meta := string(request.props.meta, "")
+    var href := string(request.props.href, {fallback: "#"})
+    var title := string(request.props.title, {fallback: ""})
+    var body := string(request.props.body, {fallback: ""})
+    var meta := string(request.props.meta, {fallback: ""})
     print(<>
         <a class="link-card" href="<?= href ?>">
             <div class="link-meta"><?= meta ?></div>
@@ -13,9 +13,9 @@ function COMPONENT:LINK_CARD(request : dval) {
 }
 
 function COMPONENT:FEATURE(request : dval) {
-    var eyebrow := string(request.props.eyebrow, "")
-    var title := string(request.props.title, "")
-    var body := string(request.props.body, "")
+    var eyebrow := string(request.props.eyebrow, {fallback: ""})
+    var title := string(request.props.title, {fallback: ""})
+    var body := string(request.props.body, {fallback: ""})
     print(<>
         <article class="feature-card">
             <div class="eyebrow"><?= eyebrow ?></div>
@@ -26,8 +26,8 @@ function COMPONENT:FEATURE(request : dval) {
 }
 
 function COMPONENT:SIGNAL(request : dval) {
-    var title := string(request.props.title, "")
-    var body := string(request.props.body, "")
+    var title := string(request.props.title, {fallback: ""})
+    var body := string(request.props.body, {fallback: ""})
     print(<>
         <article class="signal-card">
             <strong><?= title ?></strong>
@@ -37,8 +37,8 @@ function COMPONENT:SIGNAL(request : dval) {
 }
 
 function COMPONENT:CODE_BLOCK(request : dval) {
-    var title := string(request.props.title, "")
-    var code := string(request.props.code, "")
+    var title := string(request.props.title, {fallback: ""})
+    var code := string(request.props.code, {fallback: ""})
     print(<>
         <article class="code-card">
             <div class="eyebrow">Capy</div>

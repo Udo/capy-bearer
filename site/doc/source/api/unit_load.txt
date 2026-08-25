@@ -50,13 +50,13 @@ print(target.default_input(), "\n")
 
 :example capy render reuse one handle for several calls
 var target := unit_load("/tests/capy-module-target.capy")
-print(string(target.echo({name: "Ada"}).name, ""), "\n")
-print(string(target.echo({name: "Grace"}).name, ""), "\n")
+print(string(target.echo({name: "Ada"}).name), "\n")
+print(string(target.echo({name: "Grace"}).name), "\n")
 
 :example capy render call by a name held in a value
 var target := unit_load("/tests/capy-module-target.capy")
 var wanted := "echo"
-print(string(call(target, wanted, {name: "Katherine"}).name, ""), "\n")
+print(string(call(target, wanted, {name: "Katherine"}).name), "\n")
 
 :see
 call

@@ -73,7 +73,7 @@ A component writes reusable response content through output functions such as `p
 :example capy cli
 function COMPONENT:CARD(request : dval) {
     var props := request.props
-    print(<><article><?= string(props.title, "Untitled") ?></article></>)
+    print(<><article><?= string(props.title, {fallback: "Untitled"}) ?></article></>)
 }
 
 :content

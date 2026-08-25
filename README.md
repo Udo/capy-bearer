@@ -10,7 +10,7 @@ Create `site/hello.capy`:
 
 ```capy
 function RENDER(request : dval) {
-    var name := string(request.query.name, "guest")
+    var name := string(request.query.name, {fallback: "guest"})
     request.out.headers["Content-Type"] = "text/plain; charset=utf-8"
     print("Hello, ", name, "!\n")
 }
@@ -30,7 +30,7 @@ function CLI(request : dval) {
 }
 
 function WS(request : dval) {
-    ws_send(string(request.body, ""), false)
+    ws_send(string(request.body), false)
 }
 ```
 

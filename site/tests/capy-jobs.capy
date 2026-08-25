@@ -40,7 +40,7 @@ function CLI(request : dval) {
     if process_start_directory() != "" { cwd_status = "cwd" }
     var server_status := "no-server"
     if server > 0 && stopped { server_status = "server" }
-    print(shell_status, "|", string(get_by_path(done, "result/stdout"), "missing"), "|", string(get_by_path(status, "state"), "missing"), "|", string(get_by_path(stored, "state"), "missing"), "|", string(get_by_path(failed, "state"), "missing"), "|", cancel_status, "|", string(get_by_path(cancelled_status, "state"), "missing"), "|", task_status_value, "|", cwd_status, "|", server_status, "|")
+    print(shell_status, "|", string(get_by_path(done, "result/stdout"), {fallback: "missing"}), "|", string(get_by_path(status, "state"), {fallback: "missing"}), "|", string(get_by_path(stored, "state"), {fallback: "missing"}), "|", string(get_by_path(failed, "state"), {fallback: "missing"}), "|", cancel_status, "|", string(get_by_path(cancelled_status, "state"), {fallback: "missing"}), "|", task_status_value, "|", cwd_status, "|", server_status, "|")
     }
     print(arc_live())
 }

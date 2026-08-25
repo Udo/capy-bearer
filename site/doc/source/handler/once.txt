@@ -10,7 +10,7 @@ function ONCE(request : dval)
 Bearer runs this hook before the first unit entry or component call. The handler has one parameter named `request` with type `dval`.
 
 :example capy once
-print(string(request.method, ""), "\n")
+print(string(request.method), "\n")
 
 :see
 type/request

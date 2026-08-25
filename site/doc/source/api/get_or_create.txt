@@ -16,7 +16,7 @@ The target value.
 `get_or_create(value, key, default)` stores `default` when `key` is missing. It changes and returns `value`.
 
 :example capy render
-var config := dval({:})
+var config := dval({})
 config = get_or_create(config, "host", "localhost")
 print(config.host, "\n")
 

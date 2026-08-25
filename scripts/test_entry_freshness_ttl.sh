@@ -49,8 +49,8 @@ cat >"$source_dir/parent.capy" <<EOF
 type ChildMarker = child.Marker
 function entry_freshness_output(request : dval) {
     var perf := runtime_perf()
-    if string(request.method, "") == "POST" { file_put_contents("$mutation_file", "executed") }
-    print(component("child"), ":", string(perf.worker_pid, ""), ":", string(perf.ready_freshness_cache_hit_count, ""), ":", string(perf.ready_freshness_full_check_us, ""))
+    if string(request.method) == "POST" { file_put_contents("$mutation_file", "executed") }
+    print(component("child"), ":", string(perf.worker_pid), ":", string(perf.ready_freshness_cache_hit_count), ":", string(perf.ready_freshness_full_check_us))
 }
 function RENDER(request : dval) { entry_freshness_output(request) }
 function CLI(request : dval) { entry_freshness_output(request) }

@@ -17,13 +17,13 @@ function coreutil_output() string {
             string_list_find(items, function(value : string) bool { return value == "alpha" }, "missing"), "|",
             join(keys(items), ","), "|", lower("BEARER"), ":", upper("bearer"), "|",
             safe_name("Café file-1"), ":", trim("  core  "), "|",
-            f64(" 3.5x", 0.0), ":", int_val("ff", 16), ":", bool(dval("YES")), bool(dval("unknown"), true), "|",
+            f64(" 3.5x"), ":", u64("ff", {base: 16}), ":", bool(dval("YES")), bool(dval("unknown"), {fallback: true}), "|",
             f64(" 1.5 "), ":", s64("-9"), ":", u64("42"), "|",
             str_starts_with("docs/index", "docs"), str_ends_with("docs/index", "index"), "|",
             encode_query(parsed), ":", parsed["b"], parsed["flag"], ":", uri["parts"]["host"], ":", uri["parts"]["path"], ":", uri["query"]["b"], "|",
             route_path_normalize(" /docs/index/ "), ":", route_path_is_safe("docs/index"), ":", route_path_sanitize("../secret", "index"), "|",
             join(split_space("one  two\tthree"), ","), ":", join(utf8, ","), ":", headers["HTTP_HOST"], "|",
-            join(sorted, ","), ":", contains(dump, "name: Ada"), ":", string(posix_info("signal_name", dval(11)), ""), ":", usleep(0), ":", contains(backtrace_capture(), ""), ":", length(runtime_safe_key(" core task ")), "|")
+            join(sorted, ","), ":", contains(dump, "name: Ada"), ":", string(posix_info("signal_name", dval(11))), ":", usleep(0), ":", contains(backtrace_capture(), ""), ":", length(runtime_safe_key(" core task ")), "|")
     }
     print(arc_live())
     return ""

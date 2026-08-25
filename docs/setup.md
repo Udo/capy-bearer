@@ -451,7 +451,7 @@ function RENDER(request : dval) {
 }
 
 function WS(request : dval) {
-    ws_send(string(request.body, ""), false)
+    ws_send(string(request.body), false)
 }
 ```
 

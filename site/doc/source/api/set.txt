@@ -16,7 +16,7 @@ The changed target value.
 `set(dest, key, value)` stores `value` at `key`. It changes and returns `dest`.
 
 :example capy render
-var user := dval({:})
+var user := dval({})
 user = set(user, "name", "Ada")
 print(user.name, "\n")
 

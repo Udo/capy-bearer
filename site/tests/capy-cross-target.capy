@@ -9,7 +9,7 @@ function echo(input : dval) dval {
 }
 
 function structured(input : dval) dval {
-    -> {source: "capy", name: string(input.user.name, "missing"), second: s32(input.items[1], -1)}
+    -> {source: "capy", name: string(input.user.name, {fallback: "missing"}), second: s32(input.items[1], {fallback: -1})}
 }
 
 function counted(input : dval) dval {

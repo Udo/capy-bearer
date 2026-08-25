@@ -9,9 +9,9 @@ Every Capy handler receives one parameter, `request`, of type `dval`. It is a sn
 
 Read scalars through a converter with a fallback, so a key that is absent has a defined value rather than an error:
 
-    var name := string(request.query.name, "guest")
-    var page := s64(request.query.page, 1)
-    var debug := bool(request.query.debug, false)
+    var name := string(request.query.name, {fallback: "guest"})
+    var page := s64(request.query.page, {fallback: 1})
+    var debug := bool(request.query.debug)
 
 Test for presence with the `?` suffix, which is `true` when the key exists:
 
@@ -54,27 +54,27 @@ The snapshot is read-only except for `out`. Set `request.out.status`, `request.o
 A component receives the caller's `props` for the duration of the call. Bearer restores the previous value after the call. When nested components write back the same field, the outer component write-back wins.
 
 :example capy render
-print(string(request.query.name, "guest"), "\n")
+print(string(request.query.name, {fallback: "guest"}), "\n")
 
 :example capy render branch on the method and read a form field
-if string(request.method, "") == "POST" {
-    print("saved ", string(request.form.answer, ""), "\n")
+if string(request.method) == "POST" {
+    print("saved ", string(request.form.answer), "\n")
 } else {
     print("<form method=\"post\"><input name=\"answer\"></form>", "\n")
 }
 
 :example capy render read a header and a cookie
-print(string(request.headers["user-agent"], "unknown"), "\n")
-print(string(request.cookies.session, "none"), "\n")
+print(string(request.headers["user-agent"], {fallback: "unknown"}), "\n")
+print(string(request.cookies.session, {fallback: "none"}), "\n")
 
 :example capy render list uploaded files
 for file := request.files {
-    print(string(file.name, ""), " ", u64(file.size, 0), "\n")
+    print(string(file.name), " ", u64(file.size), "\n")
 }
 
 :example capy render check presence before use
 if request.query.page? {
-    print("page ", s64(request.query.page, 1), "\n")
+    print("page ", s64(request.query.page, {fallback: 1}), "\n")
 } else {
     print("no page requested\n")
 }

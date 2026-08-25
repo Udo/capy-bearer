@@ -36,13 +36,13 @@ function RENDER(request : dval) {
     var no_database := mysql_query(unselected, "SELECT DATABASE() AS db")
     var marker := mysql_query(db, "SELECT @bearer_pool_marker AS marker")
     var missing_temp := mysql_query(db, "SELECT id FROM bearer_persistent_temp LIMIT 1")
-    var clean := bool(mysql_info(db, "connection"), false) && bool(mysql_info(other, "connection"), false) && bool(mysql_info(unselected, "connection"), false) && string(primary[0]["db"], "") == "$test_database" && string(primary[0]["label"], "") == "primary" && string(secondary[0]["db"], "") == "$test_database_other" && string(secondary[0]["label"], "") == "other" && string(no_database[0]["db"], "") == "" && string(marker[0]["marker"], "") == "" && string(mysql_info(db, "error"), "") != ""
+    var clean := bool(mysql_info(db, "connection")) && bool(mysql_info(other, "connection")) && bool(mysql_info(unselected, "connection")) && string(primary[0]["db"]) == "$test_database" && string(primary[0]["label"]) == "primary" && string(secondary[0]["db"]) == "$test_database_other" && string(secondary[0]["label"]) == "other" && string(no_database[0]["db"]) == "" && string(marker[0]["marker"]) == "" && string(mysql_info(db, "error")) != ""
     var dirty_marker := mysql_query(db, "SET @bearer_pool_marker='dirty'")
     var dirty_temp := mysql_query(db, "CREATE TEMPORARY TABLE bearer_persistent_temp (id INT PRIMARY KEY)")
     var dirty_db := mysql_query(db, "USE $test_database_other")
     var perf := runtime_perf()
-    if clean { print(string(perf.worker_pid, ""), "|clean") }
-    else { print(string(perf.worker_pid, ""), "|dirty") }
+    if clean { print(string(perf.worker_pid), "|clean") }
+    else { print(string(perf.worker_pid), "|dirty") }
     mysql_disconnect(unselected)
     mysql_disconnect(other)
     mysql_disconnect(db)
@@ -51,7 +51,7 @@ EOF
 cat >"$source_dir/failure.capy" <<EOF
 function RENDER(request : dval) {
     var db := mysql_connect("127.0.0.1", "$test_user", "$test_password", "${test_database}_missing")
-    if !bool(mysql_info(db, "connection"), false) && string(mysql_info(db, "error"), "") != "" { print("database-selection-failed") }
+    if !bool(mysql_info(db, "connection")) && string(mysql_info(db, "error")) != "" { print("database-selection-failed") }
     else { print("database-selection-was-ignored") }
     mysql_disconnect(db)
 }

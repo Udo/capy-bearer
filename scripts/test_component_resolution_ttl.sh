@@ -37,7 +37,7 @@ cache_dir="$(scripts/unit_cache_directory "$bin_directory")$(realpath "$source_d
 cat >"$source_dir/parent.capy" <<'EOF'
 function RENDER(request : dval) {
     var perf := runtime_perf()
-    print("parent:", string(perf.worker_pid, ""), ":", component("chosen"))
+    print("parent:", string(perf.worker_pid), ":", component("chosen"))
 }
 EOF
 printf '%s\n' 'function COMPONENT(request : dval) { print("a") }' >"$source_dir/a.capy"
@@ -113,7 +113,7 @@ collect_workers GET b
 cat >"$source_dir/missing.capy" <<'EOF'
 function RENDER(request : dval) {
     var perf := runtime_perf()
-    print("parent:", string(perf.worker_pid, ""), ":", component("later"))
+    print("parent:", string(perf.worker_pid), ":", component("later"))
 }
 EOF
 collect_missing_workers

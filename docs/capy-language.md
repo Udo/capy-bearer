@@ -199,18 +199,20 @@ The compiler uses defaults only after it matches the supplied parameters. Fewer 
 
 A parameter `name : as Type` accepts either `Type` or one inserted `Type(argument)` call. It never inserts a conversion chain. For example, `print(profile.nickname)` inserts `string(profile.nickname)`. Do not write a redundant `string(...)` call for an `as string` parameter.
 
-A type name is a constructor overload set. Built-in constructors convert scalar types and format scalars as strings. DValue scalar constructors have these overloads:
+A type name is a constructor overload set. Built-in constructors convert scalar types and format scalars as strings. DValue scalar constructors have one signature each:
 
 ```capy
-string(value : dval, fallback : string = "")
-bool(value : dval, fallback : bool = false)
-s32(value : dval, fallback : s32 = 0)
-s64(value : dval, fallback : s64 = 0)
-u64(value : dval, fallback : u64 = 0)
-f64(value : dval, fallback : f64 = 0.0)
+string(value : as string, opt : dval = {}) string
+bool(value : dval, opt : dval = {}) bool
+s32(value : as string, opt : dval = {}) s32
+s64(value : as string, opt : dval = {}) s64
+u64(value : as string, opt : dval = {}) u64
+f64(value : as string, opt : dval = {}) f64
 ```
 
-Each constructor uses its stated default when its argument is `none` or conversion fails. An explicit second argument replaces that default. Empty strings also use the fallback. Wrong tags, overflow, and nonfinite numeric input use the fallback. `s64` and `u64` preserve exact in-range wide integer values. A constructor does not change a DValue read into a strict read.
+`opt.fallback` replaces the type default. The integer constructors also accept a numeric whole `opt.base` from 2 to 36. The default base is 10. Empty text, an absent `dval`, and text that does not parse use the fallback. Use the `?` suffix before conversion when code must distinguish an absent value from an empty value.
+
+`as string` preserves scalar source text. `s64` and `u64` preserve exact in-range wide integer values. `u64(dval(true))` uses the fallback because `true` converts to text and does not parse as a number. `bool` keeps a `dval` parameter because strings cannot be conditions. A constructor does not change a DValue read into a strict read.
 
 A struct receives a generated constructor in field order. User functions can add constructor overloads. They cannot duplicate a built-in conversion or generated field constructor.
 
@@ -237,7 +239,7 @@ struct Sample {
 
 Tuples, structs, and closure environments support `s32`, `s64`, `u64`, `f64`, and managed fields. A struct instance is a mutable reference value inside one workspace. Assignment, parameter passing, returns, and captures share its identity. Struct fields are assignable. Their source semantics do not expose byte offsets or padding.
 
-A map literal creates a DValue map. Use `{:}` for an empty DValue map. `{}` remains an empty block. The `dval({...})` compatibility spelling has the same result.
+A map literal creates a DValue map. Use `{}` for an empty DValue map. The old `{:}` spelling is a parse error. The `dval({...})` spelling has the same result.
 
 `dval(...)` accepts `string`, `s32`, `s64`, `u64`, `f64`, `bool`, an existing DValue, or a list. It preserves in-range `s64` and `u64` values exactly. A list passed to `dval(...)` creates a dynamic DValue list. A bare list remains a typed mutable array.
 
@@ -252,7 +254,7 @@ A DValue is a mutable reference value inside one workspace. Assignment, paramete
 Missing, `none`, and scalar intermediate values become maps. Existing maps remain maps. Existing lists accept only in-range, nonnegative numeric selectors. A missing intermediate before a numeric selector becomes a map with its decimal key. Negative and out-of-range existing-list writes trap. Capy does not create sparse lists.
 
 ```capy
-var profile := {:}
+var profile := {}
 profile.contact.email = "ada@example.test"
 print(profile.contact.email) // ada@example.test
 ```

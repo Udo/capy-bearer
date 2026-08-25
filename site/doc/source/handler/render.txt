@@ -18,7 +18,7 @@ The handler takes one parameter, `request`, of type `dval`, and returns nothing.
 
 Read input from the request snapshot with a converter and a fallback, so a missing parameter has a defined value:
 
-    var name := string(request.query.name, "guest")
+    var name := string(request.query.name, {fallback: "guest"})
 
 ## Response control
 
@@ -41,10 +41,10 @@ The unit's `ONCE` handler runs before `RENDER` the first time the unit is used i
 Every Capy unit must export at least one handler — `RENDER`, `CLI`, `COMPONENT`, `WS`, `ONCE`, or `INIT` — or metadata via `#exports`. A file with none fails to compile.
 
 :example capy render
-print(string(request.method, ""), "\n")
+print(string(request.method), "\n")
 
 :example capy render read a query parameter with a fallback
-print("<h1>Hello, ", string(request.query.name, "guest"), "</h1>", "\n")
+print("<h1>Hello, ", string(request.query.name, {fallback: "guest"}), "</h1>", "\n")
 
 :example capy render set a status and header before printing
 request.out.status = 201
@@ -57,7 +57,7 @@ if !request.query.id? {
     print("id required\n")
     return
 }
-print("id ", s64(request.query.id, 0), "\n")
+print("id ", s64(request.query.id), "\n")
 
 :see
 type/request

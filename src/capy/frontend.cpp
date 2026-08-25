@@ -78,9 +78,16 @@ double parse_float(const Token& token)
 
 bool default_parameter_literal(const Expr* value)
 {
-	return dynamic_cast<const Integer*>(value) || dynamic_cast<const SignedInteger*>(value) || dynamic_cast<const UnsignedInteger*>(value) ||
-		dynamic_cast<const Float*>(value) || dynamic_cast<const String*>(value) ||
-		(dynamic_cast<const Name*>(value) && (static_cast<const Name*>(value)->value == "true" || static_cast<const Name*>(value)->value == "false"));
+	if (dynamic_cast<const Integer*>(value) || dynamic_cast<const SignedInteger*>(value) || dynamic_cast<const UnsignedInteger*>(value) ||
+		dynamic_cast<const Float*>(value) || dynamic_cast<const String*>(value))
+		return true;
+	if (auto name = dynamic_cast<const Name*>(value))
+		return name->value == "true" || name->value == "false";
+	if (auto array = dynamic_cast<const ArrayLiteral*>(value))
+		return std::all_of(array->items.begin(), array->items.end(), default_parameter_literal);
+	if (auto map = dynamic_cast<const MapLiteral*>(value))
+		return std::all_of(map->entries.begin(), map->entries.end(), [](const auto& entry) { return default_parameter_literal(entry.second); });
+	return false;
 }
 
 } // namespace
@@ -714,7 +721,9 @@ Expr* Parser::prefix()
 	if (current.text == "{")
 	{
 		skip_separators();
-		if (token().text == ":" || ((token().kind == TokenKind::identifier || token().kind == TokenKind::string) && position_ + 1 < tokens_.size() &&
+		if (token().text == ":")
+			fail(token().location, "empty dval maps use '{}'");
+		if (token().text == "}" || ((token().kind == TokenKind::identifier || token().kind == TokenKind::string) && position_ + 1 < tokens_.size() &&
 									tokens_[position_ + 1].text == ":"))
 			return map_literal(current.location);
 		return block(current.location);
@@ -768,11 +777,8 @@ Expr* Parser::map_literal(Location location)
 {
 	MapLiteral* map = program_.make<MapLiteral>(location);
 	skip_separators();
-	if (match(":"))
-	{
-		require("}");
+	if (match("}"))
 		return map;
-	}
 	while (true)
 	{
 		Token key = take();

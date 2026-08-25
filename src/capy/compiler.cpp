@@ -513,6 +513,7 @@ std::string literal_type(const Expr* expression)
 	if (dynamic_cast<const Float*>(expression)) return "f64";
 	if (dynamic_cast<const String*>(expression)) return "string";
 	if (auto name = dynamic_cast<const Name*>(expression); name && (name->value == "true" || name->value == "false")) return "bool";
+	if (dynamic_cast<const MapLiteral*>(expression) || dynamic_cast<const ArrayLiteral*>(expression)) return "dval";
 	return "";
 }
 
@@ -531,7 +532,7 @@ std::unique_ptr<Expr> callsite_default_literal(const Expr* value, const Location
 {
 	if (auto literal = dynamic_cast<const Integer*>(value))
 	{
-		if (!integer_fits(*literal, expected))
+		if (expected != "dval" && !integer_fits(*literal, expected))
 			throw Error(literal->location, "integer literal is outside the " + expected + " range");
 		if (expected == "s64") return std::make_unique<SignedInteger>(location, signed_integer_value(*literal));
 		if (expected == "u64") return std::make_unique<UnsignedInteger>(location, literal->magnitude);
@@ -542,6 +543,20 @@ std::unique_ptr<Expr> callsite_default_literal(const Expr* value, const Location
 	if (auto literal = dynamic_cast<const Float*>(value)) return std::make_unique<Float>(location, literal->value);
 	if (auto literal = dynamic_cast<const String*>(value)) return std::make_unique<String>(location, literal->value);
 	if (auto literal = dynamic_cast<const Name*>(value); literal && (literal->value == "true" || literal->value == "false")) return std::make_unique<Name>(location, literal->value);
+	if (auto literal = dynamic_cast<const ArrayLiteral*>(value))
+	{
+		auto copy = std::make_unique<ArrayLiteral>(location);
+		for (const Expr* item : literal->items)
+			copy->items.push_back(callsite_default_literal(item, location, "dval").release());
+		return copy;
+	}
+	if (auto literal = dynamic_cast<const MapLiteral*>(value))
+	{
+		auto copy = std::make_unique<MapLiteral>(location);
+		for (const auto& [key, item] : literal->entries)
+			copy->entries.emplace_back(key, callsite_default_literal(item, location, "dval").release());
+		return copy;
+	}
 	throw std::runtime_error("default parameter is not a literal");
 }
 
@@ -1010,8 +1025,16 @@ struct Module
 		}
 		if (const Definition* exact = exact_definition(name, {source}))
 			return exact->result == target;
+		static thread_local std::set<std::pair<std::string, std::string>> resolving_defaults;
+		const auto request = std::pair{source, target};
+		if (!resolving_defaults.insert(request).second)
+			return false;
 		if (const Definition* defaulted = default_definition(name, {source}, {}))
+		{
+			resolving_defaults.erase(request);
 			return defaulted->result == target;
+		}
+		resolving_defaults.erase(request);
 		if (auto found = generics_.find(name); found != generics_.end())
 			for (const GenericDefinition& generic : found->second)
 				if (generic.patterns.size() == 1 && (generic.patterns[0] == "any" || generic.patterns[0] == source))
@@ -5545,10 +5568,19 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			if (i >= target.convert.size() || !target.convert[i])
 				throw std::runtime_error("resolved Capy call requires an undeclared parameter conversion");
 			const std::string constructor_name = target.parameters[i].rfind("struct:", 0) == 0 ? target.parameters[i].substr(7) : target.parameters[i];
-			Name constructor((*arguments)[i]->location, constructor_name);
-			Call converted_call((*arguments)[i]->location, &constructor);
-			converted_call.arguments.push_back((*arguments)[i]);
-			auto converted = expression(&converted_call);
+			std::pair<Bytes, std::string> converted;
+			if (target.function->name == "string" && target.parameters[i] == "string")
+			{
+				auto source = dynamic_cast<Integer*>((*arguments)[i]) ? integer_expression(static_cast<Integer*>((*arguments)[i]), types[i]) : expression((*arguments)[i]);
+				converted = conversion(std::move(source.first), source.second, "string", (*arguments)[i]->location, expression_is_owned((*arguments)[i]));
+			}
+			else
+			{
+				Name constructor((*arguments)[i]->location, constructor_name);
+				Call converted_call((*arguments)[i]->location, &constructor);
+				converted_call.arguments.push_back((*arguments)[i]);
+				converted = expression(&converted_call);
+			}
 			if (converted.second != target.parameters[i])
 				throw Error((*arguments)[i]->location, "constructor " + constructor_name + " returned " + converted.second + ", expected " + target.parameters[i]);
 			converted_owned[i] = managed_type(converted.second);
@@ -7064,7 +7096,8 @@ Module::Capabilities Module::discover_capabilities()
 		}
 		return "";
 	};
-	std::function<void(Expr*)> scan_dval = [&](Expr* e)
+	std::function<void(Expr*)> scan_dval;
+	scan_dval = [&](Expr* e)
 	{
 		if (auto map = dynamic_cast<MapLiteral*>(e))
 		{
@@ -7118,14 +7151,39 @@ Module::Capabilities Module::discover_capabilities()
 		else if (source == "s32" || source == "s64") string_format_types_.insert("s64");
 		else if (source == "u64" || source == "f64") string_format_types_.insert(source);
 	};
-	auto scan_construction = [&](const std::string& source, const std::string& target)
+	std::function<void(const std::string&, const std::string&)> scan_construction;
+	scan_construction = [&](const std::string& source, const std::string& target)
 	{
-		if (target == "string") scan_string_construction(source);
+		if (target == "string")
+		{
+			scan_string_construction(source);
+			if (!exact_definition("string", {source}))
+				if (const Definition* constructor = default_definition("string", {source}, {}))
+					for (std::size_t i = 1; i < constructor->default_values.size(); ++i)
+						if (constructor->parameters[i] == "dval" && constructor->default_values[i])
+							scan_dval(constructor->default_values[i]);
+		}
 		else if (source == "dval" && is_scalar(target))
 		{
 			dval_ = true;
 			scan_alloc = scan_retain = scan_release = true;
 			used_hosts_.insert("bearer_dv_extract_" + target);
+			if (!exact_definition(target, {source}))
+				if (const Definition* constructor = default_definition(target, {source}, {}))
+					for (std::size_t i = 1; i < constructor->default_values.size(); ++i)
+						if (constructor->parameters[i] == "dval" && constructor->default_values[i])
+							scan_dval(constructor->default_values[i]);
+		}
+		else
+		{
+			const Definition* constructor = converted_definition(target, {source}, {});
+			if (!constructor) constructor = default_definition(target, {source}, {});
+			if (!constructor) return;
+			if (!exact_definition(target, {source}) && !constructor->parameters.empty() && constructor->convert[0])
+				scan_construction(source, constructor->parameters[0]);
+			for (std::size_t i = 1; i < constructor->default_values.size(); ++i)
+				if (constructor->parameters[i] == "dval" && constructor->default_values[i])
+					scan_dval(constructor->default_values[i]);
 		}
 	};
 	Definition* scanning_definition = nullptr;
@@ -7191,7 +7249,9 @@ Module::Capabilities Module::discover_capabilities()
 						for (std::size_t i = contract->second.fixed; i < host_arguments.size(); ++i)
 							scan_construction(host_arguments[i], contract->second.element);
 				}
-				const HostDeclaration* selected_host = this->host(callee, host_arguments);
+				if (callee == "__bearer_dv_parse_s32" || callee == "__bearer_dv_parse_s64" || callee == "__bearer_dv_parse_u64" || callee == "__bearer_dv_validate_radix")
+				used_hosts_.insert(callee.substr(2));
+			const HostDeclaration* selected_host = this->host(callee, host_arguments);
 				if (!selected_host && callee.rfind("__bearer_", 0) == 0)
 				{
 					std::vector<Expr*> contextual_arguments;
@@ -7220,7 +7280,11 @@ Module::Capabilities Module::discover_capabilities()
 					for (std::size_t i = 0; i < host_arguments.size(); ++i)
 					{
 						if (converted->parameters[i] != host_arguments[i])
+						{
 							scan_construction(host_arguments[i], converted->parameters[i]);
+							if (converted->function->name != "string" && converted->parameters[i] == "string" && host_arguments[i] == "s32")
+								scan_string_construction("u64");
+						}
 						if (converted->parameters[i] == "dval" && host_arguments[i] != "dval")
 						{
 							Expr* argument = member ? (i == 0 ? member->value : c->arguments.at(i - 1)) : c->arguments.at(i);
@@ -7229,6 +7293,13 @@ Module::Capabilities Module::discover_capabilities()
 							scan_dval(argument);
 						}
 					}
+					for (std::size_t i = host_arguments.size(); i < converted->parameters.size(); ++i)
+						if (converted->parameters[i] == "dval" && converted->default_values[i])
+						{
+							dval_ = true;
+							scan_alloc = scan_retain = scan_release = true;
+							scan_dval(converted->default_values[i]);
+						}
 				}
 				if (const Definition* variadic = variadic_definition(callee, host_arguments, c->location))
 				{

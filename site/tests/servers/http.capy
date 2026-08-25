@@ -1,14 +1,14 @@
 function SERVE_HTTP(request : dval) {
     request.out.headers["Content-Type"] = "text/plain; charset=utf-8"
     print("custom-http-default\n")
-    print("method=", string(request.method, ""), "\n")
-    print("uri=", string(request.url.script, ""), "\n")
-    print("body=", string(request.body, ""), "\n")
+    print("method=", string(request.method), "\n")
+    print("uri=", string(request.url.script), "\n")
+    print("body=", string(request.body), "\n")
 }
 
 function SERVE_HTTP:named(request : dval) {
     request.out.headers["Content-Type"] = "text/plain; charset=utf-8"
     print("custom-http-named\n")
     print("function=named\n")
-    print("query=", string(request.server.QUERY_STRING, ""), "\n")
+    print("query=", string(request.server.QUERY_STRING), "\n")
 }

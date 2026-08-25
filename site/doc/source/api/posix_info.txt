@@ -15,6 +15,6 @@ The function stops with an error for an unknown key. The error lists the valid k
 `posix_info("signal_name", value)` returns the POSIX signal name for a signal number.
 
 :example capy render
-print(string(posix_info("signal_name", 11), ""), "\n")
+print(string(posix_info("signal_name", 11)), "\n")
 
 :see

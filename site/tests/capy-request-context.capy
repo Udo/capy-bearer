@@ -22,21 +22,21 @@ function RENDER(request : dval) {
     if !request.unit? { trap() }
     if !request.websocket? { trap() }
     if request.query.upload? {
-        print(string(request.files[0].name, ""), "|", u64(request.files[0].size, 0) > u64(0), "|", length(string(request.files[0].temporary_path, "")) > 0)
+        print(string(request.files[0].name), "|", u64(request.files[0].size) > u64(0), "|", length(string(request.files[0].temporary_path)) > 0)
         return
     }
-    if string(request.method, "") == "POST" {
-        if string(request.headers["x-capy-schema"], "") != "yes" { trap() }
-        if !bool(request.route.valid, false) { trap() }
-        if string(request.url.script, "") == "" { trap() }
-        if string(request.server.QUERY_STRING, "") == "" { trap() }
+    if string(request.method) == "POST" {
+        if string(request.headers["x-capy-schema"]) != "yes" { trap() }
+        if !bool(request.route.valid) { trap() }
+        if string(request.url.script) == "" { trap() }
+        if string(request.server.QUERY_STRING) == "" { trap() }
         if length(request.files) != 0 { trap() }
     }
-    print(string(request.method, ""), "|", string(request.query.name, ""), "|", string(request.form.answer, ""), "|", string(request.body, ""), "|", arc_live())
+    print(string(request.method), "|", string(request.query.name), "|", string(request.form.answer), "|", string(request.body), "|", arc_live())
 }
 
 function COMPONENT(request : dval) {
-    print(string(request.props.name, ""), "|", request.props.missing?, "|", arc_live())
+    print(string(request.props.name), "|", request.props.missing?, "|", arc_live())
     request.props.name = "child"
 }
 
@@ -50,7 +50,7 @@ function COMPONENT:TRAP(request : dval) {
 }
 
 function COMPONENT:HANDLE(request : dval) {
-    if length(string(request.unit, "")) > 0 {
+    if length(string(request.unit)) > 0 {
         print("handle|", arc_live())
     }
 }

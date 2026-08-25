@@ -10,7 +10,7 @@ function INIT(request : dval)
 Bearer runs this hook before dispatch in a request workspace. The handler has one parameter named `request` with type `dval`.
 
 :example capy init
-print(string(request.method, ""), "\n")
+print(string(request.method), "\n")
 
 :see
 type/request

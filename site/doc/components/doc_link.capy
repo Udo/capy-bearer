@@ -1,6 +1,6 @@
 function COMPONENT(request : dval) {
-    var label := string(request.props.label, "")
-    var href := string(request.props.href, "")
+    var label := string(request.props.label, {fallback: ""})
+    var href := string(request.props.href, {fallback: ""})
     if label == "" || href == "" { return }
     print("<a class=\"related-link\" href=\"", html_escape(href), "\">", html_escape(label), "</a>")
 }

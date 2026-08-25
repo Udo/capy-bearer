@@ -12,6 +12,10 @@ host function __bearer_dv_extract_s32(value : dval, fallback : s32) s32
 host function __bearer_dv_extract_s64(value : dval, fallback : s64) s64
 host function __bearer_dv_extract_u64(value : dval, fallback : u64) u64
 host function __bearer_dv_extract_f64(value : dval, fallback : f64) f64
+host function __bearer_dv_validate_radix(value : dval, name : string) s32
+host function __bearer_dv_parse_s32(value : string, base : s32, fallback : s32) s32
+host function __bearer_dv_parse_s64(value : string, base : s32, fallback : s64) s64
+host function __bearer_dv_parse_u64(value : string, base : s32, fallback : u64) u64
 host function __bearer_dv_merge_brrb(left : dval, right : dval) dval
 host function __bearer_text_parsing_brrb(operation : s32, value : dval, key : string, argument : dval) dval
 host function __bearer_route_path_brrb(operation : s32, value : dval, key : string, argument : dval) dval
@@ -87,16 +91,44 @@ host function __bearer_regex_text(operation : s32, pattern : string, subject : s
 host function __bearer_codec_text(operation : s32, value : string) string
 host function __bearer_codec_dval(operation : s32, value : string) dval
 
-function string(value : dval, fallback : string = "") string { -> __bearer_dv_extract_string(value, fallback) }
-function bool(value : dval, fallback : bool = false) bool { -> __bearer_dv_extract_bool(value, fallback) }
-function s32(value : dval, fallback : s32 = 0) s32 { -> __bearer_dv_extract_s32(value, fallback) }
-function s32(value : string, fallback : s32 = 0) s32 { -> s32(dval(trim(value)), fallback) }
-function s64(value : dval, fallback : s64 = 0) s64 { -> __bearer_dv_extract_s64(value, fallback) }
-function s64(value : string, fallback : s64 = 0) s64 { -> s64(dval(trim(value)), fallback) }
-function u64(value : dval, fallback : u64 = 0) u64 { -> __bearer_dv_extract_u64(value, fallback) }
-function u64(value : string, fallback : u64 = 0) u64 { -> u64(dval(trim(value)), fallback) }
-function f64(value : dval, fallback : f64 = 0.0) f64 { -> __bearer_dv_extract_f64(value, fallback) }
-function f64(value : string, fallback : f64 = 0.0) f64 { -> f64(dval(trim(value)), fallback) }
+function __bearer_constructor_options(opt : dval, name : string, integer : bool) {
+    for ignored, key := opt {
+        if key == "fallback" { continue }
+        if integer && key == "base" { continue }
+        if integer { __bearer_hard_error(name + ": unknown key '" + key + "'. Valid keys: fallback, base") }
+        else { __bearer_hard_error(name + ": unknown key '" + key + "'. Valid keys: fallback") }
+        trap()
+    }
+}
+function __bearer_constructor_base(opt : dval, name : string) s32 {
+    if !has(opt, "base") { return 10 }
+    return __bearer_dv_validate_radix(get(opt, "base"), name)
+}
+function string(value : as string, opt : dval = {}) string {
+    __bearer_constructor_options(opt, "string", false)
+    if value == "" { return __bearer_dv_extract_string(get(opt, "fallback"), "") }
+    -> value
+}
+function bool(value : dval, opt : dval = {}) bool {
+    __bearer_constructor_options(opt, "bool", false)
+    -> __bearer_dv_extract_bool(value, __bearer_dv_extract_bool(get(opt, "fallback"), false))
+}
+function s32(value : as string, opt : dval = {}) s32 {
+    __bearer_constructor_options(opt, "s32", true)
+    -> __bearer_dv_parse_s32(value, __bearer_constructor_base(opt, "s32"), __bearer_dv_extract_s32(get(opt, "fallback"), 0))
+}
+function s64(value : as string, opt : dval = {}) s64 {
+    __bearer_constructor_options(opt, "s64", true)
+    -> __bearer_dv_parse_s64(value, __bearer_constructor_base(opt, "s64"), __bearer_dv_extract_s64(get(opt, "fallback"), 0))
+}
+function u64(value : as string, opt : dval = {}) u64 {
+    __bearer_constructor_options(opt, "u64", true)
+    -> __bearer_dv_parse_u64(value, __bearer_constructor_base(opt, "u64"), __bearer_dv_extract_u64(get(opt, "fallback"), 0))
+}
+function f64(value : as string, opt : dval = {}) f64 {
+    __bearer_constructor_options(opt, "f64", false)
+    -> __bearer_dv_extract_f64(dval(trim(value)), __bearer_dv_extract_f64(get(opt, "fallback"), 0.0))
+}
 
 function __bearer_dval_dval_set() s32 { -> 0 }
 function __bearer_dval_dval_push() s32 { -> 1 }
@@ -118,7 +150,6 @@ function __bearer_dval_dval_put() s32 { -> 18 }
 function __bearer_text_safe_name() s32 { -> 0 }
 function __bearer_text_trim() s32 { -> 1 }
 function __bearer_text_float_val() s32 { -> 2 }
-function __bearer_text_int_val() s32 { -> 3 }
 function __bearer_text_str_starts_with() s32 { -> 4 }
 function __bearer_text_str_ends_with() s32 { -> 5 }
 function __bearer_text_encode_query() s32 { -> 6 }
@@ -332,8 +363,6 @@ function unique(items : dval) dval {
 // text/parsing/collection operation order: names, scalars, predicates, query, split/sort
 function safe_name(raw : string) string { -> string(__bearer_text_parsing_brrb(__bearer_text_safe_name(), dval(raw), "", dval(""))) }
 function trim(raw : string) string { -> string(__bearer_text_parsing_brrb(__bearer_text_trim(), dval(raw), "", dval(""))) }
-function int_val(raw : string) u64 { -> u64(__bearer_text_parsing_brrb(__bearer_text_int_val(), dval(raw), "", dval(10.0)), 0) }
-function int_val(raw : string, base : s32) u64 { -> u64(__bearer_text_parsing_brrb(__bearer_text_int_val(), dval(raw), "", dval(base)), 0) }
 function str_starts_with(haystack : string, needle : string) bool { -> bool(__bearer_text_parsing_brrb(__bearer_text_str_starts_with(), dval(haystack), needle, dval(false))) }
 function str_ends_with(haystack : string, needle : string) bool { -> bool(__bearer_text_parsing_brrb(__bearer_text_str_ends_with(), dval(haystack), needle, dval(false))) }
 function encode_query(map : dval) string { -> string(__bearer_text_parsing_brrb(__bearer_text_encode_query(), map, "", dval(""))) }
@@ -379,9 +408,9 @@ function xml_decode(source : string) dval { -> __bearer_codec_archive_brrb(__bea
 function xml_encode(value : dval, root_name : string = "root") string { -> string(__bearer_codec_archive_brrb(__bearer_archive_xml_encode(), value, root_name, dval(""))) }
 function yaml_decode(source : string) dval { -> __bearer_codec_archive_brrb(__bearer_archive_yaml_decode(), dval(source), "", dval("")) }
 function yaml_encode(value : dval) string { -> string(__bearer_codec_archive_brrb(__bearer_archive_yaml_encode(), value, "", dval(""))) }
-function markdown_to_html(source : string) string { -> string(__bearer_codec_archive_brrb(__bearer_archive_markdown_to_html(), dval(source), "", dval({:}))) }
+function markdown_to_html(source : string) string { -> string(__bearer_codec_archive_brrb(__bearer_archive_markdown_to_html(), dval(source), "", dval({}))) }
 function markdown_to_html(source : string, options : dval) string { -> string(__bearer_codec_archive_brrb(__bearer_archive_markdown_to_html(), dval(source), "", options)) }
-function markdown_to_ast(source : string) dval { -> __bearer_codec_archive_brrb(__bearer_archive_markdown_to_ast(), dval(source), "", dval({:})) }
+function markdown_to_ast(source : string) dval { -> __bearer_codec_archive_brrb(__bearer_archive_markdown_to_ast(), dval(source), "", dval({})) }
 function markdown_to_ast(source : string, options : dval) dval { -> __bearer_codec_archive_brrb(__bearer_archive_markdown_to_ast(), dval(source), "", options) }
 // Capy scalars are values: return the advanced offset for reassignment.
 function json_consume_space(source : string, index : s32) s32 { -> s32(__bearer_codec_archive_brrb(__bearer_archive_json_consume_space(), dval(source), "", dval(index))) }
@@ -413,7 +442,7 @@ function file_pwrite(handle : u64, offset : u64, data : string) u64 { -> __beare
 function file_copy(from : string, to : string) bool { -> bool(__bearer_filesystem_brrb(__bearer_filesystem_file_copy(), dval(from), to, dval(false))) }
 function file_rename(from : string, to : string) bool { -> bool(__bearer_filesystem_brrb(__bearer_filesystem_file_rename(), dval(from), to, dval(false))) }
 function file_stat(path : string) dval { -> __bearer_filesystem_brrb(__bearer_filesystem_file_stat(), dval(path), "", dval("")) }
-function file_mtime(path : string) u64 { -> u64(__bearer_filesystem_brrb(__bearer_filesystem_file_mtime(), dval(path), "", dval("")), 0) }
+function file_mtime(path : string) u64 { -> u64(__bearer_filesystem_brrb(__bearer_filesystem_file_mtime(), dval(path), "", dval("")), {fallback: 0}) }
 function file_exists(path : string) bool { -> bool(__bearer_filesystem_brrb(__bearer_filesystem_file_exists(), dval(path), "", dval(false))) }
 function file_truncate(path : string, size : u64) bool { -> bool(__bearer_filesystem_brrb(__bearer_filesystem_file_truncate(), dval(path), "", dval(size))) }
 function file_chmod(path : string, mode : s32) bool { -> bool(__bearer_filesystem_brrb(__bearer_filesystem_file_chmod(), dval(path), "", dval(mode))) }
@@ -454,7 +483,7 @@ function password_verify(password : string, encoded : string) bool { -> bool(__b
 
 function sqlite_connect(path : string) u64 { -> __bearer_sqlite_connect(path) }
 function sqlite_disconnect(handle : u64) { __bearer_sqlite_disconnect(handle) }
-function sqlite_query(handle : u64, query : string) dval { -> __bearer_sqlite_query(handle, query, dval({:})) }
+function sqlite_query(handle : u64, query : string) dval { -> __bearer_sqlite_query(handle, query, dval({})) }
 function sqlite_query(handle : u64, query : string, params : dval) dval { -> __bearer_sqlite_query(handle, query, params) }
 function sqlite_info(handle : u64, key : string) dval {
     if key == "error" { return dval(__bearer_sqlite_error(handle)) }
@@ -469,7 +498,7 @@ function mysql_connect(host : string, username : string, password : string, data
 function mysql_disconnect(handle : u64) { __bearer_mysql_disconnect(handle) }
 function mysql_escape(raw : string) string { -> __bearer_mysql_escape(raw, "'") }
 function mysql_escape(raw : string, quote : string) string { -> __bearer_mysql_escape(raw, quote) }
-function mysql_query(handle : u64, query : string) dval { -> __bearer_mysql_query(handle, query, dval({:})) }
+function mysql_query(handle : u64, query : string) dval { -> __bearer_mysql_query(handle, query, dval({})) }
 function mysql_query(handle : u64, query : string, params : dval) dval { -> __bearer_mysql_query(handle, query, params) }
 function mysql_info(handle : u64, key : string) dval {
     if key == "connection" { return dval(__bearer_mysql_connected(handle)) }
@@ -491,7 +520,7 @@ function draw_int(from : u64, to : u64) u64 { -> __bearer_noise_u64(__bearer_noi
 function draw_float(from : f64, to : f64, precision : f64 = 0.000000000001) f64 { -> __bearer_noise_f64(__bearer_noise_draw_float(), from, to, 0, 0, precision) }
 
 // Cache and process policy remains in sys.cpp/worker; Capy passes copied values.
-function memcache_connect(host : string = "127.0.0.1", port : s32 = 11211) u64 { -> u64(__bearer_cache_brrb(__bearer_cache_memcache_connect(), dval(host), "", dval(port)), 0) }
+function memcache_connect(host : string = "127.0.0.1", port : s32 = 11211) u64 { -> u64(__bearer_cache_brrb(__bearer_cache_memcache_connect(), dval(host), "", dval(port)), {fallback: 0}) }
 function memcache_command(connection : u64, command : string) string { -> string(__bearer_cache_brrb(__bearer_cache_memcache_command(), dval(connection), command, dval(""))) }
 function memcache_set(connection : u64, key : string, value : string, expires_in : u64 = 3600) bool { -> bool(__bearer_cache_brrb(__bearer_cache_memcache_set(), dval(connection), key, dval({"value": value, "expires": expires_in}))) }
 function memcache_delete(connection : u64, key : string) bool { -> bool(__bearer_cache_brrb(__bearer_cache_memcache_delete(), dval(connection), key, dval(""))) }
@@ -515,12 +544,12 @@ function task_cancel(id : string) dval { -> __bearer_process_jobs_brrb(__bearer_
 
 // Network resources remain request-owned by the workspace. Handles are encoded
 // as decimal DValues at the BRRB boundary, then parsed exactly as u64 values.
-function socket_connect(host : string, port : s32) u64 { -> u64(__bearer_network_http_brrb(__bearer_network_socket_connect(), dval(host), "", dval(port)), 0) }
+function socket_connect(host : string, port : s32) u64 { -> u64(__bearer_network_http_brrb(__bearer_network_socket_connect(), dval(host), "", dval(port)), {fallback: 0}) }
 function socket_close(handle : u64) { var ignored := __bearer_network_http_brrb(__bearer_network_socket_close(), dval(handle), "", dval("")) }
 function socket_write(handle : u64, data : string) bool { -> bool(__bearer_network_http_brrb(__bearer_network_socket_write(), dval(handle), data, dval(""))) }
 function socket_read(handle : u64, max_length : s32 = 131072, timeout : s32 = 1) string { -> string(__bearer_network_http_brrb(__bearer_network_socket_read(), dval(handle), "", dval({"max_length": max_length, "timeout": timeout}))) }
 function http_request(request : dval) dval { -> __bearer_network_http_brrb(__bearer_network_http_request(), request, "", dval("")) }
-function http_request_async(request : dval) u64 { -> u64(__bearer_network_http_brrb(__bearer_network_http_request_async(), request, "", dval("")), 0) }
+function http_request_async(request : dval) u64 { -> u64(__bearer_network_http_brrb(__bearer_network_http_request_async(), request, "", dval("")), {fallback: 0}) }
 
 // Unit and component policy remains in the existing workspace dispatcher.
 function component(name : string) string { -> __bearer_component_capture(name) }
@@ -528,7 +557,7 @@ function component(name : string, props : as dval) string { -> __bearer_componen
 function unit_call(file_name : string, function_name : string) dval { -> unit_call(file_name, function_name, "") }
 
 // Time parsing/formatting stays in sys.cpp; u64 values cross BRRB as exact text.
-function time_parse(value : string) u64 { -> u64(__bearer_time_format_brrb(__bearer_time_time_parse(), dval(value), "", dval("")), 0) }
+function time_parse(value : string) u64 { -> u64(__bearer_time_format_brrb(__bearer_time_time_parse(), dval(value), "", dval("")), {fallback: 0}) }
 function time_format_local(format : string = "", timestamp : u64 = 0) string { -> string(__bearer_time_format_brrb(__bearer_time_time_format_local(), dval(format), "", dval(timestamp))) }
 function time_format_utc(format : string = "", timestamp : u64 = 0) string { -> string(__bearer_time_format_brrb(__bearer_time_time_format_utc(), dval(format), "", dval(timestamp))) }
 function time_format_relative(timestamp : u64, very_recent : string = "", medium_seconds : u64 = 0, medium_recent : string = "", not_recent_seconds : u64 = 0, not_recent : string = "") string { -> string(__bearer_time_format_brrb(__bearer_time_time_format_relative(), dval(timestamp), very_recent, dval({"medium_seconds": medium_seconds, "medium_recent": medium_recent, "not_recent_seconds": not_recent_seconds, "not_recent": not_recent}))) }
@@ -547,7 +576,7 @@ function component_render(name : string, props : as dval) bool { -> __bearer_com
 function component_resolve(name : string) string { -> __bearer_component_resolve(name) }
 function unit_render(name : string) { __bearer_unit_render_bytes(name) }
 function unit_load(path : string) module { -> __bearer_unit_load(path) }
-function call(handle : module, name : string) dval { -> call(handle, name, {:}) }
+function call(handle : module, name : string) dval { -> call(handle, name, {}) }
 function call(handle : module, name : string, input : as dval) dval { -> __bearer_module_call_brrb(handle, name, input) }
 function unit_call(file_name : string, function_name : string, props : as dval) dval { -> __bearer_unit_call_brrb(file_name, function_name, props) }
 function unit_info(path : string = "") dval { -> __bearer_unit_info_brrb(path) }

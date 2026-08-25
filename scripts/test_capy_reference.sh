@@ -65,7 +65,7 @@ rm -f "$route_gate"
 guide=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}guide/dynamic-values/")
 [[ "$guide" == *"8. Dynamic values"* && "$guide" == *"Nested assignment creates missing maps"* && "$guide" == *'class="guide-navigation"'* ]] || { echo "Capy guide page omitted content or navigation" >&2; exit 1; }
 constructor=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}api/string/")
-[[ "$constructor" == *"function string(value : dval"* && "$constructor" != *"DOC EXAMPLE ERROR"* ]] || { echo "Capy constructor API page omitted its signature" >&2; exit 1; }
+[[ "$constructor" == *"function string(value : as string, opt : dval = {}) string"* && "$constructor" != *"DOC EXAMPLE ERROR"* ]] || { echo "Capy constructor API page omitted its signature" >&2; exit 1; }
 contract=$(curl -fsS --max-time 60 -H "Host: $host" "${doc_base}api/http-request/")
 [[ "$contract" == *'<h3>Description</h3>'* && "$contract" == *'class="related-link" href="/doc/api/http-request-async/">http_request_async</a>'* ]] || { echo "Structured API contract sections or related links are incomplete" >&2; exit 1; }
 index=$(curl -fsS --max-time 60 -H "Host: $host" "$doc_base")

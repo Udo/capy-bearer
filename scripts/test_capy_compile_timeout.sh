@@ -56,11 +56,11 @@ mount --bind "$settings" /etc/bearer/settings.cfg
 
 cat >"$site/driver.capy" <<'CAPY'
 function CLI(request : dval) {
-    if string(request.query.health, "") == "1" {
+    if string(request.query.health) == "1" {
         print("health")
         return
     }
-    if string(request.query.graph, "") == "1" {
+    if string(request.query.graph) == "1" {
         if unit_compile("graph-parent.capy") { print("graph-unlimited") } else { print("graph-limited") }
         return
     }

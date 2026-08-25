@@ -1,5 +1,5 @@
 function RENDER(request : dval) {
-    var action := string(request.query.action, "")
+    var action := string(request.query.action)
     var token := csrf_token("capy-csrf", "token")
     if action == "token" {
         print(token)
@@ -11,7 +11,7 @@ function RENDER(request : dval) {
                 csrf_rotate("capy-csrf", "token")
                 print(csrf_token("capy-csrf", "token"))
             } else {
-                print(csrf_valid(string(request.query.submitted, ""), "capy-csrf", "token"))
+                print(csrf_valid(string(request.query.submitted), "capy-csrf", "token"))
             }
         }
     }

@@ -14,7 +14,7 @@ function CLI(request : dval) {
     {
         var empty := dval("")
         var false_value := dval(false)
-        var map := dval({:})
+        var map := dval({})
         var list := dval([])
         print(none?, "|", empty?, "|", false_value?, "|", map?, "|", list?, "|")
 
@@ -22,12 +22,12 @@ function CLI(request : dval) {
         print(profile["missing"]?, "|", profile.missing?, "|", profile.scalar.member?, "|", profile.list[-1]?, "|", profile.list[1]?, "|")
         print(profile.nickname, "|")
 
-        print("[", string(none), "]", "[", string(none, "string"), "]|")
-        print(bool(none), "|", bool(none, true), "|")
-        print(s32(none), "|", s32(none, 32), "|")
-        print(s64(none), "|", s64(none, s64(-64)), "|")
-        print(u64(none), "|", u64(none, u64(64)), "|")
-        print(f64(none), "|", f64(none, 6.5), "|")
+        print("[", string(none), "]", "[", string(none, {fallback: "string"}), "]|")
+        print(bool(none), "|", bool(none, {fallback: true}), "|")
+        print(s32(none), "|", s32(none, {fallback: 32}), "|")
+        print(s64(none), "|", s64(none, {fallback: s64(-64)}), "|")
+        print(u64(none), "|", u64(none, {fallback: u64(64)}), "|")
+        print(f64(none), "|", f64(none, {fallback: 6.5}), "|")
 
         var json_none := json_decode("null")
         var yaml_null := yaml_decode("null\n")
@@ -49,7 +49,7 @@ function CLI(request : dval) {
         nested.keep.value = "changed"
         print(copied.keep.value, "|", nested.keep.value, "|")
 
-        var ordered := dval({:})
+        var ordered := dval({})
         ordered[selector("A", "first")][selector("B", "second")] = replacement("R", "done")
         print("|", ordered.first.second, "|")
 

@@ -1,5 +1,5 @@
 function RENDER(request : dval) {
-    var mode := string(request.query.mode, "")
+    var mode := string(request.query.mode)
     if mode == "optional" {
         print("optional component absent")
         return

@@ -1,6 +1,6 @@
 function COMPONENT:HEAD(request : dval) {
-    var title := string(request.props.title, "Home")
-    var extra_css := string(request.props.extra_css, "")
+    var title := string(request.props.title, {fallback: "Home"})
+    var extra_css := string(request.props.extra_css)
     request.out.headers["Content-Type"] = "text/html; charset=utf-8"
     print("<!doctype html>")
     print(<>

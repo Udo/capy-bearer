@@ -1,7 +1,7 @@
 function COMPONENT(request : dval) {
-    var title := string(request.props.title, "Demo")
-    var heading := string(request.props.heading, title)
-    var body := string(request.props.body, "This included demo route runs from native Capy.")
+    var title := string(request.props.title, {fallback: "Demo"})
+    var heading := string(request.props.heading, {fallback: title})
+    var body := string(request.props.body, {fallback: "This included demo route runs from native Capy."})
     request.out.headers["Content-Type"] = "text/html; charset=utf-8"
     print("<!doctype html>")
     print(<>
@@ -18,8 +18,8 @@ function COMPONENT(request : dval) {
     if request.props.links? {
         print(<><ul></>)
         for link := request.props.links {
-            var href := string(link.href, "")
-            var label := string(link.label, href)
+            var href := string(link.href)
+            var label := string(link.label, {fallback: href})
             print(<><li><a href="<?= href ?>"><?= label ?></a></li></>)
         }
         print(<></ul></>)

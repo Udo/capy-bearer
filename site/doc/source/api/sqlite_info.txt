@@ -20,9 +20,9 @@ Use a converter with a fallback because the values have different types.
 var db := sqlite_connect(":memory:")
 sqlite_query(db, "create table t(id integer primary key)")
 sqlite_query(db, "insert into t values(1)")
-var message := string(sqlite_info(db, "error"), "")
-var id := u64(sqlite_info(db, "insert_id"), 0)
-var rows := u64(sqlite_info(db, "affected_rows"), 0)
+var message := string(sqlite_info(db, "error"))
+var id := u64(sqlite_info(db, "insert_id"))
+var rows := u64(sqlite_info(db, "affected_rows"))
 print(message, " ", id, " ", rows, "\n")
 sqlite_disconnect(db)
 

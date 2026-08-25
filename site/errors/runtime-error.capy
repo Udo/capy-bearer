@@ -1,16 +1,16 @@
 function RENDER(request : dval) {
     var error := request.call.error
-    var signal_name := string(error.signal_name, "")
+    var signal_name := string(error.signal_name)
     request.out.headers["Content-Type"] = "text/html; charset=utf-8"
-    print("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"></meta><title>Something went wrong</title><style>body{font-family:system-ui,sans-serif;background:#1c1017;color:#fde8e8;margin:0;min-height:100vh}main{max-width:60rem;margin:0 auto;padding:3rem 2rem}h1{color:#f87171}code{color:#fca5a5}pre{background:#0f0a0d;color:#e2e8f0;padding:1rem;border-radius:.5rem;overflow-x:auto}.meta{color:#9f8a93;font-size:.9rem}</style></head><body><main><h1>Something went wrong</h1><p>", html_escape(string(error.title, "")), "</p><p class=\"meta\">Request: <code>", html_escape(string(error.request_uri, "")), "</code></p>")
-    var details := string(error.details, "")
+    print("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"></meta><title>Something went wrong</title><style>body{font-family:system-ui,sans-serif;background:#1c1017;color:#fde8e8;margin:0;min-height:100vh}main{max-width:60rem;margin:0 auto;padding:3rem 2rem}h1{color:#f87171}code{color:#fca5a5}pre{background:#0f0a0d;color:#e2e8f0;padding:1rem;border-radius:.5rem;overflow-x:auto}.meta{color:#9f8a93;font-size:.9rem}</style></head><body><main><h1>Something went wrong</h1><p>", html_escape(string(error.title)), "</p><p class=\"meta\">Request: <code>", html_escape(string(error.request_uri)), "</code></p>")
+    var details := string(error.details)
     if details != "" {
         print("<p class=\"meta\">Details: ", html_escape(details), "</p>")
     }
     if signal_name != "" {
         print("<p class=\"meta\">Signal: ", html_escape(signal_name), "</p>")
     }
-    var stack := string(error.trace, "")
+    var stack := string(error.trace)
     if stack != "" {
         print("<pre>", html_escape(stack), "</pre>")
     }

@@ -7,4 +7,4 @@ Handlers receive request data in `request`.
 Use `request.url.script` for the script URL. Use `request.url.base` for the base URL. Use `request.route.path`, `request.route.page`, `request.route.raw_path`, and `request.route.valid` for route data.
 
 :example capy render
-print(string(request.route.path, ""), "\n")
+print(string(request.route.path), "\n")

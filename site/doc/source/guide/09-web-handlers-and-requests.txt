@@ -8,7 +8,7 @@ A Capy Bearer handler receives one copied request snapshot. Declare every handle
 
 :example capy render
 function RENDER(request : dval) {
-    var name := string(request.query.name, "guest")
+    var name := string(request.query.name, {fallback: "guest"})
     request.out.headers["Content-Type"] = "text/plain; charset=utf-8"
     print("Hello, ", name, "!\n")
 }
@@ -21,7 +21,7 @@ The snapshot contains `method`, `query`, `form`, `params`, `headers`, `cookies`,
 
 `route` contains `path`, `page`, `raw_path`, and `valid`. `url` contains `script` and `base`. `session` contains `id`, `name`, and `values`. `websocket` contains `connection_id`, `scope`, `opcode`, `binary`, and current-scope `connections`.
 
-Missing members are `none`. Use normal conversions for scalar values. For example, use `string(request.form.email, "")`, `s32(request.websocket.opcode, 0)`, and `bool(request.websocket.binary, false)`.
+Missing members are `none`. Use normal conversions for scalar values. For example, use `string(request.form.email)`, `s32(request.websocket.opcode)`, and `bool(request.websocket.binary)`.
 
 ## Form a response
 
@@ -38,10 +38,10 @@ This example shows the complete control flow. A GET request prints the form. A P
 :example capy render
 function RENDER(request : dval) {
     request.out.headers["Content-Type"] = "text/html; charset=utf-8"
-    var method := string(request.method, "GET")
+    var method := string(request.method, {fallback: "GET"})
 
     if method == "POST" {
-        var email := string(request.form.email, "")
+        var email := string(request.form.email)
         if email == "" {
             request.out.status = 422
             print(<><p>Email is required.</p></>)
@@ -87,7 +87,7 @@ Session effects return a state map with `id`, `name`, and `values`. Keep the ret
 function RENDER(request : dval) {
     var session := session_start("account")
     session = session_set("theme", "dark")
-    print(string(session.values.theme, ""), "\n")
+    print(string(session.values.theme), "\n")
 }
 
 :content
@@ -98,7 +98,7 @@ Use `CLI` for a local command through Bearer's private CLI socket. Read command 
 
 :example capy cli
 function CLI(request : dval) {
-    print(string(request.body, ""))
+    print(string(request.body))
 }
 
 :content
@@ -107,7 +107,7 @@ Use `WS` for each WebSocket message. Read the message from `request.body`. Read 
 
 :example capy ws
 function WS(request : dval) {
-    ws_send(string(request.body, ""), false)
+    ws_send(string(request.body), false)
 }
 
 :content

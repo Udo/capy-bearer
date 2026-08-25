@@ -254,7 +254,7 @@ def self_test() -> int:
         if not check_example_body(pages / "ok.txt", 1, "render", "function RENDER(request : dval) {}"):
             print("self-test accepted a complete handler in an API example")
             return 1
-        if not check_example_body(pages / "ok.txt", 1, "render", "var request := dval({:})"):
+        if not check_example_body(pages / "ok.txt", 1, "render", "var request := dval({})"):
             print("self-test accepted a handler request redeclaration")
             return 1
         if check_example_body(pages / "ok.txt", 1, "render", "function value() s32 { -> 1 }"):

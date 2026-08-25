@@ -28,7 +28,7 @@ trap cleanup EXIT
 mkdir -p "$source_dir"
 cache_dir="$(scripts/unit_cache_directory "$bin_directory")$(realpath "$source_dir")"
 
-printf '%s\n' 'function CLI(request : dval) { var props := {:}; print(component("child", props)) }' >"$source_dir/parent.capy"
+printf '%s\n' 'function CLI(request : dval) { var props := {}; print(component("child", props)) }' >"$source_dir/parent.capy"
 for i in $(seq 1 800); do
 	printf 'function cold_component_pad_%s() string { -> "%s" }\n' "$i" "$i"
 done >"$source_dir/child.capy"

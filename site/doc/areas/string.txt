@@ -30,7 +30,6 @@ regex_search_all
 regex_replace
 regex_split
 trim
-int_val
 html_escape
 safe_name
 var_dump

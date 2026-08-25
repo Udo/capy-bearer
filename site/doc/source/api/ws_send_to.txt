@@ -16,4 +16,4 @@ ws_send
 `ws_send_to()` sends a message to one client.
 
 :example capy ws
-ws_send_to(string(request.websocket.connection_id, ""), "hello", false)
+ws_send_to(string(request.websocket.connection_id), "hello", false)

@@ -2420,13 +2420,12 @@ size_t bearer_text_parsing_brrb(s32 operation, const char* value, size_t value_l
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class TextOperation { text_safe_name = 0, text_trim = 1, text_float_val = 2, text_int_val = 3, text_str_starts_with = 4, text_str_ends_with = 5, text_encode_query = 6, text_parse_query = 7, text_split = 8, text_split_space = 9, text_split_utf8 = 10, text_split_http_headers = 11, text_split_kv = 12, text_sort = 13 };
+	enum class TextOperation { text_safe_name = 0, text_trim = 1, text_float_val = 2, text_str_starts_with = 4, text_str_ends_with = 5, text_encode_query = 6, text_parse_query = 7, text_split = 8, text_split_space = 9, text_split_utf8 = 10, text_split_http_headers = 11, text_split_kv = 12, text_sort = 13 };
 	switch(static_cast<TextOperation>(operation))
 	{
 		case TextOperation::text_safe_name: result.set(safe_name(result.to_string())); break;
 		case TextOperation::text_trim: result.set(trim(result.to_string())); break;
 		case TextOperation::text_float_val: result.set(float_val(result.to_string())); break;
-		case TextOperation::text_int_val: result.set(std::to_string(int_val(result.to_string(), (u32)supplied.to_s64(10)))); break;
 		case TextOperation::text_str_starts_with: result.set_bool(str_starts_with(result.to_string(), text)); break;
 		case TextOperation::text_str_ends_with: result.set_bool(str_ends_with(result.to_string(), text)); break;
 		case TextOperation::text_encode_query: result.set(encode_query(result.to_stringmap())); break;
@@ -3229,6 +3228,54 @@ u64 bearer_dv_extract_u64(const char* value, size_t value_len, u64 fallback)
 	if(scalar->type == 'S') { u64 result = 0; return(bearer_dv_decimal_u64(scalar->_String, result) ? result : fallback); }
 	if(!std::isfinite(scalar->_float) || scalar->_float < 0 || scalar->_float >= 18446744073709551616.0) return(fallback);
 	return((u64)std::trunc(scalar->_float));
+}
+
+s32 bearer_dv_validate_radix(const char* value, size_t value_len, const char* name, size_t name_len)
+{
+	DValue decoded;
+	const DValue* scalar = 0;
+	const String constructor(name ? name : "", name ? name_len : 0);
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || !bearer_dv_scalar(decoded, scalar) || scalar->type != 'F' ||
+		!std::isfinite(scalar->_float) || std::trunc(scalar->_float) != scalar->_float || scalar->_float < 2 || scalar->_float > 36)
+	{
+		const String message = constructor + ": base must be a whole number from 2 to 36";
+		bearer_hard_error(message.data(), message.size());
+		return(10);
+	}
+	return((s32)scalar->_float);
+}
+
+static String bearer_dv_parse_text(const char* value, size_t value_len, s32 base)
+{
+	if(base < 2 || base > 36) return("");
+	String result = trim(String(value ? value : "", value ? value_len : 0));
+	if(!result.empty() && result[0] == '+') result.erase(0, 1);
+	return(result);
+}
+
+s32 bearer_dv_parse_s32(const char* value, size_t value_len, s32 base, s32 fallback)
+{
+	const String text = bearer_dv_parse_text(value, value_len, base);
+	s32 result = 0;
+	auto parsed = std::from_chars(text.data(), text.data() + text.size(), result, base);
+	return(!text.empty() && parsed.ec == std::errc() && parsed.ptr == text.data() + text.size() ? result : fallback);
+}
+
+s64 bearer_dv_parse_s64(const char* value, size_t value_len, s32 base, s64 fallback)
+{
+	const String text = bearer_dv_parse_text(value, value_len, base);
+	s64 result = 0;
+	auto parsed = std::from_chars(text.data(), text.data() + text.size(), result, base);
+	return(!text.empty() && parsed.ec == std::errc() && parsed.ptr == text.data() + text.size() ? result : fallback);
+}
+
+u64 bearer_dv_parse_u64(const char* value, size_t value_len, s32 base, u64 fallback)
+{
+	const String text = bearer_dv_parse_text(value, value_len, base);
+	if(text.empty() || text[0] == '-') return(fallback);
+	u64 result = 0;
+	auto parsed = std::from_chars(text.data(), text.data() + text.size(), result, base);
+	return(parsed.ec == std::errc() && parsed.ptr == text.data() + text.size() ? result : fallback);
 }
 
 f64 bearer_dv_extract_f64(const char* value, size_t value_len, f64 fallback)

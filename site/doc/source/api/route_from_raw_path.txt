@@ -13,4 +13,4 @@ Use `path` only below an application-controlled route root. It is empty when the
 
 :example capy render
 var route := route_from_raw_path("docs/api")
-print(string(route.page, ""), "\n")
+print(string(route.page), "\n")

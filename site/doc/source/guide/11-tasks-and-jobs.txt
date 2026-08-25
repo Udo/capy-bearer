@@ -10,7 +10,7 @@ Task status is a `dval` because fields can vary with the state:
 
 :example capy render
 function state_label(status : dval) string {
-    -> string(status.state, "missing")
+    -> string(status.state, {fallback: "missing"})
 }
 
 function RENDER(request : dval) {
@@ -30,7 +30,7 @@ A named task handler receives one request value:
 :example capy render
 function TASK:STORE(request : dval) {
     var props := request.props
-    var key := string(props.key, "")
+    var key := string(props.key)
     if key == "" {
         trap()
     }
@@ -62,8 +62,8 @@ The call traps if Bearer cannot admit the task. Use `task_status(id)` to poll. U
 :example capy render
 function show_failure(id : string) {
     var status := task_await(id, 5000)
-    if string(status.state, "") == "failed" {
-        print(string(status.failure_code, "unknown"))
+    if string(status.state) == "failed" {
+        print(string(status.failure_code, {fallback: "unknown"}))
     }
 }
 
@@ -85,7 +85,7 @@ The two-argument `shell_exec` form starts a bounded background operating-system 
 function RENDER(request : dval) {
     var job := shell_exec("printf ready", {background: true, timeout_ms: 1000})
     var status := job_await(job, 3000)
-    print(string(status.state, "missing"), "\n")
+    print(string(status.state, {fallback: "missing"}), "\n")
 }
 
 :content

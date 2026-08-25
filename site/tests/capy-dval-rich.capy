@@ -46,7 +46,7 @@ function CLI(request : dval) {
     }
     print(arc_live(), "|")
     {
-        var empty_map := dval({:})
+        var empty_map := dval({})
         var empty_list := dval([])
         print(has(empty_map, "missing"), has(empty_list, 0), "|")
         for value, key := empty_map {

@@ -1,12 +1,12 @@
 function route_path(request : dval) string {
-    var raw := string(request.route.raw_path, "")
+    var raw := string(request.route.raw_path)
     if raw == "" {
         return ""
     }
-    if !bool(request.route.valid, true) {
+    if !bool(request.route.valid, {fallback: true}) {
         return "__invalid__"
     }
-    return string(request.route.path, "")
+    return string(request.route.path)
 }
 
 function page(title : string, extra_css : string, body : markup) void {

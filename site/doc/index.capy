@@ -19,7 +19,7 @@ function render_doc_page(request : dval, path : string) void {
 }
 
 function RENDER(request : dval) {
-    var pretty := string(request.query.pretty, "")
+    var pretty := string(request.query.pretty, {fallback: ""})
     if pretty != "" {
         var slash := strpos(pretty, "/")
         var kind := ""
@@ -36,7 +36,7 @@ function RENDER(request : dval) {
         render_not_found(request)
         return
     }
-    var utility := string(request.query.utility, "")
+    var utility := string(request.query.utility, {fallback: ""})
     if utility != "" {
         if route_path_is_safe(utility) {
             render_doc_page(request, "/doc/components/" + utility + ".capy")
@@ -45,7 +45,7 @@ function RENDER(request : dval) {
         render_not_found(request)
         return
     }
-    if string(request.query.p, "") != "" {
+    if string(request.query.p, {fallback: ""}) != "" {
         render_not_found(request)
         return
     }

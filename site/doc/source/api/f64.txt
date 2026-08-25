@@ -1,23 +1,23 @@
 :sig
-function f64(value : dval, fallback : f64 = 0.0) f64
-function f64(value : string, fallback : f64 = 0.0) f64
+function f64(value : as string, opt : dval = {}) f64
 
 :params
-value : value to convert
-fallback : value to return when conversion fails
+value : scalar value or text to convert
+opt : options map with `fallback`
 
 :returns
-An `f64` value, or `fallback`.
+An `f64` value, or `opt.fallback`.
 
 :content
-`f64` converts a `dval` or a string to a floating-point value. The string form removes leading and trailing spaces. The value must contain a complete decimal number.
+`f64()` converts the exact text from `value` to a floating-point value. The value must contain a complete decimal number. `opt.fallback` is the result for empty text or text that does not parse. It defaults to `0.0`.
 
-:errors
-`f64` does not trap for an invalid conversion. It returns `fallback`.
+`value` accepts scalar values through `as string`. The conversion keeps scalar text exact. Empty and missing `dval` values both convert to empty text. Use `value?` before conversion when presence matters. An empty value is present, but a missing value is not.
+
+The options map accepts only `fallback`. An unknown key, including `base`, is an error.
 
 :example capy render
-print(f64(" 3.5 "), "\n")
-print(f64("not a number", 9.0), "\n")
+print(f64("3.5"), "\n")
+print(f64("not a number", {fallback: 9.0}), "\n")
 
 :see
 f64

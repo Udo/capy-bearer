@@ -16,8 +16,8 @@ function dval_api_run() s32 {
     print(is_list(list), list[0], "|")
     var nested := {site: {title: "Bearer"}}
     print(nested.site.title, has(get_by_path(nested, "none"), "x"), "|")
-    var typed := dval({:})
-    var empty := get_or_create({:}, "created", dval(""))
+    var typed := dval({})
+    var empty := get_or_create({}, "created", dval(""))
     print(has(empty, "created"), get_type_name(empty), json_encode(dval("A")), "|")
     if f64(dval("1.5")) == 1.5 { print("f") }
     print(bool(dval("yes")), dval({x: "y"}).x, "|")
@@ -28,10 +28,10 @@ function dval_api_run() s32 {
     print(bool(assigned), has(cleared, "gone"), get(fields, "name"), keys(fields)[0], values(fields)[1], "|")
     var mapped := dval([])
     for item, key := dval([1, 2]) { mapped = push(mapped, s32(item) + 1) }
-    var filtered := dval({:})
+    var filtered := dval({})
     for item, key := {keep: 2, drop: 1} { if s32(item) == 2 { filtered = set(filtered, key, item) } }
     print(s32(mapped[0]), s32(mapped[1]), has(filtered, "keep"), has(filtered, "drop"), "|")
-    print(s64(dval("-42")), u64(dval("42")), s64(dval("bad"), s64(-9)), u64(dval("bad"), u64(18446744073709551615)), "|")
+    print(s64(dval("-42")), u64(dval("42")), s64(dval("bad"), {fallback: s64(-9)}), u64(dval("bad"), {fallback: u64(18446744073709551615)}), "|")
     }
     print(arc_live())
     return 0

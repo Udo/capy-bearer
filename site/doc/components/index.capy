@@ -86,7 +86,6 @@ function COMPONENT(request : dval) {
     print("<div class=\"func-item\">"); link("/doc/api/html-escape/", "html_escape", "api"); print("</div>")
     print("<div class=\"func-item\">"); link("/doc/api/http-request/", "http_request", "api"); print("</div>")
     print("<div class=\"func-item\">"); link("/doc/api/http-request-async/", "http_request_async", "api"); print("</div>")
-    print("<div class=\"func-item\">"); link("/doc/api/int-val/", "int_val", "api"); print("</div>")
     print("<div class=\"func-item\">"); link("/doc/api/is-array/", "is_array", "api"); print("</div>")
     print("<div class=\"func-item\">"); link("/doc/api/is-list/", "is_list", "api"); print("</div>")
     print("<div class=\"func-item\">"); link("/doc/api/job-await/", "job_await", "api"); print("</div>")

@@ -12,7 +12,7 @@ The handler has one parameter named `request` with type `dval`. Read the message
 Use `ws_send`, `ws_send_to`, or `ws_close` to affect the connection.
 
 :example capy ws
-ws_send("echo: " + string(request.body, ""), false)
+ws_send("echo: " + string(request.body), false)
 
 :see
 type/request

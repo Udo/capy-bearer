@@ -28,7 +28,7 @@ Names are matched exactly and are conventionally uppercase.
 
 Caller-supplied props arrive as `request.props`. Read them through `string()`, `s64()`, and the other converters so a missing key has a defined value:
 
-    var title := string(request.props.title, "Untitled")
+    var title := string(request.props.title, {fallback: "Untitled"})
 
 `request.props` is swapped in for the duration of the call and restored when the handler returns, so a component never disturbs its caller's props, and nested components each read their own. The rest of `request` — query, form, headers, session — is the live request and is shared with the caller.
 
@@ -40,16 +40,16 @@ The first time a unit is used in a request, its `ONCE` handler runs before the c
 A caller that names a component Bearer cannot resolve gets a `500` status and a banner element in place of the fragment. The handler in this file never runs. Callers that treat a fragment as optional should guard with `length(component_resolve(name)) > 0`.
 
 :example capy component
-print(string(request.props.name, "guest"))
+print(string(request.props.name, {fallback: "guest"}))
 
 :example capy component read several props with defaults
-var title := string(request.props.title, "Untitled")
-var count := s64(request.props.count, 0)
+var title := string(request.props.title, {fallback: "Untitled"})
+var count := s64(request.props.count)
 print("<article><h3>", title, "</h3><p>", count, "</p></article>")
 
 :example capy component a fragment that nests another fragment
 print("<section>")
-component_render("/doc/examples/card.capy:CARD", {title: string(request.props.title, "Untitled")})
+component_render("/doc/examples/card.capy:CARD", {title: string(request.props.title, {fallback: "Untitled"})})
 print("</section>")
 
 :see

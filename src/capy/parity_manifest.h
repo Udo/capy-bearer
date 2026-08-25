@@ -3,7 +3,7 @@
 #include <string_view>
 namespace capy::parity {
 struct Evidence { std::string_view name, path, marker; };
-inline constexpr std::array<Evidence, 219> supported{{
+inline constexpr std::array<Evidence, 218> supported{{
     {"session_set","site/doc/source/api/session_set.txt",":example capy render"},
     {"session_remove","site/doc/source/api/session_remove.txt",":example capy render"},
     {"call","site/doc/source/api/call.txt",":example capy render"},
@@ -100,7 +100,6 @@ inline constexpr std::array<Evidence, 219> supported{{
     {"backtrace_capture","site/tests/capy-coreutil.capy","backtrace_capture("},
     {"backtrace_get_frames","site/tests/capy-backtrace.capy","backtrace_get_frames("},
     {"encode_query","site/tests/capy-coreutil.capy","encode_query("},
-    {"int_val","site/tests/capy-coreutil.capy","int_val("},
     {"parse_query","site/tests/capy-coreutil.capy","parse_query("},
     {"replace","site/tests/capy-strings.capy","replace("},
     {"route_path_is_safe","site/tests/capy-coreutil.capy","route_path_is_safe("},

@@ -22,7 +22,7 @@ Inside a `script` element, a string becomes one self-contained JavaScript litera
 
 :example capy render
 function RENDER(request : dval) {
-    var name := string(request.query.name, "guest")
+    var name := string(request.query.name, {fallback: "guest"})
     print(<>
         <script>const name = <?= name ?>;</script>
         <style>.name::before { content: <?= name ?>; }</style>
