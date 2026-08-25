@@ -89,7 +89,6 @@ host function __bearer_codec_dval(operation : s32, value : string) dval
 
 function string(value : dval, fallback : string = "") string { -> __bearer_dv_extract_string(value, fallback) }
 function bool(value : dval, fallback : bool = false) bool { -> __bearer_dv_extract_bool(value, fallback) }
-function bool(value : string, fallback : bool = false) bool { -> bool(dval(trim(value)), fallback) }
 function s32(value : dval, fallback : s32 = 0) s32 { -> __bearer_dv_extract_s32(value, fallback) }
 function s32(value : string, fallback : s32 = 0) s32 { -> s32(dval(trim(value)), fallback) }
 function s64(value : dval, fallback : s64 = 0) s64 { -> __bearer_dv_extract_s64(value, fallback) }

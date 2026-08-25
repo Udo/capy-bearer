@@ -1,6 +1,5 @@
 :sig
 function bool(value : dval, fallback : bool = false) bool
-function bool(value : string, fallback : bool = false) bool
 
 :params
 value : value to convert
@@ -10,13 +9,13 @@ fallback : value to return when conversion fails
 a Boolean value
 
 :content
-`bool` converts a `dval` or string to a Boolean value.
+`bool` converts a `dval` to a Boolean value. It accepts Boolean words in a dynamic value and returns `fallback` when conversion fails.
 
-For strings, it ignores outer whitespace and accepts case-insensitive Boolean text. It returns `fallback` when conversion fails.
+Wrap a string in `dval` before conversion.
 
 :example capy render
-print(bool("YES"), "\n")
-print(bool("unknown", true), "\n")
+print(bool(dval("YES")), "\n")
+print(bool(dval("unknown"), true), "\n")
 
 :see
 string

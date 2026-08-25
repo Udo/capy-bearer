@@ -19,12 +19,12 @@ function CLI(request : dval) {
     if enabled { print("B") } else { print("b") }
     if disabled { print("B") } else { print("b") }
     if true { print("T") } else { print("t") }
-    if "true" { print("T") } else { print("t") }
-    if "1" { print("T") } else { print("t") }
-    if "yes" { print("T") } else { print("t") }
-    if "hello" { print("T") } else { print("t") }
-    if "0" { print("T") } else { print("t") }
-    if "" { print("T") } else { print("t") }
+    if dval("true") { print("T") } else { print("t") }
+    if dval("1") { print("T") } else { print("t") }
+    if dval("yes") { print("T") } else { print("t") }
+    if dval("hello") { print("T") } else { print("t") }
+    if dval("0") { print("T") } else { print("t") }
+    if dval("") { print("T") } else { print("t") }
     while running { print("W"); running = u64(0) }
     while count < u64(2) { print("C"); count = u64(2) }
     print("|", bool(dval(u64(7))), "|", bool(dval("hello")))

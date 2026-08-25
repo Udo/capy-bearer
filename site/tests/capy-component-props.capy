@@ -3,7 +3,7 @@ function RENDER(request : dval) {
         component("/tests/capy-request-context.capy:TRAP", request.query)
     }
     {     var resolved := component_resolve("/tests/capy-request-context")
-    print(length(resolved) > 0, length(component_resolve("/tests/no-such-component")) > 0, bool(resolved), "|") }
+    print(length(resolved) > 0, length(component_resolve("/tests/no-such-component")) > 0, "|") }
     var props := request.query
     var captured := component("/tests/capy-request-context.capy", props)
     component_render("/tests/capy-request-context.capy", props)

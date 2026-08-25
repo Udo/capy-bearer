@@ -30,9 +30,9 @@ An empty return means that no component source file matches the name.
 
 ## Check whether a component exists
 
-Warning: `if component_resolve(...)` is always false. Conditions parse strings as boolean words, so a resolved filesystem path is false.
+`if component_resolve(...)` is a compile error. A string has no `bool` constructor.
 
-Use this exact test:
+Use this test:
 
     if length(component_resolve(name)) > 0 { ... }
 

@@ -213,8 +213,8 @@ int main()
 		"if nonzero_u64 { print(\"u64-nonzero\") } if zero_u64 { print(\"u64-zero\") } "
 		"if nonzero_s32 { print(\"s32-nonzero\") } if zero_s32 { print(\"s32-zero\") } "
 		"if nonzero_dval { print(\"dval-nonzero\") } if zero_dval { print(\"dval-zero\") } if bool_dval { print(\"dval-bool\") } "
-		"if true { print(\"bool\") } if \"true\" { print(\"string-true\") } if \"1\" { print(\"string-one\") } if \"yes\" { print(\"string-yes\") } "
-		"if \"hello\" { print(\"string-hello\") } if \"0\" { print(\"string-zero\") } if \"\" { print(\"string-empty\") } "
+		"if true { print(\"bool\") } if dval(\"true\") { print(\"string-true\") } if dval(\"1\") { print(\"string-one\") } if dval(\"yes\") { print(\"string-yes\") } "
+		"if dval(\"hello\") { print(\"string-hello\") } if dval(\"0\") { print(\"string-zero\") } if dval(\"\") { print(\"string-empty\") } "
 		"while run { run = u64(0) } while n < u64(2) { n = u64(2) } "
 		"}\n", options);
 	assert(capy::wasm::validate_bearer_unit(condition_coercions.wasm, {.bearer_abi_version = "11"}).valid);
@@ -222,7 +222,7 @@ int main()
 	assert(condition_coercion_bytes.find("bearer_dv_extract_bool") != std::string::npos);
 	const auto coercive_parameter_reproducer = capy::compile_bearer_unit(
 		"function truth(flag : as bool) bool { -> flag }\n"
-		"function CLI(request : dval) { print(truth(\"hello\")) }\n", options);
+		"function CLI(request : dval) { print(truth(dval(\"hello\"))) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(coercive_parameter_reproducer.wasm, {.bearer_abi_version = "11"}).valid);
 	for (const char* old_name : {"dval_string", "dval_bool", "dval_s32", "dval_f64", "dval_to_string", "dval_to_bool", "dval_to_f64", "dval_to_s64", "dval_to_u64"})
 		try { capy::compile_bearer_unit(std::string("function CLI(request : dval) { ") + old_name + "(dval(\"x\")) }\n", options); assert(false); }

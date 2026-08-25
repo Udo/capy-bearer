@@ -12,7 +12,6 @@ inline constexpr DocCapySignature doc_capy_signatures[] = {
 	{"base64_encode", "function base64_encode(value : string) string"},
 	{"basename", "function basename(path : string) string"},
 	{"bool", "function bool(value : dval, fallback : bool = false) bool"},
-	{"bool", "function bool(value : string, fallback : bool = false) bool"},
 	{"brb_decode", "function brb_decode(encoded : string) dval"},
 	{"brb_encode", "function brb_encode(value : dval) string"},
 	{"call", "function call(handle : module, name : string) dval"},

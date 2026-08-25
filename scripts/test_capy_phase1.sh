@@ -46,6 +46,25 @@ operator_output=$(scripts/bearer-cli /tests/capy-operators.capy)
 }
 expect_equal "newline-independent expression parsing" "7|3|9" "$(scripts/bearer-cli /tests/capy-whitespace.capy)"
 expect_equal "condition constructors and dval bool extraction" "UuSsDdBbTTTTtttWC|true|false" "$(scripts/bearer-cli /tests/capy-condition-coercion.capy)"
+(
+	condition_type_dir=$(mktemp -d "$site_directory/tests/capy-condition-type.XXXXXX")
+	trap 'rm -rf -- "$condition_type_dir"' EXIT
+	condition_type_name=${condition_type_dir##*/}
+	for case in \
+		'literal|function CLI(request : dval) { if "true" {} }' \
+		'component|function CLI(request : dval) { var name := "/tests/capy-request-context"; if component_resolve(name) {} }'; do
+		name=${case%%|*}; source=${case#*|}
+		printf '%s\n' "$source" >"$condition_type_dir/$name.capy"
+		set +e
+		condition_type_output=$(scripts/bearer-cli "/tests/$condition_type_name/$name.capy" 2>&1)
+		condition_type_status=$?
+		set -e
+		[[ $condition_type_status -ne 0 && "$condition_type_output" == *"$name.capy:1:"* ]] || {
+			echo "Capy $name condition type check did not fail: $condition_type_output" >&2
+			exit 1
+		}
+	done
+)
 set +e
 component_render_output=$(scripts/bearer-cli /tests/capy-component-render-result.capy 2>&1)
 component_render_status=$?
@@ -436,7 +455,7 @@ request_component_output=$(scripts/bearer-cli /tests/capy-request-context-caller
 	exit 1
 }
 component_props_output=$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=FromCapy')
-[[ "$component_props_output" == "truefalsefalse|FromCapy|false|1|FromCapy|false|1|FromCapy|FromCapy|3" ]] || {
+[[ "$component_props_output" == "truefalse|FromCapy|false|1|FromCapy|false|1|FromCapy|FromCapy|3" ]] || {
 	echo "Capy component props dispatch mismatch: $component_props_output" >&2
 	exit 1
 }
@@ -444,7 +463,7 @@ component_trap_body=$(mktemp)
 component_trap_status=$(curl -sS --max-time 30 -o "$component_trap_body" -w '%{http_code}' -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=FromCapy&trap=1')
 [[ "$component_trap_status" == "500" ]] && ! grep -q 'must-not-leak' "$component_trap_body"
 rm -f "$component_trap_body"
-[[ "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=Recovered')" == "truefalsefalse|Recovered|false|1|Recovered|false|1|Recovered|Recovered|3" ]]
+[[ "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-component-props.capy?name=Recovered')" == "truefalse|Recovered|false|1|Recovered|false|1|Recovered|Recovered|3" ]]
 (
 	component_cache_dir=$(mktemp -d "$site_directory/tests/capy-component-cache.XXXXXX")
 	chmod 755 "$component_cache_dir"
