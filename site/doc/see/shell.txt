@@ -1,0 +1,2 @@
+shell_exec
+shell_escape

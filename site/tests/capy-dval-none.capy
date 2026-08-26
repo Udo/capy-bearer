@@ -19,7 +19,8 @@ function CLI(request : dval) {
         print(none?, "|", empty?, "|", false_value?, "|", map?, "|", list?, "|")
 
         var profile := dval({nickname: "Ada", scalar: "plain", list: ["one"]})
-        print(profile["missing"]?, "|", profile.missing?, "|", profile.scalar.member?, "|", profile.list[-1]?, "|", profile.list[1]?, "|")
+        var list_index := 0
+        print(profile["missing"]?, "|", profile.missing?, "|", profile.scalar.member?, "|", profile.list[-1]?, "|", profile.list[2147483648]?, "|", profile.list[list_index]?, "|", profile.list[1]?, "|")
         print(profile.nickname, "|")
 
         print("[", string(none), "]", "[", string(none, {fallback: "string"}), "]|")
@@ -42,8 +43,8 @@ function CLI(request : dval) {
         nested.created.child = "created"
         nested.scalar.child = "replaced"
         nested.keep.added = "kept"
-        nested.list[0] = "updated"
-        print(nested.created.child, "|", nested.scalar.child, "|", nested.keep.value, "|", nested.keep.added, "|", nested.list[0], "|")
+        nested.list[list_index] = "updated"
+        print(nested.created.child, "|", nested.scalar.child, "|", nested.keep.value, "|", nested.keep.added, "|", nested.list[list_index], "|")
 
         var copied := nested
         nested.keep.value = "changed"

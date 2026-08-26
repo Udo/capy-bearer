@@ -7,13 +7,14 @@ value : value to encode
 :returns
 The YAML source.
 
-:see
-yaml_decode
-json_encode
-type/dvalue
-
 :content
 `yaml_encode()` encodes a `dval` as YAML.
 
 :example capy render
 print(yaml_encode(dval({name: "Ada"})))
+
+:see-group
+encoding
+
+:see
+type/dvalue

@@ -16,7 +16,5 @@ file_write(handle, "durable")
 print(file_fsync(handle), "\n")
 file_close(handle)
 
-:see
-file_write
-file_close
-file_open
+:see-group
+file-handles

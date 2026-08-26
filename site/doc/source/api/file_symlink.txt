@@ -17,3 +17,6 @@ file_unlink("/tmp/doc-symlink-link.txt")
 if file_symlink("/tmp/doc-symlink-target.txt", "/tmp/doc-symlink-link.txt") {
     print(file_get_contents("/tmp/doc-symlink-link.txt"), "\n")
 }
+
+:see-group
+files

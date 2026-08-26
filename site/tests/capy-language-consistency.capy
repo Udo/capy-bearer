@@ -1,6 +1,5 @@
 type Count = s64
 type Counts = [Count]
-type WideTuple = (s32, Count, u64, f64, string)
 type Printer = function(...values : as string) void
 
 struct Wide {
@@ -13,7 +12,7 @@ struct Wide {
 
 function choose(flag : bool) s32 {
     -> {
-        var base := 2
+        var base := s32(2)
         -> if flag { -> base + 1 } else { -> base + 2 }
     }
 }
@@ -42,8 +41,7 @@ function capture(value : u64, decimal : f64, text : string) (function(add : u64)
 function CLI(request : dval) {
     {
         var counts : Counts = [Count(-2)]
-        var tuple : WideTuple = (1, counts[0], u64(3), 4.5, clone("x"))
-        var wide := Wide(...tuple)
+        var wide := Wide(s32(1), counts[0], u64(3), 4.5, clone("x"))
         var closure := capture(wide.unsigned, wide.decimal, wide.text)
         var output : Printer = print
         output(wide.narrow, "|", wide.signed, "|", wide.unsigned, "|", wide.decimal, "|", wide.text, "|", closure(u64(2)), "|")

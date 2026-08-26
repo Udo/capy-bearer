@@ -7,10 +7,11 @@ connection_id : client ID. The default is the current client.
 :returns
 `true` when the server queues the close.
 
-:see
-
 :content
 `ws_close()` closes the current WebSocket client. Pass a client ID to close that client.
 
 :example capy ws
 ws_close()
+
+:see-group
+websocket

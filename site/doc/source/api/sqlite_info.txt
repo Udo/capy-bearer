@@ -26,7 +26,5 @@ var rows := u64(sqlite_info(db, "affected_rows"))
 print(message, " ", id, " ", rows, "\n")
 sqlite_disconnect(db)
 
-:see
-sqlite_connect
-sqlite_disconnect
-sqlite_query
+:see-group
+sqlite

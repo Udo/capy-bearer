@@ -1,0 +1,12 @@
+function RENDER(request : dval) {
+    print("first|")
+    var accepted := flush_output()
+    print(string(accepted), "|second")
+}
+
+function WS(request : dval) {
+    if string(request.body) == "flush" {
+        var accepted := flush_output()
+        ws_send(if accepted { -> "flush-accepted" } else { -> "flush-rejected" }, false)
+    }
+}

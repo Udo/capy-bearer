@@ -17,4 +17,5 @@ var items := split("one,two", ",")
 each(items, function(value : string) string { print(value); return "" })
 print("\n")
 
-:see
+:see-group
+collections

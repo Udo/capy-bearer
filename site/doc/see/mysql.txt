@@ -1,0 +1,5 @@
+mysql_connect
+mysql_query
+mysql_escape
+mysql_info
+mysql_disconnect

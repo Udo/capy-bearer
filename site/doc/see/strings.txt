@@ -1,0 +1,15 @@
+type/string
+substr
+strpos
+contains
+replace
+trim
+join
+first
+nibble
+clone
+str_starts_with
+str_ends_with
+lower
+upper
+safe_name

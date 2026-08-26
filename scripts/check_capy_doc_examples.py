@@ -9,8 +9,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_ENTRIES = {"render", "cli", "component", "init", "once", "ws"}
-PAGE_SECTIONS = {"title", "sig", "params", "returns", "errors", "content", "see", "output"}
+PAGE_SECTIONS = {"title", "sig", "params", "returns", "errors", "content", "see", "see-group", "output"}
 LEGACY_GUIDE_HEADINGS = {"purpose", "minimal executable example", "explanation", "common variants", "edge cases", "related reference"}
+PRIMITIVE_TYPE_PAGES = {"bool", "s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64", "f32", "f64"}
 CANONICAL_GUIDES = {
     "01-install-and-first-program", "02-source-structure-and-syntax", "03-values-and-types",
     "04-expressions-and-control-flow", "05-functions-and-closures", "06-strings-and-markup",
@@ -69,7 +70,7 @@ def parse_sections(page: Path) -> list[tuple[int, str, str]]:
     return result
 
 
-def check_example_body(page: Path, line: int, entry: str, body: str) -> list[str]:
+def check_example_body(page: Path, line: int, entry: str, body: str, is_type_page: bool = False) -> list[str]:
     errors = []
     if entry not in ALLOWED_ENTRIES:
         errors.append(f"{page.name}:{line}: unknown example entry: {entry}")
@@ -81,16 +82,21 @@ def check_example_body(page: Path, line: int, entry: str, body: str) -> list[str
     checked = re.sub(r"//[^\n]*", "", checked)
     if page.stem not in CANONICAL_GUIDES and CPP_TOKENS.search(checked):
         errors.append(f"{page.name}:{line}: Capy example contains a host-language type")
-    if page.stem not in CANONICAL_GUIDES and CAPY_HANDLER.search(checked):
+    if page.stem not in CANONICAL_GUIDES and not is_type_page and CAPY_HANDLER.search(checked):
         errors.append(f"{page.name}:{line}: API examples must contain a handler body, not a complete Capy handler")
-    if page.stem not in CANONICAL_GUIDES and CAPY_REQUEST_DECLARATION.search(checked):
+    if page.stem not in CANONICAL_GUIDES and not is_type_page and CAPY_REQUEST_DECLARATION.search(checked):
         errors.append(f"{page.name}:{line}: API examples cannot redeclare the handler request parameter")
     return errors
 
-def check_page(page: Path, status: str) -> list[str]:
+def check_page(page: Path, status: str, name: str = "") -> list[str]:
     errors: list[str] = []
     sections = parse_sections(page)
     headers = {header for _, header, _ in sections}
+    if name.startswith("type/") and name.split("/", 1)[1] in PRIMITIVE_TYPE_PAGES:
+        signature_lines = next((body.splitlines() for _line, header, body in sections if header == "sig"), [])
+        primitive = name.split("/", 1)[1]
+        if not any(re.search(rf"\bfunction {primitive}\s*\(", line) for line in signature_lines):
+            errors.append(f"{page.name}: type page needs the {primitive} constructor signature")
     for section_name in ("returns", "errors"):
         matching = [(line, body) for line, header, body in sections if header == section_name]
         if len(matching) > 1:
@@ -111,7 +117,7 @@ def check_page(page: Path, status: str) -> list[str]:
             errors.append(f"{page.name}:{line}: examples must use :example capy ENTRY")
             continue
         entry, _caption = match.groups()
-        errors.extend(check_example_body(page, line, entry, body))
+        errors.extend(check_example_body(page, line, entry, body, name.startswith("type/")))
         examples.append((line, entry))
     if status == "supported" and not examples:
         errors.append(f"{page.name}: supported page needs a Capy example")
@@ -119,7 +125,7 @@ def check_page(page: Path, status: str) -> list[str]:
 
 def generated_capy_signatures(path: Path) -> dict[str, list[str]]:
     pages: dict[str, list[str]] = {}
-    for page, declaration in re.findall(r'^\s*\{"([^"]+)", "((?:\\.|[^"\\])*)"\},', path.read_text(), re.M):
+    for page, declaration in re.findall(r'^\s*\{"([^"]+)", "((?:\\.|[^"\\])*)", "(?:host|lib)?"\},', path.read_text(), re.M):
         pages.setdefault(page, []).append(bytes(declaration, "utf-8").decode("unicode_escape"))
     return pages
 
@@ -151,7 +157,7 @@ def check(pages: Path, manifest: Path, signatures: Path) -> list[str]:
     paths = page_paths(pages)
     for name in sorted(actual):
         page = paths[name]
-        errors.extend(check_page(page, statuses.get(name, "documented")))
+        errors.extend(check_page(page, statuses.get(name, "documented"), name))
         if name in statuses and ":sig\n" not in page.read_text():
             errors.append(f"{page.name}: missing Capy :sig declaration")
     try:
@@ -240,7 +246,7 @@ def self_test() -> int:
         pages, guides = root / "pages", root / "guides"
         pages.mkdir(); guides.mkdir()
         manifest, signatures = root / "manifest.h", root / "signatures.h"
-        fixture_manifest(manifest); signatures.write_text('{"ok", "function ok"},\n')
+        fixture_manifest(manifest); signatures.write_text('{"ok", "function ok", "lib"},\n')
         (pages / "ok.txt").write_text(':sig\nfunction ok\n:example capy render\nprint("ok")\n')
         if check(pages, manifest, signatures):
             print("self-test API fixture failed")

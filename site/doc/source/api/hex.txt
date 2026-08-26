@@ -15,6 +15,9 @@ Use it to make digest bytes printable. For example, `hex(sha256(value))` returns
 :example capy render
 print(hex(sha256("abc")), "\n")
 
+:see-group
+encoding
+
 :see
 sha256
 hmac_sha256

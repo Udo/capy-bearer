@@ -16,3 +16,6 @@ file_put_contents("/tmp/doc-rename-source.txt", "moved")
 if file_rename("/tmp/doc-rename-source.txt", "/tmp/doc-rename-destination.txt") {
     print(file_get_contents("/tmp/doc-rename-destination.txt"), "\n")
 }
+
+:see-group
+files

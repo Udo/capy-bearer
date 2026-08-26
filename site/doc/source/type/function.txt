@@ -1,0 +1,54 @@
+:title
+function value
+
+:sig
+function(parameter_type, ...) result_type
+
+:content
+A function can be stored in a variable, passed to another function and returned from one. The type is written as the parameter list and result, with no name.
+
+:content
+
+```capy
+function double(value : s32) s32 { -> value * 2 }
+
+function apply(value : s32, transform : function(value : s32) s32) s32 {
+    -> transform(value)
+}
+
+function RENDER(request : dval) {
+    print(apply(21, double), "\n")
+}
+```
+
+:content
+
+## Closures
+
+A lambda written inline captures the locals it reads:
+
+:content
+
+```capy
+function RENDER(request : dval) {
+    var offset := 10
+    var shift := function(value : s32) s32 { -> value + offset }
+    print(shift(5), "\n")
+}
+```
+
+:content
+
+A captured managed value — a string, array or `dval` — stays alive as long as the closure does. Captures are by value: reassigning `offset` after building the closure does not change what the closure sees.
+
+## Where they are used
+
+The collection helpers take function values: `map`, `filter`, `each`, `find`, `some`, `every` and `sort` all accept a callback whose signature the compiler checks at the call site. That check is why `map` over an array and `map` over a `dval` are separate overloads — the callbacks differ.
+
+:example capy render
+var offset := 10
+var shift := function(value : s32) s32 { -> value + offset }
+print(shift(5), "\n")
+
+:see-group
+constructors

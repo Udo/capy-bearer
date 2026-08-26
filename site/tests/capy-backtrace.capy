@@ -3,22 +3,22 @@ function outer() string {
 }
 function inner() string {
     var capture := function() string {
-        -> backtrace_get_frames(4, 0) + "\n==\n" + backtrace_get_frames(2, 1)
+        -> backtrace_get_frames(s32(4), s32(0)) + "\n==\n" + backtrace_get_frames(s32(2), s32(1))
     }
     -> capture()
 }
-function trace_live() s32 {
+function trace_live() s64 {
     outer()
     -> arc_live()
 }
 function explicit_return_trace() string {
-    return backtrace_get_frames(4, 0)
+    return backtrace_get_frames(s32(4), s32(0))
 }
 function bounds() string {
-    var no_frames := backtrace_get_frames(-1, 0)
-    var clamped := backtrace_get_frames(2147483647, 0)
-    var skipped := backtrace_get_frames(2147483647, 2147483647)
-    var negative_skip := backtrace_get_frames(2, -1)
+    var no_frames := backtrace_get_frames(s32(-1), s32(0))
+    var clamped := backtrace_get_frames(s32(2147483647), s32(0))
+    var skipped := backtrace_get_frames(s32(2147483647), s32(2147483647))
+    var negative_skip := backtrace_get_frames(s32(2), s32(-1))
     -> no_frames + "|" + clamped + "|" + skipped + "|" + negative_skip
 }
 function CLI(request : dval) {
@@ -26,6 +26,6 @@ function CLI(request : dval) {
         var nested := outer()
         print(nested)
     }
-    print("\n--\n", backtrace_get_frames(0, 0), "|", trace_live())
+    print("\n--\n", backtrace_get_frames(s32(0), s32(0)), "|", trace_live())
     print("\n++\n", explicit_return_trace(), "\n~~\n", backtrace_get_frames(), "\n@@\n", bounds())
 }

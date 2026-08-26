@@ -1,0 +1,4 @@
+sqlite_connect
+sqlite_query
+sqlite_info
+sqlite_disconnect

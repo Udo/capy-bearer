@@ -90,6 +90,9 @@ The compiler reports the source path, line, and column. Look at that location fi
 
 Do not use a newline to end an expression. Newlines are whitespace in normal code. Use braces and explicit block yields to show where a value comes from.
 
+:see-group
+guides
+
 :see
 capy-03-values-and-types
 capy-04-expressions-and-control-flow

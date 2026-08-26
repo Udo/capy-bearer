@@ -14,6 +14,8 @@ Use `ws_send`, `ws_send_to`, or `ws_close` to affect the connection.
 :example capy ws
 ws_send("echo: " + string(request.body), false)
 
+:see-group
+handlers
+
 :see
 type/request
-handler/render

@@ -52,9 +52,8 @@ print("<section>")
 component_render("/doc/examples/card.capy:CARD", {title: string(request.props.title, {fallback: "Untitled"})})
 print("</section>")
 
+:see-group
+components
+
 :see
-component
-component_render
-component_resolve
-type/request
 handler/render

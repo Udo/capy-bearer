@@ -21,6 +21,16 @@
 
 namespace {
 
+static DValue compiler_path_options(String base = "", bool real = false, String within = "")
+{
+	DValue options;
+	if(base != "") options["base"] = base;
+	options["safe"] = false;
+	if(real) options["real"] = true;
+	if(within != "") options["within"] = within;
+	return(options);
+}
+
 const u64 BEARER_UNIT_ABI_VERSION = BEARER_COMPILER_UNIT_ABI_VERSION;
 
 struct SharedUnitFilesystemState
@@ -211,7 +221,7 @@ std::vector<String> compiler_unit_dependency_paths(String file_name, String cont
 			{
 				String imported = line.substr(first_quote + 1, second_quote - first_quote - 1);
 				if(imported != "")
-					paths.push_back(imported[0] == '/' ? imported : expand_path(imported, dirname(file_name)));
+					paths.push_back(imported[0] == '/' ? imported : path_normalize(imported, compiler_path_options(dirname(file_name))));
 			}
 		}
 		if(line_end == content.length())
@@ -233,20 +243,20 @@ bool compiler_source_readable(String file_name, const struct stat& info, int* re
 	return(error == 0);
 }
 
-String compiler_source_path_real(String file_name)
+String compiler_source_canonical(String file_name)
 {
 	int fd = open(file_name.c_str(), O_PATH | O_CLOEXEC);
 	if(fd < 0)
-		return(path_real(file_name));
+		return(path_normalize(file_name, compiler_path_options("", true)));
 	String proc_path = "/proc/self/fd/" + std::to_string(fd);
 	char resolved[PATH_MAX];
 	ssize_t length = readlink(proc_path.c_str(), resolved, sizeof(resolved));
 	close(fd);
 	if(length <= 0 || length >= (ssize_t)sizeof(resolved))
-		return(path_real(file_name));
+		return(path_normalize(file_name, compiler_path_options("", true)));
 	String result(resolved, (size_t)length);
 	if(str_ends_with(result, " (deleted)"))
-		return(path_real(file_name));
+		return(path_normalize(file_name, compiler_path_options("", true)));
 	return(result);
 }
 
@@ -306,7 +316,7 @@ void compiler_append_unit_source_signature(const CompilerLimits& limits, String 
 	bool recent = allow_recent_stat && compiler_recent_unit_source_entry(normalized, entry);
 	if(!recent)
 	{
-		normalized = compiler_source_path_real(file_name);
+		normalized = compiler_source_canonical(file_name);
 		if(normalized == "")
 			normalized = file_name;
 	}
@@ -340,7 +350,7 @@ bool compiler_find_unit_load_cycle(const CompilerLimits& limits, String file_nam
 		cycle = "#import dependency graph exceeds the " + std::to_string(limits.graph_max_depth) + "-level or " + std::to_string(limits.graph_max_visited) + "-unit limit";
 		return(true);
 	}
-	String normalized = compiler_source_path_real(file_name);
+	String normalized = compiler_source_canonical(file_name);
 	if(normalized == "")
 		normalized = file_name;
 	auto active = std::find(stack.begin(), stack.end(), normalized);
@@ -821,8 +831,8 @@ String compiler_normalize_unit_path(Request* context, String file_name)
 	if(file_name == "")
 		return("");
 	if(file_name[0] != '/')
-		file_name = expand_path(file_name, context->server->config["COMPILER_SYS_PATH"]);
-	String canonical = path_real(file_name);
+		file_name = path_normalize(file_name, compiler_path_options(context->server->config["COMPILER_SYS_PATH"]));
+	String canonical = path_normalize(file_name, compiler_path_options("", true));
 	if(canonical != "")
 		return(canonical);
 	return(file_name);
@@ -1059,7 +1069,7 @@ String compiler_resolve_unit_path(Request* context, String file_name, String cur
 	}
 
 	if(file_name[0] != '/')
-		file_name = expand_path(file_name, current_path);
+		file_name = path_normalize(file_name, compiler_path_options(current_path));
 
 	return(compiler_normalize_unit_path(context, file_name));
 }
@@ -2075,7 +2085,7 @@ DValue units_list()
 	auto normalized = compiler_normalize_unit_list(context, known_units);
 	String site_directory = compiler_site_directory(context);
 	normalized.erase(std::remove_if(normalized.begin(), normalized.end(), [&](const String& path) {
-		return(site_directory == "" || !path_is_within(path, site_directory));
+		return(site_directory == "" || path_normalize(path, compiler_path_options("", true, site_directory)) == "");
 	}), normalized.end());
 	return(dvalue_from_strings(normalized));
 }

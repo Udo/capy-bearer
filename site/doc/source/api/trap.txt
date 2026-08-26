@@ -14,6 +14,9 @@ no value because execution stops
 if false { trap() }
 print("handler continues\n")
 
+:see-group
+diagnostics
+
 :see
 unit_render
 unit_compile

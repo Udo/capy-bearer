@@ -7,3 +7,6 @@ Use `socket_close` after socket work. Do not use the handle after this call.
 :example capy render
 var handle := socket_connect("127.0.0.1", 1)
 if handle != 0 { socket_close(handle) }
+
+:see-group
+sockets

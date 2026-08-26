@@ -9,3 +9,6 @@ Use `str_starts_with` to test a string prefix.
 
 :example capy render
 print(str_starts_with("/doc", "/"), "\n")
+
+:see-group
+strings

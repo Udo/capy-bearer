@@ -28,7 +28,7 @@ function RENDER(request : dval) {
             kind = substr(pretty, 0, slash)
             slug = substr(pretty, slash + 1)
         }
-        if kind != "" && slug != "" && route_path_is_safe(kind) && route_path_is_safe(slug) {
+        if kind != "" && slug != "" && path_normalize(kind) == kind && path_normalize(slug) == slug {
             var content_path := "/doc/content/" + kind + "/" + slug + ".capy"
             render_doc_page(request, content_path)
             return
@@ -38,7 +38,7 @@ function RENDER(request : dval) {
     }
     var utility := string(request.query.utility, {fallback: ""})
     if utility != "" {
-        if route_path_is_safe(utility) {
+        if path_normalize(utility) == utility {
             render_doc_page(request, "/doc/components/" + utility + ".capy")
             return
         }

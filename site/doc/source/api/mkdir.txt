@@ -18,6 +18,8 @@ file_unlink(path)
 print(mkdir(path), "\n")
 dir_remove(path, true)
 
+:see-group
+directories
+
 :see
-dir_remove
 path_join

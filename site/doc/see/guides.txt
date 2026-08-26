@@ -1,0 +1,13 @@
+capy-01-install-and-first-program
+capy-02-source-structure-and-syntax
+capy-03-values-and-types
+capy-04-expressions-and-control-flow
+capy-05-functions-and-closures
+capy-06-strings-and-markup
+capy-07-collections-and-records
+capy-08-dynamic-values
+capy-09-web-handlers-and-requests
+capy-10-units-components-and-exports
+capy-11-tasks-and-jobs
+capy-12-errors-testing-and-style
+capy-13-coming-from-react

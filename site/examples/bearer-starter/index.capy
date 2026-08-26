@@ -9,7 +9,7 @@ function route_path(request : dval) string {
     return string(request.route.path)
 }
 
-function page(title : string, extra_css : string, body : markup) void {
+function page(title : string, extra_css : string, body : string) void {
     component_render("/examples/bearer-starter/components/chrome.capy:HEAD", {title: title, extra_css: extra_css})
     print(body)
     component_render("/examples/bearer-starter/components/chrome.capy:FOOT")

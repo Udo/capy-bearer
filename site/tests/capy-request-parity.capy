@@ -11,8 +11,8 @@ function exercise(request : dval) {
     print("discard")
     ob_close()
     var outer := ob_get_close()
-    var route := route_from_raw_path("workspace/projects", "index")
-    var rejected := route_from_raw_path("../unsafe", "index")
+    var route := path_normalize("workspace/projects", {fallback: "index"})
+    var rejected := path_normalize("../unsafe", {fallback: "index"})
     var perf := runtime_perf()
     var input_name := string(request.form.name, {fallback: string(request.query.name)})
     if input_name == "" && string(request.server.BEARER_CLI) == "1" {
@@ -20,7 +20,7 @@ function exercise(request : dval) {
     }
     var displayed_name := input_name
     if displayed_name == "" { displayed_name = "fallback" }
-    print(displayed_name, "|", input_name, "|", inner, "|", outer, "|", string(request.route.path, {fallback: "fallback"}), "|", route.page, bool(route.valid), string(rejected.path) == "", !bool(rejected.valid), "|", length(string(request.url.script)) > 0, length(string(request.url.base)) > 0, get_type_name(perf) != "invalid", "|", length(session_id_create()) == 64)
+    print(displayed_name, "|", input_name, "|", inner, "|", outer, "|", string(request.route.path, {fallback: "fallback"}), "|", route, route != "", rejected == "", "|", length(string(request.url.script)) > 0, length(string(request.url.base)) > 0, get_type_name(perf) != "invalid", "|", length(session_id_create()) == 64)
     }
     print("|", arc_live())
 }

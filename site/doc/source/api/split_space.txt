@@ -9,3 +9,6 @@ Use `split_space` to separate text at whitespace.
 
 :example capy render
 print(join(split_space("one  two"), ","), "\n")
+
+:see-group
+splitting

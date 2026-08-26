@@ -15,3 +15,6 @@ Use `$1` for a numbered capture in `replacement`.
 
 :example capy render
 print(regex_replace("([a-z]+)", "<$1>", "capy docs"), "\n")
+
+:see-group
+regex

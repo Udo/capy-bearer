@@ -4,11 +4,6 @@ function units_list() dval
 :returns
 a `dval` list of unit paths
 
-:see
-unit_info
-unit_compile
-unit_load
-
 :content
 `units_list` returns known unit paths.
 
@@ -16,3 +11,6 @@ unit_load
 for path := units_list() {
     print(path, "\n")
 }
+
+:see-group
+units

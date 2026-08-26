@@ -427,8 +427,10 @@ String wasm_backend_serve(Request& request, const String& entry_unit, const Stri
 		return("BEARER_INVOCATION_TIMEOUT: wasm invocation exceeded " + std::to_string(wasm_backend_invocation_timeout_ms(request)) + " ms");
 	WasmResponse response = wasm_worker_serve(*g_wasm_worker, request, entry_unit, handler, timeout_cap_ms,
 		[&](WasmResponse& callback_response, std::string_view body) {
-			if((callback_response.handler_present || handler == "render") && request.ob)
-				request.ob->write(body.data(), body.size());
+			if((!callback_response.handler_present && handler != "render") || !request.ob)
+				return(false);
+			request.ob->write(body.data(), body.size());
+			return(true);
 		});
 	request.stats.wasm_dispatch_us = response.dispatch_us;
 	request.stats.wasm_workspace_complete_us = response.workspace_complete_us;

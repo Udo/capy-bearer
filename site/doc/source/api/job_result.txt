@@ -15,7 +15,5 @@ var job := shell_exec("printf result", {background: true, timeout_ms: 1000})
 job_await(job, 3000)
 print(get_by_path(job_result(job), "result/stdout"), "\n")
 
-:see
-job_status
-job_await
-job_cancel
+:see-group
+jobs

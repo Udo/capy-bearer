@@ -17,5 +17,5 @@ Raw HTML stays escaped unless `options["allow_html"]` is true. Only enable it fo
 :example capy render
 print(markdown_to_html("**bold**"), "\n")
 
-:see
-markdown_to_ast
+:see-group
+markdown

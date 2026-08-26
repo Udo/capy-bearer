@@ -14,3 +14,6 @@ A `dval` with file metadata.
 file_put_contents("/tmp/doc-stat.txt", "12345")
 var stat := file_stat("/tmp/doc-stat.txt")
 print(u64(stat["size"]), "\n")
+
+:see-group
+files

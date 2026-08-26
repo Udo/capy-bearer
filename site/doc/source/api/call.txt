@@ -20,6 +20,5 @@ var handle := unit_load("/doc/examples/call_target.capy")
 var result := call(handle, "echo", {name: "Ada"})
 print(string(result.name), "\n")
 
-:see
-unit_load
-unit_call
+:see-group
+units

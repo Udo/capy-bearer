@@ -7,9 +7,6 @@ map : map-shaped `dval` of URL parameters
 :returns
 URL query string
 
-:see
-redirect
-how-to/read-request-context
 :content
 `encode_query()` converts a map-shaped `dval` to a URL query string.
 
@@ -18,3 +15,10 @@ Pass the returned string after `?` in a URL.
 :example capy render
 var query := dval({"name": "Ada"})
 print(encode_query(query), "\n")
+
+:see-group
+uri
+
+:see
+redirect
+how-to/read-request-context

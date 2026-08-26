@@ -108,6 +108,9 @@ Use a database row, file path, or application key when work needs large input. V
 
 Use a visible status page for long work. It should show queued, running, done, failed, and canceled states in user terms.
 
+:see-group
+guides
+
 :see
 task
 task_status

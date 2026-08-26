@@ -4,17 +4,11 @@ function time() u64
 :returns
 current Unix timestamp with second precision
 
-:see
->time
-time_precise
-time_format_local
-usleep
-time_format_relative
-time_format_utc
-time_parse
-
 :content
 `time` returns the current Unix timestamp with second precision.
 
 :example capy render
 print(time(), "\n")
+
+:see-group
+time

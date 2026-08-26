@@ -10,3 +10,6 @@ code : HTTP status code
 
 :example capy render
 redirect("/next")
+
+:see-group
+request

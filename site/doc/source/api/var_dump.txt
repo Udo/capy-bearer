@@ -9,13 +9,15 @@ postfix : text after the formatted value
 :returns
 formatted string
 
-:see
-type/dvalue
-json_encode
-print
-
 :content
 `var_dump` formats a `dval` as a string.
 
 :example capy render
 print(var_dump(dval({"name": "Ada"})), "\n")
+
+:see-group
+output
+
+:see
+type/dvalue
+json_encode

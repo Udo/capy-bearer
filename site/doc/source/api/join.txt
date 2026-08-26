@@ -14,6 +14,9 @@ One string with the values separated by `delimiter`.
 :example capy render
 print(join(split("a,b,c", ","), "-"), "\n")
 
+:see-group
+strings
+
 :see
 split
 json_encode

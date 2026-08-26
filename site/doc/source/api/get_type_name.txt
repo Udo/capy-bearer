@@ -16,5 +16,5 @@ The type name.
 :example capy render
 print(get_type_name(dval("text")), "\n")
 
-:see
-type/dvalue
+:see-group
+dval-access

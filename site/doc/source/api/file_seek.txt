@@ -20,3 +20,6 @@ handle = file_open("/tmp/doc-seek.txt", "r")
 file_seek(handle, s64(6), s64(0))
 print(file_read(handle, u64(5)), "\n")
 file_close(handle)
+
+:see-group
+file-handles

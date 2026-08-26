@@ -12,19 +12,11 @@ not_recent : text after the medium recent cutoff
 :returns
 formatted relative time
 
-:see
->time
->time_format_local
->time_format_utc
-time_format_local
-time_format_utc
-time
-time_parse
-time_precise
-usleep
-
 :content
 `time_format_relative` formats a timestamp relative to the current time.
 
 :example capy render
 print(time_format_relative(time()), "\n")
+
+:see-group
+time

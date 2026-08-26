@@ -135,6 +135,9 @@ function RENDER(request : dval) {
 
 This makes `total` equal to `12`. A block can keep temporary locals close to the calculation that uses them.
 
+:see-group
+guides
+
 :see
 capy-03-values-and-types
 capy-05-functions-and-closures

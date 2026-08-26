@@ -20,6 +20,5 @@ var database := mysql_connect("localhost", "root", "", "")
 if bool(mysql_info(database, "connection")) { print("connected\n") } else { print(string(mysql_info(database, "error")), "\n") }
 if database != u64(0) { mysql_disconnect(database) }
 
-:see
-mysql_info
-mysql_disconnect
+:see-group
+mysql

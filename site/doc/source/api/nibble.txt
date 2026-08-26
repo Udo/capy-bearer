@@ -17,6 +17,9 @@ It does not change `haystack`. If `delim` does not occur, it returns all of `hay
 var path := "docs/index"
 print(nibble(path, "/"), "\n")
 
+:see-group
+strings
+
 :see
 >string
 map

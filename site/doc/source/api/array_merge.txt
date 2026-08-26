@@ -17,5 +17,8 @@ For maps, values from `right` replace matching values from `left`. The function 
 var merged := array_merge(dval({"name": "Ada"}), dval({"role": "admin"}))
 print(merged["name"], " ", merged["role"], "\n")
 
+:see-group
+collections
+
 :see
 json_decode

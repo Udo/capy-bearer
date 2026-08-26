@@ -17,7 +17,5 @@ Use the same inputs to reproduce a value.
 var value := gen_noise64(u64(1), u64(2))
 print(value, "\n")
 
-:see
-gen_noise01
-gen_noise32
-gen_int
+:see-group
+noise

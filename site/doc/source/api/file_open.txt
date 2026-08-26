@@ -17,8 +17,8 @@ file_write(handle, "streamed")
 file_close(handle)
 print(file_get_contents("/tmp/doc-open.txt"), "\n")
 
+:see-group
+file-handles
+
 :see
-file_read
-file_write
-file_close
 file_get_contents

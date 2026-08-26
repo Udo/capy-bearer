@@ -20,5 +20,5 @@ var outbound := dval({"method": "GET", "url": "http://127.0.0.1/tests/capy-rende
 var response := http_request(outbound)
 print("status=", s32(response["status"]), "\n")
 
-:see
-http_request_async
+:see-group
+http-client

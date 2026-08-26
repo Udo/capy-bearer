@@ -52,9 +52,8 @@ function CLI(request : dval) {
         var decimals := [1.5, 2.5]
         var combined := [...copied, "c"]
         var converted := collect(...[1, 2])
-        var pair := (4, 5)
-        var struct_args := (6, "p")
-        print(wide[1], "|", decimals[0], "|", ...combined, "|", ...converted, "|", add(...pair), "|", Pair(...struct_args).right, "|")
+        var pair : [s32] = [4, 5]
+        print(wide[1], "|", decimals[0], "|", ...combined, "|", ...converted, "|", add(pair[0], pair[1]), "|", Pair(6, "p").right, "|")
 
         var named : function(...values : as string) string = joined
         var anonymous := function(...values : as string) string {
@@ -62,9 +61,9 @@ function CLI(request : dval) {
             for value := values { result = result + value }
             -> result
         }
-        var tuple_args := (4, "c")
+        var variadic_args : [string] = ["4", "c"]
         var collector := Collector(named)
-        print(named("a", 2, true), "|", anonymous("b", 3), "|", named(...tuple_args), "|", (function(...values : as string) string { -> values[0] })(...tuple_args), "|", collector.invoke(...tuple_args))
+        print(named("a", 2, true), "|", anonymous("b", 3), "|", named(...variadic_args), "|", (function(...values : as string) string { -> values[0] })(...variadic_args), "|", collector.invoke(...variadic_args))
 
         var nested := [[clone("n")]]
         var nested_copy := nested

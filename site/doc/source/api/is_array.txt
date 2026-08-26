@@ -16,6 +16,5 @@ value : value to test
 :example capy render
 print(is_array(dval({"name": "Ada"})), "\n")
 
-:see
-type/dvalue
-is_list
+:see-group
+dval-access

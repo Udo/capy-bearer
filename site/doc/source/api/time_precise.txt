@@ -4,17 +4,11 @@ function time_precise() f64
 :returns
 current Unix timestamp with fractional seconds
 
-:see
->time
-usleep
-time
-time_format_local
-time_format_relative
-time_format_utc
-time_parse
-
 :content
 `time_precise` returns the current Unix timestamp with fractional seconds.
 
 :example capy render
 print(time_precise(), "\n")
+
+:see-group
+time

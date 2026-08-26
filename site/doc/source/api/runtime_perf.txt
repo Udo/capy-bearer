@@ -10,3 +10,6 @@ Runtime performance data.
 :example capy render
 var perf := runtime_perf()
 print(get_type_name(perf), "\n")
+
+:see-group
+diagnostics

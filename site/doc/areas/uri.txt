@@ -4,9 +4,7 @@ URI Functions
 encode_query
 redirect
 request_context_params
-route_path_is_safe
-route_path_normalize
-route_path_sanitize
+path_normalize
 session_id_create
 parse_query
 parse_uri

@@ -12,6 +12,8 @@ Bearer runs this hook before the first unit entry or component call. The handler
 :example capy once
 print(string(request.method), "\n")
 
+:see-group
+handlers
+
 :see
 type/request
-handler/init

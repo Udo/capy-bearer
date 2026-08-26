@@ -20,7 +20,8 @@ mkdir(root)
 file_put_contents(path_join(root, "child.txt"), "x")
 print(dir_remove(root, true), "\n")
 
+:see-group
+directories
+
 :see
-mkdir
-dir_list
 file_unlink

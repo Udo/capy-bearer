@@ -19,6 +19,5 @@ The key operations normalize whitespace to underscores. This normalization is tr
 var connection := memcache_connect()
 if connection != u64(0) { print("connected\n") } else { print("not connected\n") }
 
-:see
-memcache_get
-memcache_set
+:see-group
+memcache

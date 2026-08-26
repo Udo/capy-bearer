@@ -68,11 +68,9 @@ size_t bearer_host_job_status(uint64_t job_id, char* out, size_t cap);
 size_t bearer_host_job_result(uint64_t job_id, char* out, size_t cap);
 size_t bearer_host_job_await(uint64_t job_id, uint64_t timeout_ms, char* out, size_t cap);
 int bearer_host_job_cancel(uint64_t job_id);
-size_t bearer_host_path_real(const char* path, size_t path_len, char* buf, size_t cap);
-int bearer_host_path_is_within(const char* path, size_t path_len, const char* root, size_t root_len);
+size_t bearer_host_path_normalize(const char* path, size_t path_len, const char* options, size_t options_len, char* buf, size_t cap);
 size_t bearer_host_cwd_get(char* buf, size_t cap);
 int bearer_host_cwd_set(const char* path, size_t path_len);
-size_t bearer_host_process_start_directory(char* buf, size_t cap);
 size_t bearer_host_last_trap_trace(char* buf, size_t cap);
 }
 
@@ -106,19 +104,16 @@ String shell_escape(String raw)
 String basename(String fn) { while(fn.find("/") != String::npos) fn = fn.substr(fn.find("/") + 1); return(fn); }
 String dirname(String fn) { auto pos = fn.find_last_of('/'); return(pos == String::npos ? "" : fn.substr(0, pos)); }
 String path_join(String base, String child) { if(base == "") return(child); if(child == "") return(base); if(child[0] == '/') return(child); return(base + (base.back() == '/' ? "" : "/") + child); }
-String path_real(String path)
+String path_normalize(String path, DValue opt)
 {
-	size_t required = bearer_host_path_real(path.data(), path.size(), 0, 0);
+	String options = brb_encode(opt), result;
+	size_t required = bearer_host_path_normalize(path.data(), path.size(), options.data(), options.size(), 0, 0);
 	if(required == 0)
 		return("");
-	String resolved(required, 0);
-	size_t got = bearer_host_path_real(path.data(), path.size(), &resolved[0], required);
-	resolved.resize(got <= required ? got : 0);
-	return(resolved);
-}
-bool path_is_within(String path, String root)
-{
-	return(bearer_host_path_is_within(path.data(), path.size(), root.data(), root.size()) != 0);
+	result.resize(required);
+	size_t got = bearer_host_path_normalize(path.data(), path.size(), options.data(), options.size(), &result[0], required);
+	result.resize(got <= required ? got : 0);
+	return(result);
 }
 bool mkdir(String path)
 {
@@ -342,16 +337,6 @@ String cwd_get()
 	return(cwd);
 }
 void cwd_set(String path) { bearer_host_cwd_set(path.data(), path.size()); }
-String process_start_directory()
-{
-	size_t required = bearer_host_process_start_directory(0, 0);
-	if(required == 0)
-		return("");
-	String cwd(required, 0);
-	size_t got = bearer_host_process_start_directory(&cwd[0], required);
-	cwd.resize(got <= required ? got : 0);
-	return(cwd);
-}
 u64 file_mtime(String file_name)
 {
 	String current = wasm_current_unit_file();
@@ -362,7 +347,7 @@ void file_unlink(String file_name)
 	String current = wasm_current_unit_file();
 	bearer_host_file_unlink(file_name.data(), file_name.size(), current.data(), current.size());
 }
-String expand_path(String path, String relative_to_path) { return(path_join(relative_to_path, path)); }
+
 DValue ls(String dir)
 {
 	String current = wasm_current_unit_file();
@@ -971,25 +956,53 @@ String path_join(String base, String child)
 	return(base + "/" + child);
 }
 
-String path_real(String path)
+String path_normalize(String path, DValue opt)
 {
-	char resolved[PATH_MAX];
-	if(realpath(path.c_str(), resolved))
-		return(String(resolved));
-	return("");
-}
+	const DValue* base_value = opt.key("base");
+	const DValue* fallback_value = opt.key("fallback");
+	bool safe = opt.key("safe") ? opt.key("safe")->to_bool(true) : true;
+	bool real = opt.key("real") && opt.key("real")->to_bool();
+	String base = base_value ? base_value->to_string() : "";
+	String fallback = fallback_value ? fallback_value->to_string() : "";
 
-bool path_is_within(String path, String root)
-{
-	String real_path = path_real(path);
-	String real_root = path_real(root);
-	if(real_path == "" || real_root == "")
-		return(false);
-	if(real_path == real_root)
-		return(true);
-	if(real_root[real_root.length() - 1] != '/')
-		real_root += "/";
-	return(str_starts_with(real_path, real_root));
+	if(safe)
+	{
+		path = trim(path);
+		size_t start = path.find_first_not_of('/');
+		path = start == String::npos ? "" : path.substr(start, path.find_last_not_of('/') - start + 1);
+		if(path != "")
+			for(String part : split_strings(path, "/"))
+			{
+				if(part == "" || part == "." || part == "..") return("");
+				for(unsigned char c : part)
+					if(!(std::isalnum(c) || c == '-' || c == '_' || c == '.')) return("");
+			}
+		if(path == "" && fallback != "")
+		{
+			DValue fallback_options = opt;
+			fallback_options.remove("fallback");
+			return(path_normalize(fallback, fallback_options));
+		}
+	}
+	if(base != "" && !path.empty() && path[0] != '/') path = path_join(base, path);
+	if(base != "" || !safe) path = std::filesystem::path(path).lexically_normal().string();
+	if(real)
+	{
+		char resolved[PATH_MAX];
+		if(!::realpath(path.c_str(), resolved))
+			return("");
+		path = resolved;
+	}
+	if(const DValue* within_value = opt.key("within"))
+	{
+		char resolved_root[PATH_MAX], resolved_candidate[PATH_MAX];
+		if(!::realpath(within_value->to_string().c_str(), resolved_root) || !::realpath(path.c_str(), resolved_candidate))
+			return("");
+		String root = resolved_root, candidate = resolved_candidate;
+		if(root != candidate && !str_starts_with(candidate, root + "/"))
+			return("");
+	}
+	return(path);
 }
 
 bool mkdir(String path)
@@ -1132,35 +1145,6 @@ u64 file_mtime(String file_name)
 void file_unlink(String file_name)
 {
 	remove(file_name.c_str());
-}
-
-String expand_path(String path, String relative_to_path)
-{
-	String result;
-
-	if(relative_to_path == "")
-		relative_to_path = cwd_get();
-
-	auto base_path = split_strings(relative_to_path, "/");
-	auto rel_path = split_strings(path, "/");
-
-	for(auto& s : rel_path)
-	{
-		if(s == "..")
-		{
-			base_path.pop_back();
-		}
-		else if(s == ".")
-		{
-
-		}
-		else
-		{
-			base_path.push_back(s);
-		}
-	}
-
-	return(join_strings(base_path, "/"));
 }
 
 f64 time_precise()

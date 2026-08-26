@@ -10,5 +10,8 @@ Raw 32-byte SHA-256 digest.
 :example capy render
 print(hex(sha256("abc")), "\n")
 
+:see-group
+crypto
+
 :see
 hex

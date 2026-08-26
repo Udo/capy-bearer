@@ -7,15 +7,16 @@ source : YAML source
 :returns
 A `dval` that contains the decoded YAML.
 
-:see
-yaml_encode
-json_decode
-type/dvalue
-string
-
 :content
 `yaml_decode()` decodes YAML source into a `dval`.
 
 :example capy render
 var value := yaml_decode("name: Ada\n")
 print(value["name"], "\n")
+
+:see-group
+encoding
+
+:see
+type/dvalue
+string

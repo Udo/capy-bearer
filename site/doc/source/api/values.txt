@@ -18,6 +18,5 @@ var user := dval({"name": "Ada", "role": "admin"})
 var result := values(user)
 print(is_list(result), " ", length(result), "\n")
 
-:see
-type/dvalue
-keys
+:see-group
+dval-access

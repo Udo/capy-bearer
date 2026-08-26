@@ -16,5 +16,5 @@ Set `max_frames` to limit the result. Set `skip_frames` to omit the newest frame
 :example capy cli
 print(backtrace_get_frames(4, 0), "\n")
 
-:see
-backtrace_capture
+:see-group
+diagnostics

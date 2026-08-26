@@ -38,9 +38,7 @@ if request.query.q? {
 var target := unit_load("/tests/capy-module-target.capy")
 print(string(target.echo({name: "Ada"}).name, {fallback: "unknown"}), "\n")
 
+:see-group
+constructors
+
 :see
-type/request
-bool
-dval
-s64
-u64

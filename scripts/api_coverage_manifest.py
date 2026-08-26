@@ -12,7 +12,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST_DIR = ROOT / "site" / "tests"
-DOC_DIR = ROOT / "site" / "doc" / "source" / "api"
+DOC_SOURCE = ROOT / "site" / "doc" / "source"
+DOC_DIR = DOC_SOURCE / "api"
+TYPE_PAGES = {"bool", "s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64", "f32", "f64"}
 
 # Public source names that intentionally do not need public docs.
 DOC_INTERNAL_APIS = {
@@ -57,12 +59,11 @@ PUBLIC_APIS = [
     # The frozen historical task pages describe the removed callback/PID API;
     # current task coverage is runtime fixtures until their replacement lands.
     ("task", False, "public"), ("task_status", False, "public"), ("task_await", False, "public"), ("task_cancel", False, "public"),
-    ("basename", True, "public"), ("dirname", True, "public"), ("path_join", True, "public"),
-    ("path_real", True, "public"), ("path_is_within", True, "public"),
+    ("basename", True, "public"), ("dirname", True, "public"), ("path_join", True, "public"), ("path_normalize", True, "public"),
     ("file_get_contents", True, "public"),
     ("file_put_contents", True, "public"), ("file_append", True, "public"),
-    ("cwd_get", True, "public"), ("cwd_set", True, "public"), ("process_start_directory", True, "public"),
-    ("file_mtime", True, "public"), ("file_unlink", True, "public"), ("expand_path", True, "public"),
+    ("cwd_get", True, "public"), ("cwd_set", True, "public"),
+    ("file_mtime", True, "public"), ("file_unlink", True, "public"),
     ("ls", True, "public"),
     ("runtime_perf", True, "public"), ("time_format_local", True, "public"),
     ("time_format_relative", True, "public"), ("time_parse", True, "public"),
@@ -82,7 +83,6 @@ PUBLIC_APIS = [
     ("draw_int", True, "public"), ("draw_float", True, "public"),
     ("encode_query", True, "public"), ("csrf_token", True, "public"),
     ("csrf_valid", True, "public"), ("csrf_rotate", True, "public"),
-    ("route_from_raw_path", True, "public"), ("unit_compile", True, "public"),
     ("cleanup_sqlite_connections", False, "internal"), ("cleanup_mysql_connections", False, "internal"),
     ("mysql_connect", True, "integration"), ("mysql_query", True, "integration"),
 ]
@@ -98,9 +98,17 @@ def all_test_text() -> str:
     return "\n".join(parts)
 
 
-def doc_exists(name: str) -> bool:
+def doc_path(name: str) -> Path:
     page_name = DOC_PAGE_ALIASES.get(name, name)
-    path = DOC_DIR / f"{page_name}.txt"
+    if page_name in TYPE_PAGES:
+        return DOC_SOURCE / "type" / f"{page_name}.txt"
+    if page_name.startswith("type/"):
+        return DOC_SOURCE / f"{page_name}.txt"
+    return DOC_DIR / f"{page_name}.txt"
+
+
+def doc_exists(name: str) -> bool:
+    path = doc_path(name)
     return path.exists() and "Removed" not in path.read_text(errors="ignore")[:200]
 
 
@@ -122,7 +130,11 @@ def required_doc_apis() -> set[str]:
 
 
 def required_doc_pages() -> set[str]:
-    return {DOC_PAGE_ALIASES.get(name, name) for name in required_doc_apis()}
+    pages = set()
+    for name in required_doc_apis():
+        page = DOC_PAGE_ALIASES.get(name, name)
+        pages.add(f"type/{page}" if page in TYPE_PAGES else page)
+    return pages
 
 
 def has_call(text: str, name: str) -> bool:
@@ -141,14 +153,18 @@ def main() -> int:
     for name in sorted(required_doc_apis()):
         if not doc_exists(name):
             errors.append(f"missing source-derived doc page: {name}")
+    expected_api_pages = {name for name in required_pages if not name.startswith("type/")}
     for path in sorted(DOC_DIR.glob("*.txt")):
-        if path.stem not in required_pages:
+        if path.stem not in expected_api_pages:
             errors.append(f"unexpected non-public API doc page: {path.stem}")
+    for name in sorted(TYPE_PAGES):
+        if f"type/{name}" in required_pages and not doc_exists(name):
+            errors.append(f"missing type doc page: {name}")
     compiler_h = (ROOT / "src" / "lib" / "compiler.h").read_text(errors="ignore")
     if "#ifndef __BEARER_WASM_UNIT__\nSharedUnit* unit_load" not in compiler_h:
         errors.append("unit_load is not guarded out of wasm-unit exposure")
     for name in REMOVED_APIS:
-        page = DOC_DIR / f"{name}.txt"
+        page = doc_path(name)
         if name == "concat" and page.exists() and "Removed" not in page.read_text(errors="ignore")[:300]:
             errors.append("concat doc is not tombstoned")
     if errors:

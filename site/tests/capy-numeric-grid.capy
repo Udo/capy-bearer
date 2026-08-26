@@ -1,0 +1,10 @@
+function CLI(request : dval) {
+    var a : s8 = s8("127")
+    var b : s16 = s16("-32768")
+    var c : u8 = u8("255")
+    var d : u16 = u16("65535")
+    var e : u32 = u32("4294967295")
+    var f : f32 = f32("1.5")
+    print(string(a), "|", string(b), "|", string(c), "|", string(d), "|", string(e), "|", string(f), "|")
+    print(string(s8(dval(7))), "|", string(u8(dval(8))), "|", string(u32(dval(e))), "|", string(f32(dval(2.5))), "|", string(f32(dval("bad"))))
+}

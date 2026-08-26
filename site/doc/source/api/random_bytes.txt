@@ -15,3 +15,6 @@ Use `base64_encode()` when you need printable text.
 :example capy render
 var token := base64_encode(random_bytes(u64(16)))
 print(token, "\n")
+
+:see-group
+noise

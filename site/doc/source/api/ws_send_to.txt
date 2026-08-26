@@ -9,11 +9,11 @@ binary : `true` for a binary frame
 :returns
 `true` when the server queues the message.
 
-:see
-ws_send
-
 :content
 `ws_send_to()` sends a message to one client.
 
 :example capy ws
 ws_send_to(string(request.websocket.connection_id), "hello", false)
+
+:see-group
+websocket

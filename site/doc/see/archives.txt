@@ -1,0 +1,6 @@
+zip_create
+zip_list
+zip_read
+zip_extract
+gz_compress
+gz_uncompress

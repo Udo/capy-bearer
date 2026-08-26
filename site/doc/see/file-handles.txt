@@ -1,0 +1,9 @@
+file_open
+file_read
+file_write
+file_pread
+file_pwrite
+file_seek
+file_tell
+file_close
+file_fsync

@@ -12,6 +12,8 @@ The handler has one parameter named `request` with type `dval`. Read command dat
 :example capy cli
 print(string(request.method), "\n")
 
+:see-group
+handlers
+
 :see
 type/request
-handler/render

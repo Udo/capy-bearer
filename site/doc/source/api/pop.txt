@@ -18,6 +18,5 @@ var list := dval(["first", "last"])
 list = pop(list)
 print(list[0], "\n")
 
-:see
-type/dvalue
-push
+:see-group
+dval-access

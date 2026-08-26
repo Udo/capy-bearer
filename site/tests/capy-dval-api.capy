@@ -8,7 +8,7 @@ function dval_api_run() s32 {
     value = delete(value, "drop")
     value = push(value, "tail")
     var explicit_name := string(get(value, "name"))
-    print(is_array(value), is_list(value), explicit_name, s32(value.age), value["0"], "|")
+    print(is_array(value), is_list(value), explicit_name, s64(value.age), value["0"], "|")
     var list := dval([])
     list = push(list, "one")
     list = push(list, "two")
@@ -27,10 +27,10 @@ function dval_api_run() s32 {
     var fields := {name: "Ada", role: "engineer"}
     print(bool(assigned), has(cleared, "gone"), get(fields, "name"), keys(fields)[0], values(fields)[1], "|")
     var mapped := dval([])
-    for item, key := dval([1, 2]) { mapped = push(mapped, s32(item) + 1) }
+    for item, key := dval([1, 2]) { mapped = push(mapped, s64(item) + 1) }
     var filtered := dval({})
-    for item, key := {keep: 2, drop: 1} { if s32(item) == 2 { filtered = set(filtered, key, item) } }
-    print(s32(mapped[0]), s32(mapped[1]), has(filtered, "keep"), has(filtered, "drop"), "|")
+    for item, key := {keep: 2, drop: 1} { if s64(item) == 2 { filtered = set(filtered, key, item) } }
+    print(s64(mapped[0]), s64(mapped[1]), has(filtered, "keep"), has(filtered, "drop"), "|")
     print(s64(dval("-42")), u64(dval("42")), s64(dval("bad"), {fallback: s64(-9)}), u64(dval("bad"), {fallback: u64(18446744073709551615)}), "|")
     }
     print(arc_live())

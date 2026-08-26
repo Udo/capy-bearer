@@ -17,5 +17,5 @@ Call it with no arguments. You can also set the maximum frame count and skip cou
 :example capy render
 print(backtrace_capture(), "\n")
 
-:see
-backtrace_get_frames
+:see-group
+diagnostics

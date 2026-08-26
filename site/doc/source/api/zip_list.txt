@@ -7,12 +7,6 @@ path : archive path
 :returns
 A `dval` with archive metadata and entries.
 
-:see
-zip_create
-zip_read
-zip_extract
-type/dvalue
-
 :content
 `zip_list()` returns ZIP archive metadata and entries.
 
@@ -22,3 +16,9 @@ zip_create(archive, dval({"note.txt": "hello"}))
 var listing := zip_list(archive)
 print(s32(listing["count"]), "\n")
 file_unlink(archive)
+
+:see-group
+archives
+
+:see
+type/dvalue

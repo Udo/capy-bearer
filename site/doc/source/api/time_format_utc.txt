@@ -8,18 +8,11 @@ timestamp : Unix timestamp. Zero uses the current time
 :returns
 formatted UTC time
 
-:see
->time
->time_format_relative
-time_format_relative
-time_parse
-time_format_local
-time
-time_precise
-usleep
-
 :content
 `time_format_utc` formats a Unix timestamp in UTC.
 
 :example capy render
 print(time_format_utc("%Y", u64(5)), "\n")
+
+:see-group
+time

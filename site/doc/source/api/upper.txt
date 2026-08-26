@@ -7,15 +7,16 @@ value : string to convert
 :returns
 string with lowercase ASCII characters changed to uppercase
 
-:see
->string
-string
-length
-clone
-base64_decode
-
 :content
 `upper` changes lowercase ASCII characters to uppercase.
 
 :example capy render
 print(upper("bearer"), "\n")
+
+:see-group
+strings
+
+:see
+>string
+length
+base64_decode

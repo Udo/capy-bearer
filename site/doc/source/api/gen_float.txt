@@ -20,7 +20,5 @@ Use the same inputs to reproduce a value.
 var value := gen_float(0.0, 1.0, u64(1))
 print(value, "\n")
 
-:see
-gen_int
-gen_noise01
-draw_float
+:see-group
+noise

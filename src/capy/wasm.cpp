@@ -235,6 +235,13 @@ void append_sleb64(Bytes& out, std::int64_t value)
 	} while (more);
 }
 
+void append_f32(Bytes& out, float value)
+{
+	std::uint32_t bits = std::bit_cast<std::uint32_t>(value);
+	for (unsigned index = 0; index < 4; ++index)
+		out.push_back(static_cast<std::uint8_t>(bits >> (8 * index)));
+}
+
 void append_f64(Bytes& out, double value)
 {
 	std::uint64_t bits = std::bit_cast<std::uint64_t>(value);

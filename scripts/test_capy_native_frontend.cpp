@@ -35,11 +35,6 @@ int main(int argc, char** argv)
 		assert(f->host && f->trace_host && !f->body);
 	}
 	{
-		Program p = parse("function pair value : s32 (s32, string) { return (value, \"x\") }\n", "test.capy");
-		auto* f = static_cast<Function*>(p.items[0]);
-		assert(f->parameters.size() == 1 && type_name(*f->parameters[0].type_expr) == "s32" && type_name(*f->return_type) == "(s32,string)");
-	}
-	{
 		Program p = parse("function value(a : s32, b : string = \"x\", c : bool = true, opt : dval = {items: [1, {enabled: false}]}) string { -> b }\n", "defaults.capy");
 		auto* f = static_cast<Function*>(p.items[0]);
 		auto* opt = static_cast<MapLiteral*>(f->parameters[3].default_value);
@@ -47,11 +42,6 @@ int main(int argc, char** argv)
 		assert(f->parameters.size() == 4 && !f->parameters[0].default_value && static_cast<String*>(f->parameters[1].default_value)->value == "x" &&
 			static_cast<Name*>(f->parameters[2].default_value)->value == "true" && items->items.size() == 2 &&
 			static_cast<MapLiteral*>(items->items[1])->entries[0].first == "enabled");
-	}
-	{
-		Program p = parse("function pair (s32, string) { return (1, \"x\") }\n", "test.capy");
-		auto* f = static_cast<Function*>(p.items[0]);
-		assert(f->parameters.empty() && type_name(*f->return_type) == "(s32,string)");
 	}
 	{
 		Program p = parse("var callback : function(value : s32) s32 = function(value : s32) s32 { return value + 1 }\n", "test.capy");

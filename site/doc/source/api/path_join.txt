@@ -16,6 +16,5 @@ An absolute `child` replaces `base`. This function does not resolve dot segments
 :example capy render
 print(path_join("/var/www", "site/index.capy"), "\n")
 
-:see
-path_real
-path_is_within
+:see-group
+paths

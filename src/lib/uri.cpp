@@ -1,4 +1,5 @@
 #include "uri.h"
+#include "sys.h"
 
 #include <algorithm>
 #include <cctype>
@@ -271,57 +272,6 @@ String encode_query(StringMap map)
 	return(result);
 }
 
-String route_path_normalize(String path)
-{
-	path = trim(path);
-	size_t start = path.find_first_not_of('/');
-	if(start == String::npos)
-		return("");
-	size_t end = path.find_last_not_of('/');
-	return(path.substr(start, end - start + 1));
-}
-
-bool route_path_normalized_is_safe(String path)
-{
-	if(path == "")
-		return(true);
-	for(String part : split_strings(path, "/"))
-	{
-		if(part == "" || part == "." || part == "..")
-			return(false);
-		for(unsigned char c : part)
-		{
-			if(!(std::isalnum(c) || c == '-' || c == '_'))
-				return(false);
-		}
-	}
-	return(true);
-}
-
-bool route_path_is_safe(String path)
-{
-	return(route_path_normalized_is_safe(route_path_normalize(path)));
-}
-
-String route_path_sanitize(String path, String default_path)
-{
-	path = route_path_normalize(path);
-	if(path == "")
-		path = route_path_normalize(default_path);
-	if(!route_path_normalized_is_safe(path))
-		return("");
-	return(path);
-}
-
-String route_path_sanitize_normalized(String path, String default_path)
-{
-	if(path == "")
-		path = route_path_normalize(default_path);
-	if(!route_path_normalized_is_safe(path))
-		return("");
-	return(path);
-}
-
 String request_script_url(Request& context)
 {
 	String url = first(context.params["DOCUMENT_URI"], context.params["SCRIPT_NAME"]);
@@ -350,18 +300,12 @@ String request_query_path(Request& context, String default_path)
 	return(request_query_route(context, default_path)["l_path"].to_string());
 }
 
-DValue request_query_route(Request& context, String default_path)
+static DValue request_route(String raw_path, String default_path)
 {
-	String raw_path = "";
-	parse_query(context.params["QUERY_STRING"], &raw_path);
-	return(request_route_from_raw_path(raw_path, default_path));
-}
-
-DValue request_route_from_raw_path(String raw_path, String default_path)
-{
-	DValue route;
-	String normalized_path = route_path_normalize(raw_path);
-	String route_path = route_path_sanitize_normalized(normalized_path, default_path);
+	DValue route, options;
+	options["fallback"] = default_path;
+	String normalized_path = path_normalize(raw_path);
+	String route_path = path_normalize(normalized_path, options);
 	bool valid = route_path != "";
 	route["raw_path"] = normalized_path;
 	route["l_path"] = route_path;
@@ -373,6 +317,13 @@ DValue request_route_from_raw_path(String raw_path, String default_path)
 	return(route);
 }
 
+DValue request_query_route(Request& context, String default_path)
+{
+	String raw_path = "";
+	parse_query(context.params["QUERY_STRING"], &raw_path);
+	return(request_route(raw_path, default_path));
+}
+
 void request_populate_context_params(Request& context, String default_path)
 {
 	String raw_path;
@@ -382,7 +333,7 @@ void request_populate_context_params(Request& context, String default_path)
 
 void request_populate_context_params_from_route(Request& context, String raw_path, String default_path)
 {
-	DValue route = request_route_from_raw_path(raw_path, default_path);
+	DValue route = request_route(raw_path, default_path);
 	String script_url = request_script_url(context);
 	context.params["SCRIPT_URL"] = script_url;
 	context.params["BASE_URL"] = request_base_url_from_script_url(script_url);

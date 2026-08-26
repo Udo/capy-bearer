@@ -7,15 +7,16 @@ value : string to encode
 :returns
 URI-encoded string
 
-:see
-uri_decode
-parse_uri
-parse_query
-session_id_create
-route_path_sanitize
-
 :content
 `uri_encode` encodes a string for a URI component.
 
 :example capy render
 print(uri_encode("Ada Lovelace"), "\n")
+
+:see-group
+encoding
+
+:see
+parse_uri
+parse_query
+session_id_create

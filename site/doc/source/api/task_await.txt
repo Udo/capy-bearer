@@ -10,3 +10,6 @@ Use `task_await` to wait for a task status. It returns when the task ends or the
 :example capy render
 var status := task_await("", u64(0))
 print(string(status["state"]), "\n")
+
+:see-group
+tasks

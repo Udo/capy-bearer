@@ -15,5 +15,5 @@ cwd_set("/tmp")
 print(cwd_get(), "\n")
 cwd_set(old_path)
 
-:see
-cwd_get
+:see-group
+paths

@@ -10,3 +10,6 @@ Use `socket_write` to send data to a socket.
 :example capy render
 var handle := socket_connect("127.0.0.1", 1)
 if handle != 0 { print(socket_write(handle, "hello"), "\n"); socket_close(handle) }
+
+:see-group
+sockets

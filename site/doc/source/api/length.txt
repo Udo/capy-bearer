@@ -1,23 +1,25 @@
 :sig
-function length(value : string) s32
-function length(value : markup) s32
-function length(value : dval) s32
-function length(value : [T]) s32
+function length(value : string) s64
+function length(value : dval) s64
+function length(value : [T]) s64
 
 :params
-value : text, markup, a `dval` map or list, or an array
+value : text, a `dval` map or list, or an array
 
 :returns
-A byte count for text and markup, or an entry count for maps, lists, and arrays.
+A byte count for text, or an entry count for maps, lists, and arrays.
 
 :content
-`length()` counts bytes in strings and markup. It counts entries in `dval` maps and lists, and elements in arrays.
+`length()` counts bytes in strings. It counts entries in `dval` maps and lists, and elements in arrays.
 
 :errors
 `length()` traps when a scalar `dval` reaches it.
 
 :example capy render
 print(length("capy docs"), " / ", length(dval(["a", "b"])), "\n")
+
+:see-group
+collections
 
 :see
 split

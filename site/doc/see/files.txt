@@ -1,0 +1,13 @@
+file_get_contents
+file_put_contents
+file_append
+file_exists
+file_mtime
+file_stat
+file_unlink
+file_rename
+file_copy
+file_truncate
+file_chmod
+file_symlink
+file_temp

@@ -4,12 +4,6 @@ Dynamic values
 :sig
 type dval
 
-:see
-string
-get
-get_by_path
-json_decode
-
 :content
 A `dval` stores scalar values, maps, lists, current-workspace callables, and `none`.
 
@@ -24,3 +18,10 @@ A callable read requires its exact function type. A mismatch traps. Public BRRB,
 :example capy render
 var user := dval({"name": "Ada", "tags": ["math"]})
 print(user.name, " ", user.tags[0], "\n")
+
+:see-group
+dval-access
+
+:see
+string
+json_decode

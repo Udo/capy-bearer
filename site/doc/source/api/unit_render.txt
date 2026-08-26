@@ -4,14 +4,15 @@ function unit_render(name : string)
 :params
 name : unit path
 
-:see
-unit_call
-unit_load
-handler/render
-component
-
 :content
 `unit_render` runs a unit `RENDER` handler.
 
 :example capy render
 unit_render("/tests/capy-cross-target.capy")
+
+:see-group
+units
+
+:see
+handler/render
+component

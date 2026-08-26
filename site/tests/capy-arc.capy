@@ -35,7 +35,7 @@ function consume(x : string) void {
     print(x)
 }
 
-function pick(values : [string], index : s32) string {
+function pick(values : [string], index : s64) string {
     -> values[index]
 }
 

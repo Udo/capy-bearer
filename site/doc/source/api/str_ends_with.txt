@@ -9,3 +9,6 @@ Use `str_ends_with` to test a string suffix.
 
 :example capy render
 print(str_ends_with("index.capy", ".capy"), "\n")
+
+:see-group
+strings

@@ -18,7 +18,5 @@ Use it in a form that changes state. Check the submitted value with `csrf_valid(
 var field := csrf_field("capy-doc-session", "profile", "csrf_token")
 print(contains(field, "type=\"hidden\""), "\n")
 
-:see
-csrf_token
-csrf_valid
-csrf_rotate
+:see-group
+csrf

@@ -10,3 +10,6 @@ Use `task_status` to read a task status.
 :example capy render
 var status := task_status("")
 print(string(status["state"]), "\n")
+
+:see-group
+tasks

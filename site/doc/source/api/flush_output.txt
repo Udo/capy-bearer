@@ -1,0 +1,21 @@
+:sig
+function flush_output() bool
+
+:content
+`flush_output()` sends the primary output buffer to the host and clears the buffer.
+It returns `true` when the host accepts the bytes.
+It returns `false` for a WebSocket handler because WebSocket output uses `ws_send()` and `ws_close()`.
+An empty buffer returns `true` and remains empty.
+Output after the call keeps its order after the flushed bytes.
+
+:example capy render
+print("first\n")
+flush_output()
+print("second\n")
+
+:see-group
+output
+
+:see
+>print
+>ws_send

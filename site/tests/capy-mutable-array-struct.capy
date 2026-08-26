@@ -12,7 +12,7 @@ function observe_array(values : [s32], calls : [s32]) [s32] {
 }
 function observe_state(calls : [s32]) State {
     calls.push(1)
-    -> State(0, s64(0), clone("old"), [1])
+    -> State(s32(0), s64(0), clone("old"), [s32(1)])
 }
 function observe_text(calls : [s32]) string {
     calls.push(2)
@@ -118,7 +118,7 @@ function CLI(request : dval) {
         var managed_snapshot := [...spread_words, { spread_words.clear(); -> clone("z") }]
         print(joined(...scalar_snapshot), length(spread_source), joined(...managed_snapshot), length(spread_words), "|")
 
-        var state := State(1, s64(2), clone("start"), [1])
+        var state := State(s32(1), s64(2), clone("start"), [s32(1)])
         var state_alias := state
         mutate_state(state)
         state_alias.scalar = 8
@@ -126,7 +126,7 @@ function CLI(request : dval) {
         state.text = state.text
         var assignment_calls : [s32] = []
         var assignment_result := (observe_state(assignment_calls).text = observe_text(assignment_calls))
-        var scalar_result := (State(1, s64(2), clone("scalar"), [1]).scalar = 4)
+        var scalar_result := (State(s32(1), s64(2), clone("scalar"), [s32(1)]).scalar = s32(4))
         state.values[0] = 6
         print(state_alias.scalar, state.wide, state.text, state_alias.values[0], assignment_result, scalar_result, joined(...assignment_calls), "|")
     }

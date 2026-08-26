@@ -17,6 +17,5 @@ A list of child keys.
 var user := dval({"name": "Ada", "role": "admin"})
 print(join(sort(keys(user)), ","), "\n")
 
-:see
-type/dvalue
-values
+:see-group
+dval-access

@@ -18,6 +18,5 @@ key : child key
 var user := dval({"name": "Ada"})
 print(has(user, "name"), " ", has(user, "age"), "\n")
 
-:see
-type/dvalue
-get
+:see-group
+dval-access

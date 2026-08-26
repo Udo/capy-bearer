@@ -94,6 +94,9 @@ A runtime trap usually means the input did not match the application contract. T
 
 Write tests for both paths. A success test proves the expected shape works. A failure test proves bad input cannot silently continue.
 
+:see-group
+guides
+
 :see
 capy-08-dynamic-values
 capy-09-web-handlers-and-requests

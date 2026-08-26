@@ -17,6 +17,8 @@ var source := "token"
 var copy := clone(source)
 print(length(source), " ", length(copy), "\n")
 
+:see-group
+strings
+
 :see
->type/string
 length

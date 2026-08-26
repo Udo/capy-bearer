@@ -18,7 +18,8 @@ file_put_contents(path_join(root, "one.txt"), "1")
 print(join(sort(ls(root)), ","), "\n")
 dir_remove(root, true)
 
+:see-group
+directories
+
 :see
-dir_list
-mkdir
 path_join

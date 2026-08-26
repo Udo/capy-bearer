@@ -3,7 +3,7 @@ function plus_one(value : s32) s32 { -> value + 1 }
 function CLI(request : dval) {
     var baseline := arc_live()
     {
-        var captured := 10
+        var captured := s32(10)
         var values := {map: {named: plus_one, closure: function(value : s32) s32 { -> value + captured }}, list: [plus_one, {closure: function(value : s32) s32 { -> value + captured }}]}
         var named : function(value : s32) s32 = values.map.named
         var closure : function(value : s32) s32 = values.map.closure
@@ -14,25 +14,25 @@ function CLI(request : dval) {
     }
     print("|", arc_live() == baseline)
     {
-        var captured := 20
+        var captured := s32(20)
         var value := {slot: function(item : s32) s32 { -> item + captured }}
         value.slot = plus_one
     }
     print("|", arc_live() == baseline)
     {
-        var captured := 30
+        var captured := s32(30)
         var value := {slot: function(item : s32) s32 { -> item + captured }}
         delete(value, "slot")
     }
     print("|", arc_live() == baseline)
     {
-        var captured := 40
+        var captured := s32(40)
         var value := {slot: function(item : s32) s32 { -> item + captured }}
         clear(value)
     }
     print("|", arc_live() == baseline)
     {
-        var captured := 50
+        var captured := s32(50)
         var value := {slot: function(item : s32) s32 { -> item + captured }}
         var copy := value
         copy.slot = plus_one

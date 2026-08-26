@@ -16,5 +16,5 @@ Read the `parts` and `query` maps from the result. Use `parse_query()` when you 
 var parsed := parse_uri("https://example.test/docs?name=Ada")
 print(parsed["parts"]["path"], " ", parsed["query"]["name"], "\n")
 
-:see
-parse_query
+:see-group
+uri

@@ -1,0 +1,51 @@
+:title
+module
+
+:sig
+module
+
+:content
+`module` is the type of a handle returned by `unit_load()`. It represents a loaded unit whose exported functions you can call.
+
+:content
+
+```capy
+function RENDER(request : dval) {
+    var target := unit_load("/tests/capy-module-target.capy")
+    print(target.default_input(), "\n")
+}
+```
+
+:content
+
+## It is opaque
+
+There is nothing inside a module handle to read, print or compare. It cannot be used as a condition — `if handle` is a compile error saying the type is opaque — and it has no fields.
+
+The only thing you do with one is call an exported function on it, either as a method or through `call()`:
+
+:content
+
+```capy
+function RENDER(request : dval) {
+    var target := unit_load("/tests/capy-module-target.capy")
+    print(string(call(target, "echo", {name: "Ada"}).name, ""), "\n")
+}
+```
+
+:content
+
+## It is request-local
+
+A handle is valid for the request that created it and must not be stored for a later one — a subsequent request may load a newer source generation. It copies across `dval` boundaries, so passing one around within a single request is safe.
+
+Values crossing a call are copied, so mutating what you passed in does not affect the callee, and mutating the result does not reach back.
+
+For a single call, `unit_call(path, name, input)` does the same work without a handle. Load a handle when several calls share one unit.
+
+:example capy render
+var target := unit_load("/tests/capy-module-target.capy")
+print(target.default_input(), "\n")
+
+:see-group
+constructors

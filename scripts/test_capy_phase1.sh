@@ -33,6 +33,7 @@ grep -aFq "$stdlib_digest" bin/bearer_fastcgi.linux.bin || {
 
 output=$(scripts/bearer-cli /tests/capy-phase1.capy)
 [[ "$output" == "capy-direct-ok" ]] || { echo "Capy CLI output mismatch: $output" >&2; exit 1; }
+expect_equal "flush_output ordering and reset" "first|true|second" "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-flush-output.capy)"
 
 language_output=$(scripts/bearer-cli /tests/capy-language.capy)
 [[ "$language_output" == "sum=30;012;ok;01" ]] || {
@@ -111,7 +112,7 @@ EOF
 		expect_equal "$name value trap recovery" "$consistency_expected" "$(scripts/bearer-cli /tests/capy-language-consistency.capy)"
 	done
 )
-coercion_expected="7|8|42|-9|10|4.25|true|false|12|false|1|2|3|9|4|0"
+coercion_expected="7|8|42|-9|10|4.25|true|false|12|false|1|2|103|9|4|0"
 expect_equal "declared parameter coercion and constructors" "$coercion_expected" "$(scripts/bearer-cli /tests/capy-coercion.capy)"
 (
 	dval_default_dir=$(mktemp -d "$site_directory/tests/capy-dval-default.XXXXXX")
@@ -124,7 +125,7 @@ function CLI(request : dval) {
         first.nested.items[0] = 2
         first.nested.extra = "mutated"
         var second := fresh()
-        print(s32(first.nested.items[0]), "|", s32(second.nested.items[0]), "|", bool(second.nested.items[1]), "|", second.nested.items[2], "|", second.nested.extra?)
+        print(s64(first.nested.items[0]), "|", s64(second.nested.items[0]), "|", bool(second.nested.items[1]), "|", second.nested.items[2], "|", second.nested.extra?)
     }
     print("|", arc_live())
 }
@@ -134,6 +135,8 @@ EOF
 expect_equal "constructor options and precision" \
 	"7:7:7:7:0:7:7|7:7:7:7:0:7:7|7:7:7:7:0:7:7|7:7:7:7:0:7:7|7:7:7:7:true:7:7|true:false:true|true:true:true|11:12:13:-14:-15:-16:21:22:23:1.1000000000000001:1.2:1.3:absent:empty:true:true:false|5:5:255:255:42" \
 	"$(scripts/bearer-cli /tests/capy-constructors.capy)"
+expect_equal "complete numeric grid" "127|-32768|255|65535|4294967295|1.5|7|8|4294967295|2.5|0" \
+	"$(scripts/bearer-cli /tests/capy-numeric-grid.capy)"
 (
 	constructor_reject_dir=$(mktemp -d "$site_directory/tests/capy-constructor-reject.XXXXXX")
 	trap 'rm -rf -- "$constructor_reject_dir"' EXIT
@@ -284,16 +287,16 @@ filesystem_output=$(scripts/bearer-cli /tests/capy-files2.capy)
 	exit 1
 }
 expect_equal "filesystem recovery" "$filesystem_output" "$(scripts/bearer-cli /tests/capy-files2.capy)"
-expect_equal "file/archive/split_kv adapters" "3|heXYZ|Ada:admin|archive data|true2truetruetrue|9|0|true" "$(scripts/bearer-cli /tests/capy-final-parity.capy)"
+expect_equal "file/archive/split_kv adapters" "3|heXYZ|Ada:admin|na\\=me=Ada\\=Grace\\, Lovelace,role=admin|Ada=Grace, Lovelace:admin|archive data|true2truetruetrue|11|0|true" "$(scripts/bearer-cli /tests/capy-final-parity.capy)"
 set +e
 archive_trap_output=$(scripts/bearer-cli /tests/capy-archive-trap.capy 2>&1)
 archive_trap_status=$?
 set -e
 [[ $archive_trap_status -ne 0 && "$archive_trap_output" == *"capy-archive-trap.capy:1:38"* && "$archive_trap_output" != *"capy://stdlib.capy"* ]]
-expect_equal "archive recovery" "3|heXYZ|Ada:admin|archive data|true2truetruetrue|9|0|true" "$(scripts/bearer-cli /tests/capy-final-parity.capy)"
+expect_equal "archive recovery" "3|heXYZ|Ada:admin|na\\=me=Ada\\=Grace\\, Lovelace,role=admin|Ada=Grace, Lovelace:admin|archive data|true2truetruetrue|11|0|true" "$(scripts/bearer-cli /tests/capy-final-parity.capy)"
 expect_equal "live MySQL stdlib adapters" "truetrue|'a\\'b'|7|true|0:0|truetruetrue|true|truetruetrue|0" "$(scripts/bearer-cli /tests/capy-mysql.capy)"
 expect_equal "memcache key normalization" "down|collision|0" "$(scripts/bearer-cli /tests/capy-memcache.capy)"
-expect_equal "job/process stdlib adapters" "shell|spawned|done|done|done|cancel|cancelled|tasks|cwd|server|0" "$(scripts/bearer-cli /tests/capy-jobs.capy)"
+expect_equal "job/process stdlib adapters" "shell|spawned|done|done|done|cancel|cancelled|tasks|server|0" "$(scripts/bearer-cli /tests/capy-jobs.capy)"
 for shell_exec_case in \
 	"capy-shell-exec-flags-trap|shell_exec: unknown key 'unknown'. Valid keys: stdin, env, timeout_ms, background" \
 	"capy-shell-exec-background-type-trap|shell_exec: background must be a bool" \
@@ -434,7 +437,7 @@ string_output=$(scripts/bearer-cli /tests/capy-strings.capy)
 	exit 1
 }
 markup_output=$(scripts/bearer-cli /tests/capy-markup.capy)
-[[ "$markup_output" == "<p>static</p>|once;<main>&lt;side&gt;&lt;&amp;&gt;&quot;&#39;<&>\"'<strong>&lt;&amp;&gt;&quot;&#39;</strong>&lt;i&gt;&amp;lt;&amp;amp;&amp;gt;&amp;quot;&amp;#39;&lt;/i&gt;<aside>-2147483648:0:2147483647:true:false</aside><wide>-9223372036854775808:18446744073709551615:-1.5</wide></main>|-2147483648|0" ]] || {
+[[ "$markup_output" == "once;<p>static</p><main>&lt;side&gt;&lt;&amp;&gt;&quot;&#39;<&>\"'<strong>&lt;&amp;&gt;&quot;&#39;</strong>&lt;i&gt;&amp;lt;&amp;amp;&amp;gt;&amp;quot;&amp;#39;&lt;/i&gt;<aside>-2147483648:0:2147483647:true:false</aside><wide>-9223372036854775808:18446744073709551615:-1.5</wide></main>|-2147483648|0" ]] || {
 	echo "Capy markup output mismatch: $markup_output" >&2
 	exit 1
 }
@@ -469,7 +472,7 @@ set -e
 }
 expect_equal "callable DValue trap recovery" "$callable_expected" "$(scripts/bearer-cli /tests/capy-dval-callable.capy)"
 phase3_output=$(scripts/bearer-cli /tests/capy-phase3.capy)
-[[ "$phase3_output" == "7|generic|5|fallback|2|name|9tuple|2|tuple|0|tuple|0|tuple|3|innerouter|4|temporary|0|nested|0|5-1tuple|0|0|falsetrue0|0" ]] || {
+[[ "$phase3_output" == "7|generic|5|fallback|2|name|9pair|2|pair|0|pair|0|pair|3|innerouter|4|temporary|0|nested|0|5-1pair|0|0|falsetrue0|0" ]] || {
 	echo "Capy generic specialization output mismatch: $phase3_output" >&2
 	exit 1
 }
@@ -560,10 +563,10 @@ rm -f "$status_trap_body"
 	echo "Capy invalid response status did not fail: HTTP $status_trap_status" >&2
 	exit 1
 }
-expect_equal "request/response stdlib CLI" "Ada|Ada|inner|outer+inner|index|workspacetruetruetrue|truetruetrue|true|1" "$(scripts/bearer-cli /tests/capy-request-parity.capy name=Ada)"
+expect_equal "request/response stdlib CLI" "Ada|Ada|inner|outer+inner|index|workspace/projectstruetrue|truetruetrue|true|1" "$(scripts/bearer-cli /tests/capy-request-parity.capy name=Ada)"
 request_parity_headers=$(mktemp)
 request_parity_output=$(curl -fsS --max-time 30 -D "$request_parity_headers" -H 'Host: bearer.openfu.com' 'http://127.0.0.1/tests/capy-request-parity.capy?workspace/projects&name=Grace&status=yes')
-[[ "$request_parity_output" == "Grace|Grace|inner|outer+inner|workspace/projects|workspacetruetruetrue|truetruetrue|true|1" ]]
+[[ "$request_parity_output" == "Grace|Grace|inner|outer+inner|workspace/projects|workspace/projectstruetrue|truetruetrue|true|1" ]]
 grep -Eq '^HTTP/1\.[01] 202 Accepted' "$request_parity_headers"
 rm -f "$request_parity_headers"
 session_replacement_headers=$(mktemp)
@@ -616,7 +619,7 @@ rich_dval_output=$(scripts/bearer-cli /tests/capy-dval-rich.capy)
 }
 none_output=$(scripts/bearer-cli /tests/capy-dval-none.capy)
 expect_equal "DValue none, safe read, conversion, codec, path update, and ARC contract" \
-	"false|true|true|true|true|false|false|false|false|false|Ada|[][string]|false|true|0|32|0|-64|0|64|0|6.5|false|false|false|null|true|false|true|false|false|created|replaced|old|kept|updated|changed|changed|ABR|done|false|0" "$none_output"
+	"false|true|true|true|true|false|false|false|false|false|true|false|Ada|[][string]|false|true|0|32|0|-64|0|64|0|6.5|false|false|false|null|true|false|true|false|false|created|replaced|old|kept|updated|changed|changed|ABR|done|false|0" "$none_output"
 [[ "$(scripts/bearer-cli /tests/capy-dval-rich.capy)" == "$rich_dval_output" ]] || {
 	echo "Capy DValue workspace did not reset after strict trap" >&2
 	exit 1

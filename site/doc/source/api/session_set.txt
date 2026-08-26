@@ -15,3 +15,6 @@ Call `session_start()` before you store a session field.
 var session := session_start("docs-session")
 session = session_set("theme", "dark")
 print(string(session.values.theme), "\n")
+
+:see-group
+session

@@ -8,14 +8,14 @@ root_name : root element name
 :returns
 The XML source.
 
-:see
-xml_decode
-json_encode
-type/dvalue
-html_escape
-
 :content
 `xml_encode()` encodes a `dval` as XML. The default root name is `root`.
 
 :example capy render
 print(xml_encode(dval({name: "Ada"})), "\n")
+
+:see-group
+encoding
+
+:see
+type/dvalue

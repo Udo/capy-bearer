@@ -1,5 +1,6 @@
 // Private typed host ABI declarations.  Names map directly to env symbols.
 host function __bearer_print_bytes(value : string)
+host function __bearer_flush_output() bool
 host function __bearer_dv_none_brrb() dval
 host function __bearer_dv_is_none_brrb(value : dval) bool
 host function __bearer_dv_require_brrb(value : dval, path : dval) dval
@@ -8,13 +9,24 @@ host function __bearer_dv_apply_brrb(operation : s32, value : dval, key : string
 host function __bearer_dval_replace(target : dval, replacement : dval) dval
 host function __bearer_dv_extract_string(value : dval, fallback : string) string
 host function __bearer_dv_extract_bool(value : dval, fallback : bool) bool
+host function __bearer_dv_extract_s8(value : dval, fallback : s8) s8
+host function __bearer_dv_extract_s16(value : dval, fallback : s16) s16
 host function __bearer_dv_extract_s32(value : dval, fallback : s32) s32
 host function __bearer_dv_extract_s64(value : dval, fallback : s64) s64
+host function __bearer_dv_extract_u8(value : dval, fallback : u8) u8
+host function __bearer_dv_extract_u16(value : dval, fallback : u16) u16
+host function __bearer_dv_extract_u32(value : dval, fallback : u32) u32
 host function __bearer_dv_extract_u64(value : dval, fallback : u64) u64
+host function __bearer_dv_extract_f32(value : dval, fallback : f32) f32
 host function __bearer_dv_extract_f64(value : dval, fallback : f64) f64
 host function __bearer_dv_validate_radix(value : dval, name : string) s32
+host function __bearer_dv_parse_s8(value : string, base : s32, fallback : s8) s8
+host function __bearer_dv_parse_s16(value : string, base : s32, fallback : s16) s16
 host function __bearer_dv_parse_s32(value : string, base : s32, fallback : s32) s32
 host function __bearer_dv_parse_s64(value : string, base : s32, fallback : s64) s64
+host function __bearer_dv_parse_u8(value : string, base : s32, fallback : u8) u8
+host function __bearer_dv_parse_u16(value : string, base : s32, fallback : u16) u16
+host function __bearer_dv_parse_u32(value : string, base : s32, fallback : u32) u32
 host function __bearer_dv_parse_u64(value : string, base : s32, fallback : u64) u64
 host function __bearer_dv_merge_brrb(left : dval, right : dval) dval
 host function __bearer_text_parsing_brrb(operation : s32, value : dval, key : string, argument : dval) dval
@@ -113,6 +125,14 @@ function bool(value : dval, opt : dval = {}) bool {
     __bearer_constructor_options(opt, "bool", false)
     -> __bearer_dv_extract_bool(value, __bearer_dv_extract_bool(get(opt, "fallback"), false))
 }
+function s8(value : as string, opt : dval = {}) s8 {
+    __bearer_constructor_options(opt, "s8", true)
+    -> __bearer_dv_parse_s8(value, __bearer_constructor_base(opt, "s8"), __bearer_dv_extract_s8(get(opt, "fallback"), 0))
+}
+function s16(value : as string, opt : dval = {}) s16 {
+    __bearer_constructor_options(opt, "s16", true)
+    -> __bearer_dv_parse_s16(value, __bearer_constructor_base(opt, "s16"), __bearer_dv_extract_s16(get(opt, "fallback"), 0))
+}
 function s32(value : as string, opt : dval = {}) s32 {
     __bearer_constructor_options(opt, "s32", true)
     -> __bearer_dv_parse_s32(value, __bearer_constructor_base(opt, "s32"), __bearer_dv_extract_s32(get(opt, "fallback"), 0))
@@ -121,9 +141,25 @@ function s64(value : as string, opt : dval = {}) s64 {
     __bearer_constructor_options(opt, "s64", true)
     -> __bearer_dv_parse_s64(value, __bearer_constructor_base(opt, "s64"), __bearer_dv_extract_s64(get(opt, "fallback"), 0))
 }
+function u8(value : as string, opt : dval = {}) u8 {
+    __bearer_constructor_options(opt, "u8", true)
+    -> __bearer_dv_parse_u8(value, __bearer_constructor_base(opt, "u8"), __bearer_dv_extract_u8(get(opt, "fallback"), 0))
+}
+function u16(value : as string, opt : dval = {}) u16 {
+    __bearer_constructor_options(opt, "u16", true)
+    -> __bearer_dv_parse_u16(value, __bearer_constructor_base(opt, "u16"), __bearer_dv_extract_u16(get(opt, "fallback"), 0))
+}
+function u32(value : as string, opt : dval = {}) u32 {
+    __bearer_constructor_options(opt, "u32", true)
+    -> __bearer_dv_parse_u32(value, __bearer_constructor_base(opt, "u32"), __bearer_dv_extract_u32(get(opt, "fallback"), 0))
+}
 function u64(value : as string, opt : dval = {}) u64 {
     __bearer_constructor_options(opt, "u64", true)
     -> __bearer_dv_parse_u64(value, __bearer_constructor_base(opt, "u64"), __bearer_dv_extract_u64(get(opt, "fallback"), 0))
+}
+function f32(value : as string, opt : dval = {}) f32 {
+    __bearer_constructor_options(opt, "f32", false)
+    -> __bearer_dv_extract_f32(dval(trim(value)), __bearer_dv_extract_f32(get(opt, "fallback"), 0.0))
 }
 function f64(value : as string, opt : dval = {}) f64 {
     __bearer_constructor_options(opt, "f64", false)
@@ -159,11 +195,9 @@ function __bearer_text_split_space() s32 { -> 9 }
 function __bearer_text_split_utf8() s32 { -> 10 }
 function __bearer_text_split_http_headers() s32 { -> 11 }
 function __bearer_text_split_kv() s32 { -> 12 }
+function __bearer_text_join_kv() s32 { -> 14 }
 function __bearer_text_sort() s32 { -> 13 }
 function __bearer_route_parse_uri() s32 { -> 0 }
-function __bearer_route_route_path_normalize() s32 { -> 1 }
-function __bearer_route_route_path_is_safe() s32 { -> 2 }
-function __bearer_route_route_path_sanitize() s32 { -> 3 }
 function __bearer_route_runtime_safe_key() s32 { -> 4 }
 function __bearer_diagnostic_signal_name() s32 { -> 0 }
 function __bearer_diagnostic_backtrace_capture() s32 { -> 1 }
@@ -197,9 +231,6 @@ function __bearer_crypto_password_verify() s32 { -> 6 }
 function __bearer_filesystem_basename() s32 { -> 0 }
 function __bearer_filesystem_dirname() s32 { -> 1 }
 function __bearer_filesystem_path_join() s32 { -> 2 }
-function __bearer_filesystem_path_real() s32 { -> 3 }
-function __bearer_filesystem_path_is_within() s32 { -> 4 }
-function __bearer_filesystem_expand_path() s32 { -> 5 }
 function __bearer_filesystem_file_get_contents() s32 { -> 6 }
 function __bearer_filesystem_file_put_contents() s32 { -> 7 }
 function __bearer_filesystem_file_append() s32 { -> 8 }
@@ -217,6 +248,7 @@ function __bearer_filesystem_dir_list() s32 { -> 19 }
 function __bearer_filesystem_dir_remove() s32 { -> 20 }
 function __bearer_filesystem_cwd_get() s32 { -> 21 }
 function __bearer_filesystem_cwd_set() s32 { -> 22 }
+function __bearer_filesystem_path_normalize() s32 { -> 23 }
 function __bearer_request_ob_start() s32 { -> 0 }
 function __bearer_request_ob_close() s32 { -> 1 }
 function __bearer_request_ob_get() s32 { -> 2 }
@@ -230,7 +262,6 @@ function __bearer_request_csrf_token() s32 { -> 10 }
 function __bearer_request_csrf_valid() s32 { -> 11 }
 function __bearer_request_csrf_rotate() s32 { -> 12 }
 function __bearer_request_csrf_field() s32 { -> 13 }
-function __bearer_request_request_route_from_raw_path() s32 { -> 20 }
 function __bearer_request_request_perf() s32 { -> 21 }
 function __bearer_cache_memcache_connect() s32 { -> 0 }
 function __bearer_cache_memcache_command() s32 { -> 1 }
@@ -245,7 +276,6 @@ function __bearer_process_job_status() s32 { -> 3 }
 function __bearer_process_job_result() s32 { -> 4 }
 function __bearer_process_job_await() s32 { -> 5 }
 function __bearer_process_job_cancel() s32 { -> 6 }
-function __bearer_process_process_start_directory() s32 { -> 7 }
 function __bearer_process_server_start_http() s32 { -> 8 }
 function __bearer_process_server_stop() s32 { -> 9 }
 function __bearer_process_task_submit() s32 { -> 10 }
@@ -283,7 +313,8 @@ function __bearer_codec_json_decode() s32 { -> 4 }
 function print(...values : as string) {
     for value := values { __bearer_print_bytes(value) }
 }
-function find(haystack : string, needle : string) s32 { -> __bearer_string_find(haystack, needle) }
+function flush_output() bool { -> __bearer_flush_output() }
+function find(haystack : string, needle : string) s64 { -> s64(__bearer_string_find(haystack, needle)) }
 function contains(haystack : string, needle : string) bool { -> __bearer_string_find(haystack, needle) != -1 }
 function replace(value : string, needle : string, replacement : string) string { -> __bearer_string_replace(value, needle, replacement) }
 function lower(value : string) string { -> __bearer_string_lower(value) }
@@ -367,11 +398,23 @@ function str_starts_with(haystack : string, needle : string) bool { -> bool(__be
 function str_ends_with(haystack : string, needle : string) bool { -> bool(__bearer_text_parsing_brrb(__bearer_text_str_ends_with(), dval(haystack), needle, dval(false))) }
 function encode_query(map : dval) string { -> string(__bearer_text_parsing_brrb(__bearer_text_encode_query(), map, "", dval(""))) }
 function parse_query(query : string) dval { -> __bearer_text_parsing_brrb(__bearer_text_parse_query(), dval(query), "", dval("")) }
-// route/path operation order: URI parse, normalize, validate, sanitize, key
+// URI and path operations share one safe-by-default normalizer.
 function parse_uri(uri : string) dval { -> __bearer_route_path_brrb(__bearer_route_parse_uri(), dval(uri), "", dval("")) }
-function route_path_normalize(path : string) string { -> string(__bearer_route_path_brrb(__bearer_route_route_path_normalize(), dval(path), "", dval(""))) }
-function route_path_is_safe(path : string) bool { -> bool(__bearer_route_path_brrb(__bearer_route_route_path_is_safe(), dval(path), "", dval(false))) }
-function route_path_sanitize(path : string, fallback : string = "index") string { -> string(__bearer_route_path_brrb(__bearer_route_route_path_sanitize(), dval(path), fallback, dval(""))) }
+function path_normalize(path : string, opt : dval = {}) string {
+    for ignored, key := opt {
+        if key == "base" || key == "fallback" || key == "within" {
+            if get_type_name(get(opt, key)) != "String" { __bearer_hard_error("path_normalize: option '" + key + "' must be a string"); trap() }
+            continue
+        }
+        if key == "safe" || key == "real" {
+            if get_type_name(get(opt, key)) != "bool" { __bearer_hard_error("path_normalize: option '" + key + "' must be a bool"); trap() }
+            continue
+        }
+        __bearer_hard_error("path_normalize: unknown key '" + key + "'. Valid keys: base, fallback, safe, real, within")
+        trap()
+    }
+    -> string(__bearer_filesystem_brrb(__bearer_filesystem_path_normalize(), dval(path), "", opt))
+}
 function runtime_safe_key(key : string, label : string = "runtime key") string { -> string(__bearer_route_path_brrb(__bearer_route_runtime_safe_key(), dval(key), label, dval(""))) }
 function split(value : string, delimiter : string) dval { -> __bearer_text_parsing_brrb(__bearer_text_split(), dval(value), delimiter, dval("")) }
 function join(items : dval, delimiter : string = "\n") string {
@@ -384,7 +427,37 @@ function regex_split(pattern : string, subject : string, flags : string = "") dv
 function split_space(value : string) dval { -> __bearer_text_parsing_brrb(__bearer_text_split_space(), dval(value), "", dval("")) }
 function split_utf8(value : string, compound : bool = false) dval { -> __bearer_text_parsing_brrb(__bearer_text_split_utf8(), dval(value), "", dval(compound)) }
 function split_http_headers(value : string) dval { -> __bearer_text_parsing_brrb(__bearer_text_split_http_headers(), dval(value), "", dval("")) }
-function split_kv(value : string, separator : string = "=", trim_whitespace : bool = true, uppercase_keys : bool = false) dval { -> __bearer_text_parsing_brrb(__bearer_text_split_kv(), dval(value), separator, dval({"trim": trim_whitespace, "uppercase": uppercase_keys})) }
+function __bearer_kv_string_option(opt : dval, key : string, name : string) bool {
+    if key != "separator" && key != "pair_separator" && key != "escape_chars" { return false }
+    if get_type_name(get(opt, key)) != "String" { __bearer_hard_error(name + ": option '" + key + "' must be a string"); trap() }
+    return true
+}
+function __bearer_split_kv_options(opt : dval) {
+    for ignored, key := opt {
+        if __bearer_kv_string_option(opt, key, "split_kv") { continue }
+        if key == "trim_whitespace" || key == "uppercase_keys" {
+            if get_type_name(get(opt, key)) != "bool" { __bearer_hard_error("split_kv: option '" + key + "' must be a bool"); trap() }
+            continue
+        }
+        __bearer_hard_error("split_kv: unknown key '" + key + "'. Valid keys: separator, pair_separator, escape_chars, trim_whitespace, uppercase_keys")
+        trap()
+    }
+}
+function __bearer_join_kv_options(opt : dval) {
+    for ignored, key := opt {
+        if __bearer_kv_string_option(opt, key, "join_kv") { continue }
+        __bearer_hard_error("join_kv: unknown key '" + key + "'. Valid keys: separator, pair_separator, escape_chars")
+        trap()
+    }
+}
+function split_kv(value : string, opt : dval = {}) dval {
+    __bearer_split_kv_options(opt)
+    -> __bearer_text_parsing_brrb(__bearer_text_split_kv(), dval(value), "", opt)
+}
+function join_kv(value : dval, opt : dval = {}) string {
+    __bearer_join_kv_options(opt)
+    -> string(__bearer_text_parsing_brrb(__bearer_text_join_kv(), value, "", opt))
+}
 function sort(items : dval) dval { -> __bearer_text_parsing_brrb(__bearer_text_sort(), items, "", dval("")) }
 function each(items : dval, callback : function(value : string) string) { for item, key := items { var ignored := callback(string(item)) } }
 // runtime-diagnostic operation order: signal, backtrace, sleep, value dump
@@ -413,7 +486,7 @@ function markdown_to_html(source : string, options : dval) string { -> string(__
 function markdown_to_ast(source : string) dval { -> __bearer_codec_archive_brrb(__bearer_archive_markdown_to_ast(), dval(source), "", dval({})) }
 function markdown_to_ast(source : string, options : dval) dval { -> __bearer_codec_archive_brrb(__bearer_archive_markdown_to_ast(), dval(source), "", options) }
 // Capy scalars are values: return the advanced offset for reassignment.
-function json_consume_space(source : string, index : s32) s32 { -> s32(__bearer_codec_archive_brrb(__bearer_archive_json_consume_space(), dval(source), "", dval(index))) }
+function json_consume_space(source : string, index : s64) s64 { -> s64(__bearer_codec_archive_brrb(__bearer_archive_json_consume_space(), dval(source), "", dval(index))) }
 function json_encode(value : dval) string { -> string(__bearer_codec_archive_brrb(__bearer_archive_json_encode(), value, "", dval(""))) }
 function json_encode(value : string) string { -> string(__bearer_codec_archive_brrb(__bearer_archive_json_encode_10(), dval(value), "", dval(""))) }
 function html_escape(value : string) string { -> string(__bearer_codec_archive_brrb(__bearer_archive_html_escape(), dval(value), "", dval(""))) }
@@ -429,9 +502,6 @@ function zip_extract(path : string, destination : string) bool { -> bool(__beare
 function basename(path : string) string { -> string(__bearer_filesystem_brrb(__bearer_filesystem_basename(), dval(path), "", dval(""))) }
 function dirname(path : string) string { -> string(__bearer_filesystem_brrb(__bearer_filesystem_dirname(), dval(path), "", dval(""))) }
 function path_join(base : string, child : string) string { -> string(__bearer_filesystem_brrb(__bearer_filesystem_path_join(), dval(base), child, dval(""))) }
-function path_real(path : string) string { -> string(__bearer_filesystem_brrb(__bearer_filesystem_path_real(), dval(path), "", dval(""))) }
-function path_is_within(path : string, root : string) bool { -> bool(__bearer_filesystem_brrb(__bearer_filesystem_path_is_within(), dval(path), root, dval(false))) }
-function expand_path(path : string, relative_to_path : string = "") string { -> string(__bearer_filesystem_brrb(__bearer_filesystem_expand_path(), dval(path), relative_to_path, dval(""))) }
 function file_get_contents(path : string) string { -> string(__bearer_filesystem_brrb(__bearer_filesystem_file_get_contents(), dval(path), "", dval(""))) }
 function file_put_contents(path : string, content : string) bool { -> bool(__bearer_filesystem_brrb(__bearer_filesystem_file_put_contents(), dval(path), "", dval(content))) }
 function file_append(path : string, content : string) bool { -> bool(__bearer_filesystem_brrb(__bearer_filesystem_file_append(), dval(path), "", dval(content))) }
@@ -470,7 +540,6 @@ function csrf_token(session_name : string = "bearer-session", token_name : strin
 function csrf_valid(submitted : string, session_name : string = "bearer-session", token_name : string = "csrf_token") bool { -> bool(__bearer_request_workspace_brrb(__bearer_request_csrf_valid(), dval(submitted), session_name, dval(token_name))) }
 function csrf_rotate(session_name : string = "bearer-session", token_name : string = "csrf_token") { var ignored := __bearer_request_workspace_brrb(__bearer_request_csrf_rotate(), dval(session_name), token_name, dval("")) }
 function csrf_field(session_name : string = "bearer-session", token_name : string = "csrf_token", field_name : string = "") string { -> string(__bearer_request_workspace_brrb(__bearer_request_csrf_field(), dval(session_name), token_name, dval(field_name))) }
-function route_from_raw_path(raw_path : string, default_path : string = "index") dval { -> __bearer_request_workspace_brrb(__bearer_request_request_route_from_raw_path(), dval(raw_path), default_path, dval("")) }
 function runtime_perf() dval { -> __bearer_request_workspace_brrb(__bearer_request_request_perf(), dval(""), "", dval("")) }
 
 function gen_sha1(value : string) string { -> string(__bearer_crypto_password_brrb(__bearer_crypto_gen_sha1(), dval(value), "", dval(""))) }
@@ -534,8 +603,7 @@ function job_status(job : dval) dval { -> __bearer_process_jobs_brrb(__bearer_pr
 function job_result(job : dval) dval { -> __bearer_process_jobs_brrb(__bearer_process_job_result(), job, "", dval("")) }
 function job_await(job : dval, timeout_ms : s32) dval { -> __bearer_process_jobs_brrb(__bearer_process_job_await(), job, "", dval(timeout_ms)) }
 function job_cancel(job : dval) bool { -> bool(__bearer_process_jobs_brrb(__bearer_process_job_cancel(), job, "", dval(""))) }
-function process_start_directory() string { -> string(__bearer_process_jobs_brrb(__bearer_process_process_start_directory(), dval(""), "", dval(""))) }
-function server_start_http(key : string, bind : string, file : string, callback : string = "") s32 { -> s32(__bearer_process_jobs_brrb(__bearer_process_server_start_http(), dval(key), bind, dval({"file": file, "function": callback}))) }
+function server_start_http(key : string, bind : string, file : string, callback : string = "") s64 { -> s64(__bearer_process_jobs_brrb(__bearer_process_server_start_http(), dval(key), bind, dval({"file": file, "function": callback}))) }
 function server_stop(key : string) bool { -> bool(__bearer_process_jobs_brrb(__bearer_process_server_stop(), dval(key), "", dval(""))) }
 function task(target : string, props : as dval) string { -> string(__bearer_process_jobs_brrb(__bearer_process_task_submit(), dval(target), "", props)) }
 function task_status(id : string) dval { -> __bearer_process_jobs_brrb(__bearer_process_task_status(), dval(id), "", dval("")) }

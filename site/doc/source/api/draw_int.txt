@@ -17,7 +17,5 @@ Bearer uses the request random seed and advances the random index after each cal
 var value := draw_int(u64(1), u64(10))
 print(value >= u64(1), "\n")
 
-:see
-draw_float
-gen_int
-gen_noise32
+:see-group
+noise

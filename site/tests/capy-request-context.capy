@@ -16,7 +16,7 @@ function RENDER(request : dval) {
     if !request.server? { trap() }
     if !request.session? { trap() }
     if !request.props? { trap() }
-    if !request.config? { trap() }
+    if !request.config? || string(request.config.start_directory) == "" { trap() }
     if !request.call? { trap() }
     if !request.connection? { trap() }
     if !request.unit? { trap() }

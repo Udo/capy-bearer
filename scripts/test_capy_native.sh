@@ -22,7 +22,7 @@ python3 - <<'STATIC_GATE'
 from pathlib import Path
 import re
 handlers = re.compile(r'^\s*function\s+(?:RENDER|COMPONENT(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)?|CLI|WS|TASK(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)?|INIT|ONCE|SERVE_HTTP(?:\s*:\s*[A-Za-z_][A-Za-z0-9_]*)?)\s*(?:\(([^)]*)\))?\s*\{', re.M)
-removed = re.compile(r'\b(?:request_context|request_param|request_get|request_post|request_cookie|request_session|request_body|request_base_url|request_script_url|request_query_path|request_query_route|cli_input|cli_arg|ws_message|ws_connection_id|ws_scope|ws_opcode|ws_is_binary|ws_connections|ws_connection_count|to_bool|to_f64|to_s64|to_u64|to_lower|to_upper|dval_to_json|dval_to_stringmap|request_route_from_raw_path|request_perf|password_needs_rehash|ascii_safe_name|component_exists|memcache_escape_key|sha256_hex|hmac_sha256_hex|shell_spawn)\s*\(')
+removed = re.compile(r'\b(?:request_context|request_param|request_get|request_post|request_cookie|request_session|request_body|request_base_url|request_script_url|request_query_path|request_query_route|cli_input|cli_arg|ws_message|ws_connection_id|ws_scope|ws_opcode|ws_is_binary|ws_connections|ws_connection_count|to_bool|to_f64|to_s64|to_u64|to_lower|to_upper|dval_to_json|dval_to_stringmap|request_route_from_raw_path|expand_path|path_is_within|path_real|route_from_raw_path|route_path_is_safe|route_path_normalize|route_path_sanitize|request_perf|password_needs_rehash|ascii_safe_name|component_exists|memcache_escape_key|sha256_hex|hmac_sha256_hex|shell_spawn|process_start_directory)\s*\(')
 paths = [path for line in __import__('subprocess').check_output(['git', 'ls-files', '*.capy'], text=True).splitlines() if (path := Path(line)).is_file()]
 errors = []
 for path in paths:

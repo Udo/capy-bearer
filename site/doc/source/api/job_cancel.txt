@@ -14,7 +14,5 @@ job : a job ID as `dval`
 var job := shell_exec("sleep 5", {background: true, timeout_ms: 10000})
 print(job_cancel(job), "\n")
 
-:see
-job_await
-job_result
-job_status
+:see-group
+jobs

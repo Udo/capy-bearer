@@ -19,6 +19,5 @@ var user := dval({"name": "Ada", "role": "admin"})
 user = delete(user, "role")
 print(has(user, "role"), "\n")
 
-:see
-type/dvalue
-has
+:see-group
+dval-access

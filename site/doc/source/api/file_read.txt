@@ -19,8 +19,5 @@ var reader := file_open("/tmp/doc-read.txt", "r")
 print(file_read(reader, u64(5)), "\n")
 file_close(reader)
 
-:see
-file_open
-file_pread
-file_seek
-file_close
+:see-group
+file-handles

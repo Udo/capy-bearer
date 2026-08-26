@@ -20,7 +20,5 @@ var config := dval({})
 config = get_or_create(config, "host", "localhost")
 print(config.host, "\n")
 
-:see
-type/dvalue
-set
-has
+:see-group
+dval-access

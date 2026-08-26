@@ -16,6 +16,5 @@ Use `brb_decode` to restore the value.
 var packed := brb_encode(dval({"name": "Ada"}))
 print(brb_decode(packed)["name"], "\n")
 
-:see
-brb_decode
-json_encode
+:see-group
+encoding

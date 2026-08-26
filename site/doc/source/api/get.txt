@@ -18,6 +18,5 @@ The copied child, or `none`.
 var user := dval({"email": "ada@example.test"})
 print(get(user, "email"), "\n")
 
-:see
-type/dvalue
-has
+:see-group
+dval-access

@@ -13,3 +13,6 @@ var db := sqlite_connect(":memory:")
 var rows := sqlite_query(db, "select :name as name", dval({"name": "Ada"}))
 print(rows[0]["name"], "\n")
 sqlite_disconnect(db)
+
+:see-group
+sqlite

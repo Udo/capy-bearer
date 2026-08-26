@@ -17,7 +17,8 @@ An empty file and an unreadable file both return `""`. Use `file_exists` when yo
 file_put_contents("/tmp/doc-get.txt", "hello")
 print(file_get_contents("/tmp/doc-get.txt"), "\n")
 
+:see-group
+files
+
 :see
-file_put_contents
-file_append
 file_open

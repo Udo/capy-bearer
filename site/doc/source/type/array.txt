@@ -1,0 +1,72 @@
+:title
+array
+
+:sig
+[element_type]
+
+:content
+An array holds a variable number of values of one type, written `[s32]`, `[string]`, and so on. Literals use square brackets and indexing is zero-based:
+
+:content
+
+```capy
+function RENDER(request : dval) {
+    var scores := [10, 20, 30]
+    print(scores[0], " ", length(scores), "\n")
+}
+```
+
+:content
+
+## Identity is shared
+
+Assignment, parameter passing, returning and capturing all share one array — they do not copy it. A function that mutates an array's contents changes what the caller sees:
+
+:content
+
+```capy
+function append_total(values : [s32]) {
+    values.push(60)
+}
+
+function RENDER(request : dval) {
+    var values := [10, 20]
+    append_total(values)
+    print(length(values), " ", values[2], "\n")
+}
+```
+
+:content
+
+The binding itself is immutable, so `values = [3]` inside that function is a compile error — you can change the contents, not which array the name refers to. Growth preserves identity, so a `push` that reallocates is still the same array to every holder.
+
+## Methods
+
+`push`, `pop`, `insert`, `remove`, `clear`, `reserve`, `resize` and `capacity` are called on the array itself. `length()` returns the count.
+
+## Iteration
+
+A `for` loop reads items in order, with an optional `s32` index after the value:
+
+:content
+
+```capy
+function RENDER(request : dval) {
+    var names := ["Ada", "Grace"]
+    for name, index := names {
+        print(index, ": ", name, "\n")
+    }
+}
+```
+
+:content
+
+The loop rechecks the current length each iteration, so it stops safely after a shrink and can visit items appended while it runs. The loop value is a copy of the item, not an assignable position — use an index to replace one.
+
+:example capy render
+var scores := [10, 20, 30]
+scores.push(40)
+print(scores[0], " ", length(scores), "\n")
+
+:see-group
+constructors

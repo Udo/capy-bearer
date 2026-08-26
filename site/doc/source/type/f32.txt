@@ -1,0 +1,18 @@
+:sig
+function f32(value : as string, opt : dval = {}) f32
+
+:params
+value : scalar value or text to convert
+opt : options map with `fallback`
+
+:returns
+A 32-bit floating-point value, or `opt.fallback`.
+
+:content
+`f32()` converts finite text to a 32-bit floating-point value. Invalid, non-finite, or out-of-range text returns `opt.fallback`. The default fallback is `0.0`.
+
+:example capy render
+print(f32("1.5"), "\n")
+
+:see-group
+constructors

@@ -16,4 +16,5 @@ This function does not change `items`.
 var items := split("one,two", ",")
 print(every(items, function(value : string) bool { return value != "" }), "\n")
 
-:see
+:see-group
+collections

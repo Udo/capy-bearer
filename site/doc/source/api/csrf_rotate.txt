@@ -16,6 +16,5 @@ csrf_rotate("capy-doc-session")
 var new_token := csrf_token("capy-doc-session")
 print(old_token != new_token, "\n")
 
-:see
-csrf_token
-csrf_valid
+:see-group
+csrf

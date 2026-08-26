@@ -1,5 +1,5 @@
 :sig
-function json_consume_space(source : string, index : s32) s32
+function json_consume_space(source : string, index : s64) s64
 
 :params
 source : JSON source text
@@ -14,6 +14,5 @@ The byte offset after JSON whitespace.
 :example capy render
 print(json_consume_space(" \t\nvalue", 0), "\n")
 
-:see
-json_decode
-json_encode
+:see-group
+encoding

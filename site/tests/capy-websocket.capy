@@ -3,14 +3,20 @@ function WS(request : dval) {
     var scope := string(request.websocket.scope)
     var ids := request.websocket.connections
     if length(connection) > 0 && length(ids) > 0 && string(ids[0]) == connection {
-        if s32(request.websocket.opcode) == 1 && !bool(request.websocket.binary) {
-            ws_send("echo:" + string(request.body), false, scope)
-            ws_send_to(connection, "direct:" + string(request.body), false)
+        if string(request.body) == "flush" {
+            var accepted := flush_output()
+            ws_send(if accepted { -> "flush-accepted" } else { -> "flush-rejected" }, false)
             ws_close()
         } else {
-            if s32(request.websocket.opcode) == 2 && bool(request.websocket.binary) {
-                ws_send(string(request.body), true, scope)
+            if s32(request.websocket.opcode) == 1 && !bool(request.websocket.binary) {
+                ws_send("echo:" + string(request.body), false, scope)
+                ws_send_to(connection, "direct:" + string(request.body), false)
                 ws_close()
+            } else {
+                if s32(request.websocket.opcode) == 2 && bool(request.websocket.binary) {
+                    ws_send(string(request.body), true, scope)
+                    ws_close()
+                }
             }
         }
     }

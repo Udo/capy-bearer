@@ -10,3 +10,6 @@ Use `socket_read` to read data from a socket. It can return an empty string when
 :example capy render
 var handle := socket_connect("127.0.0.1", 1)
 if handle != 0 { print(socket_read(handle, 64, 1), "\n"); socket_close(handle) }
+
+:see-group
+sockets

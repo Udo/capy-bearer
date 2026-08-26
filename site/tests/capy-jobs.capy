@@ -36,11 +36,9 @@ function CLI(request : dval) {
     var task_status_value := "bad-task"
     if string(capy_status["id"]) == capy_task && string(capy_done["state"]) == "succeeded" && string(capy_named_done["state"]) == "succeeded" && file_get_contents("/tmp/bearer-task-capy.txt") == "capy-caller" && file_get_contents("/tmp/bearer-task-capy-named.txt") == "capy-caller" { task_status_value = "tasks" }
     if string(task_cancelled["id"]) != cancel_task || (string(cancel_done["state"]) != "canceled" && string(cancel_done["state"]) != "succeeded") { task_status_value = "bad-cancel" }
-    var cwd_status := "no-cwd"
-    if process_start_directory() != "" { cwd_status = "cwd" }
     var server_status := "no-server"
     if server > 0 && stopped { server_status = "server" }
-    print(shell_status, "|", string(get_by_path(done, "result/stdout"), {fallback: "missing"}), "|", string(get_by_path(status, "state"), {fallback: "missing"}), "|", string(get_by_path(stored, "state"), {fallback: "missing"}), "|", string(get_by_path(failed, "state"), {fallback: "missing"}), "|", cancel_status, "|", string(get_by_path(cancelled_status, "state"), {fallback: "missing"}), "|", task_status_value, "|", cwd_status, "|", server_status, "|")
+    print(shell_status, "|", string(get_by_path(done, "result/stdout"), {fallback: "missing"}), "|", string(get_by_path(status, "state"), {fallback: "missing"}), "|", string(get_by_path(stored, "state"), {fallback: "missing"}), "|", string(get_by_path(failed, "state"), {fallback: "missing"}), "|", cancel_status, "|", string(get_by_path(cancelled_status, "state"), {fallback: "missing"}), "|", task_status_value, "|", server_status, "|")
     }
     print(arc_live())
 }

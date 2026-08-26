@@ -457,7 +457,6 @@ MarkupText::MarkupText(Location l, std::string v) : Expr(ExprKind::MarkupText, s
 MarkupField::MarkupField(Location l, Expr* v, bool e, bearer::MarkupContext c)
 	: Expr(ExprKind::MarkupField, std::move(l)), value(v), escaped(e), context(c) {}
 Markup::Markup(Location l) : Expr(ExprKind::Markup, std::move(l)) {}
-TupleExpr::TupleExpr(Location l) : Expr(ExprKind::Tuple, std::move(l)) {}
 ArrayLiteral::ArrayLiteral(Location l) : Expr(ExprKind::Array, std::move(l)) {}
 Spread::Spread(Location l, Expr* v) : Expr(ExprKind::Spread, std::move(l)), value(v) {}
 MapLiteral::MapLiteral(Location l) : Expr(ExprKind::Map, std::move(l)) {}
@@ -740,20 +739,15 @@ Expr* Parser::prefix()
 
 Expr* Parser::parenthesized(Location location)
 {
-	TupleExpr* tuple = program_.make<TupleExpr>(location);
 	skip_separators();
 	if (match(")"))
-		return tuple;
-	while (true)
-	{
-		tuple->items.push_back(expression());
-		skip_separators();
-		if (!match(","))
-			break;
-		skip_separators();
-	}
+		fail(location, "empty grouping parentheses are not valid");
+	Expr* value = expression();
+	skip_separators();
+	if (match(","))
+		fail(location, "comma-separated expressions are not supported here");
 	require(")");
-	return tuple->items.size() == 1 ? tuple->items[0] : tuple;
+	return value;
 }
 Expr* Parser::array_literal(Location location)
 {
@@ -841,7 +835,7 @@ Expr* Parser::function_expression(Location location)
 {
 	if (token().text != "(")
 		fail(token().location, "anonymous function requires a parameter expression");
-	std::vector<Parameter> parameter_list = parameters(parenthesized(take().location));
+	std::vector<Parameter> parameter_list = parameters();
 	Expr* return_type = token().text == "{" ? nullptr : expression(81);
 	if (token().text != "{")
 	{
@@ -859,6 +853,7 @@ Expr* Parser::function_expression(Location location)
 Expr* Parser::function(Location location, bool host, bool trace_host)
 {
 	Token name = require_identifier("function name");
+	skip_separators();
 	if (!host && match(":"))
 	{
 		if (name.text != "RENDER" && name.text != "COMPONENT" && name.text != "SERVE_HTTP" && name.text != "TASK")
@@ -866,22 +861,12 @@ Expr* Parser::function(Location location, bool host, bool trace_host)
 		Token suffix = require_identifier("named handler suffix");
 		name.text += ":" + suffix.text;
 	}
-	std::vector<Expr*> header;
-	while (token().text != "{")
-	{
-		if (host && (token().kind == TokenKind::newline || token().kind == TokenKind::eof || token().text == ";"))
-			break;
-		if (token().kind == TokenKind::newline)
-		{
-			take();
-			continue;
-		}
-		if (token().kind == TokenKind::eof)
-			fail(token().location, "expected function code block");
-		header.push_back(token().text == "(" ? parenthesized(take().location) : expression(0, host));
-		if (header.size() > 2)
-			fail(header.back()->location, "function declaration has more than parameter and return expressions");
-	}
+	std::vector<Parameter> parameter_list;
+	Expr* return_type = nullptr;
+	if (token().text == "(")
+		parameter_list = parameters();
+	if (token().text != "{" && (!host || (token().kind != TokenKind::newline && token().kind != TokenKind::eof && token().text != ";")))
+		return_type = expression(0, host);
 	Function* result = program_.make<Function>(location, name.text);
 	if (host)
 	{
@@ -891,44 +876,28 @@ Expr* Parser::function(Location location, bool host, bool trace_host)
 		result->trace_host = trace_host;
 	}
 	else
-	{
-		Location body_location = require("{").location;
-		result->body = block(body_location);
-	}
-	Expr* parameter_expression;
-	if (header.size() == 1 && !is_parameter_expression(header[0]))
-	{
-		parameter_expression = program_.make<TupleExpr>(location);
-		result->return_type = header[0];
-	}
-	else
-	{
-		parameter_expression = header.empty() ? static_cast<Expr*>(program_.make<TupleExpr>(location)) : header[0];
-		result->return_type = header.size() == 2 ? header[1] : nullptr;
-	}
-	result->parameters = parameters(parameter_expression);
+		result->body = block(require("{").location);
+	result->parameters = std::move(parameter_list);
+	result->return_type = return_type;
 	return result;
 }
-bool Parser::is_parameter_expression(Expr* expression_value) const
+std::vector<Parameter> Parser::parameters()
 {
-	std::vector<Expr*> values =
-		expression_value->kind == ExprKind::Tuple ? static_cast<TupleExpr*>(expression_value)->items : std::vector<Expr*>{expression_value};
-	return std::all_of(values.begin(), values.end(), [](Expr* value)
+	require("(");
+	std::vector<Expr*> values;
+	skip_separators();
+	if (!match(")"))
 	{
-		if (auto assignment = dynamic_cast<Binary*>(value); assignment && assignment->operator_ == "=")
-			value = assignment->left;
-		if (value->kind != ExprKind::Annotation)
-			return false;
-		Expr* binding = static_cast<Annotation*>(value)->value;
-		if (auto spread = dynamic_cast<Spread*>(binding))
-			binding = spread->value;
-		return binding->kind == ExprKind::Name;
-	});
-}
-std::vector<Parameter> Parser::parameters(Expr* expression_value)
-{
-	std::vector<Expr*> values =
-		expression_value->kind == ExprKind::Tuple ? static_cast<TupleExpr*>(expression_value)->items : std::vector<Expr*>{expression_value};
+		while (true)
+		{
+			values.push_back(expression());
+			skip_separators();
+			if (!match(","))
+				break;
+			skip_separators();
+		}
+		require(")");
+	}
 	std::vector<Parameter> result;
 	std::unordered_set<std::string> names;
 	for (std::size_t i = 0; i < values.size(); ++i)
@@ -1031,16 +1000,9 @@ Expr* Parser::result_expr(Location location, bool yield)
 			take();
 	if (!yield && (token().kind == TokenKind::eof || token().text == ";" || token().text == "}"))
 		return program_.make<Return>(location, nullptr);
-	std::vector<Expr*> values = {expression()};
-	while (match(","))
-		values.push_back(expression());
-	Expr* value = values[0];
-	if (values.size() > 1)
-	{
-		TupleExpr* tuple = program_.make<TupleExpr>(location);
-		tuple->items = std::move(values);
-		value = tuple;
-	}
+	Expr* value = expression();
+	if (match(","))
+		fail(location, "comma-separated expressions are not supported here");
 	if (yield && (value->kind == ExprKind::Return || value->kind == ExprKind::Yield || value->kind == ExprKind::Break || value->kind == ExprKind::Continue))
 		fail(value->location, "block yield requires a value expression");
 	return yield ? static_cast<Expr*>(program_.make<Yield>(location, value)) : program_.make<Return>(location, value);
@@ -1111,18 +1073,17 @@ std::string type_name(const Expr& expression_value)
 		}
 		return result + ") " + (value.return_type ? type_name(*value.return_type) : "void");
 	}
-	if (expression_value.kind == ExprKind::Tuple || expression_value.kind == ExprKind::Array)
+	if (expression_value.kind == ExprKind::Array)
 	{
-		const std::vector<Expr*>& values = expression_value.kind == ExprKind::Tuple ? static_cast<const TupleExpr&>(expression_value).items
-																					: static_cast<const ArrayLiteral&>(expression_value).items;
-		std::string result = expression_value.kind == ExprKind::Tuple ? "(" : "[";
+		const auto& values = static_cast<const ArrayLiteral&>(expression_value).items;
+		std::string result = "[";
 		for (std::size_t i = 0; i < values.size(); ++i)
 		{
 			if (i)
 				result += ',';
 			result += type_name(*values[i]);
 		}
-		return result + (expression_value.kind == ExprKind::Tuple ? ")" : "]");
+		return result + "]";
 	}
 	fail(expression_value.location, "expected type expression");
 }

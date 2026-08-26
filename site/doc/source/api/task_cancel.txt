@@ -10,3 +10,6 @@ Use `task_cancel` to request task cancellation. Check the returned status becaus
 :example capy render
 var status := task_cancel("")
 print(string(status["state"]), "\n")
+
+:see-group
+tasks

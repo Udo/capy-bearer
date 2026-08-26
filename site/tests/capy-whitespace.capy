@@ -1,16 +1,16 @@
 function add
 (
-    left : s32,
-    right : s32
+    left : s64,
+    right : s64
 )
-s32
+s64
 {
     -> left
     +
     right
 }
 
-function multiline_return() s32 {
+function multiline_return() s64 {
     ->
     9
 }

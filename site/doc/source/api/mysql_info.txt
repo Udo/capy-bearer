@@ -81,9 +81,8 @@ An unrecognised `key` is a hard error naming the key and listing the valid ones.
 
 Reading state from a handle that never connected returns the fallback for each key rather than raising — check `connection` first when the connection itself is in doubt.
 
+:see-group
+mysql
+
 :see
-mysql_connect
-mysql_disconnect
-mysql_escape
-mysql_query
 sqlite_info

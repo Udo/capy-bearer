@@ -67,6 +67,9 @@ Then add one standard-library call, such as `request.out.headers["Content-Type"]
 
 Continue with basic source syntax before you add request data or application APIs.
 
+:see-group
+guides
+
 :see
 handler/render
 handler/cli

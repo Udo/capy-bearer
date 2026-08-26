@@ -17,3 +17,6 @@ if path != "" {
     print(file_get_contents(path), "\n")
     file_unlink(path)
 }
+
+:see-group
+files

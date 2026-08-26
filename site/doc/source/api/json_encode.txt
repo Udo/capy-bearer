@@ -14,6 +14,5 @@ JSON text.
 :example capy render
 print(json_encode(dval({"name": "Ada", "middle": none})), "\n")
 
-:see
-json_decode
-html_escape
+:see-group
+encoding

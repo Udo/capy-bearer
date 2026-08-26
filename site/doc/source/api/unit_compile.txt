@@ -7,13 +7,11 @@ path : unit path. An empty path selects the current unit
 :returns
 `true` if the compiler compiles the unit
 
-:see
-unit_info
-units_list
-unit_call
-
 :content
 `unit_compile` compiles a unit.
 
 :example capy render
 print(unit_compile("capy-files.capy"), "\n")
+
+:see-group
+units

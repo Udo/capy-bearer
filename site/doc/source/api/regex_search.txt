@@ -15,3 +15,6 @@ The result contains `matched`. A matching result also contains `match`, `start`,
 :example capy render
 var match := regex_search("[a-z]+", "123 capy")
 print(string(match.match), "\n")
+
+:see-group
+regex

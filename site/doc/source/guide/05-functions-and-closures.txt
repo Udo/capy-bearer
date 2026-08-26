@@ -106,7 +106,7 @@ A lambda can read captured outer values. Scalar captures copy. Array, `dval`, an
 function RENDER(request : dval) {
     var offset := 2
     var values := [10]
-    var update := function() s32 {
+    var update := function() s64 {
         values.push(20)
         -> offset + length(values)
     }
@@ -123,7 +123,7 @@ A `dval` can store a named function or a closure in the current workspace. Read 
 function add_one(value : s32) s32 { -> value + 1 }
 
 function RENDER(request : dval) {
-    var step := 2
+    var step := s32(2)
     var callbacks := {named: add_one, captured: function(value : s32) s32 { -> value + step }}
     var named : function(value : s32) s32 = callbacks.named
     var captured : function(value : s32) s32 = callbacks.captured
@@ -157,6 +157,9 @@ function RENDER(request : dval) {
 :content
 
 Use `...items` to spread an array into a variadic call.
+
+:see-group
+guides
 
 :see
 capy-04-expressions-and-control-flow

@@ -18,6 +18,8 @@ print("fragment")
 var captured := ob_get_close()
 print("captured: ", captured, "\n")
 
+:see-group
+output
+
 :see
 type/request
-ob_get_close

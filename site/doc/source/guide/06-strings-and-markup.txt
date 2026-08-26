@@ -2,23 +2,24 @@
 6. Strings and HTML
 
 :content
-Use strings for text and markup expressions for HTML. Markup escapes ordinary strings before they enter the response.
+Use strings for text and HTML. A string literal and an HTML literal both yield a `string` value.
 
 ## Escape dynamic text
 
+:content
+`<?= value ?>` selects an encoding from its location. HTML text and quoted attributes escape `&`, `<`, `>`, quotes, and apostrophes.
+
 :example capy render
 function RENDER(request : dval) {
-    var name := "<Ada>"
-    print(<><p>Hello, <?= name ?></p></>, "\n")
+    var value := "<Ada>"
+    print(<><p title="<?= value ?>"><?= value ?></p></>, "\n")
 }
 
 :output
-<p>Hello, &lt;Ada&gt;</p>
+<p title="&lt;Ada&gt;">&lt;Ada&gt;</p>
 
 :content
-`<?= name ?>` selects an encoding from its location. HTML text and quoted attributes escape `&`, `<`, `>`, quotes, and apostrophes.
-
-Inside a `script` element, a string becomes one self-contained JavaScript literal. The encoder protects the closing tag and JavaScript line separators. Inside a `style` element, a string becomes one self-contained CSS literal. Integer and Boolean values remain scalar values. `f64` interpolation is not supported in these elements.
+Inside a `script` element, a string becomes one JavaScript literal. The encoder protects the closing tag and JavaScript line separators. Inside a `style` element, a string becomes one CSS literal. Integer and Boolean values remain scalar values. `f64` interpolation is not supported in these elements.
 
 :example capy render
 function RENDER(request : dval) {
@@ -30,13 +31,15 @@ function RENDER(request : dval) {
 }
 
 :content
-
-Script and style interpolation must start at a value boundary. Static source after it can apply an operator or a CSS unit. Do not put interpolation inside an existing string, template literal, or comment. Attribute values must use quotes. Tag and attribute names cannot contain interpolation.
+Script and style interpolation must start at a value boundary. Static source after it can apply an operator or a CSS unit. Do not put interpolation inside a string, template literal, or comment. Attribute values must use quotes. Tag and attribute names cannot contain interpolation.
 
 URL, event-handler, and inline-style attributes use HTML attribute escaping. Validate these values for their application context before interpolation.
 
+A `dval` cannot go directly in an HTML literal. Convert it to a `string` first. The `name` value in the previous example follows this rule.
+
 ## String literals
 
+:content
 String literals use double quotes:
 
 :example capy render
@@ -47,7 +50,6 @@ function RENDER(request : dval) {
 }
 
 :content
-
 The supported escapes include `\n`, `\r`, `\t`, `\"`, and `\\`. String positions and lengths count bytes, not Unicode characters.
 
 Use `+` to join strings:
@@ -60,7 +62,6 @@ function RENDER(request : dval) {
 }
 
 :content
-
 Use a constructor to convert a scalar when a function does not already accept `as string`:
 
 :example capy render
@@ -70,49 +71,68 @@ function RENDER(request : dval) {
 }
 
 :content
-
-## Markup expressions
-
-A markup expression starts with `<>` and ends with `</>`:
-
-:example capy render
-function RENDER(request : dval) {
-    var title := "Report"
-    print(<>
-        <h1><?= title ?></h1>
-        <p>Ready</p>
-    </>)
-}
+## HTML literals
 
 :content
-
-The expression has type `markup`. It is a value. It does not write to the response by itself. Use `print(markup_value)` to output it. You can also return `markup` from an ordinary function or insert it into other markup.
+An HTML literal starts with `<>` and ends with `</>`. It yields a `string`. Store it, pass it, return it, or print it like any other string.
 
 :example capy render
-function badge(label : string) markup {
+function badge(label : string) string {
     -> <><strong><?= label ?></strong></>
 }
 
 function RENDER(request : dval) {
-    print(badge("Ready"))
+    var page := <><main><?= badge("Ready") ?></main></>
+    print(page, "\n")
+}
+
+:content
+`<?= value ?>` escapes output at the interpolation site. The interpolation form selects escaping. The value type does not.
+
+When one HTML literal interpolates another with `<?=`, the outer literal escapes the inner string. This double escape is expected. Build one final string instead of nesting HTML fragments through escaped interpolation.
+
+:example capy render
+function RENDER(request : dval) {
+    var inner := <><em><?= "<Ada>" ?></em></>
+    print(<><p><?= inner ?></p></>, "\n")
 }
 
 :output
-<strong>Ready</strong>
+<p>&lt;em&gt;&amp;lt;Ada&amp;gt;&lt;/em&gt;</p>
 
 :content
+Use `<?: value ?>` only for source-controlled HTML text. Raw interpolation emits the string without escaping. It works only in HTML text. Do not use it for request data or other external input.
 
-## Interpolation rule
+:example capy render
+function RENDER(request : dval) {
+    var fragment := "<strong>Ready</strong>"
+    print(<><p><?: fragment ?></p></>, "\n")
+}
 
-`<?= value ?>` escapes output at the interpolation site. `<?: value ?>` emits output without escaping. It works only in HTML text.
+:output
+<p><strong>Ready</strong></p>
 
-The interpolation form selects escaping. The value type does not.
+:content
+A `dval` cannot go directly in an HTML literal. Convert it with `string()` before `<?= ?>` escapes it.
+
+:example capy render
+function RENDER(request : dval) {
+    var value := dval("<Ada>")
+    print(<><p><?= string(value) ?></p></>, "\n")
+}
+
+:output
+<p>&lt;Ada&gt;</p>
 
 ## Common string operations
 
-Use `length`, `substr`, `find`, `contains`, `replace`, `lower`, `upper`, `split`, and `join` for ordinary text work. Use `html_escape` when an API needs escaped text instead of a `markup` value.
+:content
+Use `length`, `substr`, `find`, `contains`, `replace`, `lower`, `upper`, `split`, and `join` for ordinary text work. Use `html_escape` when an API needs an HTML-escaped string.
 
 Strings use automatic reference counting. Assignment and function calls preserve their lifetime. Most programs do not need to call `clone`.
+
+:see-group
+guides
 
 :see
 type/string

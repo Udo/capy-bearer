@@ -1,0 +1,18 @@
+:sig
+function u8(value : as string, opt : dval = {}) u8
+
+:params
+value : scalar value or text to convert
+opt : options map with `fallback` and `base`
+
+:returns
+An unsigned 8-bit integer, or `opt.fallback`.
+
+:content
+`u8()` parses text in the range 0 through 255. Invalid, negative, or out-of-range text returns `opt.fallback`. The default fallback is `0`.
+
+:example capy render
+print(u8("ff", {base: 16}), "\n")
+
+:see-group
+constructors

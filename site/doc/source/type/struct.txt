@@ -1,0 +1,81 @@
+:title
+struct
+
+:sig
+struct Name { field : type, ... }
+
+:content
+A struct is a named, fixed layout of typed fields. Unlike a `dval`, its shape is checked at compile time — a missing or misspelled field is a compile error, not an empty value at runtime.
+
+Declare one at the top level of a unit, then construct it by passing the fields in order:
+
+:content
+
+```capy
+struct Point { x : s32, y : s32 }
+
+function RENDER(request : dval) {
+    var origin := Point(0, 0)
+    print(origin.x, ",", origin.y, "\n")
+}
+```
+
+:content
+
+## Fields are mutable, the binding is shared
+
+Reading and writing fields uses `.`:
+
+:content
+
+```capy
+struct Counter { total : s32 }
+
+function bump(counter : Counter) {
+    counter.total = counter.total + 1
+}
+
+function RENDER(request : dval) {
+    var counter := Counter(0)
+    bump(counter)
+    bump(counter)
+    print(counter.total, "\n")
+}
+```
+
+:content
+
+A struct passed to a function shares identity with the caller's value, so a function that writes a field changes what the caller sees. That is the opposite of a `dval` crossing a unit boundary, which is copied.
+
+## Choosing between a struct and a dval
+
+Use a struct when the shape is known as you write the code and you want the compiler to check it. Use a `dval` when the shape arrives at runtime — request input, JSON, a database row — or when it has to cross a unit boundary, since only `dval` is copied across those.
+
+A struct with a single field also acts as a constructor for that field's type, so `struct Meters { value : f64 }` lets `Meters` be built from an `f64` wherever one is accepted.
+
+## Exporting a struct
+
+`#exports` publishes a struct's layout so another unit can name it after `#import`:
+
+:content
+
+```capy
+#exports Shape
+
+struct Shape { value : s32 }
+
+function RENDER(request : dval) {
+    print(Shape(3).value, "\n")
+}
+```
+
+:example capy render
+struct Point { x : s32, y : s32 }
+
+function RENDER(request : dval) {
+    var origin := Point(3, 4)
+    print(origin.x, ",", origin.y, "\n")
+}
+
+:see-group
+constructors

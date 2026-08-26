@@ -8,11 +8,6 @@ entry : entry name
 :returns
 The uncompressed entry bytes.
 
-:see
-zip_create
-zip_list
-zip_extract
-
 :content
 `zip_read()` returns one ZIP archive entry.
 
@@ -21,3 +16,6 @@ var archive := file_temp("/tmp/capy-zip-") + ".zip"
 zip_create(archive, dval({"note.txt": "hello"}))
 print(zip_read(archive, "note.txt"), "\n")
 file_unlink(archive)
+
+:see-group
+archives

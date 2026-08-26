@@ -18,7 +18,9 @@ var job := http_request_async(outbound)
 var done := job_await(dval(job), 3000)
 print(s32(get_by_path(done, "result/status")), "\n")
 
+:see-group
+http-client
+
 :see
-http_request
 job_await
 job_result

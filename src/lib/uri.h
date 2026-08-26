@@ -10,14 +10,12 @@ String uri_encode(String q);
 StringMap parse_query(String q);
 StringMap parse_query(String q, String* first_keyless_path);
 String encode_query(StringMap map);
-String route_path_normalize(String path);
-bool route_path_is_safe(String path);
-String route_path_sanitize(String path, String default_path = "index");
+
 String request_script_url(Request& context);
 String request_base_url(Request& context);
 String request_query_path(Request& context, String default_path = "index");
 DValue request_query_route(Request& context, String default_path = "index");
-DValue request_route_from_raw_path(String raw_path, String default_path = "index");
+
 void request_populate_context_params(Request& context, String default_path = "index");
 void request_populate_context_params_from_route(Request& context, String raw_path, String default_path = "index");
 void redirect(String url, s32 code = 302);

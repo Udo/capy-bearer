@@ -11,3 +11,6 @@ Use `sqlite_connect` to open an SQLite database. Call `sqlite_disconnect` when y
 var db := sqlite_connect(":memory:")
 print(db != 0, "\n")
 if db != 0 { sqlite_disconnect(db) }
+
+:see-group
+sqlite

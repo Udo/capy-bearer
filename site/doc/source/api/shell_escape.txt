@@ -9,3 +9,6 @@ Use `shell_escape` for one value in a shell command. Do not use it for shell syn
 
 :example capy render
 print(shell_escape("Ada Lovelace"), "\n")
+
+:see-group
+shell

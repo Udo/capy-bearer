@@ -14,7 +14,8 @@ A raw 32-byte HMAC-SHA256 value.
 :example capy render
 print(length(hmac_sha256("key", "message")), "\n")
 
+:see-group
+crypto
+
 :see
 hex
-sha256
-crypto_equal

@@ -12,6 +12,8 @@ It writes to the active output buffer when one exists. Otherwise, it writes to t
 :example capy render
 print("hello docs\n")
 
+:see-group
+output
+
 :see
 >string
-ob_start

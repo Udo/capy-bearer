@@ -12,6 +12,8 @@ Bearer runs this hook before dispatch in a request workspace. The handler has on
 :example capy init
 print(string(request.method), "\n")
 
+:see-group
+handlers
+
 :see
 type/request
-handler/once

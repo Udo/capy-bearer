@@ -17,7 +17,5 @@ var source := "archive data"
 var packed := gz_compress(source)
 print(gz_uncompress(packed), "\n")
 
-:see
-gz_uncompress
-zip_create
-zip_read
+:see-group
+archives

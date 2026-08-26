@@ -7,18 +7,12 @@ usec : microseconds to sleep
 :returns
 `0` after the sleep
 
-:see
->time
-time_precise
-time
-time_format_local
-time_format_relative
-time_format_utc
-time_parse
-
 :content
 `usleep` pauses the current handler for `usec` microseconds.
 
 :example capy render
 usleep(1000)
 print("slept\n")
+
+:see-group
+time

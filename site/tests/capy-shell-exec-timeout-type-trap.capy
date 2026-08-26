@@ -1,1 +1,1 @@
-function CLI(request : dval) { shell_exec("printf ignored", dval({"timeout_ms": "1000"})) }
+function CLI(request : dval) { print(shell_exec("printf ignored", dval({"timeout_ms": "1000"}))) }

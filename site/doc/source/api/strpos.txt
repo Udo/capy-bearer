@@ -9,3 +9,6 @@ Use `strpos` to find text in a string. The result uses a zero-based position.
 
 :example capy render
 print(strpos("bearer docs", "docs"), "\n")
+
+:see-group
+strings

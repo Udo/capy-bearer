@@ -2,7 +2,7 @@
 Find text in a string
 
 :sig
-function find(haystack : string, needle : string) s32
+function find(haystack : string, needle : string) s64
 
 :returns
 This function returns the byte position of `needle`. It returns `-1` when it does not find `needle`.
@@ -15,4 +15,5 @@ For a list-shaped `dval`, use `some` to test for a matching item.
 :example capy render
 print(find("one,two", "two"), "\n")
 
-:see
+:see-group
+collections

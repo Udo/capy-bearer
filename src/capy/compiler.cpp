@@ -7,6 +7,7 @@
 #include <bit>
 #include <cctype>
 #include <cstdint>
+#include <cmath>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -232,18 +233,18 @@ using wasm::Bytes;
 
 bool is_scalar(const std::string& type)
 {
-	return type == "s32" || type == "s64" || type == "u64" || type == "f64" || type == "bool";
+	return type == "s8" || type == "s16" || type == "s32" || type == "s64" || type == "u8" || type == "u16" || type == "u32" || type == "u64" || type == "f32" || type == "f64" || type == "bool";
 }
 
 bool can_convert(const std::string& source, const std::string& target)
 {
 	return source == target || (is_scalar(source) && is_scalar(target)) || (is_scalar(source) && target == "string") ||
-		(source == "markup" && target == "string") || (source == "dval" && (is_scalar(target) || target == "string" || target.rfind("function#", 0) == 0));
+		(source == "dval" && (is_scalar(target) || target == "string" || target.rfind("function#", 0) == 0));
 }
 
 bool primitive_constructor_name(const std::string& name)
 {
-	return name == "s32" || name == "s64" || name == "u64" || name == "f64" || name == "bool" || name == "string";
+	return name == "s8" || name == "s16" || name == "s32" || name == "s64" || name == "u8" || name == "u16" || name == "u32" || name == "u64" || name == "f32" || name == "f64" || name == "bool" || name == "string";
 }
 
 constexpr unsigned scalar_format_scratch_size = 32;
@@ -255,7 +256,7 @@ std::string sink_format_helper(const std::string& symbol, const std::string& typ
 
 std::uint8_t wasm_value_type(const std::string& type)
 {
-	return type == "s64" || type == "u64" ? 0x7e : type == "f64" ? 0x7c : 0x7f;
+	return type == "s64" || type == "u64" ? 0x7e : type == "f32" ? 0x7d : type == "f64" ? 0x7c : 0x7f;
 }
 
 bool wide_scalar(const std::string& type)
@@ -270,12 +271,12 @@ unsigned array_element_size(const std::string& type)
 
 std::uint8_t array_load_opcode(const std::string& type)
 {
-	return type == "s64" || type == "u64" ? 0x29 : type == "f64" ? 0x2b : 0x28;
+	return type == "s64" || type == "u64" ? 0x29 : type == "f32" ? 0x2a : type == "f64" ? 0x2b : 0x28;
 }
 
 std::uint8_t array_store_opcode(const std::string& type)
 {
-	return type == "s64" || type == "u64" ? 0x37 : type == "f64" ? 0x39 : 0x36;
+	return type == "s64" || type == "u64" ? 0x37 : type == "f32" ? 0x38 : type == "f64" ? 0x39 : 0x36;
 }
 
 struct AggregateLayout
@@ -359,37 +360,17 @@ void append_u32_le(std::string& out, std::uint32_t value)
 
 bool managed_type(const std::string& type)
 {
-	return type == "string" || type == "markup" || type == "dval" || type.rfind("array<", 0) == 0 || type.rfind("struct:", 0) == 0 ||
-		   type.rfind("tuple<", 0) == 0 || type.rfind("function#", 0) == 0;
+	return type == "string" || type == "dval" || type.rfind("array<", 0) == 0 || type.rfind("struct:", 0) == 0 ||
+		   type.rfind("function#", 0) == 0;
 }
 
-std::vector<std::string> aggregate_elements(const std::string& type)
+std::string normalize_spread_type(std::string type)
 {
-	const auto begin = type.find('<');
-	if (begin == std::string::npos || type.back() != '>')
-		return {};
-	std::vector<std::string> result;
-	std::size_t item = begin + 1, depth = 0;
-	for (std::size_t cursor = item; cursor < type.size(); ++cursor)
-	{
-		if (type[cursor] == '<')
-			++depth;
-		else if (type[cursor] == '>')
-		{
-			if (depth == 0)
-			{
-				result.push_back(type.substr(item, cursor - item));
-				return result;
-			}
-			--depth;
-		}
-		else if (type[cursor] == ',' && depth == 0)
-		{
-			result.push_back(type.substr(item, cursor - item));
-			item = cursor + 1;
-		}
-	}
-	return {};
+	if (type.rfind("spread<array<", 0) == 0)
+		return type.substr(13, type.size() - 15);
+	if (type.rfind("spread<", 0) == 0)
+		return type.substr(7, type.size() - 8);
+	return type;
 }
 
 bool task_suffix_is_valid(std::string_view suffix)
@@ -439,19 +420,6 @@ std::string type_of_expression(const Expr* expression, bool allow_void = false)
 			return "void";
 		throw Error({"<input>", 1, 1, 0}, "function return type cannot be inferred yet; declare it explicitly");
 	}
-	if (auto tuple = dynamic_cast<const TupleExpr*>(expression))
-	{
-		if (tuple->items.size() < 2)
-			throw Error(expression->location, "tuple type requires at least two element types");
-		std::string type = "tuple<";
-		for (std::size_t i = 0; i < tuple->items.size(); ++i)
-		{
-			if (i)
-				type += ',';
-			type += type_of_expression(tuple->items[i]);
-		}
-		return type + '>';
-	}
 	if (auto array = dynamic_cast<const ArrayLiteral*>(expression))
 	{
 		if (array->items.size() != 1)
@@ -474,7 +442,7 @@ std::string type_of_expression(const Expr* expression, bool allow_void = false)
 		throw Error(expression->location, "compile-time any and dependent result types are only valid in a generic function declaration");
 	if (name == "request")
 		throw Error(expression->location, "type request was removed. Use dval for Bearer handler input.");
-	if (name == "s32" || name == "s64" || name == "u64" || name == "f64" || name == "bool" || name == "string" || name == "markup" || name == "dval" ||
+	if (name == "s8" || name == "s16" || name == "s32" || name == "s64" || name == "u8" || name == "u16" || name == "u32" || name == "u64" || name == "f32" || name == "f64" || name == "bool" || name == "string" || name == "dval" ||
 		name == "module" || name == "void")
 		return name;
 	return "struct:" + name;
@@ -482,13 +450,20 @@ std::string type_of_expression(const Expr* expression, bool allow_void = false)
 
 bool integer_type(const std::string& type)
 {
-	return type == "s32" || type == "s64" || type == "u64";
+	return type == "s8" || type == "s16" || type == "s32" || type == "s64" || type == "u8" || type == "u16" || type == "u32" || type == "u64";
 }
 
 bool integer_fits(const Integer& literal, const std::string& type)
 {
+	if (type == "s8")
+		return literal.magnitude <= (literal.negative ? std::uint64_t{1} << 7 : 127);
+	if (type == "s16")
+		return literal.magnitude <= (literal.negative ? std::uint64_t{1} << 15 : 32767);
 	if (type == "s32")
 		return literal.magnitude <= (literal.negative ? std::uint64_t{1} << 31 : static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max()));
+	if (type == "u8") return !literal.negative && literal.magnitude <= 255;
+	if (type == "u16") return !literal.negative && literal.magnitude <= 65535;
+	if (type == "u32") return !literal.negative && literal.magnitude <= std::numeric_limits<std::uint32_t>::max();
 	if (type == "s64")
 		return literal.magnitude <= (literal.negative ? std::uint64_t{1} << 63 : static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()));
 	if (type == "u64")
@@ -507,7 +482,7 @@ std::int64_t signed_integer_value(const Integer& literal)
 
 std::string literal_type(const Expr* expression)
 {
-	if (dynamic_cast<const Integer*>(expression)) return "s32";
+	if (dynamic_cast<const Integer*>(expression)) return "s64";
 	if (dynamic_cast<const SignedInteger*>(expression)) return "s64";
 	if (dynamic_cast<const UnsignedInteger*>(expression)) return "u64";
 	if (dynamic_cast<const Float*>(expression)) return "f64";
@@ -519,12 +494,13 @@ std::string literal_type(const Expr* expression)
 
 std::string literal_type(const Expr* expression, const std::string& expected)
 {
-	if (auto integer = dynamic_cast<const Integer*>(expression); integer && (expected == "s32" || expected == "s64" || expected == "u64"))
+	if (auto integer = dynamic_cast<const Integer*>(expression); integer && integer_type(expected))
 	{
 		if (!integer_fits(*integer, expected))
 			throw Error(integer->location, "integer literal is outside the " + expected + " range");
 		return expected;
 	}
+	if (dynamic_cast<const Float*>(expression) && (expected == "f32" || expected == "f64")) return expected;
 	return literal_type(expression);
 }
 
@@ -630,11 +606,6 @@ bool references_function_value(Expr* expression, const std::string& target)
 	if (auto loop = dynamic_cast<For*>(expression)) return references_function_value(loop->iterable, target) || references_function_value(loop->body, target);
 	if (auto index = dynamic_cast<Index*>(expression)) return references_function_value(index->value, target) || references_function_value(index->index, target);
 	if (auto member = dynamic_cast<Member*>(expression)) return references_function_value(member->value, target);
-	if (auto tuple = dynamic_cast<TupleExpr*>(expression))
-	{
-		for (Expr* item : tuple->items) if (references_function_value(item, target)) return true;
-		return false;
-	}
 	if (auto array = dynamic_cast<ArrayLiteral*>(expression))
 	{
 		for (Expr* item : array->items) if (references_function_value(item, target)) return true;
@@ -686,6 +657,7 @@ struct FunctionLowerer
 	std::string infer(Expr* value);
 	std::string infer_integer(Integer* value, const std::string& expected = "") const;
 	std::pair<Bytes, std::string> integer_expression(Integer* value, const std::string& expected = "") const;
+	std::pair<Bytes, std::string> float_expression(Float* value, const std::string& expected = "") const;
 	std::optional<std::pair<unsigned, std::string>> compatible_local_callable(const std::string& name, const std::vector<std::string>& arguments) const;
 	std::vector<std::pair<std::string, std::string>> lambda_captures(Lambda* value) const;
 	std::tuple<std::string, unsigned, unsigned, Definition*, std::vector<std::pair<std::string, std::string>>> register_lambda(Lambda* value);
@@ -707,6 +679,7 @@ struct FunctionLowerer
 	std::pair<Bytes, unsigned> allocate_dval(unsigned length, const Location& location, const Bytes& failure_cleanup = {});
 	std::pair<Bytes, unsigned> allocate_blob(const std::string& type, unsigned type_id, unsigned length, const Location& location, const Bytes& failure_cleanup = {});
 	Bytes format_wide_scalar(Bytes code, const std::string& type, const Location& location);
+	void narrow_s64_index(Bytes& code, unsigned value, unsigned target, const Location& location, const Bytes& failure_cleanup = {}, bool invalid_is_missing = false);
 	struct BlockValue
 	{
 		Bytes code;
@@ -821,15 +794,6 @@ struct Module
 			throw Error(location, "unknown struct '" + name + "'");
 		return found->second;
 	}
-	unsigned tuple_type(const std::string& type)
-	{
-		auto found = tuples_.find(type);
-		if (found != tuples_.end())
-			return found->second;
-		const unsigned id = next_aggregate_type_++;
-		tuples_[type] = id;
-		return id;
-	}
 	bool has_alias(const std::string& name) const
 	{
 		return aliases_.contains(name);
@@ -864,7 +828,7 @@ struct Module
 			return alias_type(name, location);
 		if (name == "request")
 			throw Error(location, "type request was removed. Use dval for Bearer handler input.");
-		if (name == "s32" || name == "s64" || name == "u64" || name == "f64" || name == "bool" || name == "string" || name == "markup" ||
+		if (name == "s8" || name == "s16" || name == "s32" || name == "s64" || name == "u8" || name == "u16" || name == "u32" || name == "u64" || name == "f32" || name == "f64" || name == "bool" || name == "string" ||
 			name == "dval" || name == "module" || name == "void")
 			return name;
 		if (has_struct(name))
@@ -948,7 +912,19 @@ struct Module
 				const std::string expected = variadic && i >= fixed ? element : parameters[i];
 				if (auto integer = dynamic_cast<Integer*>(arguments[i]))
 				{
-					if ((expected != "s32" && expected != "s64" && expected != "u64") || !integer_fits(*integer, expected)) return;
+					if (!integer_type(expected) || !integer_fits(*integer, expected)) return;
+					types.push_back(expected);
+				}
+				else if (dynamic_cast<Float*>(arguments[i]) && (expected == "f32" || expected == "f64"))
+					types.push_back(expected);
+				else if (auto array = dynamic_cast<ArrayLiteral*>(arguments[i]); array && expected.rfind("array<", 0) == 0)
+				{
+					const std::string element = expected.substr(6, expected.size() - 7);
+					for (Expr* item : array->items)
+					{
+						const std::string item_type = dynamic_cast<Integer*>(item) ? literal_type(item, element) : inferred[i];
+						if (item_type != element) return;
+					}
 					types.push_back(expected);
 				}
 				else
@@ -976,11 +952,14 @@ struct Module
 		})->rank;
 		std::vector<std::string> selected;
 		for (const Candidate& candidate : candidates)
+			if (candidate.rank == rank && candidate.types == inferred)
+				return candidate.types;
+		for (const Candidate& candidate : candidates)
 			if (candidate.rank == rank)
 			{
 				if (selected.empty()) selected = candidate.types;
 				else if (selected != candidate.types)
-					throw Error(location, "ambiguous contextual integer overload " + name);
+					throw Error(location, "ambiguous contextual literal overload " + name);
 			}
 		return selected;
 	}
@@ -1015,7 +994,7 @@ struct Module
 		if (can_convert(source, target))
 			return true;
 		const std::string name = target.rfind("struct:", 0) == 0 ? target.substr(7) : target;
-		if (target == "dval" && (source == "string" || source == "s32" || source == "s64" || source == "u64" || source == "f64" || source == "bool" || source == "dval"))
+		if (target == "dval" && (source == "string" || is_scalar(source) || source == "dval"))
 			return true;
 		if (target.rfind("struct:", 0) == 0)
 		{
@@ -1146,8 +1125,7 @@ struct Module
 				continue;
 			for (std::size_t i = fixed; i < types.size(); ++i)
 			{
-				const bool spread = types[i].rfind("spread<", 0) == 0;
-				const std::string source = spread ? types[i].substr(7, types[i].size() - 8) : types[i];
+				const std::string source = normalize_spread_type(types[i]);
 				if (source != definition.variadic_element)
 				{
 					if (!definition.variadic_convert || !constructor_available(source, definition.variadic_element))
@@ -1291,7 +1269,6 @@ struct Module
 			{"request_script_url", "request_script_url was removed. Read request.url.script from the handler input."},
 			{"request_query_path", "request_query_path was removed. Read request.route.path from the handler input."},
 			{"request_query_route", "request_query_route was removed. Read request.route from the handler input."},
-			{"request_route_from_raw_path", "request_route_from_raw_path was renamed to route_from_raw_path."},
 			{"request_perf", "request_perf was renamed to runtime_perf."},
 			{"cli_input", "cli_input was removed. Read query, form, and body from the handler input."},
 			{"cli_arg", "cli_arg was removed. Read query or form from the handler input."},
@@ -1383,7 +1360,6 @@ struct Module
 	std::map<unsigned, VariadicFunctionType> variadic_function_types_;
 	std::map<std::string, unsigned> type_indices_;
 	std::map<std::string, Aggregate> structs_;
-	std::map<std::string, unsigned> tuples_;
 	unsigned next_aggregate_type_ = 5;
 
 	static std::string key(const std::string& name, const std::vector<std::string>& types)
@@ -1411,20 +1387,6 @@ struct Module
 
 std::string Module::value_type(const Expr* expression, bool allow_void)
 {
-	if (auto tuple = dynamic_cast<const TupleExpr*>(expression))
-	{
-		if (tuple->items.size() < 2)
-			throw Error(expression->location, "tuple type requires at least two element types");
-		std::string type = "tuple<";
-		for (std::size_t i = 0; i < tuple->items.size(); ++i)
-		{
-			const std::string field = value_type(tuple->items[i]);
-			if (field == "module")
-				throw Error(tuple->items[i]->location, "module is opaque and cannot be stored in tuple layouts");
-			type += (i ? "," : "") + field;
-		}
-		return type + ">";
-	}
 	if (auto array = dynamic_cast<const ArrayLiteral*>(expression))
 	{
 		if (array->items.size() != 1)
@@ -1597,7 +1559,7 @@ bool FunctionLowerer::expression_is_owned(const Expr* value)
 		return !std::get<4>(register_lambda(const_cast<Lambda*>(lambda))).empty();
 	if (auto name = dynamic_cast<const Name*>(value); name && name->value == "none")
 		return true;
-	if (dynamic_cast<const ArrayLiteral*>(value) || dynamic_cast<const MapLiteral*>(value) || dynamic_cast<const TupleExpr*>(value) ||
+	if (dynamic_cast<const ArrayLiteral*>(value) || dynamic_cast<const MapLiteral*>(value) ||
 		dynamic_cast<const Markup*>(value))
 		return true;
 	if (auto index = dynamic_cast<const Index*>(value))
@@ -1759,9 +1721,6 @@ std::vector<std::pair<std::string, std::string>> FunctionLowerer::lambda_capture
 			visit(loop->body);
 			scopes.pop_back();
 		}
-		else if (auto tuple = dynamic_cast<TupleExpr*>(value))
-			for (Expr* item : tuple->items)
-				visit(item);
 		else if (auto array = dynamic_cast<ArrayLiteral*>(value))
 			for (Expr* item : array->items)
 				visit(item);
@@ -1916,9 +1875,9 @@ std::string FunctionLowerer::infer_block(Block* block_value)
 
 std::string FunctionLowerer::infer_integer(Integer* value, const std::string& expected) const
 {
-	const std::string type = expected.empty() ? "s32" : expected;
+	const std::string type = expected.empty() ? "s64" : expected;
 	if (!integer_type(type))
-		throw Error(value->location, "expected " + type + ", found s32");
+		throw Error(value->location, "expected " + type + ", found s64");
 	if (!integer_fits(*value, type))
 		throw Error(value->location, "integer literal is outside the " + type + " range");
 	return type;
@@ -1927,7 +1886,7 @@ std::string FunctionLowerer::infer_integer(Integer* value, const std::string& ex
 std::pair<Bytes, std::string> FunctionLowerer::integer_expression(Integer* value, const std::string& expected) const
 {
 	const std::string type = infer_integer(value, expected);
-	if (type == "s32")
+	if (wasm_value_type(type) == 0x7f)
 	{
 		Bytes code{0x41};
 		wasm::append_sleb32(code, static_cast<std::int32_t>(signed_integer_value(*value)));
@@ -1936,6 +1895,22 @@ std::pair<Bytes, std::string> FunctionLowerer::integer_expression(Integer* value
 	Bytes code{0x42};
 	const std::int64_t encoded = type == "u64" ? std::bit_cast<std::int64_t>(value->magnitude) : signed_integer_value(*value);
 	wasm::append_sleb64(code, encoded);
+	return {code, type};
+}
+
+std::pair<Bytes, std::string> FunctionLowerer::float_expression(Float* value, const std::string& expected) const
+{
+	const std::string type = expected.empty() ? "f64" : expected;
+	if (type != "f32" && type != "f64")
+		throw Error(value->location, "expected " + type + ", found f64");
+	Bytes code{static_cast<std::uint8_t>(type == "f32" ? 0x43 : 0x44)};
+	if (type == "f32")
+	{
+		const float narrowed = static_cast<float>(value->value);
+		if (!std::isfinite(narrowed)) throw Error(value->location, "float literal is outside the f32 range");
+		wasm::append_f32(code, narrowed);
+	}
+	else wasm::append_f64(code, value->value);
 	return {code, type};
 }
 
@@ -1952,7 +1927,7 @@ std::string FunctionLowerer::infer(Expr* value)
 	if (dynamic_cast<String*>(value))
 		return "string";
 	if (dynamic_cast<Markup*>(value))
-		return "markup";
+		return "string";
 	if (auto lambda = dynamic_cast<Lambda*>(value))
 		return std::get<0>(register_lambda(lambda));
 	if (auto block = dynamic_cast<Block*>(value))
@@ -1998,20 +1973,6 @@ std::string FunctionLowerer::infer(Expr* value)
 			return "dval";
 		return module_.reference_function(name->value, name->location).first;
 	}
-	if (auto tuple = dynamic_cast<TupleExpr*>(value))
-	{
-		if (tuple->items.size() < 2)
-			throw Error(value->location, "tuple value requires at least two elements");
-		std::string type = "tuple<";
-		for (std::size_t i = 0; i < tuple->items.size(); ++i)
-		{
-			const std::string field = infer(tuple->items[i]);
-			if (field == "module")
-				throw Error(tuple->items[i]->location, "module is opaque and cannot be stored in tuple layouts");
-			type += (i ? "," : "") + field;
-		}
-		return type + ">";
-	}
 	if (auto variable = dynamic_cast<Variable*>(value))
 	{
 		const std::string declared = variable->annotation ? module_.value_type(variable->annotation) : "";
@@ -2039,9 +2000,7 @@ std::string FunctionLowerer::infer(Expr* value)
 		const std::string source = infer(spread->value);
 		if (source.rfind("array<", 0) == 0)
 			return "spread<" + source.substr(6);
-		if (source.rfind("tuple<", 0) == 0)
-			return "spread-" + source;
-		throw Error(spread->location, "spread requires an array or tuple");
+		throw Error(spread->location, "spread requires an array");
 	}
 	if (dynamic_cast<MapLiteral*>(value))
 		return "dval";
@@ -2089,21 +2048,13 @@ std::string FunctionLowerer::infer(Expr* value)
 		if (object == "dval")
 		{
 			const std::string key = infer(index->index);
-			if (key != "string" && key != "s32")
-				throw Error(index->index->location, "dval index must be string or s32");
+			if (key != "string" && key != "s64")
+				throw Error(index->index->location, "dval index must be string or s64");
 			return "dval";
 		}
 		if (object.rfind("array<", 0) == 0)
 			return object.substr(6, object.size() - 7);
-		if (object.rfind("tuple<", 0) == 0)
-		{
-			auto integer = dynamic_cast<Integer*>(index->index);
-			auto elements = aggregate_elements(object);
-			if (!integer || integer->negative || integer->magnitude >= elements.size())
-				throw Error(index->index->location, "tuple index is out of bounds");
-			return elements[static_cast<std::size_t>(integer->magnitude)];
-		}
-		throw Error(index->location, "indexing requires an array or tuple");
+		throw Error(index->location, "indexing requires an array");
 	}
 	if (auto call = dynamic_cast<Call*>(value))
 	{
@@ -2128,7 +2079,7 @@ std::string FunctionLowerer::infer(Expr* value)
 				if (member->member == "capacity")
 				{
 					if (count != 0) throw Error(call->location, "array capacity expects no arguments");
-					return "s32";
+					return "s64";
 				}
 				if (member->member == "push")
 				{
@@ -2142,25 +2093,25 @@ std::string FunctionLowerer::infer(Expr* value)
 				}
 				if (member->member == "insert")
 				{
-					if (count != 2 || argument_type(0, "s32") != "s32" || argument_type(1, element) != element)
-						throw Error(call->location, "array insert expects an s32 index and " + element + " value");
+					if (count != 2 || argument_type(0, "s64") != "s64" || argument_type(1, element) != element)
+						throw Error(call->location, "array insert expects an s64 index and " + element + " value");
 					return "void";
 				}
 				if (member->member == "remove")
 				{
-					if (count != 1 || infer(call->arguments[0]) != "s32") throw Error(call->location, "array remove expects one s32 index");
+					if (count != 1 || infer(call->arguments[0]) != "s64") throw Error(call->location, "array remove expects one s64 index");
 					return element;
 				}
 				if (member->member == "clear" || member->member == "reserve")
 				{
-					if (count != (member->member == "reserve" ? 1u : 0u) || (count && infer(call->arguments[0]) != "s32"))
-						throw Error(call->location, "array " + member->member + (count ? " expects an s32 capacity" : " expects no arguments"));
+					if (count != (member->member == "reserve" ? 1u : 0u) || (count && infer(call->arguments[0]) != "s64"))
+						throw Error(call->location, "array " + member->member + (count ? " expects an s64 capacity" : " expects no arguments"));
 					return "void";
 				}
 				if (member->member == "resize")
 				{
-					if (count != 2 || argument_type(0, "s32") != "s32" || argument_type(1, element) != element)
-						throw Error(call->location, "array resize expects an s32 length and " + element + " fill value");
+					if (count != 2 || argument_type(0, "s64") != "s64" || argument_type(1, element) != element)
+						throw Error(call->location, "array resize expects an s64 length and " + element + " fill value");
 					return "void";
 				}
 			}
@@ -2184,15 +2135,7 @@ std::string FunctionLowerer::infer(Expr* value)
 			const auto& signature = module_.types_[type];
 			std::vector<std::pair<std::string, Location>> argument_types;
 			for (Expr* argument : call->arguments)
-				if (auto spread = dynamic_cast<Spread*>(argument); spread && infer(spread->value).rfind("tuple<", 0) == 0)
-				{
-					if (auto literal = dynamic_cast<TupleExpr*>(spread->value))
-						for (Expr* item : literal->items) argument_types.push_back({infer(item), item->location});
-					else
-						for (const std::string& field : aggregate_elements(infer(spread->value))) argument_types.push_back({field, spread->location});
-				}
-				else
-					argument_types.push_back({infer(argument), argument->location});
+				argument_types.push_back({infer(argument), argument->location});
 			auto variadic = module_.variadic_function_types_.find(type);
 			if (call->arguments.size() == argument_types.size())
 				for (std::size_t i = 0; i < call->arguments.size(); ++i)
@@ -2216,8 +2159,7 @@ std::string FunctionLowerer::infer(Expr* value)
 				if (argument_types[i].first != signature.first[i + 1]) throw Error(argument_types[i].second, "function value argument type does not match signature");
 			for (std::size_t i = contract.fixed; i < argument_types.size(); ++i)
 			{
-				std::string source = argument_types[i].first;
-				if (source.rfind("spread<", 0) == 0) source = source.substr(7, source.size() - 8);
+				std::string source = normalize_spread_type(argument_types[i].first);
 				if (source != contract.element && (!contract.convert || !module_.constructor_available(source, contract.element)))
 					throw Error(argument_types[i].second, "function value variadic argument cannot construct " + contract.element + " from " + source);
 			}
@@ -2244,24 +2186,16 @@ std::string FunctionLowerer::infer(Expr* value)
 			if (dynamic_cast<MapLiteral*>(call->arguments[0]) || dynamic_cast<ArrayLiteral*>(call->arguments[0]))
 				return "dval";
 			const std::string argument = infer(call->arguments[0]);
-			if (argument != "string" && argument != "s32" && argument != "s64" && argument != "u64" && argument != "f64" && argument != "bool" && argument != "dval" && !argument.starts_with("function#"))
+			if (argument != "string" && !is_scalar(argument) && argument != "dval" && !argument.starts_with("function#"))
 				throw Error(call->arguments[0]->location, "cannot construct dval from " + argument);
 			return "dval";
 		}
 		std::vector<std::string> arguments;
 		for (Expr* argument : call->arguments)
-			if (auto spread = dynamic_cast<Spread*>(argument); spread && infer(spread->value).rfind("tuple<", 0) == 0)
-			{
-				if (auto literal = dynamic_cast<TupleExpr*>(spread->value))
-					for (Expr* item : literal->items) arguments.push_back(infer(item));
-				else
-					for (const std::string& field : aggregate_elements(infer(spread->value))) arguments.push_back(field);
-			}
-			else if (auto integer = dynamic_cast<Integer*>(argument); integer && primitive_constructor_name(type_callee) && call->arguments.size() == 1 &&
-				(type_callee == "s32" || type_callee == "s64" || type_callee == "u64") && !integer_fits(*integer, "s32"))
+			if (auto integer = dynamic_cast<Integer*>(argument); integer && primitive_constructor_name(type_callee) && call->arguments.size() == 1 && integer_type(type_callee))
 				arguments.push_back(infer_integer(integer, type_callee));
 			else if (dynamic_cast<Integer*>(argument))
-				arguments.push_back("s32");
+				arguments.push_back("s64");
 			else
 				arguments.push_back(infer(argument));
 		if (primitive_constructor_name(type_callee) && arguments.size() == 1)
@@ -2286,24 +2220,23 @@ std::string FunctionLowerer::infer(Expr* value)
 						contextual[i] = fields[i];
 			if (contextual == fields)
 				return "struct:" + type_callee;
-			return module_.resolve(type_callee, arguments, call->location).result;
 		}
 		if (name->value == "clone")
 			return infer(call->arguments.at(0));
-		if (name->value == "length" || name->value == "arc_live") return "s32";
+		if (name->value == "length" || name->value == "arc_live") return "s64";
 		if (name->value == "has") return "bool";
 		if (name->value == "trap")
 			return "void";
-		if (const Module::HostDeclaration* declaration = module_.host(name->value, arguments))
-			return declaration->result;
-		if (Definition* definition = module_.compatible_definition(name->value, arguments, call->location))
-			return definition->result;
 		if (auto contextual = module_.contextual_argument_types(name->value, call->arguments, arguments, call->location))
 		{
 			if (const Module::HostDeclaration* declaration = module_.host(name->value, *contextual))
 				return declaration->result;
 			return module_.resolve(name->value, *contextual, call->location).result;
 		}
+		if (const Module::HostDeclaration* declaration = module_.host(name->value, arguments))
+			return declaration->result;
+		if (Definition* definition = module_.compatible_definition(name->value, arguments, call->location))
+			return definition->result;
 		return module_.resolve(name->value, arguments, call->location).result;
 	}
 	if (auto binary = dynamic_cast<Binary*>(value))
@@ -2343,8 +2276,6 @@ std::string FunctionLowerer::infer(Expr* value)
 				const std::string receiver = infer(index->value);
 				if (receiver.rfind("array<", 0) == 0)
 					target_type = receiver.substr(6, receiver.size() - 7);
-				else if (receiver.rfind("tuple<", 0) == 0)
-					throw Error(index->location, "tuple elements are immutable");
 				else if (receiver == "dval")
 					target_type = "dval";
 				else
@@ -2352,11 +2283,23 @@ std::string FunctionLowerer::infer(Expr* value)
 			}
 			else
 				throw Error(binary->left->location, "assignment target must be a binding, array element, DValue path, or struct field");
-			const std::string actual = dynamic_cast<Integer*>(binary->right) && target_type != "dval"
-				? infer_integer(static_cast<Integer*>(binary->right), target_type) : infer(binary->right);
+			std::string actual;
+			if (auto array = dynamic_cast<ArrayLiteral*>(binary->right); target_type.rfind("array<", 0) == 0)
+			{
+				const std::string element = target_type.substr(6, target_type.size() - 7);
+				for (Expr* item : array->items)
+				{
+					const std::string item_type = dynamic_cast<Integer*>(item) ? infer_integer(static_cast<Integer*>(item), element) : infer(item);
+					if (item_type != element) throw Error(item->location, "array literal elements must have one type");
+				}
+				actual = target_type;
+			}
+			else
+				actual = dynamic_cast<Integer*>(binary->right) && target_type != "dval"
+					? infer_integer(static_cast<Integer*>(binary->right), target_type) : infer(binary->right);
 			if (target_type == "dval")
 			{
-				if (actual != "dval" && actual != "string" && actual != "s32" && actual != "s64" && actual != "u64" && actual != "f64" && actual != "bool" && !actual.starts_with("function#"))
+				if (actual != "dval" && actual != "string" && !is_scalar(actual) && !actual.starts_with("function#"))
 					throw Error(binary->right->location, "cannot construct dval from " + actual);
 				return "dval";
 			}
@@ -2370,8 +2313,8 @@ std::string FunctionLowerer::infer(Expr* value)
 				throw Error(binary->location, "logical operators require bool operands");
 			return "bool";
 		}
-		const std::string inferred_left = dynamic_cast<Integer*>(binary->left) ? "s32" : infer(binary->left);
-		const std::string inferred_right = dynamic_cast<Integer*>(binary->right) ? "s32" : infer(binary->right);
+		const std::string inferred_left = dynamic_cast<Integer*>(binary->left) ? "s64" : infer(binary->left);
+		const std::string inferred_right = dynamic_cast<Integer*>(binary->right) ? "s64" : infer(binary->right);
 		if (inferred_left == "string" || inferred_right == "string")
 		{
 			if (inferred_left != "string" || inferred_right != "string")
@@ -2383,8 +2326,8 @@ std::string FunctionLowerer::infer(Expr* value)
 		if (binary->operator_ == "unary-")
 		{
 			const std::string operand = infer(binary->right);
-			if (operand != "s32" && operand != "s64" && operand != "f64")
-				throw Error(binary->location, "unary - requires an s32, s64, or f64 operand");
+			if (operand != "s8" && operand != "s16" && operand != "s32" && operand != "s64" && operand != "f32" && operand != "f64")
+				throw Error(binary->location, "unary - requires a signed integer or float operand");
 			return operand;
 		}
 		const std::string left = dynamic_cast<Integer*>(binary->left) && !dynamic_cast<Integer*>(binary->right)
@@ -2804,22 +2747,52 @@ Bytes FunctionLowerer::format_wide_scalar(Bytes code, const std::string& type, c
 	return code;
 }
 
+void FunctionLowerer::narrow_s64_index(Bytes& code, unsigned value, unsigned target, const Location& location, const Bytes& failure_cleanup, bool invalid_is_missing)
+{
+	if (invalid_is_missing)
+	{
+		code.push_back(0x20); wasm::append_uleb(code, value); code.insert(code.end(), {0x42, 0x00, 0x53, 0x20});
+		wasm::append_uleb(code, value); code.insert(code.end(), {0x42, 0xff, 0xff, 0xff, 0xff, 0x07, 0x55, 0x72, 0x04, 0x40, 0x41, 0x7f, 0x21});
+		wasm::append_uleb(code, target); code.push_back(0x05); code.push_back(0x20); wasm::append_uleb(code, value); code.insert(code.end(), {0xa7, 0x21});
+		wasm::append_uleb(code, target); code.push_back(0x0b);
+		return;
+	}
+	for (const Bytes& check : {
+		Bytes{0x42, 0x00, 0x53},
+		Bytes{0x42, 0xff, 0xff, 0xff, 0xff, 0x07, 0x55}})
+	{
+		code.push_back(0x20);
+		wasm::append_uleb(code, value);
+		append(code, check);
+		code.insert(code.end(), {0x04, 0x40});
+		append(code, failure_cleanup);
+		append(code, module_.marker(location));
+		code.insert(code.end(), {0x00, 0x0b});
+	}
+	code.push_back(0x20);
+	wasm::append_uleb(code, value);
+	code.insert(code.end(), {0xa7, 0x21});
+	wasm::append_uleb(code, target);
+}
+
 std::pair<Bytes, std::string> FunctionLowerer::dval_lookup(Expr* value, Expr* key, bool require_present)
 {
 	auto [object_code, object_type] = expression(value);
 	if (object_type != "dval")
 		throw Error(value->location, "expected dval, found " + object_type);
 	auto [key_code, key_type] = expression(key);
-	if (key_type != "string" && key_type != "s32")
-		throw Error(key->location, "dval index must be string or s32");
+	if (key_type != "string" && key_type != "s64")
+		throw Error(key->location, "dval index must be string or s64");
 	const unsigned object = add_local("", "dval", value->location), key_local = add_local("", key_type, key->location),
-				   length = add_local("", "s32", key->location);
+				   index = key_type == "s64" ? add_local("", "s32", key->location) : key_local, length = add_local("", "s32", key->location);
 	Bytes code = std::move(object_code);
 	code.push_back(0x21);
 	wasm::append_uleb(code, object);
 	append(code, key_code);
 	code.push_back(0x21);
 	wasm::append_uleb(code, key_local);
+	if (key_type == "s64")
+		narrow_s64_index(code, key_local, index, key->location, {}, true);
 	auto append_call = [&](bool output, unsigned pointer)
 	{
 		managed_payload_span(code, object, "dval");
@@ -2834,7 +2807,7 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_lookup(Expr* value, Expr* ke
 		else
 		{
 			code.insert(code.end(), {0x41, 0x01, 0x41, 0x00, 0x41, 0x00, 0x20});
-			wasm::append_uleb(code, key_local);
+			wasm::append_uleb(code, index);
 		}
 		if (output)
 		{
@@ -2990,14 +2963,22 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_set_path(unsigned root, cons
 	for (Expr* selector : selectors)
 	{
 		auto [selector_code, selector_type] = expression(selector);
-		if (selector_type != "string" && selector_type != "s32")
-			throw Error(selector->location, "dval index must be string or s32");
+		if (selector_type != "string" && selector_type != "s64")
+			throw Error(selector->location, "dval index must be string or s64");
 		const unsigned local = add_local("", selector_type, selector->location);
 		append(code, selector_code);
 		code.push_back(0x21);
 		wasm::append_uleb(code, local);
-		const std::string name = std::string(1, '\x1f') + "dval_path_" + std::to_string(local);
-		scopes_.back()[name] = {local, selector_type};
+		unsigned path_local = local;
+		std::string path_type = selector_type;
+		if (selector_type == "s64")
+		{
+			path_local = add_local("", "s32", selector->location);
+			narrow_s64_index(code, local, path_local, selector->location);
+			path_type = "s32";
+		}
+		const std::string name = std::string(1, '\x1f') + "dval_path_" + std::to_string(path_local);
+		scopes_.back()[name] = {path_local, path_type};
 		selector_names.push_back(std::make_unique<Name>(selector->location, name));
 		selector_owned.push_back(expression_is_owned(selector));
 	}
@@ -3103,21 +3084,26 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 		auto [source, actual] = expression(value);
 		if (actual.starts_with("function#"))
 			return callable_value(std::move(source), actual);
-		if (actual != "string" && actual != "s32" && actual != "s64" && actual != "u64" && actual != "f64" && actual != "bool")
+		if (actual != "string" && !is_scalar(actual))
 			throw Error(value->location, "cannot construct dval from " + actual);
-		const unsigned input = add_local("", actual, value->location), length = add_local("", "s32", value->location);
-		const char* import = actual == "string" ? "bearer_dv_string_to_brrb"
-							 : actual == "s32"	? "bearer_dv_s32_to_brrb"
-							 : actual == "s64"	? "bearer_dv_s64_to_brrb"
-							 : actual == "u64"	? "bearer_dv_u64_to_brrb"
-							 : actual == "f64"	? "bearer_dv_f64_to_brrb"
+		std::string scalar = actual == "s8" || actual == "s16" || actual == "u8" || actual == "u16" ? "s32" : actual == "u32" ? "u64" : actual == "f32" ? "f64" : actual;
+		if (dynamic_cast<Integer*>(value) && (actual == "s64" || actual == "u64") && integer_fits(*static_cast<Integer*>(value), "s32")) scalar = "s32";
+		const unsigned input = add_local("", scalar, value->location), length = add_local("", "s32", value->location);
+		const char* import = scalar == "string" ? "bearer_dv_string_to_brrb"
+							 : scalar == "s32"	? "bearer_dv_s32_to_brrb"
+							 : scalar == "s64"	? "bearer_dv_s64_to_brrb"
+							 : scalar == "u64"	? "bearer_dv_u64_to_brrb"
+							 : scalar == "f64"	? "bearer_dv_f64_to_brrb"
 												: "bearer_dv_bool_to_brrb";
 		Bytes code = std::move(source);
+		if (actual == "u32") code.push_back(0xad);
+		else if ((actual == "s64" || actual == "u64") && scalar == "s32") code.push_back(0xa7);
+		else if (actual == "f32") code.push_back(0xbb);
 		code.push_back(0x21);
 		wasm::append_uleb(code, input);
 		code.push_back(0x20);
 		wasm::append_uleb(code, input);
-		if (actual == "string")
+		if (scalar == "string")
 		{
 			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
 			wasm::append_uleb(code, input);
@@ -3128,7 +3114,7 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 		code.push_back(0x21);
 		wasm::append_uleb(code, length);
 		Bytes input_cleanup;
-		if (actual == "string" && expression_is_owned(value))
+		if (scalar == "string" && expression_is_owned(value))
 		{
 			input_cleanup.push_back(0x20); wasm::append_uleb(input_cleanup, input);
 			input_cleanup.push_back(0x10); wasm::append_uleb(input_cleanup, module_.release_index());
@@ -3137,7 +3123,7 @@ std::pair<Bytes, std::string> FunctionLowerer::dval_value(Expr* value)
 		append(code, allocation);
 		code.push_back(0x20);
 		wasm::append_uleb(code, input);
-		if (actual == "string")
+		if (scalar == "string")
 		{
 			code.insert(code.end(), {0x41, 0x14, 0x6a, 0x20});
 			wasm::append_uleb(code, input);
@@ -3323,8 +3309,8 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 		code.push_back(0x21); wasm::append_uleb(code, array);
 		code.push_back(0x20); wasm::append_uleb(code, array); code.insert(code.end(), {0x28, 0x02, 0x14, 0x21}); wasm::append_uleb(code, result);
 		if (expression_is_owned(member->value)) { code.push_back(0x20); wasm::append_uleb(code, array); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
-		code.push_back(0x20); wasm::append_uleb(code, result);
-		return {code, "s32"};
+		code.push_back(0x20); wasm::append_uleb(code, result); code.push_back(0xad);
+		return {code, "s64"};
 	}
 	infer(call);
 	auto receiver = expression(member->value);
@@ -3360,11 +3346,6 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 		code.push_back(0x20); wasm::append_uleb(code, source);
 		code.insert(code.end(), {0x36, 0x02, 0x10});
 	};
-	auto require_nonnegative = [&](Bytes& code, unsigned value, const Location& location, const Bytes& failure_cleanup = Bytes{})
-	{
-		code.push_back(0x20); wasm::append_uleb(code, value);
-		code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40}); append(code, failure_cleanup); append(code, module_.marker(location)); code.insert(code.end(), {0x00, 0x0b});
-	};
 	if (member->member == "push")
 	{
 		auto compiled = dynamic_cast<Integer*>(call->arguments[0]) && integer_type(element)
@@ -3396,8 +3377,8 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 	if (member->member == "reserve")
 	{
 		auto [required_code, required_type] = expression(call->arguments[0]);
-		const unsigned required = add_local("", "s32", call->arguments[0]->location), capacity = add_local("", "s32", call->location);
-		Bytes code = receiver_code; append(code, required_code); code.push_back(0x21); wasm::append_uleb(code, required); require_nonnegative(code, required, call->arguments[0]->location, receiver_cleanup);
+		const unsigned requested = add_local("", "s64", call->arguments[0]->location), required = add_local("", "s32", call->arguments[0]->location), capacity = add_local("", "s32", call->location);
+		Bytes code = receiver_code; append(code, required_code); code.push_back(0x21); wasm::append_uleb(code, requested); narrow_s64_index(code, requested, required, call->arguments[0]->location, receiver_cleanup);
 		code.push_back(0x20); wasm::append_uleb(code, slot); code.insert(code.end(), {0x28, 0x02, 0x14, 0x21}); wasm::append_uleb(code, capacity);
 		code.push_back(0x20); wasm::append_uleb(code, required); code.push_back(0x20); wasm::append_uleb(code, capacity); code.insert(code.end(), {0x4b, 0x04, 0x40});
 		append(code, array_ensure_capacity(slot, array_type, required, call->location, receiver_cleanup)); code.push_back(0x0b); release_receiver(code);
@@ -3420,9 +3401,9 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 	if (member->member == "insert" || member->member == "remove")
 	{
 		auto [index_code, index_type] = expression(call->arguments[0]);
-		const unsigned index = add_local("", "s32", call->arguments[0]->location), length = add_local("", "s32", call->location), required = add_local("", "s32", call->location);
+		const unsigned requested = add_local("", "s64", call->arguments[0]->location), index = add_local("", "s32", call->arguments[0]->location), length = add_local("", "s32", call->location), required = add_local("", "s32", call->location);
 		const unsigned item = add_local("", element, call->location);
-		Bytes code = receiver_code; append(code, index_code); code.push_back(0x21); wasm::append_uleb(code, index); require_nonnegative(code, index, call->arguments[0]->location, receiver_cleanup);
+		Bytes code = receiver_code; append(code, index_code); code.push_back(0x21); wasm::append_uleb(code, requested); narrow_s64_index(code, requested, index, call->arguments[0]->location, receiver_cleanup);
 		bool insert = member->member == "insert";
 		bool item_owned = false;
 		if (insert)
@@ -3466,12 +3447,12 @@ std::pair<Bytes, std::string> FunctionLowerer::array_method(Call* call, const Me
 			? integer_expression(static_cast<Integer*>(call->arguments[1]), element) : expression(call->arguments[1]);
 		auto fill_code = std::move(fill_result.first);
 		const std::string fill_type = std::move(fill_result.second);
-		const unsigned desired = add_local("", "s32", call->arguments[0]->location), fill = add_local("", element, call->arguments[1]->location);
+		const unsigned requested = add_local("", "s64", call->arguments[0]->location), desired = add_local("", "s32", call->arguments[0]->location), fill = add_local("", element, call->arguments[1]->location);
 		const unsigned length = add_local("", "s32", call->location), index = add_local("", "s32", call->location);
-		Bytes code = receiver_code; append(code, size_code); code.push_back(0x21); wasm::append_uleb(code, desired); append(code, fill_code); code.push_back(0x21); wasm::append_uleb(code, fill);
+		Bytes code = receiver_code; append(code, size_code); code.push_back(0x21); wasm::append_uleb(code, requested); append(code, fill_code); code.push_back(0x21); wasm::append_uleb(code, fill);
 		Bytes failure_cleanup = receiver_cleanup;
 		if (managed_type(element) && expression_is_owned(call->arguments[1])) { failure_cleanup.push_back(0x20); wasm::append_uleb(failure_cleanup, fill); failure_cleanup.push_back(0x10); wasm::append_uleb(failure_cleanup, module_.release_index()); }
-		require_nonnegative(code, desired, call->arguments[0]->location, failure_cleanup); load_length(code, length);
+		narrow_s64_index(code, requested, desired, call->arguments[0]->location, failure_cleanup); load_length(code, length);
 		code.push_back(0x20); wasm::append_uleb(code, desired); code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x4b, 0x04, 0x40}); append(code, array_ensure_capacity(slot, array_type, desired, call->location, failure_cleanup)); code.push_back(0x0b);
 		code.push_back(0x20); wasm::append_uleb(code, desired); code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x49, 0x04, 0x40});
 		if (managed_type(element))
@@ -3571,15 +3552,6 @@ std::pair<Bytes, std::string> FunctionLowerer::conversion(Bytes code, const std:
 	}
 	if (target == "string")
 	{
-		if (source == "markup")
-		{
-			const unsigned input = add_local("", "markup", location), result = add_local("", "string", location);
-			code.push_back(0x21); wasm::append_uleb(code, input); code.push_back(0x20); wasm::append_uleb(code, input);
-			code.push_back(0x10); wasm::append_uleb(code, module_.clone_index()); code.push_back(0x21); wasm::append_uleb(code, result);
-			if (source_owned) { code.push_back(0x20); wasm::append_uleb(code, input); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
-			code.push_back(0x20); wasm::append_uleb(code, result);
-			return {std::move(code), "string"};
-		}
 		if (source == "bool")
 		{
 			const unsigned value = add_local("", "bool", location);
@@ -3595,19 +3567,31 @@ std::pair<Bytes, std::string> FunctionLowerer::conversion(Bytes code, const std:
 			code.insert(code.end(), {0x6a, 0x0b});
 			return {std::move(code), "string"};
 		}
-		if (source == "s32")
+		if (source == "s8" || source == "s16" || source == "s32")
 		{
 			code.push_back(0xac);
 			return {format_wide_scalar(std::move(code), "s64", location), "string"};
+		}
+		if (source == "u8" || source == "u16" || source == "u32")
+		{
+			code.push_back(0xad);
+			return {format_wide_scalar(std::move(code), "u64", location), "string"};
+		}
+		if (source == "f32")
+		{
+			code.push_back(0xbb);
+			return {format_wide_scalar(std::move(code), "f64", location), "string"};
 		}
 		return {format_wide_scalar(std::move(code), source, location), "string"};
 	}
 	if (target == "bool")
 	{
-		if (source == "s32")
+		if (source == "s8" || source == "s16" || source == "s32" || source == "u8" || source == "u16" || source == "u32")
 			code.insert(code.end(), {0x45, 0x45});
 		else if (source == "s64" || source == "u64")
 			code.insert(code.end(), {0x50, 0x45});
+		else if (source == "f32")
+			code.insert(code.end(), {0x43, 0x00, 0x00, 0x00, 0x00, 0x5c});
 		else
 		{
 			code.push_back(0x44);
@@ -3616,33 +3600,38 @@ std::pair<Bytes, std::string> FunctionLowerer::conversion(Bytes code, const std:
 		}
 		return {std::move(code), "bool"};
 	}
-	if (source == "bool" || source == "s32")
+	const bool source_i32 = source == "bool" || source == "s8" || source == "s16" || source == "s32" || source == "u8" || source == "u16" || source == "u32";
+	const bool target_i32 = target == "s8" || target == "s16" || target == "s32" || target == "u8" || target == "u16" || target == "u32";
+	const bool source_unsigned = source == "u8" || source == "u16" || source == "u32" || source == "u64";
+	const bool target_unsigned = target == "u8" || target == "u16" || target == "u32" || target == "u64";
+	if (source_i32)
 	{
-		if (target == "s64")
-			code.push_back(0xac);
-		else if (target == "u64")
-			code.push_back(source == "bool" ? 0xad : 0xac);
-		else
-			code.push_back(0xb7);
+		if (target == "s64") code.push_back(source_unsigned ? 0xad : 0xac);
+		else if (target == "u64") code.push_back(source_unsigned || source == "bool" ? 0xad : 0xac);
+		else if (target == "f32") code.push_back(source_unsigned ? 0xb3 : 0xb2);
+		else if (target == "f64") code.push_back(source_unsigned ? 0xb8 : 0xb7);
 	}
-	else if (source == "s64")
+	else if (source == "s64" || source == "u64")
 	{
-		if (target == "s32")
-			code.push_back(0xa7);
-		else if (target == "f64")
-			code.push_back(0xb9);
+		if (target_i32) code.push_back(0xa7);
+		else if (target == "f32") code.push_back(source == "u64" ? 0xb5 : 0xb4);
+		else if (target == "f64") code.push_back(source == "u64" ? 0xba : 0xb9);
 	}
-	else if (source == "u64")
+	else if (source == "f32")
 	{
-		if (target == "s32")
-			code.push_back(0xa7);
-		else if (target == "f64")
-			code.push_back(0xba);
+		append(code, module_.marker(location));
+		if (target_i32) code.push_back(target_unsigned ? 0xa9 : 0xa8);
+		else if (target == "s64") code.push_back(0xae);
+		else if (target == "u64") code.push_back(0xaf);
+		else if (target == "f64") code.push_back(0xbb);
 	}
 	else if (source == "f64")
 	{
 		append(code, module_.marker(location));
-		code.push_back(target == "s32" ? 0xaa : target == "s64" ? 0xb0 : 0xb1);
+		if (target_i32) code.push_back(target_unsigned ? 0xab : 0xaa);
+		else if (target == "s64") code.push_back(0xb0);
+		else if (target == "u64") code.push_back(0xb1);
+		else if (target == "f32") code.push_back(0xb6);
 	}
 	return {std::move(code), target};
 }
@@ -3665,11 +3654,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		return {code, "s64"};
 	}
 	if (auto floating = dynamic_cast<Float*>(value))
-	{
-		Bytes code{0x44};
-		wasm::append_f64(code, floating->value);
-		return {code, "f64"};
-	}
+		return float_expression(floating);
 	if (auto string = dynamic_cast<String*>(value))
 	{
 		unsigned offset = module_.add_static_string(string->value);
@@ -3730,65 +3715,6 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			wasm::append_uleb(code, pointer);
 			code.push_back(0x20);
 			wasm::append_uleb(code, local);
-			store_field(code, actual, layout.offsets[i]);
-		}
-		code.push_back(0x20);
-		wasm::append_uleb(code, pointer);
-		return {code, type};
-	}
-	if (auto tuple = dynamic_cast<TupleExpr*>(value))
-	{
-		if (tuple->items.size() < 2)
-			throw Error(value->location, "tuple value requires at least two elements");
-		std::vector<std::string> fields;
-		for (Expr* item : tuple->items)
-		{
-			const std::string field = infer(item);
-			if (field == "module")
-				throw Error(item->location, "module is opaque and cannot be stored in tuple layouts");
-			fields.push_back(field);
-		}
-		std::string type = "tuple<";
-		for (std::size_t i = 0; i < fields.size(); ++i)
-			type += (i ? "," : "") + fields[i];
-		type += ">";
-		const AggregateLayout layout = aggregate_layout(fields, 16);
-		const unsigned pointer = add_local("", type, value->location);
-		Bytes code{0x41};
-		wasm::append_sleb32(code, static_cast<std::int32_t>(layout.size));
-		code.push_back(0x10);
-		wasm::append_uleb(code, module_.import_index("bearer_alloc"));
-		code.push_back(0x21);
-		wasm::append_uleb(code, pointer);
-		code.push_back(0x20);
-		wasm::append_uleb(code, pointer);
-		code.insert(code.end(), {0x45, 0x04, 0x40, 0x00, 0x0b});
-		for (const auto [header, offset] : {std::pair<std::int32_t, unsigned>{1, 0},
-											{1, 4},
-											{static_cast<std::int32_t>(module_.tuple_type(type)), 8},
-											{static_cast<std::int32_t>(layout.size), 12}})
-			store_i32_constant(code, pointer, header, offset);
-		code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01});
-		for (std::size_t i = 0; i < tuple->items.size(); ++i)
-		{
-			auto [item, actual] = expression(tuple->items[i]);
-			if (actual != fields[i])
-				throw Error(tuple->items[i]->location, "tuple field type changed while lowering");
-			const unsigned temporary = add_local("", actual, tuple->items[i]->location);
-			append(code, item);
-			code.push_back(0x21);
-			wasm::append_uleb(code, temporary);
-			if (managed_type(actual) && !expression_is_owned(tuple->items[i]))
-			{
-				code.push_back(0x20);
-				wasm::append_uleb(code, temporary);
-				code.push_back(0x10);
-				wasm::append_uleb(code, module_.retain_index());
-			}
-			code.push_back(0x20);
-			wasm::append_uleb(code, pointer);
-			code.push_back(0x20);
-			wasm::append_uleb(code, temporary);
 			store_field(code, actual, layout.offsets[i]);
 		}
 		code.push_back(0x20);
@@ -3994,61 +3920,20 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		if (infer(index->value) == "dval")
 			return dval_lookup(index->value, index->index, true);
 		auto [array_code, array_type] = expression(index->value);
-		if (array_type.rfind("tuple<", 0) == 0)
-		{
-			auto item = dynamic_cast<Integer*>(index->index);
-			auto fields = aggregate_elements(array_type);
-			if (!item || item->negative || item->magnitude >= fields.size())
-				throw Error(index->index->location, "tuple index is out of bounds");
-			const std::size_t field = static_cast<std::size_t>(item->magnitude);
-			const std::string result_type = fields[field];
-			const AggregateLayout layout = aggregate_layout(fields, 16);
-			const unsigned object = add_local("", array_type, index->value->location);
-			Bytes code = std::move(array_code);
-			code.push_back(0x21);
-			wasm::append_uleb(code, object);
-			code.push_back(0x20);
-			wasm::append_uleb(code, object);
-			load_field(code, result_type, layout.offsets[field]);
-			if (expression_is_owned(index->value))
-			{
-				const unsigned result = add_local("", result_type, value->location);
-				code.push_back(0x21);
-				wasm::append_uleb(code, result);
-				if (managed_type(result_type))
-				{
-					code.push_back(0x20);
-					wasm::append_uleb(code, result);
-					code.push_back(0x10);
-					wasm::append_uleb(code, module_.retain_index());
-				}
-				code.push_back(0x20);
-				wasm::append_uleb(code, object);
-				code.push_back(0x10);
-				wasm::append_uleb(code, module_.release_index());
-				code.push_back(0x20);
-				wasm::append_uleb(code, result);
-			}
-			return {code, result_type};
-		}
 		if (array_type.rfind("array<", 0) != 0)
-			throw Error(value->location, "indexing requires an array or tuple");
+			throw Error(value->location, "indexing requires an array");
 		auto [index_code, index_type] = expression(index->index);
-		if (index_type != "s32")
-			throw Error(index->index->location, "expected s32, found " + index_type);
+		if (index_type != "s64")
+			throw Error(index->index->location, "expected s64, found " + index_type);
 		const unsigned array_local = add_local("", array_type, index->value->location);
-		const unsigned index_local = add_local("", "s32", index->index->location);
+		const unsigned requested_index = add_local("", "s64", index->index->location), index_local = add_local("", "s32", index->index->location);
 		Bytes code = std::move(array_code);
 		code.push_back(0x21);
 		wasm::append_uleb(code, array_local);
 		append(code, index_code);
 		code.push_back(0x21);
-		wasm::append_uleb(code, index_local);
-		code.push_back(0x20);
-		wasm::append_uleb(code, index_local);
-		code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40});
-		append(code, module_.marker(value->location));
-		code.insert(code.end(), {0x00, 0x0b});
+		wasm::append_uleb(code, requested_index);
+		narrow_s64_index(code, requested_index, index_local, value->location);
 		code.push_back(0x20);
 		wasm::append_uleb(code, index_local);
 		code.push_back(0x20);
@@ -4154,7 +4039,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			Bytes code{0x23, 0x00, 0x41};
 			wasm::append_sleb32(code, static_cast<std::int32_t>(offset));
 			code.push_back(0x6a);
-			return {code, "markup"};
+			return {code, "string"};
 		}
 
 		struct Field
@@ -4172,16 +4057,17 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			auto [field_code, type] = expression(field->value);
 			bool owned = expression_is_owned(field->value);
 			bool formatted_scalar = false;
-			if (type == "f64" && (field->context == bearer::MarkupContext::javascript_value || field->context == bearer::MarkupContext::css_value))
+			if ((type == "f32" || type == "f64") && (field->context == bearer::MarkupContext::javascript_value || field->context == bearer::MarkupContext::css_value))
 				throw Error(field->location, "f64 markup interpolation is not supported in script or style elements");
-			if (wide_scalar(type))
+			if (is_scalar(type) && type != "bool" && type != "s32")
 			{
-				field_code = format_wide_scalar(std::move(field_code), type, field->location);
-				type = "string";
+				auto formatted = conversion(std::move(field_code), type, "string", field->location);
+				field_code = std::move(formatted.first);
+				type = std::move(formatted.second);
 				owned = true;
 				formatted_scalar = true;
 			}
-			if (type != "string" && type != "markup" && type != "s32" && type != "bool")
+			if (type != "string" && type != "s32" && type != "bool")
 				throw Error(field->location, "markup interpolation does not support " + type);
 			const unsigned local = add_local("", type, field->location);
 			append(code, field_code);
@@ -4201,8 +4087,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		wasm::append_uleb(code, total);
 		for (const Field& field : compiled)
 		{
-			const bool escape_text = field.type == "string" || field.type == "markup";
-			if (field.node->escaped && escape_text && !field.formatted_scalar)
+			if (field.node->escaped && field.type == "string" && !field.formatted_scalar)
 				append(code, markup_escape_length(field.local, total, field.node->context, field.node->location));
 			else if (field.type == "s32")
 				append(code, markup_s32_length(field.local, total, field.node->location));
@@ -4231,7 +4116,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			}
 		}
 
-		const unsigned pointer = add_local("", "markup", markup->location);
+		const unsigned pointer = add_local("", "string", markup->location);
 		code.insert(code.end(), {0x20});
 		wasm::append_uleb(code, total);
 		code.insert(code.end(), {0x41, 0x14, 0x6a, 0x10});
@@ -4284,8 +4169,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				continue;
 			}
 			auto field = std::find_if(compiled.begin(), compiled.end(), [&](const Field& item) { return item.node == part; });
-			const bool escape_text = field->type == "string" || field->type == "markup";
-			if (field->node->escaped && escape_text && !field->formatted_scalar)
+			if (field->node->escaped && field->type == "string" && !field->formatted_scalar)
 				append(code, markup_escape_write(field->local, cursor, field->node->context, field->node->location));
 			else if (field->type == "s32")
 				append(code, markup_s32_write(field->local, cursor, field->node->location));
@@ -4324,7 +4208,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		}
 		code.push_back(0x20);
 		wasm::append_uleb(code, pointer);
-		return {code, "markup"};
+		return {code, "string"};
 	}
 	if (auto name = dynamic_cast<Name*>(value))
 	{
@@ -4441,8 +4325,6 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			return dval_presence(binary->left);
 		if (binary->operator_ == "=")
 		{
-			if (auto target_index = dynamic_cast<Index*>(binary->left); target_index && infer(target_index->value).rfind("tuple<", 0) == 0)
-				throw Error(target_index->location, "tuple elements are immutable");
 			if (auto target_member = dynamic_cast<Member*>(binary->left); target_member && infer(target_member->value).rfind("struct:", 0) == 0)
 			{
 				const std::string object_type = infer(target_member->value);
@@ -4520,16 +4402,17 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				const unsigned element_size = array_element_size(element);
 				auto receiver = expression(target_index->value);
 				auto [index_code, index_type] = expression(target_index->index);
-				if (index_type != "s32") throw Error(target_index->index->location, "array index must be s32");
+				if (index_type != "s64") throw Error(target_index->index->location, "array index must be s64");
 				auto replacement_result = dynamic_cast<Integer*>(binary->right)
 					? integer_expression(static_cast<Integer*>(binary->right), element) : expression(binary->right);
 				if (replacement_result.second != element) throw Error(binary->right->location, "expected " + element + ", found " + replacement_result.second);
 				const bool owned_receiver = expression_is_owned(target_index->value);
-				const unsigned array = add_local("", array_type, target_index->value->location), index = add_local("", "s32", target_index->index->location);
+				const unsigned array = add_local("", array_type, target_index->value->location), requested_index = add_local("", "s64", target_index->index->location), index = add_local("", "s32", target_index->index->location);
 				const unsigned replacement = add_local("", element, binary->right->location), length = add_local("", "s32", binary->location);
 				Bytes code = std::move(receiver.first); code.push_back(0x21); wasm::append_uleb(code, array);
 				if (!owned_receiver) { code.push_back(0x20); wasm::append_uleb(code, array); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); }
-				append(code, index_code); code.push_back(0x21); wasm::append_uleb(code, index);
+				append(code, index_code); code.push_back(0x21); wasm::append_uleb(code, requested_index);
+				narrow_s64_index(code, requested_index, index, target_index->location);
 				append(code, replacement_result.first); code.push_back(0x21); wasm::append_uleb(code, replacement);
 				code.push_back(0x20); wasm::append_uleb(code, index); code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40}); append(code, module_.marker(target_index->location)); code.insert(code.end(), {0x00, 0x0b});
 				code.push_back(0x20); wasm::append_uleb(code, array); code.insert(code.end(), {0x28, 0x02, 0x10, 0x21}); wasm::append_uleb(code, length);
@@ -4553,8 +4436,18 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			if (!target)
 				throw Error(binary->left->location, "assignment target must be a binding, array element, DValue path, or struct field");
 			auto [slot, expected] = lookup(target);
-			auto replacement = dynamic_cast<Integer*>(binary->right)
-				? integer_expression(static_cast<Integer*>(binary->right), expected) : expression(binary->right);
+			ArrayLiteral typed_array(binary->right->location);
+			Name element_type(binary->right->location, "");
+			Expr* replacement_value = binary->right;
+			if (auto array = dynamic_cast<ArrayLiteral*>(replacement_value); expected.rfind("array<", 0) == 0)
+			{
+				element_type.value = expected.substr(6, expected.size() - 7);
+				typed_array.items = array->items;
+				typed_array.explicit_element_type = &element_type;
+				replacement_value = &typed_array;
+			}
+			auto replacement = dynamic_cast<Integer*>(replacement_value)
+				? integer_expression(static_cast<Integer*>(replacement_value), expected) : expression(replacement_value);
 			auto code = std::move(replacement.first);
 			const std::string actual = std::move(replacement.second);
 			if (actual != expected)
@@ -4672,7 +4565,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			auto [right, right_type] = expression(binary->right);
 			if (binary->operator_ == "unary-")
 			{
-				if (right_type == "s32")
+				if (right_type == "s8" || right_type == "s16" || right_type == "s32")
 				{
 					Bytes code{0x41, 0x00};
 					append(code, right);
@@ -4686,6 +4579,11 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 					code.push_back(0x7d);
 					return {code, "s64"};
 				}
+				if (right_type == "f32")
+				{
+					right.push_back(0x8c);
+					return {right, "f32"};
+				}
 				if (right_type == "f64")
 				{
 					right.push_back(0x9a);
@@ -4698,8 +4596,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			right.push_back(0x45);
 			return {right, "bool"};
 		}
-		const std::string inferred_left = dynamic_cast<Integer*>(binary->left) ? "s32" : infer(binary->left);
-		const std::string inferred_right = dynamic_cast<Integer*>(binary->right) ? "s32" : infer(binary->right);
+		const std::string inferred_left = dynamic_cast<Integer*>(binary->left) ? "s64" : infer(binary->left);
+		const std::string inferred_right = dynamic_cast<Integer*>(binary->right) ? "s64" : infer(binary->right);
 		if (inferred_left == "string" || inferred_right == "string")
 		{
 			auto [left_code, left_type] = expression(binary->left);
@@ -4838,6 +4736,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			  {">", 0x4a},
 			  {"<=", 0x4c},
 			  {">=", 0x4e}}},
+			{"u32", {{"+", 0x6a}, {"-", 0x6b}, {"*", 0x6c}, {"/", 0x6e}, {"%", 0x70}, {"==", 0x46}, {"!=", 0x47}, {"<", 0x49}, {">", 0x4b}, {"<=", 0x4d}, {">=", 0x4f}}},
 			{"bool", {{"==", 0x46}, {"!=", 0x47}}},
 			{"s64",
 			 {{"+", 0x7c},
@@ -4863,8 +4762,10 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			  {">", 0x56},
 			  {"<=", 0x58},
 			  {">=", 0x5a}}},
+			{"f32", {{"+", 0x92}, {"-", 0x93}, {"*", 0x94}, {"/", 0x95}, {"==", 0x5b}, {"!=", 0x5c}, {"<", 0x5d}, {">", 0x5e}, {"<=", 0x5f}, {">=", 0x60}}},
 			{"f64", {{"+", 0xa0}, {"-", 0xa1}, {"*", 0xa2}, {"/", 0xa3}, {"==", 0x61}, {"!=", 0x62}, {"<", 0x63}, {">", 0x64}, {"<=", 0x65}, {">=", 0x66}}}};
-		auto type_ops = ops.find(left_type);
+		const std::string opcode_type = left_type == "s8" || left_type == "s16" ? "s32" : left_type == "u8" || left_type == "u16" ? "u32" : left_type;
+		auto type_ops = ops.find(opcode_type);
 		if (type_ops == ops.end())
 			throw Error(value->location, "unsupported operator " + binary->operator_ + " for " + left_type);
 		auto found = type_ops->second.find(binary->operator_);
@@ -4921,33 +4822,6 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			if (method_local || method_host || method_definition || dynamic_module_member)
 				arguments = &method_arguments;
 		}
-		std::vector<Expr*> tuple_expanded_arguments;
-		std::vector<std::unique_ptr<Expr>> tuple_synthetic;
-		bool expanded_tuple = false;
-		for (Expr* argument : *arguments)
-			if (auto spread = dynamic_cast<Spread*>(argument); spread && infer(spread->value).rfind("tuple<", 0) == 0)
-			{
-				expanded_tuple = true;
-				if (auto literal = dynamic_cast<TupleExpr*>(spread->value))
-					for (Expr* item : literal->items) tuple_expanded_arguments.push_back(item);
-				else if (dynamic_cast<Name*>(spread->value))
-				{
-					const auto fields = aggregate_elements(infer(spread->value));
-					for (std::size_t i = 0; i < fields.size(); ++i)
-					{
-						auto index = std::make_unique<Integer>(spread->location, static_cast<long long>(i));
-						auto item = std::make_unique<Index>(spread->location, spread->value, index.get());
-						tuple_expanded_arguments.push_back(item.get());
-						tuple_synthetic.push_back(std::move(index)); tuple_synthetic.push_back(std::move(item));
-					}
-				}
-				else
-					throw Error(spread->location, "tuple spread requires a tuple literal or local name");
-			}
-			else
-				tuple_expanded_arguments.push_back(argument);
-		if (expanded_tuple)
-			arguments = &tuple_expanded_arguments;
 		auto named = dynamic_cast<Name*>(call->function);
 		std::vector<Expr*> indirect_arguments;
 		std::vector<std::unique_ptr<Expr>> indirect_synthetic;
@@ -4967,7 +4841,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				Expr* item = (*arguments)[i];
 				std::string source = infer(item);
 				const bool spread = source.rfind("spread<", 0) == 0;
-				if (spread) source = source.substr(7, source.size() - 8);
+				if (spread) source = normalize_spread_type(source);
 				if (source != contract.element)
 				{
 					if (spread)
@@ -5145,8 +5019,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		if (!member && primitive_constructor_name(callee) && call->arguments.size() == 1)
 		{
 			std::string source;
-			if (auto integer = dynamic_cast<Integer*>(call->arguments[0]); integer && (callee == "s32" || callee == "s64" || callee == "u64") && !integer_fits(*integer, "s32"))
-				source = infer_integer(integer, callee);
+			if (auto integer = dynamic_cast<Integer*>(call->arguments[0]); integer && integer_type(callee))
+				source = infer_integer(integer, integer_fits(*integer, "s64") ? "" : callee);
 			else
 				source = infer(call->arguments[0]);
 			if (source == callee)
@@ -5168,7 +5042,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				return false;
 			for (std::size_t i = 0; i < fields.size(); ++i)
 			{
-				const bool contextual_integer = dynamic_cast<Integer*>((*arguments)[i]) && (fields[i].second == "s32" || fields[i].second == "s64" || fields[i].second == "u64");
+				const bool contextual_integer = dynamic_cast<Integer*>((*arguments)[i]) && integer_type(fields[i].second);
 				const std::string actual = contextual_integer ? infer_integer(static_cast<Integer*>((*arguments)[i]), fields[i].second) : infer((*arguments)[i]);
 				if (actual != fields[i].second) return false;
 			}
@@ -5229,10 +5103,10 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		if (!member && callee == "length")
 		{
 			if (call->arguments.size() != 1)
-				throw Error(value->location, "length expects one string, markup, array, or dval");
+				throw Error(value->location, "length expects one string, array, or dval");
 			auto [code, type] = expression(call->arguments[0]);
-			if (type != "string" && type != "markup" && type != "dval" && type.rfind("array<", 0) != 0)
-				throw Error(call->arguments[0]->location, "length expects a string, markup, array, or dval, found " + type);
+			if (type != "string" && type != "dval" && type.rfind("array<", 0) != 0)
+				throw Error(call->arguments[0]->location, "length expects a string, array, or dval, found " + type);
 			const unsigned source = add_local("", type, call->arguments[0]->location), result = add_local("", "s32", value->location);
 			code.push_back(0x21); wasm::append_uleb(code, source);
 			if (type == "dval")
@@ -5248,8 +5122,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				code.insert(code.end(), {0x28, 0x02, 0x10, 0x21}); wasm::append_uleb(code, result);
 			}
 			if (expression_is_owned(call->arguments[0])) { code.push_back(0x20); wasm::append_uleb(code, source); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); }
-			code.push_back(0x20); wasm::append_uleb(code, result);
-			return {code, "s32"};
+			code.push_back(0x20); wasm::append_uleb(code, result); code.push_back(0xad);
+			return {code, "s64"};
 		}
 		if (!member && callee == "dval")
 		{
@@ -5260,7 +5134,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		if (!member && callee == "has")
 		{
 			if (call->arguments.size() != 2)
-				throw Error(value->location, "has expects dval and string/s32 key");
+				throw Error(value->location, "has expects dval and string/s64 key");
 			return dval_lookup(call->arguments[0], call->arguments[1], false);
 		}
 		if (!member && callee == "__bearer_dval_replace")
@@ -5306,7 +5180,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		{
 			if (!call->arguments.empty())
 				throw Error(value->location, "arc_live expects no arguments");
-			return {{0x23, 0x01}, "s32"};
+			return {{0x23, 0x01, 0xad}, "s64"};
 		}
 		if (!member && callee == "trap")
 		{
@@ -5318,13 +5192,20 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		}
 		std::vector<std::string> types;
 		for (Expr* argument : *arguments)
-			types.push_back(dynamic_cast<Integer*>(argument) ? "s32" : infer(argument));
+			types.push_back(dynamic_cast<Integer*>(argument) ? "s64" : infer(argument));
+		const bool has_contextual_literal = std::any_of(arguments->begin(), arguments->end(), [](Expr* argument)
+		{
+			return dynamic_cast<Integer*>(argument) || dynamic_cast<Float*>(argument);
+		});
+		std::optional<std::vector<std::string>> contextual = has_contextual_literal && !member
+			? module_.contextual_argument_types(callee, *arguments, types, call->location) : std::nullopt;
+		if (contextual) types = *contextual;
 		const Module::HostDeclaration* selected_host = member ? method_host : module_.host(callee, types);
 		Definition* selected_definition = member ? method_definition : module_.compatible_definition(callee, types, call->location);
-		if (!selected_host && !selected_definition)
-			if (auto contextual = module_.contextual_argument_types(callee, *arguments, types, call->location))
+		if (!selected_host && !selected_definition && !contextual)
+			if (auto fallback = module_.contextual_argument_types(callee, *arguments, types, call->location))
 			{
-				types = *contextual;
+				types = *fallback;
 				selected_host = module_.host(callee, types);
 				selected_definition = module_.compatible_definition(callee, types, call->location);
 			}
@@ -5333,6 +5214,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			std::vector<Bytes> argument_code;
 			for (std::size_t i = 0; i < arguments->size(); ++i)
 				if (auto integer = dynamic_cast<Integer*>((*arguments)[i])) argument_code.push_back(integer_expression(integer, types[i]).first);
+				else if (auto floating = dynamic_cast<Float*>((*arguments)[i])) argument_code.push_back(float_expression(floating, types[i]).first);
 				else argument_code.push_back(expression((*arguments)[i]).first);
 			Bytes code;
 			std::vector<unsigned> locals, owned_arguments;
@@ -5425,7 +5307,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				if (i >= target.default_values.size() || !target.default_values[i])
 					throw std::runtime_error("resolved Capy call omits a required parameter");
 				auto default_value = callsite_default_literal(target.default_values[i], value->location, target.parameters[i]);
-				types.push_back(literal_type(default_value.get()));
+				types.push_back(literal_type(default_value.get(), target.parameters[i]));
 				default_arguments.push_back(default_value.get());
 				default_synthetic.push_back(std::move(default_value));
 			}
@@ -5529,7 +5411,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			{
 				Expr* item = (*arguments)[i];
 				const bool spread = types[i].rfind("spread<", 0) == 0;
-				const std::string source_type = spread ? types[i].substr(7, types[i].size() - 8) : types[i];
+				const std::string source_type = normalize_spread_type(types[i]);
 				if (source_type != target.variadic_element)
 				{
 					if (spread)
@@ -5559,9 +5441,18 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		std::vector<bool> converted_owned(types.size(), false);
 		for (std::size_t i = 0; i < types.size(); ++i)
 		{
-			if (types[i] == target.parameters[i])
+				if (types[i] == target.parameters[i])
 			{
 				if (auto integer = dynamic_cast<Integer*>((*arguments)[i])) argument_code.push_back(integer_expression(integer, types[i]).first);
+				else if (auto floating = dynamic_cast<Float*>((*arguments)[i])) argument_code.push_back(float_expression(floating, types[i]).first);
+				else if (auto array = dynamic_cast<ArrayLiteral*>((*arguments)[i]); array && types[i].rfind("array<", 0) == 0)
+				{
+					Name element_type(array->location, types[i].substr(6, types[i].size() - 7));
+					ArrayLiteral typed_array(array->location);
+					typed_array.items = array->items;
+					typed_array.explicit_element_type = &element_type;
+					argument_code.push_back(expression(&typed_array).first);
+				}
 				else argument_code.push_back(expression((*arguments)[i]).first);
 				continue;
 			}
@@ -5641,8 +5532,18 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		std::string type = "void";
 		if (returned->value)
 		{
-			auto result = dynamic_cast<Integer*>(returned->value)
-				? integer_expression(static_cast<Integer*>(returned->value), definition_.result) : expression(returned->value);
+			ArrayLiteral typed_array(returned->value->location);
+			Name element_type(returned->value->location, "");
+			Expr* returned_value = returned->value;
+			if (auto array = dynamic_cast<ArrayLiteral*>(returned_value); array && definition_.result.rfind("array<", 0) == 0)
+			{
+				element_type.value = definition_.result.substr(6, definition_.result.size() - 7);
+				typed_array.items = array->items;
+				typed_array.explicit_element_type = &element_type;
+				returned_value = &typed_array;
+			}
+			auto result = dynamic_cast<Integer*>(returned_value)
+				? integer_expression(static_cast<Integer*>(returned_value), definition_.result) : expression(returned_value);
 			code = std::move(result.first);
 			type = result.second;
 		}
@@ -5854,15 +5755,15 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 				throw Error(loop->location, "range iteration accepts exactly one value binding");
 			auto [start, st] = expression(range->left);
 			auto [end, et] = expression(range->right);
-			if (st != "s32" || et != "s32")
-				throw Error(loop->location, "range bounds must be s32");
-			const unsigned index = add_local("", "s32", loop->location), limit = add_local("", "s32", loop->location);
-			const unsigned item = add_local("", "s32", loop->location);
+			if (st != "s64" || et != "s64")
+				throw Error(loop->location, "range bounds must be s64");
+			const unsigned index = add_local("", "s64", loop->location), limit = add_local("", "s64", loop->location);
+			const unsigned item = add_local("", "s64", loop->location);
 			append(start, Bytes{0x21});
 			wasm::append_uleb(start, index);
 			append(end, Bytes{0x21});
 			wasm::append_uleb(end, limit);
-			scopes_.push_back({{loop->names[0], {item, "s32"}}});
+			scopes_.push_back({{loop->names[0], {item, "s64"}}});
 			owned_scopes_.push_back({});
 			control_depth_ += 3;
 			loops_.push_back({base + 1, base + 3, boundary, {}, {}});
@@ -5877,7 +5778,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			wasm::append_uleb(code, index);
 			code.push_back(0x20);
 			wasm::append_uleb(code, limit);
-			code.insert(code.end(), {0x4e, 0x0d, 0x01, 0x20});
+			code.insert(code.end(), {0x59, 0x0d, 0x01, 0x20});
 			wasm::append_uleb(code, index);
 			code.push_back(0x21);
 			wasm::append_uleb(code, item);
@@ -5886,7 +5787,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			code.push_back(0x0b);
 			code.push_back(0x20);
 			wasm::append_uleb(code, index);
-			code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21});
+			code.insert(code.end(), {0x42, 0x01, 0x7c, 0x21});
 			wasm::append_uleb(code, index);
 			code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b});
 			return {code, "void"};
@@ -5899,9 +5800,9 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		const std::string element = type.substr(6, type.size() - 7);
 		const unsigned array = add_local("", type, loop->iterable->location), cursor = add_local("", "s32", loop->location);
 		const unsigned item = add_local("", element, loop->location);
-		const unsigned metadata = loop->names.size() == 2 ? add_local("", "s32", loop->location) : 0xffffffffu;
+		const unsigned metadata = loop->names.size() == 2 ? add_local("", "s64", loop->location) : 0xffffffffu;
 		std::unordered_map<std::string, std::pair<unsigned, std::string>> scope{{loop->names[0], {item, element}}};
-		if (metadata != 0xffffffffu) scope[loop->names[1]] = {metadata, "s32"};
+		if (metadata != 0xffffffffu) scope[loop->names[1]] = {metadata, "s64"};
 		scopes_.push_back(std::move(scope));
 		owned_scopes_.push_back({{array, type}});
 		const unsigned array_loop_boundary = static_cast<unsigned>(owned_scopes_.size());
@@ -5932,7 +5833,7 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 		code.push_back(array_load_opcode(element)); code.push_back(static_cast<std::uint8_t>(element_size == 8 ? 3 : 2));
 		code.insert(code.end(), {0x00, 0x21}); wasm::append_uleb(code, item);
 		if (managed_type(element)) { code.push_back(0x20); wasm::append_uleb(code, item); code.push_back(0x10); wasm::append_uleb(code, module_.retain_index()); }
-		if (metadata != 0xffffffffu) { code.push_back(0x20); wasm::append_uleb(code, cursor); code.push_back(0x21); wasm::append_uleb(code, metadata); }
+		if (metadata != 0xffffffffu) { code.push_back(0x20); wasm::append_uleb(code, cursor); code.insert(code.end(), {0xad, 0x21}); wasm::append_uleb(code, metadata); }
 		append(code, body);
 		append(code, release);
 		append(code, increment);
@@ -6050,6 +5951,16 @@ Bytes FunctionLowerer::block(Block* block_value, bool new_scope)
 		if (yielded && !final)
 			throw Error(yielded->location, "block yield must be the final item in its block");
 		Expr* compiled_item = yielded ? yielded->value : item;
+		ArrayLiteral typed_array(compiled_item->location);
+		Name element_type(compiled_item->location, "");
+		if (yielded && !new_scope)
+			if (auto array = dynamic_cast<ArrayLiteral*>(compiled_item); array && definition_.result.rfind("array<", 0) == 0)
+			{
+				element_type.value = definition_.result.substr(6, definition_.result.size() - 7);
+				typed_array.items = array->items;
+				typed_array.explicit_element_type = &element_type;
+				compiled_item = &typed_array;
+			}
 		auto compiled = yielded && dynamic_cast<Integer*>(compiled_item) && !new_scope
 			? integer_expression(static_cast<Integer*>(compiled_item), definition_.result) : expression(compiled_item, yielded != nullptr);
 		auto part = std::move(compiled.first);
@@ -6363,8 +6274,6 @@ std::vector<Bytes> Module::runtime_bodies() const
 				fields.push_back(field_type);
 			release_aggregate_fields(aggregate.type_id, fields, 16);
 		}
-		for (const auto& [type, id] : tuples_)
-			release_aggregate_fields(id, aggregate_elements(type), 16);
 		code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6b, 0x24, 0x01, 0x20, 0x00, 0x10});
 		wasm::append_uleb(code, import_index("bearer_free"));
 		code.push_back(0x0b);
@@ -6508,14 +6417,6 @@ void Module::collect()
 			return "struct:" + alias + "." + type.substr(7);
 		if (type.rfind("array<", 0) == 0)
 			return "array<" + qualify_import_type(type.substr(6, type.size() - 7), alias) + ">";
-		if (type.rfind("tuple<", 0) == 0)
-		{
-			std::string result = "tuple<";
-			auto elements = aggregate_elements(type);
-			for (std::size_t i = 0; i < elements.size(); ++i)
-				result += (i ? "," : "") + qualify_import_type(elements[i], alias);
-			return result + ">";
-		}
 		return type;
 	};
 	std::set<std::string> import_aliases;
@@ -6576,8 +6477,8 @@ void Module::collect()
 			if (alias->name == "request")
 				throw Error(alias->location, "type request was removed. Use dval for Bearer handler input.");
 			if (alias->name == "true" || alias->name == "false" || alias->name == "any" ||
-				alias->name == "s32" || alias->name == "s64" || alias->name == "u64" || alias->name == "f64" || alias->name == "bool" ||
-				alias->name == "string" || alias->name == "markup" || alias->name == "dval" || alias->name == "module" || alias->name == "void")
+				alias->name == "s8" || alias->name == "s16" || alias->name == "s32" || alias->name == "s64" || alias->name == "u8" || alias->name == "u16" || alias->name == "u32" || alias->name == "u64" || alias->name == "f32" || alias->name == "f64" || alias->name == "bool" ||
+				alias->name == "string" || alias->name == "dval" || alias->name == "module" || alias->name == "void")
 				throw Error(alias->location, "type alias name '" + alias->name + "' is reserved");
 			if (!aliases_.emplace(alias->name, alias).second)
 				throw Error(alias->location, "type alias '" + alias->name + "' is already declared");
@@ -6930,7 +6831,7 @@ Module::Capabilities Module::discover_capabilities()
 	std::function<std::string(Expr*)> scan_value_type = [&](Expr* e) -> std::string
 	{
 		if (dynamic_cast<Integer*>(e))
-			return "s32";
+			return "s64";
 		if (dynamic_cast<SignedInteger*>(e))
 			return "s64";
 		if (dynamic_cast<UnsignedInteger*>(e))
@@ -6940,7 +6841,7 @@ Module::Capabilities Module::discover_capabilities()
 		if (dynamic_cast<String*>(e))
 			return "string";
 		if (dynamic_cast<Markup*>(e))
-			return "markup";
+			return "string";
 		if (auto block = dynamic_cast<Block*>(e))
 		{
 			if (block->items.empty()) return "void";
@@ -6954,25 +6855,13 @@ Module::Capabilities Module::discover_capabilities()
 			const std::string else_type = scan_value_type(conditional->else_body);
 			return then_type == else_type ? then_type : "";
 		}
-		if (auto tuple = dynamic_cast<TupleExpr*>(e))
-		{
-			std::string type = "tuple<";
-			for (std::size_t i = 0; i < tuple->items.size(); ++i)
-			{
-				const std::string item = scan_value_type(tuple->items[i]);
-				if (item.empty()) return "";
-				type += (i ? "," : "") + item;
-			}
-			return type + ">";
-		}
 		if (auto array = dynamic_cast<ArrayLiteral*>(e))
 		{
 			if (array->items.empty()) return array->explicit_element_type ? "array<" + value_type(array->explicit_element_type) + ">" : "";
 			std::string element;
 			for (Expr* value : array->items)
 			{
-				std::string item = scan_value_type(value);
-				if (item.rfind("spread<", 0) == 0) item = item.substr(7, item.size() - 8);
+				std::string item = normalize_spread_type(scan_value_type(value));
 				if (item.empty() || (!element.empty() && item != element)) return "";
 				element = item;
 			}
@@ -6991,7 +6880,6 @@ Module::Capabilities Module::discover_capabilities()
 		{
 			const std::string source = scan_value_type(spread->value);
 			if (source.rfind("array<", 0) == 0) return "spread<" + source.substr(6);
-			if (source.rfind("tuple<", 0) == 0) return "spread-" + source;
 			return "";
 		}
 		if (auto variable = dynamic_cast<Variable*>(e))
@@ -7002,12 +6890,6 @@ Module::Capabilities Module::discover_capabilities()
 		{
 			const std::string source = scan_value_type(index->value);
 			if (source.rfind("array<", 0) == 0) return source.substr(6, source.size() - 7);
-			if (source.rfind("tuple<", 0) == 0)
-				if (auto literal = dynamic_cast<Integer*>(index->index); literal && !literal->negative)
-				{
-					const auto fields = aggregate_elements(source);
-					if (literal->magnitude < fields.size()) return fields[static_cast<std::size_t>(literal->magnitude)];
-				}
 			if (source == "dval") return "dval";
 		}
 		if (auto binary = dynamic_cast<Binary*>(e))
@@ -7055,7 +6937,7 @@ Module::Capabilities Module::discover_capabilities()
 					return "dval";
 				if (receiver.rfind("array<", 0) == 0)
 				{
-					if (member->member == "capacity") return "s32";
+					if (member->member == "capacity") return "s64";
 					if (member->member == "pop" || member->member == "remove") return receiver.substr(6, receiver.size() - 7);
 					if (member->member == "push" || member->member == "insert" || member->member == "clear" || member->member == "reserve" || member->member == "resize") return "void";
 				}
@@ -7083,7 +6965,7 @@ Module::Capabilities Module::discover_capabilities()
 				if (has_struct(callee)) return "struct:" + callee;
 				if (primitive_constructor_name(callee) && call->arguments.size() == 1 && can_convert(scan_value_type(call->arguments[0]), callee)) return callee;
 				if (name->value == "clone") return call->arguments.empty() ? "" : scan_value_type(call->arguments.front());
-				if (name->value == "length" || name->value == "arc_live") return "s32";
+				if (name->value == "length" || name->value == "arc_live") return "s64";
 				if (name->value == "has") return "bool";
 				std::vector<std::string> arguments;
 				for (Expr* argument : call->arguments)
@@ -7112,12 +6994,17 @@ Module::Capabilities Module::discover_capabilities()
 			return;
 		}
 		const std::string type = scan_value_type(e);
+		if (auto integer = dynamic_cast<Integer*>(e); integer && type == "s64" && integer_fits(*integer, "s32"))
+		{
+			runtime_imports_.insert("bearer_dv_s32_to_brrb");
+			return;
+		}
 		if (dynamic_cast<Lambda*>(e) || dynamic_cast<Name*>(e)) { runtime_imports_.insert("bearer_dv_callable_brrb"); runtime_imports_.insert("bearer_dv_callable_at_brrb"); }
 		if (type == "string") runtime_imports_.insert("bearer_dv_string_to_brrb");
-		else if (type == "s32") runtime_imports_.insert("bearer_dv_s32_to_brrb");
+		else if (type == "s8" || type == "s16" || type == "s32" || type == "u8" || type == "u16") runtime_imports_.insert("bearer_dv_s32_to_brrb");
 		else if (type == "s64") runtime_imports_.insert("bearer_dv_s64_to_brrb");
-		else if (type == "u64") runtime_imports_.insert("bearer_dv_u64_to_brrb");
-		else if (type == "f64") runtime_imports_.insert("bearer_dv_f64_to_brrb");
+		else if (type == "u32" || type == "u64") runtime_imports_.insert("bearer_dv_u64_to_brrb");
+		else if (type == "f32" || type == "f64") runtime_imports_.insert("bearer_dv_f64_to_brrb");
 		else if (type == "bool") runtime_imports_.insert("bearer_dv_bool_to_brrb");
 		else if (type.rfind("function#", 0) == 0) { runtime_imports_.insert("bearer_dv_callable_brrb"); runtime_imports_.insert("bearer_dv_callable_at_brrb"); }
 	};
@@ -7143,13 +7030,13 @@ Module::Capabilities Module::discover_capabilities()
 		if (source == "string") return;
 		if (source == "bool") { scan_release = true; return; }
 		scan_alloc = scan_retain = scan_release = true;
-		scan_clone = scan_clone || source == "markup";
-		scan_format_s64 = scan_format_s64 || source == "s32" || source == "s64";
-		scan_format_u64 = scan_format_u64 || source == "u64";
-		scan_format_f64 = scan_format_f64 || source == "f64";
+		scan_format_s64 = scan_format_s64 || source == "s8" || source == "s16" || source == "s32" || source == "s64";
+		scan_format_u64 = scan_format_u64 || source == "u8" || source == "u16" || source == "u32" || source == "u64";
+		scan_format_f64 = scan_format_f64 || source == "f32" || source == "f64";
 		if (source == "dval") { dval_ = true; used_hosts_.insert("bearer_dv_extract_string"); }
-		else if (source == "s32" || source == "s64") string_format_types_.insert("s64");
-		else if (source == "u64" || source == "f64") string_format_types_.insert(source);
+		else if (source == "s8" || source == "s16" || source == "s32" || source == "s64") string_format_types_.insert("s64");
+		else if (source == "u8" || source == "u16" || source == "u32" || source == "u64") string_format_types_.insert("u64");
+		else if (source == "f32" || source == "f64") string_format_types_.insert("f64");
 	};
 	std::function<void(const std::string&, const std::string&)> scan_construction;
 	scan_construction = [&](const std::string& source, const std::string& target)
@@ -7222,10 +7109,7 @@ Module::Capabilities Module::discover_capabilities()
 				for (Expr* argument : c->arguments)
 				{
 					const std::string type = scan_value_type(argument);
-					if (type.rfind("spread-tuple<", 0) == 0)
-						for (const std::string& field : aggregate_elements(type.substr(7))) host_arguments.push_back(field);
-					else
-						host_arguments.push_back(type);
+					host_arguments.push_back(type);
 				}
 				const std::string callee = member ? member->member : has_alias(n->value) ? constructor_name(n->value, n->location) : n->value;
 				if (member)
@@ -7238,7 +7122,10 @@ Module::Capabilities Module::discover_capabilities()
 								const unsigned type = static_cast<unsigned>(std::stoul(field.second.substr(9)));
 								if (auto contract = variadic_function_types_.find(type); contract != variadic_function_types_.end() && contract->second.convert)
 									for (std::size_t i = contract->second.fixed + 1; i < host_arguments.size(); ++i)
-										scan_construction(host_arguments[i], contract->second.element);
+										scan_construction(normalize_spread_type(host_arguments[i]), contract->second.element);
+								else if (const auto& signature = types_.at(type).first; !signature.empty() && signature.back() == "array<string>")
+									for (std::size_t i = signature.size() - 1; i < host_arguments.size(); ++i)
+										scan_string_construction(normalize_spread_type(host_arguments[i]));
 								break;
 							}
 				}
@@ -7247,9 +7134,12 @@ Module::Capabilities Module::discover_capabilities()
 					const unsigned type = static_cast<unsigned>(std::stoul(callable->second.substr(9)));
 					if (auto contract = variadic_function_types_.find(type); contract != variadic_function_types_.end() && contract->second.convert)
 						for (std::size_t i = contract->second.fixed; i < host_arguments.size(); ++i)
-							scan_construction(host_arguments[i], contract->second.element);
+						{
+							std::string source = normalize_spread_type(host_arguments[i]);
+							scan_construction(source, contract->second.element);
+						}
 				}
-				if (callee == "__bearer_dv_parse_s32" || callee == "__bearer_dv_parse_s64" || callee == "__bearer_dv_parse_u64" || callee == "__bearer_dv_validate_radix")
+				if (callee == "__bearer_dv_parse_s8" || callee == "__bearer_dv_parse_s16" || callee == "__bearer_dv_parse_s32" || callee == "__bearer_dv_parse_s64" || callee == "__bearer_dv_parse_u8" || callee == "__bearer_dv_parse_u16" || callee == "__bearer_dv_parse_u32" || callee == "__bearer_dv_parse_u64" || callee == "__bearer_dv_validate_radix")
 				used_hosts_.insert(callee.substr(2));
 			const HostDeclaration* selected_host = this->host(callee, host_arguments);
 				if (!selected_host && callee.rfind("__bearer_", 0) == 0)
@@ -7294,11 +7184,17 @@ Module::Capabilities Module::discover_capabilities()
 						}
 					}
 					for (std::size_t i = host_arguments.size(); i < converted->parameters.size(); ++i)
-						if (converted->parameters[i] == "dval" && converted->default_values[i])
+						if (converted->default_values[i])
 						{
-							dval_ = true;
-							scan_alloc = scan_retain = scan_release = true;
-							scan_dval(converted->default_values[i]);
+							Expr* default_value = converted->default_values[i];
+							scan(default_value);
+							scan_construction(scan_value_type(default_value), converted->parameters[i]);
+							if (converted->parameters[i] == "dval")
+							{
+								dval_ = true;
+								scan_alloc = scan_retain = scan_release = true;
+								scan_dval(default_value);
+							}
 						}
 				}
 				if (const Definition* variadic = variadic_definition(callee, host_arguments, c->location))
@@ -7309,12 +7205,14 @@ Module::Capabilities Module::discover_capabilities()
 					const std::size_t fixed = variadic->parameters.size() - 1;
 					for (std::size_t i = fixed; i < host_arguments.size(); ++i)
 					{
-						const std::string source = host_arguments[i].rfind("spread<", 0) == 0 ? host_arguments[i].substr(7, host_arguments[i].size() - 8) : host_arguments[i];
+						std::string source = normalize_spread_type(host_arguments[i]);
 						if (variadic->variadic_convert && variadic->variadic_element == "string")
 						{
-							if (sink && (source == "s32" || source == "s64" || source == "u64" || source == "f64"))
+							const std::string type = source == "s8" || source == "s16" || source == "s32" || source == "s64" ? "s64"
+								: source == "u8" || source == "u16" || source == "u32" || source == "u64" ? "u64"
+								: source == "f32" || source == "f64" ? "f64" : "";
+							if (sink && !type.empty())
 							{
-								const std::string type = source == "s32" ? "s64" : source;
 								fused_sink_formats_.insert({sink->symbol, type});
 								scan_format_s64 = scan_format_s64 || type == "s64";
 								scan_format_u64 = scan_format_u64 || type == "u64";
@@ -7334,7 +7232,7 @@ Module::Capabilities Module::discover_capabilities()
 								if (const HostDeclaration* sink = fused_variadic_sink(candidate))
 								{
 									used_hosts_.insert(sink->symbol);
-									for (const std::string& type : {"s64", "u64", "f64"}) fused_sink_formats_.insert({sink->symbol, type});
+									for (const std::string type : {"s64", "u64", "f64"}) fused_sink_formats_.insert({sink->symbol, type});
 								}
 								scan_alloc = scan_retain = scan_release = true;
 								scan_format_s64 = scan_format_u64 = scan_format_f64 = true;
@@ -7473,7 +7371,7 @@ Module::Capabilities Module::discover_capabilities()
 						{
 							const std::string type = scan_value_type(index->index);
 							if (type == "string") runtime_imports_.insert("bearer_dv_string_to_brrb");
-							else if (type == "s32") runtime_imports_.insert("bearer_dv_s32_to_brrb");
+							else if (type == "s32" || type == "s64") runtime_imports_.insert("bearer_dv_s32_to_brrb");
 							selector = index->value;
 						}
 						else break;
@@ -7577,21 +7475,10 @@ Module::Capabilities Module::discover_capabilities()
 			for (auto part : m->parts)
 				if (auto field = dynamic_cast<MarkupField*>(part))
 				{
-					const std::string wide = scan_value_type(field->value);
-					scan_format_s64 = scan_format_s64 || wide == "s64";
-					scan_format_u64 = scan_format_u64 || wide == "u64";
-					scan_format_f64 = scan_format_f64 || wide == "f64";
-					if (wide == "s64" || wide == "u64" || wide == "f64") string_format_types_.insert(wide);
+					const std::string type = scan_value_type(field->value);
+					scan_string_construction(type);
 					scan(field->value);
 				}
-		}
-		else if (auto t = dynamic_cast<TupleExpr*>(e))
-		{
-			scan_alloc = true;
-			scan_retain = true;
-			scan_release = true;
-			for (auto item : t->items)
-				scan(item);
 		}
 		else if (auto f = dynamic_cast<For*>(e))
 		{
@@ -7608,7 +7495,7 @@ Module::Capabilities Module::discover_capabilities()
 			if (iterable.rfind("array<", 0) == 0 && !f->names.empty())
 			{
 				scan_value_names[f->names[0]] = iterable.substr(6, iterable.size() - 7);
-				if (f->names.size() == 2) scan_value_names[f->names[1]] = "s32";
+				if (f->names.size() == 2) scan_value_names[f->names[1]] = "s64";
 			}
 			else if (iterable == "dval" && !f->names.empty())
 			{
@@ -7616,7 +7503,7 @@ Module::Capabilities Module::discover_capabilities()
 				if (f->names.size() == 2) scan_value_names[f->names.back()] = "string";
 			}
 			else if (!f->names.empty())
-				scan_value_names[f->names[0]] = "s32";
+				scan_value_names[f->names[0]] = "s64";
 			scan(f->body);
 			scan_value_names = std::move(outer);
 		}
@@ -7826,6 +7713,7 @@ CompileResult Module::compile()
 	{
 		Bytes content{0x00};
 		if (result == "s64" || result == "u64") content.insert(content.end(), {0x42, 0x00});
+		else if (result == "f32") content.insert(content.end(), {0x43, 0x00, 0x00, 0x00, 0x00});
 		else if (result == "f64") { content.push_back(0x44); wasm::append_f64(content, 0.0); }
 		else if (result != "void") content.insert(content.end(), {0x41, 0x00});
 		content.push_back(0x0b);
@@ -8116,9 +8004,6 @@ void collect_stdlib_demand(Expr* expression, std::set<std::pair<std::string, std
 	{
 		if (const Member* member = member_call(call))
 		{
-			// The receiver is an ordinary first argument only after compatibility
-			// resolution; demand selection records that possible direct call without
-			// rewriting the parsed member expression.
 			if (!local(scopes, member->member))
 			{
 				calls.insert({member->member, call->arguments.size() + 1});
@@ -8212,9 +8097,6 @@ void collect_stdlib_demand(Expr* expression, std::set<std::pair<std::string, std
 	}
 	else if (auto member = dynamic_cast<Member*>(expression))
 		collect_stdlib_demand(member->value, calls, values, scopes);
-	else if (auto tuple = dynamic_cast<TupleExpr*>(expression))
-		for (Expr* item : tuple->items)
-			collect_stdlib_demand(item, calls, values, scopes);
 	else if (auto array = dynamic_cast<ArrayLiteral*>(expression))
 		for (Expr* item : array->items)
 			collect_stdlib_demand(item, calls, values, scopes);
@@ -8304,7 +8186,6 @@ void validate_user_source(const Program& program, const std::set<std::string>& p
 		}
 		else if (auto index = dynamic_cast<Index*>(expression)) { reject_reserved_calls(index->value); reject_reserved_calls(index->index); }
 		else if (auto member = dynamic_cast<Member*>(expression)) reject_reserved_calls(member->value);
-		else if (auto tuple = dynamic_cast<TupleExpr*>(expression)) for (Expr* item : tuple->items) reject_reserved_calls(item);
 		else if (auto array = dynamic_cast<ArrayLiteral*>(expression)) for (Expr* item : array->items) reject_reserved_calls(item);
 		else if (auto spread = dynamic_cast<Spread*>(expression)) reject_reserved_calls(spread->value);
 		else if (auto map = dynamic_cast<MapLiteral*>(expression)) for (const auto& [key, item] : map->entries) reject_reserved_calls(item);

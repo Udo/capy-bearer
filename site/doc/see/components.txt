@@ -1,0 +1,4 @@
+component
+component_render
+component_resolve
+handler/component

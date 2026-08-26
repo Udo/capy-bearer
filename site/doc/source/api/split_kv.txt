@@ -1,12 +1,42 @@
 :sig
-function split_kv(value : string, separator : string = "=", trim_whitespace : bool = true, uppercase_keys : bool = false) dval
+function split_kv(value : string, opt : dval = {}) dval
+
+:params
+value : text that contains key and value pairs
+opt : parser options
 
 :returns
-Map-shaped `dval`.
+A map-shaped `dval`.
+
+:errors
+The function traps when an option has an unknown name or the wrong type.
 
 :content
-Use `split_kv` to parse lines that contain key and value pairs.
+`split_kv()` parses one or more key and value pairs. It returns a map.
+
+`opt.separator` separates each key from its value. The default is `=`. An empty value disables key and value separation. Each pair then becomes a key with an empty value.
+
+`opt.pair_separator` separates pairs. The default is `,`. An empty value disables pair separation. The function then parses the input as one pair.
+
+`opt.escape_chars` lists characters that can escape a separator, a pair separator, or another escape character. The default is `\`. An empty value disables escaping.
+
+`opt.trim_whitespace` removes leading and trailing whitespace from each key and value. The default is `true`. `opt.uppercase_keys` changes keys to uppercase. The default is `false`.
+
+The separator and pair separator can contain more than one character. The function recognizes an escaped separator before it searches for an unescaped separator.
 
 :example capy render
-var values := split_kv("name=Ada")
-print(values["name"], "\n")
+var values := split_kv("name=Ada,role=admin")
+print(values.name, " ", values.role, "\n")
+
+:example capy render
+var values := split_kv("name::Ada||note::one\\||two", {
+    separator: "::",
+    pair_separator: "||"
+})
+print(values.note, "\n")
+
+:see
+join_kv
+
+:see-group
+splitting

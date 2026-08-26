@@ -1,0 +1,15 @@
+type/dvalue
+get
+set
+has
+delete
+clear
+push
+pop
+keys
+values
+get_by_path
+get_or_create
+get_type_name
+is_array
+is_list

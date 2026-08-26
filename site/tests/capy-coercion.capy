@@ -13,6 +13,6 @@ function CLI(request : dval) {
         scalar(7), "|", scalar(u64(8)), "|",
         text([42][0]), "|", text(s64(-9)), "|", text(u64(10)), "|", text(4.25), "|", text(true), "|", text(false), "|",
         string(12), "|", string(false), "|",
-        select(1), "|", select(u64(1)), "|", choose(3), "|", (u64(9)).widen(), "|", ranked(1, s64(2)), "|", arc_live()
+        select(s32(1)), "|", select(u64(1)), "|", choose(3), "|", (u64(9)).widen(), "|", ranked(1, s64(2)), "|", arc_live()
     )
 }

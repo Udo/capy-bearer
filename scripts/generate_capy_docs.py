@@ -16,7 +16,7 @@ LEGACY_COMPONENTS = (DOC / "components" / "page.capy",)
 MARKDOWN_RENDERER = ROOT / "bin" / "bearer_fastcgi.linux.bin"
 
 
-SECTION_NAMES = {"title", "sig", "params", "returns", "errors", "note", "warning", "content", "see", "output"}
+SECTION_NAMES = {"title", "sig", "params", "returns", "errors", "note", "warning", "content", "see", "see-group", "output"}
 STOP_WORDS = {"the", "and", "for", "how", "with", "to", "of", "in"}
 
 
@@ -40,6 +40,26 @@ def slugify(value: str) -> str:
     value = value.replace("DValue", "dvalue").replace("StringList", "string-list").replace("StringMap", "string-map")
     value = re.sub(r"[^A-Za-z0-9]+", "-", value).strip("-").lower()
     return value or "page"
+
+
+def see_groups() -> dict[str, list[str]]:
+    """Shared "See also" sets, so a family of pages cannot drift apart.
+
+    One file per group in site/doc/see/, listing page names one per line.
+    A page joins with `:see-group <name>` instead of restating its siblings.
+    """
+    groups: dict[str, list[str]] = {}
+    directory = DOC / "see"
+    if not directory.is_dir():
+        return groups
+    for path in sorted(directory.glob("*.txt")):
+        members = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            entry = line.strip()
+            if entry and not entry.startswith("#"):
+                members.append(entry)
+        groups[path.stem] = members
+    return groups
 
 
 def unique_slug(base: str, used: dict[str, str], source_page: str) -> str:
@@ -88,6 +108,8 @@ def flush_section(page: dict, source_page: str, section: str, lines: list[str], 
             page["warnings"].append(text)
     elif section == "see":
         page["see"].extend(line.strip() for line in lines if line.strip())
+    elif section == "see-group":
+        page["see_groups"].extend(line.strip() for line in lines if line.strip())
     elif section == "output":
         if not page["guide_examples"]:
             page["example_error"] = "output must follow a Capy guide example"
@@ -113,6 +135,7 @@ def parse_doc(source_page: str, source: str) -> dict:
         "notes": [],
         "warnings": [],
         "see": [],
+        "see_groups": [],
         "examples": [],
         "guide_examples": [],
         "capy_status": "",
@@ -198,11 +221,15 @@ def html_escape(value: str) -> str:
 
 
 def detail_html(page: dict) -> str:
-    parts = [
-        '<div class="doc-detail-layout"><main class="content doc-page doc-detail"><h2>',
-        html_escape(page["title"] or page["label"] or "Documentation"),
-        "</h2>",
-    ]
+    title = html_escape(page["title"] or page["label"] or "Documentation")
+    parts = ['<div class="doc-detail-layout"><main class="content doc-page doc-detail"><div class="doc-title"><h2>', title, "</h2>"]
+    documents_function = page["kind"] == "api" or (page["kind"] == "type" and any(signature.startswith("function ") for signature in page["capy_sig_lines"]))
+    if documents_function:
+        boundary = page.get("call_boundary", "")
+        if boundary not in {"host", "lib"}:
+            raise ValueError(f'{page["source_page"]}: missing call boundary')
+        parts.extend(['<span class="call-boundary ', boundary, '-call">', boundary, " call</span>"])
+    parts.append("</div>")
     if page["capy_sig_lines"]:
         parts.extend(['<div class="doc-section signatures"><h3>Capy</h3><pre>', html_escape("\n".join(page["capy_sig_lines"])), "</pre></div>"])
     if page["content_html"]:
@@ -434,17 +461,21 @@ def write_search_component(pages: list[dict]) -> None:
     (DOC / "components" / "search.capy").write_text("\n".join(lines), encoding="utf-8")
 
 
-def read_signatures() -> dict[str, list[str]]:
+def read_signature_data(data: str) -> dict[str, list[tuple[str, str]]]:
+    out: dict[str, list[tuple[str, str]]] = {}
+    for match in re.finditer(r'\{"((?:[^"\\]|\\.)*)",\s*"((?:[^"\\]|\\.)*)",\s*"((?:[^"\\]|\\.)*)"\}', data):
+        page = bytes(match.group(1), "utf-8").decode("unicode_escape")
+        sig = bytes(match.group(2), "utf-8").decode("unicode_escape")
+        boundary = bytes(match.group(3), "utf-8").decode("unicode_escape")
+        out.setdefault(page, []).append((sig, boundary))
+    return out
+
+
+def read_signatures() -> dict[str, list[tuple[str, str]]]:
     path = DOC / "lib" / "capy_signatures.generated.h"
     if not path.exists():
         return {}
-    data = path.read_text(encoding="utf-8")
-    out: dict[str, list[str]] = {}
-    for match in re.finditer(r'\{"((?:[^"\\]|\\.)*)",\s*"((?:[^"\\]|\\.)*)"\}', data):
-        page = bytes(match.group(1), "utf-8").decode("unicode_escape")
-        sig = bytes(match.group(2), "utf-8").decode("unicode_escape")
-        out.setdefault(page, []).append(sig)
-    return out
+    return read_signature_data(path.read_text(encoding="utf-8"))
 
 
 def main() -> None:
@@ -464,20 +495,40 @@ def main() -> None:
         if kind == "guide":
             page["label"] = page["title"] or name
             page["title"] = page["label"]
-        else:
+        elif kind == "api":
             page["label"] = name
             page["title"] = page["title"] or name
+        else:
+            # Type and handler labels follow their title, so a "See also" entry
+            # reads the same as the heading it leads to. Using the filename made
+            # handler/component render as "component" beside the function of the
+            # same name, which was indistinguishable.
+            page["label"] = page["title"] or name
+            page["title"] = page["label"]
         page["slug"] = unique_slug(slugify(re.sub(r"^[0-9]+-", "", name) if kind == "guide" else name), used[kind], source_page)
         page["route"] = f"/doc/{kind}/{page['slug']}/"
-        page["capy_sig_lines"] = signatures.get(source_page, [])
+        signature_entries = signatures.get(source_page, [])
+        page["capy_sig_lines"] = [signature for signature, boundary in signature_entries]
+        page["call_boundary"] = "host" if any(boundary == "host" for signature, boundary in signature_entries) else (signature_entries[0][1] if signature_entries else "")
         pages.append(page)
     targets = {page["source_page"]: page for page in pages}
+    groups = see_groups()
     for page in pages:
+        references = []
+        for group in page["see_groups"]:
+            if group not in groups:
+                raise ValueError(f"{page['source_page']}: unknown :see-group: {group}")
+            references.extend(groups[group])
+        references.extend(page["see"])
         resolved = []
-        for reference in page["see"]:
+        seen = set()
+        for reference in references:
             target = reference[1:].strip() if reference.startswith(">") else reference
             if target not in targets:
                 raise ValueError(f"{page['source_page']}: unknown :see target: {reference}")
+            if target == page["source_page"] or target in seen:
+                continue
+            seen.add(target)
             resolved.append({"label": targets[target]["label"], "href": targets[target]["route"]})
         page["see"] = resolved
     render_page_html(pages)

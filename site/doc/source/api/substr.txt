@@ -12,3 +12,6 @@ Use `substr` to get part of a string. A negative start or length counts from the
 
 :example capy render
 print(substr("documentation", 0, 3), "\n")
+
+:see-group
+strings

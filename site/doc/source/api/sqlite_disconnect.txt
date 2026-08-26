@@ -7,3 +7,6 @@ Use `sqlite_disconnect` to close an SQLite connection. Do not use the handle aft
 :example capy render
 var db := sqlite_connect(":memory:")
 if db != 0 { sqlite_disconnect(db) }
+
+:see-group
+sqlite

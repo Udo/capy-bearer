@@ -9,3 +9,6 @@ Use `split` to separate text at each delimiter.
 
 :example capy render
 print(join(split("one,two", ","), "|"), "\n")
+
+:see-group
+splitting

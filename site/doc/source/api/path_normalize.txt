@@ -1,0 +1,32 @@
+:sig
+function path_normalize(path : string, opt : dval = {}) string
+
+:params
+path : route or filesystem path to normalize
+opt : normalization and containment options
+
+:returns
+A normalized path. The function returns an empty string for unsafe input or failed resolution.
+
+:errors
+The function traps when an option has an unknown name or the wrong type.
+
+:content
+`path_normalize()` is safe by default. It trims the path and rejects empty, current-directory, and parent-directory segments. Safe segments can contain alphanumeric characters, dots, hyphens, and underscores.
+
+`opt.fallback` supplies a safe path when `path` is empty. Unsafe input returns an empty string. The default is an empty string.
+
+`opt.base` resolves a safe relative path below a base path. The result keeps an absolute base absolute. `opt.real` resolves an existing path through the filesystem. The default is `false`.
+
+`opt.within` requires the resolved path to remain at or below an existing directory. Resolution fails for a sibling path with the same prefix. Set `opt.safe` to `false` only for trusted paths that need other characters. The default is `true`.
+
+:example capy render
+print(path_normalize(" /docs/api/ "), "\n")
+print(path_normalize("../private", {fallback: "index"}), "\n")
+
+:example capy render
+var path := path_normalize("guide.html", {base: "/srv/site"})
+print(path, "\n")
+
+:see-group
+uri

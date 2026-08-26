@@ -1,0 +1,24 @@
+:sig
+function u64(value : as string, opt : dval = {}) u64
+
+:params
+value : scalar value or text to convert
+opt : options map with `fallback` and `base`
+
+:returns
+A converted `u64`, or `opt.fallback`.
+
+:content
+`u64()` converts the exact text from `value`. It uses base 10 unless `opt.base` selects another integer base. `opt.fallback` is the result for empty text or text that does not parse. It defaults to `0`.
+
+`value` accepts scalar values through `as string`. The conversion keeps scalar text exact. Empty and missing `dval` values both convert to empty text. Use `value?` before conversion when presence matters. An empty value is present, but a missing value is not.
+
+`u64(dval(true))` now returns the fallback. `true` converts to the text `"true"`, which is not a number.
+
+The options map accepts only `fallback` and `base`. An unknown key is an error.
+
+:example capy render
+print(u64("2a", {base: 16, fallback: 99}), "\n")
+
+:see-group
+constructors

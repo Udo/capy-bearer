@@ -13,5 +13,5 @@ function CLI(request : dval) {
     var call : function(value : s32) s32 = function(value : s32) s32 { print("shadow;"); -> value }
     var box := Box(function(value : s32) s32 { print("field;"); -> value + 1 })
     var overridden := OverrideBox(function(value : s32) s32 { print("wrong-field;"); -> value })
-    print(observe_receiver().combine(observe_argument()), "|", (7).describe(), "|", ("x").describe(), "|", (9).identity(), "|", (5).call(), "|", box.callback(4), "|", overridden.callback(6))
+    print(observe_receiver().combine(observe_argument()), "|", (s32(7)).describe(), "|", ("x").describe(), "|", (s32(9)).identity(), "|", (s32(5)).call(), "|", box.callback(4), "|", overridden.callback(s32(6)))
 }

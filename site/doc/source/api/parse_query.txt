@@ -16,5 +16,5 @@ An ampersand separates pairs. The first equals sign separates a key and value. A
 var values := parse_query("name=Ada&role=admin")
 print(values["name"], "\n")
 
-:see
-parse_uri
+:see-group
+uri

@@ -14,3 +14,6 @@ Use `regex_replace()` when the search text is a regular expression.
 
 :example capy render
 print(replace("capy docs", "docs", "API"), "\n")
+
+:see-group
+strings

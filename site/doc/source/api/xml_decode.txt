@@ -7,15 +7,16 @@ source : XML source
 :returns
 A `dval` that contains the decoded XML.
 
-:see
-xml_encode
-json_decode
-type/dvalue
-type/string
-
 :content
 `xml_decode()` decodes XML source into a `dval`.
 
 :example capy render
 var value := xml_decode("<root><name>Ada</name></root>")
 print(value["children"][0]["text"], "\n")
+
+:see-group
+encoding
+
+:see
+type/dvalue
+type/string

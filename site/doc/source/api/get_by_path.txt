@@ -18,6 +18,5 @@ The copied child, or an empty string value when the path fails.
 var config := dval({"site": {"title": "Bearer"}})
 print(get_by_path(config, "site/title"), "\n")
 
-:see
-type/dvalue
-get
+:see-group
+dval-access

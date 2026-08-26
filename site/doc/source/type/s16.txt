@@ -1,0 +1,18 @@
+:sig
+function s16(value : as string, opt : dval = {}) s16
+
+:params
+value : scalar value or text to convert
+opt : options map with `fallback` and `base`
+
+:returns
+A signed 16-bit integer, or `opt.fallback`.
+
+:content
+`s16()` parses text in the range -32768 through 32767. Invalid or out-of-range text returns `opt.fallback`. The default fallback is `0`.
+
+:example capy render
+print(s16("8000", {base: 16, fallback: -1}), "\n")
+
+:see-group
+constructors

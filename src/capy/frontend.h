@@ -85,7 +85,6 @@ enum struct ExprKind
 	MarkupText,
 	MarkupField,
 	Markup,
-	Tuple,
 	Array,
 	Spread,
 	Map,
@@ -174,11 +173,6 @@ struct Markup : Expr
 {
 	std::vector<Expr*> parts;
 	explicit Markup(Location l);
-};
-struct TupleExpr : Expr
-{
-	std::vector<Expr*> items;
-	explicit TupleExpr(Location l);
 };
 struct ArrayLiteral : Expr
 {
@@ -363,8 +357,7 @@ struct Parser
 	Block* block(Location);
 	Expr* function_expression(Location);
 	Expr* function(Location, bool host = false, bool trace_host = false);
-	bool is_parameter_expression(Expr*) const;
-	std::vector<Parameter> parameters(Expr*);
+	std::vector<Parameter> parameters();
 	Expr* structure(Location);
 	Expr* exports(Location);
 	Expr* import_directive(Location);

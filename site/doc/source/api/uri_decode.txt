@@ -7,15 +7,16 @@ value : URI-encoded string
 :returns
 decoded string
 
-:see
-parse_uri
-uri_encode
-parse_query
-session_id_create
-route_path_sanitize
-
 :content
 `uri_decode` decodes a URI-encoded string.
 
 :example capy render
 print(uri_decode("Ada%20Lovelace"), "\n")
+
+:see-group
+encoding
+
+:see
+parse_uri
+parse_query
+session_id_create

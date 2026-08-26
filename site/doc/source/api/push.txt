@@ -19,6 +19,5 @@ var list := dval([])
 list = push(list, "Ada")
 print(list[0], "\n")
 
-:see
-type/dvalue
-pop
+:see-group
+dval-access

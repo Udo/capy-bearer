@@ -10,11 +10,11 @@ scope : scope identifier
 :returns
 `true` when the server queues the message for a client.
 
-:see
-ws_send_to
-
 :content
 `ws_send()` sends a message to every client in the current scope. Pass `scope` to select a scope.
 
 :example capy ws
 ws_send("hello", false)
+
+:see-group
+websocket

@@ -13,3 +13,6 @@ The current session state.
 :example capy render
 var session := session_start("docs-session")
 print(string(session.id), "\n")
+
+:see-group
+session

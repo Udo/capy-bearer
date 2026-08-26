@@ -15,6 +15,5 @@ print("captured")
 var output := ob_get_close()
 print(output, "\n")
 
-:see
-ob_start
-ob_get
+:see-group
+output

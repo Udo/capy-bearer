@@ -8,3 +8,6 @@ Use `request.url.script` for the script URL. Use `request.url.base` for the base
 
 :example capy render
 print(string(request.route.path), "\n")
+
+:see-group
+request

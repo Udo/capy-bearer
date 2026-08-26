@@ -14,6 +14,8 @@ The decoded `dval` value.
 var value := json_decode("{\"name\":\"Ada\",\"tags\":[\"x\",\"y\"]}")
 print(value["name"], " has ", length(value["tags"]), " tags\n")
 
+:see-group
+encoding
+
 :see
-json_encode
 dval

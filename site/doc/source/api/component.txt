@@ -68,8 +68,5 @@ if length(component_resolve("/doc/examples/card.capy")) > 0 {
     print("no card component\n")
 }
 
-:see
-component_render
-component_resolve
-handler/component
-type/request
+:see-group
+components

@@ -16,6 +16,5 @@ Use it to read data from `brb_encode`.
 var value := brb_decode(brb_encode(dval({"name": "Ada"})))
 print(value["name"], "\n")
 
-:see
-brb_encode
-json_decode
+:see-group
+encoding

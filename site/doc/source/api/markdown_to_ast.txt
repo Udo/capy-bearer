@@ -20,6 +20,8 @@ Set `gfm` to control GitHub-flavored extensions. Set `allow_html` to retain raw 
 var document := markdown_to_ast("# Title")
 print(document["type"], "\n")
 
+:see-group
+markdown
+
 :see
-markdown_to_html
 json_encode

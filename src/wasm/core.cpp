@@ -28,6 +28,7 @@ extern "C" size_t bearer_host_units(const char* in, size_t in_len, char* out, si
 extern "C" size_t bearer_host_regex_capy(const char* in, size_t in_len, char* out, size_t cap);
 extern "C" size_t bearer_host_capy_backtrace(s32 max_frames, s32 skip_frames, const char* stack, size_t depth, char* out, size_t cap);
 extern "C" void bearer_host_hard_error(const char* message, size_t message_len);
+extern "C" s32 bearer_host_flush_output(const char* data, size_t len);
 
 extern "C" void bearer_hard_error(const char* message, size_t message_len)
 {
@@ -1380,6 +1381,22 @@ void bearer_print_bytes(const char* data, size_t len)
 		context->ob->write(data, len);
 }
 
+extern "C" s32 bearer_flush_output()
+{
+	if(context == 0)
+		bearer_wasm_core_init();
+	if(context->resources.websocket_dispatch_capture || context->ob_stack.empty())
+		return(0);
+	ByteStream& master = *context->ob_stack[0];
+	String chunk = master.str();
+	if(chunk.empty())
+		return(1);
+	if(!bearer_host_flush_output(chunk.data(), chunk.size()))
+		return(0);
+	master.str("");
+	return(1);
+}
+
 static bool bearer_regex_call(const char* operation, const char* pattern, size_t pattern_len, const char* subject, size_t subject_len,
 	const char* replacement, size_t replacement_len, const char* flags, size_t flags_len, DValue& response)
 {
@@ -2411,6 +2428,107 @@ size_t bearer_dv_apply_brrb(s32 operation, const char* value, size_t value_len, 
 	return(bearer_brrb_call_finish(result, true));
 }
 
+static bool wasm_kv_escape_char(String escape_chars, char value)
+{
+	return(!escape_chars.empty() && escape_chars.find(value) != String::npos);
+}
+
+static bool wasm_kv_starts(String value, size_t offset, String token)
+{
+	return(!token.empty() && offset <= value.size() && value.compare(offset, token.size(), token) == 0);
+}
+
+static String wasm_kv_unescape(String value, String separator, String pair_separator, String escape_chars)
+{
+	String result;
+	for(size_t index = 0; index < value.size(); ++index)
+	{
+		char current = value[index];
+		if(!wasm_kv_escape_char(escape_chars, current) || index + 1 >= value.size()) { result += current; continue; }
+		size_t token_length = 0;
+		if(wasm_kv_starts(value, index + 1, pair_separator)) token_length = pair_separator.size();
+		else if(wasm_kv_starts(value, index + 1, separator)) token_length = separator.size();
+		else if(wasm_kv_escape_char(escape_chars, value[index + 1])) token_length = 1;
+		if(token_length == 0) { result += current; continue; }
+		result.append(value, index + 1, token_length);
+		index += token_length;
+	}
+	return(result);
+}
+
+static std::vector<String> wasm_kv_pairs(String value, String separator, String pair_separator, String escape_chars)
+{
+	std::vector<String> result;
+	String current;
+	for(size_t index = 0; index < value.size(); ++index)
+	{
+		if(wasm_kv_escape_char(escape_chars, value[index]) && index + 1 < value.size())
+		{
+			size_t token_length = 0;
+			if(wasm_kv_starts(value, index + 1, pair_separator)) token_length = pair_separator.size();
+			else if(wasm_kv_starts(value, index + 1, separator)) token_length = separator.size();
+			else if(wasm_kv_escape_char(escape_chars, value[index + 1])) token_length = 1;
+			if(token_length != 0) { current.append(value, index, token_length + 1); index += token_length; continue; }
+		}
+		if(wasm_kv_starts(value, index, pair_separator))
+		{
+			result.push_back(current); current.clear(); index += pair_separator.size() - 1; continue;
+		}
+		current += value[index];
+	}
+	result.push_back(current);
+	return(result);
+}
+
+static size_t wasm_kv_separator(String value, String separator, String pair_separator, String escape_chars)
+{
+	if(separator.empty()) return(String::npos);
+	for(size_t index = 0; index < value.size(); ++index)
+	{
+		if(wasm_kv_escape_char(escape_chars, value[index]) && index + 1 < value.size())
+		{
+			size_t token_length = wasm_kv_starts(value, index + 1, pair_separator) ? pair_separator.size()
+				: wasm_kv_starts(value, index + 1, separator) ? separator.size()
+				: wasm_kv_escape_char(escape_chars, value[index + 1]) ? 1 : 0;
+			if(token_length) { index += token_length; continue; }
+		}
+		if(wasm_kv_starts(value, index, separator)) return(index);
+	}
+	return(String::npos);
+}
+
+static String wasm_kv_escape(String value, String separator, String pair_separator, String escape_chars)
+{
+	if(escape_chars.empty()) return(value);
+	const char escape = escape_chars[0];
+	String result;
+	for(size_t index = 0; index < value.size(); ++index)
+	{
+		if(wasm_kv_escape_char(escape_chars, value[index])) { result += escape; result += value[index]; continue; }
+		if(wasm_kv_starts(value, index, pair_separator)) { result += escape; result.append(pair_separator); index += pair_separator.size() - 1; continue; }
+		if(wasm_kv_starts(value, index, separator)) { result += escape; result.append(separator); index += separator.size() - 1; continue; }
+		result += value[index];
+	}
+	return(result);
+}
+
+struct WasmKvOptions
+{
+	String separator;
+	String pair_separator;
+	String escape_chars;
+	bool trim_whitespace;
+	bool uppercase_keys;
+
+	explicit WasmKvOptions(const DValue& options)
+		: separator(options.key("separator") ? options.key("separator")->to_string() : "="),
+		  pair_separator(options.key("pair_separator") ? options.key("pair_separator")->to_string() : ","),
+		  escape_chars(options.key("escape_chars") ? options.key("escape_chars")->to_string() : "\\"),
+		  trim_whitespace(!options.key("trim_whitespace") || options.key("trim_whitespace")->to_bool()),
+		  uppercase_keys(options.key("uppercase_keys") && options.key("uppercase_keys")->to_bool())
+	{}
+};
+
 size_t bearer_text_parsing_brrb(s32 operation, const char* value, size_t value_len, const char* key, size_t key_len,
 	const char* argument, size_t argument_len, char* out, size_t cap)
 {
@@ -2420,7 +2538,7 @@ size_t bearer_text_parsing_brrb(s32 operation, const char* value, size_t value_l
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class TextOperation { text_safe_name = 0, text_trim = 1, text_float_val = 2, text_str_starts_with = 4, text_str_ends_with = 5, text_encode_query = 6, text_parse_query = 7, text_split = 8, text_split_space = 9, text_split_utf8 = 10, text_split_http_headers = 11, text_split_kv = 12, text_sort = 13 };
+	enum class TextOperation { text_safe_name = 0, text_trim = 1, text_float_val = 2, text_str_starts_with = 4, text_str_ends_with = 5, text_encode_query = 6, text_parse_query = 7, text_split = 8, text_split_space = 9, text_split_utf8 = 10, text_split_http_headers = 11, text_split_kv = 12, text_sort = 13, text_join_kv = 14 };
 	switch(static_cast<TextOperation>(operation))
 	{
 		case TextOperation::text_safe_name: result.set(safe_name(result.to_string())); break;
@@ -2456,10 +2574,35 @@ size_t bearer_text_parsing_brrb(s32 operation, const char* value, size_t value_l
 			break;
 		}
 		case TextOperation::text_split_kv: {
-			if(text.size() != 1) return(std::numeric_limits<size_t>::max());
-			StringMap values = split_kv(result.to_string(), text[0], supplied["trim"].to_bool(true), supplied["uppercase"].to_bool());
+			const WasmKvOptions options(supplied);
+			StringMap values;
+			for(const String& pair : wasm_kv_pairs(result.to_string(), options.separator, options.pair_separator, options.escape_chars))
+			{
+				if(pair.empty() || pair[0] == '#') continue;
+				size_t split_at = wasm_kv_separator(pair, options.separator, options.pair_separator, options.escape_chars);
+				String k = wasm_kv_unescape(split_at == String::npos ? pair : pair.substr(0, split_at), options.separator, options.pair_separator, options.escape_chars);
+				String v = split_at == String::npos ? "" : wasm_kv_unescape(pair.substr(split_at + options.separator.size()), options.separator, options.pair_separator, options.escape_chars);
+				if(options.uppercase_keys) for(char& c : k) c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
+				if(options.trim_whitespace) { k = trim(k); v = trim(v); }
+				if(!k.empty()) values[k] = v;
+			}
 			result.set_type('M');
 			for(const auto& value : values) result[value.first] = value.second;
+			break;
+		}
+		case TextOperation::text_join_kv: {
+			if(result.deref().type != 'M') return(std::numeric_limits<size_t>::max());
+			const WasmKvOptions options(supplied);
+			String encoded;
+			bool first = true;
+			result.each([&](const DValue& item, String name) {
+				if(!first) encoded += options.pair_separator;
+				encoded += wasm_kv_escape(name, options.separator, options.pair_separator, options.escape_chars);
+				encoded += options.separator;
+				encoded += wasm_kv_escape(item.to_string(), options.separator, options.pair_separator, options.escape_chars);
+				first = false;
+			});
+			result.set(encoded);
 			break;
 		}
 		case TextOperation::text_sort: {
@@ -2485,7 +2628,7 @@ size_t bearer_route_path_brrb(s32 operation, const char* value, size_t value_len
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class RouteOperation { route_parse_uri = 0, route_route_path_normalize = 1, route_route_path_is_safe = 2, route_route_path_sanitize = 3, route_runtime_safe_key = 4 };
+	enum class RouteOperation { route_parse_uri = 0, route_runtime_safe_key = 4 };
 	switch(static_cast<RouteOperation>(operation))
 	{
 		case RouteOperation::route_parse_uri: {
@@ -2495,9 +2638,6 @@ size_t bearer_route_path_brrb(s32 operation, const char* value, size_t value_len
 			for(const auto& entry : uri.query) result["query"][entry.first] = entry.second;
 			break;
 		}
-		case RouteOperation::route_route_path_normalize: result.set(route_path_normalize(result.to_string())); break;
-		case RouteOperation::route_route_path_is_safe: result.set_bool(route_path_is_safe(result.to_string())); break;
-		case RouteOperation::route_route_path_sanitize: result.set(route_path_sanitize(result.to_string(), text)); break;
 		case RouteOperation::route_runtime_safe_key: result.set(runtime_safe_key(result.to_string(), text)); break;
 		default: return(std::numeric_limits<size_t>::max());
 	}
@@ -2612,15 +2752,13 @@ size_t bearer_filesystem_brrb(s32 operation, const char* value, size_t value_len
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class FilesystemOperation { filesystem_basename = 0, filesystem_dirname = 1, filesystem_path_join = 2, filesystem_path_real = 3, filesystem_path_is_within = 4, filesystem_expand_path = 5, filesystem_file_get_contents = 6, filesystem_file_put_contents = 7, filesystem_file_append = 8, filesystem_file_copy = 9, filesystem_file_rename = 10, filesystem_file_stat = 11, filesystem_file_mtime = 12, filesystem_file_exists = 13, filesystem_file_truncate = 14, filesystem_file_chmod = 15, filesystem_file_symlink = 16, filesystem_ls = 17, filesystem_mkdir = 18, filesystem_dir_list = 19, filesystem_dir_remove = 20, filesystem_cwd_get = 21, filesystem_cwd_set = 22 };
+	enum class FilesystemOperation { filesystem_basename = 0, filesystem_dirname = 1, filesystem_path_join = 2, filesystem_file_get_contents = 6, filesystem_file_put_contents = 7, filesystem_file_append = 8, filesystem_file_copy = 9, filesystem_file_rename = 10, filesystem_file_stat = 11, filesystem_file_mtime = 12, filesystem_file_exists = 13, filesystem_file_truncate = 14, filesystem_file_chmod = 15, filesystem_file_symlink = 16, filesystem_ls = 17, filesystem_mkdir = 18, filesystem_dir_list = 19, filesystem_dir_remove = 20, filesystem_cwd_get = 21, filesystem_cwd_set = 22, filesystem_path_normalize = 23 };
 	switch(static_cast<FilesystemOperation>(operation))
 	{
 		case FilesystemOperation::filesystem_basename: result.set(basename(result.to_string())); break;
 		case FilesystemOperation::filesystem_dirname: result.set(dirname(result.to_string())); break;
 		case FilesystemOperation::filesystem_path_join: result.set(path_join(result.to_string(), text)); break;
-		case FilesystemOperation::filesystem_path_real: result.set(path_real(result.to_string())); break;
-		case FilesystemOperation::filesystem_path_is_within: result.set_bool(path_is_within(result.to_string(), text)); break;
-		case FilesystemOperation::filesystem_expand_path: result.set(expand_path(result.to_string(), text)); break;
+		case FilesystemOperation::filesystem_path_normalize: result.set(path_normalize(result.to_string(), supplied)); break;
 		case FilesystemOperation::filesystem_file_get_contents: result.set(file_get_contents(result.to_string())); break;
 		case FilesystemOperation::filesystem_file_put_contents: result.set_bool(file_put_contents(result.to_string(), supplied.to_string())); break;
 		case FilesystemOperation::filesystem_file_append: result.set_bool(file_append(result.to_string(), supplied.to_string())); break;
@@ -2658,7 +2796,7 @@ size_t bearer_request_workspace_brrb(s32 operation, const char* value, size_t va
 		request_ob_start = 0, request_ob_close = 1, request_ob_get = 2, request_ob_get_close = 3,
 		request_response_status = 4, request_redirect = 5, request_session_start = 6, request_session_set = 7,
 		request_session_destroy = 8, request_session_id_create = 9, request_csrf_token = 10, request_csrf_valid = 11,
-		request_csrf_rotate = 12, request_csrf_field = 13, request_request_route_from_raw_path = 20,
+		request_csrf_rotate = 12, request_csrf_field = 13,
 		request_request_perf = 21, request_response_cookie = 22
 	};
 	switch(static_cast<RequestOperation>(operation))
@@ -2681,7 +2819,6 @@ size_t bearer_request_workspace_brrb(s32 operation, const char* value, size_t va
 		case RequestOperation::request_csrf_valid: result.set_bool(csrf_valid(result.to_string(), text, supplied.to_string())); break;
 		case RequestOperation::request_csrf_rotate: csrf_rotate(result.to_string(), text); result.clear(); break;
 		case RequestOperation::request_csrf_field: result.set(csrf_field(result.to_string(), text, supplied.to_string())); break;
-		case RequestOperation::request_request_route_from_raw_path: result = request_route_from_raw_path(result.to_string(), text); break;
 		case RequestOperation::request_request_perf: result = request_perf(); break;
 		case RequestOperation::request_response_cookie: set_cookie(result.to_string(), supplied.to_string()); result.clear(); break;
 			// Cache and process APIs retain sys.cpp as the semantic authority; only
@@ -2787,7 +2924,7 @@ size_t bearer_process_jobs_brrb(s32 operation, const char* value, size_t value_l
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class ProcessOperation { process_shell_escape = 0, process_shell_exec = 1, process_shell_exec_flags = 2, process_job_status = 3, process_job_result = 4, process_job_await = 5, process_job_cancel = 6, process_process_start_directory = 7, process_server_start_http = 8, process_server_stop = 9, process_task_submit = 10, process_task_status = 11, process_task_await = 12, process_task_cancel = 13 };
+	enum class ProcessOperation { process_shell_escape = 0, process_shell_exec = 1, process_shell_exec_flags = 2, process_job_status = 3, process_job_result = 4, process_job_await = 5, process_job_cancel = 6, process_server_start_http = 8, process_server_stop = 9, process_task_submit = 10, process_task_status = 11, process_task_await = 12, process_task_cancel = 13 };
 	switch(static_cast<ProcessOperation>(operation))
 	{
 		case ProcessOperation::process_shell_escape: result.set(shell_escape(result.to_string())); break;
@@ -2806,7 +2943,6 @@ size_t bearer_process_jobs_brrb(s32 operation, const char* value, size_t value_l
 		case ProcessOperation::process_job_result: result = job_result(to_u64(result.to_string(), 0)); break;
 		case ProcessOperation::process_job_await: result = job_await(to_u64(result.to_string(), 0), supplied.to_u64()); break;
 		case ProcessOperation::process_job_cancel: result.set_bool(job_cancel(to_u64(result.to_string(), 0))); break;
-		case ProcessOperation::process_process_start_directory: result.set(process_start_directory()); break;
 		case ProcessOperation::process_server_start_http: result.set((f64)server_start_http(result.to_string(), text, supplied["file"].to_string(), supplied["function"].to_string())); break;
 		case ProcessOperation::process_server_stop: result.set_bool(server_stop(result.to_string())); break;
 		case ProcessOperation::process_task_submit: result.set(task(result.to_string(), supplied)); break;
@@ -3208,6 +3344,41 @@ s32 bearer_dv_extract_s32(const char* value, size_t value_len, s32 fallback)
 	return((s32)std::trunc(scalar->_float));
 }
 
+s8 bearer_dv_extract_s8(const char* value, size_t value_len, s8 fallback)
+{
+	s32 result = bearer_dv_extract_s32(value, value_len, fallback);
+	return(result < std::numeric_limits<s8>::min() || result > std::numeric_limits<s8>::max() ? fallback : (s8)result);
+}
+
+s16 bearer_dv_extract_s16(const char* value, size_t value_len, s16 fallback)
+{
+	s32 result = bearer_dv_extract_s32(value, value_len, fallback);
+	return(result < std::numeric_limits<s16>::min() || result > std::numeric_limits<s16>::max() ? fallback : (s16)result);
+}
+
+u8 bearer_dv_extract_u8(const char* value, size_t value_len, u8 fallback)
+{
+	s32 result = bearer_dv_extract_s32(value, value_len, fallback);
+	return(result < 0 || result > std::numeric_limits<u8>::max() ? fallback : (u8)result);
+}
+
+u16 bearer_dv_extract_u16(const char* value, size_t value_len, u16 fallback)
+{
+	s32 result = bearer_dv_extract_s32(value, value_len, fallback);
+	return(result < 0 || result > std::numeric_limits<u16>::max() ? fallback : (u16)result);
+}
+
+u32 bearer_dv_extract_u32(const char* value, size_t value_len, u32 fallback)
+{
+	DValue decoded;
+	const DValue* scalar = 0;
+	if(!bearer_decode_brrb_span(value, value_len, decoded) || !bearer_dv_scalar(decoded, scalar)) return(fallback);
+	if(scalar->type == 'B') return(scalar->_bool ? 1 : 0);
+	if(scalar->type == 'S') { u64 result = 0; return(bearer_dv_decimal_u64(scalar->_String, result) && result <= std::numeric_limits<u32>::max() ? (u32)result : fallback); }
+	if(!std::isfinite(scalar->_float) || scalar->_float < 0 || scalar->_float > (f64)std::numeric_limits<u32>::max()) return(fallback);
+	return((u32)std::trunc(scalar->_float));
+}
+
 s64 bearer_dv_extract_s64(const char* value, size_t value_len, s64 fallback)
 {
 	DValue decoded;
@@ -3228,6 +3399,14 @@ u64 bearer_dv_extract_u64(const char* value, size_t value_len, u64 fallback)
 	if(scalar->type == 'S') { u64 result = 0; return(bearer_dv_decimal_u64(scalar->_String, result) ? result : fallback); }
 	if(!std::isfinite(scalar->_float) || scalar->_float < 0 || scalar->_float >= 18446744073709551616.0) return(fallback);
 	return((u64)std::trunc(scalar->_float));
+}
+
+f64 bearer_dv_extract_f64(const char* value, size_t value_len, f64 fallback);
+
+f32 bearer_dv_extract_f32(const char* value, size_t value_len, f32 fallback)
+{
+	const f64 result = bearer_dv_extract_f64(value, value_len, fallback);
+	return(std::isfinite(result) && result >= -std::numeric_limits<f32>::max() && result <= std::numeric_limits<f32>::max() ? (f32)result : fallback);
 }
 
 s32 bearer_dv_validate_radix(const char* value, size_t value_len, const char* name, size_t name_len)
@@ -3253,30 +3432,28 @@ static String bearer_dv_parse_text(const char* value, size_t value_len, s32 base
 	return(result);
 }
 
-s32 bearer_dv_parse_s32(const char* value, size_t value_len, s32 base, s32 fallback)
-{
-	const String text = bearer_dv_parse_text(value, value_len, base);
-	s32 result = 0;
-	auto parsed = std::from_chars(text.data(), text.data() + text.size(), result, base);
-	return(!text.empty() && parsed.ec == std::errc() && parsed.ptr == text.data() + text.size() ? result : fallback);
-}
+extern "C++" {
 
-s64 bearer_dv_parse_s64(const char* value, size_t value_len, s32 base, s64 fallback)
+template<typename Integer>
+static Integer bearer_dv_parse_integer(const char* value, size_t value_len, s32 base, Integer fallback)
 {
 	const String text = bearer_dv_parse_text(value, value_len, base);
-	s64 result = 0;
-	auto parsed = std::from_chars(text.data(), text.data() + text.size(), result, base);
-	return(!text.empty() && parsed.ec == std::errc() && parsed.ptr == text.data() + text.size() ? result : fallback);
-}
-
-u64 bearer_dv_parse_u64(const char* value, size_t value_len, s32 base, u64 fallback)
-{
-	const String text = bearer_dv_parse_text(value, value_len, base);
-	if(text.empty() || text[0] == '-') return(fallback);
-	u64 result = 0;
+	if(text.empty() || (!std::numeric_limits<Integer>::is_signed && text[0] == '-')) return(fallback);
+	Integer result = 0;
 	auto parsed = std::from_chars(text.data(), text.data() + text.size(), result, base);
 	return(parsed.ec == std::errc() && parsed.ptr == text.data() + text.size() ? result : fallback);
 }
+
+}
+
+s8 bearer_dv_parse_s8(const char* value, size_t value_len, s32 base, s8 fallback) { return(bearer_dv_parse_integer(value, value_len, base, fallback)); }
+s16 bearer_dv_parse_s16(const char* value, size_t value_len, s32 base, s16 fallback) { return(bearer_dv_parse_integer(value, value_len, base, fallback)); }
+s32 bearer_dv_parse_s32(const char* value, size_t value_len, s32 base, s32 fallback) { return(bearer_dv_parse_integer(value, value_len, base, fallback)); }
+s64 bearer_dv_parse_s64(const char* value, size_t value_len, s32 base, s64 fallback) { return(bearer_dv_parse_integer(value, value_len, base, fallback)); }
+u8 bearer_dv_parse_u8(const char* value, size_t value_len, s32 base, u8 fallback) { return(bearer_dv_parse_integer(value, value_len, base, fallback)); }
+u16 bearer_dv_parse_u16(const char* value, size_t value_len, s32 base, u16 fallback) { return(bearer_dv_parse_integer(value, value_len, base, fallback)); }
+u32 bearer_dv_parse_u32(const char* value, size_t value_len, s32 base, u32 fallback) { return(bearer_dv_parse_integer(value, value_len, base, fallback)); }
+u64 bearer_dv_parse_u64(const char* value, size_t value_len, s32 base, u64 fallback) { return(bearer_dv_parse_integer(value, value_len, base, fallback)); }
 
 f64 bearer_dv_extract_f64(const char* value, size_t value_len, f64 fallback)
 {

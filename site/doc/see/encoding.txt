@@ -1,0 +1,15 @@
+base64_encode
+base64_decode
+json_encode
+json_decode
+html_escape
+uri_encode
+uri_decode
+hex
+brb_encode
+brb_decode
+xml_encode
+xml_decode
+yaml_encode
+yaml_decode
+json_consume_space

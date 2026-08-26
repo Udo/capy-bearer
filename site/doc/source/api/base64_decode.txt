@@ -15,5 +15,5 @@ Invalid Base64 text returns an empty string.
 :example capy render
 print(base64_decode("aGVsbG8="), "\n")
 
-:see
-base64_encode
+:see-group
+encoding

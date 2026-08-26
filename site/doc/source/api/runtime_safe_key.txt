@@ -13,3 +13,6 @@ The function trims `key`. It reports an error for an empty key.
 
 :example capy render
 print(runtime_safe_key("docs task"), "\n")
+
+:see-group
+crypto

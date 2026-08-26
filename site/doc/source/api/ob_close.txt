@@ -12,6 +12,5 @@ print("discarded")
 ob_close()
 print("kept\n")
 
-:see
-ob_start
-ob_get_close
+:see-group
+output

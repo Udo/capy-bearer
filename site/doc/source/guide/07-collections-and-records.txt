@@ -1,8 +1,8 @@
 :title
-7. Arrays, tuples, and structs
+7. Arrays and structs
 
 :content
-Use an array for an ordered collection of one type. Use a tuple for a short fixed group. Use a struct when fields need names.
+Use an array for an ordered collection of one type. Use a struct when fields need names.
 
 ## Arrays
 
@@ -36,7 +36,7 @@ function RENDER(request : dval) {
 An array is a mutable reference value inside one workspace:
 
 :example capy render
-function append_three(values : [s32]) {
+function append_three(values : [s64]) {
     values.push(3)
 }
 
@@ -66,33 +66,6 @@ function RENDER(request : dval) {
 The optional index follows the value and has type `s32`. The loop rechecks the current array length. It safely stops after shrinkage and can visit appended items. The loop retains each current managed item while the body runs.
 
 The loop item is a value, not an assignable array position. Use an index to replace an item.
-
-## Tuples
-
-A tuple is immutable. It has fixed positions and can contain different types:
-
-:example capy render
-function RENDER(request : dval) {
-    var result := (200, "ok")
-    print(result[0], " ", result[1], "\n")
-}
-
-:content
-
-`(value)` only groups an expression. It does not create a one-item tuple.
-
-A tuple can spread into matching function parameters:
-
-:example capy render
-function add(left : s32, right : s32) s32 { -> left + right }
-
-function RENDER(request : dval) {
-    var pair := (20, 22)
-    var answer := add(...pair)
-    print(answer, "\n")
-}
-
-:content
 
 ## Structs
 
@@ -154,7 +127,10 @@ This is the same call as `total(point)`.
 
 ## Choose the right shape
 
-Use an array when every item has one static type. Use a tuple for a small fixed return value. Use a struct for application data with a stable shape. Use a `dval` map or list for decoded input and data that crosses a Bearer boundary.
+Use an array when every item has one static type. Use a struct for application data with a stable shape. Use a `dval` map or list for decoded input and data that crosses a Bearer boundary.
+
+:see-group
+guides
 
 :see
 capy-03-values-and-types

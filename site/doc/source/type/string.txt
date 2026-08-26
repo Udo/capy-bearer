@@ -5,17 +5,24 @@ String
 type string
 
 :content
-`string` stores text or raw bytes in Capy.
+`string` stores text, raw bytes, and HTML literal results in Capy.
 
-Use string literals, variables, parameters, and return values directly. Use `length`, `find`, `contains`, `replace`, `lower`, `upper`, and `substr` for common text work.
+A string literal and an HTML literal both yield a `string`. Use variables, parameters, and return values directly. Functions can build and return HTML strings like other strings.
 
-Use `split_utf8` when you must split UTF-8 text by characters.
+`<?= value ?>` escapes a string for HTML text, a quoted attribute, a script, or a style. `<?: value ?>` emits a string without escaping. Use raw interpolation only for source-controlled HTML text.
+
+An HTML literal inside `<?= ?>` becomes escaped text. This double escape is expected. A `dval` cannot go directly in an HTML literal. Convert it with `string()` first.
+
+Use `length`, `find`, `contains`, `replace`, `lower`, `upper`, and `substr` for common text work. Use `split_utf8` when you must split UTF-8 text by characters.
 
 :example capy render
 var name := "Ada"
-print(upper(name), "\n")
+var page := <><p><?= upper(name) ?></p></>
+print(page, "\n")
+
+:see-group
+strings
 
 :see
 split_utf8
-substr
 html_escape

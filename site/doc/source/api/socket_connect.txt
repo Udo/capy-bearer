@@ -10,3 +10,6 @@ Use `socket_connect` to open a socket to an IPv4 address and port. Pass a nonzer
 :example capy render
 var handle := socket_connect("127.0.0.1", 80)
 print(handle, "\n")
+
+:see-group
+sockets

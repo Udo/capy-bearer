@@ -58,11 +58,9 @@ var target := unit_load("/tests/capy-module-target.capy")
 var wanted := "echo"
 print(string(call(target, wanted, {name: "Katherine"}).name), "\n")
 
+:see-group
+units
+
 :see
-call
-unit_call
-unit_info
-unit_compile
-unit_render
 component
 handler/component

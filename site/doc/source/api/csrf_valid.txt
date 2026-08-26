@@ -18,8 +18,8 @@ It does not create a missing token. Check the token before you apply a browser-s
 var token := csrf_token("capy-doc-session")
 print(csrf_valid(token, "capy-doc-session"), "\n")
 
+:see-group
+csrf
+
 :see
-csrf_token
-csrf_field
-csrf_rotate
 crypto_equal

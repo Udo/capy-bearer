@@ -14,6 +14,5 @@ var database := mysql_connect("localhost", "root", "", "")
 if database != u64(0) { mysql_disconnect(database) }
 print("connection released\n")
 
-:see
-mysql_connect
-mysql_info
+:see-group
+mysql

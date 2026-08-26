@@ -16,3 +16,6 @@ var handle := file_open("/tmp/doc-write.txt", "w")
 var count := file_write(handle, "hello")
 file_close(handle)
 print(count, " ", file_get_contents("/tmp/doc-write.txt"), "\n")
+
+:see-group
+file-handles

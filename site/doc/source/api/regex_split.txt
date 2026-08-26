@@ -15,3 +15,6 @@ A list of text parts.
 :example capy render
 var parts := regex_split(",", "a,,b")
 print(parts[1], "\n")
+
+:see-group
+regex

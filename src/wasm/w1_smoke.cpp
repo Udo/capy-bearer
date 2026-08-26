@@ -105,6 +105,12 @@ static wasm_trap_t* host_log(void*, const wasm_val_vec_t*, wasm_val_vec_t*)
 	return(nullptr);
 }
 
+static wasm_trap_t* host_flush_output(void*, const wasm_val_vec_t*, wasm_val_vec_t* results)
+{
+	set_i32(&results->data[0], 1);
+	return(nullptr);
+}
+
 static wasm_trap_t* host_module_reset(void*, const wasm_val_vec_t*, wasm_val_vec_t*)
 {
 	g_module_reset_count++;
@@ -315,6 +321,7 @@ int main(int argc, char** argv)
 		else if(mod == "env" && name == "bearer_host_env") fn = wasm_func_new_with_env(store, ft, host_env, nullptr, nullptr);
 		else if(mod == "env" && name == "bearer_host_random") fn = wasm_func_new_with_env(store, ft, host_random, nullptr, nullptr);
 		else if(mod == "env" && name == "bearer_host_log") fn = wasm_func_new_with_env(store, ft, host_log, nullptr, nullptr);
+		else if(mod == "env" && name == "bearer_host_flush_output") fn = wasm_func_new_with_env(store, ft, host_flush_output, nullptr, nullptr);
 		else if(mod == "env" && name == "bearer_host_module_reset") fn = wasm_func_new_with_env(store, ft, host_module_reset, nullptr, nullptr);
 		else if(mod == "env" && name == "bearer_host_module_staged_size") fn = wasm_func_new_with_env(store, ft, host_module_staged_size, nullptr, nullptr);
 		else if(mod == "env" && name == "bearer_host_module_resolve") fn = wasm_func_new_with_env(store, ft, host_module_resolve, nullptr, nullptr);
@@ -550,6 +557,16 @@ int main(int argc, char** argv)
 		"malformed path selector did not fail");
 	CHECK(call_i32(core, "bearer_dv_set_path_brrb", { original_ptr, (int32_t)original.size(), path_ptr, (int32_t)path.size(), bad_ptr, (int32_t)bad.size(), 0, 0 }) == -1,
 		"malformed path replacement did not fail");
+
+	std::string flushed = "W1 flushed";
+	int32_t flushed_ptr = call_i32(core, "bearer_alloc", { (int32_t)flushed.size() });
+	write_bytes(memory, flushed_ptr, flushed);
+	call_i32(core, "bearer_print_bytes", { flushed_ptr, (int32_t)flushed.size() });
+	CHECK(call_i32(core, "bearer_flush_output") == 1, "flush_output did not accept the master buffer");
+	call_i32(core, "bearer_wasm_finish_output");
+	CHECK(call_i32(core, "bearer_wasm_output_size") == 0, "flush_output did not clear the master buffer");
+	call_i32(core, "bearer_wasm_core_reset_request");
+	CHECK(call_i32(core, "bearer_wasm_output_size") == 0, "request reset retained flushed output");
 
 	std::string out = "W1 output";
 	int32_t out_ptr = call_i32(core, "bearer_alloc", { (int32_t)out.size() });

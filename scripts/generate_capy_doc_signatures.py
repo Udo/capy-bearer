@@ -22,21 +22,31 @@ PAGE_SYMBOLS = {
     "session_set": ["session_set"],
     "session_remove": ["session_remove"],
     "call": ["call"],
-    "bool": ["bool"],
-    "s32": ["s32"],
-    "s64": ["s64"],
-    "u64": ["u64"],
-    "f64": ["f64"],
+    "type/bool": ["bool"],
+    "type/s8": ["s8"],
+    "type/s16": ["s16"],
+    "type/s32": ["s32"],
+    "type/s64": ["s64"],
+    "type/u8": ["u8"],
+    "type/u16": ["u16"],
+    "type/u32": ["u32"],
+    "type/u64": ["u64"],
+    "type/f32": ["f32"],
+    "type/f64": ["f64"],
     "string": ["string"],
+    "flush_output": ["flush_output"],
 }
 
 PAGE_SIGNATURES = {
+    "type/struct": ['struct Name { field : type, ... }'],
+    "type/array": ['[element_type]'],
+    "type/function": ['function(parameter_type, ...) result_type'],
+    "type/module": ['module'],
     "has": ["has(value : dval, key : string) bool"],
     "length": [
-        "function length(value : string) s32",
-        "function length(value : markup) s32",
-        "function length(value : dval) s32",
-        "function length(value : [T]) s32",
+        "function length(value : string) s64",
+        "function length(value : dval) s64",
+        "function length(value : [T]) s64",
     ],
     "trap": ["function trap()"],
     "mysql_info": ["function mysql_info(handle : u64, key : string) dval"],
@@ -59,18 +69,27 @@ def quote(text: str) -> str:
     return '"' + text.replace('\\', '\\\\').replace('"', '\\"') + '"'
 
 
-def compiler_signatures(capyc: Path) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+def compiler_signatures(capyc: Path) -> tuple[dict[str, list[tuple[str, str]]], dict[str, list[tuple[str, str]]]]:
     output = subprocess.check_output(
         [str(capyc), "--stdlib-signatures", "src/capy/stdlib.capy"], cwd=ROOT, text=True
     )
-    signatures: dict[str, list[str]] = {}
-    pages: dict[str, list[str]] = {}
+    signatures: dict[str, list[tuple[str, str]]] = {}
+    pages: dict[str, list[tuple[str, str]]] = {}
     for line in output.splitlines():
-        symbol, declaration = line.split("\t", 1)
-        if symbol.startswith("page:"):
-            pages.setdefault(symbol[5:], []).append(declaration)
+        fields = line.split("\t")
+        if len(fields) == 2:
+            symbol, declaration = fields
+            if not symbol.startswith("page:"):
+                raise RuntimeError(f"missing call boundary in stdlib signature line: {line!r}")
+            boundary = ""
+        elif len(fields) == 3:
+            symbol, declaration, boundary = fields
         else:
-            signatures.setdefault(symbol, []).append(declaration)
+            raise RuntimeError(f"invalid stdlib signature line: {line!r}")
+        if symbol.startswith("page:"):
+            pages.setdefault(symbol[5:], []).append((declaration, boundary))
+        else:
+            signatures.setdefault(symbol, []).append((declaration, boundary))
     return signatures, pages
 
 
@@ -88,10 +107,12 @@ def generate(capyc: Path) -> str:
             pages[page] = compiler_pages[page]
             continue
         if page in PAGE_SYMBOLS:
-            pages[page] = [declaration for symbol in PAGE_SYMBOLS[page] for declaration in signatures[symbol]]
+            pages[page] = [entry for symbol in PAGE_SYMBOLS[page] for entry in signatures[symbol]]
             continue
         if page in PAGE_SIGNATURES:
-            pages[page] = PAGE_SIGNATURES[page]
+            match = re.match(r"function ([A-Za-z_][A-Za-z0-9_]*)", PAGE_SIGNATURES[page][0])
+            boundary = signatures.get(match.group(1), [("", "lib")])[0][1] if match else "lib"
+            pages[page] = [(declaration, boundary) for declaration in PAGE_SIGNATURES[page]]
             continue
         match = re.match(r"([A-Za-z_][A-Za-z0-9_]*)\(", marker)
         if not match or match.group(1) not in signatures:
@@ -103,12 +124,12 @@ def generate(capyc: Path) -> str:
         "#pragma once",
         "#include <string_view>",
         "",
-        "struct DocCapySignature { std::string_view page, declaration; };",
+        "struct DocCapySignature { std::string_view page, declaration, boundary; };",
         "inline constexpr DocCapySignature doc_capy_signatures[] = {",
     ]
     for page in sorted(pages, key=str.lower):
-        for declaration in pages[page]:
-            lines.append(f"\t{{{quote(page)}, {quote(declaration)}}},")
+        for declaration, boundary in pages[page]:
+            lines.append(f"\t{{{quote(page)}, {quote(declaration)}, {quote(boundary)}}},")
     lines.extend([
         "};",
         "",

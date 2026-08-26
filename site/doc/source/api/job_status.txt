@@ -17,7 +17,5 @@ var job := shell_exec("printf x", {background: true, timeout_ms: 1000})
 job_await(job, 3000)
 print(job_status(job)["state"], "\n")
 
-:see
-job_result
-job_await
-job_cancel
+:see-group
+jobs

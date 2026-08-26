@@ -59,10 +59,11 @@ if !request.query.id? {
 }
 print("id ", s64(request.query.id), "\n")
 
+:see-group
+handlers
+
 :see
 type/request
 handler/component
-handler/cli
-handler/ws
 component
 redirect

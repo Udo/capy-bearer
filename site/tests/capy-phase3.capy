@@ -2,8 +2,18 @@ struct Named {
     name : string
 }
 
-struct TupleBox {
-    value : (s32, string)
+struct TextPair {
+    number : s32
+    text : string
+}
+
+struct NestedPair {
+    inner : TextPair
+    outer : string
+}
+
+struct PairBox {
+    value : TextPair
 }
 
 function add(left : s32, right : s32) s32 {
@@ -26,16 +36,16 @@ function choose(value : s32) value::type {
     -> value + 1
 }
 
-function make_tuple (s32, string) {
-    -> (9, clone("tuple"))
+function make_pair TextPair {
+    -> TextPair(9, clone("pair"))
 }
 
-function nested_tuple ((s32, string), string) {
-    -> ((1, clone("inner")), clone("outer"))
+function nested_pair NestedPair {
+    -> NestedPair(TextPair(1, clone("inner")), clone("outer"))
 }
 
-function tuple_label(value : (s32, string)) string {
-    -> value[1]
+function pair_label(value : TextPair) string {
+    -> value.text
 }
 
 function countdown(value : any) value::type {
@@ -50,25 +60,25 @@ function CLI(request : dval) {
     print(choose(4), "|", choose(clone("fallback")), "|")
     print(identity([1, 2])[1], "|", identity(Named(clone("name"))).name, "|")
     {
-        var result := make_tuple()
-        print(result[0], result[1], "|", arc_live(), "|")
+        var result := make_pair()
+        print(result.number, result.text, "|", arc_live(), "|")
     }
-    print(identity(make_tuple())[1], "|", arc_live(), "|")
-    print(tuple_label(make_tuple()), "|", arc_live(), "|")
+    print(identity(make_pair()).text, "|", arc_live(), "|")
+    print(pair_label(make_pair()), "|", arc_live(), "|")
     {
-        var boxed := TupleBox(make_tuple())
-        print(boxed.value[1], "|", arc_live(), "|")
+        var boxed := PairBox(make_pair())
+        print(boxed.value.text, "|", arc_live(), "|")
     }
     {
-        var nested_result := nested_tuple()
-        print(nested_result[0][1], nested_result[1], "|", arc_live(), "|")
+        var nested_result := nested_pair()
+        print(nested_result.inner.text, nested_result.outer, "|", arc_live(), "|")
     }
-    print((clone("temporary"), 7)[0], "|", arc_live(), "|")
-    print(((1, clone("nested")), 2)[0][1], "|", arc_live(), "|")
+    print(Named(clone("temporary")).name, "|", arc_live(), "|")
+    print(TextPair(1, clone("nested")).text, "|", arc_live(), "|")
     var operation := add
-    var labeler := tuple_label
+    var labeler := pair_label
     print(operation(2, 3))
     operation = subtract
-    print(operation(2, 3), labeler(make_tuple()), "|", arc_live(), "|")
+    print(operation(2, 3), labeler(make_pair()), "|", arc_live(), "|")
     print(countdown(3), "|", bool(0), bool(2), s32(true), "|", arc_live())
 }

@@ -1,0 +1,10 @@
+length
+array_merge
+map
+filter
+each
+find
+some
+every
+sort
+unique

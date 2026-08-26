@@ -1,0 +1,4 @@
+socket_connect
+socket_read
+socket_write
+socket_close

@@ -41,6 +41,8 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <functional>
+#include <string_view>
 #include <sys/random.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -2153,6 +2155,8 @@ static void wasm_request_envelope_append(String& envelope, const String& value)
 static String wasm_encode_request_envelope(const Request& request, const String& entry_unit, const String& handler)
 {
 	String envelope = "BRRQ";
+	DValue config = request.cfg;
+	config["start_directory"] = ::process_start_directory();
 	envelope.push_back(3);
 	envelope.push_back(15);
 	wasm_request_envelope_append(envelope, brb_encode(request.call));
@@ -2185,7 +2189,7 @@ static String wasm_encode_request_envelope(const Request& request, const String&
 	}
 	wasm_request_envelope_append(envelope, websocket);
 	wasm_request_envelope_append(envelope, brb_encode(request.props));
-	wasm_request_envelope_append(envelope, brb_encode(request.cfg));
+	wasm_request_envelope_append(envelope, brb_encode(config));
 	DValue files;
 	files.set_array();
 	for(const UploadedFile& file : request.uploaded_files)
@@ -2247,6 +2251,7 @@ struct WasmWorkspace : public WasmRequestProfile
 	// to guest code. They are closed with the workspace on success or trap.
 	std::vector<int> socket_handles;
 	String capy_regex_result;
+	std::function<bool(std::string_view)> flush_output;
 
 	struct RequestPerfSnapshot
 	{
@@ -4005,6 +4010,18 @@ struct WasmWorkspace : public WasmRequestProfile
 				self->hostcall_read(args[0].i32(), args[1].i32(), message);
 				return(Trap(message));
 			}));
+		if(mod == "env" && name == "bearer_host_flush_output")
+			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				String data;
+				if(self->hostcall_read(args[0].i32(), args[1].i32(), data) != "")
+				{
+					results[0] = Val((int32_t)0);
+					return(std::monostate());
+				}
+				bool flushed = self->flush_output && self->flush_output(data);
+				results[0] = Val((int32_t)(flushed ? 1 : 0));
+				return(std::monostate());
+			}));
 		if(mod == "env" && name == "bearer_host_time")
 			return(add([](Caller, Span<const Val>, Span<Val> results) -> Result<std::monostate, Trap> {
 				results[0] = Val((int64_t)::time(0));
@@ -4383,24 +4400,21 @@ struct WasmWorkspace : public WasmRequestProfile
 			}));
 		if(mod == "env" && name == "bearer_host_job_cancel")
 			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> { results[0]=Val((int32_t)(bearer_job_cancel_value((u64)args[0].i64())?1:0)); return(std::monostate()); }));
-		if(mod == "env" && name == "bearer_host_path_real")
+		if(mod == "env" && name == "bearer_host_path_normalize")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
-				String path;
+				String path, encoded_options;
 				self->hostcall_read(args[0].i32(), args[1].i32(), path);
-				String resolved = ::path_real(path);
-				u32 cap = (u32)args[3].i32();
-				int32_t buf = args[2].i32();
-				if(buf != 0 && cap >= resolved.size())
-					self->hostcall_write(buf, resolved);
-				results[0] = Val((int32_t)resolved.size());
-				return(std::monostate());
-			}));
-		if(mod == "env" && name == "bearer_host_path_is_within")
-			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
-				String path, root;
-				self->hostcall_read(args[0].i32(), args[1].i32(), path);
-				self->hostcall_read(args[2].i32(), args[3].i32(), root);
-				results[0] = Val(::path_is_within(path, root) ? (int32_t)1 : (int32_t)0);
+				self->hostcall_read(args[2].i32(), args[3].i32(), encoded_options);
+				DValue options;
+				String error;
+				String normalized;
+				if(brb_decode(encoded_options, options, &error))
+					normalized = ::path_normalize(path, options);
+				u32 cap = (u32)args[5].i32();
+				int32_t buf = args[4].i32();
+				if(buf != 0 && cap >= normalized.size())
+					self->hostcall_write(buf, normalized);
+				results[0] = Val((int32_t)normalized.size());
 				return(std::monostate());
 			}));
 		if(mod == "env" && name == "bearer_host_cwd_get")
@@ -4419,16 +4433,6 @@ struct WasmWorkspace : public WasmRequestProfile
 				self->hostcall_read(args[0].i32(), args[1].i32(), path);
 				String resolved = self->resolve_guest_cwd_set(path);
 				results[0] = Val(::chdir(resolved.c_str()) == 0 ? (int32_t)1 : (int32_t)0);
-				return(std::monostate());
-			}));
-		if(mod == "env" && name == "bearer_host_process_start_directory")
-			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
-				String cwd = ::process_start_directory();
-				u32 cap = (u32)args[1].i32();
-				int32_t buf = args[0].i32();
-				if(buf != 0 && cap >= cwd.size())
-					self->hostcall_write(buf, cwd);
-				results[0] = Val((int32_t)cwd.size());
 				return(std::monostate());
 			}));
 		if(mod == "env" && name == "bearer_host_last_trap_trace")
@@ -5515,6 +5519,11 @@ inline WasmResponse wasm_worker_serve(WasmWorker& worker, const Request& request
 	bool thread_runtime_profiled = worker.cfg.profile_thread_runtime && getrusage(RUSAGE_THREAD, &thread_runtime_start) == 0;
 	int thread_cpu_start = thread_runtime_profiled ? sched_getcpu() : -1;
 	WasmWorkspace workspace(worker);
+	workspace.flush_output = [&](std::string_view body) {
+		if(!response.handler_present && handler != "render")
+			return(false);
+		return(consume_body(response, body));
+	};
 	u64 workspace_setup_us = (u64)std::chrono::duration_cast<std::chrono::microseconds>(
 		std::chrono::steady_clock::now() - workspace_start).count();
 	u64 workspace_setup_ms = workspace_setup_us / 1000 + (workspace_setup_us % 1000 != 0);

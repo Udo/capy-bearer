@@ -1,0 +1,23 @@
+:sig
+function bool(value : dval, opt : dval = {}) bool
+
+:params
+value : dynamic value to convert
+opt : options map with `fallback`
+
+:returns
+A Boolean value, or `opt.fallback`.
+
+:content
+`bool()` converts a `dval` to a Boolean value. `opt.fallback` is the result when conversion fails. It defaults to `false`. An empty or missing `dval` fails conversion and uses the fallback. Use `value?` before conversion when presence matters.
+
+`bool()` deliberately keeps a `dval` first parameter. Strings cannot be conditions. A string must pass through `dval()` before conversion, so `if "true"` remains a compile error.
+
+The options map accepts only `fallback`. An unknown key, including `base`, is an error.
+
+:example capy render
+print(bool(dval("YES")), "\n")
+print(bool(dval("unknown"), {fallback: true}), "\n")
+
+:see-group
+constructors

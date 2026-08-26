@@ -2,6 +2,7 @@ bearer_host_time
 bearer_host_time_precise
 bearer_host_env
 bearer_host_log
+bearer_host_flush_output
 bearer_host_random
 bearer_host_sha256
 bearer_host_hmac_sha256
@@ -67,11 +68,9 @@ bearer_host_file_temp
 bearer_host_file_chmod
 bearer_host_file_symlink
 bearer_host_file_fsync
-bearer_host_path_real
-bearer_host_path_is_within
+bearer_host_path_normalize
 bearer_host_cwd_get
 bearer_host_cwd_set
-bearer_host_process_start_directory
 bearer_host_last_trap_trace
 bearer_host_capy_backtrace
 bearer_host_hard_error

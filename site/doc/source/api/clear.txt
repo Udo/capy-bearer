@@ -18,6 +18,5 @@ var value := dval({"name": "Ada"})
 value = clear(value)
 print(has(value, "name"), "\n")
 
-:see
-type/dvalue
-set
+:see-group
+dval-access

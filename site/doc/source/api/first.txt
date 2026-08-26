@@ -19,3 +19,6 @@ The first nonblank value. Returns `""` if no value is nonblank.
 
 :example capy render
 print(first("", "  ", "fallback", "other"), "\n")
+
+:see-group
+strings

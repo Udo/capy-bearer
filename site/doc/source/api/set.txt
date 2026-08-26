@@ -20,7 +20,5 @@ var user := dval({})
 user = set(user, "name", "Ada")
 print(user.name, "\n")
 
-:see
-type/dvalue
-get
-delete
+:see-group
+dval-access

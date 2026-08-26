@@ -3,7 +3,7 @@ function noisy() bool {
     return true
 }
 
-function make_value() s32 {
+function make_value() s64 {
     local := 7
     return local
 }

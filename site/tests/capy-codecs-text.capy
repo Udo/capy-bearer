@@ -8,7 +8,7 @@ function exercise {
         var yaml := yaml_decode("name: Ada\n")
         var yaml_encoded := yaml_encode(value)
         var ast := markdown_to_ast("# Title")
-        var offset := json_consume_space(" \t\nvalue", 0)
+        var offset : s64 = json_consume_space(" \t\nvalue", 0)
         print(restored["name"], "|", xml["children"][0]["text"], "|", length(xml_encoded), "|", yaml["name"], "|", length(yaml_encoded), "|", ast["type"], "|", markdown_to_html("**bold**"), "|", offset, "|", json_encode("x"), "|", json_encode(value), "|", html_escape("<&>\""), "|", arc_live())
     }
     print("|", arc_live())

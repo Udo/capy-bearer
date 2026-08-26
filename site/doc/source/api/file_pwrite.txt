@@ -21,7 +21,5 @@ file_pwrite(editor, u64(6), "earth")
 file_close(editor)
 print(file_get_contents("/tmp/doc-pwrite.txt"), "\n")
 
-:see
-file_write
-file_pread
-file_open
+:see-group
+file-handles

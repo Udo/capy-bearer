@@ -15,7 +15,8 @@ Use it only for SHA-1 compatibility.
 :example capy render
 print(hex(gen_sha1("abc")), "\n")
 
+:see-group
+crypto
+
 :see
-sha256
 hex
-hmac_sha256

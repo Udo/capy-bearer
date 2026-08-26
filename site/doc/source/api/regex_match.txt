@@ -14,3 +14,6 @@ Use `regex_match()` to test a complete string. Use `regex_search()` to find text
 
 :example capy render
 print(regex_match("[a-z]+", "Capy", "i"), "\n")
+
+:see-group
+regex

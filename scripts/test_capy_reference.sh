@@ -2,6 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+python3 scripts/test_capy_doc_generators.py
+
 host="${BEARER_TEST_HTTP_HOST:-bearer.openfu.com}"
 base="${BEARER_TEST_HTTP_BASE:-http://127.0.0.1}/examples/capy-reference"
 reference_dir=site/examples/capy-reference

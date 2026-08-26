@@ -8,12 +8,6 @@ entries : archive entries
 :returns
 `true` when the server creates the archive.
 
-:see
-zip_list
-zip_read
-zip_extract
-type/dvalue
-
 :content
 `zip_create()` creates a ZIP archive from a `dval` map of entry names and content.
 
@@ -22,3 +16,9 @@ var archive := file_temp("/tmp/capy-zip-") + ".zip"
 zip_create(archive, dval({"note.txt": "hello"}))
 print(zip_read(archive, "note.txt"), "\n")
 file_unlink(archive)
+
+:see-group
+archives
+
+:see
+type/dvalue

@@ -21,6 +21,5 @@ This normalization is transparent. The keys `"a b"` and `"a_b"` address the same
 var connection := memcache_connect()
 if connection != u64(0) { print(memcache_set(connection, "doc-key", "value"), "\n") }
 
-:see
-memcache_connect
-memcache_get
+:see-group
+memcache

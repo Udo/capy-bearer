@@ -14,3 +14,6 @@ Call `session_start()` before you remove a session field.
 var session := session_start("docs-session")
 session = session_remove("theme")
 print(string(session.name), "\n")
+
+:see-group
+session

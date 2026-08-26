@@ -17,7 +17,5 @@ Use the result in a hidden form field. Call `csrf_valid()` before you apply a br
 var token := csrf_token("capy-doc-session")
 print(length(token) > 0, "\n")
 
-:see
-csrf_field
-csrf_valid
-csrf_rotate
+:see-group
+csrf

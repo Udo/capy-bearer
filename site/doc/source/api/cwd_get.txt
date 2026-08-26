@@ -12,6 +12,7 @@ Save this path before `cwd_set()` when you must restore the directory.
 :example capy render
 print(cwd_get() != "", "\n")
 
+:see-group
+paths
+
 :see
-cwd_set
-process_start_directory

@@ -10,3 +10,6 @@ Use `split_http_headers` to parse an HTTP header block.
 :example capy render
 var headers := split_http_headers("Host: example.test\r\n")
 print(headers["HTTP_HOST"], "\n")
+
+:see-group
+splitting

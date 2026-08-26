@@ -8,11 +8,6 @@ destination : destination directory
 :returns
 `true` when the server extracts the archive.
 
-:see
-zip_create
-zip_list
-zip_read
-
 :content
 `zip_extract()` extracts every entry from a ZIP archive.
 
@@ -24,3 +19,6 @@ zip_extract(archive, destination)
 print(file_get_contents(destination + "/note.txt"), "\n")
 dir_remove(destination, true)
 file_unlink(archive)
+
+:see-group
+archives

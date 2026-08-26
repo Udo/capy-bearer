@@ -6,7 +6,7 @@ Every Capy value has a type. The compiler checks types before the program runs. 
 
 ## Integers
 
-An integer literal has type `s32` when no other type is stated:
+An integer literal has type `s64` when no other type is stated:
 
 :example capy render
 function RENDER(request : dval) {
@@ -18,7 +18,7 @@ function RENDER(request : dval) {
 42
 
 :content
-State a wider type on the local, or construct the value explicitly:
+State the type on the local, or construct the value explicitly:
 
 :example capy render
 function RENDER(request : dval) {
@@ -31,9 +31,9 @@ function RENDER(request : dval) {
 
 :content
 
-Both forms produce the stated wide integer type. `var signed : s64 = s64(8)` also compiles, but the constructor repeats information already supplied by the annotation.
+Both forms produce the stated integer type. `var signed : s64 = s64(8)` also compiles, but the constructor repeats the annotation.
 
-Parameters, function results, assignments, typed arrays, struct fields, and the other operand in an expression can also state the integer type. Thus, a function that accepts `u64` can receive the plain literal `8`. An unconstrained literal remains `s32`.
+Parameters, function results, assignments, typed arrays, struct fields, and the other operand in an expression can also state the integer type. Thus, a function that accepts `u64` can receive the plain literal `8`. An unconstrained literal remains `s64`.
 
 Arithmetic requires operands of the same type. Use a constructor when the surrounding code does not state the required type.
 
@@ -67,7 +67,7 @@ function RENDER(request : dval) {
 
 An empty string is still a string value. It is not missing data.
 
-## Arrays, tuples, and structs
+## Arrays and structs
 
 An array contains values of one type:
 
@@ -75,16 +75,6 @@ An array contains values of one type:
 function RENDER(request : dval) {
     var names := ["Ada", "Grace"]
     print(names[0], "\n")
-}
-
-:content
-
-A tuple has a fixed number of positions, which can have different types:
-
-:example capy render
-function RENDER(request : dval) {
-    var point := (3, 4)
-    print(point[0], " ", point[1], "\n")
 }
 
 :content
@@ -104,7 +94,7 @@ function RENDER(request : dval) {
 
 :content
 
-Arrays and struct instances are mutable reference values inside one workspace. Assignment shares their identity. Tuples remain immutable.
+Arrays and struct instances are mutable reference values inside one workspace. Assignment shares their identity.
 
 The collections chapter covers these types in detail.
 
@@ -139,16 +129,25 @@ function RENDER(request : dval) {
 
 An alias does not create a new runtime type.
 
+:see-group
+guides
+
 :see
 capy-04-expressions-and-control-flow
 capy-07-collections-and-records
 capy-08-dynamic-values
 type/dvalue
-bool
-s32
-s64
-u64
-f64
+type/bool
+type/s8
+type/s16
+type/s32
+type/s64
+type/u8
+type/u16
+type/u32
+type/u64
+type/f32
+type/f64
 string
 dval
 length

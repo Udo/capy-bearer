@@ -8,7 +8,7 @@ function consume(value : string) bool {
     return true
 }
 
-function managed() s32 {
+function managed() s64 {
     if (var equal := clone("equal")) == "equal" {
         print("equal;")
     }
@@ -25,7 +25,7 @@ function managed() s32 {
     return arc_live()
 }
 
-function while_values() s32 {
+function while_values() s64 {
     var count := 0
     while (var owned := clone("owned")) == "owned" {
         count = count + 1

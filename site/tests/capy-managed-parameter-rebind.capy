@@ -6,7 +6,7 @@ function rebind_text(value : string) string {
 }
 
 function rebind_array(values : [s32]) [s32] {
-    values = [7, 8]
+    values = [s32(7), s32(8)]
     return values
 }
 
@@ -17,12 +17,12 @@ function two_scopes(value : string, flag : bool) string {
 }
 
 function mutate_array(values : [s32]) void {
-    values[0] = 4
-    values.push(5)
+    values[0] = s32(4)
+    values.push(s32(5))
 }
 
 function mutate_box(box : Box) void {
-    box.value = 9
+    box.value = s32(9)
 }
 
 function CLI(request : dval) {
@@ -36,8 +36,8 @@ function CLI(request : dval) {
     var arc_before := arc_live()
     for index := 0..50 { var unused := nibble(nibble_path, "/") }
     var arc_after := arc_live()
-    var values := [1, 2]
-    var box := Box(3)
+    var values := [s32(1), s32(2)]
+    var box := Box(s32(3))
     var rebound := rebind_array(values)
     mutate_array(values)
     mutate_box(box)

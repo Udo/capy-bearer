@@ -3,13 +3,12 @@ function side_effect () string {
     return clone("<side>")
 }
 
-function build_page () markup {
+function build_page () string {
     var dangerous := clone("<&>\"'")
     var nested := <><strong><?= dangerous ?></strong></>
     return <><main><?= side_effect() ?><?= dangerous ?><?: dangerous ?><?: nested ?><?= <><i><?= dangerous ?></i></> ?><aside><?= 0 - 2147483647 - 1 ?>:<?= 0 ?>:<?= 2147483647 ?>:<?= true ?>:<?= false ?></aside><wide><?= s64(-9223372036854775808) ?>:<?= u64(18446744073709551615) ?>:<?= -1.5 ?></wide></main></>
 }
 
 function CLI(request : dval) {
-    print(<><p>static</p></>, "|")
-    print(build_page(), "|", <><?= -2147483648 ?></>, "|", arc_live())
+    print(<><p>static</p></> + build_page(), "|", <><?= -2147483648 ?></>, "|", arc_live())
 }

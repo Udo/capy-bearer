@@ -24,9 +24,9 @@ function CLI(request : dval) {
             if string(get(item, "name")) == "b.txt" { found = true }
         }
         var nonrecursive := dir_remove(root)
-        var real := path_real(source)
-        var within := path_is_within(source, root)
-        var expanded := expand_path("a.txt", root)
+        var real := path_normalize(source, {real: true, safe: false})
+        var within := path_normalize(source, {real: true, safe: false, within: root}) != ""
+        var expanded := path_normalize("a.txt", {base: root})
         var source_contents := file_get_contents(source)
         var renamed_contents := file_get_contents(renamed)
         var link_contents := file_get_contents(link)

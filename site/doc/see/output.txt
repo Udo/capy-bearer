@@ -1,0 +1,6 @@
+print
+ob_start
+ob_get
+ob_get_close
+ob_close
+var_dump

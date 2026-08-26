@@ -1,0 +1,36 @@
+:sig
+function join_kv(value : dval, opt : dval = {}) string
+
+:params
+value : map-shaped `dval` to encode
+opt : encoder options
+
+:returns
+A string that contains escaped key and value pairs.
+
+:errors
+The function traps when an option has an unknown name or the wrong type.
+
+:content
+`join_kv()` encodes a map for `split_kv()`.
+
+`opt.separator` separates each key from its value. The default is `=`. An empty value emits no key and value separator.
+
+`opt.pair_separator` separates pairs. The default is `,`. An empty value emits no pair separator.
+
+`opt.escape_chars` lists valid escape characters. The default is `\`. The encoder uses the first character as its escape character. An empty value disables escaping.
+
+The function escapes separators, pair separators, and escape characters in keys and values. Use the same options with `split_kv()` to recover the map. A disabled separator can make a multi-entry format ambiguous. Enable all separators when the output must round-trip.
+
+:example capy render
+var encoded := join_kv({"na=me": "Ada, Lovelace", "role": "admin"})
+var decoded := split_kv(encoded)
+print(decoded["na=me"], " ", decoded.role, "\n")
+
+:example capy render
+var options := {separator: "::", pair_separator: "||"}
+var encoded := join_kv({name: "Ada", note: "one||two"}, options)
+print(split_kv(encoded, options).note, "\n")
+
+:see
+split_kv

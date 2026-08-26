@@ -34,7 +34,5 @@ for row := rows {
 }
 print("\n")
 
-:see
-component
-component_resolve
-handler/component
+:see-group
+components

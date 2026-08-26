@@ -1,5 +1,5 @@
 function CLI(request : dval) {
-    var pid := server_start_http("capy-serve-http-test", "19092", "capy-serve-http.capy", "")
+    var pid : s64 = server_start_http("capy-serve-http-test", "19092", "capy-serve-http.capy", "")
     usleep(500000)
     var socket := socket_connect("127.0.0.1", 19092)
     var response := ""

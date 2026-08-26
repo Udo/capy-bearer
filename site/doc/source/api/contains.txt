@@ -14,6 +14,8 @@ needle : the substring to find
 :example capy render
 if contains("Capy docs", "docs") { print("yes\n") } else { print("no\n") }
 
+:see-group
+strings
+
 :see
 find
-strpos

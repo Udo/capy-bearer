@@ -919,9 +919,9 @@ FastCGIServer::process_http_request(FastCGIRequest& request, String& data)
 			}
 		}
 		String candidate = path_join(document_root, document_uri);
-		String real_root = path_real(document_root);
-		String real_candidate = path_real(candidate);
-		if(real_root == "" || real_candidate == "" || !path_is_within(real_candidate, real_root))
+		String real_root = runtime_path(document_root, true);
+		String real_candidate = runtime_path(candidate, true, real_root);
+		if(real_root == "" || real_candidate == "")
 		{
 			reject_http_connection(*client_sockets[request.resources.client_socket], "HTTP/1.1 404 Not Found", "script not found\n");
 			return;

@@ -1,3 +1,5 @@
+function require_s64(value : s64) s64 { -> value }
+
 function CLI(request : dval) {
     {
         var left := clone("Capy")
@@ -10,7 +12,7 @@ function CLI(request : dval) {
             substr(joined, -6, 6), "|",
             substr(joined, 0, -7), ":", substr(joined, s64(5)), "|",
             strpos(joined, "Bearer"), ":", strpos(joined, "Bearer", s64(-6)), ":", strpos(joined, "missing", s64(0)), "|",
-            find(joined, "Bearer"), ":", find(joined, "missing"), "|",
+            require_s64(find(joined, "Bearer")), ":", require_s64(find(joined, "missing")), "|",
             replace(joined, "Bearer", "Runtime"), "|",
             lower(joined), "|", upper(joined), "|",
             length([1, 2, 3]), "|", contains(joined, "Bearer"), contains(joined, "missing"), contains(joined, ""), "|", arc_live()

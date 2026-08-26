@@ -15,3 +15,6 @@ var handle := file_open("/tmp/doc-tell.txt", "w")
 file_write(handle, "hello")
 print(file_tell(handle), "\n")
 file_close(handle)
+
+:see-group
+file-handles

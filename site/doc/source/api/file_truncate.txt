@@ -16,3 +16,6 @@ file_put_contents("/tmp/doc-truncate.txt", "hello world")
 if file_truncate("/tmp/doc-truncate.txt", u64(5)) {
     print(file_get_contents("/tmp/doc-truncate.txt"), "\n")
 }
+
+:see-group
+files

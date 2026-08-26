@@ -16,4 +16,5 @@ The result keeps input order. This function does not change `items`.
 var items := split("one,two,one", ",")
 print(join(unique(items), ","), "\n")
 
-:see
+:see-group
+collections

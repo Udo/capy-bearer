@@ -13,7 +13,5 @@ file_write(handle, "done")
 file_close(handle)
 print(file_get_contents("/tmp/doc-close.txt"), "\n")
 
-:see
-file_open
-file_read
-file_write
+:see-group
+file-handles

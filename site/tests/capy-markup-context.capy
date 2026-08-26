@@ -3,7 +3,7 @@ function contextual_value() string {
     return clone("<once>")
 }
 
-function context_page() markup {
+function context_page() string {
     var value := clone("</script><style>&\"'\\\n  ")
     return <><?= contextual_value() ?><p title="<?= value ?>" href="<?= value ?>" onclick="<?= value ?>" style="<?= value ?>"><?= value ?></p><script>const value = <?= value ?>; const count = <?= 7 ?>;</script><style>.x::before { content: <?= value ?>; width: <?= 7 ?>px; }</style></>
 }

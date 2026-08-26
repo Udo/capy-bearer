@@ -7,14 +7,17 @@ raw : text to trim
 :returns
 text without leading or trailing whitespace
 
-:see
->string
-u64
-regex_split
-html_escape
-
 :content
 `trim` removes leading and trailing whitespace.
 
 :example capy render
 print(trim("  docs  "), "\n")
+
+:see-group
+strings
+
+:see
+>string
+type/u64
+regex_split
+html_escape

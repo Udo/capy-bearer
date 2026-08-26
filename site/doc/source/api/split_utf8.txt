@@ -9,3 +9,6 @@ Use `split_utf8` to split UTF-8 text into characters. Set `compound` when you ne
 
 :example capy render
 print(join(split_utf8("Aé"), ","), "\n")
+
+:see-group
+splitting

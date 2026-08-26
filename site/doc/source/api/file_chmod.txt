@@ -15,7 +15,8 @@ mode : Unix permission bits as a decimal `s32`
 file_put_contents("/tmp/doc-chmod.txt", "secret")
 print(file_chmod("/tmp/doc-chmod.txt", 384), "\n")
 
+:see-group
+files
+
 :see
-file_stat
-file_put_contents
 file_fsync

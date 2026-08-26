@@ -7,14 +7,15 @@ path : unit path. An empty path selects the current unit
 :returns
 unit metadata
 
-:see
-units_list
-unit_compile
-type/request
-
 :content
 `unit_info` returns metadata for a unit.
 
 :example capy render
 var info := unit_info("capy-files.capy")
 print(bool(info["source_exists"]), "\n")
+
+:see-group
+units
+
+:see
+type/request

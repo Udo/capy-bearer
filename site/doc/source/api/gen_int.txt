@@ -19,7 +19,5 @@ Use the same inputs to reproduce a value.
 var value := gen_int(u64(1), u64(10), u64(1))
 print(value, "\n")
 
-:see
-gen_float
-gen_noise32
-draw_int
+:see-group
+noise

@@ -20,7 +20,8 @@ file_put_contents(path_join(root, "note.txt"), "hi")
 for item, key := dir_list(root) { print(string(item.name), "\n") }
 dir_remove(root, true)
 
+:see-group
+directories
+
 :see
-ls
 file_stat
-dir_remove

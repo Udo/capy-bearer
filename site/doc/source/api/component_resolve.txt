@@ -46,6 +46,5 @@ if length(resolved) > 0 { print(resolved, "\n") } else { print("unresolved\n") }
 :example capy render the handler suffix does not change the path
 print(component_resolve("/doc/examples/card.capy:CARD"), "\n")
 
-:see
-component
-component_render
+:see-group
+components

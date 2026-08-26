@@ -15,6 +15,5 @@ The function does not access the file system.
 :example capy render
 print(dirname("/var/www/site/index.capy"), "\n")
 
-:see
-basename
-path_join
+:see-group
+paths

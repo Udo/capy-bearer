@@ -16,6 +16,15 @@
 #include <sys/syscall.h>
 #include <sys/wait.h>
 
+static String runtime_path(String path, bool real = false, String within = "")
+{
+	DValue options;
+	options["safe"] = false;
+	if(real) options["real"] = true;
+	if(within != "") options["within"] = within;
+	return(path_normalize(path, options));
+}
+
 static constexpr u64 MARKDOWN_BATCH_MAX_INPUT_BYTES = 16 * 1024 * 1024;
 static constexpr u64 MARKDOWN_BATCH_MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
 
@@ -262,7 +271,7 @@ String normalize_ws_scope(String scope)
 		return(current_ws_scope());
 	if(scope[0] == '/')
 		return(scope);
-	return(expand_path(scope, cwd_get()));
+	return(path_join(cwd_get(), scope));
 }
 
 String ws_connection_id()
@@ -1322,10 +1331,10 @@ pid_t server_start_http(String key, String socket_fn_or_port, String call_bearer
 	if(call_bearer_filename == "")
 		throw std::runtime_error("server_start_http(): call_bearer_filename cannot be empty");
 	if(call_bearer_filename[0] != '/')
-		call_bearer_filename = expand_path(call_bearer_filename, cwd_get());
+		call_bearer_filename = path_join(cwd_get(), call_bearer_filename);
 	String allowed_root = first(server_state.config["CUSTOM_SERVER_BEARER_ROOT"], path_join(server_state.config["COMPILER_SYS_PATH"], server_state.config["SITE_DIRECTORY"]));
-	String real_call_bearer_filename = path_real(call_bearer_filename);
-	if(real_call_bearer_filename == "" || !path_is_within(real_call_bearer_filename, allowed_root))
+	String real_call_bearer_filename = runtime_path(call_bearer_filename, true, allowed_root);
+	if(real_call_bearer_filename == "")
 		throw std::runtime_error("server_start_http(): call_bearer_filename is outside configured custom server BEARER root");
 	call_bearer_filename = real_call_bearer_filename;
 
@@ -1710,8 +1719,8 @@ bool task_selector_resolve(const String& selector, String& unit, String& handler
 	policy.server = &server_state;
 	unit = compiler_normalize_unit_path(&policy, selector.substr(0, mark));
 	handler = selector.substr(mark + 1);
-	String root = path_real(path_join(server_state.config["COMPILER_SYS_PATH"], server_state.config["SITE_DIRECTORY"]));
-	return(unit != "" && root != "" && compiler_is_known_unit_file(unit) && path_is_within(unit, root));
+	String root = runtime_path(path_join(server_state.config["COMPILER_SYS_PATH"], server_state.config["SITE_DIRECTORY"]), true);
+	return(unit != "" && root != "" && compiler_is_known_unit_file(unit) && runtime_path(unit, true, root) != "");
 }
 
 bool task_target_resolve(const String& target, String& unit, String& handler)

@@ -16,4 +16,5 @@ This function does not change `items`.
 var items := split("two,one", ",")
 print(join(sort(items), ","), "\n")
 
-:see
+:see-group
+collections

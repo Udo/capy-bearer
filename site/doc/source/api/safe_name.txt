@@ -12,3 +12,6 @@ Text that contains only letters, digits, and `_`.
 
 :example capy render
 print(safe_name("Capy docs-2024"), "\n")
+
+:see-group
+strings

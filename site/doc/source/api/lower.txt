@@ -13,6 +13,8 @@ Text with uppercase ASCII characters converted to lowercase.
 :example capy render
 print(lower("BEARER"), "\n")
 
+:see-group
+strings
+
 :see
-upper
 length

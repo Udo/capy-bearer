@@ -9,3 +9,6 @@ Use `session_id_create()` when you need an ID without starting a session.
 
 :example capy render
 print(length(session_id_create()), "\n")
+
+:see-group
+session

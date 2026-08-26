@@ -114,6 +114,9 @@ function WS(request : dval) {
 
 `RENDER`, named `RENDER`, `COMPONENT`, named `COMPONENT`, `CLI`, `WS`, `TASK`, named `TASK`, `INIT`, `ONCE`, and custom HTTP handlers use `request : dval`. Handlers do not return application values.
 
+:see-group
+guides
+
 :see
 type/request
 handler/render
@@ -123,6 +126,6 @@ capy-08-dynamic-values
 capy-10-units-components-and-exports
 session_set
 session_remove
-bool
-s32
+type/bool
+type/s32
 string

@@ -15,3 +15,6 @@ The result contains `matched`, `count`, and `matches`.
 :example capy render
 var matches := regex_search_all("[a-z]+", "capy docs")
 print(s32(matches.count), "\n")
+
+:see-group
+regex

@@ -1,5 +1,5 @@
 :title
-Request snapshot
+Request
 
 :sig
 handler request : dval
@@ -34,7 +34,7 @@ Test for presence with the `?` suffix, which is `true` when the key exists:
 | `server` | map | remaining server and CGI variables, original uppercase names |
 | `session` | map | the current session snapshot |
 | `props` | map | properties passed by a component caller |
-| `config` | map | request-visible configuration |
+| `config` | map | request-visible configuration, including `start_directory` |
 | `connection` | map | connection information |
 | `unit` | string | the source path of the unit currently executing |
 | `websocket` | map | `connection_id`, `scope`, `opcode`, `binary`, `connections` |
@@ -44,6 +44,8 @@ Test for presence with the `?` suffix, which is `true` when the key exists:
 ## Headers and server variables
 
 `headers` holds anything that arrived as an HTTP header, renamed for readability: the transport's `HTTP_X_REQUEST_ID` appears as `request.headers["x-request-id"]`. `content-type` and `content-length` are included even though they arrive without the `HTTP_` prefix. Use bracket syntax for these, since the names contain dashes.
+
+`request.config.start_directory` is the process start directory. It stays stable when a unit changes its current directory.
 
 `server` holds everything else — `QUERY_STRING`, `REMOTE_ADDR`, `SERVER_NAME` — under the original uppercase names. `method`, `route`, and `url` are lifted out of `server` into their own fields, so look for them there rather than in `server`.
 
@@ -79,9 +81,11 @@ if request.query.page? {
     print("no page requested\n")
 }
 
+:see-group
+request
+
 :see
 >handler/render
->handler/component
 >handler/cli
 >handler/ws
 string

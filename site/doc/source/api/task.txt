@@ -10,3 +10,6 @@ Use `task` to submit a task handler. Pass a unit path and a `dval` value for its
 :example capy render
 var id := task("/tests/task-handlers.capy", dval({"nested": {"value": "Ada"}}))
 print(id, "\n")
+
+:see-group
+tasks

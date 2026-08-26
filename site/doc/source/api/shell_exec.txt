@@ -28,8 +28,10 @@ var job := shell_exec("printf hello", {background: true, timeout_ms: 1000})
 var result := job_await(job, 3000)
 print(get_by_path(result, "result/stdout"), "\n")
 
+:see-group
+shell
+
 :see
-shell_escape
 job_status
 job_result
 job_await
