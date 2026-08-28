@@ -1,0 +1,20 @@
+:sig
+function is_finite(value : f32) bool
+function is_finite(value : f64) bool
+
+:params
+value : the floating-point value
+
+:returns
+`true` or `false`.
+
+:content
+`is_finite()` tests if `value` is finite.
+
+The compiler emits a direct lib call.
+
+:example capy render
+print(is_finite(0.0), "\n")
+
+:see-group
+math

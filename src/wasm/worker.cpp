@@ -4032,6 +4032,66 @@ struct WasmWorkspace : public WasmRequestProfile
 				results[0] = Val(time_precise());
 				return(std::monostate());
 			}));
+		if(mod == "env" && name == "bearer_host_pow_f32")
+			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				results[0] = Val(::powf(args[0].f32(), args[1].f32()));
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_pow_f64")
+			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				results[0] = Val(::pow(args[0].f64(), args[1].f64()));
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_log_f32")
+			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				results[0] = Val(::logf(args[0].f32()));
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_log_f64")
+			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				results[0] = Val(::log(args[0].f64()));
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_exp_f32")
+			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				results[0] = Val(::expf(args[0].f32()));
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_exp_f64")
+			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				results[0] = Val(::exp(args[0].f64()));
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_sin_f32")
+			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				results[0] = Val(::sinf(args[0].f32()));
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_sin_f64")
+			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				results[0] = Val(::sin(args[0].f64()));
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_cos_f32")
+			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				results[0] = Val(::cosf(args[0].f32()));
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_cos_f64")
+			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				results[0] = Val(::cos(args[0].f64()));
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_atan2_f32")
+			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				results[0] = Val(::atan2f(args[0].f32(), args[1].f32()));
+				return(std::monostate());
+			}));
+		if(mod == "env" && name == "bearer_host_atan2_f64")
+			return(add([](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
+				results[0] = Val(::atan2(args[0].f64(), args[1].f64()));
+				return(std::monostate());
+			}));
 		if(mod == "env" && name == "bearer_host_request_perf")
 			return(add([self](Caller, Span<const Val> args, Span<Val> results) -> Result<std::monostate, Trap> {
 				String encoded;

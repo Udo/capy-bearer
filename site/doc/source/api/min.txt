@@ -1,0 +1,30 @@
+:sig
+function min(a : f32, b : f32) f32
+function min(a : f64, b : f64) f64
+function min(a : s8, b : s8) s8
+function min(a : s16, b : s16) s16
+function min(a : s32, b : s32) s32
+function min(a : s64, b : s64) s64
+function min(a : u8, b : u8) u8
+function min(a : u16, b : u16) u16
+function min(a : u32, b : u32) u32
+function min(a : u64, b : u64) u64
+
+:params
+a : the first value
+b : the second value
+
+:returns
+A value with the same type as the inputs
+
+:content
+`min()` returns the smaller of `a` and `b`.
+
+The compiler emits a direct lib call.
+
+:example capy render
+var value := min(3.0, 2.0)
+print(value, "\n")
+
+:see-group
+math

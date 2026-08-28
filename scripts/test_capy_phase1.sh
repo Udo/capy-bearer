@@ -33,6 +33,8 @@ grep -aFq "$stdlib_digest" bin/bearer_fastcgi.linux.bin || {
 
 output=$(scripts/bearer-cli /tests/capy-phase1.capy)
 [[ "$output" == "capy-direct-ok" ]] || { echo "Capy CLI output mismatch: $output" >&2; exit 1; }
+expect_equal "math fixture" "capy-math-ok" "$(scripts/bearer-cli /tests/capy-math.capy)"
+expect_equal "bits fixture" "capy-bits-ok" "$(scripts/bearer-cli /tests/capy-bits.capy)"
 expect_equal "flush_output ordering and reset" "first|true|second" "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-flush-output.capy)"
 
 language_output=$(scripts/bearer-cli /tests/capy-language.capy)

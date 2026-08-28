@@ -1,6 +1,18 @@
 // Private typed host ABI declarations.  Names map directly to env symbols.
 host function __bearer_print_bytes(value : string)
 host function __bearer_flush_output() bool
+host function __bearer_pow_f32(base : f32, exponent : f32) f32
+host function __bearer_pow_f64(base : f64, exponent : f64) f64
+host function __bearer_log_f32(value : f32) f32
+host function __bearer_log_f64(value : f64) f64
+host function __bearer_exp_f32(value : f32) f32
+host function __bearer_exp_f64(value : f64) f64
+host function __bearer_sin_f32(value : f32) f32
+host function __bearer_sin_f64(value : f64) f64
+host function __bearer_cos_f32(value : f32) f32
+host function __bearer_cos_f64(value : f64) f64
+host function __bearer_atan2_f32(y : f32, x : f32) f32
+host function __bearer_atan2_f64(y : f64, x : f64) f64
 host function __bearer_dv_none_brrb() dval
 host function __bearer_dv_is_none_brrb(value : dval) bool
 host function __bearer_dv_require_brrb(value : dval, path : dval) dval
@@ -674,3 +686,170 @@ function file_unlink(path : string) { __bearer_file_unlink(path) }
 
 function time() u64 { -> __bearer_time() }
 function time_precise() f64 { -> __bearer_time_precise() }
+
+// Numeric intrinsics. The compiler lowers these calls to Wasm instructions.
+function sqrt(value : f32) f32 { -> sqrt(value) }
+function sqrt(value : f64) f64 { -> sqrt(value) }
+function abs(value : f32) f32 { -> abs(value) }
+function abs(value : f64) f64 { -> abs(value) }
+function abs(value : s8) s8 { -> abs(value) }
+function abs(value : s16) s16 { -> abs(value) }
+function abs(value : s32) s32 { -> abs(value) }
+function abs(value : s64) s64 { -> abs(value) }
+function abs(value : u8) u8 { -> abs(value) }
+function abs(value : u16) u16 { -> abs(value) }
+function abs(value : u32) u32 { -> abs(value) }
+function abs(value : u64) u64 { -> abs(value) }
+function neg(value : f32) f32 { -> neg(value) }
+function neg(value : f64) f64 { -> neg(value) }
+function floor(value : f32) f32 { -> floor(value) }
+function floor(value : f64) f64 { -> floor(value) }
+function ceil(value : f32) f32 { -> ceil(value) }
+function ceil(value : f64) f64 { -> ceil(value) }
+function trunc(value : f32) f32 { -> trunc(value) }
+function trunc(value : f64) f64 { -> trunc(value) }
+function nearest(value : f32) f32 { -> nearest(value) }
+function nearest(value : f64) f64 { -> nearest(value) }
+function min(a : f32, b : f32) f32 { -> min(a, b) }
+function min(a : f64, b : f64) f64 { -> min(a, b) }
+function max(a : f32, b : f32) f32 { -> max(a, b) }
+function max(a : f64, b : f64) f64 { -> max(a, b) }
+function copysign(magnitude : f32, sign : f32) f32 { -> copysign(magnitude, sign) }
+function copysign(magnitude : f64, sign : f64) f64 { -> copysign(magnitude, sign) }
+function clamp(value : f32, low : f32, high : f32) f32 { -> clamp(value, low, high) }
+function clamp(value : f64, low : f64, high : f64) f64 { -> clamp(value, low, high) }
+function pow(base : f32, exponent : f32) f32 { -> __bearer_pow_f32(base, exponent) }
+function pow(base : f64, exponent : f64) f64 { -> __bearer_pow_f64(base, exponent) }
+function log(value : f32) f32 { -> __bearer_log_f32(value) }
+function log(value : f64) f64 { -> __bearer_log_f64(value) }
+function exp(value : f32) f32 { -> __bearer_exp_f32(value) }
+function exp(value : f64) f64 { -> __bearer_exp_f64(value) }
+function sin(value : f32) f32 { -> __bearer_sin_f32(value) }
+function sin(value : f64) f64 { -> __bearer_sin_f64(value) }
+function cos(value : f32) f32 { -> __bearer_cos_f32(value) }
+function cos(value : f64) f64 { -> __bearer_cos_f64(value) }
+function atan2(y : f32, x : f32) f32 { -> __bearer_atan2_f32(y, x) }
+function atan2(y : f64, x : f64) f64 { -> __bearer_atan2_f64(y, x) }
+function is_nan(value : f32) bool { -> is_nan(value) }
+function is_nan(value : f64) bool { -> is_nan(value) }
+function is_infinite(value : f32) bool { -> is_infinite(value) }
+function is_infinite(value : f64) bool { -> is_infinite(value) }
+function is_finite(value : f32) bool { -> is_finite(value) }
+function is_finite(value : f64) bool { -> is_finite(value) }
+
+function bit_and(a : s8, b : s8) s8 { -> bit_and(a, b) }
+function bit_and(a : s16, b : s16) s16 { -> bit_and(a, b) }
+function bit_and(a : s32, b : s32) s32 { -> bit_and(a, b) }
+function bit_and(a : s64, b : s64) s64 { -> bit_and(a, b) }
+function bit_and(a : u8, b : u8) u8 { -> bit_and(a, b) }
+function bit_and(a : u16, b : u16) u16 { -> bit_and(a, b) }
+function bit_and(a : u32, b : u32) u32 { -> bit_and(a, b) }
+function bit_and(a : u64, b : u64) u64 { -> bit_and(a, b) }
+function bit_or(a : s8, b : s8) s8 { -> bit_or(a, b) }
+function bit_or(a : s16, b : s16) s16 { -> bit_or(a, b) }
+function bit_or(a : s32, b : s32) s32 { -> bit_or(a, b) }
+function bit_or(a : s64, b : s64) s64 { -> bit_or(a, b) }
+function bit_or(a : u8, b : u8) u8 { -> bit_or(a, b) }
+function bit_or(a : u16, b : u16) u16 { -> bit_or(a, b) }
+function bit_or(a : u32, b : u32) u32 { -> bit_or(a, b) }
+function bit_or(a : u64, b : u64) u64 { -> bit_or(a, b) }
+function bit_xor(a : s8, b : s8) s8 { -> bit_xor(a, b) }
+function bit_xor(a : s16, b : s16) s16 { -> bit_xor(a, b) }
+function bit_xor(a : s32, b : s32) s32 { -> bit_xor(a, b) }
+function bit_xor(a : s64, b : s64) s64 { -> bit_xor(a, b) }
+function bit_xor(a : u8, b : u8) u8 { -> bit_xor(a, b) }
+function bit_xor(a : u16, b : u16) u16 { -> bit_xor(a, b) }
+function bit_xor(a : u32, b : u32) u32 { -> bit_xor(a, b) }
+function bit_xor(a : u64, b : u64) u64 { -> bit_xor(a, b) }
+function bit_not(value : s8) s8 { -> bit_not(value) }
+function bit_not(value : s16) s16 { -> bit_not(value) }
+function bit_not(value : s32) s32 { -> bit_not(value) }
+function bit_not(value : s64) s64 { -> bit_not(value) }
+function bit_not(value : u8) u8 { -> bit_not(value) }
+function bit_not(value : u16) u16 { -> bit_not(value) }
+function bit_not(value : u32) u32 { -> bit_not(value) }
+function bit_not(value : u64) u64 { -> bit_not(value) }
+function bit_shl(value : s8, count : s8) s8 { -> bit_shl(value, count) }
+function bit_shl(value : s16, count : s16) s16 { -> bit_shl(value, count) }
+function bit_shl(value : s32, count : s32) s32 { -> bit_shl(value, count) }
+function bit_shl(value : s64, count : s64) s64 { -> bit_shl(value, count) }
+function bit_shl(value : u8, count : u8) u8 { -> bit_shl(value, count) }
+function bit_shl(value : u16, count : u16) u16 { -> bit_shl(value, count) }
+function bit_shl(value : u32, count : u32) u32 { -> bit_shl(value, count) }
+function bit_shl(value : u64, count : u64) u64 { -> bit_shl(value, count) }
+function bit_shr(value : s8, count : s8) s8 { -> bit_shr(value, count) }
+function bit_shr(value : s16, count : s16) s16 { -> bit_shr(value, count) }
+function bit_shr(value : s32, count : s32) s32 { -> bit_shr(value, count) }
+function bit_shr(value : s64, count : s64) s64 { -> bit_shr(value, count) }
+function bit_shr(value : u8, count : u8) u8 { -> bit_shr(value, count) }
+function bit_shr(value : u16, count : u16) u16 { -> bit_shr(value, count) }
+function bit_shr(value : u32, count : u32) u32 { -> bit_shr(value, count) }
+function bit_shr(value : u64, count : u64) u64 { -> bit_shr(value, count) }
+function bit_rotate_left(value : s8, count : s8) s8 { -> bit_rotate_left(value, count) }
+function bit_rotate_left(value : s16, count : s16) s16 { -> bit_rotate_left(value, count) }
+function bit_rotate_left(value : s32, count : s32) s32 { -> bit_rotate_left(value, count) }
+function bit_rotate_left(value : s64, count : s64) s64 { -> bit_rotate_left(value, count) }
+function bit_rotate_left(value : u8, count : u8) u8 { -> bit_rotate_left(value, count) }
+function bit_rotate_left(value : u16, count : u16) u16 { -> bit_rotate_left(value, count) }
+function bit_rotate_left(value : u32, count : u32) u32 { -> bit_rotate_left(value, count) }
+function bit_rotate_left(value : u64, count : u64) u64 { -> bit_rotate_left(value, count) }
+function bit_rotate_right(value : s8, count : s8) s8 { -> bit_rotate_right(value, count) }
+function bit_rotate_right(value : s16, count : s16) s16 { -> bit_rotate_right(value, count) }
+function bit_rotate_right(value : s32, count : s32) s32 { -> bit_rotate_right(value, count) }
+function bit_rotate_right(value : s64, count : s64) s64 { -> bit_rotate_right(value, count) }
+function bit_rotate_right(value : u8, count : u8) u8 { -> bit_rotate_right(value, count) }
+function bit_rotate_right(value : u16, count : u16) u16 { -> bit_rotate_right(value, count) }
+function bit_rotate_right(value : u32, count : u32) u32 { -> bit_rotate_right(value, count) }
+function bit_rotate_right(value : u64, count : u64) u64 { -> bit_rotate_right(value, count) }
+function bit_count_lz(value : s8) s64 { -> bit_count_lz(value) }
+function bit_count_lz(value : s16) s64 { -> bit_count_lz(value) }
+function bit_count_lz(value : s32) s64 { -> bit_count_lz(value) }
+function bit_count_lz(value : s64) s64 { -> bit_count_lz(value) }
+function bit_count_lz(value : u8) s64 { -> bit_count_lz(value) }
+function bit_count_lz(value : u16) s64 { -> bit_count_lz(value) }
+function bit_count_lz(value : u32) s64 { -> bit_count_lz(value) }
+function bit_count_lz(value : u64) s64 { -> bit_count_lz(value) }
+function bit_count_tz(value : s8) s64 { -> bit_count_tz(value) }
+function bit_count_tz(value : s16) s64 { -> bit_count_tz(value) }
+function bit_count_tz(value : s32) s64 { -> bit_count_tz(value) }
+function bit_count_tz(value : s64) s64 { -> bit_count_tz(value) }
+function bit_count_tz(value : u8) s64 { -> bit_count_tz(value) }
+function bit_count_tz(value : u16) s64 { -> bit_count_tz(value) }
+function bit_count_tz(value : u32) s64 { -> bit_count_tz(value) }
+function bit_count_tz(value : u64) s64 { -> bit_count_tz(value) }
+function bit_count_1(value : s8) s64 { -> bit_count_1(value) }
+function bit_count_1(value : s16) s64 { -> bit_count_1(value) }
+function bit_count_1(value : s32) s64 { -> bit_count_1(value) }
+function bit_count_1(value : s64) s64 { -> bit_count_1(value) }
+function bit_count_1(value : u8) s64 { -> bit_count_1(value) }
+function bit_count_1(value : u16) s64 { -> bit_count_1(value) }
+function bit_count_1(value : u32) s64 { -> bit_count_1(value) }
+function bit_count_1(value : u64) s64 { -> bit_count_1(value) }
+function min(a : s8, b : s8) s8 { -> min(a, b) }
+function max(a : s8, b : s8) s8 { -> max(a, b) }
+function clamp(value : s8, low : s8, high : s8) s8 { -> clamp(value, low, high) }
+function min(a : s16, b : s16) s16 { -> min(a, b) }
+function max(a : s16, b : s16) s16 { -> max(a, b) }
+function clamp(value : s16, low : s16, high : s16) s16 { -> clamp(value, low, high) }
+function min(a : s32, b : s32) s32 { -> min(a, b) }
+function max(a : s32, b : s32) s32 { -> max(a, b) }
+function clamp(value : s32, low : s32, high : s32) s32 { -> clamp(value, low, high) }
+function min(a : s64, b : s64) s64 { -> min(a, b) }
+function max(a : s64, b : s64) s64 { -> max(a, b) }
+function clamp(value : s64, low : s64, high : s64) s64 { -> clamp(value, low, high) }
+function min(a : u8, b : u8) u8 { -> min(a, b) }
+function max(a : u8, b : u8) u8 { -> max(a, b) }
+function clamp(value : u8, low : u8, high : u8) u8 { -> clamp(value, low, high) }
+function min(a : u16, b : u16) u16 { -> min(a, b) }
+function max(a : u16, b : u16) u16 { -> max(a, b) }
+function clamp(value : u16, low : u16, high : u16) u16 { -> clamp(value, low, high) }
+function min(a : u32, b : u32) u32 { -> min(a, b) }
+function max(a : u32, b : u32) u32 { -> max(a, b) }
+function clamp(value : u32, low : u32, high : u32) u32 { -> clamp(value, low, high) }
+function min(a : u64, b : u64) u64 { -> min(a, b) }
+function max(a : u64, b : u64) u64 { -> max(a, b) }
+function clamp(value : u64, low : u64, high : u64) u64 { -> clamp(value, low, high) }
+function bits_of(value : f32) u32 { -> bits_of(value) }
+function f32_from_bits(value : u32) f32 { -> f32_from_bits(value) }
+function bits_of(value : f64) u64 { -> bits_of(value) }
+function f64_from_bits(value : u64) f64 { -> f64_from_bits(value) }

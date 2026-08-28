@@ -1,0 +1,29 @@
+:sig
+function abs(value : f32) f32
+function abs(value : f64) f64
+function abs(value : s8) s8
+function abs(value : s16) s16
+function abs(value : s32) s32
+function abs(value : s64) s64
+function abs(value : u8) u8
+function abs(value : u16) u16
+function abs(value : u32) u32
+function abs(value : u64) u64
+
+:params
+value : the input value
+
+:returns
+A value with the same type as `value`.
+
+:content
+`abs()` returns the result for `value`.
+
+The compiler emits a direct lib call.
+
+:example capy render
+var value := abs(2.5)
+print(value, "\n")
+
+:see-group
+math

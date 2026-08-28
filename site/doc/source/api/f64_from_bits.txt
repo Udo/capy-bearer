@@ -1,0 +1,20 @@
+:sig
+function f64_from_bits(value : u64) f64
+
+:params
+value : the `u64` bit pattern
+
+:returns
+An `f64` value with the bit pattern of `value`.
+
+:content
+`f64_from_bits()` reinterprets the bits of an integer as an `f64` value. It does not convert the numeric value.
+
+The compiler emits a direct lib call.
+
+:example capy render
+var value := f64_from_bits(u64(0x3ff0000000000000))
+print(value, "\n")
+
+:see-group
+bits

@@ -98,6 +98,12 @@ Arrays and struct instances are mutable reference values inside one workspace. A
 
 The collections chapter covers these types in detail.
 
+## Numeric functions
+
+Use the `math` functions for floating-point calculations and numeric bounds. Use the `bits` functions for integer masks, shifts, rotations, counts, and bit reinterpretation.
+
+See the `math` function reference for floating-point operations and predicates. See the `bits` function reference for integer bit operations and floating-point bit reinterpretation.
+
 ## Dynamic values and none
 
 A `dval` holds data whose shape is known only at run time. The `none` value represents missing dynamic data:
@@ -151,3 +157,5 @@ type/f64
 string
 dval
 length
+sqrt
+bit_and

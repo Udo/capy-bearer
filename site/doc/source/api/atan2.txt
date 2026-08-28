@@ -1,0 +1,22 @@
+:sig
+function atan2(y : f32, x : f32) f32
+function atan2(y : f64, x : f64) f64
+
+:params
+y : the y coordinate
+x : the x coordinate
+
+:returns
+An `f32` or `f64` angle in radians.
+
+:content
+`atan2()` returns the angle for the point `(x, y)`.
+
+This function uses a host call.
+
+:example capy render
+var value := atan2(1.0, 0.0)
+print(value, "\n")
+
+:see-group
+math

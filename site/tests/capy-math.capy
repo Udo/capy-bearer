@@ -1,0 +1,143 @@
+function require(value : bool) {
+    if !value { trap() }
+}
+
+function CLI(request : dval) {
+    var f32_value : f32 = -1.5
+    var f64_value : f64 = -1.5
+    var f32_four : f32 = 4.0
+    var f64_four : f64 = 4.0
+    var f32_one : f32 = 1.0
+    var f64_one : f64 = 1.0
+    var f32_zero : f32 = 0.0
+    var f64_zero : f64 = 0.0
+    var f32_positive : f32 = 1.5
+    var f64_positive : f64 = 1.5
+    var f32_negative_two : f32 = -2.0
+    var f64_negative_two : f64 = -2.0
+    var f32_negative_one : f32 = -1.0
+    var f64_negative_one : f64 = -1.0
+    var f32_two : f32 = 2.0
+    var f64_two : f64 = 2.0
+    var f32_four_result : f32 = 4.0
+    var f64_four_result : f64 = 4.0
+    var f32_low : f32 = -1.0
+    var f32_high : f32 = 1.0
+    var f64_low : f64 = -1.0
+    var f64_high : f64 = 1.0
+    var f32_two_half : f32 = 2.5
+    var f64_two_half : f64 = 2.5
+    var f32_three_half : f32 = 3.5
+    var f64_three_half : f64 = 3.5
+
+    require(abs(f32_value) == f32_positive)
+    require(abs(f64_value) == f64_positive)
+    require(abs(s8(-7)) == 7)
+    require(abs(s16(-7)) == 7)
+    require(abs(s32(-7)) == 7)
+    require(abs(s64(-7)) == 7)
+    require(abs(u8(7)) == 7)
+    require(abs(u16(7)) == 7)
+    require(abs(u32(7)) == 7)
+    require(abs(u64(7)) == 7)
+    require(neg(f32_value) == f32_positive)
+    require(neg(f64_value) == f64_positive)
+    require(floor(f32_value) == f32_negative_two)
+    require(floor(f64_value) == f64_negative_two)
+    require(ceil(f32_value) == f32_negative_one)
+    require(ceil(f64_value) == f64_negative_one)
+    require(trunc(f32_value) == f32_negative_one)
+    require(trunc(f64_value) == f64_negative_one)
+    require(nearest(f32_value) == f32_negative_two)
+    require(nearest(f64_value) == f64_negative_two)
+    require(nearest(f32_two_half) == f32_two)
+    require(nearest(f64_two_half) == f64_two)
+    require(nearest(f32_three_half) == f32_four_result)
+    require(nearest(f64_three_half) == f64_four_result)
+    require(nearest(-f32_two_half) == -f32_two)
+    require(nearest(-f64_two_half) == -f64_two)
+    require(nearest(-f32_three_half) == -f32_four_result)
+    require(nearest(-f64_three_half) == -f64_four_result)
+    require(min(f32_value, f32_one) == f32_value)
+    require(min(f64_value, f64_one) == f64_value)
+    require(max(f32_value, f32_one) == f32_one)
+    require(max(f64_value, f64_one) == f64_one)
+    require(min(s8(-2), s8(3)) == -2)
+    require(min(s16(-2), s16(3)) == -2)
+    require(min(s32(-2), s32(3)) == -2)
+    require(min(s64(-2), s64(3)) == -2)
+    require(min(u8(2), u8(3)) == 2)
+    require(min(u16(2), u16(3)) == 2)
+    require(min(u32(2), u32(3)) == 2)
+    require(min(u64(2), u64(3)) == 2)
+    require(max(s8(-2), s8(3)) == 3)
+    require(max(s16(-2), s16(3)) == 3)
+    require(max(s32(-2), s32(3)) == 3)
+    require(max(s64(-2), s64(3)) == 3)
+    require(max(u8(2), u8(3)) == 3)
+    require(max(u16(2), u16(3)) == 3)
+    require(max(u32(2), u32(3)) == 3)
+    require(max(u64(2), u64(3)) == 3)
+    require(clamp(f32_value, f32_low, f32_high) == f32_low)
+    require(clamp(f32_high, f32_low, f32_high) == f32_high)
+    require(clamp(f64_value, f64_low, f64_high) == f64_low)
+    require(clamp(f64_high, f64_low, f64_high) == f64_high)
+    require(clamp(s8(-2), s8(-1), s8(1)) == -1)
+    require(clamp(s8(2), s8(-1), s8(1)) == 1)
+    require(clamp(s8(-1), s8(-1), s8(1)) == -1)
+    require(clamp(s8(1), s8(-1), s8(1)) == 1)
+    require(clamp(s16(-2), s16(-1), s16(1)) == -1)
+    require(clamp(s16(2), s16(-1), s16(1)) == 1)
+    require(clamp(s16(-1), s16(-1), s16(1)) == -1)
+    require(clamp(s16(1), s16(-1), s16(1)) == 1)
+    require(clamp(s32(-2), s32(-1), s32(1)) == -1)
+    require(clamp(s32(2), s32(-1), s32(1)) == 1)
+    require(clamp(s32(-1), s32(-1), s32(1)) == -1)
+    require(clamp(s32(1), s32(-1), s32(1)) == 1)
+    require(clamp(s64(-2), s64(-1), s64(1)) == -1)
+    require(clamp(s64(2), s64(-1), s64(1)) == 1)
+    require(clamp(s64(-1), s64(-1), s64(1)) == -1)
+    require(clamp(s64(1), s64(-1), s64(1)) == 1)
+    require(clamp(u8(2), u8(3), u8(5)) == 3)
+    require(clamp(u8(6), u8(3), u8(5)) == 5)
+    require(clamp(u8(3), u8(3), u8(5)) == 3)
+    require(clamp(u8(5), u8(3), u8(5)) == 5)
+    require(clamp(u16(2), u16(3), u16(5)) == 3)
+    require(clamp(u16(6), u16(3), u16(5)) == 5)
+    require(clamp(u16(3), u16(3), u16(5)) == 3)
+    require(clamp(u16(5), u16(3), u16(5)) == 5)
+    require(clamp(u32(2), u32(3), u32(5)) == 3)
+    require(clamp(u32(6), u32(3), u32(5)) == 5)
+    require(clamp(u32(3), u32(3), u32(5)) == 3)
+    require(clamp(u32(5), u32(3), u32(5)) == 5)
+    require(clamp(u64(2), u64(3), u64(5)) == 3)
+    require(clamp(u64(6), u64(3), u64(5)) == 5)
+    require(clamp(u64(3), u64(3), u64(5)) == 3)
+    require(clamp(u64(5), u64(3), u64(5)) == 5)
+    require(copysign(f32_one, f32_value) == f32_negative_one)
+    require(copysign(f64_one, f64_value) == f64_negative_one)
+    require(sqrt(f32_four) == f32_two)
+    require(sqrt(f64_four) == f64_two)
+    require(pow(f32_four, 0.5) == f32_two)
+    require(pow(f64_four, 0.5) == f64_two)
+    require(log(f32_one) == f32_zero)
+    require(log(f64_one) == f64_zero)
+    require(exp(f32_zero) == f32_one)
+    require(exp(f64_zero) == f64_one)
+    require(sin(f32_zero) == f32_zero)
+    require(sin(f64_zero) == f64_zero)
+    require(cos(f32_zero) == f32_one)
+    require(cos(f64_zero) == f64_one)
+    require(atan2(f32_zero, f32_one) == f32_zero)
+    require(atan2(f64_zero, f64_one) == f64_zero)
+    require(is_nan(f32_zero / f32_zero))
+    require(is_nan(f64_zero / f64_zero))
+    require(is_infinite(f32_one / f32_zero))
+    require(is_infinite(f64_one / f64_zero))
+    require(is_finite(f32_one))
+    require(is_finite(f64_one))
+    require(!is_nan(f32_one))
+    require(!is_infinite(f64_one))
+    require(!is_finite(f64_one / f64_zero))
+    print("capy-math-ok")
+}

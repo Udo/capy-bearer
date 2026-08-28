@@ -1,0 +1,22 @@
+:sig
+function copysign(magnitude : f32, sign : f32) f32
+function copysign(magnitude : f64, sign : f64) f64
+
+:params
+magnitude : the absolute value to use
+sign : the value that supplies the sign
+
+:returns
+A value with the magnitude of `magnitude` and the sign of `sign`.
+
+:content
+`copysign()` copies the sign of `sign` to the magnitude of `magnitude`.
+
+The compiler emits a direct lib call.
+
+:example capy render
+var value := copysign(2.0, -1.0)
+print(value, "\n")
+
+:see-group
+math

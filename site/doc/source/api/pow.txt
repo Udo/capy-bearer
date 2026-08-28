@@ -1,0 +1,22 @@
+:sig
+function pow(base : f32, exponent : f32) f32
+function pow(base : f64, exponent : f64) f64
+
+:params
+base : the base value
+exponent : the exponent
+
+:returns
+An `f32` or `f64` value.
+
+:content
+`pow()` returns the host math result for `value`.
+
+This function uses a host call.
+
+:example capy render
+var value := pow(2.0)
+print(value, "\n")
+
+:see-group
+math

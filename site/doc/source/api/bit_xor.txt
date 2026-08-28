@@ -1,0 +1,28 @@
+:sig
+function bit_xor(a : s8, b : s8) s8
+function bit_xor(a : s16, b : s16) s16
+function bit_xor(a : s32, b : s32) s32
+function bit_xor(a : s64, b : s64) s64
+function bit_xor(a : u8, b : u8) u8
+function bit_xor(a : u16, b : u16) u16
+function bit_xor(a : u32, b : u32) u32
+function bit_xor(a : u64, b : u64) u64
+
+:params
+a : the first integer value
+b : the second integer value
+
+:returns
+An integer with the same type as the inputs.
+
+:content
+`bit_xor()` returns the bitwise XOR of `a` and `b`.
+
+The compiler emits a direct lib call.
+
+:example capy render
+var value := bit_xor(u8(12), u8(10))
+print(value, "\n")
+
+:see-group
+bits

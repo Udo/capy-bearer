@@ -1,4 +1,5 @@
 print
+flush_output
 ob_start
 ob_get
 ob_get_close

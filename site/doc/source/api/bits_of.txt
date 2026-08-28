@@ -1,0 +1,21 @@
+:sig
+function bits_of(value : f32) u32
+function bits_of(value : f64) u64
+
+:params
+value : the floating-point value
+
+:returns
+The bit pattern of `value` as an unsigned integer.
+
+:content
+`bits_of()` reinterprets the bits of a floating-point value. It does not convert the numeric value.
+
+The compiler emits a direct lib call.
+
+:example capy render
+var value := bits_of(f64(1.0))
+print(value, "\n")
+
+:see-group
+bits

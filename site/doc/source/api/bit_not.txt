@@ -1,0 +1,27 @@
+:sig
+function bit_not(value : s8) s8
+function bit_not(value : s16) s16
+function bit_not(value : s32) s32
+function bit_not(value : s64) s64
+function bit_not(value : u8) u8
+function bit_not(value : u16) u16
+function bit_not(value : u32) u32
+function bit_not(value : u64) u64
+
+:params
+value : the integer value
+
+:returns
+An integer with the same type as `value`.
+
+:content
+`bit_not()` inverts every bit in `value`. The compiler lowers it with an all-ones mask for the value width.
+
+The compiler emits a direct lib call.
+
+:example capy render
+var value := bit_not(u8(0))
+print(value, "\n")
+
+:see-group
+bits

@@ -1,0 +1,30 @@
+:sig
+function max(a : f32, b : f32) f32
+function max(a : f64, b : f64) f64
+function max(a : s8, b : s8) s8
+function max(a : s16, b : s16) s16
+function max(a : s32, b : s32) s32
+function max(a : s64, b : s64) s64
+function max(a : u8, b : u8) u8
+function max(a : u16, b : u16) u16
+function max(a : u32, b : u32) u32
+function max(a : u64, b : u64) u64
+
+:params
+a : the first value
+b : the second value
+
+:returns
+A value with the same type as the inputs
+
+:content
+`max()` returns the larger of `a` and `b`.
+
+The compiler emits a direct lib call.
+
+:example capy render
+var value := max(3.0, 2.0)
+print(value, "\n")
+
+:see-group
+math

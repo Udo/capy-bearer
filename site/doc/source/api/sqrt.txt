@@ -1,0 +1,21 @@
+:sig
+function sqrt(value : f32) f32
+function sqrt(value : f64) f64
+
+:params
+value : the input value
+
+:returns
+An `f32` or `f64` value.
+
+:content
+`sqrt()` returns the result for `value`.
+
+The compiler emits a direct lib call.
+
+:example capy render
+var value := sqrt(2.5)
+print(value, "\n")
+
+:see-group
+math

@@ -1,0 +1,21 @@
+:sig
+function log(value : f32) f32
+function log(value : f64) f64
+
+:params
+value : the input value
+
+:returns
+An `f32` or `f64` value.
+
+:content
+`log()` returns the host math result for `value`.
+
+This function uses a host call.
+
+:example capy render
+var value := log(2.0)
+print(value, "\n")
+
+:see-group
+math

@@ -1,0 +1,21 @@
+:sig
+function neg(value : f32) f32
+function neg(value : f64) f64
+
+:params
+value : the input value
+
+:returns
+An `f32` or `f64` value.
+
+:content
+`neg()` returns the result for `value`.
+
+The compiler emits a direct lib call.
+
+:example capy render
+var value := neg(2.5)
+print(value, "\n")
+
+:see-group
+math

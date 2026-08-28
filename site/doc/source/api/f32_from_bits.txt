@@ -1,0 +1,20 @@
+:sig
+function f32_from_bits(value : u32) f32
+
+:params
+value : the `u32` bit pattern
+
+:returns
+An `f32` value with the bit pattern of `value`.
+
+:content
+`f32_from_bits()` reinterprets the bits of an integer as an `f32` value. It does not convert the numeric value.
+
+The compiler emits a direct lib call.
+
+:example capy render
+var value := f32_from_bits(u32(0x3f800000))
+print(value, "\n")
+
+:see-group
+bits

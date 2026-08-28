@@ -7,6 +7,9 @@
 
 #define __BEARER_WASM_CORE__ 1
 #include "abi.h"
+
+static_assert(BEARER_WASM_OBJECT_HANDLE_SIZE == BEARER_WASM_OBJECT_PAYLOAD_OFFSET + 4);
+static_assert(BEARER_WASM_OBJECT_PAYLOAD_OFFSET == BEARER_WASM_OBJECT_CAPACITY_OFFSET + 4);
 #include <charconv>
 #include "../lib/bearer_lib.cpp"
 
@@ -29,6 +32,18 @@ extern "C" size_t bearer_host_regex_capy(const char* in, size_t in_len, char* ou
 extern "C" size_t bearer_host_capy_backtrace(s32 max_frames, s32 skip_frames, const char* stack, size_t depth, char* out, size_t cap);
 extern "C" void bearer_host_hard_error(const char* message, size_t message_len);
 extern "C" s32 bearer_host_flush_output(const char* data, size_t len);
+extern "C" f32 bearer_host_pow_f32(f32 base, f32 exponent);
+extern "C" f64 bearer_host_pow_f64(f64 base, f64 exponent);
+extern "C" f32 bearer_host_log_f32(f32 value);
+extern "C" f64 bearer_host_log_f64(f64 value);
+extern "C" f32 bearer_host_exp_f32(f32 value);
+extern "C" f64 bearer_host_exp_f64(f64 value);
+extern "C" f32 bearer_host_sin_f32(f32 value);
+extern "C" f64 bearer_host_sin_f64(f64 value);
+extern "C" f32 bearer_host_cos_f32(f32 value);
+extern "C" f64 bearer_host_cos_f64(f64 value);
+extern "C" f32 bearer_host_atan2_f32(f32 y, f32 x);
+extern "C" f64 bearer_host_atan2_f64(f64 y, f64 x);
 
 extern "C" void bearer_hard_error(const char* message, size_t message_len)
 {
@@ -1086,7 +1101,7 @@ void bearer_wasm_invoke_loaded_entry(s32 handler_slot, s32 once_slot)
 void* bearer_alloc(size_t len)
 {
 	void* value = malloc(len);
-	if(len == 28 && !wasm_handler_frames.empty())
+	if(len == BEARER_WASM_OBJECT_HANDLE_SIZE && !wasm_handler_frames.empty())
 		wasm_handler_frames.back().last_allocated_dvalue = value;
 	return(value);
 }
@@ -1573,6 +1588,19 @@ size_t bearer_capy_backtrace(s32 max_frames, s32 skip_frames, const char* stack,
 {
 	return(bearer_host_capy_backtrace(max_frames, skip_frames, stack, depth, out, cap));
 }
+
+f32 bearer_pow_f32(f32 base, f32 exponent) { return(bearer_host_pow_f32(base, exponent)); }
+f64 bearer_pow_f64(f64 base, f64 exponent) { return(bearer_host_pow_f64(base, exponent)); }
+f32 bearer_log_f32(f32 value) { return(bearer_host_log_f32(value)); }
+f64 bearer_log_f64(f64 value) { return(bearer_host_log_f64(value)); }
+f32 bearer_exp_f32(f32 value) { return(bearer_host_exp_f32(value)); }
+f64 bearer_exp_f64(f64 value) { return(bearer_host_exp_f64(value)); }
+f32 bearer_sin_f32(f32 value) { return(bearer_host_sin_f32(value)); }
+f64 bearer_sin_f64(f64 value) { return(bearer_host_sin_f64(value)); }
+f32 bearer_cos_f32(f32 value) { return(bearer_host_cos_f32(value)); }
+f64 bearer_cos_f64(f64 value) { return(bearer_host_cos_f64(value)); }
+f32 bearer_atan2_f32(f32 y, f32 x) { return(bearer_host_atan2_f32(y, x)); }
+f64 bearer_atan2_f64(f64 y, f64 x) { return(bearer_host_atan2_f64(y, x)); }
 
 u64 bearer_noise_u64(s32 operation, u64 a, u64 b, u64 index, u64 seed)
 {
@@ -2119,9 +2147,9 @@ static size_t bearer_handler_input_encode(Request* request, char* out, size_t ca
 			u32 capacity = 0;
 			u32 payload = 0;
 			const char* input = (const char*)parent.input_dvalue;
-			memcpy(&length, input + 16, sizeof(length));
-			memcpy(&capacity, input + 20, sizeof(capacity));
-			memcpy(&payload, input + 24, sizeof(payload));
+			memcpy(&length, input + BEARER_WASM_OBJECT_LENGTH_OFFSET, sizeof(length));
+			memcpy(&capacity, input + BEARER_WASM_OBJECT_CAPACITY_OFFSET, sizeof(capacity));
+			memcpy(&payload, input + BEARER_WASM_OBJECT_PAYLOAD_OFFSET, sizeof(payload));
 			DValue parent_snapshot;
 			String error;
 			if(length <= capacity && brb_decode(String((const char*)(uintptr_t)payload, length), parent_snapshot, &error) && parent_snapshot["params"].is_array())
@@ -2279,9 +2307,9 @@ static void wasm_handler_input_release(void* value)
 	u32 length = 0;
 	u32 capacity = 0;
 	u32 payload = 0;
-	memcpy(&length, input + 16, sizeof(length));
-	memcpy(&capacity, input + 20, sizeof(capacity));
-	memcpy(&payload, input + 24, sizeof(payload));
+	memcpy(&length, input + BEARER_WASM_OBJECT_LENGTH_OFFSET, sizeof(length));
+	memcpy(&capacity, input + BEARER_WASM_OBJECT_CAPACITY_OFFSET, sizeof(capacity));
+	memcpy(&payload, input + BEARER_WASM_OBJECT_PAYLOAD_OFFSET, sizeof(payload));
 	if(length > capacity || value != (void*)(uintptr_t)payload)
 		return;
 	DValue snapshot;

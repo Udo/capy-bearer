@@ -1,0 +1,27 @@
+:sig
+function bit_count_1(value : s8) s64
+function bit_count_1(value : s16) s64
+function bit_count_1(value : s32) s64
+function bit_count_1(value : s64) s64
+function bit_count_1(value : u8) s64
+function bit_count_1(value : u16) s64
+function bit_count_1(value : u32) s64
+function bit_count_1(value : u64) s64
+
+:params
+value : the integer value
+
+:returns
+An `s64` count.
+
+:content
+`bit_count_1()` counts one bits in the width of `value`. An `u8` value uses eight bits, not its container width.
+
+The compiler emits a direct lib call.
+
+:example capy render
+var value := bit_count_1(u8(1))
+print(value, "\n")
+
+:see-group
+bits

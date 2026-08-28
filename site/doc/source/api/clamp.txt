@@ -1,0 +1,31 @@
+:sig
+function clamp(value : f32, low : f32, high : f32) f32
+function clamp(value : f64, low : f64, high : f64) f64
+function clamp(value : s8, low : s8, high : s8) s8
+function clamp(value : s16, low : s16, high : s16) s16
+function clamp(value : s32, low : s32, high : s32) s32
+function clamp(value : s64, low : s64, high : s64) s64
+function clamp(value : u8, low : u8, high : u8) u8
+function clamp(value : u16, low : u16, high : u16) u16
+function clamp(value : u32, low : u32, high : u32) u32
+function clamp(value : u64, low : u64, high : u64) u64
+
+:params
+value : the input value
+low : the lower bound
+high : the upper bound
+
+:returns
+A value with the same type as the inputs.
+
+:content
+`clamp()` limits `value` to the inclusive range from `low` to `high`.
+
+The compiler emits a direct lib call.
+
+:example capy render
+var value := clamp(5, 0, 3)
+print(value, "\n")
+
+:see-group
+math

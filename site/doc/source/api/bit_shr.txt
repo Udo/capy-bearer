@@ -1,0 +1,28 @@
+:sig
+function bit_shr(value : s8, count : s8) s8
+function bit_shr(value : s16, count : s16) s16
+function bit_shr(value : s32, count : s32) s32
+function bit_shr(value : s64, count : s64) s64
+function bit_shr(value : u8, count : u8) u8
+function bit_shr(value : u16, count : u16) u16
+function bit_shr(value : u32, count : u32) u32
+function bit_shr(value : u64, count : u64) u64
+
+:params
+value : the integer value
+count : the shift or rotation count. It has the same width as `value`.
+
+:returns
+An integer with the same type as `value`.
+
+:content
+`bit_shr()` shifts bits right by `count` positions. For signed types, `bit_shr()` uses an arithmetic shift. For unsigned types, it uses a logical shift.
+
+The compiler emits a direct lib call.
+
+:example capy render
+var value := bit_shr(u8(1), u8(2))
+print(value, "\n")
+
+:see-group
+bits

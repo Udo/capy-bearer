@@ -1,0 +1,14 @@
+bit_and
+bit_or
+bit_xor
+bit_not
+bit_shl
+bit_shr
+bit_rotate_left
+bit_rotate_right
+bit_count_lz
+bit_count_tz
+bit_count_1
+bits_of
+f64_from_bits
+f32_from_bits

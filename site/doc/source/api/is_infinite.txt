@@ -1,0 +1,20 @@
+:sig
+function is_infinite(value : f32) bool
+function is_infinite(value : f64) bool
+
+:params
+value : the floating-point value
+
+:returns
+`true` or `false`.
+
+:content
+`is_infinite()` tests if `value` is positive or negative infinity.
+
+The compiler emits a direct lib call.
+
+:example capy render
+print(is_infinite(0.0), "\n")
+
+:see-group
+math
