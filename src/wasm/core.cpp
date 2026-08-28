@@ -8,8 +8,14 @@
 #define __BEARER_WASM_CORE__ 1
 #include "abi.h"
 
-static_assert(BEARER_WASM_OBJECT_HANDLE_SIZE == BEARER_WASM_OBJECT_PAYLOAD_OFFSET + 4);
-static_assert(BEARER_WASM_OBJECT_PAYLOAD_OFFSET == BEARER_WASM_OBJECT_CAPACITY_OFFSET + 4);
+static_assert(BEARER_WASM_OBJECT_OWNER_OFFSET == BEARER_WASM_OBJECT_REFS_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
+static_assert(BEARER_WASM_OBJECT_TYPE_OFFSET == BEARER_WASM_OBJECT_OWNER_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
+static_assert(BEARER_WASM_OBJECT_HEADER_SIZE_OFFSET == BEARER_WASM_OBJECT_TYPE_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
+static_assert(BEARER_WASM_OBJECT_LENGTH_OFFSET == BEARER_WASM_OBJECT_HEADER_SIZE_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
+static_assert(BEARER_WASM_OBJECT_CAPACITY_OFFSET == BEARER_WASM_OBJECT_LENGTH_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
+static_assert(BEARER_WASM_OBJECT_PAYLOAD_OFFSET == BEARER_WASM_OBJECT_CAPACITY_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
+static_assert(BEARER_WASM_OBJECT_HANDLE_SIZE == BEARER_WASM_OBJECT_PAYLOAD_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
+static_assert(BEARER_WASM_OBJECT_BLOB_HEADER_SIZE == BEARER_WASM_OBJECT_LENGTH_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
 #include <charconv>
 #include "../lib/bearer_lib.cpp"
 
@@ -3052,14 +3058,15 @@ static bool bearer_dv_callable_valid(const DValue& value)
 		return(false);
 	u32 pointer = (u32)(uintptr_t)node._ptr;
 	size_t memory_size = (size_t)__builtin_wasm_memory_size(0) << 16;
-	if(pointer == 0 || (pointer & 3) != 0 || pointer > memory_size || memory_size - pointer < 24)
+	constexpr size_t callable_header_size = BEARER_WASM_OBJECT_CAPACITY_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE;
+	if(pointer == 0 || (pointer & 3) != 0 || pointer > memory_size || memory_size - pointer < callable_header_size)
 		return(false);
 	const u32* header = (const u32*)(uintptr_t)pointer;
-	u32 references = header[0], kind = header[1], allocation_type = header[2], allocation_size = header[3];
-	if(allocation_size < 24 || allocation_size > memory_size - pointer || header[5] != (u32)node._array_index)
+	u32 references = header[BEARER_WASM_OBJECT_REFS_OFFSET / BEARER_WASM_OBJECT_WORD_SIZE], kind = header[BEARER_WASM_OBJECT_OWNER_OFFSET / BEARER_WASM_OBJECT_WORD_SIZE], allocation_type = header[BEARER_WASM_OBJECT_TYPE_OFFSET / BEARER_WASM_OBJECT_WORD_SIZE], allocation_size = header[BEARER_WASM_OBJECT_HEADER_SIZE_OFFSET / BEARER_WASM_OBJECT_WORD_SIZE];
+	if(allocation_size < callable_header_size || allocation_size > memory_size - pointer || header[BEARER_WASM_OBJECT_CAPACITY_OFFSET / BEARER_WASM_OBJECT_WORD_SIZE] != (u32)node._array_index)
 		return(false);
 	if(references == std::numeric_limits<u32>::max())
-		return(kind == std::numeric_limits<u32>::max() && allocation_type == 0x3fffffffu && allocation_size == 24);
+		return(kind == std::numeric_limits<u32>::max() && allocation_type == 0x3fffffffu && allocation_size == callable_header_size);
 	return(references != 0 && kind == 1 && allocation_type >= 0x40000000u);
 }
 

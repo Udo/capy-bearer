@@ -248,8 +248,14 @@ bool primitive_constructor_name(const std::string& name)
 	return name == "s8" || name == "s16" || name == "s32" || name == "s64" || name == "u8" || name == "u16" || name == "u32" || name == "u64" || name == "f32" || name == "f64" || name == "bool" || name == "string";
 }
 
-static_assert(BEARER_WASM_OBJECT_HANDLE_SIZE == BEARER_WASM_OBJECT_PAYLOAD_OFFSET + sizeof(std::uint32_t));
-static_assert(BEARER_WASM_OBJECT_PAYLOAD_OFFSET == BEARER_WASM_OBJECT_CAPACITY_OFFSET + sizeof(std::uint32_t));
+static_assert(BEARER_WASM_OBJECT_OWNER_OFFSET == BEARER_WASM_OBJECT_REFS_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
+static_assert(BEARER_WASM_OBJECT_TYPE_OFFSET == BEARER_WASM_OBJECT_OWNER_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
+static_assert(BEARER_WASM_OBJECT_HEADER_SIZE_OFFSET == BEARER_WASM_OBJECT_TYPE_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
+static_assert(BEARER_WASM_OBJECT_LENGTH_OFFSET == BEARER_WASM_OBJECT_HEADER_SIZE_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
+static_assert(BEARER_WASM_OBJECT_CAPACITY_OFFSET == BEARER_WASM_OBJECT_LENGTH_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
+static_assert(BEARER_WASM_OBJECT_PAYLOAD_OFFSET == BEARER_WASM_OBJECT_CAPACITY_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
+static_assert(BEARER_WASM_OBJECT_HANDLE_SIZE == BEARER_WASM_OBJECT_PAYLOAD_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
+static_assert(BEARER_WASM_OBJECT_BLOB_HEADER_SIZE == BEARER_WASM_OBJECT_LENGTH_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
 
 constexpr unsigned scalar_format_scratch_size = 32;
 
@@ -338,7 +344,7 @@ void managed_payload_pointer(Bytes& code, unsigned local, const std::string& typ
 	if (type == "dval")
 		code.insert(code.end(), {0x28, 0x02, BEARER_WASM_OBJECT_PAYLOAD_OFFSET});
 	else
-		code.insert(code.end(), {0x41, 0x14, 0x6a});
+		code.insert(code.end(), {0x41, BEARER_WASM_OBJECT_BLOB_HEADER_SIZE, 0x6a});
 }
 
 void managed_payload_length(Bytes& code, unsigned local)
@@ -738,7 +744,7 @@ struct Module
 		while (data_.size() % 8)
 			data_.push_back(0);
 		const unsigned offset = static_cast<unsigned>(data_.size());
-		const std::uint32_t header[] = {0xffffffffu, 0xffffffffu, 0x3fffffffu, 24u, slot, function_type};
+		const std::uint32_t header[] = {0xffffffffu, 0xffffffffu, 0x3fffffffu, BEARER_WASM_OBJECT_CAPACITY_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE, slot, function_type};
 		for (std::uint32_t value : header)
 			for (unsigned byte = 0; byte != 4; ++byte)
 				data_.push_back(static_cast<std::uint8_t>(value >> (8 * byte)));
@@ -749,7 +755,7 @@ struct Module
 		while (data_.size() % 8)
 			data_.push_back(0);
 		const unsigned offset = static_cast<unsigned>(data_.size());
-		const std::uint32_t header[] = {0xffffffffu, 0xffffffffu, 1u, static_cast<std::uint32_t>(20 + text.size()), static_cast<std::uint32_t>(text.size())};
+		const std::uint32_t header[] = {0xffffffffu, 0xffffffffu, 1u, static_cast<std::uint32_t>(BEARER_WASM_OBJECT_BLOB_HEADER_SIZE + text.size()), static_cast<std::uint32_t>(text.size())};
 		for (std::uint32_t value : header)
 			for (unsigned byte = 0; byte != 4; ++byte)
 				data_.push_back(static_cast<std::uint8_t>(value >> (8 * byte)));
@@ -769,6 +775,13 @@ struct Module
 		if (found == helpers_.end())
 			throw std::runtime_error("missing native Capy helper " + name);
 		return found->second;
+	}
+	unsigned format_scalar_index(const std::string& type) const
+	{
+		const Definition* definition = exact_definition("__bearer_format_" + type + "_capy", {type});
+		if (!definition)
+			throw std::runtime_error("missing Capy " + type + " formatter");
+		return definition->index;
 	}
 	unsigned retain_index() const
 	{
@@ -2675,8 +2688,13 @@ std::pair<Bytes, unsigned> FunctionLowerer::allocate_dval(unsigned length, const
 		else { code.push_back(0x20); wasm::append_uleb(code, local); }
 		code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset);
 	};
-	store(0, 1, 0); store(4, 1, 0); store(8, 4, 0); store(12, 28, 0);
-	store(16, std::nullopt, length); store(20, std::nullopt, capacity); store(24, std::nullopt, payload);
+	store(BEARER_WASM_OBJECT_REFS_OFFSET, 1, 0);
+	store(BEARER_WASM_OBJECT_OWNER_OFFSET, 1, 0);
+	store(BEARER_WASM_OBJECT_TYPE_OFFSET, 4, 0);
+	store(BEARER_WASM_OBJECT_HEADER_SIZE_OFFSET, BEARER_WASM_OBJECT_HANDLE_SIZE, 0);
+	store(BEARER_WASM_OBJECT_LENGTH_OFFSET, std::nullopt, length);
+	store(BEARER_WASM_OBJECT_CAPACITY_OFFSET, std::nullopt, capacity);
+	store(BEARER_WASM_OBJECT_PAYLOAD_OFFSET, std::nullopt, payload);
 	code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01});
 	return {std::move(code), handle};
 }
@@ -2707,13 +2725,13 @@ std::pair<Bytes, unsigned> FunctionLowerer::allocate_blob(const std::string& typ
 	Bytes code{0x20};
 	wasm::append_uleb(code, length);
 	code.push_back(0x41);
-	wasm::append_sleb32(code, std::numeric_limits<std::int32_t>::max() - 20);
+	wasm::append_sleb32(code, std::numeric_limits<std::int32_t>::max() - BEARER_WASM_OBJECT_BLOB_HEADER_SIZE);
 	code.insert(code.end(), {0x4b, 0x04, 0x40});
 	append(code, failure_cleanup);
 	append(code, module_.marker(location));
 	code.insert(code.end(), {0x00, 0x0b, 0x20});
 	wasm::append_uleb(code, length);
-	code.insert(code.end(), {0x41, 0x14, 0x6a, 0x10});
+	code.insert(code.end(), {0x41, BEARER_WASM_OBJECT_BLOB_HEADER_SIZE, 0x6a, 0x10});
 	wasm::append_uleb(code, module_.import_index("bearer_alloc"));
 	code.push_back(0x21);
 	wasm::append_uleb(code, pointer);
@@ -2723,7 +2741,7 @@ std::pair<Bytes, unsigned> FunctionLowerer::allocate_blob(const std::string& typ
 	append(code, failure_cleanup);
 	append(code, module_.marker(location));
 	code.insert(code.end(), {0x00, 0x0b});
-	for (const auto [header, offset] : {std::pair<std::int32_t, unsigned>{1, 0}, {1, 4}, {static_cast<std::int32_t>(type_id), 8}})
+	for (const auto [header, offset] : {std::pair<std::int32_t, unsigned>{1, BEARER_WASM_OBJECT_REFS_OFFSET}, {1, BEARER_WASM_OBJECT_OWNER_OFFSET}, {static_cast<std::int32_t>(type_id), BEARER_WASM_OBJECT_TYPE_OFFSET}})
 		store_i32_constant(code, pointer, header, offset);
 	code.push_back(0x20);
 	wasm::append_uleb(code, pointer);
@@ -2740,7 +2758,7 @@ std::pair<Bytes, unsigned> FunctionLowerer::allocate_blob(const std::string& typ
 Bytes FunctionLowerer::format_wide_scalar(Bytes code, const std::string& type, const Location& location)
 {
 	code.push_back(0x10);
-	wasm::append_uleb(code, module_.helper_index("format_" + type));
+	wasm::append_uleb(code, module_.format_scalar_index(type));
 	const unsigned result = add_local("", "string", location);
 	code.push_back(0x22);
 	wasm::append_uleb(code, result);
@@ -2939,19 +2957,25 @@ Bytes FunctionLowerer::dval_replace(unsigned target, unsigned replacement, const
 		code.push_back(0x20); wasm::append_uleb(code, object); code.insert(code.end(), {0x28, 0x02}); wasm::append_uleb(code, offset);
 		code.push_back(0x21); wasm::append_uleb(code, local);
 	};
-	load(target, 16, old_length); load(target, 20, old_capacity); load(target, 24, old_payload);
+	load(target, BEARER_WASM_OBJECT_LENGTH_OFFSET, old_length);
+	load(target, BEARER_WASM_OBJECT_CAPACITY_OFFSET, old_capacity);
+	load(target, BEARER_WASM_OBJECT_PAYLOAD_OFFSET, old_payload);
 	auto copy_field = [&](unsigned destination, unsigned source, unsigned offset)
 	{
 		code.push_back(0x20); wasm::append_uleb(code, destination); code.push_back(0x20); wasm::append_uleb(code, source);
 		code.insert(code.end(), {0x28, 0x02}); wasm::append_uleb(code, offset); code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset);
 	};
-	copy_field(target, replacement, 16); copy_field(target, replacement, 20); copy_field(target, replacement, 24);
+	copy_field(target, replacement, BEARER_WASM_OBJECT_LENGTH_OFFSET);
+	copy_field(target, replacement, BEARER_WASM_OBJECT_CAPACITY_OFFSET);
+	copy_field(target, replacement, BEARER_WASM_OBJECT_PAYLOAD_OFFSET);
 	auto store = [&](unsigned offset, unsigned local)
 	{
 		code.push_back(0x20); wasm::append_uleb(code, replacement); code.push_back(0x20); wasm::append_uleb(code, local);
 		code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset);
 	};
-	store(16, old_length); store(20, old_capacity); store(24, old_payload);
+	store(BEARER_WASM_OBJECT_LENGTH_OFFSET, old_length);
+	store(BEARER_WASM_OBJECT_CAPACITY_OFFSET, old_capacity);
+	store(BEARER_WASM_OBJECT_PAYLOAD_OFFSET, old_payload);
 	code.push_back(0x20); wasm::append_uleb(code, replacement); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
 	code.push_back(0x20); wasm::append_uleb(code, target); code.push_back(0x0b);
 	return code;
@@ -3294,8 +3318,13 @@ std::pair<Bytes, unsigned> FunctionLowerer::allocate_array(const std::string& ar
 		if (constant) { code.push_back(0x41); wasm::append_sleb32(code, *constant); } else { code.push_back(0x20); wasm::append_uleb(code, local); }
 		code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset);
 	};
-	store(0, 1, 0); store(4, 1, 0); store(8, managed_type(element) ? 3 : 2, 0); store(12, 28, 0);
-	store(16, std::nullopt, length); store(20, std::nullopt, length); store(24, std::nullopt, backing);
+	store(BEARER_WASM_OBJECT_REFS_OFFSET, 1, 0);
+	store(BEARER_WASM_OBJECT_OWNER_OFFSET, 1, 0);
+	store(BEARER_WASM_OBJECT_TYPE_OFFSET, managed_type(element) ? 3 : 2, 0);
+	store(BEARER_WASM_OBJECT_HEADER_SIZE_OFFSET, BEARER_WASM_OBJECT_HANDLE_SIZE, 0);
+	store(BEARER_WASM_OBJECT_LENGTH_OFFSET, std::nullopt, length);
+	store(BEARER_WASM_OBJECT_CAPACITY_OFFSET, std::nullopt, length);
+	store(BEARER_WASM_OBJECT_PAYLOAD_OFFSET, std::nullopt, backing);
 	code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01});
 	return {code, handle};
 }
@@ -6219,11 +6248,14 @@ Bytes FunctionLowerer::lower()
 		code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40}); append(code, module_.marker(target.function->location)); code.insert(code.end(), {0x00, 0x0b, 0x20}); wasm::append_uleb(code, length);
 		code.insert(code.end(), {0x45, 0x04, 0x7f, 0x41, 0x01, 0x05, 0x20}); wasm::append_uleb(code, length); code.insert(code.end(), {0x0b, 0x22}); wasm::append_uleb(code, capacity);
 		code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_alloc")); code.push_back(0x22); wasm::append_uleb(code, payload);
-		code.insert(code.end(), {0x45, 0x04, 0x40}); append(code, module_.marker(target.function->location)); code.insert(code.end(), {0x00, 0x0b, 0x41, 0x1c, 0x10}); wasm::append_uleb(code, module_.import_index("bearer_alloc"));
+		code.insert(code.end(), {0x45, 0x04, 0x40}); append(code, module_.marker(target.function->location)); code.insert(code.end(), {0x00, 0x0b, 0x41}); wasm::append_sleb32(code, BEARER_WASM_OBJECT_HANDLE_SIZE); code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_alloc"));
 		code.push_back(0x22); wasm::append_uleb(code, input); code.insert(code.end(), {0x45, 0x04, 0x40, 0x20}); wasm::append_uleb(code, payload); code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_free")); append(code, module_.marker(target.function->location)); code.insert(code.end(), {0x00, 0x0b});
 		auto store = [&](unsigned offset, std::int32_t value) { code.push_back(0x20); wasm::append_uleb(code, input); code.push_back(0x41); wasm::append_sleb32(code, value); code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset); };
-		store(0, 1); store(4, 1); store(8, 4); store(12, 28);
-		for (const auto [offset, local] : {std::pair<unsigned, unsigned>{16, length}, {20, capacity}, {24, payload}}) { code.push_back(0x20); wasm::append_uleb(code, input); code.push_back(0x20); wasm::append_uleb(code, local); code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset); }
+		store(BEARER_WASM_OBJECT_REFS_OFFSET, 1);
+		store(BEARER_WASM_OBJECT_OWNER_OFFSET, 1);
+		store(BEARER_WASM_OBJECT_TYPE_OFFSET, 4);
+		store(BEARER_WASM_OBJECT_HEADER_SIZE_OFFSET, BEARER_WASM_OBJECT_HANDLE_SIZE);
+		for (const auto [offset, local] : {std::pair<unsigned, unsigned>{BEARER_WASM_OBJECT_LENGTH_OFFSET, length}, {BEARER_WASM_OBJECT_CAPACITY_OFFSET, capacity}, {BEARER_WASM_OBJECT_PAYLOAD_OFFSET, payload}}) { code.push_back(0x20); wasm::append_uleb(code, input); code.push_back(0x20); wasm::append_uleb(code, local); code.insert(code.end(), {0x36, 0x02}); wasm::append_uleb(code, offset); }
 		code.insert(code.end(), {0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01, 0x20, 0x00, 0x20}); wasm::append_uleb(code, payload); code.push_back(0x20); wasm::append_uleb(code, length); code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_handler_input_brrb")); code.push_back(0x20); wasm::append_uleb(code, length);
 		code.insert(code.end(), {0x47, 0x04, 0x40, 0x20}); wasm::append_uleb(code, input); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); append(code, module_.marker(target.function->location)); code.insert(code.end(), {0x00, 0x0b, 0x20}); wasm::append_uleb(code, input); code.push_back(0x10); wasm::append_uleb(code, target.index); code.push_back(0x20); wasm::append_uleb(code, input); code.push_back(0x10); wasm::append_uleb(code, module_.release_index()); code.push_back(0x0b);
 		Bytes locals{0x01, 0x04, 0x7f}; Bytes body; wasm::append_uleb(body, static_cast<unsigned>(locals.size() + code.size())); body.insert(body.end(), locals.begin(), locals.end()); body.insert(body.end(), code.begin(), code.end()); return body;
@@ -6464,33 +6496,6 @@ std::vector<Bytes> Module::runtime_bodies() const
 								 0x6a, 0x20, 0x00, 0x41, 0x14, 0x6a, 0x20, 0x02, 0xfc, 0x0a, 0x00, 0x00, 0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01, 0x20, 0x01});
 		result.push_back(body({0x01, 0x02, 0x7f}, std::move(code)));
 	}
-	auto format_body = [&](const std::string& type)
-	{
-		Bytes code{0x20, 0x00, 0x41, 0x00, 0x41, 0x00, 0x10};
-		wasm::append_uleb(code, import_index("bearer_format_" + type));
-		code.insert(code.end(), {0x22, 0x01, 0x41});
-		wasm::append_sleb32(code, std::numeric_limits<std::int32_t>::max() - 20);
-		code.insert(code.end(), {0x4b, 0x04, 0x40, 0x41, 0x00, 0x0f, 0x0b, 0x20, 0x01, 0x41, 0x14, 0x6a, 0x10});
-		wasm::append_uleb(code, import_index("bearer_alloc"));
-		code.insert(code.end(), {0x22, 0x02, 0x45, 0x04, 0x40, 0x41, 0x00, 0x0f, 0x0b});
-		for (const auto [literal, offset] : {std::pair<std::int32_t, unsigned>{1, 0}, {1, 4}, {1, 8}})
-		{
-			code.insert(code.end(), {0x20, 0x02, 0x41});
-			wasm::append_sleb32(code, literal);
-			code.insert(code.end(), {0x36, 0x02});
-			wasm::append_uleb(code, offset);
-		}
-		code.insert(code.end(), {0x20, 0x02, 0x20, 0x01, 0x41, 0x14, 0x6a, 0x36, 0x02, BEARER_WASM_OBJECT_HEADER_SIZE_OFFSET, 0x20, 0x02, 0x20, 0x01, 0x36, 0x02, BEARER_WASM_OBJECT_LENGTH_OFFSET,
-								 0x23, 0x01, 0x41, 0x01, 0x6a, 0x24, 0x01, 0x20, 0x00, 0x20, 0x02, 0x41, 0x14, 0x6a, 0x20, 0x01, 0x10});
-		wasm::append_uleb(code, import_index("bearer_format_" + type));
-		code.insert(code.end(), {0x20, 0x01, 0x47, 0x04, 0x40, 0x20, 0x02, 0x10});
-		wasm::append_uleb(code, release_index());
-		code.insert(code.end(), {0x41, 0x00, 0x0f, 0x0b, 0x20, 0x02});
-		result.push_back(body({0x01, 0x02, 0x7f}, std::move(code)));
-	};
-	if (string_format_types_.contains("s64")) format_body("s64");
-	if (string_format_types_.contains("u64")) format_body("u64");
-	if (string_format_types_.contains("f64")) format_body("f64");
 	for (const auto& [symbol, type] : fused_sink_formats_)
 	{
 		Bytes code{0x20, 0x00, 0x23, 0x00, 0x41}; wasm::append_sleb32(code, static_cast<std::int32_t>(fused_sink_scratch_offset_));
@@ -7204,6 +7209,9 @@ Module::Capabilities Module::discover_capabilities()
 		scan_format_s64 = scan_format_s64 || source == "s8" || source == "s16" || source == "s32" || source == "s64";
 		scan_format_u64 = scan_format_u64 || source == "u8" || source == "u16" || source == "u32" || source == "u64";
 		scan_format_f64 = scan_format_f64 || source == "f32" || source == "f64";
+		if (source == "s8" || source == "s16" || source == "s32" || source == "s64") used_hosts_.insert("bearer_format_s64");
+		if (source == "u8" || source == "u16" || source == "u32" || source == "u64") used_hosts_.insert("bearer_format_u64");
+		if (source == "f32" || source == "f64") used_hosts_.insert("bearer_format_f64");
 		if (source == "dval") { dval_ = true; used_hosts_.insert("bearer_dv_extract_string"); }
 		else if (source == "s8" || source == "s16" || source == "s32" || source == "s64") string_format_types_.insert("s64");
 		else if (source == "u8" || source == "u16" || source == "u32" || source == "u64") string_format_types_.insert("u64");
@@ -7747,6 +7755,9 @@ CompileResult Module::compile()
 	collect();
 	check_cancelled();
 	for (Definition& definition : definitions_)
+		if (definition.function && (definition.function->name == "__bearer_format_s64_capy" || definition.function->name == "__bearer_format_u64_capy" || definition.function->name == "__bearer_format_f64_capy"))
+			definition.body_omitted = true;
+	for (Definition& definition : definitions_)
 		if (definition.function && definition.function->location.file == "capy://stdlib.capy" &&
 			(fused_variadic_sink(definition) || definition.inline_value))
 		{
@@ -7758,10 +7769,17 @@ CompileResult Module::compile()
 			definition.body_omitted = !definition.inline_value && !referenced;
 		}
 	const Capabilities capabilities = discover_capabilities();
-	const bool scan_format_s64 = capabilities.format_s64, scan_format_u64 = capabilities.format_u64, scan_format_f64 = capabilities.format_f64;
+	if (capabilities.format_s64) used_hosts_.insert("bearer_format_s64");
+	if (capabilities.format_u64) used_hosts_.insert("bearer_format_u64");
+	if (capabilities.format_f64) used_hosts_.insert("bearer_format_f64");
+	for (Definition& definition : definitions_)
+		if (definition.function && (definition.function->name == "__bearer_format_s64_capy" || definition.function->name == "__bearer_format_u64_capy" || definition.function->name == "__bearer_format_f64_capy"))
+			definition.body_omitted = !string_format_types_.contains(definition.function->name.substr(16, 3));
 	const bool scan_alloc = capabilities.alloc, scan_retain = capabilities.retain, scan_release = capabilities.release, scan_clone = capabilities.clone,
 			   scan_arc_live = capabilities.arc_live;
 	const bool scan_free = scan_release;
+	for (const auto& [symbol, type] : fused_sink_formats_)
+		used_hosts_.insert("bearer_format_" + type);
 	use_retain_ = scan_retain;
 	use_release_ = scan_release;
 	use_clone_ = scan_clone;
@@ -7781,12 +7799,7 @@ CompileResult Module::compile()
 		data_.insert(data_.end(), 256 * 8, 0);
 	}
 	unsigned next = 0;
-	if (scan_format_s64)
-		imports_["bearer_format_s64"] = next++;
-	if (scan_format_u64)
-		imports_["bearer_format_u64"] = next++;
-	if (scan_format_f64)
-		imports_["bearer_format_f64"] = next++;
+
 	if (scan_alloc || scan_clone)
 		imports_["bearer_alloc"] = next++;
 	if (scan_free)
@@ -7835,12 +7848,7 @@ CompileResult Module::compile()
 		helpers_["release"] = next++;
 	if (use_clone_)
 		helpers_["clone"] = next++;
-	if (string_format_types_.contains("s64"))
-		helpers_["format_s64"] = next++;
-	if (string_format_types_.contains("u64"))
-		helpers_["format_u64"] = next++;
-	if (string_format_types_.contains("f64"))
-		helpers_["format_f64"] = next++;
+
 	for (const auto& [symbol, type] : fused_sink_formats_)
 		helpers_[sink_format_helper(symbol, type)] = next++;
 	first_user_index_ = next;
@@ -7860,15 +7868,9 @@ CompileResult Module::compile()
 		if (d.variadic) variadic_function_types_[d.type] = {d.parameters.size() - 1, d.variadic_element, d.variadic_convert};
 	}
 	// Ensure import signatures precede user types and lower after indexes are stable.
-	unsigned format_s64_type = wasm_type({"s64", "s32", "s32"}, "s32");
-	unsigned format_u64_type = wasm_type({"u64", "s32", "s32"}, "s32");
-	unsigned format_f64_type = wasm_type({"f64", "s32", "s32"}, "s32");
 	unsigned alloc_type = (scan_alloc || scan_clone) ? wasm_type({"s32"}, "s32") : 0;
 	unsigned release_type = scan_free ? wasm_type({"s32"}, "void") : 0;
 	unsigned clone_type = scan_clone ? wasm_type({"s32"}, "s32") : 0;
-	unsigned format_string_s64_type = string_format_types_.contains("s64") ? wasm_type({"s64"}, "string") : 0;
-	unsigned format_string_u64_type = string_format_types_.contains("u64") ? wasm_type({"u64"}, "string") : 0;
-	unsigned format_string_f64_type = string_format_types_.contains("f64") ? wasm_type({"f64"}, "string") : 0;
 	std::map<std::pair<std::string, std::string>, unsigned> sink_format_types;
 	for (const auto& sink : fused_sink_formats_) sink_format_types[sink] = wasm_type({sink.second}, "void");
 	unsigned blob_type = wasm_type({"s32", "s32", "s32", "s32"}, "s32");
@@ -7939,7 +7941,6 @@ CompileResult Module::compile()
 		wasm::append_string(imports, name);
 		imports.push_back(0);
 		const unsigned type = host_types_.contains(name) ? host_types_.at(name)
-			: name == "bearer_format_s64" ? format_s64_type : name == "bearer_format_u64" ? format_u64_type : name == "bearer_format_f64" ? format_f64_type
 			: name == "bearer_alloc" ? alloc_type : name == "bearer_free" ? release_type
 			: name == "bearer_dv_string_to_brrb" ? blob_type
 			: name == "bearer_dv_f64_to_brrb" ? f64_adapter_type : name == "bearer_dv_s64_to_brrb" || name == "bearer_dv_u64_to_brrb" ? u64_adapter_type
@@ -7961,12 +7962,6 @@ CompileResult Module::compile()
 		wasm::append_uleb(functions, release_type);
 	if (use_clone_)
 		wasm::append_uleb(functions, clone_type);
-	if (string_format_types_.contains("s64"))
-		wasm::append_uleb(functions, format_string_s64_type);
-	if (string_format_types_.contains("u64"))
-		wasm::append_uleb(functions, format_string_u64_type);
-	if (string_format_types_.contains("f64"))
-		wasm::append_uleb(functions, format_string_f64_type);
 	for (const auto& sink : fused_sink_formats_)
 		wasm::append_uleb(functions, sink_format_types.at(sink));
 	for (const Definition* definition : emitted_definitions)
@@ -8410,6 +8405,9 @@ std::vector<Expr*> selected_stdlib(const Program& unit, const Program& library)
 	std::set<FunctionKey, bool (*)(const FunctionKey&, const FunctionKey&)> values(
 		[](const FunctionKey& left, const FunctionKey& right) { return left.name != right.name ? left.name < right.name : left.parameter_types < right.parameter_types; });
 	std::vector<std::set<std::string>> scopes{{}};
+	calls.insert({"__bearer_format_s64_capy", 1});
+	calls.insert({"__bearer_format_u64_capy", 1});
+	calls.insert({"__bearer_format_f64_capy", 1});
 	for (Expr* item : unit.items)
 		collect_stdlib_demand(item, calls, values, scopes);
 	std::map<std::string, Expr*> aliases;

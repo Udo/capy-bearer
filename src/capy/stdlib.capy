@@ -1,6 +1,9 @@
 // Private typed host ABI declarations.  Names map directly to env symbols.
 host function __bearer_print_bytes(value : string)
 host function __bearer_flush_output() bool
+host function __bearer_format_s64(value : s64) string
+host function __bearer_format_u64(value : u64) string
+host function __bearer_format_f64(value : f64) string
 host function __bearer_pow_f32(base : f32, exponent : f32) f32
 host function __bearer_pow_f64(base : f64, exponent : f64) f64
 host function __bearer_log_f32(value : f32) f32
@@ -177,6 +180,9 @@ function f64(value : as string, opt : dval = {}) f64 {
     __bearer_constructor_options(opt, "f64", false)
     -> __bearer_dv_extract_f64(dval(trim(value)), __bearer_dv_extract_f64(get(opt, "fallback"), 0.0))
 }
+function __bearer_format_s64_capy(value : s64) string { -> __bearer_format_s64(value) }
+function __bearer_format_u64_capy(value : u64) string { -> __bearer_format_u64(value) }
+function __bearer_format_f64_capy(value : f64) string { -> __bearer_format_f64(value) }
 
 function __bearer_dval_dval_set() s32 { -> 0 }
 function __bearer_dval_dval_push() s32 { -> 1 }
