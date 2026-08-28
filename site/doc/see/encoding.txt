@@ -1,5 +1,7 @@
 base64_encode
 base64_decode
+string_from_bytes
+bytes_of
 json_encode
 json_decode
 html_escape

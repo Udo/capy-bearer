@@ -688,6 +688,7 @@ struct FunctionLowerer
 	std::pair<Bytes, unsigned> allocate_array(const std::string& array_type, unsigned length, const Location& location, const Bytes& failure_cleanup = {});
 	std::pair<Bytes, unsigned> allocate_dval(unsigned length, const Location& location, const Bytes& failure_cleanup = {});
 	std::pair<Bytes, unsigned> allocate_blob(const std::string& type, unsigned type_id, unsigned length, const Location& location, const Bytes& failure_cleanup = {});
+	std::pair<Bytes, std::string> byte_conversion(Call* call, bool to_string);
 	Bytes format_wide_scalar(Bytes code, const std::string& type, const Location& location);
 	void narrow_s64_index(Bytes& code, unsigned value, unsigned target, const Location& location, const Bytes& failure_cleanup = {}, bool invalid_is_missing = false);
 	struct BlockValue
@@ -2241,6 +2242,9 @@ std::string FunctionLowerer::infer(Expr* value)
 		if (name->value == "clone")
 			return infer(call->arguments.at(0));
 		if (name->value == "length" || name->value == "arc_live") return "s64";
+		if (name->value == "__bearer_byte") return "u8";
+		if (name->value == "string_from_bytes") return "string";
+		if (name->value == "bytes_of") return "array<u8>";
 		if (name->value == "has") return "bool";
 		if (name->value == "trap")
 			return "void";
@@ -2717,6 +2721,68 @@ void FunctionLowerer::retain_dval_callables(Bytes& code, unsigned value, const L
 	code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b});
 }
 
+std::pair<Bytes, std::string> FunctionLowerer::byte_conversion(Call* call, bool to_string)
+{
+	if (call->arguments.size() != 1)
+		throw Error(call->location, to_string ? "string_from_bytes expects one [u8] value" : "bytes_of expects one string");
+	const std::string expected = to_string ? "array<u8>" : "string";
+	auto source = expression(call->arguments[0]);
+	if (source.second != expected)
+		throw Error(call->arguments[0]->location, (to_string ? "string_from_bytes expects [u8], found " : "bytes_of expects string, found ") + source.second);
+	const unsigned input = add_local("", expected, call->arguments[0]->location);
+	Bytes code = std::move(source.first);
+	code.push_back(0x21);
+	wasm::append_uleb(code, input);
+	const unsigned length = add_local("", "s32", call->location);
+	code.push_back(0x20);
+	wasm::append_uleb(code, input);
+	code.insert(code.end(), {0x28, 0x02, BEARER_WASM_OBJECT_LENGTH_OFFSET, 0x21});
+	wasm::append_uleb(code, length);
+	Bytes release_input;
+	if (expression_is_owned(call->arguments[0]))
+	{
+		release_input.push_back(0x20);
+		wasm::append_uleb(release_input, input);
+		release_input.push_back(0x10);
+		wasm::append_uleb(release_input, module_.release_index());
+	}
+	const unsigned source_pointer = add_local("", "s32", call->location), destination = add_local("", "s32", call->location), index = add_local("", "s32", call->location);
+	auto copy_bytes = [&](bool compact_source)
+	{
+		code.insert(code.end(), {0x41, 0x00, 0x21}); wasm::append_uleb(code, index);
+		code.insert(code.end(), {0x02, 0x40, 0x03, 0x40, 0x20}); wasm::append_uleb(code, index);
+		code.push_back(0x20); wasm::append_uleb(code, length); code.insert(code.end(), {0x4f, 0x0d, 0x01});
+		code.push_back(0x20); wasm::append_uleb(code, destination); code.push_back(0x20); wasm::append_uleb(code, index);
+		if (compact_source) code.insert(code.end(), {0x41, BEARER_WASM_OBJECT_WORD_SIZE, 0x6c});
+		code.push_back(0x6a);
+		code.push_back(0x20); wasm::append_uleb(code, source_pointer); code.push_back(0x20); wasm::append_uleb(code, index);
+		if (!compact_source) code.insert(code.end(), {0x41, BEARER_WASM_OBJECT_WORD_SIZE, 0x6c});
+		code.insert(code.end(), {0x6a, 0x2d, 0x00, 0x00});
+		code.insert(code.end(), {static_cast<std::uint8_t>(compact_source ? 0x36 : 0x3a), static_cast<std::uint8_t>(compact_source ? 2 : 0), 0x00});
+		code.push_back(0x20); wasm::append_uleb(code, index); code.insert(code.end(), {0x41, 0x01, 0x6a, 0x21}); wasm::append_uleb(code, index);
+		code.insert(code.end(), {0x0c, 0x00, 0x0b, 0x0b});
+	};
+	if (to_string)
+	{
+		auto allocation = allocate_blob("string", 1, length, call->location, release_input);
+		append(code, allocation.first);
+		code.push_back(0x20); wasm::append_uleb(code, input); code.insert(code.end(), {0x28, 0x02, BEARER_WASM_OBJECT_PAYLOAD_OFFSET}); code.push_back(0x21); wasm::append_uleb(code, source_pointer);
+		managed_payload_pointer(code, allocation.second, "string"); code.push_back(0x21); wasm::append_uleb(code, destination);
+		copy_bytes(false);
+		append(code, release_input);
+		code.push_back(0x20); wasm::append_uleb(code, allocation.second);
+		return {code, "string"};
+	}
+	auto allocation = allocate_array("array<u8>", length, call->location, release_input);
+	append(code, allocation.first);
+	managed_payload_pointer(code, input, "string"); code.push_back(0x21); wasm::append_uleb(code, source_pointer);
+	code.push_back(0x20); wasm::append_uleb(code, allocation.second); code.insert(code.end(), {0x28, 0x02, BEARER_WASM_OBJECT_PAYLOAD_OFFSET}); code.push_back(0x21); wasm::append_uleb(code, destination);
+	copy_bytes(true);
+	append(code, release_input);
+	code.push_back(0x20); wasm::append_uleb(code, allocation.second);
+	return {code, "array<u8>"};
+}
+
 std::pair<Bytes, unsigned> FunctionLowerer::allocate_blob(const std::string& type, unsigned type_id, unsigned length, const Location& location, const Bytes& failure_cleanup)
 {
 	if (type == "dval")
@@ -2755,17 +2821,10 @@ std::pair<Bytes, unsigned> FunctionLowerer::allocate_blob(const std::string& typ
 	return {std::move(code), pointer};
 }
 
-Bytes FunctionLowerer::format_wide_scalar(Bytes code, const std::string& type, const Location& location)
+Bytes FunctionLowerer::format_wide_scalar(Bytes code, const std::string& type, const Location&)
 {
 	code.push_back(0x10);
 	wasm::append_uleb(code, module_.format_scalar_index(type));
-	const unsigned result = add_local("", "string", location);
-	code.push_back(0x22);
-	wasm::append_uleb(code, result);
-	code.insert(code.end(), {0x45, 0x04, 0x40});
-	append(code, module_.marker(location));
-	code.insert(code.end(), {0x00, 0x0b, 0x20});
-	wasm::append_uleb(code, result);
 	return code;
 }
 
@@ -5216,6 +5275,14 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			normalize(code, type);
 			return {code, type};
 		}
+		if (!member && callee == "__bearer_byte")
+		{
+			if (call->arguments.size() != 1) throw Error(call->location, "__bearer_byte expects one integer value");
+			auto argument = expression(call->arguments[0]);
+			if (!integer_type(argument.second)) throw Error(call->arguments[0]->location, "__bearer_byte expects an integer value");
+			argument.first.insert(argument.first.end(), {0xa7, 0x41, 0xff, 0x01, 0x71});
+			return {std::move(argument.first), "u8"};
+		}
 		if (!member && primitive_constructor_name(callee) && call->arguments.size() == 1)
 		{
 			std::string source;
@@ -5229,7 +5296,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 					return integer_expression(integer, callee);
 				return expression(call->arguments[0]);
 			}
-			if (!module_.exact_definition(callee, {source}) && !module_.default_definition(callee, {source}, call->location) && can_convert(source, callee))
+			if (((callee == "string" && source != "string" && call->arguments.size() == 1) ||
+				 (!module_.exact_definition(callee, {source}) && !module_.default_definition(callee, {source}, call->location))) && can_convert(source, callee))
 			{
 				auto argument = expression(call->arguments[0]);
 				return conversion(std::move(argument.first), source, callee, call->location, expression_is_owned(call->arguments[0]));
@@ -5300,6 +5368,8 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			wasm::append_uleb(code, pointer);
 			return {code, type};
 		}
+		if (!member && (callee == "string_from_bytes" || callee == "bytes_of"))
+			return byte_conversion(call, callee == "string_from_bytes");
 		if (!member && callee == "length")
 		{
 			if (call->arguments.size() != 1)
@@ -6498,12 +6568,23 @@ std::vector<Bytes> Module::runtime_bodies() const
 	}
 	for (const auto& [symbol, type] : fused_sink_formats_)
 	{
-		Bytes code{0x20, 0x00, 0x23, 0x00, 0x41}; wasm::append_sleb32(code, static_cast<std::int32_t>(fused_sink_scratch_offset_));
-		code.insert(code.end(), {0x6a, 0x41}); wasm::append_sleb32(code, scalar_format_scratch_size);
-		code.push_back(0x10); wasm::append_uleb(code, import_index("bearer_format_" + type));
-		code.insert(code.end(), {0x22, 0x01, 0x41}); wasm::append_sleb32(code, scalar_format_scratch_size);
-		code.insert(code.end(), {0x4b, 0x04, 0x40, 0x00, 0x0b, 0x23, 0x00, 0x41}); wasm::append_sleb32(code, static_cast<std::int32_t>(fused_sink_scratch_offset_));
-		code.insert(code.end(), {0x6a, 0x20, 0x01, 0x10}); wasm::append_uleb(code, import_index(symbol));
+		if (type == "f64")
+		{
+			Bytes code{0x20, 0x00, 0x23, 0x00, 0x41}; wasm::append_sleb32(code, static_cast<std::int32_t>(fused_sink_scratch_offset_));
+			code.insert(code.end(), {0x6a, 0x41}); wasm::append_sleb32(code, scalar_format_scratch_size);
+			code.push_back(0x10); wasm::append_uleb(code, import_index("bearer_format_f64"));
+			code.insert(code.end(), {0x22, 0x01, 0x41}); wasm::append_sleb32(code, scalar_format_scratch_size);
+			code.insert(code.end(), {0x4b, 0x04, 0x40, 0x00, 0x0b, 0x23, 0x00, 0x41}); wasm::append_sleb32(code, static_cast<std::int32_t>(fused_sink_scratch_offset_));
+			code.insert(code.end(), {0x6a, 0x20, 0x01, 0x10}); wasm::append_uleb(code, import_index(symbol));
+			result.push_back(body({0x01, 0x01, 0x7f}, std::move(code)));
+			continue;
+		}
+		Bytes code{0x20, 0x00, 0x10}; wasm::append_uleb(code, format_scalar_index(type));
+		code.push_back(0x21); wasm::append_uleb(code, 1);
+		managed_payload_span(code, 1, "string");
+		code.push_back(0x10); wasm::append_uleb(code, import_index(symbol));
+		code.push_back(0x20); wasm::append_uleb(code, 1);
+		code.push_back(0x10); wasm::append_uleb(code, release_index());
 		result.push_back(body({0x01, 0x01, 0x7f}, std::move(code)));
 	}
 	return result;
@@ -7142,6 +7223,9 @@ Module::Capabilities Module::discover_capabilities()
 				if (primitive_constructor_name(callee) && call->arguments.size() == 1 && can_convert(scan_value_type(call->arguments[0]), callee)) return callee;
 				if (name->value == "clone") return call->arguments.empty() ? "" : scan_value_type(call->arguments.front());
 				if (name->value == "length" || name->value == "arc_live") return "s64";
+				if (name->value == "__bearer_byte") return "u8";
+				if (name->value == "string_from_bytes") return "string";
+				if (name->value == "bytes_of") return "array<u8>";
 				if (name->value == "has") return "bool";
 				std::vector<std::string> arguments;
 				for (Expr* argument : call->arguments)
@@ -7209,8 +7293,6 @@ Module::Capabilities Module::discover_capabilities()
 		scan_format_s64 = scan_format_s64 || source == "s8" || source == "s16" || source == "s32" || source == "s64";
 		scan_format_u64 = scan_format_u64 || source == "u8" || source == "u16" || source == "u32" || source == "u64";
 		scan_format_f64 = scan_format_f64 || source == "f32" || source == "f64";
-		if (source == "s8" || source == "s16" || source == "s32" || source == "s64") used_hosts_.insert("bearer_format_s64");
-		if (source == "u8" || source == "u16" || source == "u32" || source == "u64") used_hosts_.insert("bearer_format_u64");
 		if (source == "f32" || source == "f64") used_hosts_.insert("bearer_format_f64");
 		if (source == "dval") { dval_ = true; used_hosts_.insert("bearer_dv_extract_string"); }
 		else if (source == "s8" || source == "s16" || source == "s32" || source == "s64") string_format_types_.insert("s64");
@@ -7393,6 +7475,7 @@ Module::Capabilities Module::discover_capabilities()
 							if (sink && !type.empty())
 							{
 								fused_sink_formats_.insert({sink->symbol, type});
+								string_format_types_.insert(type);
 								scan_format_s64 = scan_format_s64 || type == "s64";
 								scan_format_u64 = scan_format_u64 || type == "u64";
 								scan_format_f64 = scan_format_f64 || type == "f64";
@@ -7447,6 +7530,12 @@ Module::Capabilities Module::discover_capabilities()
 				scan_alloc = true;
 				scan_release = true;
 				scan_clone = true;
+			}
+			if (auto n = dynamic_cast<Name*>(c->function); n && (n->value == "string_from_bytes" || n->value == "bytes_of"))
+			{
+				scan_alloc = true;
+				scan_retain = true;
+				scan_release = true;
 			}
 			if (auto n = dynamic_cast<Name*>(c->function); n && n->value == "arc_live")
 				scan_arc_live = true;
@@ -7689,7 +7778,9 @@ Module::Capabilities Module::discover_capabilities()
 	};
 	for (auto& d : definitions_)
 	{
-		if (d.body_omitted || d.inline_only || d.handler_adapter) continue;
+		if (d.body_omitted || d.inline_only || d.handler_adapter || (d.function &&
+			(d.function->name == "string_from_bytes" || d.function->name == "bytes_of" || d.function->name == "__bearer_reverse_bytes" ||
+			 d.function->name == "__bearer_format_s64_capy" || d.function->name == "__bearer_format_u64_capy" || d.function->name == "__bearer_format_f64_capy"))) continue;
 		scanning_definition = &d;
 		scan(d.function);
 		scanning_definition = nullptr;
@@ -7755,7 +7846,9 @@ CompileResult Module::compile()
 	collect();
 	check_cancelled();
 	for (Definition& definition : definitions_)
-		if (definition.function && (definition.function->name == "__bearer_format_s64_capy" || definition.function->name == "__bearer_format_u64_capy" || definition.function->name == "__bearer_format_f64_capy"))
+		if (definition.function && (definition.function->name == "string_from_bytes" || definition.function->name == "bytes_of" ||
+			definition.function->name == "__bearer_reverse_bytes" || definition.function->name == "__bearer_format_s64_capy" ||
+			definition.function->name == "__bearer_format_u64_capy" || definition.function->name == "__bearer_format_f64_capy"))
 			definition.body_omitted = true;
 	for (Definition& definition : definitions_)
 		if (definition.function && definition.function->location.file == "capy://stdlib.capy" &&
@@ -7768,24 +7861,34 @@ CompileResult Module::compile()
 			definition.inline_only = definition.inline_value && !referenced;
 			definition.body_omitted = !definition.inline_value && !referenced;
 		}
-	const Capabilities capabilities = discover_capabilities();
-	if (capabilities.format_s64) used_hosts_.insert("bearer_format_s64");
-	if (capabilities.format_u64) used_hosts_.insert("bearer_format_u64");
-	if (capabilities.format_f64) used_hosts_.insert("bearer_format_f64");
 	for (Definition& definition : definitions_)
-		if (definition.function && (definition.function->name == "__bearer_format_s64_capy" || definition.function->name == "__bearer_format_u64_capy" || definition.function->name == "__bearer_format_f64_capy"))
-			definition.body_omitted = !string_format_types_.contains(definition.function->name.substr(16, 3));
-	const bool scan_alloc = capabilities.alloc, scan_retain = capabilities.retain, scan_release = capabilities.release, scan_clone = capabilities.clone,
+		if (definition.function && (definition.function->name == "string_from_bytes" || definition.function->name == "bytes_of" ||
+			definition.function->name == "__bearer_reverse_bytes" || definition.function->name == "__bearer_format_s64_capy" ||
+			definition.function->name == "__bearer_format_u64_capy" || definition.function->name == "__bearer_format_f64_capy"))
+			definition.body_omitted = true;
+	const Capabilities capabilities = discover_capabilities();
+	for (Definition& definition : definitions_)
+		if (definition.function)
+		{
+			const std::string& name = definition.function->name;
+			if (name == "__bearer_format_s64_capy" || name == "__bearer_format_u64_capy") definition.body_omitted = false;
+			else if (name == "__bearer_format_f64_capy") definition.body_omitted = !capabilities.format_f64;
+			else if (name == "__bearer_reverse_bytes") definition.body_omitted = true;
+		}
+	if (capabilities.format_f64) used_hosts_.insert("bearer_format_f64");
+	const bool integer_formatting = true;
+	const bool scan_alloc = capabilities.alloc || integer_formatting, scan_retain = capabilities.retain || integer_formatting,
+			   scan_release = capabilities.release || integer_formatting, scan_clone = capabilities.clone,
 			   scan_arc_live = capabilities.arc_live;
 	const bool scan_free = scan_release;
 	for (const auto& [symbol, type] : fused_sink_formats_)
-		used_hosts_.insert("bearer_format_" + type);
+		if (type == "f64") used_hosts_.insert("bearer_format_f64");
 	use_retain_ = scan_retain;
 	use_release_ = scan_release;
 	use_clone_ = scan_clone;
 	use_arc_global_ = scan_arc_live || scan_alloc || scan_release || scan_clone;
 	use_trace_global_ = trace_host_;
-	if (!fused_sink_formats_.empty())
+	if (std::any_of(fused_sink_formats_.begin(), fused_sink_formats_.end(), [](const auto& sink) { return sink.second == "f64"; }))
 	{
 		while (data_.size() % 8) data_.push_back(0);
 		fused_sink_scratch_offset_ = static_cast<unsigned>(data_.size());
@@ -8433,6 +8536,38 @@ std::vector<Expr*> selected_stdlib(const Program& unit, const Program& library)
 					calls.insert({target, 1});
 					calls.insert({target, 2});
 				}
+	std::function<bool(Expr*)> has_scalar_literal = [&](Expr* expression)
+	{
+		if (!expression) return false;
+		if (dynamic_cast<Integer*>(expression) || dynamic_cast<Float*>(expression)) return true;
+		if (auto call = dynamic_cast<Call*>(expression))
+		{
+			if (has_scalar_literal(call->function)) return true;
+			return std::any_of(call->arguments.begin(), call->arguments.end(), has_scalar_literal);
+		}
+		if (auto binary = dynamic_cast<Binary*>(expression)) return has_scalar_literal(binary->left) || has_scalar_literal(binary->right);
+		if (auto variable = dynamic_cast<Variable*>(expression)) return has_scalar_literal(variable->value);
+		if (auto block = dynamic_cast<Block*>(expression)) return std::any_of(block->items.begin(), block->items.end(), has_scalar_literal);
+		if (auto conditional = dynamic_cast<If*>(expression)) return has_scalar_literal(conditional->condition) || has_scalar_literal(conditional->then_body) || has_scalar_literal(conditional->else_body);
+		if (auto loop = dynamic_cast<While*>(expression)) return has_scalar_literal(loop->condition) || has_scalar_literal(loop->body);
+		if (auto loop = dynamic_cast<For*>(expression)) return has_scalar_literal(loop->iterable) || has_scalar_literal(loop->body);
+		if (auto returned = dynamic_cast<Return*>(expression)) return has_scalar_literal(returned->value);
+		if (auto yielded = dynamic_cast<Yield*>(expression)) return has_scalar_literal(yielded->value);
+		if (auto index = dynamic_cast<Index*>(expression)) return has_scalar_literal(index->value) || has_scalar_literal(index->index);
+		if (auto member = dynamic_cast<Member*>(expression)) return has_scalar_literal(member->value);
+		if (auto array = dynamic_cast<ArrayLiteral*>(expression)) return std::any_of(array->items.begin(), array->items.end(), has_scalar_literal);
+		if (auto map = dynamic_cast<MapLiteral*>(expression)) for (const auto& [key, item] : map->entries) if (has_scalar_literal(item)) return true;
+		return false;
+	};
+	auto scalar_type = [](const std::string& type) { return type == "s8" || type == "s16" || type == "s32" || type == "s64" || type == "u8" || type == "u16" || type == "u32" || type == "u64" || type == "f32" || type == "f64"; };
+	const bool scalar_constructor = std::any_of(calls.begin(), calls.end(), [&](const auto& call) { return call.second == 1 && (scalar_type(call.first) || call.first == "string"); });
+	const bool scalar_parameter = std::any_of(unit.items.begin(), unit.items.end(), [&](Expr* item) { auto function = dynamic_cast<Function*>(item); return function && (std::any_of(function->parameters.begin(), function->parameters.end(), [&](const Parameter& parameter) { return scalar_type(type_name(*parameter.type_expr)); }) || (function->return_type && scalar_type(type_name(*function->return_type)))); });
+	if (scalar_constructor || scalar_parameter || std::any_of(unit.items.begin(), unit.items.end(), has_scalar_literal))
+	{
+		calls.insert({"__bearer_format_s64_capy", 1});
+		calls.insert({"__bearer_format_u64_capy", 1});
+		calls.insert({"__bearer_format_f64_capy", 1});
+	}
 	std::vector<Function*> functions;
 	for (Expr* item : library.items)
 		if (auto function = dynamic_cast<Function*>(item))
@@ -8471,7 +8606,8 @@ std::vector<Expr*> selected_stdlib(const Program& unit, const Program& library)
 			if (selected.insert(function).second)
 			{
 				changed = true;
-				collect_stdlib_demand(function, calls, values, scopes);
+				if (function->name != "__bearer_format_s64_capy" && function->name != "__bearer_format_u64_capy" && function->name != "__bearer_format_f64_capy")
+					collect_stdlib_demand(function, calls, values, scopes);
 			}
 		}
 	}

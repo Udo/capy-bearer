@@ -3,7 +3,7 @@
 #include <string_view>
 namespace capy::parity {
 struct Evidence { std::string_view name, path, marker; };
-inline constexpr std::array<Evidence, 257> supported{{
+inline constexpr std::array<Evidence, 259> supported{{
     {"sqrt","site/tests/capy-math.capy","sqrt("},
     {"abs","site/tests/capy-math.capy","abs("},
     {"neg","site/tests/capy-math.capy","neg("},
@@ -36,6 +36,7 @@ inline constexpr std::array<Evidence, 257> supported{{
     {"bit_count_tz","site/tests/capy-bits.capy","bit_count_tz("},
     {"bit_count_1","site/tests/capy-bits.capy","bit_count_1("},
     {"bits_of","site/tests/capy-bits.capy","bits_of("},
+    {"bytes_of","site/tests/capy-byte-conversion.capy","bytes_of("},
     {"f32_from_bits","site/tests/capy-bits.capy","f32_from_bits("},
     {"f64_from_bits","site/tests/capy-bits.capy","f64_from_bits("},
     {"session_set","site/doc/source/api/session_set.txt",":example capy render"},
@@ -53,6 +54,7 @@ inline constexpr std::array<Evidence, 257> supported{{
     {"type/f32","site/doc/source/type/f32.txt",":example capy render"},
     {"type/f64","site/doc/source/type/f64.txt",":example capy render"},
     {"string","site/doc/source/api/string.txt",":example capy render"},
+    {"string_from_bytes","site/tests/capy-byte-conversion.capy","string_from_bytes("},
     {"length","site/doc/source/api/length.txt",":example capy render"},
     {"trap","site/doc/source/api/trap.txt",":example capy render"},
     {"clone","site/doc/source/api/clone.txt",":example capy render"},

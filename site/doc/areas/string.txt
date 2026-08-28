@@ -2,6 +2,8 @@ String Functions
 :order 20
 
 string
+string_from_bytes
+bytes_of
 length
 clone
 base64_decode

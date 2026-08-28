@@ -1,0 +1,23 @@
+:sig
+function bytes_of(value : string) [u8]
+
+:params
+value : a string
+
+:returns
+A byte array with the same bytes as `value`.
+
+:content
+`bytes_of()` copies a string into a new byte array.
+
+The function keeps zero bytes and returns each byte as a `u8` value.
+
+:example capy render
+var bytes := bytes_of("ABC")
+print(bytes[0], bytes[1], bytes[2], "\n")
+
+:see-group
+strings
+
+:see
+string_from_bytes

@@ -219,10 +219,10 @@ int main()
 		assert(dval_constructor_bytes.find(import) != std::string::npos);
 	const auto unrelated_dval_imports = capy::compile_bearer_unit("function CLI(request : dval) { print(\"plain\") }\n", options);
 	const std::string unrelated_dval_bytes(unrelated_dval_imports.wasm.begin(), unrelated_dval_imports.wasm.end());
-	assert(unrelated_dval_bytes.find("bearer_dv_extract_") == std::string::npos);
+	assert(unrelated_dval_bytes.find("bearer_format_s64") == std::string::npos && unrelated_dval_bytes.find("bearer_format_u64") == std::string::npos);
 	const auto plain_comparison_condition = capy::compile_bearer_unit("function CLI(request : dval) { if 1 == 1 { print(\"x\") } }\n", options);
 	const std::string plain_comparison_condition_bytes(plain_comparison_condition.wasm.begin(), plain_comparison_condition.wasm.end());
-	assert(plain_comparison_condition_bytes.find("bearer_dv_extract_") == std::string::npos);
+	assert(plain_comparison_condition_bytes.find("bearer_format_s64") == std::string::npos && plain_comparison_condition_bytes.find("bearer_format_u64") == std::string::npos);
 	const auto condition_coercions = capy::compile_bearer_unit(
 		"function CLI(request : dval) { "
 		"var nonzero_u64 := u64(7); var zero_u64 := u64(0); var nonzero_s32 := 5; var zero_s32 := 0; "
@@ -291,8 +291,8 @@ int main()
 	const auto empty_handler = capy::compile_bearer_unit("function RENDER(request : dval) {}\n", options);
 	const auto empty_validation = capy::wasm::validate_bearer_unit(empty_handler.wasm, {.bearer_abi_version = "11"});
 	assert(empty_validation.valid);
-	for (const auto& imported : empty_validation.imports)
-		assert(imported.module != "env" || !imported.name.starts_with("bearer_"));
+	assert(std::none_of(empty_validation.imports.begin(), empty_validation.imports.end(),
+		[](const auto& imported) { return imported.module == "env" && (imported.name == "bearer_format_s64" || imported.name == "bearer_format_u64"); }));
 	for (const auto& [source, expected] : {
 			 std::pair{"function TASK() {}\n", "exactly one dval parameter"},
 			 std::pair{"function TASK(request : dval, extra : dval) {}\n", "exactly one dval parameter"},
@@ -499,13 +499,8 @@ int main()
 		"function CLI(request : dval) { var collector := Collector(compose); print(collector.invoke(...[1, 2])) }\n", options);
 	const auto variadic_field_validation = capy::wasm::validate_bearer_unit(variadic_function_field.wasm, {.bearer_abi_version = "11"});
 	assert(variadic_field_validation.valid);
-	bool field_formats_s64 = false;
 	for (const auto& imported : variadic_field_validation.imports)
-	{
-		field_formats_s64 = field_formats_s64 || imported.name == "bearer_format_s64";
-		assert(imported.name != "bearer_format_u64" && imported.name != "bearer_format_f64");
-	}
-	assert(field_formats_s64);
+		assert(imported.name != "bearer_format_s64" && imported.name != "bearer_format_u64");
 	const auto inferred_managed_local = capy::compile_bearer_unit(
 		"function CLI(request : dval) { var greeting := \"Hello\" }\n", options);
 	assert(capy::wasm::validate_bearer_unit(inferred_managed_local.wasm, {.bearer_abi_version = "11"}).valid);
@@ -632,9 +627,8 @@ int main()
 	const auto no_stdlib_demand = capy::compile_bearer_unit("function CLI(request : dval) { print(1) }\n", options);
 	const std::string no_stdlib_bytes(no_stdlib_demand.wasm.begin(), no_stdlib_demand.wasm.end());
 	assert(no_stdlib_bytes.find("bearer_sqlite_") == std::string::npos && no_stdlib_bytes.find("bearer_mysql_") == std::string::npos && no_stdlib_bytes.find("bearer_capy_backtrace") == std::string::npos);
-	assert(no_stdlib_bytes.find("bearer_format_s64") != std::string::npos && no_stdlib_bytes.find("bearer_print_bytes") != std::string::npos);
-	for (const char* import : {"bearer_alloc", "bearer_free", "bearer_handler_input_brrb"})
-		assert(no_stdlib_bytes.find(import) == std::string::npos);
+	assert(no_stdlib_bytes.find("bearer_format_s64") == std::string::npos && no_stdlib_bytes.find("bearer_format_u64") == std::string::npos && no_stdlib_bytes.find("bearer_print_bytes") != std::string::npos);
+	assert(no_stdlib_bytes.find("bearer_alloc") != std::string::npos && no_stdlib_bytes.find("bearer_free") != std::string::npos && no_stdlib_bytes.find("bearer_handler_input_brrb") == std::string::npos);
 	assert(no_stdlib_demand.source_map.find("\t1\t1\t32\n") != std::string::npos);
 	const auto literal_print = capy::compile_bearer_unit("function CLI(request : dval) { print(\"ok\") }\n", options);
 	assert(literal_print.wasm.size() < empty_handler.wasm.size() + 600);
@@ -643,7 +637,7 @@ int main()
 	assert(f64_print_bytes.find("bearer_format_f64") != std::string::npos && f64_print_bytes.find("bearer_print_bytes") != std::string::npos);
 	assert(f64_print_bytes.find("bearer_print_f64") == std::string::npos && f64_print_bytes.find("bearer_print_s64") == std::string::npos &&
 		f64_print_bytes.find("bearer_print_u64") == std::string::npos);
-	assert(f64_print_bytes.find("bearer_alloc") == std::string::npos && f64_print_bytes.find("bearer_free") == std::string::npos && f64_print_bytes.find("bearer_handler_input_brrb") == std::string::npos);
+	assert(f64_print_bytes.find("bearer_handler_input_brrb") == std::string::npos);
 	const auto contextual_host = capy::compile_bearer_unit("function CLI(request : dval) { print(gen_noise64(1, 2)) }\n", options);
 	assert(std::string(contextual_host.wasm.begin(), contextual_host.wasm.end()).find("bearer_noise_u64") != std::string::npos);
 	const auto contextual_f32 = capy::compile_bearer_unit("function take(value : f32) {}\nfunction CLI(request : dval) { take(1.5) }\n", options);

@@ -53,6 +53,8 @@ PAGE_SIGNATURES = {
     "sqlite_info": ["function sqlite_info(handle : u64, key : string) dval"],
     "posix_info": ["function posix_info(key : string, value : dval) dval"],
     "clone": ["function clone(value : string) string"],
+    "string_from_bytes": ["function string_from_bytes(values : [u8]) string"],
+    "bytes_of": ["function bytes_of(value : string) [u8]"],
     "dval": [
         "function dval(value : string) dval",
         "function dval(value : s32) dval",

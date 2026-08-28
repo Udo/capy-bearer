@@ -1,0 +1,8 @@
+function CLI(request : dval) {
+    var source : [u8] = [0, 65, 255]
+    var text := string_from_bytes(source)
+    var roundtrip := bytes_of(text)
+    var empty_source : [u8] = []
+    var empty := bytes_of(string_from_bytes(empty_source))
+    print(length(text), "|", roundtrip[0], "|", roundtrip[1], "|", roundtrip[2], "|", length(empty), "|", arc_live(), "\n")
+}

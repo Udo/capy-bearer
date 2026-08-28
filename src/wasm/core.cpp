@@ -1776,16 +1776,6 @@ static String bearer_format_f64_value(f64 value)
 	return(output.str());
 }
 
-size_t bearer_format_s64(s64 value, char* out, size_t cap)
-{
-	return(bearer_copy_bytes(std::to_string(value), out, cap));
-}
-
-size_t bearer_format_u64(u64 value, char* out, size_t cap)
-{
-	return(bearer_copy_bytes(std::to_string(value), out, cap));
-}
-
 size_t bearer_format_f64(f64 value, char* out, size_t cap)
 {
 	return(bearer_copy_bytes(bearer_format_f64_value(value), out, cap));

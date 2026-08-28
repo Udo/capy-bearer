@@ -1,0 +1,23 @@
+:sig
+function string_from_bytes(values : [u8]) string
+
+:params
+values : a byte array
+
+:returns
+A string with the same bytes as `values`.
+
+:content
+`string_from_bytes()` copies an array of bytes into one string value.
+
+The function keeps zero bytes and byte values from 0 through 255. It does not decode the bytes as text.
+
+:example capy render
+var bytes : [u8] = [65, 66, 67]
+print(string_from_bytes(bytes), "\n")
+
+:see-group
+strings
+
+:see
+bytes_of

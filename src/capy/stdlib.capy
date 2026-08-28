@@ -1,8 +1,6 @@
 // Private typed host ABI declarations.  Names map directly to env symbols.
 host function __bearer_print_bytes(value : string)
 host function __bearer_flush_output() bool
-host function __bearer_format_s64(value : s64) string
-host function __bearer_format_u64(value : u64) string
 host function __bearer_format_f64(value : f64) string
 host function __bearer_pow_f32(base : f32, exponent : f32) f32
 host function __bearer_pow_f64(base : f64, exponent : f64) f64
@@ -180,8 +178,53 @@ function f64(value : as string, opt : dval = {}) f64 {
     __bearer_constructor_options(opt, "f64", false)
     -> __bearer_dv_extract_f64(dval(trim(value)), __bearer_dv_extract_f64(get(opt, "fallback"), 0.0))
 }
-function __bearer_format_s64_capy(value : s64) string { -> __bearer_format_s64(value) }
-function __bearer_format_u64_capy(value : u64) string { -> __bearer_format_u64(value) }
+function string_from_bytes(values : [u8]) string { trap() -> "" }
+function bytes_of(value : string) [u8] { trap() -> [] }
+
+function __bearer_format_s64_capy(value : s64) string {
+    var negative := value < 0
+    var digits : [u8] = []
+    digits.reserve(20)
+    if value == 0 { digits.push(48) }
+    while value != 0 {
+        var digit := value % 10
+        if negative { digit = 0 - digit }
+        digits.push(__bearer_byte(digit + 48))
+        value = value / 10
+    }
+    if negative { digits.push(45) }
+    var first := 0
+    var last := length(digits) - 1
+    while first < last {
+        var byte := digits[first]
+        digits[first] = digits[last]
+        digits[last] = byte
+        first = first + 1
+        last = last - 1
+    }
+    -> string_from_bytes(digits)
+}
+
+function __bearer_format_u64_capy(value : u64) string {
+    var digits : [u8] = []
+    digits.reserve(20)
+    if value == 0 { digits.push(48) }
+    while value != 0 {
+        digits.push(__bearer_byte(value % 10 + 48))
+        value = value / 10
+    }
+    var first := 0
+    var last := length(digits) - 1
+    while first < last {
+        var byte := digits[first]
+        digits[first] = digits[last]
+        digits[last] = byte
+        first = first + 1
+        last = last - 1
+    }
+    -> string_from_bytes(digits)
+}
+
 function __bearer_format_f64_capy(value : f64) string { -> __bearer_format_f64(value) }
 
 function __bearer_dval_dval_set() s32 { -> 0 }

@@ -106,18 +106,16 @@ for source in "${fixtures[@]}"; do
 done
 
 wasm-objdump -x "$BUILD_DIR/phase1.wasm" >"$BUILD_DIR/phase1.objdump"
-! grep -q 'bearer_request_context_brrb\|bearer_response_set_\|bearer_print_s64\|bearer_print_u64\|bearer_print_f64\|bearer_format_u64\|bearer_format_f64\|bearer_time\|bearer_file_\|bearer_unit_info_brrb\|bearer_units_list_brrb\|bearer_unit_compile\|bearer_codec\|bearer_regex\\|bearer_string_nonblank\|bearer_dv_merge_brrb\|bearer_sqlite_' "$BUILD_DIR/phase1.objdump"
+! grep -q 'bearer_request_context_brrb\|bearer_response_set_\|bearer_print_s64\|bearer_print_u64\|bearer_print_f64\|bearer_format_s64\|bearer_format_u64\|bearer_format_f64\|bearer_time\|bearer_file_\|bearer_unit_info_brrb\|bearer_units_list_brrb\|bearer_unit_compile\|bearer_codec\|bearer_regex\\|bearer_string_nonblank\|bearer_dv_merge_brrb\|bearer_sqlite_' "$BUILD_DIR/phase1.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-wide-scalars.capy.wasm" >"$BUILD_DIR/wide-scalars.objdump"
-grep -q 'env.bearer_format_s64' "$BUILD_DIR/wide-scalars.objdump"
-grep -q 'env.bearer_format_u64' "$BUILD_DIR/wide-scalars.objdump"
+! grep -q 'env.bearer_format_s64\|env.bearer_format_u64' "$BUILD_DIR/wide-scalars.objdump"
 grep -q 'env.bearer_format_f64' "$BUILD_DIR/wide-scalars.objdump"
 grep -q 'env.bearer_print_bytes' "$BUILD_DIR/wide-scalars.objdump"
 ! grep -q 'env.bearer_print_s64\|env.bearer_print_u64\|env.bearer_print_f64' "$BUILD_DIR/wide-scalars.objdump"
 grep -q 'env.bearer_time' "$BUILD_DIR/wide-scalars.objdump"
 grep -q 'env.bearer_time_precise' "$BUILD_DIR/wide-scalars.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-markup.capy.wasm" >"$BUILD_DIR/markup.objdump"
-grep -q 'env.bearer_format_s64' "$BUILD_DIR/markup.objdump"
-grep -q 'env.bearer_format_u64' "$BUILD_DIR/markup.objdump"
+! grep -q 'env.bearer_format_s64\|env.bearer_format_u64' "$BUILD_DIR/markup.objdump"
 grep -q 'env.bearer_format_f64' "$BUILD_DIR/markup.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-files.capy.wasm" >"$BUILD_DIR/files.objdump"
 for import in file_open file_read file_write file_seek file_tell file_fsync file_close file_temp file_unlink; do

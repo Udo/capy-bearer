@@ -1,0 +1,29 @@
+function require(value : bool) {
+    if !value { trap() }
+}
+
+function CLI(request : dval) {
+    var signed8 : s8 = -128
+    var signed16 : s16 = -32768
+    var signed32 : s32 = -2147483648
+    var signed64 : s64 = -9223372036854775808
+    var unsigned8 : u8 = 255
+    var unsigned16 : u16 = 65535
+    var unsigned32 : u32 = 4294967295
+    var unsigned64 : u64 = 18446744073709551615
+    require(string(signed8) == "-128")
+    require(string(signed16) == "-32768")
+    require(string(signed32) == "-2147483648")
+    require(string(signed64) == "-9223372036854775808")
+    require(string(unsigned8) == "255")
+    require(string(unsigned16) == "65535")
+    require(string(unsigned32) == "4294967295")
+    require(string(unsigned64) == "18446744073709551615")
+    require(string(s64(0)) == "0")
+    require(string(s64(-7)) == "-7")
+    var live_before := arc_live()
+    for i := 0..100 { var rendered := string(s64(i)) }
+    require(arc_live() == live_before)
+    require(string(0.1 + 0.2) == "0.30000000000000004")
+    print("capy-format-ok\n")
+}
