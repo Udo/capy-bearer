@@ -456,7 +456,7 @@ int main()
 		"function CLI(request : dval) { print(text(42), text(false), text([1][0]), wide(u64(7)), wide(1e300), string(8)) }\n", options);
 	const auto converted_parameters_validation = capy::wasm::validate_bearer_unit(converted_parameters.wasm, {.bearer_abi_version = "11"});
 	assert(converted_parameters_validation.valid);
-	assert(std::any_of(converted_parameters_validation.imports.begin(), converted_parameters_validation.imports.end(),
+	assert(std::none_of(converted_parameters_validation.imports.begin(), converted_parameters_validation.imports.end(),
 		[](const auto& imported) { return imported.name == "bearer_format_f64"; }));
 	const auto converted_dval_parameters = capy::compile_bearer_unit(
 		"type Text = string\nfunction text(value : as Text) string { -> value }\nfunction truth(value : as bool) bool { -> value }\n"
@@ -634,7 +634,7 @@ int main()
 	assert(literal_print.wasm.size() < empty_handler.wasm.size() + 600);
 	const auto f64_print = capy::compile_bearer_unit("function emit(value : f64) { print(value) }\nfunction CLI(request : dval) { emit(1.5) }\n", options);
 	const std::string f64_print_bytes(f64_print.wasm.begin(), f64_print.wasm.end());
-	assert(f64_print_bytes.find("bearer_format_f64") != std::string::npos && f64_print_bytes.find("bearer_print_bytes") != std::string::npos);
+	assert(f64_print_bytes.find("bearer_format_f64") == std::string::npos && f64_print_bytes.find("bearer_print_bytes") != std::string::npos);
 	assert(f64_print_bytes.find("bearer_print_f64") == std::string::npos && f64_print_bytes.find("bearer_print_s64") == std::string::npos &&
 		f64_print_bytes.find("bearer_print_u64") == std::string::npos);
 	assert(f64_print_bytes.find("bearer_handler_input_brrb") == std::string::npos);

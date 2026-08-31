@@ -1,7 +1,6 @@
 // Private typed host ABI declarations.  Names map directly to env symbols.
 host function __bearer_print_bytes(value : string)
 host function __bearer_flush_output() bool
-host function __bearer_format_f64(value : f64) string
 host function __bearer_pow_f32(base : f32, exponent : f32) f32
 host function __bearer_pow_f64(base : f64, exponent : f64) f64
 host function __bearer_log_f32(value : f32) f32
@@ -225,8 +224,159 @@ function __bearer_format_u64_capy(value : u64) string {
     -> string_from_bytes(digits)
 }
 
-function __bearer_format_f64_capy(value : f64) string { -> __bearer_format_f64(value) }
+function __bearer_format_f64_capy(value : f64) string {
+    var bits := bits_of(value)
+    var negative := bits / u64(9223372036854775808) != u64(0)
+    var exponent_bits := (bits / u64(4503599627370496)) % u64(2048)
+    var fraction := bits % u64(4503599627370496)
+    if exponent_bits == u64(2047) {
+        if fraction != u64(0) { if negative { return "-nan" }; return "nan" }
+        if negative { return "-inf" }
+        return "inf"
+    }
+    if exponent_bits == u64(0) && fraction == u64(0) {
+        if negative { return "-0" }
+        return "0"
+    }
 
+    var significand := fraction
+    var binary_shift := -1074
+    if exponent_bits != u64(0) {
+        significand = significand + u64(4503599627370496)
+        binary_shift = s64(exponent_bits) - 1023 - 52
+    }
+    var integer : [u64] = [significand % u64(1000000000), significand / u64(1000000000)]
+    integer.reserve(128)
+    var decimal_places := 0
+    if binary_shift >= 0 {
+        var shifts := binary_shift
+        while shifts > 0 {
+            var count := min(shifts, 29)
+            var multiplier := u64(1)
+            var power := 0
+            while power < count { multiplier = multiplier * u64(2); power = power + 1 }
+            var carry := u64(0)
+            var i := 0
+            while i < length(integer) {
+                var product := integer[i] * multiplier + carry
+                integer[i] = product % u64(1000000000)
+                carry = product / u64(1000000000)
+                i = i + 1
+            }
+            if carry != u64(0) { integer.push(carry) }
+            shifts = shifts - count
+        }
+    } else {
+        decimal_places = 0 - binary_shift
+        var shifts := decimal_places
+        while shifts > 0 {
+            var count := min(shifts, 12)
+            var multiplier := u64(1)
+            var power := 0
+            while power < count { multiplier = multiplier * u64(5); power = power + 1 }
+            var carry := u64(0)
+            var i := 0
+            while i < length(integer) {
+                var product := integer[i] * multiplier + carry
+                integer[i] = product % u64(1000000000)
+                carry = product / u64(1000000000)
+                i = i + 1
+            }
+            if carry != u64(0) { integer.push(carry) }
+            shifts = shifts - count
+        }
+    }
+
+    var high := length(integer) - 1
+    while high > 0 && integer[high] == u64(0) { high = high - 1 }
+    var high_divisor := u64(1)
+    var high_digits := 1
+    while integer[high] / high_divisor >= u64(10) { high_divisor = high_divisor * u64(10); high_digits = high_digits + 1 }
+    var decimal_position := high * 9 + high_digits - decimal_places
+    var decimal_exponent := decimal_position - 1
+    var significant_digits : [u8] = []
+    significant_digits.reserve(17)
+    var generated := 0
+    var round_digit := u8(48)
+    var tail_nonzero := false
+    var limb_count := high + 1
+    while limb_count > 0 {
+        var limb := limb_count - 1
+        var current := integer[limb]
+        var divisor := u64(100000000)
+        if limb == high { divisor = high_divisor }
+        while divisor > u64(0) {
+            var digit := __bearer_byte(current / divisor + u64(48))
+            if generated < 17 { significant_digits.push(digit) }
+            else {
+                if generated == 17 { round_digit = digit }
+                else { if digit != 48 { tail_nonzero = true } }
+            }
+            generated = generated + 1
+            current = current % divisor
+            divisor = divisor / u64(10)
+        }
+        limb_count = limb_count - 1
+    }
+    var index := 0
+    var round_up := round_digit > 53 || (round_digit == 53 && (tail_nonzero || (significant_digits[16] % 2) != 0))
+    if round_up {
+        index = 17
+        while index > 0 {
+            index = index - 1
+            if significant_digits[index] != 57 { break }
+            significant_digits[index] = 48
+        }
+        if significant_digits[0] == 48 {
+            significant_digits[0] = 49
+            decimal_exponent = decimal_exponent + 1
+        } else { significant_digits[index] = significant_digits[index] + 1 }
+    }
+    while length(significant_digits) > 1 && significant_digits[length(significant_digits) - 1] == 48 { significant_digits.pop() }
+
+    var output : [u8] = []
+    output.reserve(32)
+    if negative { output.push(45) }
+    var scientific := decimal_exponent < -4 || decimal_exponent >= 17
+    if scientific {
+        output.push(significant_digits[0])
+        if length(significant_digits) > 1 {
+            output.push(46)
+            index = 1
+            while index < length(significant_digits) { output.push(significant_digits[index]); index = index + 1 }
+        }
+        output.push(101)
+        if decimal_exponent < 0 { output.push(45); decimal_exponent = 0 - decimal_exponent }
+        else { output.push(43) }
+        var exponent_text := __bearer_format_s64_capy(decimal_exponent)
+        var exponent_bytes : [u8] = bytes_of(exponent_text)
+        if length(exponent_bytes) == 1 { output.push(48) }
+        index = 0
+        while index < length(exponent_bytes) { output.push(exponent_bytes[index]); index = index + 1 }
+    } else {
+        var point := decimal_exponent + 1
+        if point <= 0 {
+            output.push(48)
+            output.push(46)
+            index = 0
+            while index < 0 - point { output.push(48); index = index + 1 }
+            index = 0
+            while index < length(significant_digits) { output.push(significant_digits[index]); index = index + 1 }
+            return string_from_bytes(output)
+        }
+        if point >= length(significant_digits) {
+            index = 0
+            while index < length(significant_digits) { output.push(significant_digits[index]); index = index + 1 }
+            while index < point { output.push(48); index = index + 1 }
+            return string_from_bytes(output)
+        }
+        index = 0
+        while index < point { output.push(significant_digits[index]); index = index + 1 }
+        output.push(46)
+        while index < length(significant_digits) { output.push(significant_digits[index]); index = index + 1 }
+    }
+    -> string_from_bytes(output)
+}
 function __bearer_dval_dval_set() s32 { -> 0 }
 function __bearer_dval_dval_push() s32 { -> 1 }
 function __bearer_dval_dval_pop() s32 { -> 2 }

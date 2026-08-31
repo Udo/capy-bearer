@@ -257,7 +257,6 @@ static_assert(BEARER_WASM_OBJECT_PAYLOAD_OFFSET == BEARER_WASM_OBJECT_CAPACITY_O
 static_assert(BEARER_WASM_OBJECT_HANDLE_SIZE == BEARER_WASM_OBJECT_PAYLOAD_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
 static_assert(BEARER_WASM_OBJECT_BLOB_HEADER_SIZE == BEARER_WASM_OBJECT_LENGTH_OFFSET + BEARER_WASM_OBJECT_WORD_SIZE);
 
-constexpr unsigned scalar_format_scratch_size = 32;
 
 std::string sink_format_helper(const std::string& symbol, const std::string& type)
 {
@@ -781,7 +780,7 @@ struct Module
 	{
 		const Definition* definition = exact_definition("__bearer_format_" + type + "_capy", {type});
 		if (!definition)
-			throw std::runtime_error("missing Capy " + type + " formatter");
+			throw std::runtime_error("missing Capy " + type + " formatter while compiling " + source_);
 		return definition->index;
 	}
 	unsigned retain_index() const
@@ -1364,7 +1363,6 @@ struct Module
 	std::map<std::string, unsigned> helpers_;
 	std::set<std::pair<std::string, std::string>> fused_sink_formats_;
 	std::set<std::string> string_format_types_;
-	unsigned fused_sink_scratch_offset_ = 0;
 	Bytes data_;
 	bool dval_ = false, trace_host_ = false, use_trace_global_ = false;
 	unsigned trace_stack_offset_ = 0;
@@ -6568,17 +6566,6 @@ std::vector<Bytes> Module::runtime_bodies() const
 	}
 	for (const auto& [symbol, type] : fused_sink_formats_)
 	{
-		if (type == "f64")
-		{
-			Bytes code{0x20, 0x00, 0x23, 0x00, 0x41}; wasm::append_sleb32(code, static_cast<std::int32_t>(fused_sink_scratch_offset_));
-			code.insert(code.end(), {0x6a, 0x41}); wasm::append_sleb32(code, scalar_format_scratch_size);
-			code.push_back(0x10); wasm::append_uleb(code, import_index("bearer_format_f64"));
-			code.insert(code.end(), {0x22, 0x01, 0x41}); wasm::append_sleb32(code, scalar_format_scratch_size);
-			code.insert(code.end(), {0x4b, 0x04, 0x40, 0x00, 0x0b, 0x23, 0x00, 0x41}); wasm::append_sleb32(code, static_cast<std::int32_t>(fused_sink_scratch_offset_));
-			code.insert(code.end(), {0x6a, 0x20, 0x01, 0x10}); wasm::append_uleb(code, import_index(symbol));
-			result.push_back(body({0x01, 0x01, 0x7f}, std::move(code)));
-			continue;
-		}
 		Bytes code{0x20, 0x00, 0x10}; wasm::append_uleb(code, format_scalar_index(type));
 		code.push_back(0x21); wasm::append_uleb(code, 1);
 		managed_payload_span(code, 1, "string");
@@ -7293,7 +7280,6 @@ Module::Capabilities Module::discover_capabilities()
 		scan_format_s64 = scan_format_s64 || source == "s8" || source == "s16" || source == "s32" || source == "s64";
 		scan_format_u64 = scan_format_u64 || source == "u8" || source == "u16" || source == "u32" || source == "u64";
 		scan_format_f64 = scan_format_f64 || source == "f32" || source == "f64";
-		if (source == "f32" || source == "f64") used_hosts_.insert("bearer_format_f64");
 		if (source == "dval") { dval_ = true; used_hosts_.insert("bearer_dv_extract_string"); }
 		else if (source == "s8" || source == "s16" || source == "s32" || source == "s64") string_format_types_.insert("s64");
 		else if (source == "u8" || source == "u16" || source == "u32" || source == "u64") string_format_types_.insert("u64");
@@ -7875,25 +7861,16 @@ CompileResult Module::compile()
 			else if (name == "__bearer_format_f64_capy") definition.body_omitted = !capabilities.format_f64;
 			else if (name == "__bearer_reverse_bytes") definition.body_omitted = true;
 		}
-	if (capabilities.format_f64) used_hosts_.insert("bearer_format_f64");
 	const bool integer_formatting = true;
 	const bool scan_alloc = capabilities.alloc || integer_formatting, scan_retain = capabilities.retain || integer_formatting,
 			   scan_release = capabilities.release || integer_formatting, scan_clone = capabilities.clone,
 			   scan_arc_live = capabilities.arc_live;
 	const bool scan_free = scan_release;
-	for (const auto& [symbol, type] : fused_sink_formats_)
-		if (type == "f64") used_hosts_.insert("bearer_format_f64");
 	use_retain_ = scan_retain;
 	use_release_ = scan_release;
 	use_clone_ = scan_clone;
 	use_arc_global_ = scan_arc_live || scan_alloc || scan_release || scan_clone;
 	use_trace_global_ = trace_host_;
-	if (std::any_of(fused_sink_formats_.begin(), fused_sink_formats_.end(), [](const auto& sink) { return sink.second == "f64"; }))
-	{
-		while (data_.size() % 8) data_.push_back(0);
-		fused_sink_scratch_offset_ = static_cast<unsigned>(data_.size());
-		data_.insert(data_.end(), scalar_format_scratch_size, 0);
-	}
 	if (use_trace_global_)
 	{
 		while (data_.size() % 8)
@@ -8536,38 +8513,36 @@ std::vector<Expr*> selected_stdlib(const Program& unit, const Program& library)
 					calls.insert({target, 1});
 					calls.insert({target, 2});
 				}
-	std::function<bool(Expr*)> has_scalar_literal = [&](Expr* expression)
+	std::function<bool(Expr*)> has_float_literal = [&](Expr* expression)
 	{
 		if (!expression) return false;
-		if (dynamic_cast<Integer*>(expression) || dynamic_cast<Float*>(expression)) return true;
-		if (auto call = dynamic_cast<Call*>(expression))
-		{
-			if (has_scalar_literal(call->function)) return true;
-			return std::any_of(call->arguments.begin(), call->arguments.end(), has_scalar_literal);
-		}
-		if (auto binary = dynamic_cast<Binary*>(expression)) return has_scalar_literal(binary->left) || has_scalar_literal(binary->right);
-		if (auto variable = dynamic_cast<Variable*>(expression)) return has_scalar_literal(variable->value);
-		if (auto block = dynamic_cast<Block*>(expression)) return std::any_of(block->items.begin(), block->items.end(), has_scalar_literal);
-		if (auto conditional = dynamic_cast<If*>(expression)) return has_scalar_literal(conditional->condition) || has_scalar_literal(conditional->then_body) || has_scalar_literal(conditional->else_body);
-		if (auto loop = dynamic_cast<While*>(expression)) return has_scalar_literal(loop->condition) || has_scalar_literal(loop->body);
-		if (auto loop = dynamic_cast<For*>(expression)) return has_scalar_literal(loop->iterable) || has_scalar_literal(loop->body);
-		if (auto returned = dynamic_cast<Return*>(expression)) return has_scalar_literal(returned->value);
-		if (auto yielded = dynamic_cast<Yield*>(expression)) return has_scalar_literal(yielded->value);
-		if (auto index = dynamic_cast<Index*>(expression)) return has_scalar_literal(index->value) || has_scalar_literal(index->index);
-		if (auto member = dynamic_cast<Member*>(expression)) return has_scalar_literal(member->value);
-		if (auto array = dynamic_cast<ArrayLiteral*>(expression)) return std::any_of(array->items.begin(), array->items.end(), has_scalar_literal);
-		if (auto map = dynamic_cast<MapLiteral*>(expression)) for (const auto& [key, item] : map->entries) if (has_scalar_literal(item)) return true;
+		if (dynamic_cast<Float*>(expression)) return true;
+		if (auto function = dynamic_cast<Function*>(expression)) return has_float_literal(function->body);
+		if (auto call = dynamic_cast<Call*>(expression)) return has_float_literal(call->function) || std::any_of(call->arguments.begin(), call->arguments.end(), has_float_literal);
+		if (auto binary = dynamic_cast<Binary*>(expression)) return has_float_literal(binary->left) || has_float_literal(binary->right);
+		if (auto variable = dynamic_cast<Variable*>(expression)) return has_float_literal(variable->value);
+		if (auto block = dynamic_cast<Block*>(expression)) return std::any_of(block->items.begin(), block->items.end(), has_float_literal);
+		if (auto conditional = dynamic_cast<If*>(expression)) return has_float_literal(conditional->condition) || has_float_literal(conditional->then_body) || has_float_literal(conditional->else_body);
+		if (auto loop = dynamic_cast<While*>(expression)) return has_float_literal(loop->condition) || has_float_literal(loop->body);
+		if (auto loop = dynamic_cast<For*>(expression)) return has_float_literal(loop->iterable) || has_float_literal(loop->body);
+		if (auto returned = dynamic_cast<Return*>(expression)) return has_float_literal(returned->value);
+		if (auto yielded = dynamic_cast<Yield*>(expression)) return has_float_literal(yielded->value);
+		if (auto index = dynamic_cast<Index*>(expression)) return has_float_literal(index->value) || has_float_literal(index->index);
+		if (auto member = dynamic_cast<Member*>(expression)) return has_float_literal(member->value);
+		if (auto array = dynamic_cast<ArrayLiteral*>(expression)) return std::any_of(array->items.begin(), array->items.end(), has_float_literal);
+		if (auto map = dynamic_cast<MapLiteral*>(expression)) for (const auto& [key, item] : map->entries) if (has_float_literal(item)) return true;
 		return false;
 	};
-	auto scalar_type = [](const std::string& type) { return type == "s8" || type == "s16" || type == "s32" || type == "s64" || type == "u8" || type == "u16" || type == "u32" || type == "u64" || type == "f32" || type == "f64"; };
-	const bool scalar_constructor = std::any_of(calls.begin(), calls.end(), [&](const auto& call) { return call.second == 1 && (scalar_type(call.first) || call.first == "string"); });
-	const bool scalar_parameter = std::any_of(unit.items.begin(), unit.items.end(), [&](Expr* item) { auto function = dynamic_cast<Function*>(item); return function && (std::any_of(function->parameters.begin(), function->parameters.end(), [&](const Parameter& parameter) { return scalar_type(type_name(*parameter.type_expr)); }) || (function->return_type && scalar_type(type_name(*function->return_type)))); });
-	if (scalar_constructor || scalar_parameter || std::any_of(unit.items.begin(), unit.items.end(), has_scalar_literal))
-	{
-		calls.insert({"__bearer_format_s64_capy", 1});
-		calls.insert({"__bearer_format_u64_capy", 1});
-		calls.insert({"__bearer_format_f64_capy", 1});
-	}
+	bool float_format = !values.empty() || std::any_of(unit.items.begin(), unit.items.end(), has_float_literal) ||
+		std::any_of(calls.begin(), calls.end(), [](const auto& call) { return call.first == "f32" || call.first == "f64"; }) ||
+		std::any_of(unit.items.begin(), unit.items.end(), [&](Expr* item) { auto function = dynamic_cast<Function*>(item); return function && (std::any_of(function->parameters.begin(), function->parameters.end(), [&](const Parameter& parameter) { const std::string type = type_name(*parameter.type_expr); return type == "f32" || type == "f64"; }) || (function->return_type && (type_name(*function->return_type) == "f32" || type_name(*function->return_type) == "f64"))); });
+	for (Expr* item : library.items)
+		if (auto function = dynamic_cast<Function*>(item); function && function->return_type && calls.contains({function->name, function->parameters.size()}))
+		{
+			const std::string type = type_name(*function->return_type);
+			float_format = float_format || type == "f32" || type == "f64";
+		}
+	if (float_format) calls.insert({"__bearer_format_f64_capy", 1});
 	std::vector<Function*> functions;
 	for (Expr* item : library.items)
 		if (auto function = dynamic_cast<Function*>(item))

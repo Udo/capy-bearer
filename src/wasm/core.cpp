@@ -1776,11 +1776,6 @@ static String bearer_format_f64_value(f64 value)
 	return(output.str());
 }
 
-size_t bearer_format_f64(f64 value, char* out, size_t cap)
-{
-	return(bearer_copy_bytes(bearer_format_f64_value(value), out, cap));
-}
-
 void bearer_print_s64(s64 value)
 {
 	if(context == 0)
