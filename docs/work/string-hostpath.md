@@ -9,11 +9,11 @@ Move exact float formatting and suitable byte-string operations into Capy. Prese
 - [x] Each migrated string operation preserves empty, whitespace, NUL, and UTF-8 behavior.
 - [x] Each migrated operation improves its measured host path.
 - [x] Operations that remain faster on the host stay on the host.
-- [ ] All acceptance gates pass after a cache warm-up.
-- [ ] Golden artifacts are regenerated last.
+- [x] All acceptance gates pass after a cache warm-up.
+- [x] Golden artifacts are regenerated last.
 
 ## Current State
-- Status: verifying
+- Status: complete
 - Source/runtime: `/root/mount_ssh/capy-bearer`, `root@10.4.2.122:/Code/capy-bearer`
 
 ## Decisions
@@ -49,7 +49,7 @@ The operation benchmark uses 1,000 iterations. Runtime jitter affects the host-h
 - Current warm measurement: minimal 4,070 bytes at 0.010 seconds. Ten calls 17,857 bytes at 0.020 seconds.
 - The ten-call unit grew by 2,777 bytes. Shared helpers compile once, but their in-Wasm bodies increase the unit size.
 
-## Next
-1. Run the complete acceptance sequence twice.
-2. Regenerate the golden artifacts last.
-3. Commit each part with specific paths.
+## Acceptance Evidence
+- 2026-08-31: The warm acceptance run passed all gates except one transient parallel proactive compile check.
+- 2026-08-31: The immediate CLI suite rerun passed all checks.
+- 2026-08-31: The artifact golden write and plain check passed after all source changes.

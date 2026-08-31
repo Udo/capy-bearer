@@ -8513,36 +8513,6 @@ std::vector<Expr*> selected_stdlib(const Program& unit, const Program& library)
 					calls.insert({target, 1});
 					calls.insert({target, 2});
 				}
-	std::function<bool(Expr*)> has_float_literal = [&](Expr* expression)
-	{
-		if (!expression) return false;
-		if (dynamic_cast<Float*>(expression)) return true;
-		if (auto function = dynamic_cast<Function*>(expression)) return has_float_literal(function->body);
-		if (auto call = dynamic_cast<Call*>(expression)) return has_float_literal(call->function) || std::any_of(call->arguments.begin(), call->arguments.end(), has_float_literal);
-		if (auto binary = dynamic_cast<Binary*>(expression)) return has_float_literal(binary->left) || has_float_literal(binary->right);
-		if (auto variable = dynamic_cast<Variable*>(expression)) return has_float_literal(variable->value);
-		if (auto block = dynamic_cast<Block*>(expression)) return std::any_of(block->items.begin(), block->items.end(), has_float_literal);
-		if (auto conditional = dynamic_cast<If*>(expression)) return has_float_literal(conditional->condition) || has_float_literal(conditional->then_body) || has_float_literal(conditional->else_body);
-		if (auto loop = dynamic_cast<While*>(expression)) return has_float_literal(loop->condition) || has_float_literal(loop->body);
-		if (auto loop = dynamic_cast<For*>(expression)) return has_float_literal(loop->iterable) || has_float_literal(loop->body);
-		if (auto returned = dynamic_cast<Return*>(expression)) return has_float_literal(returned->value);
-		if (auto yielded = dynamic_cast<Yield*>(expression)) return has_float_literal(yielded->value);
-		if (auto index = dynamic_cast<Index*>(expression)) return has_float_literal(index->value) || has_float_literal(index->index);
-		if (auto member = dynamic_cast<Member*>(expression)) return has_float_literal(member->value);
-		if (auto array = dynamic_cast<ArrayLiteral*>(expression)) return std::any_of(array->items.begin(), array->items.end(), has_float_literal);
-		if (auto map = dynamic_cast<MapLiteral*>(expression)) for (const auto& [key, item] : map->entries) if (has_float_literal(item)) return true;
-		return false;
-	};
-	bool float_format = !values.empty() || std::any_of(unit.items.begin(), unit.items.end(), has_float_literal) ||
-		std::any_of(calls.begin(), calls.end(), [](const auto& call) { return call.first == "f32" || call.first == "f64"; }) ||
-		std::any_of(unit.items.begin(), unit.items.end(), [&](Expr* item) { auto function = dynamic_cast<Function*>(item); return function && (std::any_of(function->parameters.begin(), function->parameters.end(), [&](const Parameter& parameter) { const std::string type = type_name(*parameter.type_expr); return type == "f32" || type == "f64"; }) || (function->return_type && (type_name(*function->return_type) == "f32" || type_name(*function->return_type) == "f64"))); });
-	for (Expr* item : library.items)
-		if (auto function = dynamic_cast<Function*>(item); function && function->return_type && calls.contains({function->name, function->parameters.size()}))
-		{
-			const std::string type = type_name(*function->return_type);
-			float_format = float_format || type == "f32" || type == "f64";
-		}
-	if (float_format) calls.insert({"__bearer_format_f64_capy", 1});
 	std::vector<Function*> functions;
 	for (Expr* item : library.items)
 		if (auto function = dynamic_cast<Function*>(item))

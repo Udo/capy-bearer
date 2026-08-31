@@ -46,6 +46,9 @@ function CLI(request : dval) {
     require(string(f64_from_bits(18444492273895866369)) == "-nan")
     require(string(f64_from_bits(4503599627370495)) == "2.2250738585072009e-308")
     require(string(f64_from_bits(4503599627370496)) == "2.2250738585072014e-308")
+    var float_live_before := arc_live()
+    for i := 0..20 { var rendered := string(f64(i) + 0.1) }
+    require(arc_live() == float_live_before)
     var sample : u64 = 88172645463325252
     for i := 0..20 {
         sample = sample * u64(2862933555777941757) + u64(3037000493)
