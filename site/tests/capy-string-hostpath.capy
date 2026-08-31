@@ -1,0 +1,30 @@
+function require(value : bool) { if !value { trap() } }
+function exercise(value : string) {
+    var prefix : [u8] = [0, 65]
+    var suffix : [u8] = [66, 0]
+    require(trim("") == "")
+    require(trim(" \t\n\r") == "")
+    require(trim("  é  ") == "é")
+    require(trim(value) == value)
+    require(str_starts_with(value, string_from_bytes(prefix)))
+    require(str_ends_with(value, string_from_bytes(suffix)))
+    require(str_starts_with("éclair", "é"))
+    require(str_ends_with("café", "fé"))
+    require(str_starts_with("x", ""))
+    require(str_ends_with("x", ""))
+    require(!str_starts_with("x", "xx"))
+    require(!str_ends_with("x", "xx"))
+    require(safe_name("") == "")
+    require(safe_name("Café file-1_") == "Caffile1_")
+    require(html_escape("") == "")
+    require(html_escape("<&>\"'") == "&lt;&amp;&gt;&quot;&#39;")
+    require(html_escape(value) == value)
+}
+function CLI(request : dval) {
+    var source : [u8] = [0, 65, 195, 169, 66, 0]
+    var value := string_from_bytes(source)
+    var before := arc_live()
+    for i := 0..100 { exercise(value) }
+    require(arc_live() == before)
+    print("capy-string-hostpath-ok\n")
+}

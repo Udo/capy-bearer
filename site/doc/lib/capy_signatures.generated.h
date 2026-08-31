@@ -226,7 +226,7 @@ inline constexpr DocCapySignature doc_capy_signatures[] = {
 	{"has", "has(value : dval, key : string) bool", "lib"},
 	{"hex", "function hex(value : string) string", "host"},
 	{"hmac_sha256", "function hmac_sha256(key : string, value : string) string", "host"},
-	{"html_escape", "function html_escape(value : string) string", "host"},
+	{"html_escape", "function html_escape(value : string) string", "lib"},
 	{"http_request", "function http_request(request : dval) dval", "host"},
 	{"http_request_async", "function http_request_async(request : dval) u64", "host"},
 	{"is_array", "function is_array(value : dval) bool", "lib"},

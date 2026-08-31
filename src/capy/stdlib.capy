@@ -53,7 +53,6 @@ host function __bearer_process_jobs_brrb(operation : s32, value : dval, key : st
 host function __bearer_network_http_brrb(operation : s32, value : dval, key : string, argument : dval) dval
 host function __bearer_time_format_brrb(operation : s32, value : dval, key : string, argument : dval) dval
 host function __bearer_string_find(value : string, needle : string) s32
-host function __bearer_string_nonblank(value : string) bool
 host function __bearer_string_replace(value : string, needle : string, replacement : string) string
 host function __bearer_string_lower(value : string) string
 host function __bearer_string_upper(value : string) string
@@ -394,11 +393,7 @@ function __bearer_dval_dval_key() s32 { -> 13 }
 function __bearer_dval_dval_keys() s32 { -> 14 }
 function __bearer_dval_dval_values() s32 { -> 15 }
 function __bearer_dval_dval_put() s32 { -> 18 }
-function __bearer_text_safe_name() s32 { -> 0 }
-function __bearer_text_trim() s32 { -> 1 }
 function __bearer_text_float_val() s32 { -> 2 }
-function __bearer_text_str_starts_with() s32 { -> 4 }
-function __bearer_text_str_ends_with() s32 { -> 5 }
 function __bearer_text_encode_query() s32 { -> 6 }
 function __bearer_text_parse_query() s32 { -> 7 }
 function __bearer_text_split() s32 { -> 8 }
@@ -425,7 +420,6 @@ function __bearer_archive_markdown_to_ast() s32 { -> 7 }
 function __bearer_archive_json_consume_space() s32 { -> 8 }
 function __bearer_archive_json_encode() s32 { -> 9 }
 function __bearer_archive_json_encode_10() s32 { -> 10 }
-function __bearer_archive_html_escape() s32 { -> 11 }
 function __bearer_archive_gz_compress() s32 { -> 12 }
 function __bearer_archive_gz_uncompress() s32 { -> 13 }
 function __bearer_archive_zip_list() s32 { -> 14 }
@@ -525,6 +519,19 @@ function print(...values : as string) {
     for value := values { __bearer_print_bytes(value) }
 }
 function flush_output() bool { -> __bearer_flush_output() }
+function __bearer_ascii_space(value : u8) bool {
+    return value == 9 || value == 10 || value == 11 || value == 12 || value == 13 || value == 32
+}
+function __bearer_bytes_match(value : [u8], offset : s64, needle : [u8]) bool {
+    var needle_length := length(needle)
+    if offset + needle_length > length(value) { return false }
+    var i := 0
+    while i < needle_length {
+        if value[offset + i] != needle[i] { return false }
+        i = i + 1
+    }
+    return true
+}
 function find(haystack : string, needle : string) s64 { -> s64(__bearer_string_find(haystack, needle)) }
 function contains(haystack : string, needle : string) bool { -> __bearer_string_find(haystack, needle) != -1 }
 function replace(value : string, needle : string, replacement : string) string { -> __bearer_string_replace(value, needle, replacement) }
@@ -532,7 +539,7 @@ function lower(value : string) string { -> __bearer_string_lower(value) }
 function upper(value : string) string { -> __bearer_string_upper(value) }
 function first() string { return "" }
 function first(one : string) string { return one }
-function first(one : string, two : string) string { var result := two; if __bearer_string_nonblank(one) { result = one }; return result }
+function first(one : string, two : string) string { var result := two; if trim(one) != "" { result = one }; return result }
 function first(one : string, two : string, three : string) string { return first(first(one, two), three) }
 function first(one : string, two : string, three : string, four : string) string { return first(first(one, two), first(three, four)) }
 function substr(value : string, start : s32) string { -> __bearer_string_substr(value, s64(start), s64(length(value))) }
@@ -601,12 +608,38 @@ function unique(items : dval) dval {
     return result
 }
 
-// Core utility adapters retain the host implementation as the semantic authority.
-// text/parsing/collection operation order: names, scalars, predicates, query, split/sort
-function safe_name(raw : string) string { -> string(__bearer_text_parsing_brrb(__bearer_text_safe_name(), dval(raw), "", dval(""))) }
-function trim(raw : string) string { -> string(__bearer_text_parsing_brrb(__bearer_text_trim(), dval(raw), "", dval(""))) }
-function str_starts_with(haystack : string, needle : string) bool { -> bool(__bearer_text_parsing_brrb(__bearer_text_str_starts_with(), dval(haystack), needle, dval(false))) }
-function str_ends_with(haystack : string, needle : string) bool { -> bool(__bearer_text_parsing_brrb(__bearer_text_str_ends_with(), dval(haystack), needle, dval(false))) }
+function safe_name(raw : string) string {
+    var source := bytes_of(raw)
+    var result : [u8] = []
+    result.reserve(length(source))
+    for byte := source {
+        if (byte >= 48 && byte <= 57) || (byte >= 65 && byte <= 90) || (byte >= 97 && byte <= 122) || byte == 95 { result.push(byte) }
+    }
+    -> string_from_bytes(result)
+}
+function trim(raw : string) string {
+    var source := bytes_of(raw)
+    var start := 0
+    var finish := s64(length(source))
+    while start < finish && __bearer_ascii_space(source[start]) { start = start + 1 }
+    while finish > start && __bearer_ascii_space(source[finish - 1]) { finish = finish - 1 }
+    var result : [u8] = []
+    result.reserve(finish - start)
+    var i := start
+    while i < finish { result.push(source[i]); i = i + 1 }
+    -> string_from_bytes(result)
+}
+function str_starts_with(haystack : string, needle : string) bool {
+    var value := bytes_of(haystack)
+    return __bearer_bytes_match(value, 0, bytes_of(needle))
+}
+function str_ends_with(haystack : string, needle : string) bool {
+    var value := bytes_of(haystack)
+    var search := bytes_of(needle)
+    var offset := s64(length(value)) - s64(length(search))
+    if offset < 0 { return false }
+    return __bearer_bytes_match(value, offset, search)
+}
 function encode_query(map : dval) string { -> string(__bearer_text_parsing_brrb(__bearer_text_encode_query(), map, "", dval(""))) }
 function parse_query(query : string) dval { -> __bearer_text_parsing_brrb(__bearer_text_parse_query(), dval(query), "", dval("")) }
 // URI and path operations share one safe-by-default normalizer.
@@ -700,7 +733,28 @@ function markdown_to_ast(source : string, options : dval) dval { -> __bearer_cod
 function json_consume_space(source : string, index : s64) s64 { -> s64(__bearer_codec_archive_brrb(__bearer_archive_json_consume_space(), dval(source), "", dval(index))) }
 function json_encode(value : dval) string { -> string(__bearer_codec_archive_brrb(__bearer_archive_json_encode(), value, "", dval(""))) }
 function json_encode(value : string) string { -> string(__bearer_codec_archive_brrb(__bearer_archive_json_encode_10(), dval(value), "", dval(""))) }
-function html_escape(value : string) string { -> string(__bearer_codec_archive_brrb(__bearer_archive_html_escape(), dval(value), "", dval(""))) }
+function html_escape(value : string) string {
+    var source := bytes_of(value)
+    var result : [u8] = []
+    result.reserve(6 * length(source))
+    for byte := source {
+        if byte == 38 { for item := bytes_of("&amp;") { result.push(item) } }
+        else {
+            if byte == 60 { for item := bytes_of("&lt;") { result.push(item) } }
+            else {
+                if byte == 62 { for item := bytes_of("&gt;") { result.push(item) } }
+                else {
+                    if byte == 34 { for item := bytes_of("&quot;") { result.push(item) } }
+                    else {
+                        if byte == 39 { for item := bytes_of("&#39;") { result.push(item) } }
+                        else { result.push(byte) }
+                    }
+                }
+            }
+        }
+    }
+    -> string_from_bytes(result)
+}
 function gz_compress(source : string) string { -> string(__bearer_codec_archive_brrb(__bearer_archive_gz_compress(), dval(source), "", dval(""))) }
 function gz_uncompress(source : string) string { -> string(__bearer_codec_archive_brrb(__bearer_archive_gz_uncompress(), dval(source), "", dval(""))) }
 function zip_list(path : string) dval { -> __bearer_codec_archive_brrb(__bearer_archive_zip_list(), dval(path), "", dval("")) }

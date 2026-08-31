@@ -37,6 +37,7 @@ expect_equal "math fixture" "capy-math-ok" "$(scripts/bearer-cli /tests/capy-mat
 expect_equal "bits fixture" "capy-bits-ok" "$(scripts/bearer-cli /tests/capy-bits.capy)"
 expect_equal "byte conversion fixture" "3|0|65|255|0|5" "$(scripts/bearer-cli /tests/capy-byte-conversion.capy)"
 expect_equal "scalar format fixture" "capy-format-ok" "$(scripts/bearer-cli /tests/capy-format.capy)"
+expect_equal "in-Wasm string fixture" "capy-string-hostpath-ok" "$(scripts/bearer-cli /tests/capy-string-hostpath.capy)"
 expect_equal "flush_output ordering and reset" "first|true|second" "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-flush-output.capy)"
 
 language_output=$(scripts/bearer-cli /tests/capy-language.capy)

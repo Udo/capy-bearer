@@ -1937,11 +1937,6 @@ size_t bearer_string_upper(const char* value, size_t value_len, char* out, size_
 	return(bearer_copy_bytes(to_upper(String(value ? value : "", value ? value_len : 0)), out, cap));
 }
 
-s32 bearer_string_nonblank(const char* value, size_t value_len)
-{
-	return(trim(String(value ? value : "", value ? value_len : 0)).empty() ? 0 : 1);
-}
-
 size_t bearer_string_substr(const char* value, size_t value_len, s64 start, s64 length, char* out, size_t cap)
 {
 	return(bearer_copy_bytes(substr(String(value ? value : "", value ? value_len : 0), start, length), out, cap));
@@ -2557,14 +2552,10 @@ size_t bearer_text_parsing_brrb(s32 operation, const char* value, size_t value_l
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class TextOperation { text_safe_name = 0, text_trim = 1, text_float_val = 2, text_str_starts_with = 4, text_str_ends_with = 5, text_encode_query = 6, text_parse_query = 7, text_split = 8, text_split_space = 9, text_split_utf8 = 10, text_split_http_headers = 11, text_split_kv = 12, text_sort = 13, text_join_kv = 14 };
+	enum class TextOperation { text_float_val = 2, text_encode_query = 6, text_parse_query = 7, text_split = 8, text_split_space = 9, text_split_utf8 = 10, text_split_http_headers = 11, text_split_kv = 12, text_sort = 13, text_join_kv = 14 };
 	switch(static_cast<TextOperation>(operation))
 	{
-		case TextOperation::text_safe_name: result.set(safe_name(result.to_string())); break;
-		case TextOperation::text_trim: result.set(trim(result.to_string())); break;
 		case TextOperation::text_float_val: result.set(float_val(result.to_string())); break;
-		case TextOperation::text_str_starts_with: result.set_bool(str_starts_with(result.to_string(), text)); break;
-		case TextOperation::text_str_ends_with: result.set_bool(str_ends_with(result.to_string(), text)); break;
 		case TextOperation::text_encode_query: result.set(encode_query(result.to_stringmap())); break;
 		case TextOperation::text_parse_query: {
 			StringMap parsed = parse_query(result.to_string()); result.set_type('M');
@@ -2708,7 +2699,6 @@ size_t bearer_codec_archive_brrb(s32 operation, const char* value, size_t value_
 		case ArchiveOperation::archive_json_consume_space: { u32 index = (u32)supplied.to_u64(); json_consume_space(result.to_string(), index); result.set((f64)index); break; }
 		case ArchiveOperation::archive_json_encode: result.set(json_encode(result)); break;
 		case ArchiveOperation::archive_json_encode_10: result.set(json_encode(result.to_string())); break;
-		case ArchiveOperation::archive_html_escape: result.set(html_escape(result.to_string())); break;
 		case ArchiveOperation::archive_gz_compress: {
 				DValue request, response; request["op"] = "gz_compress"; request["src"] = result.to_string();
 				if(!wasm_zip_apply(request, response)) return(std::numeric_limits<size_t>::max()); result.set(response["result"].to_string()); break;

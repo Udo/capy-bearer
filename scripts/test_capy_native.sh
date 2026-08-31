@@ -147,7 +147,7 @@ for import in text_parsing_brrb route_path_brrb runtime_diagnostics_brrb; do
 done
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-string-lists.capy.wasm" >"$BUILD_DIR/string-lists.objdump"
 grep -q 'env.bearer_text_parsing_brrb' "$BUILD_DIR/string-lists.objdump"
-grep -q 'env.bearer_string_nonblank' "$BUILD_DIR/string-lists.objdump"
+! grep -q 'env.bearer_string_nonblank' "$BUILD_DIR/string-lists.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-first-empty.capy.wasm" >"$BUILD_DIR/first-empty.objdump"
 ! grep -q 'env.bearer_string_nonblank' "$BUILD_DIR/first-empty.objdump"
 wasm-objdump -x "$BUILD_DIR/site_tests_capy-dval-merge.capy.wasm" >"$BUILD_DIR/dval-merge.objdump"

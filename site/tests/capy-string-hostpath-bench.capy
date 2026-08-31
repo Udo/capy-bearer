@@ -1,0 +1,91 @@
+function bench_trim(n : s64) f64 {
+    var t0 := time_precise()
+    for i := 0..n { var value := trim("  Capy <&>  ") }
+    return (time_precise() - t0) * 1000000.0 / f64(n)
+}
+function bench_upper(n : s64) f64 {
+    var t0 := time_precise()
+    for i := 0..n { var value := upper("Capy Bearer 123") }
+    return (time_precise() - t0) * 1000000.0 / f64(n)
+}
+function bench_lower(n : s64) f64 {
+    var t0 := time_precise()
+    for i := 0..n { var value := lower("CAPY BEARER 123") }
+    return (time_precise() - t0) * 1000000.0 / f64(n)
+}
+function bench_contains(n : s64) f64 {
+    var total := 0
+    var t0 := time_precise()
+    for i := 0..n { if contains("Capy Bearer 123", "Bearer") { total = total + 1 } }
+    return (time_precise() - t0) * 1000000.0 / f64(n)
+}
+function bench_starts(n : s64) f64 {
+    var total := 0
+    var t0 := time_precise()
+    for i := 0..n { if str_starts_with("Capy Bearer 123", "Capy") { total = total + 1 } }
+    return (time_precise() - t0) * 1000000.0 / f64(n)
+}
+function bench_ends(n : s64) f64 {
+    var total := 0
+    var t0 := time_precise()
+    for i := 0..n { if str_ends_with("Capy Bearer 123", "123") { total = total + 1 } }
+    return (time_precise() - t0) * 1000000.0 / f64(n)
+}
+function bench_strpos(n : s64) f64 {
+    var total := s64(0)
+    var t0 := time_precise()
+    for i := 0..n { total = total + strpos("Capy Bearer 123", "Bearer") }
+    return (time_precise() - t0) * 1000000.0 / f64(n)
+}
+function bench_replace(n : s64) f64 {
+    var total := 0
+    var t0 := time_precise()
+    for i := 0..n { total = total + length(replace("Capy Bearer 123", "Bearer", "Runtime")) }
+    return (time_precise() - t0) * 1000000.0 / f64(n)
+}
+function bench_split(n : s64) f64 {
+    var total := 0
+    var t0 := time_precise()
+    for i := 0..n { total = total + length(split("one,two,three", ",")) }
+    return (time_precise() - t0) * 1000000.0 / f64(n)
+}
+function bench_split_space(n : s64) f64 {
+    var total := 0
+    var t0 := time_precise()
+    for i := 0..n { total = total + length(split_space("one  two\tthree")) }
+    return (time_precise() - t0) * 1000000.0 / f64(n)
+}
+function bench_join(n : s64) f64 {
+    var items := dval(["one", "two", "three"])
+    var total := 0
+    var t0 := time_precise()
+    for i := 0..n { total = total + length(join(items, ",")) }
+    return (time_precise() - t0) * 1000000.0 / f64(n)
+}
+function bench_safe_name(n : s64) f64 {
+    var t0 := time_precise()
+    for i := 0..n { var value := safe_name("Café file-1") }
+    return (time_precise() - t0) * 1000000.0 / f64(n)
+}
+function bench_html_escape(n : s64) f64 {
+    var t0 := time_precise()
+    for i := 0..n { var value := html_escape("<a href=\"x\">&'") }
+    return (time_precise() - t0) * 1000000.0 / f64(n)
+}
+function CLI(request : dval) {
+    var n := 1000
+    print("trim ", bench_trim(n), "\n")
+    print("upper ", bench_upper(n), "\n")
+    print("lower ", bench_lower(n), "\n")
+    print("contains ", bench_contains(n), "\n")
+    print("str_starts_with ", bench_starts(n), "\n")
+    print("str_ends_with ", bench_ends(n), "\n")
+    print("strpos ", bench_strpos(n), "\n")
+    print("replace ", bench_replace(n), "\n")
+    print("split ", bench_split(n), "\n")
+    print("split_space ", bench_split_space(n), "\n")
+    print("join ", bench_join(n), "\n")
+    print("safe_name ", bench_safe_name(n), "\n")
+    print("html_escape ", bench_html_escape(n), "\n")
+    print("arc ", arc_live(), "\n")
+}
