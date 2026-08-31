@@ -3462,8 +3462,32 @@ extern "C++" {
 template<typename Integer>
 static Integer bearer_dv_parse_integer(const char* value, size_t value_len, s32 base, Integer fallback)
 {
-	const String text = bearer_dv_parse_text(value, value_len, base);
+	String text = bearer_dv_parse_text(value, value_len, base);
 	if(text.empty() || (!std::numeric_limits<Integer>::is_signed && text[0] == '-')) return(fallback);
+	// Integer constructors coerce their input to text first, so a float arrives
+	// here as "1.9" and an integral one as "2". Truncate toward zero rather than
+	// rejecting, or s64(1.9) silently answers the fallback instead of 1.
+	if(base == 10)
+	{
+		const auto point = text.find_first_of(".eE");
+		if(point != String::npos)
+		{
+			f64 numeric = 0;
+			auto scanned = std::from_chars(text.data(), text.data() + text.size(), numeric);
+			if(scanned.ec != std::errc() || scanned.ptr != text.data() + text.size() || !std::isfinite(numeric))
+				return(fallback);
+			numeric = std::trunc(numeric);
+			// Compare against exact powers of two, not against the limits cast to
+			// f64: (f64)INT64_MAX rounds UP to 2^63, so a value of exactly 2^63
+			// passed a `> max` test and then converted out of range. digits is 63
+			// for s64 and 64 for u64, so 2^digits is the exclusive bound for both.
+			const f64 bound = std::ldexp(1.0, std::numeric_limits<Integer>::digits);
+			const f64 floor_bound = std::numeric_limits<Integer>::is_signed ? -bound : 0.0;
+			if(!(numeric >= floor_bound && numeric < bound))
+				return(fallback);
+			return((Integer)numeric);
+		}
+	}
 	Integer result = 0;
 	auto parsed = std::from_chars(text.data(), text.data() + text.size(), result, base);
 	return(parsed.ec == std::errc() && parsed.ptr == text.data() + text.size() ? result : fallback);

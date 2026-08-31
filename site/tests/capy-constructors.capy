@@ -19,6 +19,15 @@ function CLI(request : dval) {
         f64(missing, {fallback: 1.1}), ":", f64(empty, {fallback: 1.2}), ":", f64(invalid, {fallback: 1.3}), ":",
         string(missing, {fallback: "absent"}), ":", string(empty, {fallback: "empty"}), ":",
         bool(missing, {fallback: true}), ":", bool(empty, {fallback: true}), ":", bool(invalid, {fallback: true}), "|",
-        u64("101", {base: 2}), ":", s32("101", {base: 2}), ":", s64("ff", {base: 16}), ":", u64("ff", {base: 16}), ":", u64("42")
+        u64("101", {base: 2}), ":", s32("101", {base: 2}), ":", s64("ff", {base: 16}), ":", u64("ff", {base: 16}), ":", u64("42"), "|",
+        // Float sources truncate toward zero; they must not fall back. s64(1.9)
+        // answered 0 once, because the value reached the parser as "1.9" text.
+        s64(1.9), ":", s64(0.0 - 1.9), ":", s32(3.7), ":", u64(5.5), ":", s64(2.0), ":",
+        s64("1.9"), ":", u64(0.0 - 1.5), ":", u8(300.7), "|",
+        // Range bounds must compare against exact powers of two. (f64)INT64_MAX
+        // rounds up to 2^63, so 2^63 once passed a `> max` test and converted
+        // out of range instead of falling back. -2^63 is in range and must pass.
+        s64(9223372036854775808.0), ":", u64(18446744073709551616.0), ":",
+        s64(0.0 - 9223372036854775808.0), ":", u8(255.9), ":", u8(256.0), ":", s8(127.9)
     )
 }

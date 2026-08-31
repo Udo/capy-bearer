@@ -137,7 +137,7 @@ EOF
 	expect_equal "DValue default identity" "2|1|true|x|false|0" "$(scripts/bearer-cli "/tests/${dval_default_dir##*/}/entry.capy")"
 )
 expect_equal "constructor options and precision" \
-	"7:7:7:7:0:7:7|7:7:7:7:0:7:7|7:7:7:7:0:7:7|7:7:7:7:0:7:7|7:7:7:7:true:7:7|true:false:true|true:true:true|11:12:13:-14:-15:-16:21:22:23:1.1000000000000001:1.2:1.3:absent:empty:true:true:false|5:5:255:255:42" \
+	"7:7:7:7:0:7:7|7:7:7:7:0:7:7|7:7:7:7:0:7:7|7:7:7:7:0:7:7|7:7:7:7:true:7:7|true:false:true|true:true:true|11:12:13:-14:-15:-16:21:22:23:1.1000000000000001:1.2:1.3:absent:empty:true:true:false|5:5:255:255:42|1:-1:3:5:2:1:0:0|0:0:-9223372036854775808:255:0:127" \
 	"$(scripts/bearer-cli /tests/capy-constructors.capy)"
 expect_equal "complete numeric grid" "127|-32768|255|65535|4294967295|1.5|7|8|4294967295|2.5|0" \
 	"$(scripts/bearer-cli /tests/capy-numeric-grid.capy)"
@@ -273,7 +273,7 @@ dval_return_output=$(scripts/bearer-cli /tests/capy-dval-return.capy)
 	exit 1
 }
 wide_output=$(scripts/bearer-cli /tests/capy-wide-scalars.capy)
-[[ "$wide_output" == "8|8|9|9|18446744073709551615|-9223372036854775808|-1|-3|-1|true|true|3|2|true|125|-1.5|5|3.5|0|0|0|true|truetrue|inf|falsetrue|-0|0" ]] || {
+[[ "$wide_output" == "8|8|9|9|18446744073709551615|-9223372036854775808|-1|-3|-1|true|true|3|2|true|125|-1.5|5|3.5|0|9|0|true|truetrue|inf|falsetrue|-0|0" ]] || {
 	echo "Capy wide scalar operations mismatch: $wide_output" >&2
 	exit 1
 }
