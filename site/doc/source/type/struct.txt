@@ -47,6 +47,21 @@ function RENDER(request : dval) {
 
 A struct passed to a function shares identity with the caller's value, so a function that writes a field changes what the caller sees. That is the opposite of a `dval` crossing a unit boundary, which is copied.
 
+## Reflection
+
+The compiler embeds a reflection descriptor for every struct declaration. The descriptor is part of the Wasm unit. It does not require `#exports`.
+
+Use `value::type_name` for the resolved static type name. Use `value::size` for the field count. Use `value::items` for a DValue map of fields:
+
+```capy
+var point := Point(3, 4)
+var fields := point::items
+print(point::type_name, " ", point::size, "\n")
+print(fields.x.value, " ", fields.x.type_name, "\n")
+```
+
+Each field entry contains `value` and `type_name`. Use `fields[key]["value"]` for a dynamic key. Nested structs become DValue maps. Typed arrays become DValue lists. The result copies field data and keeps local callable values alive.
+
 ## Choosing between a struct and a dval
 
 Use a struct when the shape is known as you write the code and you want the compiler to check it. Use a `dval` when the shape arrives at runtime — request input, JSON, a database row — or when it has to cross a unit boundary, since only `dval` is copied across those.

@@ -203,7 +203,7 @@ inline constexpr DocCapySignature doc_capy_signatures[] = {
 	{"floor", "function floor(value : f32) f32", "lib"},
 	{"floor", "function floor(value : f64) f64", "lib"},
 	{"flush_output", "function flush_output() bool", "host"},
-	{"gen_noise", "function gen_noise(min : any, max : type(min), index : u64, seed : u64) type(min)", "host"},
+	{"gen_noise", "function gen_noise(min : any, max : min::type, index : u64, seed : u64) min::type", "host"},
 	{"gen_noise64", "function gen_noise64(index : u64, seed : u64 = 0) u64", "host"},
 	{"gen_sha1", "function gen_sha1(value : string) string", "host"},
 	{"get", "function get(value : dval, key : string) dval", "lib"},

@@ -1064,7 +1064,7 @@ std::string type_name(const Expr& expression_value)
 		const auto& value = static_cast<const Call&>(expression_value);
 		if (value.arguments.size() == 1 && value.function->kind == ExprKind::Name &&
 			static_cast<const Name*>(value.function)->value == "type")
-			return "type(" + type_name(*value.arguments[0]) + ")";
+			fail(expression_value.location, "type(value) was removed. Use value::type in dependent type declarations.");
 	}
 	if (expression_value.kind == ExprKind::FunctionType)
 	{

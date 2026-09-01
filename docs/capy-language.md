@@ -81,7 +81,7 @@ type Count = s64
 var count := Count(4)
 ```
 
-An alias to an array, function type, `module`, or `void` has no constructor call. `any` and dependent `type(value)` expressions require a generic function context and cannot be closed top-level aliases.
+An alias to an array, function type, `module`, or `void` has no constructor call. `any` and dependent `value::type` expressions require a generic function context and cannot be closed top-level aliases.
 
 An alias cannot conflict with a built-in type, struct, function, handler, public standard-library name, or another alias.
 
@@ -222,7 +222,7 @@ A struct receives a generated constructor in field order. User functions can add
 
 Constructor defaults and omitted call arguments do not change the Wasm call ABI. Copied DValue `none` uses Wasm core ABI 26. Future ABI changes must use a new ABI version.
 
-`any` is compile-time polymorphism. It has no runtime representation. In a generic function, `type(parameter)` names the concrete static type bound to an earlier `any` parameter. Use it for a later parameter or the function result. The older `parameter::type` result syntax remains valid for source compatibility.
+`any` is compile-time polymorphism. It has no runtime representation. In a generic function, `parameter::type` names the concrete static type bound to an earlier `any` parameter. Use it for a later parameter or the function result. The compiler rejects the removed `type(parameter)` spelling.
 
 ## 9. Collections and aggregates
 
@@ -242,6 +242,8 @@ struct Sample {
 ```
 
 Structs and closure environments support all scalar types and managed fields. A struct instance is a mutable reference value inside one workspace. Assignment, parameter passing, returns, and captures share its identity. Struct fields are assignable. Their source semantics do not expose byte offsets or padding.
+
+The compiler embeds a reflection descriptor for every struct declaration. `value::type_name` returns the resolved static type name. For a struct, `value::size` returns the field count. `value::items` returns a DValue map keyed by field name. Each entry contains `value` and `type_name`. Reflection reads the embedded descriptors. It does not depend on `#exports` metadata.
 
 A map literal creates a DValue map. Use `{}` for an empty DValue map. The old `{:}` spelling is a parse error. The `dval({...})` spelling has the same result.
 
@@ -342,6 +344,6 @@ The compiler emits source locations for function entries and trapping expression
 
 ## 14. Unsupported and deferred features
 
-Capy does not provide source includes, macros, exceptions, runtime reflection, inheritance, implicit mutable captures, weak references, enums, tagged unions, resource types, or compile-time metaprogram execution.
+Capy does not provide source includes, macros, exceptions, unrestricted runtime type discovery, inheritance, implicit mutable captures, weak references, enums, tagged unions, resource types, or compile-time metaprogram execution. Struct reflection is limited to `type_name`, `size`, and `items`.
 
 Enums and tagged unions are planned after this consistency pass. `language-ideas.capy` is design material. It is not normative or guaranteed to compile.

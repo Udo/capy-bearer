@@ -36,7 +36,7 @@ function choose(value : s32) value::type {
     -> value + 1
 }
 
-function same(first : any, second : type(first)) type(first) {
+function same(first : any, second : first::type) first::type {
     -> second
 }
 

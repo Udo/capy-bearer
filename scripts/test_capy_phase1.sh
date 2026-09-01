@@ -483,6 +483,7 @@ phase3_output=$(scripts/bearer-cli /tests/capy-phase3.capy)
 }
 phase3_cache="$(scripts/unit_cache_directory "$bin_directory")$site_directory/tests/capy-phase3.capy"
 wasm-validate "$phase3_cache.wasm"
+expect_equal "Capy embedded struct reflection" "MMReflectionValue|s32|[s32]|7|string|ok|7|3|2|ready|9007199254740993|function(s32) s32|8|0|{}|0" "$(scripts/bearer-cli /tests/capy-reflection.capy)"
 [[ "$(scripts/bearer-cli /tests/capy-cross.capy)" == "capy-render-ok|counted;roundtripother|1|3|0" ]] || {
 	echo "Capy Bearer unit dispatch failed" >&2
 	exit 1

@@ -133,7 +133,30 @@ function RENDER(request : dval) {
 
 :content
 
-An alias does not create a new runtime type.
+An alias does not create a new runtime type. `value::type_name` therefore returns the resolved type name:
+
+:example capy render
+type Count = s64
+
+function RENDER(request : dval) {
+    var total : Count = 12
+    print(total::type_name, "\n")
+}
+
+:output
+s64
+
+:content
+
+Generic functions use `parameter::type` when a later parameter or the result must have the first parameter's concrete type:
+
+```capy
+function same(first : any, second : first::type) first::type {
+    -> second
+}
+```
+
+The compiler rejects the removed `type(parameter)` spelling.
 
 :see-group
 guides

@@ -14,6 +14,7 @@ host function __bearer_cos_f64(value : f64) f64
 host function __bearer_atan2_f32(y : f32, x : f32) f32
 host function __bearer_atan2_f64(y : f64, x : f64) f64
 host function __bearer_dv_none_brrb() dval
+host function __bearer_capy_reflect_struct_brrb(object : s32, memory_base : s32, struct_descriptor_offset : s32, out : s32, cap : s32) s32
 host function __bearer_dv_is_none_brrb(value : dval) bool
 host function __bearer_dv_require_brrb(value : dval, path : dval) dval
 host function __bearer_dv_set_path_brrb(value : dval, path : dval, replacement : dval) dval
@@ -847,7 +848,7 @@ function mysql_info(handle : u64, key : string) dval {
 function random_bytes(count : u64) string { -> __bearer_random_bytes(count) }
 function __gen_noise(min : u64, max : u64, index : u64, seed : u64) u64 { -> __bearer_noise_u64(__bearer_noise_gen_int(), min, max, index, seed) }
 function __gen_noise(min : f64, max : f64, index : u64, seed : u64) f64 { -> __bearer_noise_f64(__bearer_noise_gen_float(), min, max, index, seed, 0.000000000001) }
-function gen_noise(min : any, max : type(min), index : u64, seed : u64) type(min) { -> __gen_noise(min, max, index, seed) }
+function gen_noise(min : any, max : min::type, index : u64, seed : u64) min::type { -> __gen_noise(min, max, index, seed) }
 function gen_noise64(index : u64, seed : u64 = 0) u64 { -> __bearer_noise_u64(__bearer_noise_gen_noise64(), index, seed, 0, 0) }
 function draw_int(from : u64, to : u64) u64 { -> __bearer_noise_u64(__bearer_noise_draw_int(), from, to, 0, 0) }
 function draw_float(from : f64, to : f64, precision : f64 = 0.000000000001) f64 { -> __bearer_noise_f64(__bearer_noise_draw_float(), from, to, 0, 0, precision) }

@@ -3045,6 +3045,134 @@ static bool bearer_dv_callable_valid(const DValue& value)
 	return(references != 0 && kind == 1 && allocation_type >= 0x40000000u);
 }
 
+extern "C" size_t bearer_capy_reflect_struct_brrb(const void* object, const void* metadata_base, u32 struct_descriptor_offset, char* out, size_t cap)
+{
+	const u64 memory_size = (u64)__builtin_wasm_memory_size(0) << 16;
+	if(memory_size > std::numeric_limits<uintptr_t>::max()) return(std::numeric_limits<size_t>::max());
+	const uintptr_t end = (uintptr_t)memory_size, base = (uintptr_t)metadata_base;
+	auto span = [&](uintptr_t address, size_t length) { return(address <= end && length <= end - address); };
+	auto add = [&](uintptr_t address, size_t length, uintptr_t& result)
+	{
+		if(length > end || address > end - length) return(false);
+		result = address + length;
+		return(true);
+	};
+	auto meta = [&](u32 offset, size_t length, uintptr_t& result) { return(add(base, offset, result) && span(result, length)); };
+	auto read32 = [&](uintptr_t address, u32& result)
+	{
+		if(!span(address, 4)) return(false);
+		memcpy(&result, (const void*)address, 4);
+		return(true);
+	};
+	auto read64 = [&](uintptr_t address, u64& result)
+	{
+		if(!span(address, 8)) return(false);
+		memcpy(&result, (const void*)address, 8);
+		return(true);
+	};
+	auto header = [&](uintptr_t address, u32 expected, bool sequence, u32& size, u32& length, u32& capacity, u32& type)
+	{
+		u32 refs = 0, owner = 0;
+		if(address == 0 || (address & 3) != 0 || !span(address, 16) ||
+			!read32(address, refs) || !read32(address + 4, owner) || !read32(address + 8, type) || !read32(address + 12, size) ||
+			!((refs != 0 && owner == 1) || (refs == std::numeric_limits<u32>::max() && owner == std::numeric_limits<u32>::max())) ||
+			(expected != 0 && type != expected) || size < 16 || size > end - address) return(false);
+		length = capacity = 0;
+		if(sequence)
+		{
+			if(size < 20 || !read32(address + 16, length)) return(false);
+			if(size >= 24) { if(!read32(address + 20, capacity) || length > capacity) return(false); }
+			else capacity = length;
+		}
+		return(true);
+	};
+	auto string_object = [&](uintptr_t address, String& result)
+	{
+		u32 size = 0, length = 0, capacity = 0, type = 0;
+		if(!header(address, 1, false, size, length, capacity, type) || size < BEARER_WASM_OBJECT_BLOB_HEADER_SIZE || !read32(address + BEARER_WASM_OBJECT_LENGTH_OFFSET, length) ||
+			length > size - BEARER_WASM_OBJECT_BLOB_HEADER_SIZE || !span(address + BEARER_WASM_OBJECT_BLOB_HEADER_SIZE, length)) return(false);
+		result.assign((const char*)(address + BEARER_WASM_OBJECT_BLOB_HEADER_SIZE), length);
+		return(true);
+	};
+	auto type_name = [&](u32 offset, String& result)
+	{
+		uintptr_t descriptor = 0, name = 0;
+		u32 name_offset = 0;
+		if(!meta(offset, BEARER_CAPY_REFLECTION_TYPE_SIZE, descriptor) || !read32(descriptor + BEARER_CAPY_REFLECTION_TYPE_NAME_OFFSET, name_offset) ||
+			!add(base, name_offset, name)) return(false);
+		return(string_object(name, result));
+	};
+	std::function<bool(u32, uintptr_t, DValue&, u32)> reflect;
+	std::function<bool(u32, uintptr_t, DValue&, u32)> reflect_type;
+	u32 budget = BRRB_MAX_NODES;
+	reflect_type = [&](u32 offset, uintptr_t address, DValue& result, u32 depth) -> bool
+	{
+		if(depth >= BRRB_MAX_NESTING_DEPTH || budget-- == 0) return(false);
+		uintptr_t descriptor = 0;
+		u32 kind = 0, detail = 0;
+		String name;
+		if(!meta(offset, BEARER_CAPY_REFLECTION_TYPE_SIZE, descriptor) || !read32(descriptor, kind) ||
+			!read32(descriptor + BEARER_CAPY_REFLECTION_TYPE_DETAIL_OFFSET, detail) || !type_name(offset, name) || !span(address, 1)) return(false);
+		switch(kind)
+		{
+			case BEARER_CAPY_REFLECTION_S8: { u32 value; if(!read32(address, value)) return(false); result = (f64)(s8)value; return(true); }
+			case BEARER_CAPY_REFLECTION_S16: { u32 value; if(!read32(address, value)) return(false); result = (f64)(s16)value; return(true); }
+			case BEARER_CAPY_REFLECTION_S32: { u32 value; if(!read32(address, value)) return(false); result = (f64)(s32)value; return(true); }
+			case BEARER_CAPY_REFLECTION_U8: { u32 value; if(!read32(address, value)) return(false); result = (f64)(u8)value; return(true); }
+			case BEARER_CAPY_REFLECTION_U16: { u32 value; if(!read32(address, value)) return(false); result = (f64)(u16)value; return(true); }
+			case BEARER_CAPY_REFLECTION_S64: { u64 value; if(!read64(address, value)) return(false); result = std::to_string((s64)value); return(true); }
+			case BEARER_CAPY_REFLECTION_U32: { u32 value; if(!read32(address, value)) return(false); result = std::to_string(value); return(true); }
+			case BEARER_CAPY_REFLECTION_U64: { u64 value; if(!read64(address, value)) return(false); result = std::to_string(value); return(true); }
+			case BEARER_CAPY_REFLECTION_F32: { u32 bits; f32 value; if(!read32(address, bits)) return(false); memcpy(&value, &bits, 4); result = (f64)value; return(true); }
+			case BEARER_CAPY_REFLECTION_F64: { u64 bits; f64 value; if(!read64(address, bits)) return(false); memcpy(&value, &bits, 8); result = value; return(true); }
+			case BEARER_CAPY_REFLECTION_BOOL: { u32 value; if(!read32(address, value) || value > 1) return(false); result.set_bool(value != 0); return(true); }
+			case BEARER_CAPY_REFLECTION_STRING: { u32 pointer; if(!read32(address, pointer) || !string_object(pointer, name)) return(false); result = name; return(true); }
+			case BEARER_CAPY_REFLECTION_DVAL:
+			{
+				u32 pointer, size, length, capacity, type; DValue decoded;
+				if(!read32(address, pointer) || !header(pointer, 4, true, size, length, capacity, type) || size != BEARER_WASM_OBJECT_HANDLE_SIZE || !read32(pointer + BEARER_WASM_OBJECT_PAYLOAD_OFFSET, pointer) ||
+					!span(pointer, length) || !bearer_decode_local_brrb_span((const char*)(uintptr_t)pointer, length, decoded)) return(false);
+				result = std::move(decoded); return(true);
+			}
+			case BEARER_CAPY_REFLECTION_FUNCTION:
+			{
+				u32 pointer; DValue callable; if(!read32(address, pointer)) return(false);
+				callable.set_type('C'); callable._ptr = (void*)(uintptr_t)pointer; callable._array_index = detail;
+				if(!bearer_dv_callable_valid(callable)) return(false); result = std::move(callable); return(true);
+			}
+			case BEARER_CAPY_REFLECTION_STRUCT:
+			{
+				u32 pointer, size, length, capacity, type, aggregate;
+				if(!read32(address, pointer) || !header(pointer, 0, false, size, length, capacity, type) || size < BEARER_WASM_OBJECT_STRUCT_FIELDS_OFFSET) return(false);
+				uintptr_t sd = 0; if(!meta(detail, BEARER_CAPY_REFLECTION_STRUCT_SIZE, sd) || !read32(sd, aggregate) || type != aggregate || !reflect(detail, pointer, result, depth + 1)) return(false); return(true);
+			}
+			case BEARER_CAPY_REFLECTION_ARRAY:
+			{
+				u32 pointer, size, length, capacity, type, backing; if(!read32(address, pointer) || !header(pointer, 0, true, size, length, capacity, type) || size != BEARER_WASM_OBJECT_HANDLE_SIZE || length > capacity ||
+					!read32(pointer + BEARER_WASM_OBJECT_PAYLOAD_OFFSET, backing)) return(false);
+				u32 element_size = 4; if(!meta(detail, BEARER_CAPY_REFLECTION_TYPE_SIZE, descriptor) || !read32(descriptor, kind)) return(false);
+				const bool managed = kind == BEARER_CAPY_REFLECTION_STRING || kind == BEARER_CAPY_REFLECTION_DVAL || kind == BEARER_CAPY_REFLECTION_STRUCT || kind == BEARER_CAPY_REFLECTION_ARRAY || kind == BEARER_CAPY_REFLECTION_FUNCTION;
+				if((managed && type != 3) || (!managed && type != 2)) return(false);
+				if(kind == BEARER_CAPY_REFLECTION_S64 || kind == BEARER_CAPY_REFLECTION_U64 || kind == BEARER_CAPY_REFLECTION_F64) element_size = 8;
+				if(backing > end || length > (end - backing) / element_size || !span(backing, (size_t)length * element_size)) return(false);
+				result.set_array(); for(u32 i = 0; i < length; ++i) { DValue child; if(!reflect_type(detail, backing + (size_t)i * element_size, child, depth + 1)) return(false); result.push(child); } return(true);
+			}
+			default: return(false);
+		}
+	};
+	reflect = [&](u32 offset, uintptr_t address, DValue& result, u32 depth) -> bool
+	{
+		uintptr_t sd = 0, fields_address = 0; u32 aggregate = 0, count = 0, fields = 0, object_type = 0, size = 0, length = 0, capacity = 0;
+		if(depth >= BRRB_MAX_NESTING_DEPTH || base > end || !meta(offset, BEARER_CAPY_REFLECTION_STRUCT_SIZE, sd) || !read32(sd, aggregate) || aggregate == 0 || !read32(sd + 4, count) || !read32(sd + 8, fields) ||
+			!header(address, aggregate, false, size, length, capacity, object_type) || size < BEARER_WASM_OBJECT_STRUCT_FIELDS_OFFSET || count > (end - base) / BEARER_CAPY_REFLECTION_FIELD_SIZE ||
+			!meta(fields, (size_t)count * BEARER_CAPY_REFLECTION_FIELD_SIZE, fields_address)) return(false);
+		result.clear(); for(u32 i = 0; i < count; ++i) { uintptr_t field = fields_address + (size_t)i * BEARER_CAPY_REFLECTION_FIELD_SIZE; u32 name_offset, type_offset, value_offset, field_kind; uintptr_t type_descriptor, string_address; String field_name, field_type; if(!read32(field, name_offset) || !read32(field + 4, type_offset) || !read32(field + 8, value_offset) || !meta(type_offset, BEARER_CAPY_REFLECTION_TYPE_SIZE, type_descriptor) || !read32(type_descriptor, field_kind) || !add(base, name_offset, string_address) || !string_object(string_address, field_name) || !type_name(type_offset, field_type)) return(false); const size_t field_size = field_kind == BEARER_CAPY_REFLECTION_S64 || field_kind == BEARER_CAPY_REFLECTION_U64 || field_kind == BEARER_CAPY_REFLECTION_F64 ? 8 : 4; if(value_offset > size || field_size > size - value_offset) return(false); DValue value, item; if(!reflect_type(type_offset, address + value_offset, value, depth + 1)) return(false); item["value"] = std::move(value); item["type_name"] = field_type; if(result.has(field_name)) return(false); result[field_name] = std::move(item); } return(true);
+	};
+	DValue result;
+	if(!reflect(struct_descriptor_offset, (uintptr_t)object, result, 0)) return(std::numeric_limits<size_t>::max());
+	return(bearer_copy_bytes(brb_encode_local(result), out, cap));
+}
+
 s32 bearer_dv_callable_extract_brrb(const char* value, size_t value_len, s32 type)
 {
 	DValue decoded;

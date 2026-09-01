@@ -447,7 +447,7 @@ std::string type_of_expression(const Expr* expression, bool allow_void = false)
 		return type + ") " + type_of_expression(function->return_type, true);
 	}
 	std::string name = type_name(*expression);
-	if (name == "any" || name.find("::type") != std::string::npos || name.rfind("type(", 0) == 0)
+	if (name == "any" || name.find("::type") != std::string::npos)
 		throw Error(expression->location, "compile-time any and dependent types are only valid in a generic function declaration");
 	if (name == "request")
 		throw Error(expression->location, "type request was removed. Use dval for Bearer handler input.");
@@ -602,9 +602,6 @@ std::optional<std::string> dependent_type_parameter(const Expr* expression)
 {
 	if (auto lookup = dynamic_cast<const ScopeLookup*>(expression); lookup && lookup->member == "type")
 		if (auto name = dynamic_cast<const Name*>(lookup->value)) return name->value;
-	if (auto call = dynamic_cast<const Call*>(expression); call && call->arguments.size() == 1)
-		if (auto name = dynamic_cast<const Name*>(call->function); name && name->value == "type")
-			if (auto parameter = dynamic_cast<const Name*>(call->arguments[0])) return parameter->value;
 	return std::nullopt;
 }
 
@@ -793,6 +790,8 @@ struct Module
 		data_.insert(data_.end(), text.begin(), text.end());
 		return offset;
 	}
+	unsigned reflection_type_descriptor(const std::string& type, const Location& location);
+	void prepare_reflection_descriptors();
 	unsigned import_index(const std::string& name) const
 	{
 		auto found = imports_.find(name);
@@ -1385,6 +1384,8 @@ struct Module
 	struct VariadicFunctionType { std::size_t fixed; std::string element; bool convert; };
 	std::map<unsigned, VariadicFunctionType> variadic_function_types_;
 	std::map<std::string, unsigned> type_indices_;
+	std::map<std::string, unsigned> reflection_type_descriptors_;
+	std::map<std::string, unsigned> reflection_struct_descriptors_;
 	std::map<std::string, Aggregate> structs_;
 	unsigned next_aggregate_type_ = 5;
 
@@ -1410,6 +1411,123 @@ struct Module
 	std::vector<Bytes> runtime_bodies() const;
 	Bytes custom_export_body(const Definition& target);
 };
+
+namespace
+{
+void patch_u32_le(Bytes& data, unsigned offset, std::uint32_t value)
+{
+	for (unsigned byte = 0; byte != 4; ++byte)
+		data[offset + byte] = static_cast<std::uint8_t>(value >> (byte * 8));
+}
+}
+
+unsigned Module::reflection_type_descriptor(const std::string& type, const Location& location)
+{
+	const std::function<std::string(const std::string&)> canonical_type = [&](const std::string& value) -> std::string
+	{
+		if (value.rfind("struct:", 0) == 0) return value.substr(7);
+		if (value.rfind("array<", 0) == 0) return "[" + canonical_type(value.substr(6, value.size() - 7)) + "]";
+		if (value.rfind("function#", 0) == 0)
+		{
+			const unsigned index = static_cast<unsigned>(std::stoul(value.substr(9)));
+			if (index < types_.size())
+			{
+				std::string result = "function(";
+				for (std::size_t i = 1; i < types_[index].first.size(); ++i)
+				{
+					if (i > 1) result += ',';
+					result += canonical_type(types_[index].first[i]);
+				}
+				return result + ") " + canonical_type(types_[index].second);
+			}
+		}
+		return value;
+	};
+	if (auto found = reflection_type_descriptors_.find(type); found != reflection_type_descriptors_.end())
+		return found->second;
+	while (data_.size() % 4) data_.push_back(0);
+	const unsigned descriptor = static_cast<unsigned>(data_.size());
+	reflection_type_descriptors_[type] = descriptor;
+	data_.resize(data_.size() + BEARER_CAPY_REFLECTION_TYPE_SIZE, 0);
+	const auto primitive_kind = [](const std::string& value) -> unsigned
+	{
+		static const std::map<std::string, unsigned> kinds = {
+			{"s8", BEARER_CAPY_REFLECTION_S8}, {"s16", BEARER_CAPY_REFLECTION_S16}, {"s32", BEARER_CAPY_REFLECTION_S32},
+			{"s64", BEARER_CAPY_REFLECTION_S64}, {"u8", BEARER_CAPY_REFLECTION_U8}, {"u16", BEARER_CAPY_REFLECTION_U16},
+			{"u32", BEARER_CAPY_REFLECTION_U32}, {"u64", BEARER_CAPY_REFLECTION_U64}, {"f32", BEARER_CAPY_REFLECTION_F32},
+			{"f64", BEARER_CAPY_REFLECTION_F64}, {"bool", BEARER_CAPY_REFLECTION_BOOL}, {"string", BEARER_CAPY_REFLECTION_STRING},
+			{"dval", BEARER_CAPY_REFLECTION_DVAL}, {"module", BEARER_CAPY_REFLECTION_OPAQUE}};
+		auto found = kinds.find(value);
+		return found == kinds.end() ? 0 : found->second;
+	};
+	unsigned kind = primitive_kind(type), detail = 0;
+	std::string canonical = type;
+	if (type.rfind("struct:", 0) == 0)
+	{
+		kind = BEARER_CAPY_REFLECTION_STRUCT;
+		canonical = type.substr(7);
+		detail = reflection_struct_descriptors_.contains(canonical) ? reflection_struct_descriptors_.at(canonical) : 0;
+		if (!detail)
+		{
+			while (data_.size() % 4) data_.push_back(0);
+			detail = static_cast<unsigned>(data_.size());
+			reflection_struct_descriptors_[canonical] = detail;
+			data_.resize(data_.size() + BEARER_CAPY_REFLECTION_STRUCT_SIZE, 0);
+			const auto& aggregate = struct_type(canonical, location);
+			std::vector<std::string> field_types;
+			for (const auto& field : aggregate.fields) field_types.push_back(field.second);
+			const AggregateLayout layout = aggregate_layout(field_types, BEARER_WASM_OBJECT_STRUCT_FIELDS_OFFSET);
+			while (data_.size() % 4) data_.push_back(0);
+			const unsigned fields = static_cast<unsigned>(data_.size());
+			data_.resize(data_.size() + aggregate.fields.size() * BEARER_CAPY_REFLECTION_FIELD_SIZE, 0);
+			for (std::size_t i = 0; i < aggregate.fields.size(); ++i)
+			{
+				const unsigned field_descriptor = fields + static_cast<unsigned>(i * BEARER_CAPY_REFLECTION_FIELD_SIZE);
+				const unsigned name = add_static_string(aggregate.fields[i].first);
+				const unsigned field_type = reflection_type_descriptor(aggregate.fields[i].second, location);
+				patch_u32_le(data_, field_descriptor + BEARER_CAPY_REFLECTION_FIELD_NAME_OFFSET, name);
+				patch_u32_le(data_, field_descriptor + BEARER_CAPY_REFLECTION_FIELD_TYPE_OFFSET, field_type);
+				patch_u32_le(data_, field_descriptor + BEARER_CAPY_REFLECTION_FIELD_VALUE_OFFSET, layout.offsets[i]);
+			}
+			patch_u32_le(data_, detail + BEARER_CAPY_REFLECTION_STRUCT_TYPE_ID_OFFSET, aggregate.type_id);
+			patch_u32_le(data_, detail + BEARER_CAPY_REFLECTION_STRUCT_FIELD_COUNT_OFFSET, aggregate.fields.size());
+			patch_u32_le(data_, detail + BEARER_CAPY_REFLECTION_STRUCT_FIELDS_OFFSET, fields);
+		}
+	}
+	else if (type.rfind("array<", 0) == 0)
+	{
+		kind = BEARER_CAPY_REFLECTION_ARRAY;
+		const std::string element = type.substr(6, type.size() - 7);
+		canonical = canonical_type(type);
+		detail = reflection_type_descriptor(element, location);
+	}
+	else if (type.rfind("function#", 0) == 0)
+	{
+		kind = BEARER_CAPY_REFLECTION_FUNCTION;
+		const unsigned index = static_cast<unsigned>(std::stoul(type.substr(9)));
+		canonical = type;
+		if (index < types_.size())
+		{
+			canonical = canonical_type(type);
+		}
+		detail = index;
+	}
+	else if (!kind)
+		throw Error(location, "cannot emit reflection descriptor for " + type);
+	const unsigned name = add_static_string(canonical);
+	patch_u32_le(data_, descriptor + BEARER_CAPY_REFLECTION_TYPE_KIND_OFFSET, kind);
+	patch_u32_le(data_, descriptor + BEARER_CAPY_REFLECTION_TYPE_NAME_OFFSET, name);
+	patch_u32_le(data_, descriptor + BEARER_CAPY_REFLECTION_TYPE_DETAIL_OFFSET, detail);
+	if (type.rfind("struct:", 0) == 0)
+		patch_u32_le(data_, descriptor + BEARER_CAPY_REFLECTION_TYPE_DETAIL_OFFSET, reflection_struct_descriptors_.at(type.substr(7)));
+	return descriptor;
+}
+
+void Module::prepare_reflection_descriptors()
+{
+	for (const auto& [name, aggregate] : structs_)
+		reflection_type_descriptor("struct:" + name, {source_, 1, 1, 0});
+}
 
 std::string Module::value_type(const Expr* expression, bool allow_void)
 {
@@ -1604,6 +1722,8 @@ bool FunctionLowerer::expression_is_owned(const Expr* value)
 			return false;
 		return managed_type(infer(const_cast<Call*>(call)));
 	}
+	if (auto scope = dynamic_cast<const ScopeLookup*>(value))
+		return scope->member == "items";
 	return false;
 }
 
@@ -2055,6 +2175,30 @@ std::string FunctionLowerer::infer(Expr* value)
 		if (element == "module")
 			throw Error(value->location, "module is opaque and cannot be stored in array layouts");
 		return "array<" + element + ">";
+	}
+	if (auto scope = dynamic_cast<ScopeLookup*>(value))
+	{
+		if (scope->member == "type")
+			throw Error(scope->location, "value::type is valid only in dependent type declarations");
+		if (scope->member == "type_name")
+		{
+			const std::string object = infer(scope->value);
+			if (object == "void" || object == "never") throw Error(scope->location, "value::type_name requires a value");
+			return "string";
+		}
+		if (scope->member == "size")
+		{
+			const std::string object = infer(scope->value);
+			if (object.rfind("struct:", 0) != 0) throw Error(scope->location, "value::size requires a struct");
+			return "s64";
+		}
+		if (scope->member == "items")
+		{
+			const std::string object = infer(scope->value);
+			if (object.rfind("struct:", 0) != 0) throw Error(scope->location, "value::items requires a struct");
+			return "dval";
+		}
+		throw Error(scope->location, "unknown scope member '" + scope->member + "'");
 	}
 	if (auto member = dynamic_cast<Member*>(value))
 	{
@@ -4074,6 +4218,91 @@ std::pair<Bytes, std::string> FunctionLowerer::expression(Expr* value, bool valu
 			wasm::append_uleb(code, result);
 		}
 		return {code, element_type};
+	}
+	if (auto scope = dynamic_cast<ScopeLookup*>(value))
+	{
+		const std::string receiver_type = infer(scope->value);
+		if (scope->member == "type")
+			throw Error(scope->location, "value::type is valid only in dependent type declarations");
+		if (scope->member != "type_name" && scope->member != "size" && scope->member != "items")
+			throw Error(scope->location, "unknown scope member '" + scope->member + "'");
+		if (scope->member != "type_name" && receiver_type.rfind("struct:", 0) != 0)
+			throw Error(scope->location, "value::" + scope->member + " requires a struct");
+		auto [receiver_code, actual] = expression(scope->value);
+		if (actual != receiver_type) throw Error(scope->location, "reflection receiver type changed while lowering");
+		const unsigned receiver = add_local("", receiver_type, scope->value->location);
+		Bytes code = std::move(receiver_code);
+		code.push_back(0x21); wasm::append_uleb(code, receiver);
+		const unsigned descriptor = module_.reflection_type_descriptor(receiver_type, scope->location);
+		if (scope->member == "type_name")
+		{
+			code.insert(code.end(), {0x23, 0x00, 0x41}); wasm::append_sleb32(code, static_cast<std::int32_t>(descriptor));
+			code.insert(code.end(), {0x6a, 0x28, 0x02, BEARER_CAPY_REFLECTION_TYPE_NAME_OFFSET, 0x23, 0x00, 0x6a});
+			if (expression_is_owned(scope->value))
+			{
+				code.push_back(0x20); wasm::append_uleb(code, receiver);
+				code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+			}
+			return {code, "string"};
+		}
+		if (scope->member == "size")
+		{
+			code.insert(code.end(), {0x23, 0x00, 0x41}); wasm::append_sleb32(code, static_cast<std::int32_t>(descriptor));
+			code.insert(code.end(), {0x6a, 0x28, 0x02, BEARER_CAPY_REFLECTION_TYPE_DETAIL_OFFSET, 0x23, 0x00, 0x6a, 0x28, 0x02, BEARER_CAPY_REFLECTION_STRUCT_FIELD_COUNT_OFFSET, 0xad});
+			if (expression_is_owned(scope->value))
+			{
+				code.push_back(0x20); wasm::append_uleb(code, receiver);
+				code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+			}
+			return {code, "s64"};
+		}
+		auto reflect = [&](unsigned output, unsigned capacity)
+		{
+			code.push_back(0x20); wasm::append_uleb(code, receiver);
+			code.insert(code.end(), {0x23, 0x00, 0x23, 0x00, 0x41}); wasm::append_sleb32(code, static_cast<std::int32_t>(descriptor));
+			code.insert(code.end(), {0x6a, 0x28, 0x02, BEARER_CAPY_REFLECTION_TYPE_DETAIL_OFFSET});
+			if (output)
+				managed_payload_pointer(code, output, "dval");
+			else
+			{
+				code.push_back(0x41); wasm::append_sleb32(code, 0);
+			}
+			if (capacity)
+			{
+				code.push_back(0x20); wasm::append_uleb(code, capacity);
+			}
+			else
+			{
+				code.push_back(0x41); wasm::append_sleb32(code, 0);
+			}
+			code.push_back(0x10); wasm::append_uleb(code, module_.import_index("bearer_capy_reflect_struct_brrb"));
+		};
+		Bytes release_receiver;
+		if (expression_is_owned(scope->value))
+		{
+			release_receiver.push_back(0x20); wasm::append_uleb(release_receiver, receiver);
+			release_receiver.push_back(0x10); wasm::append_uleb(release_receiver, module_.release_index());
+		}
+		const unsigned length = add_local("", "s32", scope->location);
+		reflect(0, 0);
+		code.push_back(0x22); wasm::append_uleb(code, length);
+		code.insert(code.end(), {0x41, 0x00, 0x48, 0x04, 0x40});
+		append(code, release_receiver); append(code, module_.marker(scope->location)); code.insert(code.end(), {0x00, 0x0b});
+		auto [allocation, output] = allocate_dval(length, scope->location, release_receiver);
+		append(code, allocation);
+		const unsigned written = add_local("", "s32", scope->location);
+		reflect(output, length);
+		code.push_back(0x22); wasm::append_uleb(code, written);
+		code.push_back(0x20); wasm::append_uleb(code, length);
+		code.insert(code.end(), {0x47, 0x04, 0x40});
+		code.push_back(0x20); wasm::append_uleb(code, output); code.push_back(0x10); wasm::append_uleb(code, module_.release_index());
+		append(code, release_receiver); append(code, module_.marker(scope->location)); code.insert(code.end(), {0x00, 0x0b});
+		code.push_back(0x20); wasm::append_uleb(code, output); code.push_back(0x20); wasm::append_uleb(code, written);
+		code.insert(code.end(), {0x36, 0x02, BEARER_WASM_OBJECT_LENGTH_OFFSET});
+		retain_dval_callables(code, output, scope->location);
+		append(code, release_receiver);
+		code.push_back(0x20); wasm::append_uleb(code, output);
+		return {code, "dval"};
 	}
 	if (auto member = dynamic_cast<Member*>(value))
 	{
@@ -7069,7 +7298,7 @@ void Module::collect()
 							std::vector<std::string> patterns = definition.patterns;
 							for (std::size_t i = 0; i < patterns.size(); ++i)
 								if (definition.dependent_parameters[i] >= 0)
-									patterns[i] = "type(" + definition.function->parameters[static_cast<std::size_t>(definition.dependent_parameters[i])].name + ")";
+									patterns[i] = "$" + std::to_string(definition.dependent_parameters[i]) + "::type";
 							add_function_export(function_export_line(name, patterns, result), exports->location);
 							exported_something = true;
 						}
@@ -7142,6 +7371,13 @@ Module::Capabilities Module::discover_capabilities()
 				element = item;
 			}
 			return "array<" + element + ">";
+		}
+		if (auto scope = dynamic_cast<ScopeLookup*>(e))
+		{
+			if (scope->member == "type_name") return "string";
+			if (scope->member == "size") return "s64";
+			if (scope->member == "items") return "dval";
+			return "";
 		}
 		if (auto name = dynamic_cast<Name*>(e))
 		{
@@ -7356,6 +7592,21 @@ Module::Capabilities Module::discover_capabilities()
 	std::function<void(Expr*)> scan = [&](Expr* e)
 	{
 		check_cancelled();
+		if (auto scope = dynamic_cast<ScopeLookup*>(e))
+		{
+			const std::string receiver = scan_value_type(scope->value);
+			if (scope->member == "items")
+			{
+				dval_ = true;
+				scan_alloc = scan_retain = scan_release = true;
+				runtime_imports_.insert("bearer_capy_reflect_struct_brrb");
+				runtime_imports_.insert("bearer_dv_callable_at_brrb");
+			}
+			else if ((scope->member == "type_name" || scope->member == "size") && managed_type(receiver))
+				scan_retain = scan_release = true;
+			scan(scope->value);
+			return;
+		}
 		if (auto c = dynamic_cast<Call*>(e))
 		{
 			const Member* member = member_call(c);
@@ -7862,6 +8113,7 @@ Module::Capabilities Module::discover_capabilities()
 CompileResult Module::compile()
 {
 	collect();
+	prepare_reflection_descriptors();
 	check_cancelled();
 	for (Definition& definition : definitions_)
 		if (definition.function && (definition.function->name == "string_from_bytes" || definition.function->name == "bytes_of" ||
@@ -7995,6 +8247,7 @@ CompileResult Module::compile()
 	unsigned set_path_type = wasm_type({"s32", "s32", "s32", "s32", "s32", "s32", "s32", "s32"}, "s32");
 	unsigned entry_type = wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32");
 	unsigned count_type = wasm_type({"s32", "s32"}, "s32");
+	unsigned reflect_struct_type = wasm_type({"s32", "s32", "s32", "s32", "s32"}, "s32");
 	auto omitted_body = [](const std::string& result)
 	{
 		Bytes content{0x00};
@@ -8062,6 +8315,7 @@ CompileResult Module::compile()
 			: name == "bearer_dv_callable_extract_brrb" || name == "bearer_dv_callable_at_brrb" ? scalar_adapter_type
 			: name == "bearer_dv_is_none_brrb" ? count_type : name == "bearer_dv_set_path_brrb" ? set_path_type
 			: name == "bearer_dv_count_brrb" ? count_type
+			: name == "bearer_capy_reflect_struct_brrb" ? reflect_struct_type
 			: name == "bearer_dv_entry_key_brrb" || name == "bearer_dv_entry_value_brrb" ? entry_type
 			: name == "bearer_dv_ptr_to_brrb" || name == "bearer_handler_input_brrb" ? scalar_adapter_type : name == "bearer_dv_brrb_to_ptr" ? count_type : 0;
 		wasm::append_uleb(imports, type);
@@ -8376,6 +8630,8 @@ void collect_stdlib_demand(Expr* expression, std::set<std::pair<std::string, std
 	}
 	else if (auto member = dynamic_cast<Member*>(expression))
 		collect_stdlib_demand(member->value, calls, values, scopes);
+	else if (auto scope = dynamic_cast<ScopeLookup*>(expression))
+		collect_stdlib_demand(scope->value, calls, values, scopes);
 	else if (auto array = dynamic_cast<ArrayLiteral*>(expression))
 		for (Expr* item : array->items)
 			collect_stdlib_demand(item, calls, values, scopes);

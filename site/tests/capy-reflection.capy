@@ -1,0 +1,40 @@
+struct ReflectionNested {
+    value : s32
+}
+
+struct ReflectionEmpty {}
+
+struct ReflectionValue {
+    number : s32
+    text : string
+    nested : ReflectionNested
+    values : [s32]
+    data : dval
+    wide : s64
+    callback : function(value : s32) s32
+}
+
+function reflect_double(value : s32) s32 {
+    -> value * 2
+}
+
+function reflect_make() ReflectionValue {
+    print("M")
+    return ReflectionValue(s32(7), "ok", ReflectionNested(s32(3)), [s32(1), s32(2)], {status: "ready"}, s64(9007199254740993), reflect_double)
+}
+
+function CLI(request : dval) {
+    {
+        var items := reflect_make()::items
+        var value := reflect_make()
+        var key := "number"
+        var callback : function(value : s32) s32 = items.callback.value
+        print(value::type_name, "|", value.number::type_name, "|", value.values::type_name, "|", value::size, "|",
+            items.text.type_name, "|", string(items.text.value), "|",
+            s32(items[key]["value"]), "|", s32(items.nested.value.value.value), "|", s32(items.values.value[1]), "|",
+            string(items.data.value.status), "|", s64(items.wide.value), "|", items.callback.type_name, "|", callback(s32(4)))
+        var empty := ReflectionEmpty()
+        print("|", empty::size, "|", json_encode(empty::items))
+    }
+    print("|", arc_live())
+}

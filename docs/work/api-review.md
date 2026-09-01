@@ -67,10 +67,10 @@ The review also replaced obsolete explicit zero-handle comparisons in the MySQL 
 The review replaced `gen_float`, `gen_int`, `gen_noise32`, and `gen_noise01` with one generic function:
 
 ```capy
-function gen_noise(min : any, max : type(min), index : u64, seed : u64) type(min)
+function gen_noise(min : any, max : min::type, index : u64, seed : u64) min::type
 ```
 
-The compiler now supports `type(parameter)` for a dependent result and for a later parameter. The referenced parameter must be an earlier `any` parameter. The older `parameter::type` result syntax remains valid.
+The compiler uses `parameter::type` for a dependent result and for a later parameter. The referenced parameter must be an earlier `any` parameter. The compiler no longer accepts `type(parameter)`.
 
 `gen_noise` supports `u64` and `f64` bounds. Integer bounds are inclusive. Float generation uses the prior fixed precision. `gen_noise64` remains available for raw 64-bit deterministic noise.
 

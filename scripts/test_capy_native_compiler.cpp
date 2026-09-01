@@ -161,16 +161,30 @@ int main()
 	assert(capy::wasm::validate_bearer_unit(defaults.wasm, {.bearer_abi_version = "11"}).valid);
 	assert(defaults.source_map.find("\t5\t") != std::string::npos);
 	const auto dependent_type = capy::compile_bearer_unit(
-		"function f(min : any, max : type(min)) type(min) { -> min }\n"
-		"function concrete(value : s32) type(value) { -> value }\n"
+		"function f(min : any, max : min::type) min::type { -> min }\n"
 		"function legacy(value : any) value::type { -> value }\n"
-		"function CLI(request : dval) { var value := f(1, 2); print(value, concrete(s32(3)), legacy(4)) }\n", options);
+		"function CLI(request : dval) { var value := f(1, 2); print(value, legacy(4)) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(dependent_type.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto reflection = capy::compile_bearer_unit(
+		"struct Reflected { count : s32 }\n"
+		"function CLI(request : dval) { var value := Reflected(s32(1)); print(value::type_name, value::size, value::items.count.value, s64(1)::type_name) }\n", options);
+	const std::string reflection_bytes(reflection.wasm.begin(), reflection.wasm.end());
+	assert(capy::wasm::validate_bearer_unit(reflection.wasm, {.bearer_abi_version = "11"}).valid);
+	assert(reflection_bytes.find("bearer_capy_reflect_struct_brrb") != std::string::npos && reflection_bytes.find("Reflected") != std::string::npos);
+	const auto metadata_only = capy::compile_bearer_unit(
+		"struct MetadataOnly { count : s32 }\nfunction CLI(request : dval) {}\n", options);
+	const std::string metadata_only_bytes(metadata_only.wasm.begin(), metadata_only.wasm.end());
+	assert(metadata_only_bytes.find("MetadataOnly") != std::string::npos && metadata_only_bytes.find("count") != std::string::npos);
+	assert(metadata_only_bytes.find("bearer_capy_reflect_struct_brrb") == std::string::npos);
 	for (const auto& [source, expected] : {
-				 std::pair{"function f(min : any, max : type(min)) type(min) { -> min }\nfunction CLI(request : dval) { f(1, \"x\") }\n", "no overload f"},
+				 std::pair{"function f(min : any, max : min::type) min::type { -> min }\nfunction CLI(request : dval) { f(1, \"x\") }\n", "no overload f"},
 				 std::pair{"function CLI(request : dval) { gen_noise(s32(0), s32(1), u64(1), u64(2)) }\n", "no overload __gen_noise"},
-				 std::pair{"function f(min : s32, max : type(min)) s32 { -> min }\n", "earlier any parameter"},
-				 std::pair{"function f(min : any, max : type(later)) type(min) { -> min }\n", "unknown or forward parameter"},
+				 std::pair{"function f(min : s32, max : min::type) s32 { -> min }\n", "earlier any parameter"},
+				 std::pair{"function f(min : any, max : later::type) min::type { -> min }\n", "unknown or forward parameter"},
+				 std::pair{"function f(value : s32) type(value) { -> value }\n", "type(value) was removed"},
+				 std::pair{"function CLI(request : dval) { print(s32(1)::size) }\n", "value::size requires a struct"},
+				 std::pair{"function CLI(request : dval) { print(s32(1)::items) }\n", "value::items requires a struct"},
+				 std::pair{"function CLI(request : dval) { print(s32(1)::missing) }\n", "unknown scope member 'missing'"},
 			})
 	{
 		try { capy::compile_bearer_unit(source, options); assert(false); }
@@ -538,6 +552,9 @@ int main()
 	assert(module_exports.function_exports == std::vector<std::string>({"capy function invoke(dval):dval", "capy function other(dval):dval"}));
 	assert(module_exports.source_map.find("F\t1\tnative-test.capy\n") != std::string::npos);
 	assert(capy::wasm::validate_bearer_unit(module_exports.wasm, {.bearer_abi_version = "11"}).valid);
+	const auto generic_exports = capy::compile_bearer_unit(
+		"#exports same\nfunction same(first : any, second : first::type) first::type { -> second }\n", options);
+	assert(generic_exports.function_exports == std::vector<std::string>({"capy function same(any,$0::type):$0::type"}));
 	const auto type_exports = capy::compile_bearer_unit(
 		"#exports echo, MyType, Alias\nstruct MyType { value : s32 }\ntype Alias = MyType\nfunction echo(value : dval) dval { -> value }\nfunction MyType(value : dval) MyType { -> MyType(1) }\n", options);
 	assert(type_exports.custom_exports == std::vector<std::string>({"echo"}));
@@ -567,6 +584,9 @@ int main()
 	const auto imported_types = capy::compile_bearer_unit(
 		"#import \"child.capy\" as child\ntype LocalShape = child.Shape\ntype LocalOther = child.Other\nfunction CLI(request : dval) {}\n", import_options);
 	assert(capy::wasm::validate_bearer_unit(imported_types.wasm, {.bearer_abi_version = "11"}).valid);
+	const std::string imported_type_bytes(imported_types.wasm.begin(), imported_types.wasm.end());
+	assert(imported_type_bytes.find("Shape") != std::string::npos && imported_type_bytes.find("value") != std::string::npos);
+	assert(imported_type_bytes.find("bearer_capy_reflect_struct_brrb") == std::string::npos);
 	for (const auto& [source, expected] : {
 			 std::pair{"#exports missing\nfunction CLI(request : dval) {}\n", "unknown local function or type 'missing'"},
 			 std::pair{"#exports invoke\nfunction EXPORT_invoke(value : dval) dval { -> value }\nfunction CLI(request : dval) {}\n", "already declared"},

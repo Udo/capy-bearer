@@ -125,6 +125,19 @@ function RENDER(request : dval) {
 
 This is the same call as `total(point)`.
 
+## Struct reflection
+
+The compiler embeds reflection descriptors for all declared structs. Reflection does not require an exported type.
+
+```capy
+var point := Point(3, 4)
+var fields := point::items
+print(point::type_name, " ", point::size, "\n")
+print(fields.x.value, " ", fields.x.type_name, "\n")
+```
+
+`point::type_name` is `Point`. `point::size` is `2`. `point::items` is a DValue map keyed by field name. Each entry has `value` and `type_name`. Bracket access accepts a dynamic field key.
+
 ## Choose the right shape
 
 Use an array when every item has one static type. Use a struct for application data with a stable shape. Use a `dval` map or list for decoded input and data that crosses a Bearer boundary.

@@ -184,11 +184,18 @@ int main(int argc, char** argv)
 		assert(import->path == "child.capy" && import->alias == "child");
 	}
 	{
-		Program p = parse("function value(min : any, max : type(min)) type(min) { -> min }\n", "dependent.capy");
+		Program p = parse("function value(min : any, max : min::type) min::type { -> min }\n", "dependent.capy");
 		auto* function = static_cast<Function*>(p.items[0]);
-		assert(type_name(*function->parameters[1].type_expr) == "type(min)" && type_name(*function->return_type) == "type(min)");
-		auto* parameter_type = static_cast<Call*>(function->parameters[1].type_expr);
-		assert(static_cast<Name*>(parameter_type->function)->value == "type" && static_cast<Name*>(parameter_type->arguments[0])->value == "min");
+		assert(type_name(*function->parameters[1].type_expr) == "min::type" && type_name(*function->return_type) == "min::type");
+		auto* parameter_type = static_cast<ScopeLookup*>(function->parameters[1].type_expr);
+		assert(static_cast<Name*>(parameter_type->value)->value == "min" && parameter_type->member == "type");
+		bool rejected = false;
+		try {
+			Program removed = parse("function value(min : any, max : type(min)) type(min) { -> min }\n", "removed.capy");
+			type_name(*static_cast<Function*>(removed.items[0])->parameters[1].type_expr);
+		}
+		catch (const Error&) { rejected = true; }
+		assert(rejected);
 	}
 	{
 		Program p = parse("function value(x : s32) s32 { return x }\nfunction value(x : as string) string { return x }\n", "overload.capy");

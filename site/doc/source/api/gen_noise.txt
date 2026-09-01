@@ -1,5 +1,5 @@
 :sig
-function gen_noise(min : any, max : type(min), index : u64, seed : u64) type(min)
+function gen_noise(min : any, max : min::type, index : u64, seed : u64) min::type
 
 :params
 min : first range value
