@@ -2,6 +2,9 @@ Types
 :order 10
 
 type/request
+type/array
+type/struct
+type/function
 array_merge
 length
 dval

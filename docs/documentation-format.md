@@ -1,8 +1,8 @@
 # Documentation page format
 
 Contributor reference for the source files under `site/doc/`. This is not part of
-the published API reference — it describes how those pages are written and
-validated.
+the published API reference. It describes how contributors write and validate
+those pages.
 
 ## Where the sources live
 
@@ -11,7 +11,7 @@ validated.
 - `site/doc/source/handler/*.txt` contains handler pages.
 - `site/doc/source/guide/*.txt` contains the numbered Learn Capy guides.
 - `site/doc/source/how-to/*.txt` contains task-focused how-to articles.
-- `site/doc/areas/*.txt` — per-area name listings used for grouping.
+- `site/doc/areas/*.txt` contains the page names for each group.
 
 `scripts/generate_capy_docs.py` reads these and writes route modules under
 `site/doc/content/`. Each route module prints its complete static detail HTML.
@@ -39,8 +39,9 @@ A directive starts a line with `:` and its body runs to the next directive.
 
 `ENTRY` is one of `render`, `cli`, `component`, `init`, `once`, or `ws`.
 
-`:content` may appear more than once; the parts are concatenated in order, which
-lets prose sit between examples.
+`:content` may appear more than once. The generator joins the parts in order,
+which lets prose sit between examples. Guide examples appear at their source
+position. The generator does not add a second example section.
 
 ## Rules the gates enforce
 
@@ -48,15 +49,16 @@ lets prose sit between examples.
 Editing a signature by hand without changing the stdlib fails
 `scripts/generate_capy_doc_signatures.py --check`.
 
-API and how-to examples are handler **bodies**, not whole handlers — no
-`function RENDER(...)` wrapper, and they cannot redeclare `request`. Guide
-examples are the opposite: they are complete units.
+API and how-to examples are handler **bodies**, not complete handlers. Do not
+add a `function RENDER(...)` wrapper or redeclare `request`. Guide examples are
+complete units.
 
 Examples may not reference host-language types or private `__bearer` APIs.
 
 Every guide in `site/doc/source/guide/` needs one runnable render example with an exact
-`:output` block; `scripts/test_capy_guide_examples.sh` runs it over HTTP and
-compares byte for byte. The guide set is pinned in `CANONICAL_GUIDES` in
+`:output` block. `scripts/test_capy_guide_examples.sh` runs it over HTTP and
+compares byte for byte. Generated guide navigation links to the adjacent guide.
+The guide set is pinned in `CANONICAL_GUIDES` in
 `scripts/check_capy_doc_examples.py`, so adding a guide means adding it there too.
 
 API pages must document a public Capy function. Type and handler pages must

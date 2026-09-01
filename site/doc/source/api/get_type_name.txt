@@ -8,13 +8,21 @@ function get_type_name(value : dval) string
 value : value to inspect
 
 :returns
-The type name.
+One of `String`, `f64`, `bool`, `array`, `none`, `pointer`, `reference`, or `unknown`.
 
 :content
-`get_type_name(value)` returns the runtime type name for a dynamic value.
+`get_type_name(value)` reports the internal kind currently stored in a `dval`. Both maps and lists report `array`. A callable reports `unknown`.
+
+This function is different from `expression::type_name`. The expression form reports the resolved static Capy type. A value with static type `dval` always reports `dval`, even when it currently stores a string.
 
 :example capy render
-print(get_type_name(dval("text")), "\n")
+var value : dval = dval("text")
+print(value::type_name, " ", get_type_name(value), "\n")
 
 :see-group
 dval-access
+
+:see
+capy-03-values-and-types
+type/dvalue
+type/struct

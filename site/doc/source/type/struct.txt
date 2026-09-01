@@ -5,7 +5,7 @@ struct
 struct Name { field : type, ... }
 
 :content
-A struct is a named, fixed layout of typed fields. Unlike a `dval`, its shape is checked at compile time — a missing or misspelled field is a compile error, not an empty value at runtime.
+A struct is a named, fixed layout of typed fields. The compiler checks its shape. A missing or misspelled field is a compile error.
 
 Declare one at the top level of a unit, then construct it by passing the fields in order:
 
@@ -45,28 +45,65 @@ function RENDER(request : dval) {
 
 :content
 
-A struct passed to a function shares identity with the caller's value, so a function that writes a field changes what the caller sees. That is the opposite of a `dval` crossing a unit boundary, which is copied.
+A struct passed to a function shares identity with the caller's value. A function that writes a field changes what the caller sees. A `dval` crossing a unit boundary is copied instead.
 
-## Reflection
+## Static type and field reflection
 
-The compiler embeds a reflection descriptor for every struct declaration. The descriptor is part of the Wasm unit. It does not require `#exports`.
+Struct values support three reflection expressions:
 
-Use `value::type_name` for the resolved static type name. Use `value::size` for the field count. Use `value::items` for a DValue map of fields:
+| Expression | Static result | Meaning |
+| --- | --- | --- |
+| `value::type_name` | `string` | The declared struct name after alias resolution. |
+| `value::size` | `s64` | The number of declared fields. This is not a byte size. |
+| `value::items` | `dval` | A map that describes the current field values. |
+
+`value::items` evaluates `value` once. It creates a snapshot and does not change the struct. Changes to the returned map do not change the struct.
+
+The map uses each field name as a key. Each field entry has this shape:
 
 ```capy
-var point := Point(3, 4)
-var fields := point::items
-print(point::type_name, " ", point::size, "\n")
-print(fields.x.value, " ", fields.x.type_name, "\n")
+{
+    value: reflected_field_value,
+    type_name: "resolved field type"
+}
 ```
 
-Each field entry contains `value` and `type_name`. Use `fields[key]["value"]` for a dynamic key. Nested structs become DValue maps. Typed arrays become DValue lists. The result copies field data and keeps local callable values alive.
+Use `fields.name.value` for a fixed field name. Use `fields[key]["value"]` when the field name comes from a value. Do not depend on map iteration to preserve declaration order.
+
+Reflection converts fields as follows:
+
+| Struct field | Reflected `value` |
+| --- | --- |
+| Numeric scalar or `bool` | A scalar `dval`. Use the field type constructor to recover the static type. |
+| `string` | A string `dval`. |
+| `dval` | A copied dynamic value. |
+| Struct | A nested field map with the same entry shape. |
+| Typed array | A `dval` list. Each item uses the array item conversion. |
+| Function value | A current-workspace callable with the exact function type. |
+
+Wide integers retain their exact value. The returned `dval` owns its callable references. A callable extracted into a typed local remains owned by that local. Serialization replaces callable values with `none`, as it does for other DValue callables.
+
+The compiler rejects `value::size` and `value::items` when the receiver is not a struct. `value::type_name` works on all value types. The types guide defines its canonical names and explains `parameter::type`.
+
+:example capy render
+struct Job {
+    id : u64
+    state : string
+}
+
+function RENDER(request : dval) {
+    var job := Job(u64(18446744073709551615), "queued")
+    var fields := job::items
+    print(u64(fields.id.value), " ", string(fields.state.value), "\n")
+}
+
+:content
 
 ## Choosing between a struct and a dval
 
-Use a struct when the shape is known as you write the code and you want the compiler to check it. Use a `dval` when the shape arrives at runtime — request input, JSON, a database row — or when it has to cross a unit boundary, since only `dval` is copied across those.
+Use a struct when the source defines the shape and the compiler must check it. Use a `dval` for request input, decoded data, database rows, and unit boundaries.
 
-A struct with a single field also acts as a constructor for that field's type, so `struct Meters { value : f64 }` lets `Meters` be built from an `f64` wherever one is accepted.
+A single-field struct also acts as a constructor for its field type. For example, `struct Meters { value : f64 }` lets `Meters` accept an `f64`.
 
 ## Exporting a struct
 
@@ -84,13 +121,12 @@ function RENDER(request : dval) {
 }
 ```
 
-:example capy render
-struct Point { x : s32, y : s32 }
-
-function RENDER(request : dval) {
-    var origin := Point(3, 4)
-    print(origin.x, ",", origin.y, "\n")
-}
-
 :see-group
 constructors
+
+:see
+capy-03-values-and-types
+capy-07-collections-and-records
+capy-08-dynamic-values
+type/dvalue
+get_type_name

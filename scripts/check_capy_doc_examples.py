@@ -23,7 +23,7 @@ ARRAYS = ("supported", "partial", "unsupported_by_design", "missing_notes")
 EVIDENCE_ARRAY = re.compile(r"inline constexpr std::array<Evidence,\s*\d+>\s+(\w+)\s*\{\{(.*?)\}\};", re.S)
 STRING_ARRAY = re.compile(r"inline constexpr std::array<std::string_view,\s*\d+>\s+(\w+)\s*\{\{(.*?)\}\};", re.S)
 NAME = re.compile(r'\{\s*"([^"]+)"')
-CPP_TOKENS = re.compile(r"\b(?:DValue|Request|String(?:List|Map)?|SharedUnit|std|void|const|auto|template|typename|class|nullptr|new)\b|::|\b\w+\s*->|#\s*include")
+CPP_TOKENS = re.compile(r"\b(?:DValue|Request|String(?:List|Map)?|SharedUnit|std|void|const|auto|template|typename|class|nullptr|new)\b|\b\w+\s*->|#\s*include")
 CAPY_HANDLER = re.compile(r"(?m)^\s*function\s+(?:INIT|ONCE|CLI|RENDER|COMPONENT(?::[A-Za-z_][A-Za-z0-9_]*)?|WS|TASK(?::[A-Za-z_][A-Za-z0-9_]*)?|SERVE_HTTP(?::[A-Za-z_][A-Za-z0-9_]*)?)\s*\(")
 CPP_HANDLER = re.compile(r"(?m)^\s*(?:INIT|ONCE|CLI|RENDER|COMPONENT(?::[A-Za-z_][A-Za-z0-9_]*)?|WS|TASK(?::[A-Za-z_][A-Za-z0-9_]*)?|SERVE_HTTP(?::[A-Za-z_][A-Za-z0-9_]*)?)\s*\(")
 CAPY_REQUEST_DECLARATION = re.compile(r"(?m)^\s*(?:var\s+request\b|request\s*:=)")
@@ -265,6 +265,9 @@ def self_test() -> int:
             return 1
         if check_example_body(pages / "ok.txt", 1, "render", "function value() s32 { -> 1 }"):
             print("self-test rejected a Capy block yield")
+            return 1
+        if check_example_body(pages / "ok.txt", 1, "render", "print(value::type_name)"):
+            print("self-test rejected Capy scope lookup")
             return 1
         if not check_example_body(pages / "ok.txt", 1, "render", "value->member"):
             print("self-test accepted C++ member access in a Capy example")

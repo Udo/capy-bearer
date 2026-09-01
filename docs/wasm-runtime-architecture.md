@@ -103,6 +103,44 @@ guest stack limit. JSON decoding follows the same rule for malformed strings and
 unicode escapes: validate bounds before every read and return an empty/partial
 `DValue` rather than reading beyond the input.
 
+### 2.1 Capy struct reflection metadata
+
+The Capy compiler emits reflection metadata into each unit's active Wasm data
+segment. It emits metadata for every local and imported struct declaration.
+The metadata does not depend on `#exports` or an external API file.
+
+`src/wasm/abi.h` defines the descriptor layout. A type descriptor contains a
+kind, a canonical type name, and kind-specific detail. A struct descriptor
+contains the runtime type ID, field count, and field table. Each field entry
+points to its name, type descriptor, and object offset. All metadata pointers
+are offsets from the unit's `__memory_base`. This keeps the data valid after the
+loader relocates the side module.
+
+Aliases use their resolved type descriptor. Nested structs, arrays, and
+function types refer to other type descriptors. The compiler reserves each
+struct and field table before it emits child descriptors. Recursive struct
+types can therefore refer to descriptors that are still in progress.
+
+`expression::type_name` and struct `expression::size` read immutable descriptor
+data in guest code. Struct `expression::items` calls
+`bearer_capy_reflect_struct_brrb`. The core walker reads the same descriptors
+and converts the object into BRRB. It has no generated branch for a specific
+struct declaration.
+
+The host walker validates object headers, type IDs, descriptor spans, field
+spans, recursion depth, and the total node count. It handles scalar, string,
+DValue, struct, array, and callable fields. The guest retains callable results
+before it releases an owned receiver. It also releases the receiver on each
+failure path.
+
+The compiler imports the reflection host function only when source uses
+`expression::items`. Units still carry descriptors for every declared struct.
+This lets static type names and field counts work without a host call.
+
+`#exports` remains separate. It publishes source type declarations so another
+unit can name an imported type at compile time. It does not supply runtime
+reflection data.
+
 ---
 
 ## 3. Units, handlers, and export naming

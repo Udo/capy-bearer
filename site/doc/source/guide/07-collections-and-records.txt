@@ -125,18 +125,33 @@ function RENDER(request : dval) {
 
 This is the same call as `total(point)`.
 
-## Struct reflection
+## Inspect a struct
 
-The compiler embeds reflection descriptors for all declared structs. Reflection does not require an exported type.
+Use `value::size` to get the number of declared fields. Use `value::items` when code must inspect fields by name.
 
-```capy
-var point := Point(3, 4)
-var fields := point::items
-print(point::type_name, " ", point::size, "\n")
-print(fields.x.value, " ", fields.x.type_name, "\n")
-```
+:example capy render
+struct Build {
+    id : s64
+    status : string
+}
 
-`point::type_name` is `Point`. `point::size` is `2`. `point::items` is a DValue map keyed by field name. Each entry has `value` and `type_name`. Bracket access accepts a dynamic field key.
+function RENDER(request : dval) {
+    var build := Build(s64(9007199254740993), "ready")
+    var fields := build::items
+    var key := "status"
+    print(build::type_name, " ", build::size, "\n")
+    print(fields[key].type_name, " ", string(fields[key].value), "\n")
+}
+
+:output
+Build 2
+string ready
+
+:content
+
+`value::items` returns a `dval` map keyed by field name. Each field entry has `value` and `type_name` keys. Use `fields.id.value` for a fixed field name. Use `fields[key]["value"]` for a dynamic field name.
+
+The reflected field value is a `dval`. Convert it to the static type before using it in typed code. The struct reference page defines nested values, copying, and callable fields.
 
 ## Choose the right shape
 
@@ -149,5 +164,7 @@ guides
 capy-03-values-and-types
 capy-05-functions-and-closures
 capy-08-dynamic-values
+type/struct
+get_type_name
 length
 set

@@ -253,13 +253,20 @@ def detail_html(page: dict) -> str:
     else:
         for example in page["examples"]:
             parts.extend(['<div class="doc-section example"><h3>Example</h3><div class="example-language capy"><h4>Capy</h4><pre class="example-source">', html_escape(example["body"]), "</pre></div></div>"])
-        for example in page["guide_examples"]:
-            parts.extend(['<div class="doc-section example"><h3>Example</h3><div class="example-language capy"><h4>Capy</h4><pre class="example-source">', html_escape(example["body"]), "</pre></div>"])
-            if "output" in example:
-                parts.extend(['<p><strong>Output</strong></p><div class="example-output"><div class="example-output-label">Output</div><pre>', html_escape(example["output"]), "</pre></div>"])
-            parts.append("</div>")
     if page["kind"] == "guide":
-        parts.append('<nav class="guide-navigation" aria-label="Capy guide navigation"><div class="guide-previous">Previous: <a href="/doc/">Guide index</a></div><div class="guide-index"><a href="/doc/">Guide index</a></div><div class="guide-next">Next: <a href="/doc/">Guide index</a></div></nav>')
+        parts.append('<nav class="guide-navigation" aria-label="Capy guide navigation">')
+        previous = page.get("guide_previous")
+        if previous:
+            parts.extend(['<div class="guide-previous">Previous: <a href="', html_escape(previous["route"]), '">', html_escape(previous["title"]), "</a></div>"])
+        else:
+            parts.append('<div class="guide-previous"></div>')
+        parts.append('<div class="guide-index"><a href="/doc/">Guide index</a></div>')
+        following = page.get("guide_next")
+        if following:
+            parts.extend(['<div class="guide-next">Next: <a href="', html_escape(following["route"]), '">', html_escape(following["title"]), "</a></div>"])
+        else:
+            parts.append('<div class="guide-next"></div>')
+        parts.append("</nav>")
     parts.append("</main>")
     if page["see"]:
         parts.append('<aside class="doc-section see-also"><h3>See also</h3>')
@@ -531,6 +538,10 @@ def main() -> None:
             seen.add(target)
             resolved.append({"label": targets[target]["label"], "href": targets[target]["route"]})
         page["see"] = resolved
+    guides = pages_of_kind(pages, "guide")
+    for index, page in enumerate(guides):
+        page["guide_previous"] = guides[index - 1] if index else None
+        page["guide_next"] = guides[index + 1] if index + 1 < len(guides) else None
     render_page_html(pages)
     if OUT.exists():
         shutil.rmtree(OUT)

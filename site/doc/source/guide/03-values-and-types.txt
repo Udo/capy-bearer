@@ -119,36 +119,33 @@ function RENDER(request : dval) {
 
 `none` is different from `""`, `false`, an empty map, and an empty list. A `dval` is also a mutable reference value inside one workspace. The dynamic-values chapter explains mutation, safe reads, and conversions.
 
-## Type aliases
+## Type aliases and static type names
 
-A type alias gives another name to a type:
+A type alias gives another name to a type. It does not create a distinct type at runtime.
 
-:example capy render
-type Count = s64
-
-function RENDER(request : dval) {
-    var total : Count = 12
-    print(total, "\n")
-}
-
-:content
-
-An alias does not create a new runtime type. `value::type_name` therefore returns the resolved type name:
+Use `expression::type_name` to get the resolved static type of an expression. Capy evaluates the expression once.
 
 :example capy render
 type Count = s64
 
 function RENDER(request : dval) {
     var total : Count = 12
-    print(total::type_name, "\n")
+    var labels := ["new", "done"]
+    print(total::type_name, " ", labels::type_name, "\n")
 }
 
 :output
-s64
+s64 [string]
 
 :content
 
-Generic functions use `parameter::type` when a later parameter or the result must have the first parameter's concrete type:
+An alias reports its target type. Arrays use `[item_type]`. Structs use their declared name. Function values use their complete function type.
+
+A `dval` expression reports `dval`, regardless of its current contents. Use `get_type_name(value)` to inspect the value stored inside a `dval`.
+
+## Dependent generic types
+
+A generic function can use the concrete type of an earlier `any` parameter. Write `parameter::type` in a later parameter or the function result:
 
 ```capy
 function same(first : any, second : first::type) first::type {
@@ -156,7 +153,7 @@ function same(first : any, second : first::type) first::type {
 }
 ```
 
-The compiler rejects the removed `type(parameter)` spelling.
+`parameter::type` is a compile-time type expression. It does not inspect a runtime value. The compiler rejects the removed `type(parameter)` spelling.
 
 :see-group
 guides
@@ -166,6 +163,8 @@ capy-04-expressions-and-control-flow
 capy-07-collections-and-records
 capy-08-dynamic-values
 type/dvalue
+type/struct
+get_type_name
 type/bool
 type/s8
 type/s16

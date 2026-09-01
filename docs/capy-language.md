@@ -243,7 +243,17 @@ struct Sample {
 
 Structs and closure environments support all scalar types and managed fields. A struct instance is a mutable reference value inside one workspace. Assignment, parameter passing, returns, and captures share its identity. Struct fields are assignable. Their source semantics do not expose byte offsets or padding.
 
-The compiler embeds a reflection descriptor for every struct declaration. `value::type_name` returns the resolved static type name. For a struct, `value::size` returns the field count. `value::items` returns a DValue map keyed by field name. Each entry contains `value` and `type_name`. Reflection reads the embedded descriptors. It does not depend on `#exports` metadata.
+### 9.1 Static type and struct reflection
+
+`expression::type_name` evaluates its receiver once and returns its resolved static type as a `string`. Built-in types use their source names. A struct uses its declared name. An array uses `[T]`. A function value uses `function(T1,T2) R`. A variadic tail appears as an array parameter. For example, it can report `function([string]) void`. Alias names expand before the compiler produces the name. A `dval` expression reports `dval` regardless of its current contents.
+
+A struct also supports `expression::size` and `expression::items`. Each expression evaluates its receiver once. `size` returns the declared field count as `s64`. It does not report a storage size.
+
+`items` returns a new DValue map keyed by field name. Each field entry contains `value` and `type_name`. The type name is the resolved static field type. Nested structs become nested field maps. Typed arrays become DValue lists. DValue fields are copied. Function fields become current-workspace DValue callables. Scalar and string fields become DValue scalar values.
+
+The returned map is a snapshot. Mutating it does not mutate the struct. The compiler rejects `size` and `items` on a non-struct receiver.
+
+`get_type_name(value)` has a different purpose. It reports the kind of data currently stored inside a `dval`.
 
 A map literal creates a DValue map. Use `{}` for an empty DValue map. The old `{:}` spelling is a parse error. The `dval({...})` spelling has the same result.
 
