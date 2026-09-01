@@ -28,7 +28,7 @@ Preserve these invariants:
 
 ## Current state
 
-- Status: complete. Commit and push remain.
+- Status: complete.
 - Source and runtime: `/root/mount_ssh/capy-bearer` and `capy-bearer-dev:/Code/capy-bearer`
 - Baseline: `daba223a9e73a4df5e3724b5721ed2c827eadc57`
 
@@ -48,7 +48,7 @@ Preserve these invariants:
   - [x] G3.3: Cover invalid receivers and unknown scope members.
 - [x] G4: Update documentation and generated artifacts.
 - [x] G5: Run acceptance and adversarial review.
-- [ ] G6: Commit, push, and update project notes.
+- [x] G6: Commit, push, and update project notes.
 
 ## Decisions, assumptions, and risks
 
@@ -68,6 +68,7 @@ Preserve these invariants:
 - 2026-09-01: DValue construction currently accepts scalars, strings, DValues, callables, map literals, and list literals. It does not directly accept struct or array expressions.
 - 2026-09-01: The compiler keeps struct field metadata only while it compiles. `#exports` copies selected type declarations to external unit API metadata. The Wasm unit has no general struct reflection descriptor.
 - 2026-09-01: An initial expression-specific lowering prototype was discarded. It did not meet the embedded-metadata requirement.
+- 2026-09-01: Commit `1fe0bd8` added and pushed the embedded reflection implementation.
 
 ## Result
 
