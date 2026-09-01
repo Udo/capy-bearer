@@ -39,7 +39,7 @@ Test for presence with the `?` suffix, which is `true` when the key exists:
 | `unit` | string | the source path of the unit currently executing |
 | `websocket` | map | `connection_id`, `scope`, `opcode`, `binary`, `connections` |
 | `call` | map | dispatch information for the current call |
-| `out` | map | mutable response state: `status`, `header`, `cookie`, and `buffer` |
+| `out` | map | mutable response state: `status`, `headers`, `cookies`, and `buffer` |
 
 ## Headers and server variables
 
@@ -51,7 +51,7 @@ Test for presence with the `?` suffix, which is `true` when the key exists:
 
 ## Reading and writing
 
-The snapshot is read-only except for `out`. Set `request.out.status`, `request.out.header`, `request.out.cookie`, or `request.out.buffer` to change the response. `print()` appends to the response body.
+The snapshot is read-only except for `out`. Set `request.out.status`, `request.out.headers`, `request.out.cookies`, or `request.out.buffer` to change the response. `print()` appends to the response body.
 
 A component receives the caller's `props` for the duration of the call. Bearer restores the previous value after the call. When nested components write back the same field, the outer component write-back wins.
 

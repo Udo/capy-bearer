@@ -14,15 +14,15 @@ The function stops with an error for an unknown key. The error lists the valid k
 :content
 `sqlite_info()` reads the latest error text, the last inserted row ID, or the changed-row count.
 
-Use a converter with a fallback because the values have different types.
+Each result is a `dval` with its natural value type. Use a converter only when an operation needs a static type.
 
 :example capy render
 var db := sqlite_connect(":memory:")
 sqlite_query(db, "create table t(id integer primary key)")
 sqlite_query(db, "insert into t values(1)")
-var message := string(sqlite_info(db, "error"))
-var id := u64(sqlite_info(db, "insert_id"))
-var rows := u64(sqlite_info(db, "affected_rows"))
+var message := sqlite_info(db, "error")
+var id := sqlite_info(db, "insert_id")
+var rows := sqlite_info(db, "affected_rows")
 print(message, " ", id, " ", rows, "\n")
 sqlite_disconnect(db)
 

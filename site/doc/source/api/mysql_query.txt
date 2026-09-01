@@ -18,7 +18,7 @@ Use named `:name` placeholders with a `dval` map. The API rejects positional `?`
 :example capy render
 var database := mysql_connect("localhost", "root", "", "")
 if bool(mysql_info(database, "connection")) { var rows := mysql_query(database, "select :name as name", dval({"name": "Ada"})); print(rows[0]["name"], "\n") }
-if database != u64(0) { mysql_disconnect(database) }
+if database { mysql_disconnect(database) }
 
 :see-group
 mysql

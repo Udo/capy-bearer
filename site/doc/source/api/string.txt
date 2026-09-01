@@ -19,7 +19,7 @@ The options map accepts only `fallback`. An unknown key, including `base`, is an
 
 ## The other converters
 
-`s64()`, `u64()`, `s32()`, and `f64()` use the same `value, opt` shape. Their options also support `base` for integer conversion. `bool()` keeps a `dval` first parameter, because strings cannot be conditions.
+All numeric constructors use the same `value, opt` shape. Integer constructor options also support `base`. `bool()` keeps a `dval` first parameter, because strings cannot be conditions.
 
 :example capy render
 print(string(dval(42)), "\n")

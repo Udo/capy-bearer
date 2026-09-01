@@ -3,7 +3,7 @@
 #include <string_view>
 namespace capy::parity {
 struct Evidence { std::string_view name, path, marker; };
-inline constexpr std::array<Evidence, 259> supported{{
+inline constexpr std::array<Evidence, 256> supported{{
     {"sqrt","site/tests/capy-math.capy","sqrt("},
     {"abs","site/tests/capy-math.capy","abs("},
     {"neg","site/tests/capy-math.capy","neg("},
@@ -192,11 +192,8 @@ inline constexpr std::array<Evidence, 259> supported{{
     {"crypto_equal","site/tests/capy-crypto-random.capy","crypto_equal("},
     {"password_hash","site/tests/capy-crypto-random.capy","password_hash("},
     {"password_verify","site/tests/capy-crypto-random.capy","password_verify("},
-    {"gen_noise32","site/tests/capy-crypto-random.capy","gen_noise32("},
+    {"gen_noise","site/tests/capy-crypto-random.capy","gen_noise("},
     {"gen_noise64","site/tests/capy-crypto-random.capy","gen_noise64("},
-    {"gen_noise01","site/tests/capy-crypto-random.capy","gen_noise01("},
-    {"gen_int","site/tests/capy-crypto-random.capy","gen_int("},
-    {"gen_float","site/tests/capy-crypto-random.capy","gen_float("},
     {"draw_int","site/tests/capy-crypto-random.capy","draw_int("},
     {"draw_float","site/tests/capy-crypto-random.capy","draw_float("},
     {"type/request","site/tests/capy-request-context.capy","request.method"},

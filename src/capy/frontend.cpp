@@ -617,7 +617,7 @@ Expr* Parser::expression(int minimum, bool stop_at_newline)
 		if (op.text == ":")
 		{
 			bool convert = match("as");
-			Annotation* annotation = program_.make<Annotation>(op.location, left, expression(81), convert);
+			Annotation* annotation = program_.make<Annotation>(op.location, left, expression(80), convert);
 			if (minimum == 0 && match("="))
 				return program_.make<Binary>(annotation->location, "=", annotation, expression(5));
 			return annotation;
@@ -836,7 +836,7 @@ Expr* Parser::function_expression(Location location)
 	if (token().text != "(")
 		fail(token().location, "anonymous function requires a parameter expression");
 	std::vector<Parameter> parameter_list = parameters();
-	Expr* return_type = token().text == "{" ? nullptr : expression(81);
+	Expr* return_type = token().text == "{" ? nullptr : expression(80);
 	if (token().text != "{")
 	{
 		FunctionType* type = program_.make<FunctionType>(location);
@@ -1058,6 +1058,13 @@ std::string type_name(const Expr& expression_value)
 	{
 		const auto& value = static_cast<const ScopeLookup&>(expression_value);
 		return type_name(*value.value) + "::" + value.member;
+	}
+	if (expression_value.kind == ExprKind::Call)
+	{
+		const auto& value = static_cast<const Call&>(expression_value);
+		if (value.arguments.size() == 1 && value.function->kind == ExprKind::Name &&
+			static_cast<const Name*>(value.function)->value == "type")
+			return "type(" + type_name(*value.arguments[0]) + ")";
 	}
 	if (expression_value.kind == ExprKind::FunctionType)
 	{

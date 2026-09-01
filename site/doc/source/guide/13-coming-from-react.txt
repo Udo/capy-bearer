@@ -62,7 +62,7 @@ A module handle from `unit_load()` lives only for the current request; do not st
 
 ## Escaping
 
-Markup literals escape interpolated values for you, which is the equivalent of React escaping `{value}` by default:
+HTML literals escape interpolated values, like React escapes `{value}` by default:
 
 :example capy render
 function RENDER(request : dval) {

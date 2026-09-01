@@ -63,7 +63,7 @@ function RENDER(request : dval) {
 
 :content
 
-The optional index follows the value and has type `s32`. The loop rechecks the current array length. It safely stops after shrinkage and can visit appended items. The loop retains each current managed item while the body runs.
+The optional index follows the value and has type `s64`. The loop rechecks the current array length. It safely stops after shrinkage and can visit appended items. The loop retains each current managed item while the body runs.
 
 The loop item is a value, not an assignable array position. Use an index to replace an item.
 

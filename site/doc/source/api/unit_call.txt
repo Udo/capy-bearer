@@ -11,7 +11,7 @@ props : function input
 exported function result
 
 :content
-`unit_call` calls an exported function in a unit.
+`unit_call` calls an exported function in a unit. The two-argument form sends an empty map as the function input.
 
 :example capy render
 var result := unit_call("/tests/capy-module-target.capy", "echo", "hello")

@@ -17,7 +17,7 @@ This normalization is transparent. The keys `"a b"` and `"a_b"` address the same
 
 :example capy render
 var connection := memcache_connect()
-if connection != u64(0) { print(memcache_delete(connection, "doc-key"), "\n") }
+if connection { print(memcache_delete(connection, "doc-key"), "\n") }
 
 :see-group
 memcache

@@ -34,7 +34,7 @@ function RENDER(request : dval) {
 }
 ```
 
-`count` has type `s32`. Assignment cannot change its type to `string`.
+`count` has type `s64`. Assignment cannot change its type to `string`.
 
 Read the first diagnostic and its source location. Later messages can be consequences of the first error.
 

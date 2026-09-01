@@ -9,7 +9,7 @@ count : maximum number of bytes to read
 A string with up to `count` bytes from the current position.
 
 :content
-`file_read` reads from the current handle position. It advances the position by the bytes read. It can return fewer bytes at the end of a file.
+`file_read` reads from the current handle position. It accepts a maximum count of 16 MiB. It advances the position by the bytes read. It can return fewer bytes at the end of a file.
 
 :example capy render
 var writer := file_open("/tmp/doc-read.txt", "w")

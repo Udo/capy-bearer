@@ -10,7 +10,7 @@ length : maximum number of bytes to read
 A string with up to `length` bytes.
 
 :content
-`file_pread` reads at an absolute byte offset. It does not change the handle position.
+`file_pread` reads at an absolute byte offset. It accepts a maximum length of 16 MiB. It does not change the handle position.
 
 :example capy render
 var writer := file_open("/tmp/doc-pread.txt", "w")

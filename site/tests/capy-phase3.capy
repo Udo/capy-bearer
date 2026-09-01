@@ -36,6 +36,10 @@ function choose(value : s32) value::type {
     -> value + 1
 }
 
+function same(first : any, second : type(first)) type(first) {
+    -> second
+}
+
 function make_pair TextPair {
     -> TextPair(9, clone("pair"))
 }
@@ -56,6 +60,11 @@ function countdown(value : any) value::type {
 }
 
 function CLI(request : dval) {
+    {
+        var dependent := same(clone("first"), clone("second"))
+        print(dependent, "|", arc_live(), "|")
+    }
+    print(arc_live(), "|")
     print(identity(7), "|", identity(clone("generic")), "|")
     print(choose(4), "|", choose(clone("fallback")), "|")
     print(identity([1, 2])[1], "|", identity(Named(clone("name"))).name, "|")

@@ -447,8 +447,8 @@ std::string type_of_expression(const Expr* expression, bool allow_void = false)
 		return type + ") " + type_of_expression(function->return_type, true);
 	}
 	std::string name = type_name(*expression);
-	if (name == "any" || name.find("::type") != std::string::npos)
-		throw Error(expression->location, "compile-time any and dependent result types are only valid in a generic function declaration");
+	if (name == "any" || name.find("::type") != std::string::npos || name.rfind("type(", 0) == 0)
+		throw Error(expression->location, "compile-time any and dependent types are only valid in a generic function declaration");
 	if (name == "request")
 		throw Error(expression->location, "type request was removed. Use dval for Bearer handler input.");
 	if (name == "s8" || name == "s16" || name == "s32" || name == "s64" || name == "u8" || name == "u16" || name == "u32" || name == "u64" || name == "f32" || name == "f64" || name == "bool" || name == "string" || name == "dval" ||
@@ -573,9 +573,40 @@ struct GenericDefinition
 	Function* function = nullptr;
 	std::vector<std::string> patterns;
 	std::vector<bool> convert;
+	std::vector<int> dependent_parameters;
 	std::string fixed_result;
 	int dependent_result = -1;
 };
+
+bool generic_matches(const GenericDefinition& generic, const std::vector<std::string>& types, unsigned* exact = nullptr)
+{
+	if (generic.patterns.size() != types.size())
+		return false;
+	unsigned score = 0;
+	for (std::size_t i = 0; i < types.size(); ++i)
+	{
+		const int dependency = generic.dependent_parameters[i];
+		if (dependency < 0 && generic.patterns[i] == "any")
+			continue;
+		if ((dependency >= 0 && types[i] != types[static_cast<std::size_t>(dependency)]) ||
+			(dependency < 0 && generic.patterns[i] != types[i]))
+			return false;
+		++score;
+	}
+	if (exact)
+		*exact = score;
+	return true;
+}
+
+std::optional<std::string> dependent_type_parameter(const Expr* expression)
+{
+	if (auto lookup = dynamic_cast<const ScopeLookup*>(expression); lookup && lookup->member == "type")
+		if (auto name = dynamic_cast<const Name*>(lookup->value)) return name->value;
+	if (auto call = dynamic_cast<const Call*>(expression); call && call->arguments.size() == 1)
+		if (auto name = dynamic_cast<const Name*>(call->function); name && name->value == "type")
+			if (auto parameter = dynamic_cast<const Name*>(call->arguments[0])) return parameter->value;
+	return std::nullopt;
+}
 
 // A parser-level member call can be either an extension-style ordinary call or
 // an indirect invocation of a function-valued struct field.  Keep that syntax
@@ -1048,12 +1079,7 @@ struct Module
 		if (auto found = generics_.find(name); found != generics_.end())
 			for (const auto& generic : found->second)
 			{
-				if (generic.patterns.size() != types.size())
-					continue;
-				bool matches = true;
-				for (std::size_t i = 0; i < types.size(); ++i)
-					if (generic.patterns[i] != "any" && generic.patterns[i] != types[i]) { matches = false; break; }
-				if (matches)
+				if (generic_matches(generic, types))
 					return nullptr;
 			}
 		const Definition* selected = nullptr;
@@ -1189,11 +1215,7 @@ struct Module
 				if (generic.patterns.size() != types.size())
 					continue;
 				unsigned exact = 0;
-				bool matches = true;
-				for (std::size_t i = 0; i < types.size(); ++i)
-					if (generic.patterns[i] != "any" && generic.patterns[i] != types[i]) { matches = false; break; }
-					else if (generic.patterns[i] != "any") ++exact;
-				if (!matches) continue;
+				if (!generic_matches(generic, types, &exact)) continue;
 				if (candidates.empty() || exact > best) { candidates = {&generic}; best = exact; }
 				else if (exact == best) candidates.push_back(&generic);
 			}
@@ -1223,19 +1245,7 @@ struct Module
 			if (generic.patterns.size() != types.size())
 				continue;
 			unsigned exact = 0;
-			bool matches = true;
-			for (std::size_t i = 0; i < types.size(); ++i)
-			{
-				if (generic.patterns[i] == "any")
-					continue;
-				if (generic.patterns[i] != types[i])
-				{
-					matches = false;
-					break;
-				}
-				++exact;
-			}
-			if (!matches)
+			if (!generic_matches(generic, types, &exact))
 				continue;
 			if (candidates.empty() || exact > best)
 			{
@@ -6827,14 +6837,33 @@ void Module::collect()
 		std::vector<std::string> parameters;
 		std::vector<bool> conversions;
 		std::vector<Expr*> default_values;
+		std::vector<int> dependent_parameters;
 		bool generic = false;
 		bool variadic = false, variadic_convert = false;
 		std::string variadic_element;
-		for (const auto& parameter : function->parameters)
+		for (std::size_t parameter_index = 0; parameter_index < function->parameters.size(); ++parameter_index)
 		{
-			const bool any = dynamic_cast<Name*>(parameter.type_expr) && type_name(*parameter.type_expr) == "any";
-			generic = generic || any;
-			std::string type = any ? "any" : value_type(parameter.type_expr);
+			const auto& parameter = function->parameters[parameter_index];
+			const bool any = dynamic_cast<Name*>(parameter.type_expr) && static_cast<Name*>(parameter.type_expr)->value == "any";
+			const auto dependency_name = dependent_type_parameter(parameter.type_expr);
+			int dependency = -1;
+			if (dependency_name)
+			{
+				for (std::size_t i = 0; i < parameter_index; ++i)
+					if (function->parameters[i].name == *dependency_name) dependency = static_cast<int>(i);
+				if (dependency < 0)
+					throw Error(parameter.type_expr->location, "dependent type names an unknown or forward parameter");
+				const Expr* source_type = function->parameters[static_cast<std::size_t>(dependency)].type_expr;
+				if (!(dynamic_cast<const Name*>(source_type) && type_name(*source_type) == "any"))
+					throw Error(parameter.type_expr->location, "dependent type requires an earlier any parameter");
+			}
+			generic = generic || any || dependency >= 0;
+			dependent_parameters.push_back(dependency);
+			std::string type;
+			if (any || dependency >= 0)
+				type = "any";
+			else
+				type = value_type(parameter.type_expr);
 			if (parameter.variadic)
 			{
 				variadic = true;
@@ -6896,15 +6925,17 @@ void Module::collect()
 			std::string fixed_result = "void";
 			if (function->return_type)
 			{
-				auto result = dynamic_cast<ScopeLookup*>(function->return_type);
-				auto parameter = result ? dynamic_cast<Name*>(result->value) : nullptr;
-				if (result && parameter && result->member == "type")
+				const auto dependency_name = dependent_type_parameter(function->return_type);
+				if (dependency_name)
 				{
 					for (std::size_t i = 0; i < function->parameters.size(); ++i)
-						if (function->parameters[i].name == parameter->value)
-							dependent = static_cast<int>(i);
+						if (function->parameters[i].name == *dependency_name) dependent = static_cast<int>(i);
 					if (dependent < 0)
-						throw Error(result->location, "dependent result names an unknown parameter");
+						throw Error(function->return_type->location, "dependent result names an unknown parameter");
+					if (dependent_parameters[static_cast<std::size_t>(dependent)] < 0 &&
+						!(dynamic_cast<Name*>(function->parameters[static_cast<std::size_t>(dependent)].type_expr) &&
+						  type_name(*function->parameters[static_cast<std::size_t>(dependent)].type_expr) == "any"))
+						throw Error(function->return_type->location, "dependent result requires an any parameter");
 				}
 				else
 					fixed_result = value_type(function->return_type, true);
@@ -6912,21 +6943,18 @@ void Module::collect()
 			const std::string constructor_result = has_struct(function->name) ? "struct:" + function->name : primitive_constructor_name(function->name) ? function->name : "";
 			if (!constructor_result.empty() && (dependent >= 0 || fixed_result != constructor_result))
 				throw Error(function->location, "constructor '" + function->name + "' must return " + constructor_result);
-			generics_[function->name].push_back({function, parameters, conversions, fixed_result, dependent});
+			generics_[function->name].push_back({function, parameters, conversions, dependent_parameters, fixed_result, dependent});
 		}
 		else
 		{
-			auto dependent = dynamic_cast<ScopeLookup*>(function->return_type);
-			std::string result = handler || dependent ? "void" : value_type(function->return_type, true);
-			if (dependent && dependent->member == "type")
+			const auto dependency_name = dependent_type_parameter(function->return_type);
+			std::string result = handler || dependency_name ? "void" : value_type(function->return_type, true);
+			if (dependency_name)
 			{
-				auto parameter = dynamic_cast<Name*>(dependent->value);
-				if (!parameter)
-					throw Error(dependent->location, "dependent result names an unknown parameter");
 				auto found = std::find_if(function->parameters.begin(), function->parameters.end(),
-										  [&](const Parameter& value) { return value.name == parameter->value; });
+										  [&](const Parameter& value) { return value.name == *dependency_name; });
 				if (found == function->parameters.end())
-					throw Error(dependent->location, "dependent result names an unknown parameter");
+					throw Error(function->return_type->location, "dependent result names an unknown parameter");
 				result = parameters[static_cast<std::size_t>(found - function->parameters.begin())];
 			}
 			const std::string constructor_result = has_struct(function->name) ? "struct:" + function->name : primitive_constructor_name(function->name) ? function->name : "";
@@ -7038,7 +7066,11 @@ void Module::collect()
 						if (definition.function->location.file == source_)
 						{
 							std::string result = definition.dependent_result >= 0 ? ("$" + std::to_string(definition.dependent_result) + "::type") : definition.fixed_result;
-							add_function_export(function_export_line(name, definition.patterns, result), exports->location);
+							std::vector<std::string> patterns = definition.patterns;
+							for (std::size_t i = 0; i < patterns.size(); ++i)
+								if (definition.dependent_parameters[i] >= 0)
+									patterns[i] = "type(" + definition.function->parameters[static_cast<std::size_t>(definition.dependent_parameters[i])].name + ")";
+							add_function_export(function_export_line(name, patterns, result), exports->location);
 							exported_something = true;
 						}
 				if (structs_.contains(name))

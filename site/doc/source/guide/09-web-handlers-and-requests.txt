@@ -33,7 +33,7 @@ Use `ws_send`, `ws_send_to`, and `ws_close` for WebSocket effects. Use `request.
 
 A handler normally uses one route for both the form and the POST result. Read `request.method` first. Read submitted fields from `request.form`.
 
-This example shows the complete control flow. A GET request prints the form. A POST request validates the email, stores it in the session, queues a cookie, and redirects. Use `print` for every markup value that the handler must send. The documentation renderer runs the GET path.
+This example shows the complete control flow. A GET request prints the form. A POST request validates the email, stores it in the session, queues a cookie, and redirects. Use `print` for every HTML string that the handler must send. The documentation renderer runs the GET path.
 
 :example capy render
 function RENDER(request : dval) {

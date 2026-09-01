@@ -11,7 +11,7 @@ value : value to test
 `true` for a map or list.
 
 :content
-`is_array(value)` returns `true` when a value has map shape. It returns `true` for both maps and lists.
+`is_array(value)` returns `true` when a value is a map or list.
 
 :example capy render
 print(is_array(dval({"name": "Ada"})), "\n")

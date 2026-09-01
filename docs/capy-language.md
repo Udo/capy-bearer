@@ -6,17 +6,17 @@ This document specifies the Capy source language. The compiler and runtime must 
 
 A Capy source file uses the `.capy` suffix. Source text is case-sensitive.
 
-Spaces, tabs, and newlines are whitespace. A newline does not end an expression. Grammar delimiters end expressions. A semicolon separates adjacent expressions when the grammar would otherwise be ambiguous. Commas separate call arguments, array items, tuple items, map entries, parameters, and names in `#exports`.
+Spaces, tabs, and newlines are whitespace. A newline does not end an expression. Grammar delimiters end expressions. A semicolon separates adjacent expressions when the grammar would otherwise be ambiguous. Commas separate call arguments, array items, map entries, parameters, and names in `#exports`.
 
 A line comment starts with `//` and ends at the next newline.
 
 An identifier starts with a letter or underscore. Later characters can also be decimal digits. Names that start with `__bearer_` are reserved for the standard-library boundary. Public standard-library names are also reserved.
 
-String literals use double quotes. The lexer accepts the documented byte escapes. Markup uses `<>...</>`. An escaped markup field uses `<?= expression ?>`. A raw markup field uses `<?: expression ?>` and requires `markup`.
+String literals use double quotes. The lexer accepts the documented byte escapes. An HTML literal uses `<>...</>`. An escaped field uses `<?= expression ?>`. A raw field uses `<?: expression ?>` and is valid only in HTML text.
 
-Integer literals have type `s32` when no expected integer type is present. A stated local type, parameter, function result, assignment target, typed array, struct field, or other binary operand can supply an expected integer type. An integer constructor also selects a wide type. For example, `var count : s64 = 8` and `var count := s64(8)` both produce `s64`. Numeric suffixes are not part of Capy. A decimal point or exponent selects `f64`. The compiler rejects literals outside the selected type range.
+Integer literals have type `s64` when no expected integer type is present. A stated local type, parameter, function result, assignment target, typed array, struct field, or other binary operand can supply an expected integer type. An integer constructor also selects a type. For example, `var count : u16 = 8` and `var count := u16(8)` both produce `u16`. Numeric suffixes are not part of Capy. A decimal point or exponent selects `f64`. The compiler rejects literals outside the selected type range.
 
-An unconstrained literal prefers an exact `s32` overload. If no `s32` overload matches, one unambiguous integer parameter type can supply the context. Equal `s64` and `u64` candidates are ambiguous. Capy does not use a result type to select an overload.
+An unconstrained literal prefers an exact `s64` overload. One unambiguous integer parameter type can supply context when no exact `s64` overload matches. Equal alternatives are ambiguous. Capy does not use a result type to select an overload.
 
 `none` is a reserved literal. It has type `dval`.
 
@@ -44,8 +44,8 @@ A block starts with `{` and ends with `}`. Blocks contain expressions. `type`, `
 
 Capy has these built-in types:
 
-- `bool`, `s32`, `s64`, `u64`, and `f64` are scalar types.
-- `string` and `markup` are managed byte values.
+- `bool`, `s8`, `s16`, `s32`, `s64`, `u8`, `u16`, `u32`, `u64`, `f32`, and `f64` are scalar types.
+- `string` is a managed byte value.
 - `dval` is a managed mutable dynamic value.
 - `module` is an opaque Bearer value.
 - `void` means that an expression produces no value.
@@ -54,14 +54,13 @@ The following forms compose types:
 
 ```text
 [T]                              array
-(T1, T2, ...)                    tuple
 StructName                       nominal struct
 function(parameters) Result      function value
 ```
 
-`void` is valid as a function result. It is not valid as a local, parameter, array item, tuple field, struct field, or captured value.
+`void` is valid as a function result. It is not valid as a local, parameter, array item, struct field, or captured value.
 
-`module` can occupy a local, parameter, result, or generic identity value during one request. It cannot enter an array, tuple, struct, closure, DValue, condition, arithmetic operation, or serialized boundary.
+`module` can occupy a local, parameter, result, or generic identity value during one request. It cannot enter an array, struct, closure, DValue, condition, arithmetic operation, or serialized boundary.
 
 ### 3.1 Transparent aliases
 
@@ -70,7 +69,6 @@ A top-level alias has this form:
 ```capy
 type Count = s64
 type Counts = [Count]
-type Pair = (Count, string)
 type Callback = function(value : Count) string
 ```
 
@@ -83,7 +81,7 @@ type Count = s64
 var count := Count(4)
 ```
 
-An alias to an array, tuple, function type, `module`, or `void` has no constructor call. `any` and dependent `value::type` expressions require a generic function context and cannot be closed top-level aliases.
+An alias to an array, function type, `module`, or `void` has no constructor call. `any` and dependent `type(value)` expressions require a generic function context and cannot be closed top-level aliases.
 
 An alias cannot conflict with a built-in type, struct, function, handler, public standard-library name, or another alias.
 
@@ -115,9 +113,9 @@ From highest precedence to lowest, Capy parses:
 
 Assignment and declaration associate right-to-left. Other binary operators associate left-to-right. The old `value as Type` conversion expression is invalid. `as` is valid only in a coercive parameter annotation.
 
-Capy evaluates call arguments, spread sources, collection items, constructor arguments, and markup fields once from left to right. `&&` and `||` evaluate the right side only when needed.
+Capy evaluates call arguments, spread sources, collection items, constructor arguments, and HTML fields once from left to right. `&&` and `||` evaluate the right side only when needed.
 
-Arithmetic and comparisons require equal operand types. Boolean operators require `bool`. A condition for `if` or `while` must have type `bool`. Integer division by zero traps. Typed-array bounds checks and failed checked conversions trap at their source expression.
+Arithmetic and comparisons require equal operand types. Boolean operators require `bool`. A condition for `if` or `while` uses `bool(condition)`. The condition must have an available `bool` constructor. Strings cannot be conditions. Integer division by zero traps. Typed-array bounds checks and failed checked conversions trap at their source expression.
 
 Postfix `?` requires `dval` and returns `bool`. It binds after a member or index read. It returns `false` only for `none`.
 
@@ -127,7 +125,7 @@ profile.tags[3]?        // false when item 3 is absent
 none?                   // false
 ```
 
-The range `start..end` is a half-open `s32` range. It contains values from `start` up to but not including `end`.
+The range `start..end` is a half-open `s64` range. It contains values from `start` up to but not including `end`.
 
 ## 6. Blocks and conditionals
 
@@ -159,7 +157,7 @@ for value, index := array { ... }
 for value, key := dynamic_value { ... }
 ```
 
-The optional metadata follows the value. An array index has type `s32`. A DValue key has type `string`. DValue lists use decimal index strings as keys. A range permits only the one-value form. Structs are not iterable. The old `=` and `in` loop forms are invalid.
+The optional metadata follows the value. An array index has type `s64`. A DValue key has type `string`. DValue lists use decimal index strings as keys. A range permits only the one-value form. Structs are not iterable. The old `=` and `in` loop forms are invalid.
 
 Array and DValue loops use a live view. Each iteration checks the current count again. Growth can add later iterations, including growth from the loop body. Shrinkage cannot cause an invalid item access. An array loop retains its current managed item before the body runs. A DValue loop copies its current item before the body runs.
 
@@ -177,7 +175,7 @@ function add(left : s32, right : s32) s32 {
 }
 ```
 
-A missing result type means `void`. A trailing parameter can have a literal default of its exact annotated type. Defaults are valid only on ordinary named, non-generic, non-variadic functions. A final `...values : Type` parameter is variadic and receives `[Type]`. It must be last. Prefix `...` spreads an array into a variadic tail. A tuple or struct can spread into statically known fixed parameters.
+A missing result type means `void`. A trailing parameter can have a literal default of its exact annotated type. Defaults are valid only on ordinary named, non-generic, non-variadic functions. A final `...values : Type` parameter is variadic and receives `[Type]`. It must be last. Prefix `...` spreads an array into a variadic tail. A struct can spread into statically known fixed parameters.
 
 A direct named call can omit only trailing default parameters. The call evaluates supplied arguments once from left to right. It then evaluates omitted defaults in parameter order. A function value has its full parameter arity. Defaults do not shorten its function type. Hosts, handlers, lambdas, and function types cannot declare defaults.
 
@@ -204,9 +202,15 @@ A type name is a constructor overload set. Built-in constructors convert scalar 
 ```capy
 string(value : as string, opt : dval = {}) string
 bool(value : dval, opt : dval = {}) bool
+s8(value : as string, opt : dval = {}) s8
+s16(value : as string, opt : dval = {}) s16
 s32(value : as string, opt : dval = {}) s32
 s64(value : as string, opt : dval = {}) s64
+u8(value : as string, opt : dval = {}) u8
+u16(value : as string, opt : dval = {}) u16
+u32(value : as string, opt : dval = {}) u32
 u64(value : as string, opt : dval = {}) u64
+f32(value : as string, opt : dval = {}) f32
 f64(value : as string, opt : dval = {}) f64
 ```
 
@@ -218,13 +222,13 @@ A struct receives a generated constructor in field order. User functions can add
 
 Constructor defaults and omitted call arguments do not change the Wasm call ABI. Copied DValue `none` uses Wasm core ABI 26. Future ABI changes must use a new ABI version.
 
-`any` is compile-time polymorphism. It has no runtime representation. In a generic function, `parameter::type` names the concrete static type bound to that `any` parameter.
+`any` is compile-time polymorphism. It has no runtime representation. In a generic function, `type(parameter)` names the concrete static type bound to an earlier `any` parameter. Use it for a later parameter or the function result. The older `parameter::type` result syntax remains valid for source compatibility.
 
 ## 9. Collections and aggregates
 
 An array `[T]` contains one static item type. An array is a mutable reference value inside one workspace. Assignment, parameter passing, returns, and captures share its identity. Content mutation through one alias is visible through all aliases. Growth preserves the array identity. Array items can be narrow scalars, wide scalars, or managed values. Indexes start at zero.
 
-A comma expression creates an immutable tuple. `()` is the empty tuple. `(value)` is grouping. Tuples have fixed arity and static field types.
+Parentheses group one expression. Capy has no tuple type.
 
 A struct is nominal and lists fields in declaration order:
 
@@ -237,7 +241,7 @@ struct Sample {
 }
 ```
 
-Tuples, structs, and closure environments support `s32`, `s64`, `u64`, `f64`, and managed fields. A struct instance is a mutable reference value inside one workspace. Assignment, parameter passing, returns, and captures share its identity. Struct fields are assignable. Their source semantics do not expose byte offsets or padding.
+Structs and closure environments support all scalar types and managed fields. A struct instance is a mutable reference value inside one workspace. Assignment, parameter passing, returns, and captures share its identity. Struct fields are assignable. Their source semantics do not expose byte offsets or padding.
 
 A map literal creates a DValue map. Use `{}` for an empty DValue map. The old `{:}` spelling is a parse error. The `dval({...})` spelling has the same result.
 
@@ -247,7 +251,7 @@ A map literal creates a DValue map. Use `{}` for an empty DValue map. The old `{
 
 DValue member and index reads are safe. A missing key, unusable scalar intermediate, negative list index, and out-of-range list index return `none`. Reads do not mutate the receiver. For an identifier key, `value.name` is equivalent to `value["name"]` when `value` has static type `dval`. Use bracket indexing for dynamic, numeric, or non-identifier keys. A member followed by `()` remains a receiver-first method call.
 
-`dval_has(value, key)` tests map-key existence. It returns `true` when the child is `none`. `dval_require(value, key)` and `dval_require(value, index)` are strict reads. They trap for a missing child or unusable access.
+`has(value, key)` tests map-key existence. It returns `true` when the child is `none`. Ordinary member and index reads return `none` for a missing child or unusable access.
 
 A DValue is a mutable reference value inside one workspace. Assignment, parameter passing, returns, and captures share its identity. Nested assignment mutates the selected path and returns the same root identity. Its root must be a named local, parameter, or captured `dval` binding. Temporary, call, member, array-item, and loop-item roots are invalid. The compiler evaluates selectors once from left to right. It then evaluates the right side once.
 
@@ -259,20 +263,20 @@ profile.contact.email = "ada@example.test"
 print(profile.contact.email) // ada@example.test
 ```
 
-`dval_set`, `dval_assign`, `dval_push`, `dval_pop`, `dval_remove`, `dval_clear`, `dval_get_or_create`, `dval_set_array`, `dval_set_bool`, `dval_set_type`, and `dval_put` mutate their target. Each function returns that same target identity. Existing code can still assign the returned value back to its target binding.
+`set`, `push`, `pop`, `delete`, `clear`, and `get_or_create` mutate their target. Each function returns the target identity.
 
 DValue member and index reads return copied child values. Pure transformations return new values where their API specifies a copy. DValue loop items are also copies. Diagnostics identify the nested assignment expression.
 
-Selected standard-library value parameters use `as dval`. They can insert one DValue construction from `string`, `s32`, `s64`, `u64`, `f64`, or `bool`. Parameters that require a specific map, list, or opaque DValue shape remain exact. Typed arrays remain strict. They are distinct from DValue lists.
+Selected standard-library value parameters use `as dval`. They can insert one DValue construction from `string`, any scalar type, or `bool`. Parameters that require a specific map, list, or opaque DValue shape remain exact. Typed arrays remain strict. They are distinct from DValue lists.
 
-## 10. Strings, markup, and ownership
+## 10. Strings, HTML, and ownership
 
 Strings preserve bytes. String indexing is not a source-language operation. Standard-library functions provide byte lengths, search, slicing, replacement, and case conversion.
 
-A markup literal starts with `<>` and ends with `</>`. It creates a `markup` value. It does not write to the response by itself. `RENDER` and `COMPONENT` do not give bare markup expressions special output behavior. Use `print(<><p>Ready</p></>)` to output markup from a handler or component. Return `markup` from helper functions when the caller should choose where to print it.
+An HTML literal starts with `<>` and ends with `</>`. It creates a `string`. It does not write to the response by itself. `RENDER` and `COMPONENT` do not give bare HTML expressions special output behavior. Use `print(<><p>Ready</p></>)` to output HTML from a handler or component. Return `string` from helper functions when the caller should choose where to print it.
 
 ```capy
-function badge(label : string) markup {
+function badge(label : string) string {
     -> <><strong><?= label ?></strong></>
 }
 
@@ -281,13 +285,13 @@ function RENDER(request : dval) {
 }
 ```
 
-`<?= value ?>` selects an encoding from its markup context. HTML text and quoted attributes use HTML escaping. A string in a `script` element becomes one self-contained JavaScript literal. A string in a `style` element becomes one self-contained CSS literal. Integer and Boolean values remain scalar values in those elements. `f64` interpolation is not supported in `script` or `style` elements.
+`<?= value ?>` selects an encoding from its HTML context. HTML text and quoted attributes use HTML escaping. A string in a `script` element becomes one self-contained JavaScript literal. A string in a `style` element becomes one self-contained CSS literal. Integer and Boolean values remain scalar values in those elements. `f64` interpolation is not supported in `script` or `style` elements.
 
 Script and style interpolation must start at a value boundary. Static source after the interpolation can apply an operator or a CSS unit. Interpolation cannot occur inside a quoted string, template literal, or comment. An attribute value must be quoted. Tag names and attribute names cannot contain interpolation. URL, event-handler, and inline-style attributes still use HTML attribute escaping. Validate their application-specific value before interpolation.
 
-A value with static type `markup` remains trusted when `<?= value ?>` inserts it into HTML text. In attributes, scripts, and styles, the compiler escapes it as a string for that context. Raw `<?: value ?>` interpolation also requires `markup` and works only in HTML text. `trusted_markup(string)` is the explicit trust boundary.
+Escaped `<?= value ?>` interpolation always encodes the value for its context. Raw `<?: value ?>` interpolation accepts a string and works only in HTML text. Use raw interpolation only for source-controlled HTML.
 
-Capy uses request-local automatic reference counting for strings, markup, arrays, tuples, structs, closures, and DValues. Managed parameters are borrowed. Managed results are owned. Assignment retains the replacement before it releases the old value. Captures retain managed values. Strong ARC cycles remain until request teardown. Capy has no weak-reference source type.
+Capy uses request-local automatic reference counting for strings, arrays, structs, closures, and DValues. Managed parameters are borrowed. Managed results are owned. Assignment retains the replacement before it releases the old value. Captures retain managed values. Strong ARC cycles remain until request teardown. Capy has no weak-reference source type.
 
 Arrays, DValues, and struct instances share identity only inside one workspace. A Bearer, module, component, task, custom export or C++ call, codec, request, or serialization boundary copies BRRB. Identity never crosses these boundaries.
 

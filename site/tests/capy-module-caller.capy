@@ -11,7 +11,9 @@ function CLI(request : dval) {
         var cross := unit_load("/tests/capy-cross-target.capy").call("structured", {user: {name: "Ada"}, items: [4, 9]})
         var legacy := unit_call("/tests/capy-cross-target.capy", "echo", "legacy")
         var absent := capy.call("echo", none)
-        print(empty, "|", nested.nested.value, "|", once, "|", cross.source, "|", legacy, "|", absent?, "|", boundary_input.nested.value, boundary_result.nested.value)
+        var direct_empty := unit_call("/tests/capy-module-target.capy", "echo")
+        var loaded_empty := capy.call("echo")
+        print(empty, "|", nested.nested.value, "|", once, "|", cross.source, "|", legacy, "|", absent?, "|", boundary_input.nested.value, boundary_result.nested.value, "|", json_encode(direct_empty), "|", json_encode(loaded_empty))
     }
     print("|", arc_live())
 }

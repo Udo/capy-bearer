@@ -3,11 +3,8 @@ Noise/Hash Functions
 
 draw_float
 draw_int
-gen_noise01
-gen_noise32
+gen_noise
 gen_noise64
-gen_float
-gen_int
 gen_sha1
 sha256
 hex

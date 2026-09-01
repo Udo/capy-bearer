@@ -85,7 +85,7 @@ function RENDER(request : dval) {
 
 :content
 
-A `for` loop reads a half-open `s32` range, an array, or a `dval` map or list:
+A `for` loop reads a half-open `s64` range, an array, or a `dval` map or list:
 
 :example capy render
 function RENDER(request : dval) {
@@ -112,7 +112,7 @@ function RENDER(request : dval) {
 
 :content
 
-An array index has type `s32`. A `dval` key has type `string`. `dval` list keys are decimal strings. Structs are not iterable. The old `=` and `in` forms are invalid.
+An array index has type `s64`. A `dval` key has type `string`. `dval` list keys are decimal strings. Structs are not iterable. The old `=` and `in` forms are invalid.
 
 Array and `dval` loops recheck the current count before each iteration. A loop can visit items added while it runs. Shrinkage cannot cause an invalid access. `dval` loop items are copies. An array loop retains its current managed item while the body runs.
 

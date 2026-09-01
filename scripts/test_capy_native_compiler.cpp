@@ -160,6 +160,22 @@ int main()
 		"function CLI(request : dval) { var first := add(1); var second := \"x\".suffix(); var converted := text(1); var count : Count = Count(3); literals(); print(ordered(next(1)), first, second, converted, count) }\n", options);
 	assert(capy::wasm::validate_bearer_unit(defaults.wasm, {.bearer_abi_version = "11"}).valid);
 	assert(defaults.source_map.find("\t5\t") != std::string::npos);
+	const auto dependent_type = capy::compile_bearer_unit(
+		"function f(min : any, max : type(min)) type(min) { -> min }\n"
+		"function concrete(value : s32) type(value) { -> value }\n"
+		"function legacy(value : any) value::type { -> value }\n"
+		"function CLI(request : dval) { var value := f(1, 2); print(value, concrete(s32(3)), legacy(4)) }\n", options);
+	assert(capy::wasm::validate_bearer_unit(dependent_type.wasm, {.bearer_abi_version = "11"}).valid);
+	for (const auto& [source, expected] : {
+				 std::pair{"function f(min : any, max : type(min)) type(min) { -> min }\nfunction CLI(request : dval) { f(1, \"x\") }\n", "no overload f"},
+				 std::pair{"function CLI(request : dval) { gen_noise(s32(0), s32(1), u64(1), u64(2)) }\n", "no overload __gen_noise"},
+				 std::pair{"function f(min : s32, max : type(min)) s32 { -> min }\n", "earlier any parameter"},
+				 std::pair{"function f(min : any, max : type(later)) type(min) { -> min }\n", "unknown or forward parameter"},
+			})
+	{
+		try { capy::compile_bearer_unit(source, options); assert(false); }
+		catch (const capy::Error& error) { assert(error.message.find(expected) != std::string::npos); }
+	}
 	const auto contextual_integers = capy::compile_bearer_unit(
 		"struct WideValue { value : u64 }\n"
 		"function parameter(value : s64) s64 { -> value }\n"

@@ -43,7 +43,7 @@ function RENDER(request : dval) {
 
 ## Write HTML
 
-A markup expression produces escaped HTML:
+An HTML literal produces a string with escaped dynamic text:
 
 :example capy render
 function RENDER(request : dval) {
@@ -53,7 +53,7 @@ function RENDER(request : dval) {
 
 :content
 
-`print` writes the markup value to the response. A markup expression alone does not produce output. The markup chapter explains escaping.
+`print` writes the string to the response. An HTML literal alone does not produce output. The Strings and HTML chapter explains escaping.
 
 ## If it does not run
 

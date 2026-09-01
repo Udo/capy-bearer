@@ -38,7 +38,7 @@ Only when you need a Capy-typed value rather than a `dval` — for arithmetic, f
 
 :example capy render
 var database := mysql_connect("localhost", "app", "secret", "shop")
-mysql_query(database, "INSERT INTO orders (total) VALUES (?)", dval([500]))
+mysql_query(database, "INSERT INTO orders (total) VALUES (:total)", {total: 500})
 var id := u64(mysql_info(database, "insert_id"))
 print("next id would be ", id + u64(1), "\n")
 
@@ -52,9 +52,9 @@ The fallback is what you get when the key holds no usable value. For `insert_id`
 
 :example capy render
 var database := mysql_connect("localhost", "app", "secret", "shop")
-mysql_query(database, "UPDATE orders SET total = ? WHERE id = ?", dval([500, 42]))
+mysql_query(database, "UPDATE orders SET total = :total WHERE id = :id", {total: 500, id: 42})
 var changed := u64(mysql_info(database, "affected_rows"))
-if changed == u64(0) {
+if !changed {
     print("no such order\n")
 } else {
     print("updated ", changed, " row(s)\n")
@@ -68,7 +68,7 @@ if changed == u64(0) {
 
 :example capy render
 var database := mysql_connect("localhost", "app", "secret", "shop")
-var rows := mysql_query(database, "SELECT id FROM orders WHERE total > ?", dval([100]))
+var rows := mysql_query(database, "SELECT id FROM orders WHERE total > :total", {total: 100})
 var failure := string(mysql_info(database, "error"))
 if length(failure) > 0 {
     print("query failed: ", failure, "\n")

@@ -19,7 +19,7 @@ The function normalizes whitespace in these protocol key tokens to underscores. 
 
 :example capy render
 var connection := memcache_connect()
-if connection != u64(0) { print(memcache_command(connection, "version"), "\n") }
+if connection { print(memcache_command(connection, "version"), "\n") }
 
 :see-group
 memcache

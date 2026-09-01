@@ -8,7 +8,7 @@ path : path to inspect
 A `dval` with file metadata.
 
 :content
-`file_stat` returns metadata for a path. The result includes `exists`, `is_file`, `is_dir`, `is_symlink`, and `size`.
+`file_stat` returns metadata for a path. The result includes `exists`, `is_file`, `is_dir`, `is_symlink`, `size`, `mtime`, `ctime`, and `mode`.
 
 :example capy render
 file_put_contents("/tmp/doc-stat.txt", "12345")

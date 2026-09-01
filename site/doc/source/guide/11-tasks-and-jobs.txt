@@ -51,7 +51,7 @@ The task boundary copies props as BRRB. `dval` identity does not cross it. The w
 
 :example capy cli
 function RENDER(request : dval) {
-    var id := task("/tasks/store.capy:STORE", {key: "report-42"})
+    var id := task("/doc/examples/task_worker.capy:STORE", {key: "report-42"})
     print(id, "\n")
 }
 
@@ -92,7 +92,7 @@ function RENDER(request : dval) {
 
 Use `job_status`, `job_await`, `job_result`, and `job_cancel` with the returned handle. Always set a deliberate command timeout. Validate the final state before reading result data.
 
-The shell interprets `cmd`. Do not build it from request data or other untrusted input.
+The shell interprets the command string. Do not build it from request data or other untrusted input.
 
 ## Failure and retries
 

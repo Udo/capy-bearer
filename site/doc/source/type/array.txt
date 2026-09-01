@@ -46,7 +46,7 @@ The binding itself is immutable, so `values = [3]` inside that function is a com
 
 ## Iteration
 
-A `for` loop reads items in order, with an optional `s32` index after the value:
+A `for` loop reads items in order, with an optional `s64` index after the value:
 
 :content
 

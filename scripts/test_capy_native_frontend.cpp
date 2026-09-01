@@ -184,6 +184,13 @@ int main(int argc, char** argv)
 		assert(import->path == "child.capy" && import->alias == "child");
 	}
 	{
+		Program p = parse("function value(min : any, max : type(min)) type(min) { -> min }\n", "dependent.capy");
+		auto* function = static_cast<Function*>(p.items[0]);
+		assert(type_name(*function->parameters[1].type_expr) == "type(min)" && type_name(*function->return_type) == "type(min)");
+		auto* parameter_type = static_cast<Call*>(function->parameters[1].type_expr);
+		assert(static_cast<Name*>(parameter_type->function)->value == "type" && static_cast<Name*>(parameter_type->arguments[0])->value == "min");
+	}
+	{
 		Program p = parse("function value(x : s32) s32 { return x }\nfunction value(x : as string) string { return x }\n", "overload.capy");
 		auto* converted = static_cast<Function*>(p.items[1]);
 		assert(!static_cast<Function*>(p.items[0])->parameters[0].convert && converted->parameters[0].convert);

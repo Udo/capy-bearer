@@ -45,7 +45,7 @@ Relative paths inside the component resolve against the component's own file, no
 The target unit's `ONCE` handler runs before the component handler the first time that unit is used in the request.
 
 :errors
-An unresolvable component does not raise an error. Bearer sets the response status to `500`, returns a banner element that describes the failure, and continues to render the page. Guard optional components with `length(component_resolve(name)) > 0` when a missing file should not be an error.
+An unresolvable component does not raise an error. Bearer sets the response status to `500`, returns an empty string, and continues to render the page. Guard optional components with `length(component_resolve(name)) > 0` when a missing file should not be an error.
 
 :example capy render
 print(component("/doc/examples/card.capy:CARD", {title: "Release notes"}), "\n")

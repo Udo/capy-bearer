@@ -11,7 +11,7 @@ Do not use the handle after this call.
 
 :example capy render
 var database := mysql_connect("localhost", "root", "", "")
-if database != u64(0) { mysql_disconnect(database) }
+if database { mysql_disconnect(database) }
 print("connection released\n")
 
 :see-group

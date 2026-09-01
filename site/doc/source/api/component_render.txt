@@ -16,7 +16,7 @@ Use a capturing call instead when you need the output as a value — to measure 
 Name resolution, `:HANDLER` suffixes, props scoping, and `ONCE` behaviour are identical to `component()`; that page documents the rules in full.
 
 :errors
-An unresolvable component does not raise an error. Bearer sets the response status to `500`, writes a banner element describing the failure, and returns false. Rendering continues.
+An unresolvable component does not raise an error. Bearer sets the response status to `500` and returns `false`. Rendering continues.
 
 :example capy render
 component_render("/doc/examples/card.capy:CARD", {title: "Release notes"})
