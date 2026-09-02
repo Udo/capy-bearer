@@ -143,6 +143,21 @@ An alias reports its target type. Arrays use `[item_type]`. Structs use their de
 
 A `dval` expression reports `dval`, regardless of its current contents. Use `get_type_name(value)` to inspect the value stored inside a `dval`.
 
+## Struct field inspection
+
+Struct values have two additional reflection expressions:
+
+| Expression | Result | Meaning |
+| --- | --- | --- |
+| `value::size` | `s64` | The number of declared fields. This is not a byte size. |
+| `value::items` | `dval` | A snapshot of the current fields, keyed by field name. |
+
+Each `items` entry contains `value` and `type_name`. Use `fields.name.value` for a fixed field. Use `fields[key]["value"]` for a dynamic field name.
+
+`value::items` evaluates its receiver once. Changing the returned map does not change the struct. The compiler rejects `size` and `items` on non-struct values.
+
+The struct reference defines field conversions for scalars, strings, DValues, nested structs, arrays, and function values.
+
 ## Dependent generic types
 
 A generic function can use the concrete type of an earlier `any` parameter. Write `parameter::type` in a later parameter or the function result:
