@@ -1,0 +1,25 @@
+:sig
+function crypto_operation(request : dval) dval
+
+:params
+request : an ES256 operation request map
+
+:returns
+A response map with `ok`. A failed operation also has `error`.
+
+:content
+`crypto_operation()` runs an ES256 operation from a DValue request.
+
+Set `algorithm` to `"ES256"`. Set `operation` to `"key_generate"`, `"jwt_sign"`, `"cbor_decode"`, `"cose_es256_parse"`, or `"es256_verify"`.
+
+The function validates the request before it runs the operation. It returns `{ok: false, error: "invalid_request"}` for an invalid request.
+
+:example capy render
+var result := crypto_operation({operation: "cbor_decode", algorithm: "ES256", cbor_base64url: "ggFiaGk"})
+print(result.ok, "\n")
+
+:see-group
+crypto
+
+:see
+base64_encode

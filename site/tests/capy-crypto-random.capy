@@ -10,6 +10,8 @@ function exercise {
         var floating := gen_noise(0.0, 1.0, u64(1), u64(0))
         var drawn_int := draw_int(u64(1), u64(10))
         var drawn_float := draw_float(0.0, 1.0)
+        var verification := crypto_operation({operation: "es256_verify", algorithm: "ES256", cose_key_base64url: "pQECAyYgASFYIGsX0fLhLEJH-Lzm5WOkQPJ3A32BLeszoPShOUXYmMKWIlggT-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU", message_base64url: "d2ViYXV0aG4gZml4ZWQgbWVzc2FnZQ", signature_der_base64url: "MEUCIQCkatZK1VVsjk17uvyzyhjdAkMNWXPjxSOMqWcjmM_8XAIgDaSk3Qufyd0_6r9Dm9A8RQbFco-FdTBulq7bvRGoBC4"})
+        if !bool(verification.ok) || !bool(verification.valid) { trap() }
         print(hex(gen_sha1("abc")), "|", length(gen_sha1("abc")), "|", length(digest), "|", hex(digest), "|", length(hmac_sha256("key", "message")), "|", hex(hmac_sha256("key", "message")), "|", hex("ABC"), "|", crypto_equal(digest, sha256("abc")), crypto_equal(digest, "bad"), "|", length(random), "|", password_verify("correct horse", encoded), password_verify("wrong", encoded), "|", integer_noise, "|", noise64, "|", normalized_noise >= 0.0, "|", integer, "|", floating >= 0.0, "|", drawn_int >= u64(1), "|", drawn_float >= 0.0, "|", arc_live())
     }
     print("|", arc_live())

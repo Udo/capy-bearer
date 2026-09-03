@@ -3,7 +3,7 @@
 #include <string_view>
 namespace capy::parity {
 struct Evidence { std::string_view name, path, marker; };
-inline constexpr std::array<Evidence, 256> supported{{
+inline constexpr std::array<Evidence, 257> supported{{
     {"sqrt","site/tests/capy-math.capy","sqrt("},
     {"abs","site/tests/capy-math.capy","abs("},
     {"neg","site/tests/capy-math.capy","neg("},
@@ -192,6 +192,7 @@ inline constexpr std::array<Evidence, 256> supported{{
     {"crypto_equal","site/tests/capy-crypto-random.capy","crypto_equal("},
     {"password_hash","site/tests/capy-crypto-random.capy","password_hash("},
     {"password_verify","site/tests/capy-crypto-random.capy","password_verify("},
+    {"crypto_operation","site/tests/capy-crypto-random.capy","crypto_operation("},
     {"gen_noise","site/tests/capy-crypto-random.capy","gen_noise("},
     {"gen_noise64","site/tests/capy-crypto-random.capy","gen_noise64("},
     {"draw_int","site/tests/capy-crypto-random.capy","draw_int("},

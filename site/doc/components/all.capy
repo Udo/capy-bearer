@@ -36,6 +36,7 @@ function COMPONENT(request : dval) {
     print("<div class=\"func-item\"><a href=\"", html_escape("/doc/api/copysign/"), "\">", html_escape("copysign"), "</a></div>")
     print("<div class=\"func-item\"><a href=\"", html_escape("/doc/api/cos/"), "\">", html_escape("cos"), "</a></div>")
     print("<div class=\"func-item\"><a href=\"", html_escape("/doc/api/crypto-equal/"), "\">", html_escape("crypto_equal"), "</a></div>")
+    print("<div class=\"func-item\"><a href=\"", html_escape("/doc/api/crypto-operation/"), "\">", html_escape("crypto_operation"), "</a></div>")
     print("<div class=\"func-item\"><a href=\"", html_escape("/doc/api/csrf-field/"), "\">", html_escape("csrf_field"), "</a></div>")
     print("<div class=\"func-item\"><a href=\"", html_escape("/doc/api/csrf-rotate/"), "\">", html_escape("csrf_rotate"), "</a></div>")
     print("<div class=\"func-item\"><a href=\"", html_escape("/doc/api/csrf-token/"), "\">", html_escape("csrf_token"), "</a></div>")

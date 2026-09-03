@@ -2737,7 +2737,7 @@ size_t bearer_crypto_password_brrb(s32 operation, const char* value, size_t valu
 	String text;
 	if(!bearer_brrb_call_decode(value, value_len, key, key_len, argument, argument_len, result, supplied, text))
 		return(std::numeric_limits<size_t>::max());
-	enum class CryptoOperation { crypto_gen_sha1 = 0, crypto_hex = 1, crypto_sha256 = 2, crypto_hmac_sha256 = 3, crypto_crypto_equal = 4, crypto_password_hash = 5, crypto_password_verify = 6 };
+	enum class CryptoOperation { crypto_gen_sha1 = 0, crypto_hex = 1, crypto_sha256 = 2, crypto_hmac_sha256 = 3, crypto_crypto_equal = 4, crypto_password_hash = 5, crypto_password_verify = 6, crypto_operation = 7 };
 	switch(static_cast<CryptoOperation>(operation))
 	{
 		case CryptoOperation::crypto_gen_sha1: result.set(gen_sha1(result.to_string())); break;
@@ -2747,6 +2747,7 @@ size_t bearer_crypto_password_brrb(s32 operation, const char* value, size_t valu
 		case CryptoOperation::crypto_crypto_equal: result.set_bool(crypto_equal(result.to_string(), supplied.to_string())); break;
 		case CryptoOperation::crypto_password_hash: result.set(password_hash(result.to_string())); break;
 		case CryptoOperation::crypto_password_verify: result.set_bool(password_verify(result.to_string(), supplied.to_string())); break;
+		case CryptoOperation::crypto_operation: result = crypto_operation(result); break;
 		default: return(std::numeric_limits<size_t>::max());
 	}
 	return(bearer_brrb_call_finish(result));

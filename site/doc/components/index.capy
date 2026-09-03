@@ -43,6 +43,7 @@ function COMPONENT(request : dval) {
     print("<div class=\"func-item\">"); link("/doc/api/copysign/", "copysign", "api"); print("</div>")
     print("<div class=\"func-item\">"); link("/doc/api/cos/", "cos", "api"); print("</div>")
     print("<div class=\"func-item\">"); link("/doc/api/crypto-equal/", "crypto_equal", "api"); print("</div>")
+    print("<div class=\"func-item\">"); link("/doc/api/crypto-operation/", "crypto_operation", "api"); print("</div>")
     print("<div class=\"func-item\">"); link("/doc/api/csrf-field/", "csrf_field", "api"); print("</div>")
     print("<div class=\"func-item\">"); link("/doc/api/csrf-rotate/", "csrf_rotate", "api"); print("</div>")
     print("<div class=\"func-item\">"); link("/doc/api/csrf-token/", "csrf_token", "api"); print("</div>")

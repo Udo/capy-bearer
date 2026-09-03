@@ -76,7 +76,7 @@ PUBLIC_APIS = [
     ("gen_sha1", True, "public"), ("sha256", True, "public"), ("hex", True, "public"),
     ("hmac_sha256", True, "public"), ("random_bytes", True, "public"),
     ("crypto_equal", True, "public"), ("password_hash", True, "public"),
-    ("password_verify", True, "public"),
+    ("password_verify", True, "public"), ("crypto_operation", True, "public"),
     ("gen_noise", True, "public"), ("gen_noise64", True, "public"),
     ("draw_int", True, "public"), ("draw_float", True, "public"),
     ("sqrt", True, "public"), ("abs", True, "public"), ("neg", True, "public"),

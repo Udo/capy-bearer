@@ -143,6 +143,7 @@ inline constexpr DocCapySignature doc_capy_signatures[] = {
 	{"cos", "function cos(value : f32) f32", "lib"},
 	{"cos", "function cos(value : f64) f64", "host"},
 	{"crypto_equal", "function crypto_equal(left : string, right : string) bool", "host"},
+	{"crypto_operation", "function crypto_operation(request : dval) dval", "host"},
 	{"csrf_field", "function csrf_field(session_name : string = \"bearer-session\", token_name : string = \"csrf_token\", field_name : string = \"\") string", "host"},
 	{"csrf_rotate", "function csrf_rotate(session_name : string = \"bearer-session\", token_name : string = \"csrf_token\")", "host"},
 	{"csrf_token", "function csrf_token(session_name : string = \"bearer-session\", token_name : string = \"csrf_token\") string", "host"},

@@ -434,6 +434,7 @@ function __bearer_crypto_hmac_sha256() s32 { -> 3 }
 function __bearer_crypto_crypto_equal() s32 { -> 4 }
 function __bearer_crypto_password_hash() s32 { -> 5 }
 function __bearer_crypto_password_verify() s32 { -> 6 }
+function __bearer_crypto_operation() s32 { -> 7 }
 function __bearer_filesystem_basename() s32 { -> 0 }
 function __bearer_filesystem_dirname() s32 { -> 1 }
 function __bearer_filesystem_path_join() s32 { -> 2 }
@@ -815,6 +816,7 @@ function hmac_sha256(key : string, value : string) string { -> string(__bearer_c
 function crypto_equal(left : string, right : string) bool { -> bool(__bearer_crypto_password_brrb(__bearer_crypto_crypto_equal(), dval(left), "", dval(right))) }
 function password_hash(password : string) string { -> string(__bearer_crypto_password_brrb(__bearer_crypto_password_hash(), dval(password), "", dval(""))) }
 function password_verify(password : string, encoded : string) bool { -> bool(__bearer_crypto_password_brrb(__bearer_crypto_password_verify(), dval(password), "", dval(encoded))) }
+function crypto_operation(request : dval) dval { -> __bearer_crypto_password_brrb(__bearer_crypto_operation(), request, "", dval("")) }
 
 function sqlite_connect(path : string) u64 { -> __bearer_sqlite_connect(path) }
 function sqlite_disconnect(handle : u64) { __bearer_sqlite_disconnect(handle) }

@@ -4,4 +4,5 @@ gen_sha1
 sha256
 hmac_sha256
 crypto_equal
+crypto_operation
 runtime_safe_key
