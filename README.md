@@ -2,6 +2,8 @@
 
 Capy is the language for Bearer application units. A Capy unit uses the `.capy` suffix. Bearer compiles each unit to WebAssembly and runs it for a request.
 
+Project home: [https://capy-bearer.openfu.com/](https://capy-bearer.openfu.com/)
+
 Bearer uses native C++ for its build and runtime implementation. C++ is not a supported application-unit language.
 
 ## Start a page
