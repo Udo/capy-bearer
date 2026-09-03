@@ -80,3 +80,5 @@ No deployment action remains.
 - 2026-09-03: Container 114 proxies the public hostname to container 100. Let's Encrypt issued a certificate for the exact hostname.
 - 2026-09-03: Public checks returned 200 for `/info/`, `/doc/`, a pretty documentation route, and a static asset. HTTP redirects to HTTPS.
 - 2026-09-03: Created the private Gitea repository and pushed `main` and all source tags. No scheduled mirror was added.
+- 2026-09-03: Restarted container 100. All five enabled service units became active, the private CLI health check passed, and the public routes still returned the expected responses.
+- 2026-09-03: The focused Certbot renewal dry run succeeded. OpenSSL verified the public certificate chain and exact hostname.
