@@ -436,6 +436,37 @@ static String wasm_socket_read_bounded(u64 socket_fd, u32 max_length, u64 timeou
 	return(count > 0 ? String(buffer.data(), (size_t)count) : String(""));
 }
 
+// A bounded single read truncates any Memcache response that spans more than one segment,
+// and a value payload can itself contain the "END\r\n" terminator. Read until the protocol
+// framing says the response is complete, then stop without waiting for the timeout.
+static String wasm_socket_read_memcache_bounded(u64 socket_fd, u32 max_length, u64 timeout_ms)
+{
+	if(max_length == 0)
+		return("");
+	u64 deadline = wasm_deadline_after_ms(timeout_ms);
+	String out;
+	std::vector<char> buffer(64 * 1024);
+	while(out.size() < max_length)
+	{
+		if(!wasm_socket_wait((int)socket_fd, POLLIN, deadline))
+			break;
+		size_t want = std::min(buffer.size(), (size_t)max_length - out.size());
+		ssize_t count = recv((int)socket_fd, buffer.data(), want, MSG_DONTWAIT);
+		if(count > 0)
+		{
+			out.append(buffer.data(), (size_t)count);
+			if(memcache_response_complete(out))
+				break;
+			continue;
+		}
+		if(count == 0)
+			break;
+		if(errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK)
+			break;
+	}
+	return(out);
+}
+
 static f64 wasm_thread_cpu_time()
 {
 	struct timespec ts;
@@ -5036,7 +5067,7 @@ struct WasmWorkspace : public WasmRequestProfile
 					int socket_fd = handle >= 1 && handle <= self->socket_handles.size() ? self->socket_handles[(size_t)handle - 1] : -1;
 					if(socket_fd >= 0) {
 						wasm_socket_write_bounded((u64)socket_fd, command + "\r\n", self->bounded_hostcall_timeout_ms(1000));
-						out = wasm_socket_read_bounded((u64)socket_fd, 1024 * 128, self->bounded_hostcall_timeout_ms(1000));
+						out = wasm_socket_read_memcache_bounded((u64)socket_fd, memcache_max_response_bytes, self->bounded_hostcall_timeout_ms(1000));
 					}
 					if(buf == 0)
 					{

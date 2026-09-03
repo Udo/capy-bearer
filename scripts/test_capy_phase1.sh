@@ -300,7 +300,7 @@ set -e
 [[ $archive_trap_status -ne 0 && "$archive_trap_output" == *"capy-archive-trap.capy:1:38"* && "$archive_trap_output" != *"capy://stdlib.capy"* ]]
 expect_equal "archive recovery" "3|heXYZ|Ada:admin|na\\=me=Ada\\=Grace\\, Lovelace,role=admin|Ada=Grace, Lovelace:admin|archive data|true2truetruetrue|11|0|true" "$(scripts/bearer-cli /tests/capy-final-parity.capy)"
 expect_equal "live MySQL stdlib adapters" "truetrue|'a\\'b'|7|true|0:0|truetruetrue|true|truetruetrue|0" "$(scripts/bearer-cli /tests/capy-mysql.capy)"
-expect_equal "memcache key normalization" "down|collision|0" "$(scripts/bearer-cli /tests/capy-memcache.capy)"
+expect_equal "memcache key normalization and complete response reads" "down|collision|large-ok|0" "$(scripts/bearer-cli /tests/capy-memcache.capy)"
 expect_equal "job/process stdlib adapters" "shell|spawned|done|done|done|cancel|cancelled|tasks|server|0" "$(scripts/bearer-cli /tests/capy-jobs.capy)"
 for shell_exec_case in \
 	"capy-shell-exec-flags-trap|shell_exec: unknown key 'unknown'. Valid keys: stdin, env, timeout_ms, background" \

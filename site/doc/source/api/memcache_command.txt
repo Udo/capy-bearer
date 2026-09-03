@@ -6,12 +6,16 @@ connection : the connection handle
 command : the Memcache command text
 
 :returns
-one server response read
+the complete server response
 
 :content
-`memcache_command()` sends `command` to the server and returns one bounded response read.
+`memcache_command()` sends `command` to the server and reads the complete response.
 
-Use a dedicated Memcache function when one is available. This function does not guarantee a complete multi-part response.
+It follows the text-protocol framing: it consumes each `VALUE` header with exactly the payload length that header declares, so a stored value that itself contains `END` does not end the read early. It continues over `STAT` lines and stops at the first terminal line. A response is read across as many receives as it takes.
+
+A response is bounded at 4 MB. A response larger than that, a closed connection, or an expired receive timeout yields a short response, which the dedicated Memcache functions report as a miss.
+
+Use a dedicated Memcache function when one is available.
 
 For `get` and `gets`, each protocol key token starts at token 1. For `gat` and `gats`, the protocol key token is token 2. For storage and single-key commands, the protocol key token is token 1.
 

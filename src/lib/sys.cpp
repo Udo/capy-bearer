@@ -1289,61 +1289,79 @@ u64 memcache_connect(String host, u16 port)
 String memcache_command(u64 connection, String command)
 {
 	socket_write(connection, command+"\r\n");
-	return(socket_read(connection)); // FIXME: do multi-chunk until END line is received!
+	// One response can span several segments, so read until the framing completes it.
+	// A read that returns nothing means the peer closed or the receive timeout expired;
+	// the caller then sees a short response and reports a miss.
+	String response;
+	while(response.size() < memcache_max_response_bytes && !memcache_response_complete(response))
+	{
+		u32 remaining = (u32)(memcache_max_response_bytes - response.size());
+		String chunk = socket_read(connection, remaining < 64*1024 ? remaining : 64*1024);
+		if(chunk == "")
+			break;
+		response += chunk;
+	}
+	return(response);
 }
 
 bool memcache_set(u64 connection, String key, String value, u64 expires_in)
 {
-	socket_write(connection,
-		// set KEY META_DATA EXPIRY_TIME LENGTH_IN_BYTES
-		String("set ") + key + " 0 " + std::to_string(expires_in) + " " + std::to_string(value.length()) + "\r\n" +
-		value + "\r\n");
-	return("STORED" == trim(socket_read(connection)));
+	// set KEY META_DATA EXPIRY_TIME LENGTH_IN_BYTES
+	String response = memcache_command(
+		connection,
+		String("set ") + key + " 0 " + std::to_string(expires_in) + " " + std::to_string(value.length()) + "\r\n" + value
+	);
+	return("STORED" == trim(response));
 }
 
 bool memcache_delete(u64 connection, String key)
 {
-	socket_write(connection,
-		// set KEY META_DATA EXPIRY_TIME LENGTH_IN_BYTES
-		String("delete ") + key + "\r\n"
-		);
-	return("DELETED" == trim(socket_read(connection)));
+	String response = memcache_command(connection, String("delete ") + key);
+	return("DELETED" == trim(response));
 }
 
 String memcache_get(u64 connection, String key, String default_value)
 {
-	auto res = memcache_command(connection, String("get ")+key);
-	String t = nibble(res, " ");
-	if(t == "VALUE")
-	{
-		String key = nibble(res, " ");
-		String meta = nibble(res, " ");
-		u32 length = stoi(nibble(res, "\r\n"));
-		return(res.substr(0, length));
-	}
-	return(default_value);
+	String res = memcache_command(connection, String("get ") + key);
+	String header_end = "\r\n";
+	size_t header_pos = res.find(header_end);
+	if(res.rfind("VALUE ", 0) != 0 || header_pos == String::npos)
+		return(default_value);
+	String header = res.substr(0, header_pos);
+	std::vector<String> parts = split_strings(header, " ");
+	if(parts.size() < 4)
+		return(default_value);
+	u64 length = int_val(parts[3]);
+	size_t data_pos = header_pos + header_end.size();
+	if(res.size() < data_pos + length)
+		return(default_value);
+	return(res.substr(data_pos, length));
 }
 
 StringMap memcache_get_multiple(u64 connection, DValue keys)
 {
 	StringMap result;
-	// to do: escape key String
-	auto res = memcache_command(connection, String("get ")+join_strings(strings_from_dvalue(keys), " "));
-	while(res.length() > 0)
+	String res = memcache_command(connection, String("get ") + join_strings(strings_from_dvalue(keys), " "));
+	while(res.rfind("VALUE ", 0) == 0)
 	{
-		String t = nibble(res, " ");
-		if(t == "VALUE")
-		{
-			String key = nibble(res, " ");
-			String meta = nibble(res, " ");
-			u32 length = stoi(nibble(res, "\r\n"));
-			result[key] = res.substr(0, length);
-			res = res.substr(length+2);
-		}
+		size_t header_pos = res.find("\r\n");
+		if(header_pos == String::npos)
+			break;
+		std::vector<String> parts = split_strings(res.substr(0, header_pos), " ");
+		if(parts.size() < 4)
+			break;
+		String key = parts[1];
+		u64 length = int_val(parts[3]);
+		size_t data_pos = header_pos + 2;
+		if(res.size() < data_pos + length)
+			break;
+		result[key] = res.substr(data_pos, length);
+		res = res.substr(data_pos + length);
+		if(res.rfind("\r\n", 0) == 0)
+			res = res.substr(2);
 	}
 	return(result);
 }
-
 void on_segfault(int sig)
 {
 	String trace = backtrace_capture(32, 1);

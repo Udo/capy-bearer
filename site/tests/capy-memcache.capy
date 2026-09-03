@@ -3,6 +3,7 @@ function CLI(request : dval) {
     var unreachable := memcache_connect("127.0.0.1", 1)
     var live := memcache_connect()
     var result := "skip"
+    var large_result := "skip"
     if live != u64(0) {
         var prefix := "capy-parity-memcache"
         var spaced := prefix + " key"
@@ -19,10 +20,23 @@ function CLI(request : dval) {
         var deleted := memcache_delete(live, normalized)
         if stored && trim(raw_stored) == "STORED" && value == "v2" && string(values[normalized]) == "v2" && contains(raw_get, "VALUE") && contains(raw_gets, "VALUE") && contains(raw_gat, "VALUE") && contains(raw_gats, "VALUE") && deleted { result = "collision" }
         else { result = "failed" }
+        // A response wider than one segment whose payload carries the protocol terminator
+        // and a second VALUE header. Reading it needs the length framing, not a scan for
+        // "END", and needs more than one receive.
+        var chunk := "0123456789abcdef-END\r\nVALUE trap 0 7\r\npayload"
+        var big := chunk
+        while length(big) < 300000 { big = big + big }
+        var big_key := prefix + "_large"
+        var big_stored := memcache_set(live, big_key, big, u64(60))
+        var big_read := memcache_get(live, big_key, "missing")
+        var big_many := memcache_get_multiple(live, dval([big_key, normalized]))
+        var big_deleted := memcache_delete(live, big_key)
+        if big_stored && big_read == big && string(big_many[big_key]) == big && big_deleted { large_result = "large-ok" }
+        else { large_result = "large-failed" }
     }
     var unreachable_status := "up"
     if unreachable == u64(0) { unreachable_status = "down" }
-    print(unreachable_status, "|", result, "|")
+    print(unreachable_status, "|", result, "|", large_result, "|")
     }
     print(arc_live())
 }

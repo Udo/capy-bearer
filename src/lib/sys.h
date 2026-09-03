@@ -131,6 +131,59 @@ bool memcache_delete(u64 connection, String key);
 String memcache_get(u64 connection, String key, String default_value = "");
 StringMap memcache_get_multiple(u64 connection, DValue keys);
 
+// Memcached's own default item limit is 1 MB, and one retrieval can return several items.
+// This bounds a single response the way WS_BROKER_MAX_OUTBOUND_BYTES bounds one forward.
+const u32 memcache_max_response_bytes = 4 * 1024 * 1024;
+
+// A Memcache text response is framed, not delimited. A "VALUE <key> <flags> <bytes>" line
+// (with a trailing <cas> field for gets/gats) is followed by exactly <bytes> payload octets
+// and CRLF, so a payload that itself contains "END\r\n" must not end the read. Every other
+// line is terminal, except "STAT " lines, which continue until the terminator arrives.
+// Returns false while octets are still outstanding, so a reader knows to read again.
+// A malformed header reports complete rather than waiting for octets that never arrive.
+inline bool memcache_response_complete(const String& response)
+{
+	size_t pos = 0;
+	while(true)
+	{
+		size_t line_end = response.find("\r\n", pos);
+		if(line_end == String::npos)
+			return(false);
+		String line = response.substr(pos, line_end - pos);
+		pos = line_end + 2;
+		if(line.rfind("STAT ", 0) == 0)
+			continue;
+		if(line.rfind("VALUE ", 0) != 0)
+			return(true);
+		// <bytes> is field 3 in both the four-field VALUE line and the five-field gets form.
+		size_t start = 0;
+		u64 length = 0;
+		bool have_length = false;
+		for(size_t field = 0; field <= 3 && start <= line.size(); field++)
+		{
+			size_t space = line.find(' ', start);
+			String token = space == String::npos ? line.substr(start) : line.substr(start, space - start);
+			if(field == 3)
+			{
+				if(token == "" || token.find_first_not_of("0123456789") != String::npos || token.size() > 19)
+					return(true);
+				for(char digit : token)
+					length = length * 10 + (u64)(digit - '0');
+				have_length = true;
+				break;
+			}
+			if(space == String::npos)
+				break;
+			start = space + 1;
+		}
+		if(!have_length)
+			return(true);
+		if(response.size() < pos + (size_t)length + 2)
+			return(false);
+		pos += (size_t)length + 2;
+	}
+}
+
 // Defined once in sys.cpp for the native split_strings build (core/wasm/main); the wasm
 // core/unit builds keep the in-place definition (single TU / loader-resolved).
 #if defined(__BEARER_WASM_CORE__) || defined(__BEARER_WASM_UNIT__)
