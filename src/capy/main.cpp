@@ -1,4 +1,5 @@
 #include "compiler.h"
+#include "lsp.h"
 #include "tools.h"
 
 #include <cerrno>
@@ -16,6 +17,7 @@ namespace
 void usage(std::ostream& output)
 {
 	output << "usage: capyc SOURCE -o UNIT.wasm --source-map UNIT.wasm.source-map --abi-version VERSION\n"
+		<< "       capyc --lsp [--socket PATH] | --check FILE|-\n"
 		<< "       capyc --embed-stdlib SOURCE HEADER | --check-stdlib SOURCE HEADER\n"
 		<< "       capyc --stdlib-signatures SOURCE | --parity-manifest [OUTPUT]\n"
 		<< "       capyc --check-unit WASM ABI [--llvm-nm PATH]\n";
@@ -65,6 +67,8 @@ void write_atomic(const std::filesystem::path& path, const char* data, std::size
 
 int main(int argc, char** argv)
 {
+	if (const int lsp_result = capy::lsp::run(argc, argv); lsp_result >= 0)
+		return lsp_result;
 	if (const int tool_result = capy::tools::run(argc, argv); tool_result >= 0)
 		return tool_result;
 	std::string source, output, source_map;

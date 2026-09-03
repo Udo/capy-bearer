@@ -37,6 +37,7 @@ trap cleanup EXIT
 build() {
 	"$CXX" "${FLAGS[@]}" \
 		src/capy/main.cpp \
+		src/capy/lsp.cpp \
 		src/capy/compiler.cpp \
 		src/capy/frontend.cpp \
 		src/capy/wasm.cpp \
