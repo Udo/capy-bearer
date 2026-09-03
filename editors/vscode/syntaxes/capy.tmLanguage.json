@@ -1,0 +1,499 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Capy",
+  "scopeName": "source.capy",
+  "capyGeneratedWords": {
+    "keywords": [
+      "break",
+      "continue",
+      "else",
+      "for",
+      "function",
+      "host",
+      "if",
+      "return",
+      "struct",
+      "trace",
+      "type",
+      "var",
+      "while"
+    ],
+    "operatorWords": [
+      "as"
+    ],
+    "genericTypes": [
+      "any"
+    ],
+    "literals": [
+      "false",
+      "none",
+      "true"
+    ],
+    "reserved": [
+      "emit"
+    ],
+    "types": [
+      "bool",
+      "dval",
+      "f32",
+      "f64",
+      "module",
+      "s16",
+      "s32",
+      "s64",
+      "s8",
+      "string",
+      "u16",
+      "u32",
+      "u64",
+      "u8",
+      "void"
+    ],
+    "directives": [
+      "callsite",
+      "compile",
+      "exports",
+      "import"
+    ],
+    "handlers": [
+      "CLI",
+      "COMPONENT",
+      "INIT",
+      "ONCE",
+      "RENDER",
+      "SERVE_HTTP",
+      "TASK",
+      "WS"
+    ],
+    "namedHandlers": [
+      "COMPONENT",
+      "RENDER",
+      "SERVE_HTTP",
+      "TASK"
+    ]
+  },
+  "patterns": [
+    {
+      "include": "#directives"
+    },
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#markup"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#declarations"
+    },
+    {
+      "include": "#handlers"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#types"
+    },
+    {
+      "include": "#constants"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#function-calls"
+    },
+    {
+      "include": "#members"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#punctuation"
+    }
+  ],
+  "repository": {
+    "directives": {
+      "patterns": [
+        {
+          "name": "meta.preprocessor.capy",
+          "match": "(#)(callsite|compile|exports|import)(?![A-Za-z0-9_])",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.directive.capy"
+            },
+            "2": {
+              "name": "keyword.control.directive.capy"
+            }
+          }
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.capy",
+          "begin": "//",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.capy"
+            }
+          },
+          "end": "$"
+        }
+      ]
+    },
+    "markup": {
+      "name": "meta.embedded.block.html.capy",
+      "contentName": "text.html.basic",
+      "begin": "(?<!\\\\)<>",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.markup.begin.capy"
+        }
+      },
+      "end": "(?<!\\\\)</>",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.markup.end.capy"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#markup-script"
+        },
+        {
+          "include": "#markup-style"
+        },
+        {
+          "include": "#markup-tag"
+        },
+        {
+          "include": "#markup-field-text"
+        },
+        {
+          "include": "#markup"
+        },
+        {
+          "include": "text.html.basic"
+        }
+      ]
+    },
+    "markup-field-text": {
+      "name": "meta.embedded.expression.capy",
+      "begin": "<\\?(?:=|:)",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.embedded.begin.capy"
+        }
+      },
+      "end": "\\?>",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.embedded.end.capy"
+        }
+      },
+      "patterns": [
+        {
+          "include": "$self"
+        }
+      ]
+    },
+    "markup-field-escaped": {
+      "name": "meta.embedded.expression.capy",
+      "begin": "<\\?=",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.embedded.begin.capy"
+        }
+      },
+      "end": "\\?>",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.embedded.end.capy"
+        }
+      },
+      "patterns": [
+        {
+          "include": "$self"
+        }
+      ]
+    },
+    "markup-tag": {
+      "name": "meta.tag.html.capy",
+      "begin": "</?[A-Za-z][A-Za-z0-9:_-]*",
+      "end": ">",
+      "patterns": [
+        {
+          "name": "string.quoted.double.html",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "include": "#markup-field-escaped"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.html",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "include": "#markup-field-escaped"
+            }
+          ]
+        }
+      ]
+    },
+    "markup-script": {
+      "name": "meta.embedded.block.javascript.capy",
+      "contentName": "source.js",
+      "begin": "<[Ss][Cc][Rr][Ii][Pp][Tt]\\b[^>]*>",
+      "end": "</[Ss][Cc][Rr][Ii][Pp][Tt]\\s*>",
+      "patterns": [
+        {
+          "include": "#markup-field-escaped"
+        },
+        {
+          "name": "source.js",
+          "match": "[^<]+|<(?!\\?=)"
+        }
+      ]
+    },
+    "markup-style": {
+      "name": "meta.embedded.block.css.capy",
+      "contentName": "source.css",
+      "begin": "<[Ss][Tt][Yy][Ll][Ee]\\b[^>]*>",
+      "end": "</[Ss][Tt][Yy][Ll][Ee]\\s*>",
+      "patterns": [
+        {
+          "include": "#markup-field-escaped"
+        },
+        {
+          "name": "source.css",
+          "match": "[^<]+|<(?!\\?=)"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.capy",
+          "begin": "\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.capy"
+            }
+          },
+          "end": "\"",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.capy"
+            }
+          },
+          "patterns": [
+            {
+              "name": "constant.character.escape.capy",
+              "match": "\\\\[\\\\\"nrt]"
+            }
+          ]
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "name": "meta.function.definition.handler.capy",
+          "match": "(?<![A-Za-z0-9_])(function)(\\s+)((?:SERVE_HTTP|COMPONENT|RENDER|TASK))(:)([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.declaration.function.capy"
+            },
+            "3": {
+              "name": "entity.name.function.handler.capy"
+            },
+            "4": {
+              "name": "punctuation.separator.handler.capy"
+            },
+            "5": {
+              "name": "entity.name.function.capy"
+            }
+          }
+        },
+        {
+          "name": "meta.function.definition.handler.capy",
+          "match": "(?<![A-Za-z0-9_])(function)(\\s+)((?:SERVE_HTTP|COMPONENT|RENDER|INIT|ONCE|TASK|CLI|WS))(?![A-Za-z0-9_])",
+          "captures": {
+            "1": {
+              "name": "keyword.declaration.function.capy"
+            },
+            "3": {
+              "name": "entity.name.function.handler.capy"
+            }
+          }
+        },
+        {
+          "name": "meta.function.definition.capy",
+          "match": "(?<![A-Za-z0-9_])((?:trace\\s+)?host\\s+function|function)(\\s+)([A-Za-z_][A-Za-z0-9_]*)(?=\\s*(?:\\(|:))",
+          "captures": {
+            "1": {
+              "name": "keyword.declaration.function.capy"
+            },
+            "3": {
+              "name": "entity.name.function.capy"
+            }
+          }
+        },
+        {
+          "name": "meta.type.definition.capy",
+          "match": "(?<![A-Za-z0-9_])(struct|type)(\\s+)([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.declaration.type.capy"
+            },
+            "3": {
+              "name": "entity.name.type.capy"
+            }
+          }
+        }
+      ]
+    },
+    "handlers": {
+      "patterns": [
+        {
+          "name": "support.function.handler.capy",
+          "match": "(?<![A-Za-z0-9_])(?:SERVE_HTTP|COMPONENT|RENDER|INIT|ONCE|TASK|CLI|WS)(?![A-Za-z0-9_])"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.capy",
+          "match": "(?<![A-Za-z0-9_])(?:continue|function|return|struct|break|trace|while|else|host|type|for|var|if)(?![A-Za-z0-9_])"
+        },
+        {
+          "name": "keyword.operator.word.capy",
+          "match": "(?<![A-Za-z0-9_])(?:as)(?![A-Za-z0-9_])"
+        },
+        {
+          "name": "keyword.other.reserved.capy",
+          "match": "(?<![A-Za-z0-9_])(?:emit)(?![A-Za-z0-9_])"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "support.type.builtin.capy",
+          "match": "(?<![A-Za-z0-9_])(?:module|string|bool|dval|void|f32|f64|s16|s32|s64|u16|u32|u64|s8|u8)(?![A-Za-z0-9_])"
+        },
+        {
+          "name": "storage.type.generic.capy",
+          "match": "(?<![A-Za-z0-9_])(?:any)(?![A-Za-z0-9_])"
+        },
+        {
+          "name": "entity.name.type.capy",
+          "match": "(?<![A-Za-z0-9_])[A-Z][A-Za-z0-9_]*"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.capy",
+          "match": "(?<![A-Za-z0-9_])(?:false|none|true)(?![A-Za-z0-9_])"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.capy",
+          "match": "(?<![A-Za-z0-9_])(?:\\d+\\.\\d*|\\d*\\.\\d+|\\d+)(?:[eE][+-]?\\d+)(?![A-Za-z0-9_])"
+        },
+        {
+          "name": "constant.numeric.integer.capy",
+          "match": "(?<![A-Za-z0-9_])\\d+(?![A-Za-z0-9_])"
+        }
+      ]
+    },
+    "function-calls": {
+      "patterns": [
+        {
+          "name": "entity.name.function.call.capy",
+          "match": "[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()"
+        }
+      ]
+    },
+    "members": {
+      "patterns": [
+        {
+          "name": "variable.other.member.capy",
+          "match": "(?<=\\.)[A-Za-z_][A-Za-z0-9_]*"
+        },
+        {
+          "name": "entity.name.type.capy",
+          "match": "(?<=::)[A-Za-z_][A-Za-z0-9_]*"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.yield.capy",
+          "match": "->"
+        },
+        {
+          "name": "keyword.operator.scope.capy",
+          "match": "::"
+        },
+        {
+          "name": "keyword.operator.spread.capy",
+          "match": "\\.\\.\\."
+        },
+        {
+          "name": "keyword.operator.range.capy",
+          "match": "\\.\\."
+        },
+        {
+          "name": "keyword.operator.assignment.capy",
+          "match": ":=|="
+        },
+        {
+          "name": "keyword.operator.comparison.capy",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "name": "keyword.operator.logical.capy",
+          "match": "&&|\\|\\||!|\\?"
+        },
+        {
+          "name": "keyword.operator.arithmetic.capy",
+          "match": "[+\\-*/%]"
+        },
+        {
+          "name": "keyword.operator.access.capy",
+          "match": "\\."
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.separator.capy",
+          "match": "[,;:]"
+        },
+        {
+          "name": "punctuation.section.group.capy",
+          "match": "[(){}\\[\\]]"
+        }
+      ]
+    }
+  }
+}

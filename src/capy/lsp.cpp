@@ -746,7 +746,7 @@ class Server
 	}
 	Json capabilities() const
 	{
-		Json::Array token_types = {"namespace", "type", "class", "function", "variable", "string", "number", "keyword", "operator", "html_text", "html_attribute", "javascript_value", "css_value"};
+		Json::Array token_types = {"namespace", "type", "class", "function", "variable", "property", "string", "number", "keyword", "operator"};
 		return Json::Object{{"positionEncoding", positions_.utf32 ? "utf-32" : "utf-16"}, {"textDocumentSync", Json::Object{{"openClose", true}, {"change", 1}}}, {"documentSymbolProvider", true}, {"workspaceSymbolProvider", true}, {"hoverProvider", true}, {"completionProvider", Json::Object{}}, {"signatureHelpProvider", Json::Object{{"triggerCharacters", Json::Array{"(", ","}}}}, {"definitionProvider", true}, {"semanticTokensProvider", Json::Object{{"legend", Json::Object{{"tokenTypes", token_types}, {"tokenModifiers", Json::Array{}}}}, {"full", true}}}};
 	}
 	void initialize(const Json& id, const Json& params)
@@ -891,23 +891,23 @@ class Server
 	}
 	int semantic_kind(const Token& token) const
 	{
-		if (token.kind == TokenKind::string) return 5;
-		if (token.kind == TokenKind::integer || token.kind == TokenKind::floating) return 6;
-		if (token.kind == TokenKind::directive) return 7;
-		if (token.kind == TokenKind::symbol) return 8;
+		if (token.kind == TokenKind::string) return 6;
+		if (token.kind == TokenKind::integer || token.kind == TokenKind::floating) return 7;
+		if (token.kind == TokenKind::directive) return 8;
+		if (token.kind == TokenKind::symbol) return 9;
 		if (token.kind == TokenKind::identifier)
 		{
 			static const std::set<std::string> keywords = {"function", "struct", "type", "host", "trace", "var", "return", "if", "else", "while", "for", "break", "continue", "none"};
-			return keywords.contains(token.text) ? 7 : 4;
+			return keywords.contains(token.text) ? 8 : 4;
 		}
 		return -1;
 	}
 	int markup_kind(bearer::MarkupContext context) const
 	{
-		if (context == bearer::MarkupContext::html_attribute) return 10;
-		if (context == bearer::MarkupContext::javascript_value) return 11;
-		if (context == bearer::MarkupContext::css_value) return 12;
-		return 9;
+		if (context == bearer::MarkupContext::html_attribute) return 5;
+		if (context == bearer::MarkupContext::javascript_value) return 4;
+		if (context == bearer::MarkupContext::css_value) return 7;
+		return 6;
 	}
 	void semantic_tokens(const Json& id, const Json& params)
 	{
@@ -1016,7 +1016,7 @@ std::string read_source(const std::string& path)
 	return {std::istreambuf_iterator<char>(*input), {}};
 }
 
-int check(const std::string& path)
+int check_file(const std::string& path, ParsedSourceCache* cache)
 {
 	std::string diagnostic_path = path == "-" ? "-" : std::filesystem::absolute(path).string();
 	try
@@ -1026,6 +1026,8 @@ int check(const std::string& path)
 		options.source_path = diagnostic_path;
 		options.module_name = "check.wasm";
 		options.abi_version = BEARER_WASM_CORE_ABI_VERSION;
+		options.canonical_source_identity = path == "-" ? "" : diagnostic_path;
+		options.parsed_source_cache = cache;
 		compile_bearer_unit(source, options);
 		return 0;
 	}
@@ -1039,6 +1041,35 @@ int check(const std::string& path)
 		std::cerr << "capyc: " << error.what() << '\n';
 		return 1;
 	}
+}
+
+int check_paths(int count, char** paths)
+{
+	ParsedSourceCache cache;
+	int result = 0;
+	for (int index = 0; index < count; ++index)
+	{
+		std::filesystem::path path = paths[index];
+		std::error_code error;
+		if (!std::filesystem::is_directory(path, error))
+		{
+			result |= check_file(path.string(), &cache);
+			continue;
+		}
+		std::vector<std::string> files;
+		for (std::filesystem::recursive_directory_iterator iterator(path, std::filesystem::directory_options::skip_permission_denied, error), end;
+			 iterator != end; iterator.increment(error))
+		{
+			if (error) { std::cerr << "capyc: could not scan " << path.string() << ": " << error.message() << '\n'; result = 1; error.clear(); continue; }
+			if (iterator->is_symlink(error)) { if (iterator->is_directory(error)) iterator.disable_recursion_pending(); error.clear(); continue; }
+			if (iterator->is_regular_file(error) && iterator->path().extension() == ".capy") files.push_back(iterator->path().string());
+			error.clear();
+		}
+		if (error) { std::cerr << "capyc: could not scan " << path.string() << ": " << error.message() << '\n'; result = 1; }
+		std::sort(files.begin(), files.end());
+		for (const std::string& file : files) result |= check_file(file, &cache);
+	}
+	return result;
 }
 
 int socket_server(const std::string& path)
@@ -1106,8 +1137,8 @@ int run(int argc, char** argv)
 {
 	if (argc >= 2 && std::string_view(argv[1]) == "--check")
 	{
-		if (argc != 3) { std::cerr << "capyc: --check requires one file or -\n"; return 2; }
-		return check(argv[2]);
+		if (argc < 3) { std::cerr << "capyc: --check requires at least one file, directory, or -\n"; return 2; }
+		return check_paths(argc - 2, argv + 2);
 	}
 	if (argc < 2 || std::string_view(argv[1]) != "--lsp") return -1;
 	try

@@ -1,0 +1,84 @@
+{
+  "name": "capy-language",
+  "displayName": "Capy Language",
+  "description": "Syntax highlighting and language-server support for Capy source files.",
+  "version": "0.2.0",
+  "publisher": "udo",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "capy",
+    "language",
+    "syntax",
+    "lsp"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:capy"
+  ],
+  "scripts": {
+    "test": "node test/validate.mjs && node test/tokenize.mjs && node test/server-path.mjs"
+  },
+  "dependencies": {
+    "vscode-languageclient": "8.1.0"
+  },
+  "devDependencies": {
+    "vscode-oniguruma": "2.0.1",
+    "vscode-textmate": "9.3.0"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "capy",
+        "aliases": [
+          "Capy",
+          "capy"
+        ],
+        "extensions": [
+          ".capy"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "capy",
+        "scopeName": "source.capy",
+        "path": "./syntaxes/capy.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.html.capy": "html",
+          "meta.embedded.block.javascript.capy": "javascript",
+          "meta.embedded.block.css.capy": "css"
+        }
+      }
+    ],
+    "configuration": {
+      "title": "Capy",
+      "properties": {
+        "capy.server.path": {
+          "type": "string",
+          "default": "",
+          "scope": "window",
+          "description": "Path to the capyc executable. Leave empty to use the workspace, PATH, or installed Bearer path."
+        },
+        "capy.trace.server": {
+          "type": "string",
+          "default": "off",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "scope": "window",
+          "description": "Trace messages between Visual Studio Code and the Capy language server."
+        }
+      }
+    }
+  }
+}

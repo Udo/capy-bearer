@@ -212,8 +212,19 @@ function CLI(request : dval) {
     tokens = client.request("textDocument/semanticTokens/full", {"textDocument": {"uri": markup_uri}})["data"]
     assert tokens and len(tokens) % 5 == 0
     token_types = capabilities["semanticTokensProvider"]["legend"]["tokenTypes"]
-    kinds = {token_types[tokens[index + 3]] for index in range(0, len(tokens), 5)}
-    assert {"html_attribute", "javascript_value", "css_value"} <= kinds, kinds
+    standard_types = {"namespace", "type", "class", "enum", "interface", "struct", "typeParameter", "parameter", "variable", "property", "enumMember", "event", "function", "method", "macro", "keyword", "modifier", "comment", "string", "number", "regexp", "operator", "decorator"}
+    assert set(token_types) <= standard_types, token_types
+    decoded = decode_tokens(tokens)
+    markup_line = markup.splitlines()[1]
+    offsets = []
+    start = 0
+    while len(offsets) < 4:
+        start = markup_line.index("<?=", start)
+        offsets.append(start + 3)
+        start += 3
+    expected = ["property", "string", "variable", "number"]
+    for column, kind in zip(offsets, expected):
+        assert (1, column, 7, token_types.index(kind)) in decoded, (kind, decoded)
 
     client.send("workspace/didChangeConfiguration", {"settings": {"capy": {"siteDirectory": "other-site"}}})
     assert client.request("shutdown") is None
@@ -268,6 +279,30 @@ def check_test(workspace):
         [CAPYC, "--check", "-"], cwd=ROOT, input=b"function CLI(request : dval) { @ }\n", capture_output=True, timeout=TIMEOUT,
     )
     assert result.returncode != 0 and result.stderr.startswith(b"-:1:32: "), result.stderr
+
+    second_bad = workspace / "second-bad.capy"
+    second_bad.write_text("function CLI(request : dval) {\n    %\n}\n")
+    result = subprocess.run([CAPYC, "--check", good, bad, second_bad], cwd=ROOT, capture_output=True, timeout=TIMEOUT)
+    assert result.returncode != 0 and result.stdout == b""
+    lines = result.stderr.decode().splitlines()
+    assert len(lines) == 2, lines
+    assert lines[0].startswith(f"{bad}:2:5: ") and lines[1].startswith(f"{second_bad}:2:5: "), lines
+
+    directory = workspace / "check-tree"
+    nested = directory / "nested"
+    nested.mkdir(parents=True)
+    (directory / "valid.capy").write_text(good.read_text())
+    directory_bad = directory / "broken.capy"
+    nested_bad = nested / "broken.capy"
+    directory_bad.write_text("function CLI(request : dval) { @ }\n")
+    nested_bad.write_text("function CLI(request : dval) { missing() }\n")
+    (nested / "ignored.txt").write_text("@")
+    result = subprocess.run([CAPYC, "--check", directory], cwd=ROOT, capture_output=True, timeout=TIMEOUT)
+    assert result.returncode != 0 and result.stdout == b""
+    lines = result.stderr.decode().splitlines()
+    assert len(lines) == 2, lines
+    assert lines[0].startswith(f"{directory_bad}:1:32: "), lines
+    assert lines[1].startswith(f"{nested_bad}:1:32: "), lines
 
 
 def main():

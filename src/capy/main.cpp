@@ -17,7 +17,7 @@ namespace
 void usage(std::ostream& output)
 {
 	output << "usage: capyc SOURCE -o UNIT.wasm --source-map UNIT.wasm.source-map --abi-version VERSION\n"
-		<< "       capyc --lsp [--socket PATH] | --check FILE|-\n"
+		<< "       capyc --lsp [--socket PATH] | --check PATH...|-\n"
 		<< "       capyc --embed-stdlib SOURCE HEADER | --check-stdlib SOURCE HEADER\n"
 		<< "       capyc --stdlib-signatures SOURCE | --parity-manifest [OUTPUT]\n"
 		<< "       capyc --check-unit WASM ABI [--llvm-nm PATH]\n";
