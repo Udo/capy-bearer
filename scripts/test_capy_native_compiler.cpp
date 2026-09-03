@@ -694,6 +694,33 @@ int main()
 	assert(backtrace_bytes.find("bearer_capy_backtrace") != std::string::npos);
 	assert(backtrace_bytes.find("void*") == std::string::npos);
 	assert(ordinary_backtrace.source_map.find("F\t2\tcapy://stdlib.capy\n") != std::string::npos);
+	capy::CompileOptions rooted_path_options = options;
+	rooted_path_options.source_path = "/checkout/site/tests/rooted.capy";
+	rooted_path_options.source_root = "/checkout";
+	const auto rooted_path = capy::compile_bearer_unit(
+		"function CLI(request : dval) { print(backtrace_get_frames()) }\n", rooted_path_options);
+	const std::string rooted_path_bytes(rooted_path.wasm.begin(), rooted_path.wasm.end());
+	assert(rooted_path_bytes.find("source=site/tests/rooted.capy\n") != std::string::npos);
+	assert(rooted_path_bytes.find(rooted_path_options.source_path) == std::string::npos);
+	assert(rooted_path.source_map.find("F\t1\tsite/tests/rooted.capy\n") != std::string::npos);
+	capy::CompileOptions outside_path_options = rooted_path_options;
+	outside_path_options.source_path = "/outside/private/source.capy";
+	const auto outside_path = capy::compile_bearer_unit("function CLI(request : dval) {}\n", outside_path_options);
+	assert(outside_path.source_map.find("F\t1\tsource.capy\n") != std::string::npos);
+	capy::CompileOptions virtual_path_options = options;
+	virtual_path_options.source_path = "capy://generated/test.capy";
+	virtual_path_options.source_root = "/checkout";
+	const auto virtual_path = capy::compile_bearer_unit("function CLI(request : dval) {}\n", virtual_path_options);
+	assert(virtual_path.source_map.find("F\t1\tcapy://generated/test.capy\n") != std::string::npos);
+	try
+	{
+		capy::compile_bearer_unit("function CLI(request : dval) { missing() }\n", rooted_path_options);
+		assert(false);
+	}
+	catch (const capy::Error& error)
+	{
+		assert(error.location.file == rooted_path_options.source_path);
+	}
 	capy::CompileOptions control_path_options = options;
 	control_path_options.source_path = "tab\tline\n\033.capy";
 	const auto control_path_backtrace = capy::compile_bearer_unit("function CLI(request : dval) { print(backtrace_get_frames()) }\n", control_path_options);

@@ -17,6 +17,7 @@ if needs_rebuild "$BUILD_DIR/capyc" src/capy src/lib/markup-context.h scripts/bu
 else
 	echo "Reusing $BUILD_DIR/capyc"
 fi
+CAPYC="$BUILD_DIR/capyc" scripts/test_capy_reproducible_artifact.sh
 "$BUILD_DIR/capyc" --check-stdlib src/capy/stdlib.capy src/capy/stdlib.embedded.h
 python3 - <<'STATIC_GATE'
 from pathlib import Path

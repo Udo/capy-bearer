@@ -51,6 +51,7 @@ private:
 struct CompileOptions
 {
 	std::string source_path = "<input>";
+	std::string source_root;
 	std::string module_name = "module.wasm";
 	unsigned abi_version = 0;
 	CancellationCallback cancelled;
@@ -78,8 +79,8 @@ CompileResult compile_bearer_unit(std::string_view source, const CompileOptions&
 CompileResult compile_bearer_unit(const Program& program, const std::string& source_path, const std::string& module_name, unsigned abi_version,
 								  CancellationCallback cancelled = {});
 
-// Reads and compiles a Capy source file.  source_path is used in diagnostics and
-// source-map records unless overridden in options.
+// Reads and compiles a Capy source file. source_path is used in diagnostics.
+// Artifact paths are relative to source_root, or use the source basename.
 CompileResult compile_bearer_file(const std::string& path, CompileOptions options = {});
 
 } // namespace capy

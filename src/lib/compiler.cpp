@@ -1352,6 +1352,7 @@ void compile_shared_unit_bounded(Request* context, SharedUnit* su, CompilerDeadl
 		{
 			capy::CompileOptions options;
 			options.source_path = su->file_name;
+			options.source_root = compiler_site_directory(context);
 			options.canonical_source_identity = su->file_name;
 			if(!context->server->capy_parsed_source_cache)
 				context->server->capy_parsed_source_cache = std::make_shared<capy::ParsedSourceCache>();

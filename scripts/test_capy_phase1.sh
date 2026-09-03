@@ -242,7 +242,7 @@ EOF
 	expect_equal "declaration initializer trap recovery" "$variable_expression_output" "$(scripts/bearer-cli /tests/capy-variable-expressions.capy)"
 )
 backtrace_output=$(scripts/bearer-cli /tests/capy-backtrace.capy)
-expected_backtrace=$'#0 __lambda_0 at /Code/capy-bearer/site/tests/capy-backtrace.capy:5:20\n#1 inner at /Code/capy-bearer/site/tests/capy-backtrace.capy:4:1\n#2 outer at /Code/capy-bearer/site/tests/capy-backtrace.capy:1:1\n#3 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1\n==\n#0 inner at /Code/capy-bearer/site/tests/capy-backtrace.capy:4:1\n#1 outer at /Code/capy-bearer/site/tests/capy-backtrace.capy:1:1\n--\n|0\n++\n#0 explicit_return_trace at /Code/capy-bearer/site/tests/capy-backtrace.capy:14:1\n#1 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1\n~~\n#0 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1\n@@\n|#0 bounds at /Code/capy-bearer/site/tests/capy-backtrace.capy:17:1\n#1 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1||#0 bounds at /Code/capy-bearer/site/tests/capy-backtrace.capy:17:1\n#1 CLI at /Code/capy-bearer/site/tests/capy-backtrace.capy:24:1'
+expected_backtrace=$'#0 __lambda_0 at tests/capy-backtrace.capy:5:20\n#1 inner at tests/capy-backtrace.capy:4:1\n#2 outer at tests/capy-backtrace.capy:1:1\n#3 CLI at tests/capy-backtrace.capy:24:1\n==\n#0 inner at tests/capy-backtrace.capy:4:1\n#1 outer at tests/capy-backtrace.capy:1:1\n--\n|0\n++\n#0 explicit_return_trace at tests/capy-backtrace.capy:14:1\n#1 CLI at tests/capy-backtrace.capy:24:1\n~~\n#0 CLI at tests/capy-backtrace.capy:24:1\n@@\n|#0 bounds at tests/capy-backtrace.capy:17:1\n#1 CLI at tests/capy-backtrace.capy:24:1||#0 bounds at tests/capy-backtrace.capy:17:1\n#1 CLI at tests/capy-backtrace.capy:24:1'
 expect_equal "Capy source-mapped guest backtrace" "$expected_backtrace" "$backtrace_output"
 (
 	backtrace_test_dir=$(mktemp -d "$site_directory/tests/capy-backtrace-test.XXXXXX")
@@ -265,8 +265,8 @@ expect_equal "Capy source-mapped guest backtrace" "$expected_backtrace" "$backtr
 		echo "Capy backtrace ring/two-pass output bounds mismatch" >&2
 		exit 1
 	}
-	expect_equal "Capy backtrace ring newest frame" "#0 tail at $site_directory/tests/$backtrace_test_name/ring.capy:1:1" "${ring_frames[0]}"
-	expect_equal "Capy backtrace ring oldest retained frame" "#255 ring_45 at $site_directory/tests/$backtrace_test_name/ring.capy:47:1" "${ring_frames[255]}"
+	expect_equal "Capy backtrace ring newest frame" "#0 tail at tests/$backtrace_test_name/ring.capy:1:1" "${ring_frames[0]}"
+	expect_equal "Capy backtrace ring oldest retained frame" "#255 ring_45 at tests/$backtrace_test_name/ring.capy:47:1" "${ring_frames[255]}"
 )
 dval_return_output=$(scripts/bearer-cli /tests/capy-dval-return.capy)
 [[ "$dval_return_output" == "3|0|42|1|0|000|0|9|1|0" ]] || {

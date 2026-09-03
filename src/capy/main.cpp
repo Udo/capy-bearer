@@ -16,7 +16,7 @@ namespace
 
 void usage(std::ostream& output)
 {
-	output << "usage: capyc SOURCE -o UNIT.wasm --source-map UNIT.wasm.source-map --abi-version VERSION\n"
+	output << "usage: capyc SOURCE -o UNIT.wasm --source-map UNIT.wasm.source-map --abi-version VERSION [--source-root DIR]\n"
 		<< "       capyc --lsp [--socket PATH] | --check PATH...|-\n"
 		<< "       capyc --embed-stdlib SOURCE HEADER | --check-stdlib SOURCE HEADER\n"
 		<< "       capyc --stdlib-signatures SOURCE | --parity-manifest [OUTPUT]\n"
@@ -72,6 +72,7 @@ int main(int argc, char** argv)
 	if (const int tool_result = capy::tools::run(argc, argv); tool_result >= 0)
 		return tool_result;
 	std::string source, output, source_map;
+	std::string source_root = std::filesystem::current_path().string();
 	unsigned abi_version = 0;
 	for (int index = 1; index < argc; ++index)
 	{
@@ -95,6 +96,8 @@ int main(int argc, char** argv)
 				source_map = value(argument.c_str());
 			else if (argument == "--abi-version")
 				abi_version = static_cast<unsigned>(std::stoul(value(argument.c_str())));
+			else if (argument == "--source-root")
+				source_root = value(argument.c_str());
 			else if (argument == "--bearer-unit")
 			{
 			}
@@ -123,6 +126,7 @@ int main(int argc, char** argv)
 		capy::ParsedSourceCache parsed_source_cache;
 		capy::CompileOptions options;
 		options.source_path = std::filesystem::absolute(source).string();
+		options.source_root = source_root;
 		options.canonical_source_identity = options.source_path;
 		options.parsed_source_cache = &parsed_source_cache;
 		options.module_name = std::filesystem::path(output).filename().string();

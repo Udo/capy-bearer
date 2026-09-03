@@ -741,10 +741,10 @@ struct FunctionLowerer
 
 struct Module
 {
-	Module(std::vector<Expr*> items, std::vector<std::string> sources, std::string source, std::string module, unsigned abi, CancellationCallback cancelled,
-		std::function<std::vector<std::string>(const std::string&)> import_type_metadata = {})
-		: items_(std::move(items)), sources_(std::move(sources)), source_(std::move(source)), module_(std::move(module)), abi_(abi), cancelled_(std::move(cancelled)),
-		  import_type_metadata_(std::move(import_type_metadata))
+	Module(std::vector<Expr*> items, std::vector<std::string> sources, std::string source, std::string artifact_source, std::string module,
+		unsigned abi, CancellationCallback cancelled, std::function<std::vector<std::string>(const std::string&)> import_type_metadata = {})
+		: items_(std::move(items)), sources_(std::move(sources)), source_(std::move(source)), artifact_source_(std::move(artifact_source)),
+		  module_(std::move(module)), abi_(abi), cancelled_(std::move(cancelled)), import_type_metadata_(std::move(import_type_metadata))
 	{
 	}
 
@@ -1345,9 +1345,13 @@ struct Module
 	{
 		return module_;
 	}
+	const std::string& artifact_path(const std::string& path) const
+	{
+		return path == source_ ? artifact_source_ : path;
+	}
 	const std::vector<Expr*> items_;
 	const std::vector<std::string> sources_;
-	std::string source_, module_;
+	std::string source_, artifact_source_, module_;
 	unsigned abi_;
 	CancellationCallback cancelled_;
 	std::deque<Definition> definitions_;
@@ -6591,7 +6595,7 @@ Bytes FunctionLowerer::lower()
 	if (trace)
 	{
 		const std::string& function = definition_.function->name;
-		const std::string& path = definition_.function->location.file;
+		const std::string& path = module_.artifact_path(definition_.function->location.file);
 		if (function.size() > std::numeric_limits<std::uint32_t>::max() - 16 || path.size() > std::numeric_limits<std::uint32_t>::max() - 16 - function.size())
 			throw Error(definition_.function->location, "backtrace metadata exceeds 4 GiB");
 		std::string record;
@@ -8366,7 +8370,7 @@ CompileResult Module::compile()
 	wasm::append_uleb(mem, 3);
 	wasm::append_uleb(mem, 0);
 	wasm::append_uleb(mem, 0);
-	std::string abi = "format=bearer-wasm-unit-abi-v1\nunit_abi_version=" + std::to_string(abi_) + "\ntoolchain=capyc-native-cpp20\nsource=" + source_ + "\n";
+	std::string abi = "format=bearer-wasm-unit-abi-v1\nunit_abi_version=" + std::to_string(abi_) + "\ntoolchain=capyc-native-cpp20\nsource=" + artifact_source_ + "\n";
 	Bytes result{0, 'a', 's', 'm', 1, 0, 0, 0};
 	Bytes dylink{1};
 	wasm::append_uleb(dylink, static_cast<unsigned>(mem.size()));
@@ -8491,7 +8495,7 @@ CompileResult Module::compile()
 	std::ostringstream map;
 	map << "BEARER_SOURCE_MAP_V1\t" << module_ << "\n";
 	for (std::size_t index = 0; index < sources_.size(); ++index)
-		map << "F\t" << index + 1 << "\t" << sources_[index] << "\n";
+		map << "F\t" << index + 1 << "\t" << artifact_path(sources_[index]) << "\n";
 	for (const auto& [address, location] : source_rows)
 	{
 		auto source = std::find(sources_.begin(), sources_.end(), location.file);
@@ -8862,8 +8866,24 @@ std::shared_ptr<const Program> parsed_source(std::string_view source, const std:
 		"capy-parsed-source-v2:" CAPY_COMPILER_BUILD_ID, abi_version, std::move(cancelled), pinned);
 }
 
-CompileResult compile_program(const Program& program, const std::string& source_path, const std::string& module_name, unsigned abi_version,
-	CancellationCallback cancelled, ParsedSourceCache* cache,
+std::string artifact_source_path(const std::string& source_path, const std::string& source_root)
+{
+	if (source_path.find("://") != std::string::npos)
+		return source_path;
+	if (!source_root.empty())
+	{
+		const auto source = std::filesystem::absolute(source_path).lexically_normal();
+		const auto root = std::filesystem::absolute(source_root).lexically_normal();
+		const auto relative = source.lexically_relative(root);
+		if (!relative.empty() && relative != "." && *relative.begin() != "..")
+			return relative.generic_string();
+	}
+	const std::string basename = std::filesystem::path(source_path).filename().generic_string();
+	return basename.empty() ? "<input>" : basename;
+}
+
+CompileResult compile_program(const Program& program, const std::string& source_path, const std::string& artifact_source,
+	const std::string& module_name, unsigned abi_version, CancellationCallback cancelled, ParsedSourceCache* cache,
 	std::function<std::vector<std::string>(const std::string&)> import_type_metadata = {})
 {
 	auto library = parsed_source(stdlib::text, "capy://stdlib.capy", "capy://stdlib.capy", abi_version, cancelled, cache, true);
@@ -8882,7 +8902,8 @@ CompileResult compile_program(const Program& program, const std::string& source_
 	std::vector<std::string> sources{source_path};
 	if (!selected.empty())
 		sources.push_back("capy://stdlib.capy");
-	return Module(std::move(items), std::move(sources), source_path, module_name, abi_version, std::move(cancelled), std::move(import_type_metadata)).compile();
+	return Module(std::move(items), std::move(sources), source_path, artifact_source, module_name, abi_version, std::move(cancelled),
+		std::move(import_type_metadata)).compile();
 }
 
 } // namespace
@@ -8891,13 +8912,14 @@ CompileResult compile_bearer_unit(std::string_view source, const CompileOptions&
 {
 	auto program = parsed_source(source, options.canonical_source_identity, options.source_path, options.abi_version,
 		options.cancelled, options.parsed_source_cache);
-	return compile_program(*program, options.source_path, options.module_name, options.abi_version, options.cancelled, options.parsed_source_cache, options.import_type_metadata);
+	return compile_program(*program, options.source_path, artifact_source_path(options.source_path, options.source_root), options.module_name,
+		options.abi_version, options.cancelled, options.parsed_source_cache, options.import_type_metadata);
 }
 
 CompileResult compile_bearer_unit(const Program& program, const std::string& source_path, const std::string& module_name, unsigned abi_version,
 								  CancellationCallback cancelled)
 {
-	return compile_program(program, source_path, module_name, abi_version, std::move(cancelled), nullptr);
+	return compile_program(program, source_path, artifact_source_path(source_path, {}), module_name, abi_version, std::move(cancelled), nullptr);
 }
 
 CompileResult compile_bearer_file(const std::string& path, CompileOptions options)
