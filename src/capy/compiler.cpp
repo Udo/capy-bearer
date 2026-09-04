@@ -894,9 +894,10 @@ struct Module
 	std::pair<std::string, unsigned> reference_function(const std::string& name, const Location& location)
 	{
 		std::vector<std::size_t> candidates;
-		for (std::size_t i = 0; i < definitions_.size(); ++i)
-			if (definitions_[i].function && definitions_[i].function->name == name && definitions_[i].exported.empty())
-				candidates.push_back(i);
+		if (auto found = definitions_by_name_.find(name); found != definitions_by_name_.end())
+			for (std::size_t index : found->second)
+				if (definitions_[index].exported.empty())
+					candidates.push_back(index);
 		if (auto generic = generics_.find(name); generic != generics_.end() && !generic->second.empty())
 			throw Error(location, "generic function value '" + name + "' requires an explicit concrete function type");
 		if (candidates.empty())
@@ -989,9 +990,12 @@ struct Module
 			if (declaration.function && declaration.function->name == name && declaration.parameters.size() == arguments.size())
 				add(declaration.parameters, false, "", {});
 		}
-		for (const Definition& definition : definitions_)
-			if (definition.function && definition.function->name == name)
+		if (auto found = definitions_by_name_.find(name); found != definitions_by_name_.end())
+			for (std::size_t index : found->second)
+			{
+				const Definition& definition = definitions_[index];
 				add(definition.parameters, definition.variadic, definition.variadic_element, definition.default_values);
+			}
 		if (candidates.empty()) return std::nullopt;
 		const unsigned rank = std::min_element(candidates.begin(), candidates.end(), [](const Candidate& left, const Candidate& right)
 		{
@@ -1084,9 +1088,13 @@ struct Module
 		const Definition* selected = nullptr;
 		unsigned best = std::numeric_limits<unsigned>::max();
 		bool ambiguous = false;
-		for (const Definition& definition : definitions_)
+		auto found = definitions_by_name_.find(name);
+		if (found == definitions_by_name_.end())
+			return nullptr;
+		for (std::size_t index : found->second)
 		{
-			if (!definition.function || definition.function->name != name || definition.parameters.size() != types.size() || definition.convert.size() != types.size())
+			const Definition& definition = definitions_[index];
+			if (definition.parameters.size() != types.size() || definition.convert.size() != types.size())
 				continue;
 			unsigned conversions = 0;
 			bool matches = true;
@@ -1114,10 +1122,13 @@ struct Module
 		const Definition* selected = nullptr;
 		unsigned best_conversions = std::numeric_limits<unsigned>::max();
 		bool ambiguous = false;
-		for (const Definition& definition : definitions_)
+		auto found = definitions_by_name_.find(name);
+		if (found == definitions_by_name_.end())
+			return nullptr;
+		for (std::size_t index : found->second)
 		{
-			if (!definition.function || definition.function->name != name || definition.variadic || types.size() >= definition.parameters.size() ||
-				definition.default_values.size() != definition.parameters.size())
+			const Definition& definition = definitions_[index];
+			if (definition.variadic || types.size() >= definition.parameters.size() || definition.default_values.size() != definition.parameters.size())
 				continue;
 			unsigned conversions = 0;
 			bool matches = true;
@@ -1144,9 +1155,13 @@ struct Module
 		const Definition* selected = nullptr;
 		unsigned best_conversions = std::numeric_limits<unsigned>::max(), best_fixed = 0;
 		bool ambiguous = false;
-		for (const Definition& definition : definitions_)
+		auto found = definitions_by_name_.find(name);
+		if (found == definitions_by_name_.end())
+			return nullptr;
+		for (std::size_t index : found->second)
 		{
-			if (!definition.function || definition.function->name != name || !definition.variadic || definition.parameters.empty())
+			const Definition& definition = definitions_[index];
+			if (!definition.variadic || definition.parameters.empty())
 				continue;
 			const std::size_t fixed = definition.parameters.size() - 1;
 			if (types.size() < fixed)
@@ -1276,6 +1291,7 @@ struct Module
 		definition.index = first_user_index_ + static_cast<unsigned>(std::count_if(definitions_.begin(), definitions_.end(), [](const Definition& value) { return !value.inline_only; }));
 		definition.type = wasm_type(definition.parameters, definition.result);
 		definitions_by_key_[key(name, types)] = definitions_.size();
+		definitions_by_name_[name].push_back(definitions_.size());
 		definitions_.push_back(std::move(definition));
 		return &definitions_.back();
 	}
@@ -1357,6 +1373,7 @@ struct Module
 	std::deque<Definition> definitions_;
 	std::deque<Function> lambda_functions_;
 	std::unordered_map<std::string, std::size_t> definitions_by_key_;
+	std::unordered_map<std::string, std::vector<std::size_t>> definitions_by_name_;
 	std::map<std::string, std::vector<GenericDefinition>> generics_;
 	unsigned first_user_index_ = 0;
 	std::map<std::string, unsigned> function_values_;
@@ -1939,6 +1956,7 @@ std::tuple<std::string, unsigned, unsigned, Definition*, std::vector<std::pair<s
 	definition.type = type;
 	definition.closure_body = true;
 	definition.captures = captures;
+	module_.definitions_by_name_[function.name].push_back(module_.definitions_.size());
 	module_.definitions_.push_back(std::move(definition));
 	const unsigned slot = static_cast<unsigned>(module_.table_functions_.size());
 	module_.table_functions_.push_back(module_.definitions_.back().index);
@@ -2508,9 +2526,9 @@ std::string FunctionLowerer::infer(Expr* value)
 			return operand;
 		}
 		const std::string left = dynamic_cast<Integer*>(binary->left) && !dynamic_cast<Integer*>(binary->right)
-			? infer_integer(static_cast<Integer*>(binary->left), inferred_right) : infer(binary->left);
+			? infer_integer(static_cast<Integer*>(binary->left), inferred_right) : inferred_left;
 		const std::string right = dynamic_cast<Integer*>(binary->right) && !dynamic_cast<Integer*>(binary->left)
-			? infer_integer(static_cast<Integer*>(binary->right), inferred_left) : infer(binary->right);
+			? infer_integer(static_cast<Integer*>(binary->right), inferred_left) : inferred_right;
 		if (left != right)
 			throw Error(binary->location, "expected " + left + ", found " + right);
 		const bool equality = binary->operator_ == "==" || binary->operator_ == "!=";
@@ -6585,6 +6603,7 @@ Bytes FunctionLowerer::lower()
 		code.push_back(0x0b);
 		Bytes locals{0};
 		Bytes body;
+		body.reserve(locals.size() + code.size() + 5);
 		wasm::append_uleb(body, static_cast<unsigned>(locals.size() + code.size()));
 		body.insert(body.end(), locals.begin(), locals.end());
 		body.insert(body.end(), code.begin(), code.end());
@@ -6697,10 +6716,11 @@ Bytes FunctionLowerer::lower()
 	}
 	else
 		locals.push_back(0);
-	locals.insert(locals.end(), code.begin(), code.end());
 	Bytes body;
-	wasm::append_uleb(body, static_cast<unsigned>(locals.size()));
+	body.reserve(locals.size() + code.size() + 5);
+	wasm::append_uleb(body, static_cast<unsigned>(locals.size() + code.size()));
 	body.insert(body.end(), locals.begin(), locals.end());
+	body.insert(body.end(), code.begin(), code.end());
 	return body;
 }
 
@@ -7239,6 +7259,9 @@ void Module::collect()
 			}
 		}
 	}
+	for (std::size_t index = 0; index < definitions_.size(); ++index)
+		if (definitions_[index].function)
+			definitions_by_name_[definitions_[index].function->name].push_back(index);
 	auto add_function_export = [&](const std::string& line, const Location& location)
 	{
 		if (std::find(function_exports_.begin(), function_exports_.end(), line) != function_exports_.end())
@@ -7537,11 +7560,10 @@ Module::Capabilities Module::discover_capabilities()
 			return binary->operator_ == "+" && (scan_is_string(binary->left) || scan_is_string(binary->right));
 		if (auto call = dynamic_cast<Call*>(e))
 			if (auto name = dynamic_cast<Name*>(call->function))
-			{
-				for (const Definition& definition : definitions_)
-					if (definition.function->name == name->value && definition.result == "string")
-						return true;
-			}
+				if (auto found = definitions_by_name_.find(name->value); found != definitions_by_name_.end())
+					for (std::size_t index : found->second)
+						if (definitions_[index].result == "string")
+							return true;
 		return false;
 	};
 	auto scan_string_construction = [&](const std::string& source)
@@ -7759,9 +7781,10 @@ Module::Capabilities Module::discover_capabilities()
 					}
 				}
 				else if (std::find(host_arguments.begin(), host_arguments.end(), "") != host_arguments.end())
-					for (const Definition& candidate : definitions_)
-						if (candidate.function && candidate.function->name == callee)
+					if (auto found = definitions_by_name_.find(callee); found != definitions_by_name_.end())
+					for (std::size_t index : found->second)
 						{
+							const Definition& candidate = definitions_[index];
 							if (candidate.variadic && candidate.parameters.size() - 1 <= host_arguments.size() && candidate.variadic_convert && candidate.variadic_element == "string")
 							{
 								if (const HostDeclaration* sink = fused_variadic_sink(candidate))
@@ -8276,7 +8299,8 @@ CompileResult Module::compile()
 		if (!definition.inline_only)
 			emitted_definitions.push_back(&definition);
 	std::vector<Bytes> bodies = runtime_bodies();
-	bodies.insert(bodies.end(), user_bodies.begin(), user_bodies.end());
+	const std::size_t runtime_count = bodies.size();
+	bodies.insert(bodies.end(), std::make_move_iterator(user_bodies.begin()), std::make_move_iterator(user_bodies.end()));
 	for (const auto& [name, target] : custom_exports_)
 		bodies.push_back(custom_export_body(*target));
 
@@ -8444,7 +8468,6 @@ CompileResult Module::compile()
 		}
 	};
 	std::size_t cursor = code_section_offset + 1 + uleb_size(code.size()) + uleb_size(bodies.size());
-	const std::size_t runtime_count = runtime_bodies().size();
 	for (std::size_t index = 0; index < runtime_count; ++index)
 		cursor += bodies[index].size();
 	std::vector<std::pair<std::size_t, Location>> source_rows;
@@ -8477,18 +8500,52 @@ CompileResult Module::compile()
 		source_rows.push_back({cursor + instruction, custom_exports_[index].second->function->location});
 		cursor += body.size();
 	}
+	std::vector<std::size_t> marker_offsets(markers_.size(), std::numeric_limits<std::size_t>::max());
+	std::vector<bool> marker_ambiguous(markers_.size());
+	const Bytes marker_prefix{0x01, 0x01, 0x01, 0x41};
+	Bytes canonical_marker = marker_prefix;
+	canonical_marker.reserve(10);
+	auto code_begin = result.begin() + static_cast<std::ptrdiff_t>(code_section_offset);
+	auto code_end = result.begin() + static_cast<std::ptrdiff_t>(code_section_end);
+	for (auto cursor = code_begin; cursor != code_end;)
+	{
+		auto found = std::search(cursor, code_end, marker_prefix.begin(), marker_prefix.end());
+		if (found == code_end)
+			break;
+		auto value_cursor = found + static_cast<std::ptrdiff_t>(marker_prefix.size());
+		std::uint32_t encoded = 0;
+		unsigned shift = 0;
+		std::uint8_t byte = 0;
+		for (; value_cursor != code_end && shift < 35; shift += 7)
+		{
+			byte = *value_cursor++;
+			encoded |= std::uint32_t(byte & 0x7f) << shift;
+			if (!(byte & 0x80))
+				break;
+		}
+		if (!(byte & 0x80) && value_cursor != code_end && *value_cursor == 0x1a)
+		{
+			canonical_marker.resize(marker_prefix.size());
+			wasm::append_sleb32(canonical_marker, static_cast<std::int32_t>(encoded));
+			canonical_marker.push_back(0x1a);
+			const std::uint32_t marker_base = 0x5a000000u;
+			if (code_end - found >= static_cast<std::ptrdiff_t>(canonical_marker.size()) && std::equal(canonical_marker.begin(), canonical_marker.end(), found) &&
+				encoded >= marker_base && encoded - marker_base < markers_.size())
+			{
+				const std::size_t index = encoded - marker_base;
+				const std::size_t offset = static_cast<std::size_t>(found - result.begin());
+				if (marker_offsets[index] == std::numeric_limits<std::size_t>::max()) marker_offsets[index] = offset;
+				else marker_ambiguous[index] = true;
+			}
+		}
+		cursor = found + 1;
+	}
 	for (std::size_t index = 0; index < markers_.size(); ++index)
 	{
 		check_cancelled();
-		Bytes marker{0x01, 0x01, 0x01, 0x41};
-		wasm::append_sleb32(marker, static_cast<std::int32_t>(0x5a000000u + index));
-		marker.push_back(0x1a);
-		auto code_begin = result.begin() + static_cast<std::ptrdiff_t>(code_section_offset);
-		auto code_end = result.begin() + static_cast<std::ptrdiff_t>(code_section_end);
-		auto found = std::search(code_begin, code_end, marker.begin(), marker.end());
-		if (found == code_end || std::search(found + 1, code_end, marker.begin(), marker.end()) != code_end)
+		if (marker_offsets[index] == std::numeric_limits<std::size_t>::max() || marker_ambiguous[index])
 			throw Error(markers_[index], "native Capy source marker is missing or ambiguous in final Wasm");
-		source_rows.push_back({static_cast<std::size_t>(found - result.begin()), markers_[index]});
+		source_rows.push_back({marker_offsets[index], markers_[index]});
 	}
 	check_cancelled();
 	std::sort(source_rows.begin(), source_rows.end(), [](const auto& left, const auto& right) { return left.first < right.first; });
