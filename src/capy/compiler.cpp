@@ -1746,8 +1746,20 @@ bool FunctionLowerer::expression_is_owned(const Expr* value)
 		return binary->operator_ == "+" && infer(binary->left) == "string" && infer(binary->right) == "string";
 	if (auto call = dynamic_cast<const Call*>(value))
 	{
-		if (auto name = dynamic_cast<const Name*>(call->function); name && name->value == "__bearer_dval_replace")
-			return false;
+		if (auto name = dynamic_cast<const Name*>(call->function))
+		{
+			if (name->value == "__bearer_dval_replace")
+				return false;
+			if (name->value == "string" && call->arguments.size() == 1 && infer(call->arguments[0]) == "string")
+			{
+				bool local_callable = false;
+				for (auto scope = scopes_.rbegin(); scope != scopes_.rend() && !local_callable; ++scope)
+					if (auto found = scope->find(name->value); found != scope->end() && found->second.second.rfind("function#", 0) == 0)
+						local_callable = true;
+				if (!local_callable)
+					return expression_is_owned(call->arguments[0]);
+			}
+		}
 		return managed_type(infer(const_cast<Call*>(call)));
 	}
 	if (auto scope = dynamic_cast<const ScopeLookup*>(value))

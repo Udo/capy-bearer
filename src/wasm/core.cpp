@@ -29,6 +29,8 @@ static_assert(BEARER_WASM_OBJECT_BLOB_HEADER_SIZE == BEARER_WASM_OBJECT_LENGTH_O
 
 static const char* WASM_DB_UNAVAILABLE =
 	"database connector is not available in the wasm workspace";
+static const char* WASM_MYSQL_INVALID_HANDLE =
+	"mysql handle is invalid or unavailable in this task";
 
 extern "C" size_t bearer_host_mysql(const char* in, size_t in_len, char* out, size_t cap);
 extern "C" size_t bearer_host_sqlite(const char* in, size_t in_len, char* out, size_t cap);
@@ -499,7 +501,7 @@ extern "C" u64 bearer_mysql_connect(const char* host, size_t host_len, const cha
 extern "C" s32 bearer_mysql_connected(u64 handle)
 {
 	MySQL* db = bearer_mysql_handle(handle);
-	return(db ? (mysql_connected(db) ? 1 : 0) : -1);
+	return(db && mysql_connected(db) ? 1 : 0);
 }
 
 extern "C" s32 bearer_mysql_disconnect(u64 handle)
@@ -518,9 +520,7 @@ extern "C" size_t bearer_mysql_error(u64 handle, char* out, size_t cap)
 	{
 		wasm_mysql_result.clear();
 		MySQL* db = bearer_mysql_handle(handle);
-		if(!db)
-			return(std::numeric_limits<size_t>::max());
-		wasm_mysql_result = mysql_error(db);
+		wasm_mysql_result = db ? mysql_error(db) : WASM_MYSQL_INVALID_HANDLE;
 		return(wasm_mysql_result.size());
 	}
 	return(bearer_copy_staged(wasm_mysql_result, out, cap));
@@ -543,7 +543,12 @@ extern "C" size_t bearer_mysql_query(u64 handle, const char* query, size_t query
 		wasm_mysql_result.clear();
 		MySQL* db = bearer_mysql_handle(handle);
 		if(!db)
-			return(std::numeric_limits<size_t>::max());
+		{
+			DValue empty;
+			empty.set_array();
+			wasm_mysql_result = brb_encode(empty);
+			return(wasm_mysql_result.size());
+		}
 		StringMap parameter_map;
 		if(params_len)
 		{
@@ -562,6 +567,8 @@ extern "C" size_t bearer_mysql_query(u64 handle, const char* query, size_t query
 		}
 		DValue result = params_len ? mysql_query(db, String(query ? query : "", query ? query_len : 0), parameter_map)
 			: mysql_query(db, String(query ? query : "", query ? query_len : 0));
+		if(result.is_none() || (result.deref().type == 'S' && result.to_string().empty()))
+			result.set_array();
 		wasm_mysql_result = brb_encode(result);
 		if(wasm_mysql_result.size() > (size_t)std::numeric_limits<s32>::max() - 20)
 		{
@@ -576,13 +583,13 @@ extern "C" size_t bearer_mysql_query(u64 handle, const char* query, size_t query
 extern "C" u64 bearer_mysql_insert_id(u64 handle)
 {
 	MySQL* db = bearer_mysql_handle(handle);
-	return(db ? mysql_insert_id(db) : std::numeric_limits<u64>::max());
+	return(db ? mysql_insert_id(db) : 0);
 }
 
 extern "C" u64 bearer_mysql_affected_rows(u64 handle)
 {
 	MySQL* db = bearer_mysql_handle(handle);
-	return(db ? mysql_affected_rows(db) : std::numeric_limits<u64>::max());
+	return(db ? mysql_affected_rows(db) : 0);
 }
 
 static SQLite* bearer_sqlite_handle(u64 handle)

@@ -1,0 +1,27 @@
+function consume(value : string) {
+    if value == "" { trap() }
+}
+
+function identity(value : string) string {
+    return string(value)
+}
+
+function CLI(request : dval) {
+    {
+        var source : dval = {value: "alive"}
+        var value : string = string(source["value"])
+        var copy : string = string(value)
+        copy = string(value)
+        consume(copy)
+        consume(string("literal"))
+        consume(string(value))
+        consume(string(string(source["value"])))
+        consume(identity(value))
+        {
+            var string : function(value : string) string = function(value : string) string { -> clone(value) }
+            consume(string(value))
+        }
+        print(string(value), value)
+    }
+    print("|", arc_live())
+}

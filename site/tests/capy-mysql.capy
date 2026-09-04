@@ -7,10 +7,24 @@ function CLI(request : dval) {
         var bound := mysql_query(db, "SELECT :value AS value", dval({"value": "a'b"}))
         var lexical := mysql_query(db, "SELECT ':missing ?' AS literal, :value AS value /* :missing ? */", dval({"value": "bound"}))
         print("|", string(bound[0]["value"]) == "a'b", string(lexical[0]["literal"]) == ":missing ?", string(lexical[0]["value"]) == "bound")
+        var empty_rows := mysql_query(db, "SELECT 1 AS value WHERE 1 = 0")
+        var empty_iterations := 0
+        for row, key := empty_rows { empty_iterations = empty_iterations + 1 }
+        print("|", length(empty_rows) == 0, empty_iterations == 0)
         var missing := mysql_query(db, "SELECT :missing AS value", dval({}))
-        print("|", string(mysql_info(db, "error")) != "")
+        var missing_iterations := 0
+        for row, key := missing { missing_iterations = missing_iterations + 1 }
+        print("|", string(mysql_info(db, "error")) != "", length(missing) == 0, missing_iterations == 0)
         var reset_mode := mysql_query(db, "SET SESSION sql_mode = DEFAULT")
+        print("|", length(mode) == 0, length(reset_mode) == 0)
+        var stale := db
         mysql_disconnect(db)
+        var replacement := mysql_connect("localhost", "root", "", "mysql")
+        var stale_rows := mysql_query(stale, "SELECT 99 AS value")
+        var stale_error := string(mysql_info(stale, "error"))
+        var replacement_rows := mysql_query(replacement, "SELECT 7 AS value")
+        print("|", length(stale_rows) == 0, find(stale_error, "mysql handle is invalid") != -1, replacement != stale, u64(replacement_rows[0]["value"]))
+        mysql_disconnect(replacement)
         var unavailable := mysql_connect("localhost", "root", "", "__capy_missing_database__")
         print("|", unavailable != u64(0), !bool(mysql_info(unavailable, "connection")), string(mysql_info(unavailable, "error")) != "")
         mysql_disconnect(unavailable)

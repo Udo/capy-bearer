@@ -38,6 +38,7 @@ expect_equal "bits fixture" "capy-bits-ok" "$(scripts/bearer-cli /tests/capy-bit
 expect_equal "byte conversion fixture" "3|0|65|255|0|5" "$(scripts/bearer-cli /tests/capy-byte-conversion.capy)"
 expect_equal "scalar format fixture" "capy-format-ok" "$(scripts/bearer-cli /tests/capy-format.capy)"
 expect_equal "in-Wasm string fixture" "capy-string-hostpath-ok" "$(scripts/bearer-cli /tests/capy-string-hostpath.capy)"
+expect_equal "identity string conversion preserves the source" "alivealive|0" "$(scripts/bearer-cli /tests/capy-string-identity.capy)"
 expect_equal "flush_output ordering and reset" "first|true|second" "$(curl -fsS --max-time 30 -H 'Host: bearer.openfu.com' http://127.0.0.1/tests/capy-flush-output.capy)"
 
 language_output=$(scripts/bearer-cli /tests/capy-language.capy)
@@ -299,7 +300,7 @@ archive_trap_status=$?
 set -e
 [[ $archive_trap_status -ne 0 && "$archive_trap_output" == *"capy-archive-trap.capy:1:38"* && "$archive_trap_output" != *"capy://stdlib.capy"* ]]
 expect_equal "archive recovery" "3|heXYZ|Ada:admin|na\\=me=Ada\\=Grace\\, Lovelace,role=admin|Ada=Grace, Lovelace:admin|archive data|true2truetruetrue|11|0|true" "$(scripts/bearer-cli /tests/capy-final-parity.capy)"
-expect_equal "live MySQL stdlib adapters" "truetrue|'a\\'b'|7|true|0:0|truetruetrue|true|truetruetrue|0" "$(scripts/bearer-cli /tests/capy-mysql.capy)"
+expect_equal "live MySQL stdlib adapters" "truetrue|'a\\'b'|7|true|0:0|truetruetrue|truetrue|truetruetrue|truetrue|truetruetrue7|truetruetrue|0" "$(scripts/bearer-cli /tests/capy-mysql.capy)"
 expect_equal "memcache key normalization and complete response reads" "down|collision|large-ok|0" "$(scripts/bearer-cli /tests/capy-memcache.capy)"
 expect_equal "job/process stdlib adapters" "shell|spawned|done|done|done|cancel|cancelled|tasks|server|0" "$(scripts/bearer-cli /tests/capy-jobs.capy)"
 for shell_exec_case in \

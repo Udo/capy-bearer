@@ -6,7 +6,7 @@ capyc=${CAPYC:-bin/capyc}
 output_dir=/tmp/capy-artifact-golden
 expected=scripts/capy_artifact_golden.sha256
 abi_version=$(awk '/^#define BEARER_WASM_CORE_ABI_VERSION / {print $3; exit}' src/wasm/abi.h)
-mapfile -t fixtures < <({ git ls-files 'site/tests/*.capy'; printf '%s\n' site/tests/capy-mutable-array-struct.capy site/tests/capy-dval-identity.capy; } | sort -u)
+mapfile -t fixtures < <({ git ls-files 'site/tests/*.capy'; printf '%s\n' site/tests/capy-mutable-array-struct.capy site/tests/capy-dval-identity.capy site/tests/capy-string-identity.capy; } | sort -u)
 rm -rf "$output_dir"
 mkdir -p "$output_dir"
 cleanup() { rm -rf "$output_dir"; }
