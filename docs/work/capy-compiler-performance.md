@@ -181,7 +181,7 @@ The DValue allocation helper was applied after review. This changed Wasm and sou
 
 The current Ludum CLI source produces a 2,571,192-byte Wasm artifact and a 17,459,328-byte serialized module. Standalone Wasmtime preparation peaked at 1,296,348 KiB. The native compiler used 30,948 KiB and completed in 0.40 seconds.
 
-A runtime lifecycle change now serializes Capy CLI execution. A worker retires after it serves a CLI artifact larger than 1 MiB. The worker closes its listeners and unrelated clients. It uses an output-only drain for the completed CLI response. The CLI client retries only the explicit `BEARER_CLI_BUSY` response while the prior worker releases the admission lock. Commit `8cb4986` makes the retry deadline five seconds longer than the configured drain period.
+A runtime lifecycle change now serializes Capy CLI execution. A worker retires after it serves a CLI artifact larger than 1 MiB. The worker closes its listeners and unrelated clients. It uses an output-only drain for the completed CLI response. The CLI client retries only the explicit `BEARER_CLI_BUSY` response while the prior worker releases the admission lock. It does not impose a second timeout that can expire before the configured worker drain period.
 
 The lifecycle passed these checks on isolated CT105:
 
