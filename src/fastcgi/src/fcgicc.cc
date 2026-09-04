@@ -762,6 +762,45 @@ FastCGIServer::process(int timeout_ms)
 		open_client_connection(accepted.first, accepted.second);
 }
 
+void
+FastCGIServer::drain_output(int timeout_ms)
+{
+	poll_descriptors.clear();
+	poll_descriptors.reserve(client_sockets.size());
+	for(const auto& item : client_sockets)
+		poll_descriptors.push_back({item.first, (short)(item.second->output_buffer.empty() ? 0 : POLLOUT), 0});
+	if(poll_descriptors.empty())
+		return;
+	int poll_result = poll(poll_descriptors.data(), poll_descriptors.size(), timeout_ms);
+	if(poll_result == -1)
+	{
+		if(errno == EINTR)
+			return;
+		throw std::runtime_error("poll() failed during output drain");
+	}
+
+	size_t index = 0;
+	for(auto it = client_sockets.begin(); it != client_sockets.end();)
+	{
+		Connection* connection = it->second;
+		short events = poll_descriptors[index++].revents;
+		bool close_connection = connection->output_buffer.empty() || (events & (POLLNVAL | POLLHUP | POLLERR));
+		if(!close_connection && (events & POLLOUT))
+			close_connection = send_output_buffer(*connection) == -1 || connection->output_buffer.empty();
+		if(!close_connection)
+		{
+			++it;
+			continue;
+		}
+		printf("Closing socket %i\n", it->first);
+		close(it->first);
+		for(auto& request : connection->requests)
+			delete request.second;
+		delete connection;
+		it = client_sockets.erase(it);
+	}
+}
+
 bool
 FastCGIServer::parse_http_message(FastCGIRequest& request, String& data)
 {

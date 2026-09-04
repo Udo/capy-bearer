@@ -94,9 +94,32 @@ if [[ "$method" == "auto" ]]; then
 	fi
 fi
 
+curl_args=(-sS --fail-with-body --unix-socket "$socket_path")
+
+run_curl() {
+	local attempt body_file error_file http_status status
+	for ((attempt = 0; attempt <= 10; ++attempt)); do
+		body_file=$(mktemp)
+		error_file=$(mktemp)
+		status=0
+		http_status=$(curl "$@" --output "$body_file" --write-out '%{http_code}' 2>"$error_file") || status=$?
+		if [[ "$http_status" == 503 ]] && grep -qx 'BEARER_CLI_BUSY: another Capy CLI unit is active' "$body_file" && ((attempt < 10)); then
+			rm -f "$body_file" "$error_file"
+			sleep 1
+			continue
+		fi
+		cat "$body_file"
+		if ((status != 0)); then
+			cat "$error_file" >&2
+		fi
+		rm -f "$body_file" "$error_file"
+		return "$status"
+	done
+}
+
 if [[ -n "$raw_json" ]]; then
 	printf '%s' "$raw_json" | python3 -m json.tool >/dev/null
-	curl -sS --fail-with-body --unix-socket "$socket_path" \
+	run_curl "${curl_args[@]}" \
 		-X POST \
 		-H 'Content-Type: application/json' \
 		--data-binary "$raw_json" \
@@ -120,7 +143,7 @@ PY
 )
 		url="$url?$query"
 	fi
-	curl -sS --fail-with-body --unix-socket "$socket_path" "$url"
+	run_curl "${curl_args[@]}" "$url"
 else
 	json=$(python3 - "$@" <<'PY'
 import json, sys
@@ -148,7 +171,7 @@ for arg in sys.argv[1:]:
 print(json.dumps(payload, separators=(',', ':')))
 PY
 )
-	curl -sS --fail-with-body --unix-socket "$socket_path" \
+	run_curl "${curl_args[@]}" \
 		-X POST \
 		-H 'Content-Type: application/json' \
 		--data-binary "$json" \

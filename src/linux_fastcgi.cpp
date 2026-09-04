@@ -12,7 +12,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <sys/file.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/wait.h>
 
@@ -62,6 +64,8 @@ pid_t ws_broker_pid = 0;
 std::map<int, WsBrokerOutbound> ws_broker_outbound;
 std::map<String, u64> ws_broker_outbound_per_connection;
 u64 ws_broker_outbound_bytes = 0;
+volatile sig_atomic_t termination_signal_received = 0;
+u64 worker_drain_client_socket = 0;
 static sigjmp_buf request_fault_jmp;
 static volatile sig_atomic_t request_fault_active = 0;
 static volatile sig_atomic_t request_fault_signal = 0;
@@ -383,6 +387,30 @@ u64 request_seed_from_time(f64 time_value)
 	return(gen_noise64(bits));
 }
 
+static constexpr u64 CLI_RETAINED_WASM_MAX_BYTES = 1024 * 1024;
+
+bool cli_unit_requires_disposable_worker(Request& request, const String& unit)
+{
+	struct stat info = {};
+	String path = compiler_unit_wasm_path(&request, unit);
+	return(stat(path.c_str(), &info) == 0 && S_ISREG(info.st_mode) && info.st_size > 0 &&
+		(u64)info.st_size > CLI_RETAINED_WASM_MAX_BYTES);
+}
+
+int cli_unit_lock()
+{
+	String path = path_join(server_state.config["BIN_DIRECTORY"], ".cli-unit.lock");
+	int fd = open(path.c_str(), O_CREAT | O_RDWR | O_CLOEXEC | O_NOFOLLOW, 0600);
+	if(fd < 0)
+		return(-1);
+	if(flock(fd, LOCK_EX | LOCK_NB) == 0)
+		return(fd);
+	int lock_error = errno;
+	close(fd);
+	errno = lock_error;
+	return(-1);
+}
+
 void prepare_request_body_maps(Request& request)
 {
 	if(request.server)
@@ -412,6 +440,8 @@ void prepare_request_body_maps(Request& request)
 
 int handle_cli_complete(FastCGIRequest& request)
 {
+	int cli_unit_lock_fd = -1;
+	bool dispose_worker = false;
 	Request* previous_context = set_active_request(request);
 	server_state.request_count += 1;
 	request.server = &server_state;
@@ -450,7 +480,22 @@ int handle_cli_complete(FastCGIRequest& request)
 		}
 		else if(command.length() >= 5 && command.substr(command.length() - 5) == ".capy")
 		{
-			if(!cli_path_is_safe(command))
+			cli_unit_lock_fd = cli_unit_lock();
+			if(cli_unit_lock_fd < 0)
+			{
+				const int lock_error = errno;
+				if(lock_error == EWOULDBLOCK || lock_error == EAGAIN)
+				{
+					request.set_status(503, "Service Unavailable");
+					print("BEARER_CLI_BUSY: another Capy CLI unit is active\n");
+				}
+				else
+				{
+					request.set_status(500, "Internal Server Error");
+					print("BEARER_CLI_ADMISSION: could not lock Capy CLI execution: ", strerror(lock_error), "\n");
+				}
+			}
+			else if(!cli_path_is_safe(command))
 			{
 				request.set_status(400, "Bad Request");
 				print("invalid BEARER CLI unit path\n");
@@ -496,7 +541,9 @@ int handle_cli_complete(FastCGIRequest& request)
 					}
 					else if(cli_wasm_ready)
 					{
+						dispose_worker = cli_unit_requires_disposable_worker(request, cli_unit);
 						String wasm_error = wasm_backend_serve(request, cli_unit, "cli", wasm_invocation_remaining_ms(invocation_deadline));
+						dispose_worker = dispose_worker || cli_unit_requires_disposable_worker(request, cli_unit);
 						if(wasm_error != "")
 						{
 							request.set_status(500, "Internal Server Error");
@@ -536,6 +583,17 @@ int handle_cli_complete(FastCGIRequest& request)
 		file_unlink(f.tmp_name);
 	cleanup_mysql_connections();
 	cleanup_sqlite_connections();
+	if(cli_unit_lock_fd >= 0 && dispose_worker)
+	{
+		// Keep admission locked until shutdown releases the large Wasmtime module.
+		worker_drain_client_socket = request.resources.client_socket;
+		termination_signal_received = 1;
+	}
+	else if(cli_unit_lock_fd >= 0)
+	{
+		flock(cli_unit_lock_fd, LOCK_UN);
+		close(cli_unit_lock_fd);
+	}
 	restore_active_request(previous_context);
 	return(request.flags.status);
 }
@@ -773,11 +831,9 @@ int handle_complete(FastCGIRequest& request) {
 }
 
 
-volatile bool termination_signal_received = false;
-
 void on_terminate(int sig)
 {
-	termination_signal_received = true;
+	termination_signal_received = 1;
 }
 
 void clear_shared_unit_cache(ServerState& state)
@@ -793,6 +849,24 @@ void close_inherited_server_sockets()
 		close(socket_handle);
 	server.server_sockets.clear();
 	server.server_socket_types.clear();
+}
+
+void close_worker_clients_except(u64 retained_socket)
+{
+	for(auto it = server.client_sockets.begin(); it != server.client_sockets.end();)
+	{
+		if((u64)it->first == retained_socket)
+		{
+			++it;
+			continue;
+		}
+		shutdown(it->first, SHUT_RDWR);
+		close(it->first);
+		for(auto& request : it->second->requests)
+			delete request.second;
+		delete it->second;
+		it = server.client_sockets.erase(it);
+	}
 }
 
 void install_process_fault_handlers()
@@ -2134,10 +2208,12 @@ void listen_for_connections()
 		reap_child_exits();
 	}
 	close_inherited_server_sockets();
+	if(worker_drain_client_socket != 0)
+		close_worker_clients_except(worker_drain_client_socket);
 	f64 drain_deadline = time_precise() + (f64)to_u64(server_state.config["WORKER_DRAIN_TIMEOUT_SECONDS"], 10);
 	while(!server.client_sockets.empty() && time_precise() < drain_deadline)
 	{
-		server.process(100);
+		server.drain_output(100);
 		reap_child_exits();
 	}
 	if(!server.client_sockets.empty())

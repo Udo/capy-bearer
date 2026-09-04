@@ -61,6 +61,7 @@ struct FastCGIServer {
 	int adopt_listener(int socket_handle, char type = 'F');
 
 	void process(int timeout_ms = -1); // timeout_ms<0 blocks forever
+	void drain_output(int timeout_ms);
 	void process_forever();
 	int calls_until_termination = 8; // set this to -1 to never terminate
 	bool resolve_http_script_filename = true;

@@ -174,3 +174,23 @@ Each fault test must verify cleanup count, payload release, ARC count, and mappe
 3. Add fault-injection coverage and the dense-DValue size regression gate from the patch.
 4. Run the complete native, runtime, source-map, reproducibility, and golden suites.
 5. Review and commit the change. Do not deploy it without separate approval.
+
+## 2026-09-04 isolated acceptance
+
+The DValue allocation helper was applied after review. This changed Wasm and source-map bytes as expected. The dense-DValue native gate, artifact golden gate, and cross-directory reproducibility gate pass.
+
+The current Ludum CLI source produces a 2,571,192-byte Wasm artifact and a 17,459,328-byte serialized module. Standalone Wasmtime preparation peaked at 1,296,348 KiB. The native compiler used 30,948 KiB and completed in 0.40 seconds.
+
+A runtime lifecycle change now serializes Capy CLI execution. A worker retires after it serves a CLI artifact larger than 1 MiB. The worker closes its listeners and unrelated clients. It uses an output-only drain for the completed CLI response. The CLI client retries only the explicit `BEARER_CLI_BUSY` response while the prior worker releases the admission lock.
+
+The lifecycle passed these checks on isolated CT105:
+
+1. A 1,200,000-byte response arrived without truncation.
+2. A slow reader received the complete response.
+3. A peer disconnect did not prevent worker replacement.
+4. Two concurrent large CLI calls completed without concurrent module residency.
+5. A normal HTTP page returned status 200 during the test.
+6. The complete Ludum suite passed 681 checks across 34 groups.
+7. The Bearer cgroup recorded no OOM event. Memory returned below 700 MiB after worker replacement.
+
+The highest observed service memory peak was 1,993,117,696 bytes under the 3 GiB service limit. This was an isolated test deployment. Production remains unchanged. Production deployment still requires explicit approval.
