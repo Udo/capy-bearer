@@ -12,13 +12,23 @@ trap cleanup EXIT
 for root in "$temporary/short" "$temporary/a-different-checkout-directory"; do
 	mkdir -p "$root/site/tests"
 	cp site/tests/capy-arc.capy "$root/site/tests/capy-arc.capy"
+	{
+		printf 'function CLI(request : dval) {\n'
+		for ((i = 0; i < 100; ++i)); do
+			printf ' var value_%d := dval(%d)\n' "$i" "$i"
+		done
+		printf '}\n'
+	} >"$root/site/tests/capy-dense-dval.capy"
 	(
 		cd "$root"
-		"$capyc" site/tests/capy-arc.capy -o artifact.wasm \
-			--source-map artifact.wasm.source-map --abi-version "$abi_version"
+		for source in capy-arc capy-dense-dval; do
+			"$capyc" "site/tests/$source.capy" -o "$source.wasm" \
+				--source-map "$source.wasm.source-map" --abi-version "$abi_version"
+		done
 	)
 done
 
-cmp "$temporary/short/artifact.wasm" "$temporary/a-different-checkout-directory/artifact.wasm"
-cmp "$temporary/short/artifact.wasm.source-map" "$temporary/a-different-checkout-directory/artifact.wasm.source-map"
+for artifact in capy-arc.wasm capy-arc.wasm.source-map capy-dense-dval.wasm capy-dense-dval.wasm.source-map; do
+	cmp "$temporary/short/$artifact" "$temporary/a-different-checkout-directory/$artifact"
+done
 echo "Capy artifacts are reproducible across source directories"

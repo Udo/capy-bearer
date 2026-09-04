@@ -666,6 +666,13 @@ int main()
 	assert(no_stdlib_bytes.find("bearer_format_s64") == std::string::npos && no_stdlib_bytes.find("bearer_format_u64") == std::string::npos && no_stdlib_bytes.find("bearer_print_bytes") != std::string::npos);
 	assert(no_stdlib_bytes.find("bearer_alloc") != std::string::npos && no_stdlib_bytes.find("bearer_free") != std::string::npos && no_stdlib_bytes.find("bearer_handler_input_brrb") == std::string::npos);
 	assert(no_stdlib_demand.source_map.find("\t1\t1\t32\n") != std::string::npos);
+	std::string dense_dvals = "function CLI(request : dval) {\n";
+	for (unsigned i = 0; i != 100; ++i)
+		dense_dvals += " var value_" + std::to_string(i) + " := dval(" + std::to_string(i) + ")\n";
+	dense_dvals += "}\n";
+	const auto dense_dval_result = capy::compile_bearer_unit(dense_dvals, options);
+	assert(capy::wasm::validate_bearer_unit(dense_dval_result.wasm, {.bearer_abi_version = "11"}).valid);
+	assert(dense_dval_result.wasm.size() < 16000);
 	const auto literal_print = capy::compile_bearer_unit("function CLI(request : dval) { print(\"ok\") }\n", options);
 	assert(literal_print.wasm.size() < empty_handler.wasm.size() + 600);
 	const auto f64_print = capy::compile_bearer_unit("function emit(value : f64) { print(value) }\nfunction CLI(request : dval) { emit(1.5) }\n", options);
