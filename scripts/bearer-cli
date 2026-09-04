@@ -95,15 +95,23 @@ if [[ "$method" == "auto" ]]; then
 fi
 
 curl_args=(-sS --fail-with-body --unix-socket "$socket_path")
+worker_drain_seconds=10
+if [[ -r /etc/bearer/settings.cfg ]]; then
+	configured_drain=$(awk -F= '/^[[:space:]]*WORKER_DRAIN_TIMEOUT_SECONDS[[:space:]]*=/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' /etc/bearer/settings.cfg)
+	if [[ ${configured_drain:-} =~ ^[0-9]+$ ]] && ((configured_drain > 0 && configured_drain <= 300)); then
+		worker_drain_seconds=$configured_drain
+	fi
+fi
 
 run_curl() {
-	local attempt body_file error_file http_status status
-	for ((attempt = 0; attempt <= 10; ++attempt)); do
+	local body_file deadline error_file http_status status
+	deadline=$((SECONDS + worker_drain_seconds + 5))
+	while true; do
 		body_file=$(mktemp)
 		error_file=$(mktemp)
 		status=0
 		http_status=$(curl "$@" --output "$body_file" --write-out '%{http_code}' 2>"$error_file") || status=$?
-		if [[ "$http_status" == 503 ]] && grep -qx 'BEARER_CLI_BUSY: another Capy CLI unit is active' "$body_file" && ((attempt < 10)); then
+		if [[ "$http_status" == 503 ]] && grep -qx 'BEARER_CLI_BUSY: another Capy CLI unit is active' "$body_file" && ((SECONDS < deadline)); then
 			rm -f "$body_file" "$error_file"
 			sleep 1
 			continue
