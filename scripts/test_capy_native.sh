@@ -99,12 +99,18 @@ for fixture in capy-arc capy-loop-control capy-phase3 capy-closures capy-dval-ca
 	"$BUILD_DIR/capyc" --check-unit "$BUILD_DIR/$fixture.wasm" "$ABI_VERSION"
 done
 
-for source in "${fixtures[@]}"; do
-	artifact="$BUILD_DIR/${source//\//_}.wasm"
+compile_tracked_fixture() {
+	local source=$1 artifact="$BUILD_DIR/${1//\//_}.wasm"
 	"$BUILD_DIR/capyc" "$source" -o "$artifact" --source-map "$artifact.source-map" --abi-version "$ABI_VERSION"
 	wasm-validate "$artifact"
 	"$BUILD_DIR/capyc" --check-unit "$artifact" "$ABI_VERSION"
-done
+}
+export -f compile_tracked_fixture
+export BUILD_DIR ABI_VERSION
+fixture_jobs=$(nproc)
+((fixture_jobs <= 4)) || fixture_jobs=4
+printf '%s\0' "${fixtures[@]}" | xargs -0 -r -n1 -P "$fixture_jobs" bash -c 'compile_tracked_fixture "$1"' _
+unset -f compile_tracked_fixture
 
 wasm-objdump -x "$BUILD_DIR/phase1.wasm" >"$BUILD_DIR/phase1.objdump"
 ! grep -q 'bearer_request_context_brrb\|bearer_response_set_\|bearer_print_s64\|bearer_print_u64\|bearer_print_f64\|bearer_format_s64\|bearer_format_u64\|bearer_format_f64\|bearer_time\|bearer_file_\|bearer_unit_info_brrb\|bearer_units_list_brrb\|bearer_unit_compile\|bearer_codec\|bearer_regex\\|bearer_string_nonblank\|bearer_dv_merge_brrb\|bearer_sqlite_' "$BUILD_DIR/phase1.objdump"

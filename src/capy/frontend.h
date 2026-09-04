@@ -115,6 +115,7 @@ struct Expr
 {
 	ExprKind kind;
 	Location location;
+	bool program_owned = false;
 	explicit Expr(ExprKind kind, Location location) : kind(kind), location(std::move(location)) {}
 	virtual ~Expr() = default;
 };
@@ -330,6 +331,7 @@ struct Program
 	{
 		auto p = std::make_unique<T>(std::forward<A>(args)...);
 		auto r = p.get();
+		r->program_owned = true;
 		storage.push_back(std::move(p));
 		return r;
 	}

@@ -680,6 +680,7 @@ struct FunctionLowerer
 	std::vector<std::string> local_types_;
 	bool yielded_result_ = false;
 	std::set<const Expr*> owned_expression_results_;
+	std::unordered_map<const Expr*, std::string> inferred_types_;
 	std::optional<std::size_t> repeated_condition_scope_;
 	struct Loop
 	{
@@ -692,6 +693,7 @@ struct FunctionLowerer
 	std::pair<Bytes, std::string> expression(Expr* value, bool value_required = true);
 	std::pair<Bytes, std::string> conversion(Bytes code, const std::string& source, const std::string& target, const Location& location, bool source_owned = false);
 	std::string infer(Expr* value);
+	std::string infer_uncached(Expr* value);
 	std::string infer_integer(Integer* value, const std::string& expected = "") const;
 	std::pair<Bytes, std::string> integer_expression(Integer* value, const std::string& expected = "") const;
 	std::pair<Bytes, std::string> float_expression(Float* value, const std::string& expected = "") const;
@@ -736,6 +738,11 @@ struct FunctionLowerer
 	static void append(Bytes& target, const Bytes& source)
 	{
 		target.insert(target.end(), source.begin(), source.end());
+	}
+	static void append(Bytes& target, Bytes&& source)
+	{
+		if (target.empty()) target = std::move(source);
+		else target.insert(target.end(), source.begin(), source.end());
 	}
 };
 
@@ -1380,7 +1387,7 @@ struct Module
 	std::unordered_map<const Lambda*, std::tuple<std::string, unsigned, unsigned, Definition*, std::vector<std::pair<std::string, std::string>>>> lambdas_;
 	std::map<unsigned, std::vector<std::string>> closure_types_;
 	std::vector<unsigned> table_functions_;
-	std::map<std::string, unsigned> imports_;
+	std::unordered_map<std::string, unsigned> imports_;
 	std::set<std::string> runtime_imports_;
 	std::unordered_map<std::string, HostDeclaration> hosts_;
 	std::map<std::string, TypeAlias*> aliases_;
@@ -1390,7 +1397,7 @@ struct Module
 	std::set<std::string> resolving_aliases_;
 	std::set<std::string> used_hosts_;
 	std::map<std::string, unsigned> host_types_;
-	std::map<std::string, unsigned> helpers_;
+	std::unordered_map<std::string, unsigned> helpers_;
 	std::set<std::pair<std::string, std::string>> fused_sink_formats_;
 	std::set<std::string> string_format_types_;
 	Bytes data_;
@@ -1404,7 +1411,7 @@ struct Module
 	std::vector<std::pair<std::vector<std::string>, std::string>> types_;
 	struct VariadicFunctionType { std::size_t fixed; std::string element; bool convert; };
 	std::map<unsigned, VariadicFunctionType> variadic_function_types_;
-	std::map<std::string, unsigned> type_indices_;
+	std::unordered_map<std::string, unsigned> type_indices_;
 	std::map<std::string, unsigned> reflection_type_descriptors_;
 	std::map<std::string, unsigned> reflection_struct_descriptors_;
 	std::map<std::string, Aggregate> structs_;
@@ -1997,6 +2004,7 @@ std::string FunctionLowerer::infer_block(Block* block_value)
 	std::string result = "void";
 	for (std::size_t i = 0; i < block_value->items.size(); ++i)
 	{
+		inferred_types_.clear();
 		Expr* item = block_value->items[i];
 		const bool final = i + 1 == block_value->items.size();
 		if (auto yielded = dynamic_cast<Yield*>(item))
@@ -2083,6 +2091,17 @@ std::pair<Bytes, std::string> FunctionLowerer::float_expression(Float* value, co
 }
 
 std::string FunctionLowerer::infer(Expr* value)
+{
+	if (!value->program_owned)
+		return infer_uncached(value);
+	if (auto found = inferred_types_.find(value); found != inferred_types_.end())
+		return found->second;
+	std::string type = infer_uncached(value);
+	inferred_types_.emplace(value, type);
+	return type;
+}
+
+std::string FunctionLowerer::infer_uncached(Expr* value)
 {
 	if (auto integer = dynamic_cast<Integer*>(value))
 		return infer_integer(integer);
@@ -6474,6 +6493,7 @@ Bytes FunctionLowerer::block(Block* block_value, bool new_scope)
 	Bytes code;
 	for (std::size_t i = 0; i < block_value->items.size(); ++i)
 	{
+		inferred_types_.clear();
 		Expr* item = block_value->items[i];
 		auto yielded = dynamic_cast<Yield*>(item);
 		const bool final = i + 1 == block_value->items.size();
@@ -6494,7 +6514,7 @@ Bytes FunctionLowerer::block(Block* block_value, bool new_scope)
 			? integer_expression(static_cast<Integer*>(compiled_item), definition_.result) : expression(compiled_item, yielded != nullptr);
 		auto part = std::move(compiled.first);
 		const std::string type = std::move(compiled.second);
-		append(code, part);
+		append(code, std::move(part));
 		if (yielded)
 		{
 			if (new_scope)
@@ -8289,17 +8309,20 @@ CompileResult Module::compile()
 		return body;
 	};
 	std::vector<Bytes> user_bodies;
+	user_bodies.reserve(definitions_.size());
 	for (std::size_t index = 0; index < definitions_.size(); ++index)
 	{
 		if (definitions_[index].inline_only) continue;
 		user_bodies.push_back(definitions_[index].body_omitted ? omitted_body(definitions_[index].result) : FunctionLowerer(*this, definitions_[index]).lower());
 	}
 	std::vector<const Definition*> emitted_definitions;
+	emitted_definitions.reserve(definitions_.size());
 	for (const Definition& definition : definitions_)
 		if (!definition.inline_only)
 			emitted_definitions.push_back(&definition);
 	std::vector<Bytes> bodies = runtime_bodies();
 	const std::size_t runtime_count = bodies.size();
+	bodies.reserve(runtime_count + user_bodies.size() + custom_exports_.size());
 	bodies.insert(bodies.end(), std::make_move_iterator(user_bodies.begin()), std::make_move_iterator(user_bodies.end()));
 	for (const auto& [name, target] : custom_exports_)
 		bodies.push_back(custom_export_body(*target));
@@ -8387,8 +8410,15 @@ CompileResult Module::compile()
 	Bytes data;
 	wasm::append_uleb(data, 1);
 	data.insert(data.end(), data_segment.begin(), data_segment.end());
-	Bytes code;
-	wasm::append_vector(code, bodies);
+	Bytes code_count;
+	wasm::append_uleb(code_count, static_cast<unsigned>(bodies.size()));
+	std::size_t code_payload_size = code_count.size();
+	for (const Bytes& body : bodies)
+	{
+		if (body.size() > std::numeric_limits<std::uint32_t>::max() - code_payload_size)
+			throw Error({source_, 1, 1, 0}, "generated Wasm code section exceeds the u32 size limit");
+		code_payload_size += body.size();
+	}
 	Bytes mem;
 	wasm::append_uleb(mem, static_cast<unsigned>(data_.size()));
 	wasm::append_uleb(mem, 3);
@@ -8433,7 +8463,19 @@ CompileResult Module::compile()
 		wasm::append_section(result, 9, elements);
 	}
 	const std::size_t code_section_offset = result.size();
-	wasm::append_section(result, 10, code);
+	std::size_t result_capacity = result.size();
+	for (std::size_t size : {code_payload_size, data.size(), abi.size(), module_.size(), module_.size(), std::size_t{128}})
+	{
+		if (size > result.max_size() - result_capacity)
+			throw Error({source_, 1, 1, 0}, "generated Wasm module exceeds the platform size limit");
+		result_capacity += size;
+	}
+	result.reserve(result_capacity);
+	result.push_back(10);
+	wasm::append_uleb(result, static_cast<unsigned>(code_payload_size));
+	result.insert(result.end(), code_count.begin(), code_count.end());
+	for (const Bytes& body : bodies)
+		result.insert(result.end(), body.begin(), body.end());
 	const std::size_t code_section_end = result.size();
 	wasm::append_section(result, 11, data);
 	Bytes named{0};
@@ -8467,10 +8509,11 @@ CompileResult Module::compile()
 			shift += 7;
 		}
 	};
-	std::size_t cursor = code_section_offset + 1 + uleb_size(code.size()) + uleb_size(bodies.size());
+	std::size_t cursor = code_section_offset + 1 + uleb_size(code_payload_size) + code_count.size();
 	for (std::size_t index = 0; index < runtime_count; ++index)
 		cursor += bodies[index].size();
 	std::vector<std::pair<std::size_t, Location>> source_rows;
+	source_rows.reserve(emitted_definitions.size() + custom_exports_.size() + markers_.size());
 	for (std::size_t index = runtime_count; index < runtime_count + emitted_definitions.size(); ++index)
 	{
 		std::size_t instruction = 0;
