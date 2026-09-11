@@ -19,9 +19,12 @@ Set `capy.server.path` to use another executable. Set `capy.trace.server` to `me
 Run the extension tests from this directory:
 
 ```bash
-npm install
+npm ci --ignore-scripts
 npm test
+npm audit
 ```
+
+The project `.npmrc` routes package reads through Arty. It keeps audit enabled. Arty does not support npm audit requests, so a failed audit is unsupported, not clean.
 
 ## Neovim
 

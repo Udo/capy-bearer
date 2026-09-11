@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "namespace": "capy-bearer",
+  "name": "capy-bearer/linux-amd64",
+  "artifacts": [
+    {
+      "path": "bin/bearer_fastcgi.linux.bin",
+      "media_type": "application/octet-stream"
+    },
+    {
+      "path": "bin/capyc",
+      "media_type": "application/octet-stream"
+    },
+    {
+      "path": "bin/wasm/core.wasm",
+      "media_type": "application/wasm"
+    },
+    {
+      "path": "scripts/bearer-cli",
+      "media_type": "text/x-shellscript"
+    },
+    {
+      "path": "acceptance.json",
+      "media_type": "application/json"
+    }
+  ],
+  "lockfiles": [
+    "editors/vscode/package-lock.json"
+  ],
+  "test_receipt": "release-test.json"
+}
