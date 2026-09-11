@@ -50,17 +50,7 @@ class ArtyReleasePilotTest(unittest.TestCase):
         lockfile = self.source / "editors/vscode/package-lock.json"
         lockfile.parent.mkdir(parents=True, exist_ok=True)
         lockfile.write_text("{}\n")
-        contract = {
-            "schema_version": 1,
-            "namespace": "capy-bearer",
-            "name": "capy-bearer/linux-amd64",
-            "artifacts": [
-                {"path": relative, "media_type": "application/octet-stream"}
-                for relative, _ in pilot.PAYLOAD
-            ] + [{"path": pilot.RECEIPT, "media_type": "application/json"}],
-            "lockfiles": ["editors/vscode/package-lock.json"],
-            "test_receipt": pilot.TEST_RECEIPT,
-        }
+        contract = json.loads((HERE.parent / "deploy/arty.json").read_text())
         path = self.source / "deploy/arty.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(contract))
@@ -123,9 +113,18 @@ class ArtyReleasePilotTest(unittest.TestCase):
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(bundle / artifact["path"], destination)
         helper.verify_fetched_artifacts(fetched, manifest)
+        self.assertEqual((fetched / pilot.TEST_RECEIPT).read_bytes(), (bundle / pilot.TEST_RECEIPT).read_bytes())
         (fetched / "extra").write_text("not in the contract")
         with self.assertRaisesRegex(helper.ReleaseError, "artifact set"):
             helper.verify_fetched_artifacts(fetched, manifest)
+
+    def test_receipts_require_the_supported_schema(self):
+        for receipt, reader in [(self.external_receipt(), pilot.read_receipt), (self.external_test_receipt(), pilot.read_test_receipt)]:
+            value = json.loads(receipt.read_text())
+            value["schema_version"] = 2
+            receipt.write_text(json.dumps(value))
+            with self.assertRaisesRegex(ValueError, "invalid shape"):
+                reader(receipt)
 
     def test_manifest_rejects_a_stage_that_no_longer_matches_receipt(self):
         bundle = self.stage("bundle")

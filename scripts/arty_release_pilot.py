@@ -67,7 +67,7 @@ def read_receipt(path):
         value = json.loads(regular_file(path.parent, path.name).read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         fail(f"invalid acceptance receipt: {error}")
-    if not isinstance(value, dict) or set(value) != {"schema_version", "source_revision", "artifacts"}:
+    if not isinstance(value, dict) or set(value) != {"schema_version", "source_revision", "artifacts"} or value["schema_version"] != 1:
         fail("the acceptance receipt has an invalid shape")
     revision = value["source_revision"]
     if not isinstance(revision, str) or len(revision) != 40 or any(char not in HEX for char in revision):
@@ -95,7 +95,7 @@ def read_test_receipt(path):
         value = json.loads(regular_file(path.parent, path.name).read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         fail(f"invalid test receipt: {error}")
-    if not isinstance(value, dict) or set(value) != {"schema_version", "source_revision", "tests"}:
+    if not isinstance(value, dict) or set(value) != {"schema_version", "source_revision", "tests"} or value["schema_version"] != 1:
         fail("the test receipt has an invalid shape")
     revision, tests = value["source_revision"], value["tests"]
     if not isinstance(revision, str) or len(revision) != 40 or any(char not in HEX for char in revision):
@@ -191,9 +191,9 @@ def parse_args():
 
 def main():
     args = parse_args()
-    if hasattr(args, "timeout") and not 1 <= args.timeout <= 7200:
-        fail("timeout must be between 1 and 7200 seconds")
     try:
+        if hasattr(args, "timeout") and not 1 <= args.timeout <= 7200:
+            fail("timeout must be between 1 and 7200 seconds")
         args.command(args)
     except (OSError, subprocess.SubprocessError, ValueError) as error:
         print(f"arty-release-pilot: {error}", file=sys.stderr)

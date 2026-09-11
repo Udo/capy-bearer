@@ -31,20 +31,30 @@ The test receipt has this shape. Each command must name a completed required tes
 }
 ```
 
-After the attended checks create both files, stage and create the manifest outside the repository:
+The shared helper is maintained on the aiworkers. The development host does not install it by default. Copy `/root/scripts/arty/release.py` from an aiworker to `tmp/arty-shared-release.py` in this checkout. Verify that both copies have the same SHA-256.
+
+Run the fixture tests on the development host. These tests use synthetic payloads, not an accepted production build.
 
 ```bash
-python3 scripts/arty_release_pilot.py stage \
+export ARTY_RELEASE_HELPER="$PWD/tmp/arty-shared-release.py"
+timeout 45 python3 scripts/test_arty_release_pilot.py
+```
+
+After the attended checks create both external receipts, stage and create the manifest outside the repository:
+
+```bash
+timeout 60 python3 scripts/arty_release_pilot.py stage \
   --stage /var/tmp/capy-arty-stage \
   --acceptance-receipt /var/tmp/capy-acceptance.json \
   --test-receipt /var/tmp/capy-test-receipt.json
-python3 /root/scripts/arty/release.py check deploy/arty.json
-python3 scripts/arty_release_pilot.py manifest \
+timeout 45 python3 "$ARTY_RELEASE_HELPER" check deploy/arty.json
+timeout 90 python3 scripts/arty_release_pilot.py manifest \
   --stage /var/tmp/capy-arty-stage \
+  --release-helper "$ARTY_RELEASE_HELPER" \
   --output /var/tmp/capy-arty-stage/manifest.json
 ```
 
-The manifest includes `acceptance.json` as an artifact. It records the separate `test-receipt.json` digest and the pinned npm lockfile digest. The shared helper verifies the exact fetched artifact set before it writes a fetched release directory.
+The manifest includes `acceptance.json` and `test-receipt.json` as artifacts. It also records the test receipt digest and the pinned npm lockfile digest in provenance. The shared helper verifies the exact fetched artifact set before it writes a fetched release directory.
 
 Use the existing Debian package boundary for deployment. `scripts/make_deb.sh` builds a Debian package. The host package tools install, remove, and restore that package under the existing Debian and systemd rules. This pilot does not claim that its staged files are deployable. It has no installer or rollback command.
 

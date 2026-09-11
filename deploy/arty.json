@@ -22,6 +22,10 @@
     {
       "path": "acceptance.json",
       "media_type": "application/json"
+    },
+    {
+      "path": "test-receipt.json",
+      "media_type": "application/json"
     }
   ],
   "lockfiles": [
