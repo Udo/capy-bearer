@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import importlib.util
+import os
 import json
 import pathlib
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -10,6 +12,10 @@ HERE = pathlib.Path(__file__).resolve().parent
 SPEC = importlib.util.spec_from_file_location("arty_release_pilot", HERE / "arty_release_pilot.py")
 pilot = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(pilot)
+HELPER_PATH = pathlib.Path(os.environ.get("ARTY_RELEASE_HELPER", "/root/scripts/arty/release.py"))
+HELPER_SPEC = importlib.util.spec_from_file_location("arty_release_helper", HELPER_PATH)
+helper = importlib.util.module_from_spec(HELPER_SPEC)
+HELPER_SPEC.loader.exec_module(helper)
 
 
 class ArtyReleasePilotTest(unittest.TestCase):
@@ -20,20 +26,18 @@ class ArtyReleasePilotTest(unittest.TestCase):
         self.source = self.root / "source"
         self.source.mkdir()
         self.write_source("one")
+        self.write_contract()
         self.git("init")
         self.git("config", "user.email", "test@example.invalid")
         self.git("config", "user.name", "Capy test")
         self.git("add", ".")
         self.git("commit", "-m", "initial")
-        self.releases = self.root / "installed" / "releases"
-        self.releases.mkdir(parents=True)
-        self.current = self.releases.parent / "current"
 
     def tearDown(self):
         self.temp.cleanup()
 
     def git(self, *args):
-        return subprocess.run(["git", "-C", str(self.source), *args], check=True, capture_output=True, text=True)
+        return subprocess.run(["git", "-C", str(self.source), *args], check=True, capture_output=True, text=True, timeout=30)
 
     def write_source(self, value):
         for relative, executable in pilot.PAYLOAD:
@@ -41,86 +45,96 @@ class ArtyReleasePilotTest(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(value + relative)
             path.chmod(executable)
-        abi = self.source / pilot.ABI_SOURCE
-        abi.parent.mkdir(parents=True, exist_ok=True)
-        abi.write_text(value + " ABI")
 
-    def stage(self, name):
+    def write_contract(self):
+        lockfile = self.source / "editors/vscode/package-lock.json"
+        lockfile.parent.mkdir(parents=True, exist_ok=True)
+        lockfile.write_text("{}\n")
+        contract = {
+            "schema_version": 1,
+            "namespace": "capy-bearer",
+            "name": "capy-bearer/linux-amd64",
+            "artifacts": [
+                {"path": relative, "media_type": "application/octet-stream"}
+                for relative, _ in pilot.PAYLOAD
+            ] + [{"path": pilot.RECEIPT, "media_type": "application/json"}],
+            "lockfiles": ["editors/vscode/package-lock.json"],
+            "test_receipt": pilot.TEST_RECEIPT,
+        }
+        path = self.source / "deploy/arty.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(contract))
+
+    def external_receipt(self):
+        receipt = self.root / "acceptance.json"
+        receipt.write_text(json.dumps({
+            "schema_version": 1,
+            "source_revision": self.git("rev-parse", "HEAD").stdout.strip(),
+            "artifacts": [
+                {"path": relative, "sha256": pilot.sha256(self.source / relative)}
+                for relative, _ in pilot.PAYLOAD
+            ],
+        }, sort_keys=True) + "\n")
+        return receipt
+
+    def external_test_receipt(self):
+        receipt = self.root / "test-receipt.json"
+        receipt.write_text(json.dumps({
+            "schema_version": 1,
+            "source_revision": self.git("rev-parse", "HEAD").stdout.strip(),
+            "tests": [{"command": "scripts/run_cli_tests.sh", "result": "passed"}],
+        }, sort_keys=True) + "\n")
+        return receipt
+
+    def stage(self, name, receipt=None):
         target = self.root / name
-        pilot.command_stage(type("Args", (), {"source": self.source, "stage": target, "revision": None})())
+        pilot.command_stage(type("Args", (), {
+            "source": self.source, "stage": target, "revision": None,
+            "acceptance_receipt": receipt or self.external_receipt(),
+            "test_receipt": self.external_test_receipt(),
+        })())
         return target
 
-    def install(self, bundle):
-        pilot.command_install(type("Args", (), {
-            "bundle": bundle, "releases": self.releases, "current": self.current, "user": "root",
-        })())
-
-    def test_stage_has_complete_payload_and_strict_source_identity(self):
-        bundle = self.stage("bundle")
-        receipt = json.loads((bundle / pilot.RECEIPT).read_text())
-        self.assertEqual(receipt["source_revision"], self.git("rev-parse", "HEAD").stdout.strip())
-        self.assertEqual({item["path"] for item in receipt["artifacts"]}, {path for path, _ in pilot.PAYLOAD})
+    def test_stage_copies_external_receipt_and_rejects_unidentified_outputs(self):
+        receipt = self.external_receipt()
+        bundle = self.stage("bundle", receipt)
+        self.assertEqual((bundle / pilot.RECEIPT).read_bytes(), receipt.read_bytes())
         for relative, _ in pilot.PAYLOAD:
-            self.assertTrue((bundle / relative).is_file())
-        self.assertEqual((bundle / pilot.RECEIPT).read_bytes(), (bundle / pilot.TEST_RECEIPT).read_bytes())
-        (self.source / "uncommitted").write_text("no")
-        with self.assertRaisesRegex(ValueError, "not clean"):
-            self.stage("dirty")
-        self.assertFalse((self.root / "dirty").exists())
+            self.assertEqual(pilot.sha256(bundle / relative), pilot.sha256(self.source / relative))
+        receipt_data = json.loads(receipt.read_text())
+        receipt_data["artifacts"][0]["sha256"] = "0" * 64
+        receipt.write_text(json.dumps(receipt_data))
+        with self.assertRaisesRegex(ValueError, "does not match the source artifact"):
+            self.stage("rejected", receipt)
+        self.assertFalse((self.root / "rejected").exists())
 
-    def test_install_failure_does_not_mutate_current_or_releases(self):
+    def test_manifest_uses_real_helper_and_fetched_contract_checks_exact_set(self):
         bundle = self.stage("bundle")
-        receipt = json.loads((bundle / pilot.RECEIPT).read_text())
-        receipt["artifacts"][0]["sha256"] = "0" * 64
-        (bundle / pilot.RECEIPT).write_text(json.dumps(receipt))
-        with self.assertRaisesRegex(ValueError, "digest"):
-            self.install(bundle)
-        self.assertEqual(list(self.releases.iterdir()), [])
-        self.assertFalse(self.current.exists() or self.current.is_symlink())
+        output = self.root / "manifest.json"
+        pilot.command_manifest(type("Args", (), {
+            "source": self.source, "stage": bundle, "output": output,
+            "release_helper": HELPER_PATH, "timeout": 30,
+        })())
+        manifest = json.loads(output.read_text())
+        self.assertEqual(manifest["provenance"]["test_receipt"]["path"], pilot.TEST_RECEIPT)
+        fetched = self.root / "fetched"
+        for artifact in manifest["artifacts"]:
+            destination = fetched / artifact["path"]
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(bundle / artifact["path"], destination)
+        helper.verify_fetched_artifacts(fetched, manifest)
+        (fetched / "extra").write_text("not in the contract")
+        with self.assertRaisesRegex(helper.ReleaseError, "artifact set"):
+            helper.verify_fetched_artifacts(fetched, manifest)
 
-    def test_access_preflight_fails_without_mutating_release_state(self):
+    def test_manifest_rejects_a_stage_that_no_longer_matches_receipt(self):
         bundle = self.stage("bundle")
-        with self.assertRaises(subprocess.CalledProcessError):
-            pilot.command_install(type("Args", (), {
-                "bundle": bundle, "releases": self.releases, "current": self.current,
-                "user": "capy-arty-no-such-user",
+        (bundle / pilot.PAYLOAD[0][0]).write_text("changed")
+        with self.assertRaisesRegex(ValueError, "does not match the acceptance receipt"):
+            pilot.command_manifest(type("Args", (), {
+                "source": self.source, "stage": bundle, "output": self.root / "manifest.json",
+                "release_helper": HELPER_PATH, "timeout": 30,
             })())
-        self.assertEqual(list(self.releases.iterdir()), [])
-        self.assertFalse(self.current.exists() or self.current.is_symlink())
-
-    def test_stale_current_link_does_not_create_a_release(self):
-        bundle = self.stage("bundle")
-        revision = json.loads((bundle / pilot.RECEIPT).read_text())["source_revision"]
-        stale = self.current.with_name(f".{self.current.name}.{revision}")
-        stale.symlink_to("stale")
-        with self.assertRaisesRegex(ValueError, "temporary current link"):
-            self.install(bundle)
-        self.assertEqual(list(self.releases.iterdir()), [])
-        self.assertFalse(self.current.exists() or self.current.is_symlink())
-
-    def test_install_preflights_an_unprivileged_user(self):
-        bundle = self.stage("bundle")
-        pilot.command_install(type("Args", (), {
-            "bundle": bundle, "releases": self.releases, "current": self.current, "user": "nobody",
-        })())
-        self.assertTrue((self.current / "bin/capyc").is_file())
-
-    def test_offline_local_rollback_keeps_previous_bundle(self):
-        first = self.stage("first")
-        first_revision = json.loads((first / pilot.RECEIPT).read_text())["source_revision"]
-        self.install(first)
-        self.write_source("two")
-        self.git("add", ".")
-        self.git("commit", "-m", "second")
-        second = self.stage("second")
-        second_revision = json.loads((second / pilot.RECEIPT).read_text())["source_revision"]
-        self.install(second)
-        self.assertEqual(self.current.resolve(), self.releases / second_revision)
-        pilot.command_rollback(type("Args", (), {
-            "releases": self.releases, "current": self.current, "revision": first_revision,
-        })())
-        self.assertEqual(self.current.resolve(), self.releases / first_revision)
-        self.assertTrue((self.releases / second_revision).is_dir())
 
 
 if __name__ == "__main__":

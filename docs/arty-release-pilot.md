@@ -1,38 +1,51 @@
-# Arty release-bundle pilot
+# Arty release pilot
 
-This pilot stages one complete Linux release set. It contains the Bearer runtime, Capy compiler, WebAssembly core, and CLI launcher.
+This pilot stages an accepted Linux runtime set for the shared Arty helper. It contains the Bearer runtime, Capy compiler, WebAssembly core, CLI launcher, an external artifact identity, and an external test receipt.
 
-The pilot does not publish, promote, install a package, restart a service, or change a live release. An operator must approve those actions separately.
+The pilot does not build, test, publish, promote, fetch, install, restart, or roll back a release. A clean Git revision does not prove that ignored compiled files came from that revision. The pilot requires two files that an attended build and test process created. The pilot only validates and copies them.
 
-Use the editor's project-local `.npmrc`. It routes the pinned Visual Studio Code extension dependencies through the Arty npm remote. `npm ci` keeps the lockfile unchanged. `npm audit` remains enabled. Arty does not support npm audit POST routes. An audit failure does not mean a clean audit result.
+The artifact identity records the exact source revision and artifact bytes.
 
-Use a clean source revision. Build and run the required Capy checks before staging. Then create a stage directory outside the repository:
+```json
+{
+  "schema_version": 1,
+  "source_revision": "<40-character Git commit>",
+  "artifacts": [
+    {"path": "bin/bearer_fastcgi.linux.bin", "sha256": "<64-character SHA-256>"},
+    {"path": "bin/capyc", "sha256": "<64-character SHA-256>"},
+    {"path": "bin/wasm/core.wasm", "sha256": "<64-character SHA-256>"},
+    {"path": "scripts/bearer-cli", "sha256": "<64-character SHA-256>"}
+  ]
+}
+```
+
+The test receipt has this shape. Each command must name a completed required test. The receipt does not prove a test result by itself. An operator must keep the referenced test output with the receipt.
+
+```json
+{
+  "schema_version": 1,
+  "source_revision": "<40-character Git commit>",
+  "tests": [
+    {"command": "<required test command>", "result": "passed"}
+  ]
+}
+```
+
+After the attended checks create both files, stage and create the manifest outside the repository:
 
 ```bash
-python3 scripts/arty_release_pilot.py stage --stage /var/tmp/capy-arty-stage
+python3 scripts/arty_release_pilot.py stage \
+  --stage /var/tmp/capy-arty-stage \
+  --acceptance-receipt /var/tmp/capy-acceptance.json \
+  --test-receipt /var/tmp/capy-test-receipt.json
 python3 /root/scripts/arty/release.py check deploy/arty.json
-python3 scripts/arty_release_pilot.py manifest --stage /var/tmp/capy-arty-stage --output /var/tmp/capy-arty-stage/manifest.json
+python3 scripts/arty_release_pilot.py manifest \
+  --stage /var/tmp/capy-arty-stage \
+  --output /var/tmp/capy-arty-stage/manifest.json
 ```
 
-The stage receipt records the exact source revision, the `src/wasm/abi.h` digest, and payload digests. The manifest command rejects a changed source revision. The shared helper adds the pinned npm lockfile digest to the manifest. It also fetches `acceptance.json` with the release payload.
+The manifest includes `acceptance.json` as an artifact. It records the separate `test-receipt.json` digest and the pinned npm lockfile digest. The shared helper verifies the exact fetched artifact set before it writes a fetched release directory.
 
-After an attended fetch, use the project installer with the real service account. It checks that this account can read each file and execute the runtime, compiler, and launcher before it changes `current`:
+Use the existing Debian package boundary for deployment. `scripts/make_deb.sh` builds a Debian package. The host package tools install, remove, and restore that package under the existing Debian and systemd rules. This pilot does not claim that its staged files are deployable. It has no installer or rollback command.
 
-```bash
-python3 scripts/arty_release_pilot.py install \
-  --bundle /var/lib/bearer/fetched-release \
-  --releases /var/lib/bearer/releases \
-  --current /var/lib/bearer/current \
-  --user bearer
-```
-
-The installer retains prior directories. It has no Arty client or network path. Roll back with a retained revision during a registry outage:
-
-```bash
-python3 scripts/arty_release_pilot.py rollback \
-  --releases /var/lib/bearer/releases \
-  --current /var/lib/bearer/current \
-  --revision <source-revision>
-```
-
-Do not point a systemd unit at `current` until a separate deployment acceptance approves it.
+Use the editor's project-local `.npmrc`. It routes pinned Visual Studio Code extension dependencies through the Arty npm remote. `npm ci` keeps the lockfile unchanged. `npm audit` remains enabled. Arty does not support npm audit POST routes. An audit failure does not mean a clean audit result.

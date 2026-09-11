@@ -27,5 +27,5 @@
   "lockfiles": [
     "editors/vscode/package-lock.json"
   ],
-  "test_receipt": "release-test.json"
+  "test_receipt": "test-receipt.json"
 }
