@@ -57,12 +57,12 @@ log "building"
 	>>"$LOG" 2>&1 || fail "build"
 
 log "gating"
-# Not the artifact golden: capyc embeds the absolute source path in each unit,
-# so its hashes only reproduce from the directory the goldens were generated in.
-# It is a dev-host determinism check, not a deployment check.
 ( cd "$STAGING" && bash scripts/test_wasm_core_smoke.sh ) >>"$LOG" 2>&1 || fail "gate: core smoke"
 ( cd "$STAGING" && ./bin/capyc --check site/ ) >>"$LOG" 2>&1 || fail "gate: capyc --check site/"
 ( cd "$STAGING" && bash scripts/test_capy_compile_timeout.sh ) >>"$LOG" 2>&1 || fail "gate: compile timeout"
+( cd "$STAGING" && bash scripts/test_capy_artifact_golden.sh ) >>"$LOG" 2>&1 || fail "gate: artifact golden"
+( cd "$STAGING" && bash scripts/test_capy_reproducible_artifact.sh ) >>"$LOG" 2>&1 || fail "gate: reproducible artifact"
+( cd "$STAGING" && RATIO_LIMIT=4.0 bash scripts/benchmark_capy_compiler_scaling.sh ) >>"$LOG" 2>&1 || fail "gate: compiler scaling"
 
 # Everything below this line touches the live service.
 stamp=$(date +%Y%m%dT%H%M%S)
