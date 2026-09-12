@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "namespace": "capy-bearer",
+  "name": "capy-bearer/packages-linux-amd64",
+  "artifacts": [
+    {"path": "bearer.deb", "media_type": "application/vnd.debian.binary-package"},
+    {"path": "bearer.rpm", "media_type": "application/x-rpm"},
+    {"path": "test-receipt.json", "media_type": "application/json"},
+    {"path": "build-and-test.log", "media_type": "text/plain"}
+  ],
+  "lockfiles": [],
+  "test_receipt": "test-receipt.json"
+}

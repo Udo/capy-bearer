@@ -58,4 +58,12 @@ The manifest includes `acceptance.json` and `test-receipt.json` as artifacts. It
 
 Use the existing Debian package boundary for deployment. `scripts/make_deb.sh` builds a Debian package. The host package tools install, remove, and restore that package under the existing Debian and systemd rules. This pilot does not claim that its staged files are deployable. It has no installer or rollback command.
 
+## Publish runtime packages
+
+Use `deploy/arty-packages.json` with the same shared release helper for Debian and RPM artifacts. This separate package manifest does not replace the loose-runtime pilot contract.
+
+Build both packages from the clean revision. Stage the outputs as `bearer.deb` and `bearer.rpm`. Include `test-receipt.json` and the referenced `build-and-test.log`. Record the package metadata, source revision, artifact hashes, completed tests, and installation-test limitations in the receipt.
+
+Publish the immutable manifest with a namespace-scoped token. Fetch it by digest and compare both package hashes. Publication does not install a package or promote an accepted reference.
+
 Use the editor's project-local `.npmrc`. It routes pinned Visual Studio Code extension dependencies through the Arty npm remote. `npm ci` keeps the lockfile unchanged. `npm audit` remains enabled. Arty does not support npm audit POST routes. An audit failure does not mean a clean audit result.
