@@ -6,6 +6,33 @@
 # gates, or does not answer after restart never reaches the running service.
 set -uo pipefail
 
+check_approval() {
+	local repo=$1 revision=$2 matches status line held=0
+	matches=$(git -C "$repo" grep -n -E '^[[:blank:]]*- \[[ xX]\] DEPLOY_APPROVAL:' "$revision" -- ':(glob)docs/work/*.md')
+	status=$?
+	if (( status > 1 )); then
+		printf 'Approval scan failed for %s at %s\n' "$repo" "$revision" >&2
+		return "$status"
+	fi
+	while IFS= read -r line; do
+		[[ -n $line ]] || continue
+		if [[ $line == *'- [ ] DEPLOY_APPROVAL:'* ]]; then
+			printf 'Approval held: %s\n' "$line"
+			held=1
+		else
+			printf 'Approval released: %s\n' "$line"
+		fi
+	done <<< "$matches"
+	(( held )) || printf 'Approval scan passed at %s\n' "$revision"
+	return "$held"
+}
+
+if [[ ${1:-} == --check-approval ]]; then
+	[[ $# == 3 ]] || { echo 'Usage: capy-bearer-update --check-approval REPOSITORY REVISION' >&2; exit 2; }
+	check_approval "$2" "$3"
+	exit $?
+fi
+
 CONFIG=/etc/default/capy-bearer-update
 # shellcheck disable=SC1090
 [[ -r $CONFIG ]] && . "$CONFIG"
@@ -32,6 +59,7 @@ cd "$LIVE" || fail "no live checkout at $LIVE"
 git fetch -q origin "$BRANCH" || fail "fetch"
 local_head=$(git rev-parse HEAD)
 remote_head=$(git rev-parse "origin/$BRANCH")
+check_approval "$LIVE" "$remote_head" 2>&1 | while IFS= read -r line; do log "$line"; done || fail "gate: deploy approval"
 if [[ $local_head == "$remote_head" ]]; then
 	log "already at $remote_head, nothing to do"
 	exit 0
@@ -49,7 +77,7 @@ if [[ ! -d $STAGING/.git ]]; then
 	git -C "$STAGING" remote set-url origin "$(git -C "$LIVE" remote get-url origin)"
 fi
 git -C "$STAGING" fetch -q origin "$BRANCH" || fail "staging fetch"
-git -C "$STAGING" reset -q --hard "origin/$BRANCH" || fail "staging reset"
+git -C "$STAGING" reset -q --hard "$remote_head" || fail "staging reset"
 git -C "$STAGING" clean -qfd -e bin || true
 
 log "building"
@@ -84,7 +112,7 @@ restore() {
 	systemctl restart "$SERVICE"
 }
 
-git -C "$LIVE" merge -q --ff-only "origin/$BRANCH" || fail "live fast-forward"
+git -C "$LIVE" merge -q --ff-only "$remote_head" || fail "live fast-forward"
 install -m 0755 "$STAGING/bin/bearer_fastcgi.linux.bin" "$LIVE/bin/bearer_fastcgi.linux.bin" || fail "install binary"
 install -m 0755 "$STAGING/bin/capyc" "$LIVE/bin/capyc" || fail "install capyc"
 install -m 0644 "$STAGING/bin/wasm/core.wasm" "$LIVE/bin/wasm/core.wasm" || fail "install core.wasm"

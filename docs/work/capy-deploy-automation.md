@@ -15,7 +15,7 @@ Version the existing CT100 updater. Add compiler regression gates and an explici
 - [x] T1: Pass the eight host gates and push the three existing commits without rewriting them.
 - [x] T2: Capture the updater, units, and defaults verbatim in `deploy/`.
 - [x] T3: Prove golden, reproducibility, and scaling gates on CT100 before adding them.
-- [ ] T4: Block explicit approval holds and log the author release.
+- [x] T4: Block explicit approval holds and log the author release.
 - [ ] A1: Install and run the updater on CT100. Verify service and public health.
 - [ ] A2: Verify backup preservation and five-point retention.
 
@@ -32,12 +32,12 @@ Version the existing CT100 updater. Add compiler regression gates and an explici
 - [x] G1: Publish the accepted source commits.
 - [x] G2: Preserve the running deployment assets before editing them.
 - [x] G3: Measure the staging gates and add passing gates.
-- [~] G4: Define and test the approval hold, then correct the performance record.
-- [ ] G5: Install, exercise, and verify the updated automation.
+- [x] G4: Define and test the approval hold, then correct the performance record.
+- [~] G5: Install, exercise, and verify the updated automation.
 
 ## Next
 
-1. Add and test an explicit approval marker before the updater builds or changes the live service.
+1. Review and install the updated assets on CT100. Run end-to-end deployment and verify backup retention.
 
 ## Decisions, assumptions, and risks
 
@@ -46,6 +46,18 @@ The user explicitly approved updates to the existing CT100 timer operational sur
 Deployment assets belong in the existing `deploy/` directory. The first asset commit preserves the live bytes, including historical comments. Later commits will show each change.
 
 The nightly updater makes a push to `origin/main` eligible for deployment. A documentation-only human checkpoint cannot stop that path.
+
+`AGENTS.md` defines the exact `DEPLOY_APPROVAL` checklist marker. The installed updater scans tracked `docs/work/*.md` at the fetched commit before building. Unchecked markers fail closed. Checked markers log an explicit release with file and line. Records without markers and ordinary tasks pass.
+
+The same commit is used for the scan, staging checkout, and live fast-forward. This prevents a second fetch from substituting a newer unapproved candidate.
+
+For a read-only approval check, run:
+
+```bash
+/usr/local/sbin/capy-bearer-update --check-approval /opt/capy-bearer origin/main
+```
+
+The command prints the same approval results as the updater. Normal updater runs also append these results to the configured log.
 
 ## Installation
 
@@ -68,4 +80,5 @@ The service has a one-hour timeout. Its existing timer stays enabled. Inspect th
 - 2026-09-12: A plain push advanced `origin/main` from `7e571ed` to `21fb299`. No existing commit changed.
 - 2026-09-12: SHA-256 values match between all four captured assets and CT100. `bash -n` passed for the updater. Three existing backup points remain on CT100.
 - 2026-09-12: Golden and cross-directory reproducibility gates passed in `/opt/capy-bearer-staging` on CT100 at `7e571ed`. No golden rewrite flag was used. The compiler hash matches the accepted compiler. The updater lock excluded concurrent deployment during these checks.
+- 2026-09-12: Approval tests passed on the dev host. A temporary committed hold returned 1 and named its file and line. A committed checked release returned 0 and logged the release. Ordinary tasks passed. Uncommitted edits did not release a committed hold. A missing revision failed closed. No fixture marker remains in the repository.
 - 2026-09-12: Five CT100 scaling trials passed at the service's nice and I/O priorities. Depth ratios were 1.010, 1.022, 1.002, 1.016, and 0.995. Marker ratios were 2.005, 2.008, 2.010, 1.787, and 2.007. Large depth medians ranged from 15.608 to 15.823 ms. Large marker medians ranged from 64.019 to 113.818 ms. Keep the default 1000 ms absolute limit and 2 s subprocess timeout. No override is necessary.

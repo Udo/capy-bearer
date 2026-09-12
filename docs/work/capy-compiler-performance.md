@@ -22,11 +22,11 @@ Preserve these invariants:
 
 ## Current state
 
-- Status: measurement complete. The DValue helper needs approval because it changes Wasm and source-map bytes.
+- Status: deployed. The expected separate approval checkpoint was missed. Four DValue fault-injection paths remain untested.
 - Source: `/root/mount_ssh/capy-bearer`
 - Benchmark source: `tmp/ludum-cli.capy`
-- Source revision: `5f15696`
-- Runtime deployment: unchanged
+- Source revision: `7e571ed`, including the DValue helper, ownership and MySQL contract repairs, and CLI worker retirement.
+- Runtime deployment: CT100 received `7e571ed` through the nightly updater on 2026-09-05 at about 03:47 UTC.
 - Saved prototype: `tmp/dval-allocation-helper.patch`
 
 ## Goal tree
@@ -50,13 +50,13 @@ Preserve these invariants:
 - [~] G5: Retain only accepted changes.
   - [x] G5.1: Complete an adversarial review of the DValue helper.
   - [~] G5.2: Pass native and runtime acceptance. Allocation-failure injection remains untested.
-  - [ ] G5.3: Get approval for changed Wasm and source-map bytes before a commit.
+  - [-] G5.3: The expected approval before committing changed Wasm and source-map bytes was not recorded. Publication and automatic deployment occurred. This is a missed checkpoint, not completed approval.
 
 ## Decision
 
 The DValue helper is the only measured candidate worth retaining. It removes repeated generated code with no detectable runtime cost.
 
-Do not apply the saved patch until Udo accepts changed Wasm and source-map bytes. The existing revision remains deployed and unchanged.
+The helper was committed and deployed. The earlier instruction to wait for separate approval did not match the automatic deployment path. The original no-deployment invariant above was not preserved. Do not interpret this correction as retroactive approval.
 
 Do not implement the array-capacity helper. It saves only about 4 KiB and adds a call to each typed-array growth check.
 
@@ -169,11 +169,9 @@ Each fault test must verify cleanup count, payload release, ARC count, and mappe
 
 ## Next
 
-1. Decide whether the size and cold-start gains justify changed artifact bytes.
-2. If accepted, apply `tmp/dval-allocation-helper.patch`.
-3. Add fault-injection coverage and the dense-DValue size regression gate from the patch.
-4. Run the complete native, runtime, source-map, reproducibility, and golden suites.
-5. Review and commit the change. Do not deploy it without separate approval.
+1. Track the four live fault-injection gaps above. The deployment-automation task does not test them.
+2. Use the explicit `DEPLOY_APPROVAL` checklist marker from `AGENTS.md` for future changes that require approval before deployment.
+3. Keep this record's missed checkpoint visible. Do not claim that a completed commit implies separate deployment approval.
 
 ## 2026-09-04 isolated acceptance
 
@@ -194,4 +192,14 @@ The lifecycle passed these checks on isolated CT105:
 7. The Bearer cgroup recorded no OOM event. Memory returned below 700 MiB after worker replacement.
 8. A CLI request waited behind the admission lock for 12 seconds. It completed after 13 seconds without a false failure.
 
-The highest observed service memory peak was 1,993,117,696 bytes under the 3 GiB service limit. This was an isolated test deployment. Production remains unchanged. Production deployment still requires explicit approval.
+The highest observed service memory peak was 1,993,117,696 bytes under the 3 GiB service limit. Those measurements came from the isolated test deployment.
+
+## 2026-09-12 deployment record correction
+
+This record previously ended with: "Production remains unchanged. Production deployment still requires explicit approval." That claim was wrong after 2026-09-05 at about 03:47 UTC.
+
+The nightly CT100 updater deployed `7e571ed` to production. That revision includes the DValue allocation helper, ownership and MySQL contract fixes, and CLI worker retirement. Deployment occurred without the separate approval checkpoint that this record expected.
+
+The author assumed a human separated commit publication from deployment. The nightly updater instead made `origin/main` eligible for deployment without that checkpoint. An ordinary unfinished checklist item did not stop it.
+
+All four paths under Verification gaps are live and still untested by direct fault injection. The new updater approval marker provides a mechanical hold for future work. It does not establish retroactive approval or close these test gaps.
