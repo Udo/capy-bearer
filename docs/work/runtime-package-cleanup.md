@@ -46,8 +46,8 @@ Make the Bearer package install only the runtime. Follow the useful parts of the
 
 ## Next
 
-1. Commit and publish the reviewed change when approved.
-2. Build target-distribution artifacts before any server installation.
+1. Build target-distribution artifacts before any server installation.
+2. Test each package installation in a disposable host with the target distribution.
 
 ## Decisions, assumptions, and risks
 
@@ -71,3 +71,4 @@ Make the Bearer package install only the runtime. Follow the useful parts of the
 - 2026-09-12: Adversarial review found an RPM account blocker and three documentation or migration warnings. The changes add RPM-specific units, account provisioning, exact-default migration, a slim payload, and complete process-count guidance.
 - 2026-09-12: Final review rejected the world-writable RPM socket and full Wasmtime development tree. The RPM socket now uses `bearer:bearer` mode `0660`. Both packages contain only the Wasmtime shared library and license files.
 - 2026-09-12: The extracted package binary started its help path with the packaged Wasmtime shared library.
+- 2026-09-12: Commit `f2c2d65` is pushed to `origin/main`. No server received the package.
