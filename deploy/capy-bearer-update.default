@@ -1,0 +1,9 @@
+# Capy-Bearer nightly updater configuration.
+LIVE=/opt/capy-bearer
+STAGING=/opt/capy-bearer-staging
+SITE=/var/www/capy-bearer
+SITE_EXCLUDE=tests
+SERVICE=bearer
+HEALTH_HOST=capy-bearer.openfu.com
+HEALTH_PATH=/info/
+BRANCH=main

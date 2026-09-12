@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# Nightly Capy-Bearer updater.
+#
+# Builds and gates origin/main in a staging clone and only then swaps the live
+# binaries and site content. A commit that does not build, does not pass the
+# gates, or does not answer after restart never reaches the running service.
+set -uo pipefail
+
+CONFIG=/etc/default/capy-bearer-update
+# shellcheck disable=SC1090
+[[ -r $CONFIG ]] && . "$CONFIG"
+
+LIVE=${LIVE:-/opt/capy-bearer}
+STAGING=${STAGING:-/opt/capy-bearer-staging}
+SITE=${SITE:-/var/www/capy-bearer}
+SITE_EXCLUDE=${SITE_EXCLUDE:-tests}
+SERVICE=${SERVICE:-bearer}
+HEALTH_HOST=${HEALTH_HOST:-}
+HEALTH_PATH=${HEALTH_PATH:-/info/}
+BRANCH=${BRANCH:-main}
+LOG=${LOG:-/var/log/capy-bearer-update.log}
+BACKUP=${BACKUP:-/var/backups/capy-bearer}
+
+exec 9>/var/lock/capy-bearer-update.lock
+flock -n 9 || { echo "another update is running" >&2; exit 0; }
+
+log() { printf '%s %s\n' "$(date -Is)" "$*" | tee -a "$LOG" >&2; }
+fail() { log "FAILED: $*"; exit 1; }
+
+cd "$LIVE" || fail "no live checkout at $LIVE"
+
+git fetch -q origin "$BRANCH" || fail "fetch"
+local_head=$(git rev-parse HEAD)
+remote_head=$(git rev-parse "origin/$BRANCH")
+if [[ $local_head == "$remote_head" ]]; then
+	log "already at $remote_head, nothing to do"
+	exit 0
+fi
+if [[ -n $(git status --porcelain) ]]; then
+	fail "live checkout is dirty; refusing to update"
+fi
+log "update $local_head -> $remote_head"
+
+# Staging clone: build and gate here, never in the live tree.
+if [[ ! -d $STAGING/.git ]]; then
+	log "creating staging clone"
+	rm -rf "$STAGING"
+	git clone -q "$LIVE" "$STAGING" || fail "clone staging"
+	git -C "$STAGING" remote set-url origin "$(git -C "$LIVE" remote get-url origin)"
+fi
+git -C "$STAGING" fetch -q origin "$BRANCH" || fail "staging fetch"
+git -C "$STAGING" reset -q --hard "origin/$BRANCH" || fail "staging reset"
+git -C "$STAGING" clean -qfd -e bin || true
+
+log "building"
+( cd "$STAGING" && bash scripts/build_core_wasm.sh && bash scripts/build_linux.sh && bash scripts/build_capy.sh ) \
+	>>"$LOG" 2>&1 || fail "build"
+
+log "gating"
+# Not the artifact golden: capyc embeds the absolute source path in each unit,
+# so its hashes only reproduce from the directory the goldens were generated in.
+# It is a dev-host determinism check, not a deployment check.
+( cd "$STAGING" && bash scripts/test_wasm_core_smoke.sh ) >>"$LOG" 2>&1 || fail "gate: core smoke"
+( cd "$STAGING" && ./bin/capyc --check site/ ) >>"$LOG" 2>&1 || fail "gate: capyc --check site/"
+( cd "$STAGING" && bash scripts/test_capy_compile_timeout.sh ) >>"$LOG" 2>&1 || fail "gate: compile timeout"
+
+# Everything below this line touches the live service.
+stamp=$(date +%Y%m%dT%H%M%S)
+previous="$BACKUP/$stamp"
+mkdir -p "$previous/bin/wasm"
+cp -a "$LIVE/bin/bearer_fastcgi.linux.bin" "$previous/bin/" || fail "backup binary"
+cp -a "$LIVE/bin/capyc" "$previous/bin/" 2>/dev/null || true
+cp -a "$LIVE/bin/wasm/core.wasm" "$previous/bin/wasm/" || fail "backup core.wasm"
+echo "$local_head" >"$previous/revision"
+log "backed up $local_head to $previous"
+
+restore() {
+	log "rolling back to $local_head"
+	cp -a "$previous/bin/bearer_fastcgi.linux.bin" "$LIVE/bin/"
+	cp -a "$previous/bin/wasm/core.wasm" "$LIVE/bin/wasm/"
+	[[ -f $previous/bin/capyc ]] && cp -a "$previous/bin/capyc" "$LIVE/bin/"
+	git -C "$LIVE" reset -q --hard "$local_head"
+	rsync -a --delete --exclude "$SITE_EXCLUDE" "$LIVE/site/" "$SITE/"
+	systemctl restart "$SERVICE"
+}
+
+git -C "$LIVE" merge -q --ff-only "origin/$BRANCH" || fail "live fast-forward"
+install -m 0755 "$STAGING/bin/bearer_fastcgi.linux.bin" "$LIVE/bin/bearer_fastcgi.linux.bin" || fail "install binary"
+install -m 0755 "$STAGING/bin/capyc" "$LIVE/bin/capyc" || fail "install capyc"
+install -m 0644 "$STAGING/bin/wasm/core.wasm" "$LIVE/bin/wasm/core.wasm" || fail "install core.wasm"
+rsync -a --delete --exclude "$SITE_EXCLUDE" "$LIVE/site/" "$SITE/" || { restore; fail "site sync"; }
+
+log "restarting $SERVICE"
+systemctl restart "$SERVICE" || { restore; fail "restart"; }
+
+# The service must answer, not merely start.
+code=""
+for _ in $(seq 1 20); do
+	if [[ -n $HEALTH_HOST ]]; then
+		code=$(curl -s -o /dev/null -m 10 -w '%{http_code}' -H "Host: $HEALTH_HOST" "http://127.0.0.1$HEALTH_PATH" || true)
+	else
+		code=$(curl -s -o /dev/null -m 10 -w '%{http_code}' "http://127.0.0.1$HEALTH_PATH" || true)
+	fi
+	[[ $code == 200 ]] && break
+	sleep 3
+done
+if [[ $code != 200 ]]; then
+	restore
+	fail "health check returned $code after restart"
+fi
+
+log "updated to $remote_head, health 200"
+# Keep the five most recent rollback points.
+ls -1d "$BACKUP"/*/ 2>/dev/null | head -n -5 | xargs -r rm -rf
+exit 0

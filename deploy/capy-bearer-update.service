@@ -1,0 +1,11 @@
+[Unit]
+Description=Update Capy-Bearer from origin and swap only if it builds, gates, and answers
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/capy-bearer-update
+TimeoutStartSec=3600
+Nice=10
+IOSchedulingClass=idle

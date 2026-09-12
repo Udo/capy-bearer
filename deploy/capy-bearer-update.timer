@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly Capy-Bearer update
+
+[Timer]
+OnCalendar=*-*-* 03:20:00
+RandomizedDelaySec=40m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
