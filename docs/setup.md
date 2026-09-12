@@ -4,12 +4,13 @@ This guide describes how to run Capy units on Bearer behind nginx or Apache. Bea
 
 ## Deployment shape
 
-A typical deployment has four pieces:
+A typical deployment has five pieces:
 
-1. A checked-out or packaged BEARER runtime tree.
-2. `/etc/bearer/settings.cfg`, read by the BEARER runtime at startup.
-3. `bearer.service`, a systemd service that builds/starts/restarts the runtime.
-4. nginx or Apache as the public HTTP server.
+1. A checked-out or packaged Bearer runtime tree.
+2. An application tree that the runtime package does not own.
+3. `/etc/bearer/settings.cfg`, which Bearer reads at startup.
+4. `bearer.service`, which starts and restarts the runtime.
+5. nginx or Apache as the public HTTP server.
 
 Recommended filesystem layout for a source checkout (replace paths as needed):
 
@@ -24,7 +25,7 @@ Recommended filesystem layout for a source checkout (replace paths as needed):
 /var/lib/bearer/sessions              session files
 ```
 
-For packaged installs, the runtime may live under `/usr/lib/bearer` instead of your checkout root. Keep the public web root at `/var/www/html` or another normal web-root path, not under the runtime source tree.
+A packaged runtime lives under `/usr/lib/bearer`. The package does not create or populate a public webroot. Install the application separately under `/var/www/html` or another normal webroot.
 
 ## Build requirements
 
@@ -213,8 +214,10 @@ Important settings:
 - `FCGI_SOCKET_PATH` is the Unix socket used for normal `.capy` requests. Set it explicitly and keep this value and the web-server `fastcgi_pass` path identical. The reference config uses `/run/bearer/fastcgi.sock`; if you choose `/run/bearer.sock`, use it in both places.
 - `CLI_SOCKET_PATH` is a local HTTP-over-Unix socket used by `scripts/bearer-cli` and test/admin units. Keep it private (`CLI_SOCKET_MODE=0600`) unless you intentionally delegate admin/test execution to a trusted Unix group (`0660`).
 - `FCGI_SOCKET_MODE` and `CLI_SOCKET_MODE` are octal permission modes applied after socket bind. Prefer tightening `FCGI_SOCKET_MODE` to `0660` when nginx/Apache can share a trusted group with the BEARER worker.
-- `SITE_DIRECTORY` is the public site tree to scan for `.capy` files. Use `/var/www/html` when the web root is outside the runtime tree; relative paths are resolved from the runtime working directory. Installed regression gate scripts derive their temporary test root from this setting unless `BEARER_TEST_SITE_DIRECTORY` is explicitly provided.
-- `HTTP_DOCUMENT_ROOT` is the root used by the built-in HTTP/WebSocket listener when it resolves upgrade requests. Set it to the same web root as nginx/Apache.
+- `SITE_DIRECTORY` is the application tree for proactive scans, task targets, and Wasm file access. Use `/var/www/html` when the application is outside the runtime tree. Relative paths start at the runtime working directory.
+- `HTTP_DOCUMENT_ROOT` is the application root for built-in HTTP and WebSocket requests. Set it to the same root as nginx or Apache.
+- Normal FastCGI requests use the `SCRIPT_FILENAME` supplied by the web server. One Bearer instance can accept several document roots that share one trust boundary.
+- `SITE_DIRECTORY` remains process-wide. Independent applications need separate Bearer instances because scans, tasks, WebSockets, sessions, and file access share this setting and runtime state.
 - `BIN_DIRECTORY` stores runtime state plus ABI-scoped unit generations. Unit
   source maps, Wasm artifacts, serialized modules, and compile diagnostics live in
   `units-c<compiler ABI>-w<core ABI>` so an upgrade cannot mix generations.
@@ -260,6 +263,20 @@ systemctl restart bearer.service
 ```
 
 ## systemd service
+
+The supplied service runs Bearer as `www-data`, which is the Debian and Ubuntu web-runtime account. Other distributions use different names. For example, SUSE commonly uses `wwwrun`. Change `User`, `Group`, and socket ownership together when the host uses another account.
+
+The service account must read the application. It must also write the configured cache, session, upload, and task directories. Systemd creates the standard runtime, state, and cache directories for this account.
+
+The Debian package changes the owner of the standard cache and state trees once during migration. For a source checkout, migrate them before you activate the new unit:
+
+```bash
+systemctl stop bearer.service
+chown -R www-data:www-data /var/cache/bearer /var/lib/bearer
+scripts/systemd/manage-bearer-service.sh setup
+```
+
+Also change the owner of nonstandard state paths from `/etc/bearer/settings.cfg`. Do not change the complete application tree unless Bearer must write it.
 
 For source-checkout deployments, install the provided service helper:
 
@@ -331,13 +348,14 @@ Wants=network-online.target
 
 [Service]
 Type=simple
+User=www-data
+Group=www-data
 WorkingDirectory=<BEARER_REPO>
 RuntimeDirectory=bearer
 StateDirectory=bearer
 CacheDirectory=bearer
 ExecStartPre=/usr/bin/mkdir -p /var/cache/bearer/work /var/lib/bearer/uploads /var/lib/bearer/sessions
 ExecStartPre=/usr/bin/rm -f /run/bearer/fastcgi.sock
-ExecStartPre=/usr/bin/bash <BEARER_REPO>/scripts/build_linux.sh
 ExecStart=<BEARER_REPO>/bin/bearer_fastcgi.linux.bin
 ExecStopPost=/usr/bin/rm -f /run/bearer/fastcgi.sock
 Restart=always
@@ -358,7 +376,27 @@ systemctl daemon-reload
 systemctl enable --now bearer.service
 ```
 
+### Resource limits
+
+`WORKER_COUNT`, `PROACTIVE_COMPILE_JOBS`, and `TASK_WORKERS` control the main process counts. The defaults are four request workers, two scanner workers, and one task worker. Proactive compilation also starts one priority compiler. WebSocket use adds one broker process.
+
+`WASM_MEMORY_LIMIT_BYTES` limits the linear memory of one Wasm request workspace. It does not limit the complete service. Use a systemd drop-in for a total memory limit:
+
+```bash
+systemctl edit bearer.service
+```
+
+```ini
+[Service]
+MemoryHigh=1536M
+MemoryMax=2G
+```
+
+Choose limits from measurements on the target host. A package upgrade preserves the drop-in. Restart Bearer after a limit change.
+
 ### Debian package build
+
+Old experimental packages owned files in their configured webroot. Before an upgrade, deploy those files from the application source or save a backup. The package manager can remove obsolete package-owned files.
 
 To build a Debian package from the repository root:
 
@@ -366,14 +404,14 @@ To build a Debian package from the repository root:
 bash scripts/make_deb.sh 0.1.2
 ```
 
-The Debian package creator bundles Wasmtime by default when `/opt/wasi-sdk` and `/opt/wasmtime` are present. Verify the pinned SDK before building:
+The Debian package contains the Bearer runtime, configuration, service units, and Wasmtime. It does not contain an application or public webroot. Verify the pinned SDK before building:
 
 ```bash
 scripts/install_wasi_sdk.sh --check-only
 bash scripts/make_deb.sh 0.1.2
 ```
 
-This includes the resolved `/opt/wasi-sdk-...` tree, `/opt/wasi-sdk` symlink, resolved `/opt/wasmtime-...` tree, and `/opt/wasmtime` symlink in the package. It makes the package large, but keeps unit compilation during a request and runtime linking tied to the toolchain versions that passed the test suite. Set `BEARER_DEB_BUNDLE_WASI_SDK=0` or `BEARER_DEB_BUNDLE_WASMTIME=0` only if your deployment provides those exact dependencies separately.
+The package includes the Wasmtime shared library, its license files, and the `/opt/wasmtime` symlink. It omits Wasmtime headers, static libraries, and the WASI SDK. Set `BEARER_DEB_BUNDLE_WASMTIME=0` only when the host supplies the tested Wasmtime build.
 
 ### RPM package build
 
@@ -384,7 +422,9 @@ scripts/install_wasi_sdk.sh --check-only
 bash scripts/make_rpm.sh 0.1.2
 ```
 
-The RPM creator mirrors the Debian package layout: runtime files under `/usr/lib/bearer`, public files under `/var/www/html`, config under `/etc/bearer/settings.cfg`, systemd unit under `/usr/lib/systemd/system/bearer.service`, and a bundled `/opt/wasmtime` tree by default. Set `BEARER_RPM_BUNDLE_WASI_SDK=0` or `BEARER_RPM_BUNDLE_WASMTIME=0` only if your deployment provides those exact dependencies separately.
+The RPM uses the same boundary. It installs runtime files under `/usr/lib/bearer`, configuration under `/etc/bearer`, and service units under `/usr/lib/systemd/system`. It creates a dedicated `bearer` account and does not install an application.
+
+The RPM FastCGI socket uses the `bearer` group and mode `0660`. Add the nginx or Apache account to that group before you configure a route. Restart the web server after the group change. Set `BEARER_RPM_BUNDLE_WASMTIME=0` only when the host supplies the tested Wasmtime build.
 
 ## How request routing works
 

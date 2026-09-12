@@ -17,8 +17,6 @@ When VERSION is omitted, scripts/make_deb.sh reads VERSION from version.txt.
 Environment:
   BEARER_DEB_REVISION             Optional Debian package revision suffix
   BEARER_DEB_ARCH                 Override package architecture
-  BEARER_DEB_WEBROOT              Public web root staged into the package (default: /var/www/html)
-  BEARER_DEB_INCLUDE_TESTS        Include site/tests in the public web root (default: 0)
   BEARER_DEB_BUNDLE_WASMTIME      Bundle /opt/wasmtime into the package (default: 1)
 EOF
 }
@@ -52,39 +50,28 @@ validate_version() {
 
 copy_payload() {
 	local destination="$1"
-	local webroot="$2"
-	local stage_dir="$3"
-	local path
-	for path in LICENSE README.md codesearch scripts src docs; do
-		cp -a "$REPO_ROOT/$path" "$destination/"
-	done
-	mkdir -p "$destination/bin/wasm" "$destination/etc" "$stage_dir$webroot"
+	install -m 0644 "$REPO_ROOT/LICENSE" "$REPO_ROOT/README.md" "$destination/"
+	mkdir -p "$destination/bin/wasm" "$destination/scripts/systemd"
 	install -m 0755 "$REPO_ROOT/bin/bearer_fastcgi.linux.bin" "$destination/bin/"
 	install -m 0755 "$REPO_ROOT/bin/capyc" "$destination/bin/"
 	install -m 0755 "$REPO_ROOT/bin/wasm/core.wasm" "$destination/bin/wasm/"
 	if [[ -d "$REPO_ROOT/bin/assets" ]]; then cp -a "$REPO_ROOT/bin/assets" "$destination/bin/"; fi
-	cp -a "$REPO_ROOT/etc/bearer" "$destination/etc/"
-	rm -f "$destination/scripts/install_wasi_sdk.sh" "$destination/scripts/build_core_wasm.sh"
-	cp -a "$REPO_ROOT/site/." "$stage_dir$webroot/"
-	if [[ "${BEARER_DEB_INCLUDE_TESTS:-0}" != "1" ]]; then
-		rm -rf -- "$stage_dir$webroot/tests"
-	fi
-	find "$destination" "$stage_dir$webroot" -type d -name __pycache__ -exec rm -rf -- {} +
-	find "$destination" "$stage_dir$webroot" -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
+	install -m 0755 "$REPO_ROOT/scripts/bearer-cli" "$destination/scripts/"
+	install -m 0755 "$REPO_ROOT/scripts/systemd/wait-ready.sh" "$destination/scripts/systemd/"
 }
 
 write_packaged_settings() {
 	local output_file="$1"
-	local webroot="$2"
-	python3 - "$REPO_ROOT/etc/bearer/settings.cfg" "$output_file" "$webroot" <<'PY'
+	python3 - "$REPO_ROOT/etc/bearer/settings.cfg" "$output_file" <<'PY'
 from pathlib import Path
 import sys
-src, dst, webroot = sys.argv[1:4]
+src, dst = sys.argv[1:3]
 s = Path(src).read_text()
 replacements = {
-    "SITE_DIRECTORY=site": f"SITE_DIRECTORY={webroot}",
+    "SITE_DIRECTORY=site": "SITE_DIRECTORY=/var/www/html",
     "WASM_CORE_PATH=/Code/bearer.openfu.com/bearer/bin/wasm/core.wasm": "WASM_CORE_PATH=/usr/lib/bearer/bin/wasm/core.wasm",
-    "HTTP_DOCUMENT_ROOT=": f"HTTP_DOCUMENT_ROOT={webroot}",
+    "HTTP_DOCUMENT_ROOT=": "HTTP_DOCUMENT_ROOT=/var/www/html",
+    "page_runtime_error=site/errors/runtime-error.capy": "page_runtime_error=",
 }
 for old, new in replacements.items():
     if old in s:
@@ -117,12 +104,15 @@ bundle_wasmtime() {
 		echo "BEARER_DEB_BUNDLE_WASMTIME=1 but WASMTIME_HOME does not point at a complete C API tree: $wasmtime_root" >&2
 		exit 1
 	fi
-	local resolved
+	local resolved base destination
 	resolved="$(readlink -f "$wasmtime_root")"
-	local base
 	base="$(basename "$resolved")"
-	mkdir -p "$stage_dir/opt"
-	cp -a "$resolved" "$stage_dir/opt/$base"
+	destination="$stage_dir/opt/$base"
+	mkdir -p "$destination/lib"
+	cp -a "$resolved/lib"/libwasmtime.so* "$destination/lib/"
+	for file in LICENSE README.md; do
+		[[ ! -f "$resolved/$file" ]] || install -m 0644 "$resolved/$file" "$destination/$file"
+	done
 	ln -sfn "$base" "$stage_dir/opt/wasmtime"
 }
 
@@ -143,14 +133,23 @@ validate_package_payload() {
 		/usr/lib/bearer/bin/bearer_fastcgi.linux.bin \
 		/usr/lib/bearer/bin/capyc \
 		/usr/lib/bearer/bin/wasm/core.wasm \
+		/usr/lib/bearer/scripts/bearer-cli \
+		/usr/lib/bearer/scripts/systemd/wait-ready.sh \
 		/etc/bearer/settings.cfg \
 		/lib/systemd/system/bearer.service
 	do
 		grep -Fq " .$expected" <<<"$listing" || { echo "The Debian package is missing $expected." >&2; exit 1; }
 	done
-	grep -Fq " .${WEBROOT%/}/" <<<"$listing" || { echo "The Debian package is missing the web root." >&2; exit 1; }
-	if grep -Eq '/usr/lib/bearer/(scripts/(install_wasi_sdk\.sh|build_core_wasm\.sh)|opt/wasi-sdk|bin/([^/]*\.o|\.build|capyc-request-dval|tmp/))' <<<"$listing"; then
-		echo "The Debian package contains a build artifact." >&2
+	if grep -Eq ' \./?(var/www|srv/www)/' <<<"$listing"; then
+		echo "The Debian runtime package contains an application web root." >&2
+		exit 1
+	fi
+	if grep -Eq '/usr/lib/bearer/site(/|$)' <<<"$listing"; then
+		echo "The Debian runtime package contains the bundled site." >&2
+		exit 1
+	fi
+	if grep -Eq '/usr/lib/bearer/(etc|src|docs|codesearch|scripts/(test_|install_wasi_sdk\.sh|build_core_wasm\.sh)|opt/wasi-sdk|bin/([^/]*\.o|\.build|capyc-request-dval|tmp/))|/opt/wasmtime[^/]*/(include/|lib/[^ ]*\.a)' <<<"$listing"; then
+		echo "The Debian package contains a development-only file." >&2
 		exit 1
 	fi
 }
@@ -197,7 +196,6 @@ PACKAGE_BASENAME="${PACKAGE_NAME}_${PACKAGE_VERSION}_${ARCH}"
 STAGE_DIR="$REPO_ROOT/pkg/$PACKAGE_BASENAME"
 DEBIAN_DIR="$STAGE_DIR/DEBIAN"
 INSTALL_ROOT="$STAGE_DIR/usr/lib/bearer"
-WEBROOT="${BEARER_DEB_WEBROOT:-/var/www/html}"
 DIST_DIR="$REPO_ROOT/dist"
 OUTPUT_DEB="$DIST_DIR/$PACKAGE_BASENAME.deb"
 
@@ -209,10 +207,10 @@ bash "$REPO_ROOT/scripts/build_linux.sh" release
 rm -rf -- "$STAGE_DIR"
 mkdir -p "$DEBIAN_DIR" "$INSTALL_ROOT" "$STAGE_DIR/etc/bearer" "$STAGE_DIR/lib/systemd/system" "$DIST_DIR"
 
-copy_payload "$INSTALL_ROOT" "$WEBROOT" "$STAGE_DIR"
+copy_payload "$INSTALL_ROOT"
 bundle_wasmtime "$STAGE_DIR"
 
-write_packaged_settings "$STAGE_DIR/etc/bearer/settings.cfg" "$WEBROOT"
+write_packaged_settings "$STAGE_DIR/etc/bearer/settings.cfg"
 install -m 0644 "$DEB_ASSET_DIR/bearer.service" "$STAGE_DIR/lib/systemd/system/bearer.service"
 install -m 0644 "$DEB_ASSET_DIR/bearer.socket" "$STAGE_DIR/lib/systemd/system/bearer.socket"
 install -m 0644 "$DEB_ASSET_DIR/conffiles" "$DEBIAN_DIR/conffiles"
@@ -220,7 +218,7 @@ install -m 0755 "$DEB_ASSET_DIR/postinst" "$DEBIAN_DIR/postinst"
 install -m 0755 "$DEB_ASSET_DIR/prerm" "$DEBIAN_DIR/prerm"
 install -m 0755 "$DEB_ASSET_DIR/postrm" "$DEBIAN_DIR/postrm"
 
-INSTALLED_SIZE="$(du -sk "$STAGE_DIR" | awk '{print $1}')"
+INSTALLED_SIZE="$(du -sk --apparent-size "$STAGE_DIR" | awk '{print $1}')"
 write_control_file "$DEBIAN_DIR/control" "$PACKAGE_VERSION" "$ARCH" "$INSTALLED_SIZE"
 write_md5sums "$STAGE_DIR"
 

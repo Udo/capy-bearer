@@ -6,8 +6,8 @@ Requires=bearer.socket
 
 [Service]
 Type=simple
-User=www-data
-Group=www-data
+User=bearer
+Group=bearer
 WorkingDirectory=/usr/lib/bearer
 RuntimeDirectory=bearer
 RuntimeDirectoryPreserve=yes

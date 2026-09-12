@@ -5,8 +5,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PACKAGE_NAME="bearer"
 RELEASE="${BEARER_RPM_RELEASE:-1}"
-WEBROOT="${BEARER_RPM_WEBROOT:-/var/www/html}"
-
 usage() {
 	cat <<'EOF'
 Usage:
@@ -17,8 +15,6 @@ When VERSION is omitted, scripts/make_rpm.sh reads VERSION, MAJOR, and RELEASE f
 Environment:
   BEARER_RPM_RELEASE             Override RPM release suffix (default: RELEASE from version.txt)
   BEARER_RPM_ARCH                Override RPM architecture
-  BEARER_RPM_WEBROOT             Public web root staged into the package (default: /var/www/html)
-  BEARER_RPM_INCLUDE_TESTS       Include site/tests in the public web root (default: 0)
   BEARER_RPM_BUNDLE_WASMTIME     Bundle /opt/wasmtime into the package (default: 1)
 EOF
 }
@@ -48,25 +44,14 @@ resolve_arch() {
 
 copy_payload() {
 	local destination="$1"
-	local webroot="$2"
-	local stage_dir="$3"
-	local path
-	for path in LICENSE README.md codesearch scripts src docs; do
-		cp -a "$REPO_ROOT/$path" "$destination/"
-	done
-	mkdir -p "$destination/bin/wasm" "$destination/etc" "$stage_dir$webroot"
+	install -m 0644 "$REPO_ROOT/LICENSE" "$REPO_ROOT/README.md" "$destination/"
+	mkdir -p "$destination/bin/wasm" "$destination/scripts/systemd"
 	install -m 0755 "$REPO_ROOT/bin/bearer_fastcgi.linux.bin" "$destination/bin/"
 	install -m 0755 "$REPO_ROOT/bin/capyc" "$destination/bin/"
 	install -m 0755 "$REPO_ROOT/bin/wasm/core.wasm" "$destination/bin/wasm/"
 	if [[ -d "$REPO_ROOT/bin/assets" ]]; then cp -a "$REPO_ROOT/bin/assets" "$destination/bin/"; fi
-	cp -a "$REPO_ROOT/etc/bearer" "$destination/etc/"
-	rm -f "$destination/scripts/install_wasi_sdk.sh" "$destination/scripts/build_core_wasm.sh"
-	cp -a "$REPO_ROOT/site/." "$stage_dir$webroot/"
-	if [[ "${BEARER_RPM_INCLUDE_TESTS:-0}" != "1" ]]; then
-		rm -rf -- "$stage_dir$webroot/tests"
-	fi
-	find "$destination" "$stage_dir$webroot" -type d -name __pycache__ -exec rm -rf -- {} +
-	find "$destination" "$stage_dir$webroot" -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
+	install -m 0755 "$REPO_ROOT/scripts/bearer-cli" "$destination/scripts/"
+	install -m 0755 "$REPO_ROOT/scripts/systemd/wait-ready.sh" "$destination/scripts/systemd/"
 }
 
 validate_package_payload() {
@@ -76,30 +61,39 @@ validate_package_payload() {
 		/usr/lib/bearer/bin/bearer_fastcgi.linux.bin \
 		/usr/lib/bearer/bin/capyc \
 		/usr/lib/bearer/bin/wasm/core.wasm \
+		/usr/lib/bearer/scripts/bearer-cli \
+		/usr/lib/bearer/scripts/systemd/wait-ready.sh \
 		/etc/bearer/settings.cfg \
 		/usr/lib/systemd/system/bearer.service
 	do
 		grep -Fxq "$expected" <<<"$listing" || { echo "The RPM package is missing $expected." >&2; exit 1; }
 	done
-	grep -Fxq "${WEBROOT%/}" <<<"$listing" || { echo "The RPM package is missing the web root." >&2; exit 1; }
-	if grep -Eq '/usr/lib/bearer/(scripts/(install_wasi_sdk\.sh|build_core_wasm\.sh)|opt/wasi-sdk|bin/([^/]*\.o|\.build|capyc-request-dval|tmp/))' <<<"$listing"; then
-		echo "The RPM package contains a build artifact." >&2
+	if grep -Eq '^/(var/www|srv/www)(/|$)' <<<"$listing"; then
+		echo "The RPM runtime package contains an application web root." >&2
+		exit 1
+	fi
+	if grep -Eq '/usr/lib/bearer/site(/|$)' <<<"$listing"; then
+		echo "The RPM runtime package contains the bundled site." >&2
+		exit 1
+	fi
+	if grep -Eq '/usr/lib/bearer/(etc|src|docs|codesearch|scripts/(test_|install_wasi_sdk\.sh|build_core_wasm\.sh)|opt/wasi-sdk|bin/([^/]*\.o|\.build|capyc-request-dval|tmp/))|/opt/wasmtime[^/]*/(include/|lib/.*\.a$)' <<<"$listing"; then
+		echo "The RPM package contains a development-only file." >&2
 		exit 1
 	fi
 }
 
 write_packaged_settings() {
 	local output_file="$1"
-	local webroot="$2"
-	python3 - "$REPO_ROOT/etc/bearer/settings.cfg" "$output_file" "$webroot" <<'PY'
+	python3 - "$REPO_ROOT/etc/bearer/settings.cfg" "$output_file" <<'PY'
 from pathlib import Path
 import sys
-src, dst, webroot = sys.argv[1:4]
+src, dst = sys.argv[1:3]
 s = Path(src).read_text()
 replacements = {
-    "SITE_DIRECTORY=site": f"SITE_DIRECTORY={webroot}",
+    "SITE_DIRECTORY=site": "SITE_DIRECTORY=/var/www/html",
     "WASM_CORE_PATH=/Code/bearer.openfu.com/bearer/bin/wasm/core.wasm": "WASM_CORE_PATH=/usr/lib/bearer/bin/wasm/core.wasm",
-    "HTTP_DOCUMENT_ROOT=": f"HTTP_DOCUMENT_ROOT={webroot}",
+    "HTTP_DOCUMENT_ROOT=": "HTTP_DOCUMENT_ROOT=/var/www/html",
+    "page_runtime_error=site/errors/runtime-error.capy": "page_runtime_error=",
 }
 for old, new in replacements.items():
     if old in s:
@@ -118,11 +112,15 @@ bundle_wasmtime() {
 		echo "BEARER_RPM_BUNDLE_WASMTIME=1 but WASMTIME_HOME does not point at a complete C API tree: $wasmtime_root" >&2
 		exit 1
 	fi
-	local resolved base
+	local resolved base destination
 	resolved="$(readlink -f "$wasmtime_root")"
 	base="$(basename "$resolved")"
-	mkdir -p "$stage_dir/opt"
-	cp -a "$resolved" "$stage_dir/opt/$base"
+	destination="$stage_dir/opt/$base"
+	mkdir -p "$destination/lib"
+	cp -a "$resolved/lib"/libwasmtime.so* "$destination/lib/"
+	for file in LICENSE README.md; do
+		[[ ! -f "$resolved/$file" ]] || install -m 0644 "$resolved/$file" "$destination/$file"
+	done
 	ln -sfn "$base" "$stage_dir/opt/wasmtime"
 }
 
@@ -182,13 +180,13 @@ DIST_DIR="$REPO_ROOT/dist"
 bash "$REPO_ROOT/scripts/build_linux.sh" release
 
 rm -rf -- "$BUILD_ROOT"
-mkdir -p "$INSTALL_ROOT" "$STAGE_DIR/etc/bearer" "$STAGE_DIR/usr/lib/systemd/system" "$STAGE_DIR/var/cache/bearer" "$STAGE_DIR/var/lib/bearer" "$RPMBUILD_DIR"/{BUILD,RPMS,SOURCES,SPECS,SRPMS} "$DIST_DIR"
+mkdir -p "$INSTALL_ROOT" "$STAGE_DIR/etc/bearer" "$STAGE_DIR/usr/lib/systemd/system" "$RPMBUILD_DIR"/{BUILD,RPMS,SOURCES,SPECS,SRPMS} "$DIST_DIR"
 
-copy_payload "$INSTALL_ROOT" "$WEBROOT" "$STAGE_DIR"
+copy_payload "$INSTALL_ROOT"
 bundle_wasmtime "$STAGE_DIR"
-write_packaged_settings "$STAGE_DIR/etc/bearer/settings.cfg" "$WEBROOT"
-install -m 0644 "$REPO_ROOT/scripts/deb/bearer.service" "$STAGE_DIR/usr/lib/systemd/system/bearer.service"
-install -m 0644 "$REPO_ROOT/scripts/deb/bearer.socket" "$STAGE_DIR/usr/lib/systemd/system/bearer.socket"
+write_packaged_settings "$STAGE_DIR/etc/bearer/settings.cfg"
+install -m 0644 "$REPO_ROOT/scripts/rpm/bearer.service" "$STAGE_DIR/usr/lib/systemd/system/bearer.service"
+install -m 0644 "$REPO_ROOT/scripts/rpm/bearer.socket" "$STAGE_DIR/usr/lib/systemd/system/bearer.socket"
 
 OPT_FILES=""
 [[ ! -d "$STAGE_DIR/opt" ]] || OPT_FILES="/opt/*"
@@ -204,7 +202,7 @@ cat > "$SPEC_FILE" <<EOF
 Name: $PACKAGE_NAME
 Version: $VERSION
 Release: $RELEASE%{?dist}
-Summary: BEARER FastCGI runtime and live-compiling C++ web environment
+Summary: Bearer FastCGI runtime for Capy web units
 License: GPL-3.0-or-later
 URL: https://example.com/bearer
 BuildArch: $ARCH
@@ -217,10 +215,11 @@ Requires: zlib
 Requires: openssl-libs
 Requires: libstdc++
 Requires: mariadb-connector-c
+Requires(pre): shadow-utils
 
 %description
-BEARER is an experimental C/C++ web runtime with FastCGI request handling,
-on-demand wasm unit compilation, and a packaged site/doc/test tree.
+Bearer handles FastCGI requests and compiles Capy units to WebAssembly on demand.
+Applications and public web roots are packaged separately.
 
 %prep
 rm -rf %{_builddir}/$PACKAGE_NAME-$VERSION
@@ -235,7 +234,22 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}
 cp -a %{_builddir}/$PACKAGE_NAME-$VERSION/. %{buildroot}/
 
+%pre
+getent group bearer >/dev/null 2>&1 || groupadd --system bearer
+getent passwd bearer >/dev/null 2>&1 || useradd --system --gid bearer --home-dir /var/lib/bearer --shell /sbin/nologin --comment "Bearer FastCGI runtime" bearer
+
 %post
+settings=/etc/bearer/settings.cfg
+if [ -f "\$settings" ] && grep -qxF 'page_runtime_error=site/errors/runtime-error.capy' "\$settings"; then
+    sed -i 's|^page_runtime_error=site/errors/runtime-error\\.capy\$|page_runtime_error=|' "\$settings"
+fi
+owner_marker=/var/lib/bearer/.bearer-owner
+if [ ! -e "\$owner_marker" ]; then
+    mkdir -p /var/cache/bearer /var/lib/bearer
+    chown -R bearer:bearer /var/cache/bearer /var/lib/bearer
+    touch "\$owner_marker"
+    chown bearer:bearer "\$owner_marker"
+fi
 if command -v systemctl >/dev/null 2>&1; then
     systemctl daemon-reload >/dev/null 2>&1 || true
     systemctl enable bearer.socket bearer.service >/dev/null 2>&1 || true
@@ -262,9 +276,6 @@ fi
 %config(noreplace) /etc/bearer/settings.cfg
 /usr/lib/systemd/system/bearer.service
 /usr/lib/systemd/system/bearer.socket
-$WEBROOT
-%dir /var/cache/bearer
-%dir /var/lib/bearer
 $OPT_FILES
 
 %changelog

@@ -1,0 +1,15 @@
+[Unit]
+Description=BEARER FastCGI socket
+
+[Socket]
+ListenStream=/run/bearer/fastcgi.sock
+FileDescriptorName=fastcgi
+SocketUser=bearer
+SocketGroup=bearer
+SocketMode=0660
+DirectoryMode=0755
+Backlog=100
+Service=bearer.service
+
+[Install]
+WantedBy=sockets.target

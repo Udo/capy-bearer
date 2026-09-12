@@ -1,6 +1,19 @@
 #!/bin/sh
 set -e
 
+settings=/etc/bearer/settings.cfg
+if [ -f "$settings" ] && grep -qxF 'page_runtime_error=site/errors/runtime-error.capy' "$settings"; then
+	sed -i 's|^page_runtime_error=site/errors/runtime-error\.capy$|page_runtime_error=|' "$settings"
+fi
+
+owner_marker=/var/lib/bearer/.www-data-owner
+if [ ! -e "$owner_marker" ]; then
+	mkdir -p /var/cache/bearer /var/lib/bearer
+	chown -R www-data:www-data /var/cache/bearer /var/lib/bearer
+	touch "$owner_marker"
+	chown www-data:www-data "$owner_marker"
+fi
+
 if command -v systemctl >/dev/null 2>&1; then
 	systemctl daemon-reload >/dev/null 2>&1 || true
 	if [ "$1" = "configure" ]; then
