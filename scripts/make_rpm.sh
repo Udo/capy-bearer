@@ -204,7 +204,7 @@ Version: $VERSION
 Release: $RELEASE%{?dist}
 Summary: Bearer FastCGI runtime for Capy web units
 License: GPL-3.0-or-later
-URL: https://example.com/bearer
+URL: https://github.com/Udo/capy-bearer
 BuildArch: $ARCH
 Requires: bash
 Requires: python3

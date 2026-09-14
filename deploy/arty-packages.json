@@ -9,5 +9,6 @@
     {"path": "build-and-test.log", "media_type": "text/plain"}
   ],
   "lockfiles": [],
-  "test_receipt": "test-receipt.json"
+  "test_receipt": "test-receipt.json",
+  "provenance": {"source": {"repository": "https://github.com/Udo/capy-bearer"}}
 }

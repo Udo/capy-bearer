@@ -85,6 +85,21 @@ class ArtyReleasePilotTest(unittest.TestCase):
         })())
         return target
 
+    def test_receipts_accept_additional_fields(self):
+        receipt = self.external_receipt()
+        data = json.loads(receipt.read_text())
+        data["build_platform"] = "linux"
+        data["artifacts"][0]["bytes"] = 1
+        receipt.write_text(json.dumps(data))
+        tests = self.external_test_receipt()
+        data = json.loads(tests.read_text())
+        data["limitations"] = ["none"]
+        data["tests"][0]["seconds"] = 1.5
+        tests.write_text(json.dumps(data))
+        revision = self.git("rev-parse", "HEAD").stdout.strip()
+        self.assertEqual(pilot.read_receipt(receipt)[0], revision)
+        self.assertEqual(pilot.read_test_receipt(tests), revision)
+
     def test_stage_copies_external_receipt_and_rejects_unidentified_outputs(self):
         receipt = self.external_receipt()
         bundle = self.stage("bundle", receipt)

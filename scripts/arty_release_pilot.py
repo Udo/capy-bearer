@@ -67,7 +67,7 @@ def read_receipt(path):
         value = json.loads(regular_file(path.parent, path.name).read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         fail(f"invalid acceptance receipt: {error}")
-    if not isinstance(value, dict) or set(value) != {"schema_version", "source_revision", "artifacts"} or value["schema_version"] != 1:
+    if not isinstance(value, dict) or not {"schema_version", "source_revision", "artifacts"} <= set(value) or value["schema_version"] != 1:
         fail("the acceptance receipt has an invalid shape")
     revision = value["source_revision"]
     if not isinstance(revision, str) or len(revision) != 40 or any(char not in HEX for char in revision):
@@ -77,7 +77,7 @@ def read_receipt(path):
         fail("the acceptance receipt has an invalid artifact list")
     recorded = {}
     for item in artifacts:
-        if not isinstance(item, dict) or set(item) != {"path", "sha256"}:
+        if not isinstance(item, dict) or not {"path", "sha256"} <= set(item):
             fail("the acceptance receipt has an invalid artifact")
         relative, digest = item["path"], item["sha256"]
         if not isinstance(relative, str) or not isinstance(digest, str) or len(digest) != 64 or any(char not in HEX for char in digest):
@@ -95,7 +95,7 @@ def read_test_receipt(path):
         value = json.loads(regular_file(path.parent, path.name).read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         fail(f"invalid test receipt: {error}")
-    if not isinstance(value, dict) or set(value) != {"schema_version", "source_revision", "tests"} or value["schema_version"] != 1:
+    if not isinstance(value, dict) or not {"schema_version", "source_revision", "tests"} <= set(value) or value["schema_version"] != 1:
         fail("the test receipt has an invalid shape")
     revision, tests = value["source_revision"], value["tests"]
     if not isinstance(revision, str) or len(revision) != 40 or any(char not in HEX for char in revision):
@@ -103,7 +103,7 @@ def read_test_receipt(path):
     if not isinstance(tests, list) or not tests:
         fail("the test receipt has no test evidence")
     for test in tests:
-        if not isinstance(test, dict) or set(test) != {"command", "result"} or not isinstance(test["command"], str) or not test["command"] or test["result"] != "passed":
+        if not isinstance(test, dict) or not {"command", "result"} <= set(test) or not isinstance(test["command"], str) or not test["command"] or test["result"] != "passed":
             fail("the test receipt has invalid test evidence")
     return revision
 

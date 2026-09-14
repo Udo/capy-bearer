@@ -31,5 +31,10 @@
   "lockfiles": [
     "editors/vscode/package-lock.json"
   ],
-  "test_receipt": "test-receipt.json"
+  "test_receipt": "test-receipt.json",
+  "provenance": {
+    "source": {
+      "repository": "https://github.com/Udo/capy-bearer"
+    }
+  }
 }
